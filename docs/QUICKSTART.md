@@ -20,10 +20,10 @@ cd backend
 pip install -r requirements.txt
 
 # 启动后端服务
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 19092
 ```
 
-后端服务将在 http://localhost:8000 启动
+后端服务将在 http://localhost:19092 启动
 
 ### 2. 启动前端应用
 
@@ -40,26 +40,26 @@ npm install
 npm run dev
 ```
 
-前端应用将在 http://localhost:3000 启动
+前端应用将在 http://localhost:5178 启动
 
 ### 3. 访问应用
 
-在浏览器中打开 http://localhost:3000
+在浏览器中打开 http://localhost:5178
 
 ## 验证安装
 
 ### 验证后端
 
-访问 http://localhost:8000/docs 查看API文档
+访问 http://localhost:19092/docs 查看API文档
 
 或使用curl测试：
 ```bash
-curl http://localhost:8000/api/tools
+curl http://localhost:19092/api/tools
 ```
 
 ### 验证前端
 
-1. 打开 http://localhost:3000
+1. 打开 http://localhost:5178
 2. 应该看到完整的工具箱页面
 3. 尝试点击分类标签筛选工具
 4. 尝试在搜索框中搜索工具
@@ -68,11 +68,11 @@ curl http://localhost:8000/api/tools
 
 ### 端口被占用
 
-如果8000或3000端口被占用，可以修改端口：
+如果19092或5178端口被占用，可以修改端口：
 
 **后端：**
 ```bash
-uvicorn app.main:app --reload --port 8001
+uvicorn app.main:app --reload --port 19093
 ```
 
 **前端：**

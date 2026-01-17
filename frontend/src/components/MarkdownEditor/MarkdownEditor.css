@@ -1,0 +1,598 @@
+/* ========================================
+   🌟 CYBERPUNK NEON DARK THEME 🌟
+   ======================================== */
+
+/* CSS Variables for Neon Colors */
+:root {
+  --neon-cyan: #00f5ff;
+  --neon-pink: #ff2d95;
+  --neon-purple: #a855f7;
+  --neon-blue: #3b82f6;
+  --neon-green: #00ff88;
+  --neon-orange: #ff6b35;
+  --neon-yellow: #fbbf24;
+  
+  --bg-dark: #0a0a12;
+  --bg-darker: #06060a;
+  --bg-card: #0f0f1a;
+  --bg-elevated: #141420;
+  --bg-hover: #1a1a2e;
+  
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0b8;
+  --text-muted: #606078;
+  
+  --border-color: #1e1e32;
+  --border-glow: rgba(0, 245, 255, 0.4);
+  
+  --glow-cyan: 0 0 20px rgba(0, 245, 255, 0.5), 0 0 40px rgba(0, 245, 255, 0.2);
+  --glow-pink: 0 0 20px rgba(255, 45, 149, 0.5), 0 0 40px rgba(255, 45, 149, 0.2);
+  --glow-purple: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.2);
+}
+
+.markdown-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Light theme */
+.markdown-editor-container:not(.dark-theme) {
+  --bg-dark: #f8f9fc;
+  --bg-darker: #eef0f5;
+  --bg-card: #ffffff;
+  --bg-elevated: #f0f2f8;
+  --bg-hover: #e8eaf2;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a68;
+  --text-muted: #8888a0;
+  --border-color: #d8dae5;
+  --neon-cyan: #0891b2;
+  --neon-pink: #db2777;
+  --neon-purple: #7c3aed;
+}
+
+/* ========================================
+   HEADER - Neon Glow Bar
+   ======================================== */
+.header {
+  height: 56px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--neon-cyan) 25%, 
+    var(--neon-pink) 50%, 
+    var(--neon-purple) 75%, 
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--neon-cyan) 20%, 
+    var(--neon-pink) 50%, 
+    var(--neon-purple) 80%, 
+    transparent 100%
+  );
+  opacity: 0.8;
+}
+
+.dark-theme .header {
+  box-shadow: 0 4px 30px rgba(0, 245, 255, 0.08);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-left h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-pink) 50%, var(--neon-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Neon Buttons */
+.neon-button-group {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.neon-button-group .neon-button {
+  border: none;
+  border-right: 1px solid var(--border-color);
+  border-radius: 0;
+}
+
+.neon-button-group .neon-button:last-child {
+  border-right: none;
+}
+
+.neon-button {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.25s ease;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 4px;
+  height: 32px;
+}
+
+.neon-button:hover {
+  background: var(--bg-hover);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 245, 255, 0.2);
+  z-index: 1;
+}
+
+.neon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.neon-button.primary {
+  background: var(--bg-hover);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+}
+
+.neon-button.icon-only {
+  padding: 0;
+  width: 32px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+}
+
+.neon-button.icon-only:hover {
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+  box-shadow: 0 0 15px rgba(255, 45, 149, 0.3);
+  transform: scale(1.08);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: var(--bg-dark);
+}
+
+/* ========================================
+   SIDEBAR - File Tree
+   ======================================== */
+.sidebar {
+  min-width: 180px;
+  max-width: 400px;
+  border-right: 1px solid var(--border-color);
+  overflow: auto;
+  background: var(--bg-card);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, 
+    var(--neon-cyan) 0%, 
+    var(--neon-purple) 50%, 
+    var(--neon-pink) 100%
+  );
+  opacity: 0.3;
+}
+
+.dark-theme .sidebar {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+.no-folder-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: var(--text-muted);
+  gap: 16px;
+}
+
+/* ========================================
+   RESIZE HANDLE - Neon Glow
+   ======================================== */
+.resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 60px;
+  background: var(--border-color);
+  border-radius: 2px;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.resize-handle:hover {
+  background: rgba(0, 245, 255, 0.05);
+}
+
+.resize-handle:hover::before {
+  opacity: 1;
+  background: linear-gradient(180deg, var(--neon-cyan), var(--neon-pink));
+  box-shadow: var(--glow-cyan);
+  height: 80px;
+}
+
+/* ========================================
+   EDITOR AREA
+   ======================================== */
+.editor-area {
+  flex: 1;
+  overflow: hidden;
+  min-width: 200px;
+  background: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+}
+
+.dark-theme .editor-area {
+  background: var(--bg-dark);
+}
+
+/* ========================================
+   PREVIEW AREA
+   ======================================== */
+.preview-area {
+  min-width: 100px;
+  overflow: auto;
+  border-left: 1px solid var(--border-color);
+  flex-shrink: 0;
+  background: var(--bg-card);
+  position: relative;
+}
+
+.preview-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, 
+    var(--neon-purple) 0%, 
+    var(--neon-pink) 50%, 
+    var(--neon-cyan) 100%
+  );
+  opacity: 0.3;
+}
+
+.dark-theme .preview-area {
+  border-color: var(--border-color);
+  background: var(--bg-card);
+}
+
+/* ========================================
+   VIEW MODE
+   ======================================== */
+.content-area.view-mode {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  background: var(--bg-dark);
+}
+
+.dark-theme .content-area.view-mode {
+  background: var(--bg-dark);
+}
+
+.view-mode-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ========================================
+   TOC SIDEBAR - Neon Navigation
+   ======================================== */
+.toc-sidebar {
+  min-width: 150px;
+  max-width: 400px;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.toc-sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, 
+    var(--neon-purple) 0%, 
+    var(--neon-cyan) 100%
+  );
+  opacity: 0.3;
+}
+
+.dark-theme .toc-sidebar {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+.toc-sidebar-header {
+  padding: 16px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+}
+
+.dark-theme .toc-sidebar-header {
+  color: var(--neon-cyan);
+  border-color: var(--border-color);
+  background: var(--bg-elevated);
+  text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+
+.toc-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.toc-nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-nav-item {
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  line-height: 1.5;
+  position: relative;
+}
+
+.toc-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--neon-cyan);
+  border-left-color: var(--neon-cyan);
+}
+
+.toc-nav-item.active {
+  background: rgba(0, 245, 255, 0.1);
+  color: var(--neon-cyan);
+  border-left-color: var(--neon-cyan);
+  font-weight: 600;
+}
+
+.dark-theme .toc-nav-item.active {
+  text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+
+/* TOC Level Indentation */
+.toc-nav-item.toc-level-1 { 
+  padding-left: 20px; 
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.toc-nav-item.toc-level-2 { padding-left: 32px; }
+.toc-nav-item.toc-level-3 { 
+  padding-left: 44px; 
+  font-size: 12px;
+}
+.toc-nav-item.toc-level-4 { 
+  padding-left: 56px; 
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.toc-nav-item.toc-level-5,
+.toc-nav-item.toc-level-6 { 
+  padding-left: 68px; 
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.toc-empty {
+  padding: 24px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  font-style: italic;
+}
+
+.toc-resize {
+  width: 6px;
+}
+
+.preview-full {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg-card);
+}
+
+.dark-theme .preview-full {
+  background: var(--bg-card);
+}
+
+/* ========================================
+   STATUS BAR
+   ======================================== */
+.status-bar {
+  height: 28px;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-item.mode-indicator {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.status-item.mode-indicator.edit-mode {
+  background: rgba(0, 245, 255, 0.1);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0, 245, 255, 0.2);
+}
+
+.status-saved { color: var(--neon-green); }
+.status-unsaved { color: var(--neon-orange); }
+.status-saving { color: var(--neon-blue); }
+.status-error { color: var(--neon-pink); }
+
+/* ========================================
+   EMPTY STATES
+   ======================================== */
+.empty-state {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--bg-dark);
+}
+
+/* ========================================
+   FILE TREE
+   ======================================== */
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  line-height: 1.5;
+  user-select: none;
+}
+
+.file-tree-item:hover {
+  background: var(--bg-hover);
+  color: var(--neon-cyan);
+}
+
+.file-tree-item.active {
+  background: rgba(0, 245, 255, 0.1);
+  color: var(--neon-cyan);
+  border-left-color: var(--neon-cyan);
+  font-weight: 600;
+}
+
+.dark-theme .file-tree-item.active {
+  text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+
+.file-tree-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.file-tree-icon svg {
+  width: 100%;
+  height: 100%;
+}

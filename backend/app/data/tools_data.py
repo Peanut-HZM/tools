@@ -61,6 +61,16 @@ TOOLS_DATA = [
         rating=4.8,
         usageCount="2.5K",
         category="开发工具"
+    ),
+    Tool(
+        id="markdown-editor",
+        icon="fa-file-alt",
+        iconColor="bg-indigo-500",
+        title="Markdown编辑器",
+        description="功能强大的Markdown编辑器，支持实时预览、语法高亮、文件管理等功能",
+        rating=4.9,
+        usageCount="3.8K",
+        category="开发工具"
     )
 ]
 

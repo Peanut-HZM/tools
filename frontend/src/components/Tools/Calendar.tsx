@@ -60,7 +60,7 @@ export default function Calendar() {
   // 获取假期数据
   const fetchHolidaysForYear = useCallback(async (year: number): Promise<Map<string, { name: string; isOffDay: boolean }>> => {
     try {
-      const response = await fetch(`http://localhost:8000/api/tools/holidays/${year}`);
+      const response = await fetch(`http://localhost:19092/api/tools/holidays/${year}`);
       if (response.ok) {
         const data: HolidayData = await response.json();
         const holidayMap = new Map<string, { name: string; isOffDay: boolean }>();
@@ -79,7 +79,7 @@ export default function Calendar() {
   const fetchLunarData = useCallback(async (startDate: string, endDate: string): Promise<Map<string, LunarData>> => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/tools/lunar/range?start=${startDate}&end=${endDate}`
+        `http://localhost:19092/api/tools/lunar/range?start=${startDate}&end=${endDate}`
       );
       if (response.ok) {
         const data = await response.json();

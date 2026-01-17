@@ -12,6 +12,8 @@ import JsonFormatter from './components/Tools/JsonFormatter';
 import Calendar from './components/Tools/Calendar';
 import AIAssistant from './components/Tools/AIAssistant';
 import KeyGenerator from './components/Tools/KeyGenerator';
+import MarkdownEditorTool from './components/Tools/MarkdownEditorTool';
+import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { useSearch } from './hooks/useSearch';
 import { fetchTools, searchTools, fetchToolsByCategory } from './services/api';
@@ -102,6 +104,7 @@ function HomePage() {
       'calendar': '/tools/calendar',
       'ai-assistant': '/tools/ai-assistant',
       'key-generator': '/tools/key-generator',
+      'markdown-editor': '/tools/markdown-editor',
     };
 
     const route = toolRoutes[toolId];
@@ -153,17 +156,20 @@ function HomePage() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/tools/image-downloader" element={<ImageDownloader />} />
-        <Route path="/tools/video-downloader" element={<VideoDownloader />} />
-        <Route path="/tools/json-formatter" element={<JsonFormatter />} />
-        <Route path="/tools/calendar" element={<Calendar />} />
-        <Route path="/tools/ai-assistant" element={<AIAssistant />} />
-        <Route path="/tools/key-generator" element={<KeyGenerator />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/tools/image-downloader" element={<ImageDownloader />} />
+          <Route path="/tools/video-downloader" element={<VideoDownloader />} />
+          <Route path="/tools/json-formatter" element={<JsonFormatter />} />
+          <Route path="/tools/calendar" element={<Calendar />} />
+          <Route path="/tools/ai-assistant" element={<AIAssistant />} />
+          <Route path="/tools/key-generator" element={<KeyGenerator />} />
+          <Route path="/tools/markdown-editor" element={<MarkdownEditorTool />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

@@ -21,6 +21,9 @@
 - ⚡ **高性能** - 基于Vite构建，快速加载和热更新
 - 🛡️ **隐私保护** - 本地处理，数据不上传
 - 🎯 **交互友好** - 流畅的动画效果和即时反馈
+- 📝 **Markdown编辑器** - 功能完整的Markdown编辑器，支持实时预览
+- 🔐 **用户认证** - JWT认证系统，支持用户注册和登录
+- 👤 **用户隔离** - 每个用户拥有独立的文件存储空间
 
 ## 🚀 快速开始
 
@@ -40,7 +43,7 @@
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 19092
 ```
 
 2. **启动前端**
@@ -51,7 +54,7 @@ npm run dev
 ```
 
 3. **访问应用**
-打开浏览器访问 http://localhost:3000
+打开浏览器访问 http://localhost:5178
 
 ## 🛠️ 技术栈
 
@@ -116,6 +119,21 @@ tool-aggregation-website/
 - 评分和使用统计
 - 点击跳转功能
 
+### Markdown编辑器 (新增)
+- 📁 文件树管理 - 浏览、创建、删除、重命名文件和目录
+- ✏️ Markdown编辑 - 支持语法高亮和快捷键
+- 👁️ 实时预览 - 编辑/预览/分屏三种模式
+- 🔍 全文搜索 - 支持文件名和内容搜索
+- ⚙️ 配置管理 - 主题、字体、自动保存等可配置
+- 🌐 国际化 - 支持中文和英文界面
+- 💾 自动保存 - 可配置的自动保存间隔
+
+### 用户认证系统 (新增)
+- 用户注册和登录
+- JWT令牌认证
+- 会话持久化
+- 路由保护
+
 ### 搜索和筛选
 - 实时搜索（300ms防抖）
 - 6大分类筛选
@@ -130,22 +148,78 @@ tool-aggregation-website/
 
 ## 🔌 API端点
 
-### 获取所有工具
+### 工具API
+
+#### 获取所有工具
 ```
 GET /api/tools
 ```
 
-### 搜索工具
+#### 搜索工具
 ```
 GET /api/tools/search?q={query}
 ```
 
-### 按分类获取工具
+#### 按分类获取工具
 ```
 GET /api/tools/category/{category}
 ```
 
-访问 http://localhost:8000/docs 查看完整的API文档。
+### 认证API
+
+#### 用户注册
+```
+POST /api/auth/register
+Body: { "username": "string", "email": "string", "password": "string" }
+```
+
+#### 用户登录
+```
+POST /api/auth/login
+Body: { "username": "string", "password": "string" }
+```
+
+#### 获取当前用户
+```
+GET /api/auth/me
+Headers: Authorization: Bearer {token}
+```
+
+### Markdown编辑器API
+
+#### 获取目录树
+```
+GET /api/markdown-editor/files/tree
+Headers: Authorization: Bearer {token}
+```
+
+#### 读取文件
+```
+GET /api/markdown-editor/files/read?path={path}
+Headers: Authorization: Bearer {token}
+```
+
+#### 保存文件
+```
+POST /api/markdown-editor/files/save
+Headers: Authorization: Bearer {token}
+Body: { "path": "string", "content": "string" }
+```
+
+#### 搜索文件
+```
+GET /api/markdown-editor/search/files?keyword={keyword}
+Headers: Authorization: Bearer {token}
+```
+
+#### 获取/保存配置
+```
+GET /api/markdown-editor/config
+POST /api/markdown-editor/config
+Headers: Authorization: Bearer {token}
+```
+
+访问 http://localhost:19092/docs 查看完整的API文档。
 
 ## 🎨 设计规范
 

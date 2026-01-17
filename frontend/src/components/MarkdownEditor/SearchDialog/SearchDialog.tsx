@@ -1,0 +1,220 @@
+/**
+ * SearchDialog Component - File and content search
+ */
+import { useState, useCallback } from 'react';
+import * as markdownEditorApi from '../../../api/markdownEditorApi';
+import type { FileSearchResult, ContentSearchResult } from '../../../types/markdownEditor';
+
+interface SearchDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onFileSelect: (path: string) => void;
+}
+
+type SearchType = 'file' | 'content';
+
+export default function SearchDialog({ open, onClose, onFileSelect }: SearchDialogProps) {
+  const [searchType, setSearchType] = useState<SearchType>('file');
+  const [keyword, setKeyword] = useState('');
+  const [useRegex, setUseRegex] = useState(false);
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [fileResults, setFileResults] = useState<FileSearchResult[]>([]);
+  const [contentResults, setContentResults] = useState<ContentSearchResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearch = useCallback(async () => {
+    if (!keyword.trim()) return;
+
+    setIsSearching(true);
+    setError(null);
+    setFileResults([]);
+    setContentResults([]);
+
+    try {
+      if (searchType === 'file') {
+        const results = await markdownEditorApi.searchFiles(keyword);
+        setFileResults(results);
+      } else {
+        const results = await markdownEditorApi.searchContent(keyword, useRegex, caseSensitive);
+        setContentResults(results);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Search failed');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [keyword, searchType, useRegex, caseSensitive]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }, [handleSearch, onClose]);
+
+  const handleFileClick = useCallback((path: string) => {
+    onFileSelect(path);
+    onClose();
+  }, [onFileSelect, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-20 z-50">
+      <div className="bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[70vh] flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-slate-700">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-white">搜索</h2>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Search Type Tabs */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setSearchType('file')}
+              className={`px-3 py-1 rounded text-sm cursor-pointer ${
+                searchType === 'file'
+                  ? 'bg-cyan-500 text-white'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              文件名搜索
+            </button>
+            <button
+              onClick={() => setSearchType('content')}
+              className={`px-3 py-1 rounded text-sm cursor-pointer ${
+                searchType === 'content'
+                  ? 'bg-cyan-500 text-white'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              内容搜索
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={searchType === 'file' ? '输入文件名...' : '输入搜索内容...'}
+              className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              autoFocus
+            />
+            <button
+              onClick={handleSearch}
+              disabled={isSearching || !keyword.trim()}
+              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 text-white rounded text-sm cursor-pointer"
+            >
+              {isSearching ? '搜索中...' : '搜索'}
+            </button>
+          </div>
+
+          {/* Content Search Options */}
+          {searchType === 'content' && (
+            <div className="flex gap-4 mt-3">
+              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useRegex}
+                  onChange={(e) => setUseRegex(e.target.checked)}
+                  className="rounded"
+                />
+                正则表达式
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={caseSensitive}
+                  onChange={(e) => setCaseSensitive(e.target.checked)}
+                  className="rounded"
+                />
+                区分大小写
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Results */}
+        <div className="flex-1 overflow-auto p-4">
+          {error && (
+            <div className="text-red-400 text-sm mb-4">{error}</div>
+          )}
+
+          {/* File Search Results */}
+          {searchType === 'file' && fileResults.length > 0 && (
+            <div className="space-y-2">
+              {fileResults.map((result) => (
+                <div
+                  key={result.path}
+                  onClick={() => handleFileClick(result.path)}
+                  className="p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700 cursor-pointer"
+                >
+                  <div className="text-white text-sm font-medium">{result.name}</div>
+                  <div className="text-slate-400 text-xs mt-1">{result.path}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Content Search Results */}
+          {searchType === 'content' && contentResults.length > 0 && (
+            <div className="space-y-4">
+              {contentResults.map((result) => (
+                <div key={result.file} className="bg-slate-700/50 rounded-lg overflow-hidden">
+                  <div
+                    onClick={() => handleFileClick(result.file)}
+                    className="p-3 bg-slate-700 cursor-pointer hover:bg-slate-600"
+                  >
+                    <div className="text-white text-sm font-medium">{result.file}</div>
+                    <div className="text-slate-400 text-xs mt-1">
+                      {result.matches.length} 个匹配
+                    </div>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    {result.matches.slice(0, 5).map((match, idx) => (
+                      <div key={idx} className="text-sm">
+                        <span className="text-slate-500">行 {match.line}: </span>
+                        <span className="text-slate-300">{match.content}</span>
+                      </div>
+                    ))}
+                    {result.matches.length > 5 && (
+                      <div className="text-slate-500 text-xs">
+                        还有 {result.matches.length - 5} 个匹配...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No Results */}
+          {!isSearching && keyword && fileResults.length === 0 && contentResults.length === 0 && !error && (
+            <div className="text-center text-slate-400 py-8">
+              未找到匹配结果
+            </div>
+          )}
+
+          {/* Initial State */}
+          {!keyword && (
+            <div className="text-center text-slate-400 py-8">
+              输入关键词开始搜索
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

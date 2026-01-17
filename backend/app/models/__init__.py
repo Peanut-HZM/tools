@@ -1,6 +1,8 @@
+# Models package
 from pydantic import BaseModel
 from typing import Literal
 
+# Tool models (from old models.py)
 Category = Literal["全部工具", "文本工具", "转换工具", "计算工具", "设计工具", "实用工具"]
 
 class Tool(BaseModel):
@@ -23,3 +25,9 @@ class SearchResponse(BaseModel):
 class CategoryResponse(BaseModel):
     tools: list[Tool]
     category: str
+
+# Re-export from submodules
+from app.models.auth_models import *
+from app.models.file_models import *
+from app.models.config_models import *
+from app.models.search_models import *

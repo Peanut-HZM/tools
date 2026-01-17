@@ -36,7 +36,7 @@ export default function KeyGenerator() {
   useEffect(() => {
     const fetchAlgorithms = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/tools/key-algorithms');
+        const response = await fetch('http://localhost:19092/api/tools/key-algorithms');
         if (response.ok) {
           const data = await response.json();
           setAlgorithms(data.algorithms);
@@ -59,7 +59,7 @@ export default function KeyGenerator() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/tools/generate-key', {
+      const response = await fetch('http://localhost:19092/api/tools/generate-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
