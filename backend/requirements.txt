@@ -1,0 +1,11 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+beautifulsoup4==4.12.2
+requests==2.31.0
+lxml==4.9.3
+yt-dlp>=2023.12.30
+aiofiles>=23.2.1
+slowapi>=0.1.9
+imageio-ffmpeg>=0.4.9

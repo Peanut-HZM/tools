@@ -1,0 +1,23 @@
+import { SearchBarProps } from '../../types';
+
+export default function SearchBar({ value, onChange, onSearch }: SearchBarProps) {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      onSearch();
+    }
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        placeholder="搜索工具..."
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyPress={handleKeyPress}
+        className="search-input bg-slate-700 text-white px-4 py-2 pl-10 rounded-lg border border-slate-600 focus:border-primary w-64"
+      />
+      <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+    </div>
+  );
+}
