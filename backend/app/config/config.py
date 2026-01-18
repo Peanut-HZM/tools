@@ -37,4 +37,12 @@ class Settings(BaseSettings):
     ALIYUN_OSS_CALLBACK_URL: str = ""
     
     class Config:
-        env_
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
+
+@lru_cache()
+def get_settings():
+    return Settings()
+
+settings = get_settings()
