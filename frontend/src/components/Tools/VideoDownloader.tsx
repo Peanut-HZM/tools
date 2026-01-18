@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../config/api';
 
 interface VideoInfo {
   url: string;
@@ -47,7 +48,7 @@ export default function VideoDownloader() {
     setVideos([]);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/tools/extract-videos`, {
+      const response = await fetch(`${API_BASE_URL}/tools/extract-videos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +132,7 @@ export default function VideoDownloader() {
       // 检查是否是HLS视频
       if (videoUrl.includes('.m3u8') || videoUrl.includes('/hls/') || videoUrl.includes('.ts')) {
         // 先尝试获取错误信息
-        const response = await fetch(`http://localhost:8000/api/tools/download-video?url=${encodeURIComponent(videoUrl)}`);
+        const response = await fetch(`${API_BASE_URL}/tools/download-video?url=${encodeURIComponent(videoUrl)}`);
         if (!response.ok) {
           const errorData = await response.json();
           alert(errorData.detail || '这是HLS流媒体视频，需要使用专业工具下载');
@@ -140,7 +141,7 @@ export default function VideoDownloader() {
       }
       
       // 使用后端代理下载
-      const proxyUrl = `http://localhost:8000/api/tools/download-video?url=${encodeURIComponent(videoUrl)}`;
+      const proxyUrl = `${API_BASE_URL}/tools/download-video?url=${encodeURIComponent(videoUrl)}`;
       
       const link = document.createElement('a');
       link.href = proxyUrl;
@@ -189,7 +190,7 @@ export default function VideoDownloader() {
   const downloadWithYtdlp = async (videoUrl: string, videoIndex: number) => {
     try {
       // 创建下载任务
-      const response = await fetch('http://localhost:8000/api/tools/download-video-ytdlp', {
+      const response = await fetch(`${API_BASE_URL}/tools/download-video-ytdlp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +230,7 @@ export default function VideoDownloader() {
   const pollTaskStatus = async (taskId: string, videoIndex: number) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/tools/download-task/${taskId}`);
+        const response = await fetch(`${API_BASE_URL}/tools/download-task/${taskId}`);
         
         if (!response.ok) {
           throw new Error('查询任务状态失败');
@@ -263,7 +264,7 @@ export default function VideoDownloader() {
 
   const downloadCompletedFile = async (taskId: string, videoIndex: number) => {
     try {
-      const downloadUrl = `http://localhost:8000/api/tools/download-file/${taskId}`;
+      const downloadUrl = `${API_BASE_URL}/tools/download-file/${taskId}`;
       
       // 获取文件
       const response = await fetch(downloadUrl);

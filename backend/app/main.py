@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.routes import tools, image_downloader, video_downloader, ytdlp_routes, calendar, key_generator, converter
+from app.routes import tools, image_downloader, video_downloader, ytdlp_routes, calendar, key_generator, converter, oss, admin
 from app.routes import auth
 from app.routes import markdown_editor
 from app.services.download_manager import get_manager
@@ -9,11 +9,13 @@ import asyncio
 import logging
 import os
 
+from app.config.config import settings
+
 logger = logging.getLogger(__name__)
 
-# JWT Configuration (can be overridden by environment variables)
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "your-secret-key-change-in-production")
-JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "1440"))  # 24 hours default
+# JWT Configuration (from settings)
+JWT_SECRET_KEY = settings.JWT_SECRET_KEY
+JWT_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,19 +43,11 @@ app = FastAPI(
 )
 
 # Configure CORS - Updated to support Authorization header
+cors_origins = settings.CORS_ORIGINS.split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://localhost:5177",
-        "http://localhost:5178",
-        "http://localhost:5179",
-        "http://localhost:5180",
-        "http://localhost:3000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*", "Authorization"],
@@ -76,6 +70,12 @@ app.include_router(markdown_editor.router)
 
 # Document Converter router
 app.include_router(converter.router)
+
+# OSS router
+app.include_router(oss.router)
+
+# Admin router
+app.include_router(admin.router)
 
 @app.get("/")
 def read_root():

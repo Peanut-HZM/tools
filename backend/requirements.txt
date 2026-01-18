@@ -5,6 +5,9 @@ uvicorn[standard]==0.24.0
 # Data validation
 pydantic==2.5.0
 pydantic[email]>=2.5.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+oss2>=2.18.0
 
 # File handling
 aiofiles>=23.2.1
@@ -39,6 +42,9 @@ pdfminer.six
 
 # Calendar/Lunar date
 lunardate>=0.2.0
+
+# Database
+psycopg2-binary>=2.9.9
 
 # Testing
 pytest>=7.4.0

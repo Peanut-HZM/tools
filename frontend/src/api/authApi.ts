@@ -2,7 +2,9 @@
  * Authentication API Client
  */
 
-const API_BASE_URL = 'http://localhost:19092/api/auth';
+import { AUTH_API_BASE_URL } from '../config/api';
+
+const API_BASE_URL = AUTH_API_BASE_URL;
 
 export interface LoginRequest {
   username: string;
@@ -13,12 +15,16 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
+  phone?: string;
+  email_code?: string;
+  phone_code?: string;
 }
 
 export interface AuthResponse {
   user_id: string;
   username: string;
   email: string;
+  role: string;
   token: string;
 }
 
@@ -26,6 +32,7 @@ export interface UserResponse {
   user_id: string;
   username: string;
   email: string;
+  role: string;
   created_at: string;
 }
 
@@ -92,6 +99,26 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
   const result = await response.json();
   setAuthToken(result.token);
   return result;
+}
+
+/**
+ * Send verification code
+ */
+export async function sendVerificationCode(target: string, type: 'email' | 'phone'): Promise<boolean> {
+  const response = await fetch(`${API_BASE_URL}/send-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ target, type })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to send verification code');
+  }
+
+  return response.json();
 }
 
 /**

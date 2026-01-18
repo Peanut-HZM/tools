@@ -57,6 +57,47 @@ async def get_current_user_id(authorization: Optional[str] = Header(None)) -> st
             headers={"WWW-Authenticate": "Bearer"}
         )
 
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    """
+    Get the current user from the Authorization header.
+    
+    Returns:
+        UserResponse with user info
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=401, 
+            detail="Authorization header missing",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401, 
+            detail="Invalid authorization header format. Expected 'Bearer <token>'",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    token = authorization[7:]
+    
+    if not token:
+        raise HTTPException(
+            status_code=401, 
+            detail="Token is empty",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    try:
+        auth_service = get_auth_service()
+        user = auth_service.get_current_user(token)
+        return user
+    except ValueError as e:
+        raise HTTPException(
+            status_code=401, 
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
 
 async def get_token_data(authorization: Optional[str] = Header(None)) -> TokenData:
     """

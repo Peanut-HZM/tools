@@ -3,7 +3,7 @@
  */
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import * as markdownEditorApi from '../api/markdownEditorApi';
-import type { FileNode, FileContent } from '../types/markdownEditor';
+import type { FileNode, FileContent, RootPathResponse } from '../types/markdownEditor';
 
 export interface FileState {
   directoryTree: FileNode | null;

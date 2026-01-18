@@ -14,6 +14,7 @@ class Tool(BaseModel):
     rating: float
     usageCount: str
     category: str
+    status: str = "online"
 
 class ToolsResponse(BaseModel):
     tools: list[Tool]

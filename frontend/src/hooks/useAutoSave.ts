@@ -33,7 +33,7 @@ export function useAutoSave({
   onSave,
   enabled = true
 }: UseAutoSaveOptions) {
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<number | null>(null);
   const lastSavedHashRef = useRef<number>(0);
   const isSavingRef = useRef(false);
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);

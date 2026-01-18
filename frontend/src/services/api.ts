@@ -1,6 +1,5 @@
 import { Tool } from '../types';
-
-const API_BASE_URL = 'http://localhost:19092/api';
+import { API_BASE_URL } from '../config/api';
 
 export async function fetchTools(): Promise<Tool[]> {
   try {
@@ -42,4 +41,8 @@ export async function fetchToolsByCategory(category: string): Promise<Tool[]> {
     console.error('Error fetching tools by category:', error);
     throw error;
   }
+}
+
+export async function loadToolsByCategory(category: string): Promise<Tool[]> {
+    return fetchToolsByCategory(category);
 }

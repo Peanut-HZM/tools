@@ -124,7 +124,7 @@ export default function MarkdownEditor() {
   const [activeTocId, setActiveTocId] = useState('');
 
   // Auto-save timer ref
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = useRef<number | null>(null);
 
   // Load initial data
   useEffect(() => {
@@ -566,10 +566,14 @@ export default function MarkdownEditor() {
                 type="text" 
                 value={folderPathInput}
                 onChange={(e) => setFolderPathInput(e.target.value)}
-                placeholder="C:\path\to\folder"
+                placeholder={window.location.hostname === 'localhost' ? "C:\\path\\to\\folder" : "/home/user/docs"}
                 className="w-full p-2 rounded bg-slate-900 border border-slate-700 focus:border-cyan-500 outline-none text-white"
               />
-              <p className="text-xs text-slate-500 mt-2">Enter absolute path to folder</p>
+              <p className="text-xs text-slate-500 mt-2">
+                {window.location.hostname === 'localhost' 
+                  ? 'Enter absolute path to folder on your machine'
+                  : 'Enter absolute path to folder on the SERVER (not your local machine)'}
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <button 

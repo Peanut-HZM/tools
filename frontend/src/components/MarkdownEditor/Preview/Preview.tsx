@@ -15,11 +15,11 @@ interface PreviewProps {
 
 export default function Preview({ content, theme = 'dark' }: PreviewProps) {
   const md = useMemo(() => {
-    const markdownIt = new MarkdownIt({
+    const markdownIt: any = new MarkdownIt({
       html: true,
       linkify: true,
       typographer: true,
-      highlight: function (str, lang) {
+      highlight: function (str: string, lang?: string): string {
         if (lang && hljs.getLanguage(lang)) {
           try {
             return '<pre class="hljs"><code>' +
@@ -32,14 +32,13 @@ export default function Preview({ content, theme = 'dark' }: PreviewProps) {
     });
 
     // Custom renderer for headings to add IDs for TOC
-    const defaultRender = markdownIt.renderer.rules.heading_open || function(tokens, idx, options, env, self) {
+    const defaultRender = markdownIt.renderer.rules.heading_open || function(tokens: any, idx: number, options: any, _env: any, self: any) {
       return self.renderToken(tokens, idx, options);
     };
 
     // Shared state for ID generation to handle duplicates within a single render
-    let idMap = new Map<string, number>();
 
-    markdownIt.renderer.rules.heading_open = function (tokens, idx, options, env, self) {
+    markdownIt.renderer.rules.heading_open = function (tokens: any, idx: number, options: any, env: any, self: any) {
       // If this is the first token (idx 0), reset the map.
       // Note: This is a bit of a hack. A better way would be to wrap render() but we are inside the instance setup.
       // Since we use useMemo to recreate md only when necessary, we might need a way to reset.

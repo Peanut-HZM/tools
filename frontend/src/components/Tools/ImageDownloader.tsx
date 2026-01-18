@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../config/api';
 
 interface ImageInfo {
   url: string;
@@ -17,7 +18,7 @@ export default function ImageDownloader() {
 
   const viewOriginalImage = (imageUrl: string) => {
     // 使用后端代理查看原图，避免防盗链问题
-    const proxyUrl = `http://localhost:8000/api/tools/download-image?url=${encodeURIComponent(imageUrl)}`;
+    const proxyUrl = `${API_BASE_URL}/tools/download-image?url=${encodeURIComponent(imageUrl)}`;
     window.open(proxyUrl, '_blank');
   };
 
@@ -40,7 +41,7 @@ export default function ImageDownloader() {
     setImages([]);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/tools/extract-images`, {
+      const response = await fetch(`${API_BASE_URL}/tools/extract-images`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +70,7 @@ export default function ImageDownloader() {
   const downloadImage = async (imageUrl: string, index: number) => {
     try {
       // 使用后端代理下载，确保图片质量
-      const proxyUrl = `http://localhost:8000/api/tools/download-image?url=${encodeURIComponent(imageUrl)}`;
+      const proxyUrl = `${API_BASE_URL}/tools/download-image?url=${encodeURIComponent(imageUrl)}`;
       
       // 获取图片数据
       const response = await fetch(proxyUrl);

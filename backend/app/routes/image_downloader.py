@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, HttpUrl
 import requests
@@ -6,6 +6,10 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from typing import List
 import io
+import os
+import uuid
+from app.services.oss_service import oss_service
+from app.middleware.auth_middleware import get_current_user_id
 
 router = APIRouter(tags=["image-downloader"])
 
@@ -96,70 +100,58 @@ async def extract_images(request: ImageExtractRequest):
         )
 
 @router.get("/tools/download-image")
-async def download_image(url: str):
+async def download_image(url: str, user_id: str = Depends(get_current_user_id)):
     """
-    代理下载图片，解决跨域问题
+    下载图片并上传到OSS，返回OSS URL
     """
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Referer': url,
-            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
-        # 减少超时时间，避免长时间等待
-        response = requests.get(url, headers=headers, timeout=10, stream=True)
+        response = requests.get(url, headers=headers, stream=True, timeout=30)
         response.raise_for_status()
         
-        # 获取内容类型
+        # Get content type
         content_type = response.headers.get('content-type', 'image/jpeg')
         
-        # 获取文件扩展名
-        ext = 'jpg'
-        if 'png' in content_type:
-            ext = 'png'
-        elif 'gif' in content_type:
-            ext = 'gif'
-        elif 'webp' in content_type:
-            ext = 'webp'
-        elif 'svg' in content_type:
-            ext = 'svg'
-        elif 'jpeg' in content_type or 'jpg' in content_type:
-            ext = 'jpg'
-        
-        # 从URL中提取文件名
-        from urllib.parse import urlparse
+        # Generate filename
         parsed_url = urlparse(url)
-        url_filename = parsed_url.path.split('/')[-1]
-        if url_filename and '.' in url_filename:
-            filename = url_filename
-        else:
-            filename = f"image.{ext}"
+        original_filename = os.path.basename(parsed_url.path)
+        if not original_filename:
+            original_filename = "image.jpg"
+            
+        file_extension = os.path.splitext(original_filename)[1]
+        if not file_extension:
+            # Guess extension from content-type
+            if 'png' in content_type: file_extension = '.png'
+            elif 'gif' in content_type: file_extension = '.gif'
+            elif 'webp' in content_type: file_extension = '.webp'
+            else: file_extension = '.jpg'
+            
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        object_name = f"users/{user_id}/images/{unique_filename}"
         
-        # 返回图片流
-        return StreamingResponse(
-            io.BytesIO(response.content),
-            media_type=content_type,
-            headers={
-                'Content-Disposition': f'attachment; filename="{filename}"',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET',
-                'Access-Control-Allow-Headers': '*'
-            }
+        # Read content to memory (be careful with large files, but images are usually okay)
+        image_data = response.content
+        size = len(image_data)
+        file_obj = io.BytesIO(image_data)
+        
+        # Upload to OSS
+        oss_url = oss_service.upload_file(
+            object_name=object_name,
+            data=file_obj,
+            size=size,
+            content_type=content_type,
+            uploaded_by=user_id
         )
         
-    except requests.Timeout:
-        raise HTTPException(
-            status_code=408,
-            detail="下载超时，请稍后重试或使用右键另存为"
-        )
+        if not oss_url:
+            raise HTTPException(status_code=500, detail="Failed to upload image to OSS")
+            
+        return {"url": oss_url, "filename": unique_filename}
+        
     except requests.RequestException as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"无法下载图片: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Download failed: {str(e)}")
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"下载失败: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Process failed: {str(e)}")

@@ -3,7 +3,9 @@ Markdown File Service - Handles all file system operations with user isolation
 """
 import os
 import shutil
+import io
 from pathlib import Path
+from app.services.oss_service import oss_service
 from datetime import datetime
 from typing import Optional, Set
 
@@ -183,7 +185,7 @@ class MarkdownFileService:
     
     def save_file(self, path: str, content: str) -> SaveResult:
         """
-        Save content to file.
+        Save content to a file (Upload to OSS).
         
         Args:
             path: Relative path to the file
@@ -193,23 +195,37 @@ class MarkdownFileService:
             SaveResult indicating success/failure
         """
         try:
-            file_path = self._validate_and_resolve(path)
+            # Upload to OSS
+            # Path should be relative to user's root, e.g., "docs/notes.md"
+            # We prefix with "users/{user_id}/markdown/"
+            normalized_path = path.lstrip('/')
+            object_name = f"users/{self.user_id}/markdown/{normalized_path}"
             
-            if not file_path.exists():
-                raise FileNotFoundError(f"File not found: {path}")
-            if not file_path.is_file():
-                raise ValueError(f"Path is not a file: {path}")
+            # Convert content to bytes
+            data = content.encode('utf-8')
+            size = len(data)
+            file_obj = io.BytesIO(data)
             
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
+            url = oss_service.upload_file(
+                object_name=object_name,
+                data=file_obj,
+                size=size,
+                content_type="text/markdown",
+                uploaded_by=self.user_id
+            )
             
-            stat = file_path.stat()
+            if not url:
+                return SaveResult(
+                    success=False,
+                    message="Failed to upload to OSS"
+                )
             
             return SaveResult(
                 success=True,
                 message="File saved successfully",
-                modified=datetime.fromtimestamp(stat.st_mtime)
+                modified=datetime.utcnow()
             )
+            
         except Exception as e:
             return SaveResult(
                 success=False,
@@ -218,7 +234,7 @@ class MarkdownFileService:
     
     def create_file(self, path: str, content: str = "") -> CreateResult:
         """
-        Create a new file.
+        Create a new file (Upload to OSS).
         
         Args:
             path: Relative path for the new file
@@ -227,74 +243,46 @@ class MarkdownFileService:
         Returns:
             CreateResult indicating success/failure
         """
-        try:
-            file_path = self._validate_and_resolve(path)
-            
-            if file_path.exists():
-                return CreateResult(
-                    success=False,
-                    path=normalize_path(path),
-                    message="File already exists"
-                )
-            
-            # Ensure parent directory exists
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-            
-            return CreateResult(
-                success=True,
-                path=normalize_path(path),
-                message="File created successfully"
-            )
-        except Exception as e:
-            return CreateResult(
-                success=False,
-                path=normalize_path(path),
-                message=str(e)
-            )
+        # For OSS, creating and saving are similar (put_object)
+        save_result = self.save_file(path, content)
+        
+        return CreateResult(
+            success=save_result.success,
+            path=normalize_path(path),
+            message=save_result.message
+        )
     
     def delete_file(self, path: str) -> DeleteResult:
         """
-        Delete a file.
+        Delete a file (from OSS).
         
         Args:
-            path: Relative path to the file
+            path: Relative path from root
             
         Returns:
-            DeleteResult indicating success/failure
+            DeleteResult object
         """
         try:
-            file_path = self._validate_and_resolve(path)
+            normalized_path = path.lstrip('/')
+            object_name = f"users/{self.user_id}/markdown/{normalized_path}"
             
-            if not file_path.exists():
+            success = oss_service.delete_file(object_name)
+            
+            if success:
+                return DeleteResult(
+                    success=True,
+                    path=normalize_path(path),
+                    message="File deleted successfully"
+                )
+            else:
                 return DeleteResult(
                     success=False,
-                    message="File not found",
-                    path=normalize_path(path)
+                    path=normalize_path(path),
+                    message="Failed to delete file from OSS"
                 )
-            
-            if not file_path.is_file():
-                return DeleteResult(
-                    success=False,
-                    message="Path is not a file",
-                    path=normalize_path(path)
-                )
-            
-            file_path.unlink()
-            
-            return DeleteResult(
-                success=True,
-                message="File deleted successfully",
-                path=normalize_path(path)
-            )
+                
         except Exception as e:
-            return DeleteResult(
-                success=False,
-                message=str(e),
-                path=normalize_path(path)
-            )
+            return DeleteResult(success=False, path=normalize_path(path), message=str(e))
     
     def rename_file(self, old_path: str, new_path: str) -> RenameResult:
         """

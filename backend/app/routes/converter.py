@@ -20,7 +20,7 @@ async def convert_document(
     
     try:
         service = ConverterService()
-        markdown_content = await service.convert_file(file)
+        markdown_content = await service.convert_file(file, user_id=user_id)
         
         # Save to history
         history_service = HistoryService()

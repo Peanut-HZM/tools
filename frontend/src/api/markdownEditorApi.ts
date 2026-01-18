@@ -15,7 +15,9 @@ import type {
   ContentSearchResult
 } from '../types/markdownEditor';
 
-const API_BASE_URL = 'http://localhost:19092/api/markdown-editor';
+import { MARKDOWN_EDITOR_API_BASE_URL } from '../config/api';
+
+const API_BASE_URL = MARKDOWN_EDITOR_API_BASE_URL;
 
 /**
  * Handle API response errors

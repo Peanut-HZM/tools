@@ -1,13 +1,15 @@
 """
 Authentication API Router - Handles user authentication endpoints
 """
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Body
 from typing import Optional
 
 from app.models.auth_models import (
     UserCreate, UserLogin, AuthResponse, UserResponse
 )
 from app.services.auth_service import get_auth_service, AuthService
+from app.services.verification_service import verification_service
+from app.services.settings_service import settings_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -40,6 +42,31 @@ def get_current_user_id(authorization: Optional[str] = Header(None)) -> str:
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
 
+
+@router.post("/send-code", response_model=bool)
+async def send_verification_code(
+    data: dict = Body(...),
+):
+    """
+    Send verification code (email or phone)
+    """
+    target = data.get("target")
+    type = data.get("type")
+    
+    if not target or not type:
+        raise HTTPException(status_code=400, detail="Target and type are required")
+        
+    if type == "email" and not settings_service.is_email_verify_enabled():
+        raise HTTPException(status_code=400, detail="Email verification is disabled")
+        
+    if type == "phone" and not settings_service.is_phone_verify_enabled():
+        raise HTTPException(status_code=400, detail="Phone verification is disabled")
+        
+    try:
+        verification_service.send_code(target, type)
+        return True
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/register", response_model=AuthResponse)
 async def register(user_data: UserCreate):

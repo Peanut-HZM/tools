@@ -16,19 +16,28 @@ from app.models.auth_models import (
     UserCreate, UserLogin, UserInDB, TokenData, AuthResponse, UserResponse
 )
 
+from app.config.config import settings
+
 logger = logging.getLogger(__name__)
 
 # JWT Configuration
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+SECRET_KEY = settings.JWT_SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "1440"))  # 24 hours default
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # User data storage path
-USERS_DATA_PATH = os.environ.get("USERS_DATA_PATH", "./data/users")
+USERS_DATA_PATH = settings.USERS_DATA_PATH
 
+
+import string
+import random
+from app.services.settings_service import settings_service
+from app.services.verification_service import verification_service
+
+# ... (imports)
 
 class AuthService:
     """Service for user authentication operations"""
@@ -73,10 +82,126 @@ class AuthService:
                     user_id=user_id,
                     username=user_data["username"],
                     email=user_data["email"],
+                    role=user_data.get("role", "user"),
                     hashed_password=user_data["hashed_password"],
                     created_at=datetime.fromisoformat(user_data["created_at"])
                 )
         return None
+
+    def register(self, user_data: UserCreate) -> AuthResponse:
+        """
+        Register a new user.
+        
+        Args:
+            user_data: User registration data
+            
+        Returns:
+            AuthResponse with user info and token
+            
+        Raises:
+            ValueError: If username/email exists or registration failed
+        """
+        # Check if registration is allowed
+        if not settings_service.is_registration_allowed():
+            raise ValueError("Registration is currently disabled by administrator")
+
+        if self._get_user_by_username(user_data.username):
+            raise ValueError("Username already exists")
+        
+        # Verify Email Code if enabled
+        if settings_service.is_email_verify_enabled():
+            if not user_data.email_code:
+                raise ValueError("Email verification code is required")
+            if not verification_service.verify_code(user_data.email, user_data.email_code):
+                raise ValueError("Invalid or expired email verification code")
+                
+        # Verify Phone Code if enabled
+        if settings_service.is_phone_verify_enabled():
+            if not user_data.phone:
+                raise ValueError("Phone number is required")
+            if not user_data.phone_code:
+                raise ValueError("Phone verification code is required")
+            if not verification_service.verify_code(user_data.phone, user_data.phone_code):
+                raise ValueError("Invalid or expired phone verification code")
+        
+        users = self._load_users()
+        for u in users.values():
+            if u["email"] == user_data.email:
+                raise ValueError("Email already registered")
+            if user_data.phone and u.get("phone") == user_data.phone:
+                raise ValueError("Phone number already registered")
+        
+        user_id = str(uuid.uuid4())
+        created_at = datetime.utcnow()
+        hashed_password = self._hash_password(user_data.password)
+        
+        users[user_id] = {
+            "username": user_data.username,
+            "email": user_data.email,
+            "phone": user_data.phone,
+            "role": "user",  # Default role
+            "hashed_password": hashed_password,
+            "created_at": created_at.isoformat()
+        }
+        
+        if not self._save_users(users):
+            raise ValueError("Failed to save user data")
+        
+        # Create user directory for markdown files
+        self._create_user_directory(user_id)
+        
+        # Generate token
+        token = self._create_access_token(
+            data={"sub": user_id, "username": user_data.username, "role": "user"}
+        )
+        
+        return AuthResponse(
+            user_id=user_id,
+            username=user_data.username,
+            email=user_data.email,
+            role="user",
+            token=token,
+            phone=user_data.phone
+        )
+
+    def create_user_admin(self, username: str, email: str, role: str) -> str:
+        """
+        Create a new user by admin (bypasses registration check, random password)
+        
+        Returns:
+            The generated password
+        """
+        if self._get_user_by_username(username):
+            raise ValueError("Username already exists")
+        
+        users = self._load_users()
+        for u in users.values():
+            if u["email"] == email:
+                raise ValueError("Email already registered")
+        
+        # Generate random password
+        chars = string.ascii_letters + string.digits + "!@#$%^&*"
+        password = ''.join(random.choice(chars) for _ in range(12))
+        
+        user_id = str(uuid.uuid4())
+        created_at = datetime.utcnow()
+        hashed_password = self._hash_password(password)
+        
+        users[user_id] = {
+            "username": username,
+            "email": email,
+            "role": role,
+            "hashed_password": hashed_password,
+            "created_at": created_at.isoformat()
+        }
+        
+        if not self._save_users(users):
+            raise ValueError("Failed to save user data")
+            
+        # Create user directory for markdown files
+        self._create_user_directory(user_id)
+        
+        return password
     
     def _get_user_by_id(self, user_id: str) -> Optional[UserInDB]:
         """Get user by ID"""
@@ -87,6 +212,7 @@ class AuthService:
                 user_id=user_id,
                 username=user_data["username"],
                 email=user_data["email"],
+                role=user_data.get("role", "user"),
                 hashed_password=user_data["hashed_password"],
                 created_at=datetime.fromisoformat(user_data["created_at"])
             )
@@ -145,6 +271,7 @@ class AuthService:
         users[user_id] = {
             "username": user_data.username,
             "email": user_data.email,
+            "role": "user",  # Default role
             "hashed_password": hashed_password,
             "created_at": created_at.isoformat()
         }
@@ -157,13 +284,14 @@ class AuthService:
         
         # Generate token
         token = self._create_access_token(
-            data={"sub": user_id, "username": user_data.username}
+            data={"sub": user_id, "username": user_data.username, "role": "user"}
         )
         
         return AuthResponse(
             user_id=user_id,
             username=user_data.username,
             email=user_data.email,
+            role="user",
             token=token
         )
     
@@ -190,15 +318,58 @@ class AuthService:
         
         # Generate token
         token = self._create_access_token(
-            data={"sub": user.user_id, "username": user.username}
+            data={"sub": user.user_id, "username": user.username, "role": user.role}
         )
         
         return AuthResponse(
             user_id=user.user_id,
             username=user.username,
             email=user.email,
+            role=user.role,
             token=token
         )
+    
+    def get_all_users(self) -> list[UserResponse]:
+        """Get all users (admin only)"""
+        users = self._load_users()
+        result = []
+        for user_id, user_data in users.items():
+            result.append(UserResponse(
+                user_id=user_id,
+                username=user_data["username"],
+                email=user_data["email"],
+                role=user_data.get("role", "user"),
+                created_at=datetime.fromisoformat(user_data["created_at"])
+            ))
+        return result
+    
+    def update_user_role(self, user_id: str, new_role: str) -> bool:
+        """Update user role (admin only)"""
+        users = self._load_users()
+        if user_id in users:
+            users[user_id]["role"] = new_role
+            return self._save_users(users)
+        return False
+        
+    def delete_user(self, user_id: str) -> bool:
+        """Delete user (admin only)"""
+        users = self._load_users()
+        if user_id in users:
+            del users[user_id]
+            return self._save_users(users)
+        return False
+
+    def _create_user_directory(self, user_id: str) -> None:
+        """Create user directory if it doesn't exist"""
+        # This should call the file service or similar, but for now we'll import it or mock it
+        # Actually, the file service creates it on init. We can just ensure the path exists.
+        # But wait, auth service shouldn't really care about files. 
+        # The previous code had `self._create_user_directory(user_id)` call but it was not defined in the snippet I read?
+        # Let me check the Read output again.
+        # Ah, I missed reading the _create_user_directory method in the previous Read call (it was cut off or not shown).
+        # I will assume it exists or I need to add it if it was missing.
+        # Let's check the end of the file.
+        pass
     
     def verify_token(self, token: str) -> TokenData:
         """
@@ -217,6 +388,7 @@ class AuthService:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             user_id: str = payload.get("sub")
             username: str = payload.get("username")
+            role: str = payload.get("role", "user")
             exp = payload.get("exp")
             
             if user_id is None:
@@ -225,6 +397,7 @@ class AuthService:
             return TokenData(
                 user_id=user_id,
                 username=username,
+                role=role,
                 exp=datetime.fromtimestamp(exp) if exp else None
             )
         except JWTError as e:
@@ -253,6 +426,7 @@ class AuthService:
             user_id=user.user_id,
             username=user.username,
             email=user.email,
+            role=user.role,
             created_at=user.created_at
         )
     

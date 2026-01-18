@@ -9,6 +9,7 @@ export interface User {
   user_id: string;
   username: string;
   email: string;
+  role: string;
 }
 
 export interface AuthState {
@@ -50,7 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser({
           user_id: userData.user_id,
           username: userData.username,
-          email: userData.email
+          email: userData.email,
+          role: userData.role || 'user'
         });
         setIsAuthenticated(true);
       } else {
@@ -75,7 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser({
         user_id: response.user_id,
         username: response.username,
-        email: response.email
+        email: response.email,
+        role: response.role || 'user'
       });
       setIsAuthenticated(true);
     } catch (e) {
@@ -94,7 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser({
         user_id: response.user_id,
         username: response.username,
-        email: response.email
+        email: response.email,
+        role: response.role || 'user'
       });
       setIsAuthenticated(true);
     } catch (e) {

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../stores/authStore';
 
 export default function Navigation() {
   const { t } = useI18n();
+  const { user } = useAuth();
   
   const navLinks = [
     { label: t.nav.home, href: '/' },
@@ -33,6 +35,15 @@ export default function Navigation() {
           </a>
         )
       ))}
+      
+      {user?.role === 'admin' && (
+        <Link
+          to="/admin"
+          className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold"
+        >
+          后台管理
+        </Link>
+      )}
     </nav>
   );
 }

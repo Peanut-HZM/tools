@@ -6,6 +6,12 @@ import Features from './components/Features/Features';
 import Statistics from './components/Statistics/Statistics';
 import Recommendations from './components/Recommendations/Recommendations';
 import Layout from './components/Layout/Layout';
+import AdminLayout from './components/Admin/AdminLayout';
+import ToolManagement from './components/Admin/ToolManagement';
+import SystemSettingsPage from './components/Admin/SystemSettings';
+import Dashboard from './components/Admin/Dashboard';
+import UserManagement from './components/Admin/UserManagement';
+import OssManagement from './components/Admin/OssManagement';
 import ImageDownloader from './components/Tools/ImageDownloader';
 import VideoDownloader from './components/Tools/VideoDownloader';
 import JsonFormatter from './components/Tools/JsonFormatter';
@@ -16,7 +22,7 @@ import MarkdownEditorTool from './components/Tools/MarkdownEditorTool';
 import MarkItDownConverter from './components/Tools/MarkItDownConverter';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
-import { fetchTools, searchTools, fetchToolsByCategory } from './services/api';
+import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory } from './services/api';
 import { Tool } from './types';
 import { useI18n, interpolate } from './i18n';
 import { I18nProvider } from './i18n/I18nProvider';
@@ -27,6 +33,8 @@ interface LayoutContext {
   handleSearchChange: (value: string) => void;
   handleSearch: () => void;
 }
+
+import { recordToolVisit } from './api/adminApi';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -53,26 +61,6 @@ function HomePage() {
     loadTools();
   }, []);
 
-  // 根据分类筛选
-  useEffect(() => {
-    if (activeCategory === "全部工具") {
-      loadTools();
-    } else {
-      loadToolsByCategory(activeCategory);
-    }
-  }, [activeCategory]);
-
-  // 根据搜索关键词筛选
-  useEffect(() => {
-    if (debouncedValue) {
-      searchToolsData(debouncedValue);
-    } else if (activeCategory === "全部工具") {
-      loadTools();
-    } else {
-      loadToolsByCategory(activeCategory);
-    }
-  }, [debouncedValue]);
-
   const loadTools = async () => {
     try {
       setLoading(true);
@@ -84,6 +72,20 @@ function HomePage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadToolsDataByCategory = async (category: string) => {
+    try {
+        setLoading(true);
+        const data = await loadToolsByCategory(category);
+        setFilteredTools(data);
+        setError(null);
+    } catch (err) {
+        setError(t.errors.toolLoadFailed);
+        console.error(err);
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -101,22 +103,38 @@ function HomePage() {
     }
   };
 
-  const loadToolsByCategory = async (category: string) => {
-    try {
-      setLoading(true);
-      const data = await fetchToolsByCategory(category);
-      setFilteredTools(data);
-      setError(null);
-    } catch (err) {
-      setError(t.errors.categoryLoadFailed);
-      console.error(err);
-    } finally {
-      setLoading(false);
+  // 根据分类筛选
+  useEffect(() => {
+    if (activeCategory === "全部工具") {
+      loadTools();
+    } else {
+      loadToolsDataByCategory(activeCategory);
     }
-  };
+  }, [activeCategory]);
+
+  // 根据搜索关键词筛选
+  useEffect(() => {
+    if (debouncedValue) {
+      searchToolsData(debouncedValue);
+    } else if (activeCategory === "全部工具") {
+      loadTools();
+    } else {
+      loadToolsDataByCategory(activeCategory);
+    }
+  }, [debouncedValue]);
 
   // 处理工具点击 - 使用路由导航
-  const handleToolClick = (toolId: string) => {
+  const handleToolClick = async (toolId: string) => {
+    // Record tool visit
+    try {
+      const tool = filteredTools.find(t => t.id === toolId);
+      if (tool) {
+        await recordToolVisit(toolId, tool.title);
+      }
+    } catch (e) {
+      console.error("Failed to record tool visit", e);
+    }
+
     const toolRoutes: Record<string, string> = {
       'image-downloader': '/tools/image-downloader',
       'video-downloader': '/tools/video-downloader',
@@ -181,6 +199,15 @@ function App() {
               <Route path="/tools/key-generator" element={<KeyGenerator />} />
               <Route path="/tools/markdown-editor" element={<MarkdownEditorTool />} />
               <Route path="/tools/markitdown-converter" element={<MarkItDownConverter />} />
+            </Route>
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="tools" element={<ToolManagement />} />
+              <Route path="users" element={<UserManagement />} />
+              <Route path="settings" element={<SystemSettingsPage />} />
+              <Route path="oss" element={<OssManagement />} />
             </Route>
           </Routes>
         </BrowserRouter>

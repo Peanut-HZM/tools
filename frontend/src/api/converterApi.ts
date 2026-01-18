@@ -1,6 +1,7 @@
 import { getAuthHeaders } from './authApi';
+import { CONVERTER_API_BASE_URL } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:19092/api/converter';
+const API_BASE_URL = CONVERTER_API_BASE_URL;
 
 export interface ConvertResponse {
   content: string;
