@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../stores/authStore';
 import Toast from '../MarkdownEditor/Toast/Toast';
+import { useI18n } from '../../i18n';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -18,6 +19,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const { t } = useI18n();
 
   // 当有错误时显示 Toast
   useEffect(() => {
@@ -33,42 +35,42 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     clearError();
 
     if (!username.trim()) {
-      setToastMessage('请输入用户名');
+      setToastMessage(t.auth.inputUsername);
       setShowToast(true);
       return;
     }
     if (username.length < 3) {
-      setToastMessage('用户名至少需要3个字符');
+      setToastMessage(t.auth.usernameMinLength);
       setShowToast(true);
       return;
     }
     if (!email.trim()) {
-      setToastMessage('请输入邮箱');
+      setToastMessage(t.auth.inputEmail);
       setShowToast(true);
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setToastMessage('请输入有效的邮箱地址');
+      setToastMessage(t.auth.invalidEmail);
       setShowToast(true);
       return;
     }
     if (!password) {
-      setToastMessage('请输入密码');
+      setToastMessage(t.auth.inputPassword);
       setShowToast(true);
       return;
     }
     if (password.length < 6) {
-      setToastMessage('密码至少需要6个字符');
+      setToastMessage(t.auth.passwordMinLength);
       setShowToast(true);
       return;
     }
     if (password.length > 50) {
-      setToastMessage('密码不能超过50个字符');
+      setToastMessage(t.auth.passwordMaxLength);
       setShowToast(true);
       return;
     }
     if (password !== confirmPassword) {
-      setToastMessage('两次输入的密码不一致');
+      setToastMessage(t.auth.passwordMismatch);
       setShowToast(true);
       return;
     }
@@ -84,12 +86,12 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">注册</h2>
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">{t.auth.registerTitle}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-1">
-              用户名
+              {t.auth.username}
             </label>
             <input
               type="text"
@@ -97,14 +99,14 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="请输入用户名（至少3个字符）"
+              placeholder={t.auth.inputUsername}
               disabled={isLoading}
             />
           </div>
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
-              邮箱
+              {t.auth.email}
             </label>
             <input
               type="email"
@@ -112,14 +114,14 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="请输入邮箱"
+              placeholder={t.auth.inputEmail}
               disabled={isLoading}
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
-              密码
+              {t.auth.password}
             </label>
             <input
               type="password"
@@ -127,7 +129,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="请输入密码（6-50个字符）"
+              placeholder={t.auth.inputPassword}
               disabled={isLoading}
               maxLength={50}
             />
@@ -135,7 +137,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-1">
-              确认密码
+              {t.auth.confirmPassword}
             </label>
             <input
               type="password"
@@ -143,7 +145,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="请再次输入密码"
+              placeholder={t.auth.confirmPassword}
               disabled={isLoading}
               maxLength={50}
             />
@@ -154,17 +156,17 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             disabled={isLoading}
             className="w-full py-2 px-4 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 text-white font-medium rounded-lg transition-colors cursor-pointer"
           >
-            {isLoading ? '注册中...' : '注册'}
+            {isLoading ? t.auth.registerProcessing : t.auth.register}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <span className="text-slate-400">已有账号？</span>
+          <span className="text-slate-400">{t.auth.hasAccount}</span>
           <button
             onClick={onSwitchToLogin}
             className="ml-2 text-cyan-400 hover:text-cyan-300 cursor-pointer"
           >
-            立即登录
+            {t.auth.registerToLogin}
           </button>
         </div>
       </div>

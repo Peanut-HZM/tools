@@ -1,11 +1,14 @@
 import { Statistic } from '../../types';
+import { useI18n } from '../../i18n';
 
 export default function Statistics() {
+  const { t } = useI18n();
+
   const statistics: Statistic[] = [
-    { value: '50+', label: '工具数量' },
-    { value: '10K+', label: '每日使用' },
-    { value: '99.9%', label: '服务可用' },
-    { value: '4.8', label: '用户评分' }
+    { value: '50+', label: t.stats.toolsCount },
+    { value: '10K+', label: t.stats.dailyUsage },
+    { value: '99.9%', label: t.stats.uptime },
+    { value: '4.8', label: t.stats.rating }
   ];
 
   return (

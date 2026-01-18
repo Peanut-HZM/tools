@@ -1,8 +1,11 @@
 import { Recommendation } from '../../types';
+import { useI18n, interpolate } from '../../i18n';
 
 export default function RecommendationCard({ icon, iconColor, title, description, action }: Recommendation) {
+  const { t } = useI18n();
+
   const handleClick = () => {
-    alert(`跳转到 ${title} 工具页面`);
+    alert(interpolate(t.errors.toolNotImplemented, { toolId: title }));
   };
 
   return (

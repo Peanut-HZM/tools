@@ -64,12 +64,22 @@ TOOLS_DATA = [
     ),
     Tool(
         id="markdown-editor",
-        icon="fa-file-alt",
-        iconColor="bg-indigo-500",
+        icon="fa-pen-to-square",
+        iconColor="bg-blue-600",
         title="Markdown编辑器",
         description="功能强大的Markdown编辑器，支持实时预览、语法高亮、文件管理等功能",
         rating=4.9,
         usageCount="3.8K",
+        category="开发工具"
+    ),
+    Tool(
+        id="markitdown-converter",
+        icon="fa-file-export",
+        iconColor="bg-orange-500",
+        title="文档转 Markdown",
+        description="支持将 Word, Excel, PDF 等文档一键转换为 Markdown，并支持在线预览和编辑",
+        rating=4.9,
+        usageCount="New",
         category="开发工具"
     )
 ]

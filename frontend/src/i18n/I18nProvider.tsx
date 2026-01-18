@@ -26,12 +26,19 @@ export function I18nProvider({ children, defaultLanguage = 'zh-CN' }: I18nProvid
     localStorage.setItem('markdown-editor-language', lang);
   }, []);
 
+  const toggleLanguage = useCallback(() => {
+    const newLang = language === 'zh-CN' ? 'en-US' : 'zh-CN';
+    setLanguage(newLang);
+    // Force reload if needed, but state update should be enough
+  }, [language, setLanguage]);
+
   // Sync with localStorage changes
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'markdown-editor-language' && e.newValue) {
         if (e.newValue === 'zh-CN' || e.newValue === 'en-US') {
-          setLanguageState(e.newValue);
+          // Avoid loop if state is already correct
+          setLanguageState(prev => prev !== e.newValue ? (e.newValue as Language) : prev);
         }
       }
     };
@@ -44,7 +51,8 @@ export function I18nProvider({ children, defaultLanguage = 'zh-CN' }: I18nProvid
     language,
     t,
     setLanguage,
-  }), [language, t, setLanguage]);
+    toggleLanguage,
+  }), [language, t, setLanguage, toggleLanguage]);
 
   return (
     <I18nContext.Provider value={value}>

@@ -46,9 +46,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   // Watch for language changes and persist to localStorage
-  useEffect(() => {
-    localStorage.setItem('markdown-editor-language', config.language);
-  }, [config.language]);
+  // useEffect(() => {
+  //   localStorage.setItem('markdown-editor-language', config.language);
+  // }, [config.language]);
 
   const loadConfig = useCallback(async () => {
     setIsLoading(true);

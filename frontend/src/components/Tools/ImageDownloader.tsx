@@ -148,7 +148,7 @@ export default function ImageDownloader() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 py-8">
+    <div className="text-slate-100 py-8">
       <div className="container mx-auto px-6">
         {/* 返回按钮 */}
         <button

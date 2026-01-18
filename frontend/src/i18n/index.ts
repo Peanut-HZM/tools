@@ -22,6 +22,7 @@ export interface I18nContextType {
   language: Language;
   t: Translations;
   setLanguage: (lang: Language) => void;
+  toggleLanguage: () => void;
 }
 
 export const I18nContext = createContext<I18nContextType | null>(null);
@@ -34,6 +35,7 @@ export function useI18n(): I18nContextType {
       language: 'zh-CN',
       t: zhCN,
       setLanguage: () => {},
+      toggleLanguage: () => {},
     };
   }
   return context;

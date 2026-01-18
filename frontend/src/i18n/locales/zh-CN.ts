@@ -1,5 +1,5 @@
 /**
- * Chinese (Simplified) translations for Markdown Editor
+ * Chinese (Simplified) translations
  */
 export const zhCN = {
   // Common
@@ -21,29 +21,150 @@ export const zhCN = {
     new: '新建',
     fileName: '文件名',
     folderName: '所在目录',
+    logo: '工具箱',
+    allTools: '全部工具',
+    view: '查看',
+  },
+
+  // Navigation
+  nav: {
+    home: '首页',
+    tools: '工具',
+    about: '关于我们',
+    help: '使用帮助',
+    feedback: '反馈',
   },
 
   // Auth
   auth: {
     login: '登录',
-    logout: '登出',
+    logout: '退出',
     register: '注册',
     username: '用户名',
     password: '密码',
     email: '邮箱',
     confirmPassword: '确认密码',
-    loginTitle: '登录到 Markdown 编辑器',
-    registerTitle: '注册新账户',
-    noAccount: '没有账户？',
-    hasAccount: '已有账户？',
+    loginTitle: '登录',
+    registerTitle: '注册',
+    noAccount: '还没有账号？',
+    hasAccount: '已有账号？',
+    loginToRegister: '立即注册',
+    registerToLogin: '立即登录',
     loginFailed: '登录失败',
     registerFailed: '注册失败',
     invalidCredentials: '用户名或密码错误',
     userExists: '用户名已存在',
     verifying: '验证登录状态...',
+    inputUsername: '请输入用户名',
+    inputPassword: '请输入密码',
+    inputEmail: '请输入邮箱',
+    usernameMinLength: '用户名至少需要3个字符',
+    passwordMinLength: '密码至少需要6个字符',
+    passwordMaxLength: '密码不能超过50个字符',
+    passwordMismatch: '两次输入的密码不一致',
+    invalidEmail: '请输入有效的邮箱地址',
+    loginProcessing: '登录中...',
+    registerProcessing: '注册中...',
   },
 
-  // Editor
+  // Hero
+  hero: {
+    title: '工具箱',
+    subtitle: '一站式实用工具集合，提升工作效率，简化日常任务。从文本处理到格式转换，从计算辅助到设计工具，应有尽有。',
+  },
+
+  // Categories
+  categories: {
+    '全部工具': '全部工具',
+    '文本工具': '文本工具',
+    '转换工具': '转换工具',
+    '计算工具': '计算工具',
+    '设计工具': '设计工具',
+    '实用工具': '实用工具',
+    '开发工具': '开发工具',
+    'AI工具': 'AI工具',
+  },
+
+  // Features
+  features: {
+    whyChoose: '为什么选择',
+    whyChooseDesc: '我们致力于提供最实用、最高效的工具集合，让复杂的工作变得简单',
+    efficient: '高效便捷',
+    efficientDesc: '一键操作，无需复杂设置，快速完成任务',
+    secure: '安全可靠',
+    secureDesc: '本地处理，数据不上传，保护您的隐私安全',
+    update: '持续更新',
+    updateDesc: '定期添加新工具，满足不断变化的需求',
+  },
+
+  // Statistics
+  stats: {
+    toolsCount: '工具数量',
+    dailyUsage: '每日使用',
+    uptime: '服务可用',
+    rating: '用户评分',
+  },
+
+  // Footer
+  footer: {
+    desc: '一站式实用工具集合，提升工作效率，简化日常任务。',
+    toolCategories: '工具分类',
+    support: '支持服务',
+    about: '关于我们',
+    copyright: '© 2024 . All rights reserved. | 京ICP备12345678号',
+    links: {
+      textTools: '文本工具',
+      convertTools: '转换工具',
+      calcTools: '计算工具',
+      designTools: '设计工具',
+      help: '使用帮助',
+      feedback: '反馈建议',
+      api: 'API 接口',
+      docs: '开发者文档',
+      intro: '公司介绍',
+      team: '团队成员',
+      contact: '联系方式',
+      jobs: '招聘信息',
+    }
+  },
+
+  // Tools Data (Titles and Descriptions)
+  tools: {
+    'image-downloader': {
+      title: '网页图片下载',
+      description: '粘贴网页URL，自动下载该网页的所有图片，支持所有格式',
+    },
+    'video-downloader': {
+      title: '网页视频下载',
+      description: '粘贴网页URL，自动提取并下载视频资源，支持MP4、WebM、HLS等格式',
+    },
+    'json-formatter': {
+      title: 'JSON格式化',
+      description: '粘贴JSON字符串，自动格式化并美化显示，支持语法检查和错误提示',
+    },
+    'calendar': {
+      title: '万年历',
+      description: '查看日历，显示法定节假日和调休安排，支持年份切换',
+    },
+    'ai-assistant': {
+      title: 'AI助手',
+      description: '智能AI对话助手，支持多种场景的智能问答和内容生成',
+    },
+    'key-generator': {
+      title: '密钥生成器',
+      description: '生成各种加密算法的密钥，支持RSA、ECDSA、AES、HMAC等常用算法',
+    },
+    'markdown-editor': {
+      title: 'Markdown编辑器',
+      description: '功能强大的Markdown编辑器，支持实时预览、语法高亮、文件管理等功能',
+    },
+    'markitdown-converter': {
+      title: '文档转 Markdown',
+      description: '支持将 Word, Excel, PDF 等文档一键转换为 Markdown，并支持在线预览和编辑',
+    },
+  },
+
+  // Editor (Existing)
   editor: {
     title: 'Markdown 编辑器',
     edit: '编辑',
@@ -56,7 +177,7 @@ export const zhCN = {
     autoSave: '自动保存',
   },
 
-  // File Tree
+  // File Tree (Existing)
   fileTree: {
     title: '文件',
     newFile: '新建文件',
@@ -70,7 +191,7 @@ export const zhCN = {
     noFiles: '暂无文件',
   },
 
-  // Search
+  // Search (Existing)
   search: {
     title: '搜索',
     placeholder: '输入搜索关键词...',
@@ -84,7 +205,7 @@ export const zhCN = {
     line: '行',
   },
 
-  // Settings
+  // Settings (Existing)
   settings: {
     title: '设置',
     editor: '编辑器',
@@ -105,7 +226,7 @@ export const zhCN = {
     resetDefaults: '恢复默认设置',
   },
 
-  // Status Bar
+  // Status Bar (Existing)
   statusBar: {
     line: '行',
     column: '列',
@@ -116,7 +237,37 @@ export const zhCN = {
     lastSaved: '上次保存',
   },
 
-  // Errors
+  // Recommendations
+  recommendations: {
+    title: '热门推荐',
+    subtitle: '最受欢迎的工具，大家都在用',
+    items: {
+      pdfToWord: { title: 'PDF 转 Word', desc: '高精度转换，保持原有格式' },
+      imageCompress: { title: '图片压缩', desc: '无损压缩，减小文件体积' },
+      passwordGen: { title: '密码生成', desc: '安全密码，自定义强度' },
+    },
+    action: '立即使用',
+  },
+
+  // Converter
+  converter: {
+    title: '文档转 Markdown',
+    back: '返回工具列表',
+    dragDrop: '将文件拖拽到此处',
+    supports: '支持 PDF, Word, Excel, PowerPoint, HTML',
+    browse: '浏览文件',
+    remove: '移除文件',
+    convert: '转换为 Markdown',
+    converting: '转换中...',
+    result: 'Markdown 结果',
+    copy: '复制',
+    openInEditor: '在编辑器中打开',
+    copySuccess: '已复制到剪贴板！',
+    openEditorConfirm: 'Markdown 内容已复制到剪贴板。是否立即打开 Markdown 编辑器？（您可以在那里粘贴内容）',
+    conversionFailed: '转换失败',
+  },
+
+  // Errors (Existing)
   errors: {
     networkError: '网络错误，请检查网络连接',
     authError: '认证失败，请重新登录',
@@ -128,6 +279,10 @@ export const zhCN = {
     renameFailed: '重命名失败',
     createFailed: '创建失败',
     unknownError: '未知错误',
+    toolLoadFailed: '加载工具失败，请稍后重试',
+    toolSearchFailed: '搜索失败，请稍后重试',
+    categoryLoadFailed: '加载分类工具失败，请稍后重试',
+    toolNotImplemented: '工具 {toolId} 暂未实现',
   },
 };
 

@@ -267,7 +267,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
+    <div className="text-slate-100">
       {/* 顶部工具栏 */}
       <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">

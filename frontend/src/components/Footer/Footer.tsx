@@ -1,20 +1,41 @@
+import { useI18n } from '../../i18n';
+
 export default function Footer() {
-  const toolCategories = ['文本工具', '转换工具', '计算工具', '设计工具'];
-  const supportLinks = ['使用帮助', '反馈建议', 'API 接口', '开发者文档'];
-  const aboutLinks = ['公司介绍', '团队成员', '联系方式', '招聘信息'];
+  const { t } = useI18n();
+  
+  const toolCategories = [
+    t.footer.links.textTools,
+    t.footer.links.convertTools,
+    t.footer.links.calcTools,
+    t.footer.links.designTools
+  ];
+  
+  const supportLinks = [
+    t.footer.links.help,
+    t.footer.links.feedback,
+    t.footer.links.api,
+    t.footer.links.docs
+  ];
+  
+  const aboutLinks = [
+    t.footer.links.intro,
+    t.footer.links.team,
+    t.footer.links.contact,
+    t.footer.links.jobs
+  ];
 
   return (
     <footer className="bg-slate-800 border-t border-slate-700">
       <div className="container mx-auto px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <div className="text-xl font-['Pacifico'] text-primary mb-4">logo</div>
+            <div className="text-xl font-['Pacifico'] text-primary mb-4">{t.common.logo}</div>
             <p className="text-slate-400 text-sm">
-              一站式实用工具集合，提升工作效率，简化日常任务。
+              {t.footer.desc}
             </p>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">工具分类</h4>
+            <h4 className="font-semibold mb-4">{t.footer.toolCategories}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
               {toolCategories.map((link) => (
                 <li key={link}>
@@ -26,7 +47,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">支持服务</h4>
+            <h4 className="font-semibold mb-4">{t.footer.support}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
               {supportLinks.map((link) => (
                 <li key={link}>
@@ -38,7 +59,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">关于我们</h4>
+            <h4 className="font-semibold mb-4">{t.footer.about}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
               {aboutLinks.map((link) => (
                 <li key={link}>
@@ -51,7 +72,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
-          <p>&copy; 2024 . All rights reserved. | 京ICP备12345678号</p>
+          <p>{t.footer.copyright}</p>
         </div>
       </div>
     </footer>

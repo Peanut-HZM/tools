@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.routes import tools, image_downloader, video_downloader, ytdlp_routes, calendar, key_generator
+from app.routes import tools, image_downloader, video_downloader, ytdlp_routes, calendar, key_generator, converter
 from app.routes import auth
 from app.routes import markdown_editor
 from app.services.download_manager import get_manager
@@ -73,6 +73,9 @@ app.include_router(auth.router)
 
 # Markdown Editor router
 app.include_router(markdown_editor.router)
+
+# Document Converter router
+app.include_router(converter.router)
 
 @app.get("/")
 def read_root():

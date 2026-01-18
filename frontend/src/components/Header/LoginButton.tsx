@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useAuth } from '../../stores/authStore';
 import LoginForm from '../Auth/LoginForm';
 import RegisterForm from '../Auth/RegisterForm';
+import { useI18n } from '../../i18n';
 
 export default function LoginButton() {
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const { t } = useI18n();
 
   const handleLogout = async () => {
     await logout();
@@ -20,7 +22,7 @@ export default function LoginButton() {
   if (isLoading) {
     return (
       <div className="text-slate-400 px-4 py-2">
-        加载中...
+        {t.common.loading}
       </div>
     );
   }
@@ -35,7 +37,7 @@ export default function LoginButton() {
           onClick={handleLogout}
           className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
         >
-          退出
+          {t.auth.logout}
         </button>
       </div>
     );
@@ -47,7 +49,7 @@ export default function LoginButton() {
         onClick={() => setShowModal(true)}
         className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
       >
-        登录
+        {t.auth.login}
       </button>
 
       {showModal && (

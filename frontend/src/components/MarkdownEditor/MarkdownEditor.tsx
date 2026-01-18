@@ -85,6 +85,20 @@ export default function MarkdownEditor() {
 
   const { language, setLanguage, t } = useI18n();
 
+  // Sync global language to editor config
+  useEffect(() => {
+    if (config.language !== language) {
+      updateConfig({ language });
+      // Debounce saving or just save? 
+      // Since this happens on mount/change, we should be careful not to spam.
+      // But for now, let's just update the store state. 
+      // We can trigger saveConfig if needed, but maybe not strictly necessary for every toggle 
+      // if we trust I18nProvider as source of truth.
+      // However, if we want to persist to backend:
+      // saveConfig(); 
+    }
+  }, [language, config.language, updateConfig]);
+
   // Local state
   const [viewMode, setViewMode] = useState<ViewMode>('edit'); // 'edit' or 'preview' (where preview means read-only with TOC)
   const [sidebarWidth, setSidebarWidth] = useState(250);
@@ -128,13 +142,6 @@ export default function MarkdownEditor() {
       setContent(currentFile.content, true);
     }
   }, [currentFile, setContent]);
-
-  // Sync config language with i18n
-  useEffect(() => {
-    if (config.language && config.language !== language) {
-      setLanguage(config.language);
-    }
-  }, [config.language, language, setLanguage]);
 
   // Generate TOC when content changes
   useEffect(() => {
@@ -343,13 +350,6 @@ export default function MarkdownEditor() {
     saveConfig();
   };
 
-  const toggleLanguage = () => {
-    const newLang = language === 'zh-CN' ? 'en-US' : 'zh-CN';
-    setLanguage(newLang);
-    updateConfig({ language: newLang });
-    saveConfig();
-  };
-
   const scrollToSection = (id: string) => {
     setActiveTocId(id);
     // Note: This relies on Preview rendering IDs. simpleMarkdownToHtml doesn't currently do that.
@@ -410,10 +410,6 @@ export default function MarkdownEditor() {
 
           <button className="neon-button icon-only" onClick={toggleTheme} title={t.settings.theme}>
             {isDark ? <Icons.Sunny /> : <Icons.Moon />}
-          </button>
-
-          <button className="neon-button icon-only" onClick={toggleLanguage} title={t.settings.language}>
-             {language === 'zh-CN' ? '中' : 'En'}
           </button>
 
           <button className="neon-button icon-only" onClick={() => setShowSettings(true)} title={t.common.settings}>

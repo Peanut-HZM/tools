@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../stores/authStore';
 import Toast from '../MarkdownEditor/Toast/Toast';
+import { useI18n } from '../../i18n';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -17,6 +18,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
   const [localError, setLocalError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const { t } = useI18n();
 
   // 当有错误时显示 Toast
   useEffect(() => {
@@ -33,12 +35,12 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
     clearError();
 
     if (!username.trim()) {
-      setToastMessage('请输入用户名');
+      setToastMessage(t.auth.inputUsername);
       setShowToast(true);
       return;
     }
     if (!password) {
-      setToastMessage('请输入密码');
+      setToastMessage(t.auth.inputPassword);
       setShowToast(true);
       return;
     }
@@ -54,12 +56,12 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">登录</h2>
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">{t.auth.loginTitle}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-1">
-              用户名
+              {t.auth.username}
             </label>
             <input
               type="text"
@@ -67,14 +69,14 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="请输入用户名"
+              placeholder={t.auth.inputUsername}
               disabled={isLoading}
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
-              密码
+              {t.auth.password}
             </label>
             <input
               type="password"
@@ -82,7 +84,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              placeholder="请输入密码"
+              placeholder={t.auth.inputPassword}
               disabled={isLoading}
             />
           </div>
@@ -92,17 +94,17 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
             disabled={isLoading}
             className="w-full py-2 px-4 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 text-white font-medium rounded-lg transition-colors cursor-pointer"
           >
-            {isLoading ? '登录中...' : '登录'}
+            {isLoading ? t.auth.loginProcessing : t.auth.login}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <span className="text-slate-400">还没有账号？</span>
+          <span className="text-slate-400">{t.auth.noAccount}</span>
           <button
             onClick={onSwitchToRegister}
             className="ml-2 text-cyan-400 hover:text-cyan-300 cursor-pointer"
           >
-            立即注册
+            {t.auth.loginToRegister}
           </button>
         </div>
       </div>

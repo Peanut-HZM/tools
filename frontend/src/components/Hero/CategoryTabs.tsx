@@ -1,6 +1,9 @@
 import { CategoryTabsProps } from '../../types';
+import { useI18n } from '../../i18n';
 
 export default function CategoryTabs({ categories, activeCategory, onCategoryChange }: CategoryTabsProps) {
+  const { t } = useI18n();
+
   return (
     <div className="flex flex-wrap justify-center gap-3 mb-12">
       {categories.map((category) => (
@@ -11,7 +14,7 @@ export default function CategoryTabs({ categories, activeCategory, onCategoryCha
             activeCategory === category ? 'active' : ''
           }`}
         >
-          {category}
+          {t.categories[category as keyof typeof t.categories]}
         </button>
       ))}
     </div>
