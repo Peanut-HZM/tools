@@ -38,19 +38,23 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (emailCooldown > 0) {
       interval = setInterval(() => setEmailCooldown(c => c - 1), 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [emailCooldown]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (phoneCooldown > 0) {
       interval = setInterval(() => setPhoneCooldown(c => c - 1), 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [phoneCooldown]);
 
   // 当有错误时显示 Toast
@@ -333,7 +337,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       {showToast && (
         <Toast
           message={toastMessage}
-          type="error"
+          type={toastType}
           onClose={() => setShowToast(false)}
         />
       )}

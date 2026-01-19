@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { getSystemSettings, updateSystemSettings, SystemSettings } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
-import Toast from '../MarkdownEditor/Toast/Toast';
+import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 
 export default function SystemSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast, showToast } = useToast();
+  const { toasts, removeToast, success, error } = useToast();
 
   useEffect(() => {
     fetchSettings();
@@ -16,8 +16,8 @@ export default function SystemSettingsPage() {
     try {
       const data = await getSystemSettings();
       setSettings(data);
-    } catch (error) {
-      showToast('获取系统设置失败', 'error');
+    } catch (e) {
+      error('获取系统设置失败');
     } finally {
       setLoading(false);
     }
@@ -30,9 +30,9 @@ export default function SystemSettingsPage() {
     try {
       await updateSystemSettings({ allow_registration: newValue });
       setSettings({ ...settings, allow_registration: newValue });
-      showToast(`用户注册功能已${newValue ? '开启' : '关闭'}`, 'success');
-    } catch (error) {
-      showToast('更新设置失败', 'error');
+      success(`用户注册功能已${newValue ? '开启' : '关闭'}`);
+    } catch (e) {
+      error('更新设置失败');
     }
   };
 
@@ -43,9 +43,9 @@ export default function SystemSettingsPage() {
     try {
       await updateSystemSettings({ enable_email_verify: newValue });
       setSettings({ ...settings, enable_email_verify: newValue });
-      showToast(`邮箱验证已${newValue ? '开启' : '关闭'}`, 'success');
-    } catch (error) {
-      showToast('更新设置失败', 'error');
+      success(`邮箱验证已${newValue ? '开启' : '关闭'}`);
+    } catch (e) {
+      error('更新设置失败');
     }
   };
 
@@ -56,9 +56,9 @@ export default function SystemSettingsPage() {
     try {
       await updateSystemSettings({ enable_phone_verify: newValue });
       setSettings({ ...settings, enable_phone_verify: newValue });
-      showToast(`手机号验证已${newValue ? '开启' : '关闭'}`, 'success');
-    } catch (error) {
-      showToast('更新设置失败', 'error');
+      success(`手机号验证已${newValue ? '开启' : '关闭'}`);
+    } catch (e) {
+      error('更新设置失败');
     }
   };
 
@@ -145,13 +145,7 @@ export default function SystemSettingsPage() {
         </div>
       </div>
       
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => {}}
-        />
-      )}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }

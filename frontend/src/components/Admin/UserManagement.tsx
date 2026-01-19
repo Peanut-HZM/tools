@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { listUsers, updateUserRole, deleteUser, createUser } from '../../api/adminApi';
 import { UserResponse } from '../../api/authApi';
 import { useToast } from '../../hooks/useToast';
-import Toast from '../MarkdownEditor/Toast/Toast';
+import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast, showToast } = useToast();
+  const { toasts, removeToast, success, error } = useToast();
   
   // Add User Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,8 +18,8 @@ export default function UserManagement() {
     try {
       const data = await listUsers();
       setUsers(data);
-    } catch (error) {
-      showToast('获取用户列表失败', 'error');
+    } catch (e) {
+      error('获取用户列表失败');
     } finally {
       setLoading(false);
     }
@@ -33,9 +33,9 @@ export default function UserManagement() {
     try {
       await updateUserRole(userId, newRole);
       setUsers(users.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
-      showToast('角色更新成功', 'success');
-    } catch (error) {
-      showToast('角色更新失败', 'error');
+      success('角色更新成功');
+    } catch (e) {
+      error('角色更新失败');
     }
   };
 
@@ -45,9 +45,9 @@ export default function UserManagement() {
     try {
       await deleteUser(userId);
       setUsers(users.filter(u => u.user_id !== userId));
-      showToast('用户删除成功', 'success');
-    } catch (error) {
-      showToast('用户删除失败', 'error');
+      success('用户删除成功');
+    } catch (e) {
+      error('用户删除失败');
     }
   };
 
@@ -56,10 +56,10 @@ export default function UserManagement() {
     try {
       const result = await createUser(newUser);
       setGeneratedPassword(result.password);
-      showToast('用户创建成功', 'success');
+      success('用户创建成功');
       fetchUsers();
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : '创建用户失败', 'error');
+    } catch (e) {
+      error(e instanceof Error ? e.message : '创建用户失败');
     }
   };
 
@@ -126,13 +126,7 @@ export default function UserManagement() {
         </table>
       </div>
       
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => {}}
-        />
-      )}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* Add User Modal */}
       {isModalOpen && !generatedPassword && (

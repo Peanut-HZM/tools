@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { listOssFiles, deleteOssFile, OssFile } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
-import Toast from '../MarkdownEditor/Toast/Toast';
+import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 import { useAuth } from '../../stores/authStore';
 
 export default function OssManagement() {
   const [files, setFiles] = useState<OssFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast, showToast } = useToast();
+  const { toasts, removeToast, success, error } = useToast();
   const { user } = useAuth();
   
   // Filter state
@@ -17,8 +17,8 @@ export default function OssManagement() {
     try {
       const data = await listOssFiles();
       setFiles(data);
-    } catch (error) {
-      showToast('获取文件列表失败', 'error');
+    } catch (e) {
+      error('获取文件列表失败');
     } finally {
       setLoading(false);
     }
@@ -34,9 +34,9 @@ export default function OssManagement() {
     try {
       await deleteOssFile(path);
       setFiles(files.filter(f => f.path !== path));
-      showToast('文件删除成功', 'success');
-    } catch (error) {
-      showToast('文件删除失败', 'error');
+      success('文件删除成功');
+    } catch (e) {
+      error('文件删除失败');
     }
   };
 
@@ -141,13 +141,7 @@ export default function OssManagement() {
         </table>
       </div>
       
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => {}}
-        />
-      )}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }

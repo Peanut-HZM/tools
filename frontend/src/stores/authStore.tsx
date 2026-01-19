@@ -21,7 +21,14 @@ export interface AuthState {
 
 export interface AuthActions {
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    email: string,
+    password: string,
+    phone?: string,
+    emailCode?: string,
+    phoneCode?: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
@@ -89,11 +96,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (username: string, email: string, password: string) => {
+  const register = async (
+    username: string,
+    email: string,
+    password: string,
+    phone?: string,
+    emailCode?: string,
+    phoneCode?: string
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await authApi.register({ username, email, password });
+      const response = await authApi.register({
+        username,
+        email,
+        password,
+        phone: phone || undefined,
+        email_code: emailCode || undefined,
+        phone_code: phoneCode || undefined,
+      });
       setUser({
         user_id: response.user_id,
         username: response.username,

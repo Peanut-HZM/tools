@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { getDashboardStats, DashboardStats } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
+import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const { showToast } = useToast();
+  const { toasts, removeToast, error } = useToast();
 
   useEffect(() => {
     fetchStats();
@@ -15,8 +16,8 @@ export default function Dashboard() {
     try {
       const data = await getDashboardStats();
       setStats(data);
-    } catch (error) {
-      showToast('获取仪表盘数据失败', 'error');
+    } catch (e) {
+      error('获取仪表盘数据失败');
     } finally {
       setLoading(false);
     }
@@ -83,6 +84,8 @@ export default function Dashboard() {
           </table>
         </div>
       </div>
+
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }

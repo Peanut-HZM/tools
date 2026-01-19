@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { listAllTools, updateToolStatus, Tool } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
-import Toast from '../MarkdownEditor/Toast/Toast';
+import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 
 export default function ToolManagement() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast, showToast } = useToast();
+  const { toasts, removeToast, success, error } = useToast();
 
   const fetchTools = async () => {
     try {
       const data = await listAllTools();
       setTools(data);
-    } catch (error) {
-      showToast('获取工具列表失败', 'error');
+    } catch (e) {
+      error('获取工具列表失败');
     } finally {
       setLoading(false);
     }
@@ -28,9 +28,9 @@ export default function ToolManagement() {
     try {
       await updateToolStatus(toolId, newStatus);
       setTools(tools.map(t => t.id === toolId ? { ...t, status: newStatus } : t));
-      showToast(`工具已${newStatus === 'online' ? '上线' : '下线'}`, 'success');
-    } catch (error) {
-      showToast('状态更新失败', 'error');
+      success(`工具已${newStatus === 'online' ? '上线' : '下线'}`);
+    } catch (e) {
+      error('状态更新失败');
     }
   };
 
@@ -88,13 +88,7 @@ export default function ToolManagement() {
         </table>
       </div>
       
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => {}}
-        />
-      )}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }

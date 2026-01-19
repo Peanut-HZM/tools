@@ -14,13 +14,13 @@ load_dotenv(env_path)
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "MasterGO Tool Aggregation API"
+    APP_NAME: str = "Tool Aggregation API"
     ENV: str = "dev"
     DEBUG: bool = True
     USERS_DATA_PATH: str = "./data/users"
     
     # Database
-    DATABASE_URL: str = "postgresql://tools_user:password@localhost:5432/tools_db"
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/tools"
     
     # Security
     JWT_SECRET_KEY: str = "your-secret-key-change-in-production"

@@ -1,22 +1,24 @@
 """
 Authentication Models - Pydantic models for user authentication
 """
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+
+EMAIL_PATTERN = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 
 
 class UserBase(BaseModel):
     """Base user model"""
     username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
+    email: str = Field(..., pattern=EMAIL_PATTERN)
     phone: Optional[str] = None
 
 
 class UserCreate(BaseModel):
     """User registration request model"""
     username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
+    email: str = Field(..., pattern=EMAIL_PATTERN)
     password: str = Field(..., min_length=6, max_length=100)
     phone: Optional[str] = None
     email_code: Optional[str] = None
