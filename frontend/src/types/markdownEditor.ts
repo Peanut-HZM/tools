@@ -24,6 +24,7 @@ export interface SaveResult {
   success: boolean;
   message: string;
   modified?: string;
+  error?: string;
 }
 
 export interface CreateResult {

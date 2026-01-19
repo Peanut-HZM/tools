@@ -118,7 +118,7 @@ export async function uploadMarkdownFile(file: File, path: string = ''): Promise
   const response = await fetch(`${API_BASE_URL}/files/upload?path=${encodeURIComponent(path)}`, {
     method: 'POST',
     headers: {
-      'Authorization': getAuthHeaders().Authorization as string
+      'Authorization': (getAuthHeaders() as Record<string, string>)['Authorization'] || ''
       // Do NOT set Content-Type header when sending FormData, 
       // browser will set it automatically with boundary
     },
