@@ -1,0 +1,88 @@
+.file-upload-container {
+  border: 2px dashed #4a5568;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #1e293b;
+  margin: 20px 0;
+}
+
+.file-upload-container:hover {
+  border-color: #3b82f6;
+  background-color: #1e293b;
+}
+
+.file-upload-container.dragging {
+  border-color: #3b82f6;
+  background-color: #1e293b;
+  border-width: 3px;
+}
+
+.file-upload-container.uploading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.upload-icon {
+  color: #64748b;
+  transition: color 0.3s ease;
+}
+
+.file-upload-container:hover .upload-icon {
+  color: #3b82f6;
+}
+
+.upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.upload-hint {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.upload-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #334155;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.upload-status span {
+  color: #94a3b8;
+  font-size: 14px;
+}

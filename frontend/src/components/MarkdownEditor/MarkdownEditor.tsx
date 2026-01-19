@@ -7,11 +7,15 @@ import Preview from './Preview/Preview';
 import SearchDialog from './SearchDialog/SearchDialog';
 import SettingsDialog from './SettingsDialog/SettingsDialog';
 import StatusBar from './StatusBar/StatusBar';
+import FileUpload from './FileUpload/FileUpload';
 import { useFileStore } from '../../stores/fileStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useI18n } from '../../i18n';
+import { saveMarkdownToOss, uploadMarkdownFile } from '../../api/markdownEditorApi';
 import type { EditorConfig } from '../../types/markdownEditor';
+import { useToast } from '../../hooks/useToast';
+import Toast from './Toast/Toast';
 
 // SVG Icons
 const Icons = {
@@ -84,6 +88,7 @@ export default function MarkdownEditor() {
   } = useConfigStore();
 
   const { language, setLanguage, t } = useI18n();
+  const { toast, showToast } = useToast();
 
   // Sync global language to editor config
   useEffect(() => {
@@ -116,6 +121,10 @@ export default function MarkdownEditor() {
   const [newFileName, setNewFileName] = useState('');
   const [newFileFolder, setNewFileFolder] = useState('');
   
+  // OSS file state
+  const [ossFilePath, setOssFilePath] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  
   const [isResizing, setIsResizing] = useState(false);
   const [resizeType, setResizeType] = useState<'sidebar' | 'preview' | 'toc' | null>(null);
 
@@ -140,8 +149,25 @@ export default function MarkdownEditor() {
   useEffect(() => {
     if (currentFile) {
       setContent(currentFile.content, true);
+      // Clear OSS file path when opening a local file
+      setOssFilePath(null);
     }
   }, [currentFile, setContent]);
+  
+  // Handle file upload from OSS
+  const handleFileUploaded = useCallback((content: string, filename: string, filePath: string) => {
+    setContent(content, true);
+    setOssFilePath(filePath);
+    // Clear current file path to indicate this is an OSS file
+    setCurrentFilePath('');
+    setUploadError(null);
+  }, [setContent]);
+  
+  // Handle upload error
+  const handleUploadError = useCallback((error: string) => {
+    setUploadError(error);
+    setTimeout(() => setUploadError(null), 5000);
+  }, []);
 
   // Generate TOC when content changes
   useEffect(() => {
@@ -173,13 +199,35 @@ export default function MarkdownEditor() {
     }
   }, [content]);
 
+  // Handle save
+  const handleSave = useCallback(async () => {
+    if (!isDirty) return;
+
+    setSaving(true);
+    try {
+      // If it's an OSS file, save to OSS; otherwise save to local file system
+      if (ossFilePath) {
+        await saveMarkdownToOss(ossFilePath, content);
+      } else if (currentFilePath) {
+        await saveCurrentFile(content);
+      } else {
+        throw new Error('No file path available');
+      }
+      markAsSaved();
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }, [currentFilePath, ossFilePath, isDirty, content, saveCurrentFile, markAsSaved, setSaving, setSaveError]);
+
   // Auto-save functionality
   useEffect(() => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    if (isDirty && currentFilePath && config.autoSaveInterval > 0) {
+    if (isDirty && (currentFilePath || ossFilePath) && config.autoSaveInterval > 0) {
       autoSaveTimerRef.current = setTimeout(() => {
         handleSave();
       }, config.autoSaveInterval * 1000);
@@ -190,22 +238,7 @@ export default function MarkdownEditor() {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [isDirty, content, currentFilePath, config.autoSaveInterval]);
-
-  // Handle save
-  const handleSave = useCallback(async () => {
-    if (!currentFilePath || !isDirty) return;
-
-    setSaving(true);
-    try {
-      await saveCurrentFile(content);
-      markAsSaved();
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Save failed');
-    } finally {
-      setSaving(false);
-    }
-  }, [currentFilePath, isDirty, content, saveCurrentFile, markAsSaved, setSaving, setSaveError]);
+  }, [isDirty, content, currentFilePath, ossFilePath, config.autoSaveInterval, handleSave]);
 
   // Handle file select
   const handleFileSelect = useCallback(async (path: string) => {
@@ -215,6 +248,8 @@ export default function MarkdownEditor() {
         await handleSave();
       }
     }
+    // Clear OSS file path when opening a local file
+    setOssFilePath(null);
     await openFile(path);
   }, [isDirty, handleSave, openFile]);
 
@@ -363,10 +398,42 @@ export default function MarkdownEditor() {
 
   const isDark = config.theme === 'dark';
 
+  const handleFileUpload = async (file: File) => {
+    try {
+      // Determine target path based on currently selected folder
+      // If a file is selected, use its parent. If root or folder, use that.
+      // For simplicity, we can default to root or ask user (but FileUpload component just gives us the file)
+      // Let's try to infer from currentFile or currentFilePath if possible, or just root.
+      // Actually, FileTree usually has a selected node state, but we only have currentFile.
+      
+      let targetPath = "";
+      if (currentFilePath) {
+          // If it's a file, get parent dir
+          const parts = currentFilePath.split('/');
+          if (parts.length > 1) {
+              parts.pop();
+              targetPath = parts.join('/');
+          }
+      }
+      
+      const result = await uploadMarkdownFile(file, targetPath);
+      if (result.success) {
+        showToast('File uploaded successfully', 'success');
+        // Reload tree to show new file
+        loadDirectoryTree();
+      } else {
+        showToast(result.error || 'Upload failed', 'error');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showToast('Upload failed', 'error');
+    }
+  };
+
   return (
-    <div className={`markdown-editor-container ${isDark ? 'dark-theme' : ''}`}>
-      {/* Header */}
-      <div className="header">
+    <div className={`flex flex-col h-screen bg-slate-900 text-slate-300 overflow-hidden ${config.theme === 'light' ? 'light-mode' : ''}`}>
+      {/* Top Bar */}
+      <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 shrink-0 z-20">
         <div className="header-left">
           <h1>{t.editor.title}</h1>
         </div>
@@ -382,7 +449,7 @@ export default function MarkdownEditor() {
             </button>
           </div>
 
-          {currentFile && (
+          {(currentFile || ossFilePath) && (
             <div className="neon-button-group">
               <button 
                 className={`neon-button ${viewMode === 'preview' ? 'primary' : ''}`}
@@ -402,11 +469,26 @@ export default function MarkdownEditor() {
           )}
 
           {viewMode === 'edit' && (
-            <button className="neon-button" onClick={handleSave} disabled={!isDirty || !currentFile}>
+            <button className="neon-button" onClick={handleSave} disabled={!isDirty || (!currentFile && !ossFilePath)}>
               <Icons.DocumentChecked />
               {t.common.save}
             </button>
           )}
+
+          <label className="neon-button icon-only cursor-pointer" title={t.editor?.importFile || 'Import File'}>
+            <Icons.Plus />
+            <input 
+              type="file" 
+              className="hidden" 
+              accept=".md,.markdown"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleFileUpload(e.target.files[0]);
+                  e.target.value = '';
+                }
+              }}
+            />
+          </label>
 
           <button className="neon-button icon-only" onClick={toggleTheme} title={t.settings.theme}>
             {isDark ? <Icons.Sunny /> : <Icons.Moon />}
@@ -452,7 +534,7 @@ export default function MarkdownEditor() {
         {viewMode === 'preview' ? (
           // View Mode: TOC + Preview
           <div className="content-area view-mode">
-             {currentFile ? (
+             {(currentFile || ossFilePath) ? (
                <div className="view-mode-container">
                  <div className="toc-sidebar" style={{ width: tocSidebarWidth }}>
                    <div className="toc-sidebar-header">
@@ -484,8 +566,25 @@ export default function MarkdownEditor() {
                  </div>
                </div>
              ) : (
-               <div className="empty-state">
-                 <p>{hasRootPath ? t.editor.selectFile : t.editor.selectFile}</p>
+               <div className="empty-state" style={{
+                 display: 'flex',
+                 flexDirection: 'column',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 height: '100%',
+                 padding: '40px',
+                 textAlign: 'center'
+               }}>
+                 <p style={{ marginBottom: '20px', fontSize: '16px', color: '#94a3b8' }}>
+                   {t.editor.selectFile || '请先打开或上传一个文件'}
+                 </p>
+                 <button 
+                   className="neon-button primary" 
+                   onClick={() => setViewMode('edit')}
+                   style={{ marginTop: '10px' }}
+                 >
+                   切换到编辑模式
+                 </button>
                </div>
              )}
           </div>
@@ -493,18 +592,59 @@ export default function MarkdownEditor() {
           // Edit Mode: Editor + Preview (Resizable)
           <>
             <div className="editor-area" style={{ flex: 1 }}>
-               {currentFile ? (
-                 <Editor
-                   content={content}
-                   config={config}
-                   onChange={updateContent}
-                   onSave={handleSave}
-                   onCursorChange={setCursorPosition}
-                 />
-               ) : (
-                 <div className="empty-state">
-                   <p>{hasRootPath ? t.editor.selectFile : t.editor.selectFile}</p>
+               {!currentFile && !ossFilePath ? (
+                 // Show upload area when no file is open
+                 <div className="empty-state" style={{
+                   display: 'flex',
+                   flexDirection: 'column',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   height: '100%',
+                   padding: '20px'
+                 }}>
+                   <FileUpload 
+                     onFileUploaded={handleFileUploaded}
+                     onError={handleUploadError}
+                   />
+                   {uploadError && (
+                     <div className="upload-error" style={{
+                       marginTop: '16px',
+                       padding: '12px',
+                       backgroundColor: '#7f1d1d',
+                       border: '1px solid #dc2626',
+                       borderRadius: '4px',
+                       color: '#fca5a5',
+                       maxWidth: '600px',
+                       width: '100%'
+                     }}>
+                       {uploadError}
+                     </div>
+                   )}
                  </div>
+               ) : (
+                 <>
+                   {ossFilePath && (
+                     <div className="oss-file-indicator" style={{
+                       padding: '8px 16px',
+                       backgroundColor: '#1e3a8a',
+                       borderBottom: '1px solid #3b82f6',
+                       color: '#93c5fd',
+                       fontSize: '14px'
+                     }}>
+                       <i className="fas fa-cloud mr-2"></i>
+                       正在编辑OSS文件: {ossFilePath.split('/').pop()}
+                     </div>
+                   )}
+                   {(currentFile || ossFilePath) && (
+                     <Editor
+                       content={content}
+                       config={config}
+                       onChange={updateContent}
+                       onSave={handleSave}
+                       onCursorChange={setCursorPosition}
+                     />
+                   )}
+                 </>
                )}
             </div>
             
@@ -525,7 +665,7 @@ export default function MarkdownEditor() {
            </span>
          )}
          <span className="status-item">
-           {currentFilePath || t.fileTree.noFiles}
+           {ossFilePath ? `OSS: ${ossFilePath.split('/').pop()}` : (currentFilePath || t.fileTree.noFiles)}
          </span>
          <span className={`status-item mode-indicator ${viewMode === 'edit' ? 'edit-mode' : ''}`}>
            {viewMode === 'edit' ? t.editor.edit.toUpperCase() : t.editor.preview.toUpperCase()}
@@ -657,6 +797,13 @@ export default function MarkdownEditor() {
             <span className="text-white">{t.common.loading}</span>
           </div>
         </div>
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => {}} // Toast handles its own timer
+        />
       )}
     </div>
   );

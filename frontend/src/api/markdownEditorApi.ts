@@ -98,6 +98,36 @@ export async function saveFile(path: string, content: string): Promise<SaveResul
 }
 
 /**
+ * Save file content to OSS
+ */
+export async function saveMarkdownToOss(path: string, content: string): Promise<SaveResult> {
+  // Currently saveFile handles OSS upload in backend
+  return saveFile(path, content);
+}
+
+/**
+ * Upload a markdown file
+ */
+export async function uploadMarkdownFile(file: File, path: string = ''): Promise<SaveResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (path) {
+    formData.append('path', path);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/files/upload?path=${encodeURIComponent(path)}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': getAuthHeaders().Authorization as string
+      // Do NOT set Content-Type header when sending FormData, 
+      // browser will set it automatically with boundary
+    },
+    body: formData
+  });
+  return handleResponse<SaveResult>(response);
+}
+
+/**
  * Create a new file
  */
 export async function createFile(path: string, content: string = ''): Promise<CreateResult> {
@@ -219,4 +249,101 @@ export async function searchContent(
     headers: getAuthHeaders()
   });
   return handleResponse<ContentSearchResult[]>(response);
+}
+
+// ==================== OSS Operations ====================
+
+export interface OssUploadMarkdownResponse {
+  success: boolean;
+  file_path: string;
+  url: string;
+  filename: string;
+  message: string;
+}
+
+export interface OssReadMarkdownResponse {
+  success: boolean;
+  content: string;
+  filename: string;
+  message: string;
+}
+
+export interface OssSaveMarkdownRequest {
+  file_path: string;
+  content: string;
+}
+
+export interface OssSaveMarkdownResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface OssFileInfo {
+  file_path: string;
+  filename: string;
+  size: number;
+  last_modified: string | null;
+}
+
+/**
+ * Upload a Markdown file to OSS
+ */
+export async function uploadMarkdownToOss(file: File): Promise<OssUploadMarkdownResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const headers = getAuthHeaders() as Record<string, string>;
+  delete headers['Content-Type'];
+
+  const response = await fetch(`${API_BASE_URL}/oss/upload`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+    },
+    body: formData,
+  });
+
+  return handleResponse<OssUploadMarkdownResponse>(response);
+}
+
+/**
+ * Read a Markdown file from OSS
+ */
+export async function readMarkdownFromOss(filePath: string): Promise<OssReadMarkdownResponse> {
+  const params = new URLSearchParams({ file_path: filePath });
+  
+  const response = await fetch(`${API_BASE_URL}/oss/read?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  
+  return handleResponse<OssReadMarkdownResponse>(response);
+}
+
+/**
+ * Save Markdown content to OSS
+ */
+export async function saveMarkdownToOssLegacy(
+  filePath: string,
+  content: string
+): Promise<OssSaveMarkdownResponse> {
+  const response = await fetch(`${API_BASE_URL}/oss/save`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ file_path: filePath, content })
+  });
+  
+  return handleResponse<OssSaveMarkdownResponse>(response);
+}
+
+/**
+ * List all Markdown files in OSS for the current user
+ */
+export async function listOssMarkdownFiles(): Promise<OssFileInfo[]> {
+  const response = await fetch(`${API_BASE_URL}/oss/list`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  
+  return handleResponse<OssFileInfo[]>(response);
 }

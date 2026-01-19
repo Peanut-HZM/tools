@@ -1,8 +1,11 @@
 """
 Markdown Editor API Router - Handles file, config, and search operations
 """
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File
 from typing import Optional, List
+import os
+import uuid
+import io
 
 from app.models.file_models import (
     FileNode, FileContent, SaveRequest, SaveResult,
@@ -14,12 +17,14 @@ from app.models.search_models import FileSearchResult, ContentSearchResult
 from app.services.markdown_file_service import MarkdownFileService
 from app.services.markdown_config_service import MarkdownConfigService
 from app.services.markdown_search_service import MarkdownSearchService
+from app.services.oss_service import oss_service
 from app.middleware.auth_middleware import get_current_user_id
 
 router = APIRouter(prefix="/api/markdown-editor", tags=["markdown-editor"])
 
 
 from pydantic import BaseModel
+import oss2
 
 class RootPathRequest(BaseModel):
     path: str
@@ -40,6 +45,49 @@ def get_search_service(user_id: str = Depends(get_current_user_id)) -> MarkdownS
     """Get MarkdownSearchService instance for the current user"""
     return MarkdownSearchService(user_id)
 
+
+@router.post("/files/upload", response_model=SaveResult)
+async def upload_markdown_file(
+    file: UploadFile = File(...),
+    path: str = Query(default="", description="Target relative path (folder)"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Upload a Markdown file to OSS and save it in the user's workspace.
+    If path is provided, it will be saved in that folder.
+    """
+    if not file:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+    
+    # Check extension
+    filename = file.filename
+    if not filename.lower().endswith(('.md', '.markdown')):
+        raise HTTPException(status_code=400, detail="Only Markdown files (.md, .markdown) are allowed")
+        
+    try:
+        service = get_file_service(user_id)
+        
+        # Read content
+        content_bytes = await file.read()
+        try:
+            content = content_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            raise HTTPException(status_code=400, detail="File must be UTF-8 encoded text")
+            
+        # Construct target path
+        target_path = os.path.join(path, filename) if path else filename
+        target_path = target_path.replace("\\", "/") # Normalize separators
+        
+        # Use existing save_file logic which handles OSS upload
+        result = service.save_file(target_path, content)
+        
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error or "Failed to save file")
+            
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 # ==================== File Operations ====================
 
@@ -309,3 +357,207 @@ async def search_content(
         return service.search_content(keyword, regex=regex, case_sensitive=case_sensitive)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
+
+
+# ==================== OSS Operations ====================
+
+class OssUploadMarkdownResponse(BaseModel):
+    """Response model for OSS markdown upload"""
+    success: bool
+    file_path: str
+    url: str
+    filename: str
+    message: str
+
+class OssReadMarkdownResponse(BaseModel):
+    """Response model for reading markdown from OSS"""
+    success: bool
+    content: str
+    filename: str
+    message: str
+
+class OssSaveMarkdownRequest(BaseModel):
+    """Request model for saving markdown to OSS"""
+    file_path: str
+    content: str
+
+class OssSaveMarkdownResponse(BaseModel):
+    """Response model for saving markdown to OSS"""
+    success: bool
+    message: str
+
+
+@router.post("/oss/upload", response_model=OssUploadMarkdownResponse)
+async def upload_markdown_to_oss(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Upload a Markdown file to OSS.
+    Only accepts .md, .markdown, .txt files.
+    """
+    if not oss_service.bucket:
+        raise HTTPException(status_code=503, detail="OSS service is not configured")
+    
+    # Validate file type
+    allowed_extensions = {'.md', '.markdown', '.txt'}
+    file_extension = os.path.splitext(file.filename or '')[1].lower()
+    
+    if file_extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid file type. Only {', '.join(allowed_extensions)} files are allowed"
+        )
+    
+    try:
+        # Read file content
+        content = await file.read()
+        file_size = len(content)
+        
+        # Generate unique filename
+        original_filename = file.filename or f"document{file_extension}"
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        
+        # Organize files by user_id in OSS
+        object_name = f"markdown/{user_id}/{unique_filename}"
+        
+        # Upload to OSS
+        file_obj = io.BytesIO(content)
+        url = oss_service.upload_file(
+            object_name=object_name,
+            data=file_obj,
+            size=file_size,
+            content_type=file.content_type or "text/markdown",
+            uploaded_by=user_id
+        )
+        
+        if not url:
+            raise HTTPException(status_code=500, detail="Failed to upload file to OSS")
+        
+        return OssUploadMarkdownResponse(
+            success=True,
+            file_path=object_name,
+            url=url,
+            filename=original_filename,
+            message="File uploaded successfully"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload error: {str(e)}")
+
+
+@router.get("/oss/read", response_model=OssReadMarkdownResponse)
+async def read_markdown_from_oss(
+    file_path: str = Query(..., description="OSS file path"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Read a Markdown file from OSS.
+    Only allows reading files belonging to the current user.
+    """
+    if not oss_service.bucket:
+        raise HTTPException(status_code=503, detail="OSS service is not configured")
+    
+    # Security check: Ensure user can only read their own files
+    if not file_path.startswith(f"markdown/{user_id}/"):
+        raise HTTPException(status_code=403, detail="Access denied: You can only read your own files")
+    
+    try:
+        # Get object from OSS
+        result = oss_service.bucket.get_object(file_path)
+        content = result.read().decode('utf-8')
+        
+        filename = os.path.basename(file_path)
+        
+        return OssReadMarkdownResponse(
+            success=True,
+            content=content,
+            filename=filename,
+            message="File read successfully"
+        )
+    except oss2.exceptions.NoSuchKey:
+        raise HTTPException(status_code=404, detail="File not found in OSS")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Read error: {str(e)}")
+
+
+@router.post("/oss/save", response_model=OssSaveMarkdownResponse)
+async def save_markdown_to_oss(
+    request: OssSaveMarkdownRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Save Markdown content to OSS.
+    Only allows saving files belonging to the current user.
+    """
+    if not oss_service.bucket:
+        raise HTTPException(status_code=503, detail="OSS service is not configured")
+    
+    # Security check: Ensure user can only save their own files
+    if not request.file_path.startswith(f"markdown/{user_id}/"):
+        raise HTTPException(status_code=403, detail="Access denied: You can only save your own files")
+    
+    try:
+        # Convert content to bytes
+        content_bytes = request.content.encode('utf-8')
+        file_size = len(content_bytes)
+        
+        # Upload to OSS
+        file_obj = io.BytesIO(content_bytes)
+        url = oss_service.upload_file(
+            object_name=request.file_path,
+            data=file_obj,
+            size=file_size,
+            content_type="text/markdown",
+            uploaded_by=user_id
+        )
+        
+        if not url:
+            raise HTTPException(status_code=500, detail="Failed to save file to OSS")
+        
+        return OssSaveMarkdownResponse(
+            success=True,
+            message="File saved successfully"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Save error: {str(e)}")
+
+
+class OssFileInfo(BaseModel):
+    """OSS file information model"""
+    file_path: str
+    filename: str
+    size: int
+    last_modified: Optional[str] = None
+
+@router.get("/oss/list", response_model=List[OssFileInfo])
+async def list_oss_markdown_files(
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    List all Markdown files in OSS for the current user.
+    """
+    if not oss_service.bucket:
+        raise HTTPException(status_code=503, detail="OSS service is not configured")
+    
+    try:
+        # List files from OSS (filtered by user)
+        prefix = f"markdown/{user_id}/"
+        files = []
+        
+        # Get files from OSS directly
+        for obj in oss2.ObjectIterator(oss_service.bucket, prefix=prefix):
+            if obj.key.endswith(('.md', '.markdown', '.txt')):
+                files.append(OssFileInfo(
+                    file_path=obj.key,
+                    filename=os.path.basename(obj.key),
+                    size=obj.size,
+                    last_modified=obj.last_modified.isoformat() if obj.last_modified else None
+                ))
+        
+        return files
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"List error: {str(e)}")
