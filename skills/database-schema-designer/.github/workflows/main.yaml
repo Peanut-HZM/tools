@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Skip if commit message contains [skip ci]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Validate Plugin Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate marketplace.json
+        run: |
+          echo "Validating marketplace.json..."
+          cat .claude-plugin/marketplace.json | jq .
+
+          # Check required fields
+          jq -e '.name' .claude-plugin/marketplace.json > /dev/null
+          jq -e '.owner' .claude-plugin/marketplace.json > /dev/null
+          jq -e '.plugins' .claude-plugin/marketplace.json > /dev/null
+          jq -e '.metadata.version' .claude-plugin/marketplace.json > /dev/null
+
+          echo "✓ marketplace.json is valid"
+

@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install
+      - run: pnpm lint --fix
+      - run: pnpm typecheck
+
+      - name: Commit lint fixes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: auto-fix lint errors'
+          file_pattern: '*.md skills/**/*.md'
+
+  validate-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install skills-ref
+        run: pip install git+https://github.com/agentskills/agentskills.git#subdirectory=skills-ref
+
+      - name: Validate all skills
+        run: |
+          for skill in skills/*/; do
+            echo "Validating $skill..."
+            skills-ref validate "$skill"
+          done

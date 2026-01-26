@@ -1,0 +1,27 @@
+{
+  "name": "expo-plugins",
+  "owner": {
+    "name": "Evan Bacon",
+    "email": "bacon@expo.io"
+  },
+  "metadata": {
+    "description": "Expo's official plugins for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "expo-app-design",
+      "source": "./plugins/expo-app-design",
+      "description": "Build robust, productivity apps with Expo."
+    },
+    {
+      "name": "upgrading-expo",
+      "source": "./plugins/upgrading-expo",
+      "description": "Guidelines for upgrading Expo SDK versions and fixing dependency issues."
+    },
+    {
+      "name": "expo-deployment",
+      "source": "./plugins/expo-deployment",
+      "description": "Deploying Expo apps to iOS App Store, Android Play Store, web hosting, and CI/CD workflows."
+    }
+  ]
+}

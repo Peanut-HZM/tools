@@ -1,0 +1,59 @@
+name: Sync gepetto from softaworks/gepetto
+
+on:
+  schedule:
+    # Runs daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync gepetto skill
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout agent-skills
+        uses: actions/checkout@v4
+
+      - name: Clone softaworks/gepetto
+        run: |
+          git clone --depth 1 https://github.com/softaworks/gepetto.git /tmp/gepetto
+
+      - name: Sync skill directory
+        run: |
+          # Remove old directory if it exists
+          rm -rf skills/gepetto
+
+          # Copy new version
+          cp -r /tmp/gepetto/skills/gepetto skills/
+
+          # Copy README.md from root to skill directory
+          cp /tmp/gepetto/README.md skills/gepetto/
+
+          echo "✅ Copied gepetto from softaworks/gepetto"
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git status --short
+          fi
+
+      - name: Commit and push
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add skills/gepetto
+          git commit -m "chore: sync gepetto from softaworks/gepetto [skip ci]"
+          git push
+
+          echo "✅ Pushed changes to agent-skills"

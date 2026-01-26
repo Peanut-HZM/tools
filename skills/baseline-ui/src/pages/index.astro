@@ -1,0 +1,145 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { skills } from "../data/skills";
+import { CopyButton } from "../ui/copy-button";
+import CodeBlock from "../ui/code-block.astro";
+import { InstallTabs } from "../ui/install-tabs";
+
+const skillList = skills as Array<{
+  slug: string;
+  label: string;
+  description?: string;
+}>;
+---
+
+<Layout>
+  <div
+    class="relative flex min-h-dvh flex-col items-center justify-end px-0 sm:px-4"
+  >
+    <div class="relative mt-20 w-full max-w-3xl sm:px-0">
+      <div class="mx-auto flex w-full flex-col gap-16">
+        <div class="px-4 sm:px-0">
+          <h1 class="text-parchment-900 text-3xl font-medium tracking-tight">
+            UI Skills
+          </h1>
+          <p class="text-parchment-600 mt-3 text-lg">
+            A set of skills to polish interfaces built by agents.
+          </p>
+        </div>
+
+        <div>
+          <h2
+            class="text-parchment-900 mb-3 px-4 text-lg font-medium tracking-tight sm:px-0"
+          >
+            Installation
+          </h2>
+          <InstallTabs client:load />
+          <p class="text-parchment-500 mt-3 px-4 text-[15px] sm:px-0">
+            Support Claude Code, Cursor, OpenCode and more.
+          </p>
+        </div>
+
+        <div>
+          <h2
+            class="text-parchment-900 mb-3 px-4 text-lg font-medium tracking-tight sm:px-0"
+          >
+            Add a specific skill
+          </h2>
+          <CodeBlock
+            lines={[
+              [
+                { text: "npx", className: "text-[#953800]" },
+                { text: " ui-skills", className: "text-[#0a3069]" },
+                { text: " add", className: "text-[#0550ae]" },
+                {
+                  text: " baseline-ui",
+                  className: "text-parchment-400",
+                },
+              ],
+              [
+                { text: "npx", className: "text-[#953800]" },
+                { text: " ui-skills", className: "text-[#0a3069]" },
+                { text: " add", className: "text-[#0550ae]" },
+                {
+                  text: " fixing-motion-performance",
+                  className: "text-parchment-400",
+                },
+              ],
+              [
+                { text: "npx", className: "text-[#953800]" },
+                { text: " ui-skills", className: "text-[#0a3069]" },
+                { text: " add", className: "text-[#0550ae]" },
+                {
+                  text: " fixing-metadata",
+                  className: "text-parchment-400",
+                },
+              ],
+              [
+                { text: "npx", className: "text-[#953800]" },
+                { text: " ui-skills", className: "text-[#0a3069]" },
+                { text: " add", className: "text-[#0550ae]" },
+                {
+                  text: " fixing-accessibility",
+                  className: "text-parchment-400",
+                },
+              ],
+            ]}
+          />
+        </div>
+
+        <div>
+          <h2
+            class="text-parchment-900 mb-3 px-4 text-lg font-medium tracking-tight sm:px-0"
+          >
+            Usage
+          </h2>
+          <div
+            class="relative flex items-center justify-between rounded-none border-t border-b border-neutral-200 bg-white py-3.5 pr-4 pl-6 shadow-2xs sm:rounded-[8px] sm:border-none sm:ring-1 sm:ring-black/10"
+          >
+            <code class="font-mono text-[15px]">
+              <span class="text-[#953800]">/baseline-ui</span>
+              <span class="text-parchment-400"> review src/</span>
+            </code>
+            <div class="flex items-center gap-1">
+              <CopyButton
+                content="/baseline-ui review src/"
+                showText={false}
+                className="size-8"
+                client:load
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2
+            class="text-parchment-900 mb-3 px-4 text-lg font-medium tracking-tight sm:px-0"
+          >
+            Skills
+          </h2>
+          <div class="grid gap-4 px-0 sm:grid-cols-2 sm:px-0">
+            {
+              skillList.map((skill) => (
+                <a
+                  href={`/skills/${skill.slug}`}
+                  class="hover:border-parchment-300 relative flex items-center justify-between rounded-none border-t border-b border-neutral-200 bg-white py-3.5 pr-4 pl-6 shadow-2xs transition-colors sm:rounded-[8px] sm:border-none sm:ring-1 sm:ring-black/10"
+                >
+                  <div class="text-parchment-500 mask-b-from-40% mask-b-to-100% text-[13px]">
+                    <div>---</div>
+                    <div>name: {skill.slug}</div>
+                    {skill.description ? (
+                      <div class="text-parchment-400">
+                        description: {skill.description}
+                      </div>
+                    ) : null}
+                    <div>---</div>
+                  </div>
+                </a>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
