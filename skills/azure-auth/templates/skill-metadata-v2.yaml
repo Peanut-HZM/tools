@@ -1,0 +1,74 @@
+# Skill Metadata Schema v2
+# Extended schema for deep content auditing
+#
+# This schema extends the standard Claude Code skill frontmatter
+# with metadata fields for automated content validation.
+
+---
+# REQUIRED FIELDS (standard)
+name: skill-name-lowercase-hyphenated
+description: |
+  Short description of what this skill does. First paragraph describes
+  the capability. Second paragraph lists "Use when:" scenarios.
+
+  Use when: [scenario 1], [scenario 2], troubleshooting "[error message]".
+
+# OPTIONAL FIELDS (standard)
+license: MIT
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Glob
+  - Grep
+
+# EXTENDED METADATA (for deep audit)
+metadata:
+  # Documentation sources for content validation
+  doc_sources:
+    # Primary documentation - REQUIRED for deep audit
+    primary: "https://docs.example.com/getting-started"
+
+    # API reference - optional
+    api: "https://docs.example.com/api-reference"
+
+    # Changelog/releases - optional but recommended
+    changelog: "https://github.com/org/repo/releases"
+
+    # Migration guides - optional
+    migration: "https://docs.example.com/migration-v2"
+
+    # Additional sources - optional
+    # Add custom keys as needed (e.g., blog, tutorials)
+
+  # Package ecosystem - REQUIRED for version validation
+  # Options: npm | pypi | github | crates | go | nuget | rubygems
+  ecosystem: npm
+
+  # Package name as it appears in the registry
+  # May differ from skill name (e.g., "@clerk/nextjs" vs "clerk-auth")
+  package_name: "@example/package"
+
+  # Alternative package names (for scoped packages, forks, etc.)
+  alt_packages:
+    - "example-package"  # Non-scoped version
+    - "@other-org/example"  # Fork/alternative
+
+  # Tier for audit prioritization (1 = highest priority)
+  tier: 1
+
+  # Last verified date (updated by audit scripts)
+  last_verified: "2026-01-09"
+
+  # Keywords for improved discovery
+  keywords:
+    - example
+    - api
+    - integration
+---
+
+# Skill Title
+
+## Quick Start
+
+[Skill content continues here...]
