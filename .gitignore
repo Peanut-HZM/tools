@@ -72,3 +72,7 @@ backend/data/
 
 # Design files
 design/
+
+# Skills directory (可以通过脚本重新下载)
+skills/*/
+!skills/README.md
