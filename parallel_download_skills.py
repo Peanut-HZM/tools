@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-并行下载 Skills - 支持多线程和进度条
+并行下载 Skills - 支持多线程和多行进度显示
 """
 
 import json
@@ -13,6 +13,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 import threading
+import os
 
 # 全局锁和计数器
 print_lock = Lock()
@@ -24,6 +25,67 @@ stats = {
     'skipped': 0,
     'current': 0
 }
+
+# 线程状态跟踪
+thread_status = {}
+thread_status_lock = Lock()
+
+def update_thread_status(thread_id: int, skill_name: str, status: str, progress: str = ""):
+    """更新线程状态"""
+    with thread_status_lock:
+        thread_status[thread_id] = {
+            'skill': skill_name,
+            'status': status,
+            'progress': progress,
+            'timestamp': time.time()
+        }
+
+def clear_thread_status(thread_id: int):
+    """清除线程状态"""
+    with thread_status_lock:
+        if thread_id in thread_status:
+            del thread_status[thread_id]
+
+def print_all_thread_status():
+    """打印所有线程的状态"""
+    with thread_status_lock:
+        if not thread_status:
+            return
+        
+        # 清屏并移动到顶部（Windows 兼容）
+        if os.name == 'nt':
+            os.system('cls')
+        else:
+            print('\033[2J\033[H', end='')
+        
+        print("=" * 80)
+        print(f"并行下载进度 - 总计: {stats['total']} | 完成: {stats['current']} | "
+              f"成功: {stats['success']} | 失败: {stats['failed']} | 跳过: {stats['skipped']}")
+        print("=" * 80)
+        print()
+        
+        # 按线程 ID 排序显示
+        for tid in sorted(thread_status.keys()):
+            info = thread_status[tid]
+            skill = info['skill'][:40]  # 限制长度
+            status = info['status']
+            progress = info['progress']
+            
+            # 根据状态选择颜色标记
+            if status == '下载中':
+                status_mark = '⬇️'
+            elif status == '完成':
+                status_mark = '✅'
+            elif status == '失败':
+                status_mark = '❌'
+            elif status == '跳过':
+                status_mark = '⏭️'
+            else:
+                status_mark = '⏳'
+            
+            print(f"线程 {tid:2d} {status_mark} [{status:6s}] {skill:40s} {progress}")
+        
+        print()
 
 def load_skills_data(json_file: str = "skills_raw.txt") -> List[Dict]:
     """从 JSON 文件加载 skills 数据"""

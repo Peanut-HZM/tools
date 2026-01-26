@@ -4,11 +4,12 @@
 
 ## 📊 统计信息
 
-- **已下载**: 138 个 skills
+- **已下载**: 189 个 skills
 - **总计**: 25,354 个 skills
-- **下载进度**: 0.54%
+- **下载进度**: 0.75%
 - **数据来源**: skills.sh 官方网站
-- **最后更新**: 2025-01-26
+- **最后更新**: 2025-01-27
+- **仓库状态**: ✅ 已完整上传到 Git 仓库
 
 ## 📚 Skills 分类
 
@@ -25,6 +26,7 @@
 | **theme-factory** | 主题工厂 | anthropics/skills |
 | **baseline-ui** | 基础 UI 组件 | - |
 | **reka-ui** | Reka UI 框架 | - |
+| **implement-design** | 设计实现 | - |
 
 ### 💻 开发与编程 (Development & Programming)
 
@@ -47,6 +49,33 @@
 | **native-data-fetching** | 原生数据获取 | expo/skills |
 | **upgrading-expo** | Expo 升级 | expo/skills |
 | **use-dom** | DOM 操作 | expo/skills |
+| **typescript-best-practices** | TypeScript 最佳实践 | - |
+| **svelte-code-writer** | Svelte 代码编写 | - |
+| **python-pro** | Python 专家 | - |
+| **django-expert** | Django 专家 | - |
+| **java-architect** | Java 架构师 | - |
+| **swift-expert** | Swift 专家 | - |
+| **solana-dev** | Solana 开发 | - |
+
+### ☁️ 云服务与平台 (Cloud Services & Platforms)
+
+| Skill | 描述 | 来源 |
+|-------|------|------|
+| **cloudflare-agents** | Cloudflare Agents | - |
+| **cloudflare-browser-rendering** | Cloudflare 浏览器渲染 | - |
+| **cloudflare-durable-objects** | Cloudflare Durable Objects | - |
+| **cloudflare-hyperdrive** | Cloudflare Hyperdrive | - |
+| **cloudflare-mcp-server** | Cloudflare MCP 服务器 | - |
+| **cloudflare-python-workers** | Cloudflare Python Workers | - |
+| **cloudflare-queues** | Cloudflare 队列 | - |
+| **cloudflare-turnstile** | Cloudflare Turnstile | - |
+| **cloudflare-vectorize** | Cloudflare Vectorize | - |
+| **cloudflare-workers-ai** | Cloudflare Workers AI | - |
+| **vercel-kv** | Vercel KV 存储 | - |
+| **railway-docs** | Railway 文档 | - |
+| **snowflake-platform** | Snowflake 平台 | - |
+| **streamlit-snowflake** | Streamlit Snowflake | - |
+| **azure-auth** | Azure 认证 | - |
 
 ### 🏗️ 架构与模式 (Architecture & Patterns)
 
@@ -72,6 +101,7 @@
 | **vector-index-tuning** | 向量索引调优 | - |
 | **similarity-search-patterns** | 相似度搜索模式 | - |
 | **hybrid-search-implementation** | 混合搜索实现 | - |
+| **prisma-orm-v7-skills** | Prisma ORM v7 | - |
 
 ### 🤖 AI 与机器学习 (AI & ML)
 
@@ -80,6 +110,8 @@
 | **langchain-architecture** | LangChain 架构 | - |
 | **llm-evaluation** | LLM 评估 | - |
 | **ml-pipeline-workflow** | ML 管道工作流 | - |
+| **openai-assistants** | OpenAI Assistants | - |
+| **ts-agent-sdk** | TypeScript Agent SDK | - |
 
 ### 🔒 安全与合规 (Security & Compliance)
 
@@ -88,9 +120,11 @@
 | **better-auth-best-practices** | Better Auth 最佳实践 | better-auth/skills |
 | **gdpr-data-handling** | GDPR 数据处理 | - |
 | **security-requirement-extraction** | 安全需求提取 | - |
+| **security-review** | 安全审查 | - |
 | **solidity-security** | Solidity 安全 | - |
 | **k8s-security-policies** | K8s 安全策略 | - |
 | **protocol-reverse-engineering** | 协议逆向工程 | - |
+| **mcp-oauth-cloudflare** | MCP OAuth Cloudflare | - |
 
 ### 📊 数据分析与可视化 (Data & Analytics)
 
@@ -111,9 +145,13 @@
 | **docx** | Word 文档处理 | anthropics/skills |
 | **pdf** | PDF 处理 | anthropics/skills |
 | **pptx** | PowerPoint 处理 | anthropics/skills |
+| **xlsx** | Excel 处理 | - |
 | **copywriting** | 文案写作 | - |
 | **copy-editing** | 文案编辑 | - |
 | **social-content** | 社交内容 | - |
+| **tinacms** | Tina CMS | - |
+| **sveltia-cms** | Sveltia CMS | - |
+| **wordpress-pro** | WordPress 专家 | - |
 
 ### 📈 营销与增长 (Marketing & Growth)
 
@@ -208,6 +246,13 @@
 | **audit-website** | 网站审计 | squirrelscan/skills |
 | **openapi-spec-generation** | OpenAPI 规范生成 | - |
 | **openapi-to-typescript** | OpenAPI 转 TypeScript | - |
+| **ast-grep** | AST Grep 工具 | - |
+| **mcp-cli-scripts** | MCP CLI 脚本 | - |
+| **plugin-settings** | 插件设置 | - |
+| **plugin-structure** | 插件结构 | - |
+| **skill-from-masters** | 从大师学习 Skill | - |
+| **raffle-winner-picker** | 抽奖获胜者选择器 | - |
+| **nano-banana-pro** | Nano Banana Pro | - |
 
 ### 💡 创意与头脑风暴 (Creativity & Brainstorming)
 
@@ -265,6 +310,21 @@
 | **workflow-orchestration-patterns** | 工作流编排模式 | - |
 | **workflow-patterns** | 工作流模式 | - |
 | **stitch-loop** | Stitch 循环 | - |
+| **n8n-node-configuration** | n8n 节点配置 | - |
+
+### 🌐 通讯与协作 (Communication & Collaboration)
+
+| Skill | 描述 | 来源 |
+|-------|------|------|
+| **google-chat-api** | Google Chat API | - |
+| **google-spaces-updates** | Google Spaces 更新 | - |
+| **humanizer-zh-tw** | 繁体中文人性化 | - |
+
+### 🌍 开源与贡献 (Open Source & Contributions)
+
+| Skill | 描述 | 来源 |
+|-------|------|------|
+| **open-source-contributions** | 开源贡献 | - |
 
 ### 📚 知识管理 (Knowledge Management)
 
@@ -302,11 +362,14 @@ cat skills/web-design-guidelines/SKILL.md
 
 ## 📥 下载更多 Skills
 
-本目录只包含已下载的 138 个 skills。要下载更多 skills，请使用项目根目录的下载工具：
+本目录包含已下载的 189 个 skills（占总数的 0.75%）。要下载更多 skills，请使用项目根目录的下载工具：
 
 ```bash
 # 使用高级并行下载工具（推荐）
 python advanced_download_skills.py
+
+# 使用并行下载工具
+python parallel_download_skills.py
 
 # 查看下载进度
 python check_progress.py
@@ -327,6 +390,8 @@ python generate_skills_report.py
 - **remotion-dev/skills** - Remotion skills
 - **supabase/agent-skills** - Supabase skills
 - **squirrelscan/skills** - SquirrelScan skills
+- **hyf0/vue-skills** - Vue skills
+- **nextlevelbuilder/ui-ux-pro-max-skill** - UI/UX Pro Max
 - 以及更多社区贡献的 skills
 
 ## 🔗 相关链接
@@ -335,12 +400,14 @@ python generate_skills_report.py
 - **总 Skills 数**: 25,354 个
 - **下载工具文档**: ../SKILLS_TOOLS_README.md
 - **并行下载指南**: ../PARALLEL_DOWNLOAD_GUIDE.md
+- **Git 仓库**: 所有 skills 已完整上传到 Git 仓库
 
 ## 📝 更新日志
 
+- **2025-01-27**: 更新至 189 个 skills，完整上传到 Git 仓库
 - **2025-01-26**: 初始版本，包含 138 个 skills
-- **下载进度**: 0.54% (138/25,354)
+- **下载进度**: 0.75% (189/25,354)
 
 ---
 
-最后更新: 2025-01-26
+最后更新: 2025-01-27
