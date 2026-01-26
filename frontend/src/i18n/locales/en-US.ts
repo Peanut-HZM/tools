@@ -162,6 +162,14 @@ export const enUS = {
       title: 'Doc to Markdown',
       description: 'Convert Word, Excel, PDF to Markdown with one click, supporting online preview and edit',
     },
+    'ocr-tool': {
+      title: 'OCR Text Recognition',
+      description: 'Offline OCR based on Umi-OCR, supporting screenshots, batch processing, and layout analysis',
+    },
+    'asr-tool': {
+      title: 'Speech Recognition',
+      description: 'High-accuracy speech recognition based on FunASR, supporting multiple audio formats',
+    },
   },
 
   // Editor (Existing)

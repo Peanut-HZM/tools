@@ -34,6 +34,12 @@ lxml==4.9.3
 yt-dlp>=2023.12.30
 imageio-ffmpeg>=0.4.9
 
+# OCR & ASR
+opencv-python-headless>=4.8.0
+numpy>=1.24.0,<2.0.0
+pypdfium2>=4.24.0
+qrcode>=7.4.2
+
 # Document conversion
 markitdown>=0.1.4
 mammoth

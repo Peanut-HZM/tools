@@ -50,22 +50,25 @@ class ToolsService:
                     )
                 """)
                 
-                # Check if tools table is empty, if so seed it
-                cur.execute("SELECT COUNT(*) FROM tools")
-                count = cur.fetchone()['count']
-                
-                if count == 0:
-                    logger.info("Seeding tools database...")
-                    for tool in TOOLS_DATA:
-                        # Convert usageCount string (e.g. "1.6K") to integer estimate or 0
-                        # For simplicity, let's start with 0
-                        cur.execute("""
-                            INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """, (
-                            tool.id, tool.title, tool.description, tool.icon, tool.iconColor, 
-                            tool.category, 0, tool.rating
-                        ))
+                # Seed or update tools database from TOOLS_DATA
+                logger.info("Syncing tools database with static data...")
+                for tool in TOOLS_DATA:
+                    # usage_count is initialized to 0 for new tools, but preserved for existing ones via ON CONFLICT
+                    # rating is updated from static data
+                    cur.execute("""
+                        INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (id) DO UPDATE SET
+                            title = EXCLUDED.title,
+                            description = EXCLUDED.description,
+                            icon = EXCLUDED.icon,
+                            icon_color = EXCLUDED.icon_color,
+                            category = EXCLUDED.category,
+                            rating = EXCLUDED.rating
+                    """, (
+                        tool.id, tool.title, tool.description, tool.icon, tool.iconColor, 
+                        tool.category, 0, tool.rating
+                    ))
             
             conn.commit()
         except Exception as e:

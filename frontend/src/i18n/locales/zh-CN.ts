@@ -162,6 +162,14 @@ export const zhCN = {
       title: '文档转 Markdown',
       description: '支持将 Word, Excel, PDF 等文档一键转换为 Markdown，并支持在线预览和编辑',
     },
+    'ocr-tool': {
+      title: 'OCR 文字识别',
+      description: '基于 Umi-OCR 的离线文字识别，支持截图、批量图片识别和排版解析',
+    },
+    'asr-tool': {
+      title: '语音识别',
+      description: '基于 FunASR 的高精度语音识别，支持多种音频格式转文字',
+    },
   },
 
   // Editor (Existing)

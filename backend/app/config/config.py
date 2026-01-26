@@ -12,6 +12,26 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(env_path)
 
+# ------------------------------------------------------------------------------
+# Environment Setup for AI Models (PaddleOCR, FunASR)
+# ------------------------------------------------------------------------------
+# Set cache directories to local project folder to avoid permission issues in sandbox
+# and ensure portability.
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+CACHE_DIR = PROJECT_ROOT / "data" / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Hack: PaddleOCR/PaddleX often hardcodes ~/.paddleocr or ~/.paddlex
+# We redirect HOME to our cache dir to capture these writes.
+os.environ["HOME"] = str(CACHE_DIR)
+
+# Set standard cache environment variables
+os.environ["PADDLE_HOME"] = str(CACHE_DIR / "paddle")
+os.environ["HF_HOME"] = str(CACHE_DIR / "huggingface")
+os.environ["MODELSCOPE_CACHE"] = str(CACHE_DIR / "modelscope")
+os.environ["XDG_CACHE_HOME"] = str(CACHE_DIR / "xdg")
+# ------------------------------------------------------------------------------
+
 class Settings(BaseSettings):
     # App
     APP_NAME: str = "Tool Aggregation API"

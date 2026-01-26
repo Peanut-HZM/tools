@@ -81,6 +81,26 @@ TOOLS_DATA = [
         rating=4.9,
         usageCount="New",
         category="开发工具"
+    ),
+    Tool(
+        id="ocr-tool",
+        icon="fa-file-image",
+        iconColor="bg-indigo-500",
+        title="OCR 文字识别",
+        description="基于 Umi-OCR 的离线文字识别，支持截图、批量图片识别和排版解析",
+        rating=4.9,
+        usageCount="New",
+        category="AI工具"
+    ),
+    Tool(
+        id="asr-tool",
+        icon="fa-microphone",
+        iconColor="bg-emerald-500",
+        title="语音识别",
+        description="基于 FunASR 的高精度语音识别，支持多种音频格式转文字",
+        rating=4.9,
+        usageCount="New",
+        category="AI工具"
     )
 ]
 

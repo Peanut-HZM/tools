@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.routes import tools, image_downloader, video_downloader, ytdlp_routes, calendar, key_generator, converter, oss, admin
+from app.routes import ocr_routes, asr_routes
 from app.routes import auth
 from app.routes import markdown_editor
 from app.services.download_manager import get_manager
@@ -76,6 +77,10 @@ app.include_router(oss.router)
 
 # Admin router
 app.include_router(admin.router)
+
+# OCR & ASR routers
+app.include_router(ocr_routes.router, prefix="/api")
+app.include_router(asr_routes.router, prefix="/api")
 
 @app.get("/")
 def read_root():

@@ -20,6 +20,8 @@ import AIAssistant from './components/Tools/AIAssistant';
 import KeyGenerator from './components/Tools/KeyGenerator';
 import MarkdownEditorTool from './components/Tools/MarkdownEditorTool';
 import MarkItDownConverter from './components/Tools/MarkItDownConverter';
+import OCRTool from './components/Tools/OCR/OCRTool';
+import ASRTool from './components/Tools/ASR/ASRTool';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory } from './services/api';
@@ -144,6 +146,8 @@ function HomePage() {
       'key-generator': '/tools/key-generator',
       'markdown-editor': '/tools/markdown-editor',
       'markitdown-converter': '/tools/markitdown-converter',
+      'ocr-tool': '/tools/ocr',
+      'asr-tool': '/tools/asr',
     };
 
     const route = toolRoutes[toolId];
@@ -199,6 +203,8 @@ function App() {
               <Route path="/tools/key-generator" element={<KeyGenerator />} />
               <Route path="/tools/markdown-editor" element={<MarkdownEditorTool />} />
               <Route path="/tools/markitdown-converter" element={<MarkItDownConverter />} />
+              <Route path="/tools/ocr" element={<OCRTool />} />
+              <Route path="/tools/asr" element={<ASRTool />} />
             </Route>
 
             {/* Admin Routes */}
