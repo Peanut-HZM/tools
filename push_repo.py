@@ -126,7 +126,7 @@ def get_commit_message() -> str:
     return '\n'.join(lines) if lines else None
 
 
-def batch_commit_files(commit_message: str, batch_size: int = 50) -> bool:
+def batch_commit_files(commit_message: str, batch_size: int = 200) -> bool:
     """分批次提交文件"""
     modified, staged, untracked = get_changed_files()
     
