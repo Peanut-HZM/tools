@@ -12,19 +12,29 @@ from typing import Tuple, List
 from pathlib import Path
 
 
-def run_command(command: str, show_output: bool = False) -> Tuple[int, str, str]:
+def run_command(command: str, show_output: bool = False, interactive: bool = False) -> Tuple[int, str, str]:
     """执行命令并返回结果"""
     try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            encoding='utf-8'
-        )
-        if show_output and result.stdout:
-            print(result.stdout)
-        return result.returncode, result.stdout, result.stderr
+        if interactive:
+            # 对于需要交互的命令（如 git push），直接显示输出
+            result = subprocess.run(
+                command,
+                shell=True,
+                text=True,
+                encoding='utf-8'
+            )
+            return result.returncode, "", ""
+        else:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                encoding='utf-8'
+            )
+            if show_output and result.stdout:
+                print(result.stdout)
+            return result.returncode, result.stdout, result.stderr
     except Exception as e:
         return 1, "", str(e)
 
@@ -200,25 +210,35 @@ def push_to_remote(force: bool = False) -> bool:
         return False
     
     print_status(f"\n推送到 origin/{branch}...", "INFO")
+    print_status("(如需输入凭据，请在下方输入)", "INFO")
+    print()
     
     if force:
         command = f"git push --force-with-lease origin {branch}"
     else:
         command = f"git push origin {branch}"
     
-    code, stdout, stderr = run_command(command, show_output=True)
+    # 使用 interactive 模式，允许用户输入凭据
+    code, stdout, stderr = run_command(command, interactive=True)
     
     if code != 0:
+        print()
         print_status("推送失败", "ERROR")
-        print(stderr)
         
-        if "rejected" in stderr and not force:
-            print_status("\n远程分支有新的提交，建议:", "WARNING")
-            print_status("1. 运行 python update_repo.py 更新本地代码", "INFO")
-            print_status("2. 或使用 python push_repo.py --force 强制推送", "INFO")
+        # 尝试获取错误信息
+        code2, stdout2, stderr2 = run_command("git push --dry-run 2>&1")
+        if stderr2:
+            print(stderr2)
+        
+        if not force:
+            print_status("\n可能的原因:", "WARNING")
+            print_status("1. 远程分支有新的提交 - 运行 python update_repo.py", "INFO")
+            print_status("2. 需要强制推送 - 使用 python push_repo.py --force", "INFO")
+            print_status("3. 认证失败 - 检查 Git 凭据配置", "INFO")
         
         return False
     
+    print()
     print_status("推送成功!", "SUCCESS")
     return True
 
