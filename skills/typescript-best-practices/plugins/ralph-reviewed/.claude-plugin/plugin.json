@@ -1,0 +1,10 @@
+{
+  "name": "ralph-reviewed",
+  "description": "Iterative Ralph loops with Codex CLI review gates at completion. Claude works until done, then Codex reviews before allowing exit.",
+  "author": {
+    "name": "Allen",
+    "email": "bigboss@metalrodeo.xyz"
+  },
+  "version": "1.8.8",
+  "commands": "./commands/"
+}

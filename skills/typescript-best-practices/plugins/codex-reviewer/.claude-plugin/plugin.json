@@ -1,0 +1,10 @@
+{
+  "name": "codex-reviewer",
+  "description": "Codex-powered code review gate. Creates a review checkpoint that triggers Codex CLI review when Claude exits.",
+  "author": {
+    "name": "Allen",
+    "email": "bigboss@metalrodeo.xyz"
+  },
+  "version": "1.6.9",
+  "commands": "./commands/"
+}
