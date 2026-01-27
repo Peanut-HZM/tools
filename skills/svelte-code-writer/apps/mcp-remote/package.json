@@ -1,0 +1,71 @@
+{
+	"name": "@sveltejs/mcp-remote",
+	"version": "0.0.1",
+	"description": "The official Svelte MCP server implementation",
+	"type": "module",
+	"main": "src/index.js",
+	"bin": {
+		"svelte-mcp": "./dist/lib/stdio.js"
+	},
+	"scripts": {
+		"start": "node src/index.js",
+		"dev": "vite dev",
+		"build": "vite build",
+		"build:mcp": "tsc --project tsconfig.build.json",
+		"prepublishOnly": "pnpm build:mcp",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint .",
+		"lint:fix": "prettier --write . && eslint . --fix",
+		"test:unit": "vitest",
+		"test": "npm run test:unit -- --run",
+		"test:watch": "npm run test:unit -- --watch",
+		"db:push": "drizzle-kit push",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate",
+		"db:studio": "drizzle-kit studio",
+		"inspect": "pnpm mcp-inspector"
+	},
+	"keywords": [
+		"svelte",
+		"tmcp",
+		"mcp",
+		"server"
+	],
+	"private": true,
+	"devDependencies": {
+		"@eslint/compat": "catalog:lint",
+		"@eslint/js": "catalog:lint",
+		"@libsql/client": "catalog:orm",
+		"@modelcontextprotocol/inspector": "catalog:ai",
+		"@sveltejs/adapter-vercel": "catalog:svelte",
+		"@sveltejs/kit": "catalog:svelte",
+		"@sveltejs/vite-plugin-svelte": "catalog:svelte",
+		"@types/node": "catalog:tooling",
+		"@typescript-eslint/parser": "catalog:lint",
+		"drizzle-kit": "catalog:orm",
+		"drizzle-orm": "catalog:orm",
+		"eslint-config-prettier": "catalog:lint",
+		"eslint-plugin-svelte": "catalog:lint",
+		"globals": "catalog:lint",
+		"prettier": "catalog:lint",
+		"prettier-plugin-svelte": "catalog:lint",
+		"svelte": "catalog:svelte",
+		"svelte-check": "catalog:svelte",
+		"svelte-eslint-parser": "catalog:lint",
+		"typescript": "catalog:tooling",
+		"vite": "catalog:tooling",
+		"vite-plugin-devtools-json": "catalog:tooling",
+		"vitest": "catalog:tooling"
+	},
+	"dependencies": {
+		"@sveltejs/mcp-schema": "workspace:^",
+		"@sveltejs/mcp-server": "workspace:^",
+		"@tmcp/transport-http": "catalog:tmcp",
+		"@vercel/analytics": "catalog:tooling",
+		"tmcp": "catalog:tmcp"
+	}
+}

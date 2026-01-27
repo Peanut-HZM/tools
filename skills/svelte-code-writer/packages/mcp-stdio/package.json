@@ -1,0 +1,53 @@
+{
+	"name": "@sveltejs/mcp",
+	"version": "0.1.19",
+	"type": "module",
+	"license": "MIT",
+	"mcpName": "dev.svelte/mcp",
+	"homepage": "https://github.com/sveltejs/mcp#readme",
+	"bugs": {
+		"url": "https://github.com/sveltejs/mcp/issues"
+	},
+	"bin": {
+		"svelte-mcp": "./dist/index.mjs"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sveltejs/mcp.git",
+		"path": "packages/mcp-stdio"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/handlers.d.mts",
+			"import": "./dist/handlers.mjs"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsdown && publint",
+		"dev": "tsdown --watch",
+		"test": "vitest",
+		"check": "tsc --noEmit",
+		"check:publint": "publint --strict",
+		"update:version": "node scripts/update-version.ts"
+	},
+	"devDependencies": {
+		"@sveltejs/mcp-server": "workspace:^",
+		"@tmcp/transport-stdio": "catalog:tmcp",
+		"@types/node": "catalog:tooling",
+		"publint": "catalog:tooling",
+		"tsdown": "catalog:tooling",
+		"typescript": "catalog:tooling",
+		"vitest": "catalog:tooling"
+	},
+	"dependencies": {
+		"eslint": "catalog:lint",
+		"sade": "catalog:tooling",
+		"tmcp": "catalog:tmcp"
+	}
+}

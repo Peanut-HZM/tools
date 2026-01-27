@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"module": "nodenext",
+		"target": "esnext",
+		"sourceMap": true,
+		"declaration": true,
+		"declarationMap": true,
+		"noEmit": true,
+		"noUncheckedIndexedAccess": true,
+		"exactOptionalPropertyTypes": true,
+		"checkJs": true,
+		"allowJs": true,
+		// Recommended Options
+		"strict": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"noUncheckedSideEffectImports": true,
+		"moduleDetection": "force",
+		"skipLibCheck": true
+	}
+}
