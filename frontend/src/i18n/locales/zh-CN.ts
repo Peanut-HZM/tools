@@ -24,6 +24,9 @@ export const zhCN = {
     logo: '工具箱',
     allTools: '全部工具',
     view: '查看',
+    leaveBlankToKeep: '留空则保持不变',
+    copy: '复制',
+    filter: '筛选',
   },
 
   // Navigation
@@ -170,6 +173,10 @@ export const zhCN = {
       title: '语音识别',
       description: '基于 FunASR 的高精度语音识别，支持多种音频格式转文字',
     },
+    'database-tool': {
+      title: '数据库管理',
+      description: '多数据库连接管理，支持 SQL 执行、表结构浏览和执行历史记录',
+    },
   },
 
   // Editor (Existing)
@@ -257,6 +264,95 @@ export const zhCN = {
     action: '立即使用',
   },
 
+  // Database Tool
+  database: {
+    title: '数据库管理',
+    connections: '连接列表',
+    addConnection: '添加连接',
+    editConnection: '编辑连接',
+    deleteConnection: '删除连接',
+    testConnection: '测试连接',
+    connect: '连接',
+    disconnect: '断开',
+    config: {
+      alias: '别名',
+      type: '类型',
+      host: '主机',
+      port: '端口',
+      username: '用户名',
+      password: '密码',
+      database: '数据库名',
+      env: '环境',
+      group: '分组',
+      ssl: 'SSL模式',
+      charset: '字符集',
+      extra: '额外配置',
+    },
+    status: {
+      connected: '已连接',
+      disconnected: '未连接',
+      testing: '测试中...',
+      success: '连接成功',
+      failed: '连接失败',
+      hiddenByFilter: '所有数据库已被筛选隐藏',
+    },
+    executor: {
+      title: 'SQL 执行器',
+      run: '执行',
+      executing: '执行中...',
+      stop: '停止',
+      clear: '清空',
+      history: '执行历史',
+      results: '执行结果',
+      noResults: '无结果',
+      affectedRows: '受影响行数: {count}',
+      duration: '耗时: {time}ms',
+      placeholder: '请输入 SQL 语句...',
+    },
+    schema: {
+      title: '表结构',
+      tables: '数据表',
+      columns: '列信息',
+      indexes: '索引',
+      noTables: '暂无数据表',
+    },
+    contextMenu: {
+      editConnection: '编辑连接',
+      testConnection: '测试连接',
+      newDatabase: '新建数据库',
+      deleteConnection: '删除连接',
+      newTable: '新建表',
+      refresh: '刷新',
+      deleteDatabase: '删除数据库',
+      viewData: '查看数据',
+      viewStructure: '查看结构',
+      modifyStructure: '修改结构',
+      emptyData: '清空数据 (Truncate)',
+      deleteTable: '删除表',
+      confirmDeleteConnection: '确定要删除此连接吗？',
+      confirmDeleteDatabase: "确定要删除数据库 '{name}' 吗？此操作不可撤销。",
+      confirmDeleteTable: "确定要删除表 '{name}' 吗？此操作不可撤销。",
+      confirmTruncateTable: "确定要清空表 '{name}' 的数据吗？所有数据将丢失。",
+      generateDDL: '生成 DDL',
+      generateAllDDL: '生成所有表 DDL',
+      truncateAllTables: '清空全部表',
+      deleteAllTables: '删除全部表',
+      confirmTruncateAllTables: "确定要清空数据库 '{name}' 中的所有表吗？所有数据将丢失。",
+      confirmDeleteAllTables: "确定要删除数据库 '{name}' 中的所有表吗？此操作不可撤销。",
+    },
+    dialog: {
+      databaseDDL: '数据库 DDL: {name}',
+      createDatabase: {
+        title: '新建数据库',
+        name: '数据库名称',
+        charset: '字符集',
+        cancel: '取消',
+        create: '创建',
+        error: '创建数据库失败',
+      }
+    },
+  },
+
   // Converter
   converter: {
     title: '文档转 Markdown',
@@ -291,6 +387,7 @@ export const zhCN = {
     toolSearchFailed: '搜索失败，请稍后重试',
     categoryLoadFailed: '加载分类工具失败，请稍后重试',
     toolNotImplemented: '工具 {toolId} 暂未实现',
+    executionFailed: '执行失败',
   },
 };
 
