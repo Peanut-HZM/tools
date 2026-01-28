@@ -22,12 +22,14 @@ import MarkdownEditorTool from './components/Tools/MarkdownEditorTool';
 import MarkItDownConverter from './components/Tools/MarkItDownConverter';
 import OCRTool from './components/Tools/OCR/OCRTool';
 import ASRTool from './components/Tools/ASR/ASRTool';
+import DatabaseTool from './components/Tools/DatabaseTool/DatabaseTool';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory } from './services/api';
 import { Tool } from './types';
 import { useI18n, interpolate } from './i18n';
 import { I18nProvider } from './i18n/I18nProvider';
+import { ToastProvider } from './contexts/ToastContext';
 
 interface LayoutContext {
   searchValue: string;
@@ -148,6 +150,7 @@ function HomePage() {
       'markitdown-converter': '/tools/markitdown-converter',
       'ocr-tool': '/tools/ocr',
       'asr-tool': '/tools/asr',
+      'database-tool': '/tools/database-tool',
     };
 
     const route = toolRoutes[toolId];
@@ -191,7 +194,8 @@ function App() {
   return (
     <AuthProvider>
       <I18nProvider>
-        <BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
@@ -205,6 +209,7 @@ function App() {
               <Route path="/tools/markitdown-converter" element={<MarkItDownConverter />} />
               <Route path="/tools/ocr" element={<OCRTool />} />
               <Route path="/tools/asr" element={<ASRTool />} />
+              <Route path="/tools/database-tool" element={<DatabaseTool />} />
             </Route>
 
             {/* Admin Routes */}
@@ -217,6 +222,7 @@ function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </ToastProvider>
       </I18nProvider>
     </AuthProvider>
   );

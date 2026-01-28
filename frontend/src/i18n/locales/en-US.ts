@@ -24,6 +24,9 @@ export const enUS = {
     logo: 'Toolbox',
     allTools: 'All Tools',
     view: 'View',
+    leaveBlankToKeep: 'Leave blank to keep unchanged',
+    copy: 'Copy',
+    filter: 'Filter',
   },
 
   // Navigation
@@ -170,6 +173,10 @@ export const enUS = {
       title: 'Speech Recognition',
       description: 'High-accuracy speech recognition based on FunASR, supporting multiple audio formats',
     },
+    'database-tool': {
+      title: 'Database Manager',
+      description: 'Manage multiple database connections, SQL execution, schema browsing, and history',
+    },
   },
 
   // Editor (Existing)
@@ -257,6 +264,95 @@ export const enUS = {
     action: 'Use Now',
   },
 
+  // Database Tool
+  database: {
+    title: 'Database Manager',
+    connections: 'Connections',
+    addConnection: 'Add Connection',
+    editConnection: 'Edit Connection',
+    deleteConnection: 'Delete Connection',
+    testConnection: 'Test Connection',
+    connect: 'Connect',
+    disconnect: 'Disconnect',
+    config: {
+      alias: 'Alias',
+      type: 'Type',
+      host: 'Host',
+      port: 'Port',
+      username: 'Username',
+      password: 'Password',
+      database: 'Database',
+      env: 'Environment',
+      group: 'Group',
+      ssl: 'SSL Mode',
+      charset: 'Charset',
+      extra: 'Extra Config',
+    },
+    status: {
+      connected: 'Connected',
+      disconnected: 'Disconnected',
+      testing: 'Testing...',
+      success: 'Connection Successful',
+      failed: 'Connection Failed',
+      hiddenByFilter: 'All databases hidden by filter',
+    },
+    executor: {
+      title: 'SQL Executor',
+      run: 'Run',
+      executing: 'Executing...',
+      stop: 'Stop',
+      clear: 'Clear',
+      history: 'History',
+      results: 'Results',
+      noResults: 'No Results',
+      affectedRows: 'Affected Rows: {count}',
+      duration: 'Duration: {time}ms',
+      placeholder: 'Enter SQL statement...',
+    },
+    schema: {
+      title: 'Schema',
+      tables: 'Tables',
+      columns: 'Columns',
+      indexes: 'Indexes',
+      noTables: 'No Tables',
+    },
+    contextMenu: {
+      editConnection: 'Edit Connection',
+      testConnection: 'Test Connection',
+      newDatabase: 'New Database',
+      deleteConnection: 'Delete Connection',
+      newTable: 'New Table',
+      refresh: 'Refresh',
+      deleteDatabase: 'Delete Database',
+      viewData: 'View Data',
+      viewStructure: 'View Structure',
+      modifyStructure: 'Modify Structure',
+      emptyData: 'Empty Data (Truncate)',
+      deleteTable: 'Delete Table',
+      confirmDeleteConnection: 'Are you sure you want to delete this connection?',
+      confirmDeleteDatabase: "Are you sure you want to drop database '{name}'? This cannot be undone.",
+      confirmDeleteTable: "Are you sure you want to drop table '{name}'? This cannot be undone.",
+      confirmTruncateTable: "Are you sure you want to truncate table '{name}'? All data will be lost.",
+      generateDDL: 'Generate DDL',
+      generateAllDDL: 'Generate All DDL',
+      truncateAllTables: 'Truncate All Tables',
+      deleteAllTables: 'Delete All Tables',
+      confirmTruncateAllTables: "Are you sure you want to truncate ALL tables in '{name}'? All data will be lost.",
+      confirmDeleteAllTables: "Are you sure you want to DELETE ALL tables in '{name}'? This cannot be undone.",
+    },
+    dialog: {
+      databaseDDL: 'Database DDL: {name}',
+      createDatabase: {
+        title: 'Create New Database',
+        name: 'Database Name',
+        charset: 'Charset',
+        cancel: 'Cancel',
+        create: 'Create',
+        error: 'Failed to create database',
+      }
+    },
+  },
+
   // Converter
   converter: {
     title: 'Document to Markdown',
@@ -291,6 +387,7 @@ export const enUS = {
     toolSearchFailed: 'Search failed, please try again later',
     categoryLoadFailed: 'Failed to load category tools, please try again later',
     toolNotImplemented: 'Tool {toolId} is not implemented yet',
+    executionFailed: 'Execution failed',
   },
 };
 

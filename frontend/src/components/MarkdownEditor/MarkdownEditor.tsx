@@ -89,6 +89,71 @@ export default function MarkdownEditor() {
 
   const { language, setLanguage, t } = useI18n();
   const { toast, showToast } = useToast() as any;
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    try {
+      // Determine target path based on currently selected folder
+      // If a file is selected, use its parent. If root or folder, use that.
+      // For simplicity, we can default to root or ask user (but FileUpload component just gives us the file)
+      // Let's try to infer from currentFile or currentFilePath if possible, or just root.
+      // Actually, FileTree usually has a selected node state, but we only have currentFile.
+      
+      let targetPath = "";
+      if (currentFilePath) {
+          // If it's a file, get parent dir
+          const parts = currentFilePath.split('/');
+          if (parts.length > 1) {
+              parts.pop();
+              targetPath = parts.join('/');
+          }
+      }
+      
+      const result = await uploadMarkdownFile(file, targetPath);
+      if (result.success) {
+        showToast('File uploaded successfully', 'success');
+        // Reload tree to show new file
+        loadDirectoryTree();
+      } else {
+        showToast(result.error || 'Upload failed', 'error');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showToast('Upload failed', 'error');
+    }
+  }, [currentFilePath, showToast, loadDirectoryTree]);
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  }, [isDragging]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Prevent flickering when dragging over child elements
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Check file type
+      if (file.name.toLowerCase().endsWith('.md') || file.name.toLowerCase().endsWith('.markdown')) {
+        handleFileUpload(file);
+      } else {
+        showToast('Only Markdown files (.md, .markdown) are allowed', 'error');
+      }
+    }
+  }, [handleFileUpload, showToast]);
 
   // Sync global language to editor config
   useEffect(() => {
@@ -416,40 +481,28 @@ export default function MarkdownEditor() {
 
   const isDark = config.theme === 'dark';
 
-  const handleFileUpload = async (file: File) => {
-    try {
-      // Determine target path based on currently selected folder
-      // If a file is selected, use its parent. If root or folder, use that.
-      // For simplicity, we can default to root or ask user (but FileUpload component just gives us the file)
-      // Let's try to infer from currentFile or currentFilePath if possible, or just root.
-      // Actually, FileTree usually has a selected node state, but we only have currentFile.
-      
-      let targetPath = "";
-      if (currentFilePath) {
-          // If it's a file, get parent dir
-          const parts = currentFilePath.split('/');
-          if (parts.length > 1) {
-              parts.pop();
-              targetPath = parts.join('/');
-          }
-      }
-      
-      const result = await uploadMarkdownFile(file, targetPath);
-      if (result.success) {
-        showToast('File uploaded successfully', 'success');
-        // Reload tree to show new file
-        loadDirectoryTree();
-      } else {
-        showToast(result.error || 'Upload failed', 'error');
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      showToast('Upload failed', 'error');
-    }
-  };
+
 
   return (
-    <div className={`flex flex-col h-screen bg-slate-900 text-slate-300 overflow-hidden ${config.theme === 'light' ? 'light-mode' : ''}`}>
+    <div 
+      className={`flex flex-col h-screen bg-slate-900 text-slate-300 overflow-hidden ${config.theme === 'light' ? 'light-mode' : ''} relative`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-slate-900/80 z-50 flex items-center justify-center pointer-events-none">
+          <div className="border-4 border-dashed border-cyan-500 rounded-lg p-12 text-center bg-slate-800/50 backdrop-blur-sm m-8 w-full h-full flex flex-col items-center justify-center">
+            <div className="text-6xl mb-6 text-cyan-500 animate-bounce">
+              <Icons.DocumentChecked /> 
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2">Release to Upload</h2>
+            <p className="text-slate-300 text-lg">Drop your Markdown file here to open</p>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 shrink-0 z-20">
         <div className="header-left">
@@ -815,13 +868,6 @@ export default function MarkdownEditor() {
             <span className="text-white">{t.common.loading}</span>
           </div>
         </div>
-      )}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => {}} // Toast handles its own timer
-        />
       )}
     </div>
   );

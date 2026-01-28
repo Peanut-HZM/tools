@@ -40,11 +40,11 @@ class Settings(BaseSettings):
     USERS_DATA_PATH: str = "./data/users"
     
     # Database
-    DATABASE_URL: str = "postgresql://postgres:password@39.107.229.30:5432/tools"
-    
+    DATABASE_URL: str = "postgresql://postgres:Peanut2817*#@39.107.229.30:5432/tools"
     # Security
     JWT_SECRET_KEY: str = "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4="
     JWT_EXPIRE_MINUTES: int = 1440
+    DB_ENCRYPTION_KEY: str = "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4=" # Default key for dev
     
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5179,http://localhost:5180,http://localhost:3000,https://tools.peanuthzm.com.cn"

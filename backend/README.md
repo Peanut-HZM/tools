@@ -36,6 +36,7 @@ source venv/bin/activate
 
 ```bash
 pip install -r requirements.txt
+pip install --trusted-host pypi.tuna.tsinghua.edu.cn -r requirements.txt
 ```
 
 ### 3. 运行服务

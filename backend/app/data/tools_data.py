@@ -98,9 +98,19 @@ TOOLS_DATA = [
         iconColor="bg-emerald-500",
         title="语音识别",
         description="基于 FunASR 的高精度语音识别，支持多种音频格式转文字",
-        rating=4.9,
+        rating=4.8,
         usageCount="New",
         category="AI工具"
+    ),
+    Tool(
+        id="database-tool",
+        icon="fa-database",
+        iconColor="bg-blue-500",
+        title="数据库管理工具",
+        description="统一管理多个数据库连接，执行SQL脚本，浏览数据库结构",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具"
     )
 ]
 

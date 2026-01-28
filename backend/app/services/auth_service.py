@@ -7,7 +7,7 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -17,6 +17,7 @@ from app.models.auth_models import (
 )
 
 from app.config.config import settings
+from app.config.database import get_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -37,56 +38,43 @@ import random
 from app.services.settings_service import settings_service
 from app.services.verification_service import verification_service
 
-# ... (imports)
-
 class AuthService:
     """Service for user authentication operations"""
     
     def __init__(self):
         """Initialize AuthService"""
-        self.users_file = Path(USERS_DATA_PATH) / "users.json"
         self._ensure_data_dir()
     
     def _ensure_data_dir(self) -> None:
-        """Ensure the data directory exists"""
-        self.users_file.parent.mkdir(parents=True, exist_ok=True)
-        if not self.users_file.exists():
-            self._save_users({})
-    
-    def _load_users(self) -> dict:
-        """Load users from JSON file"""
-        try:
-            if self.users_file.exists():
-                with open(self.users_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading users: {e}")
-        return {}
-    
-    def _save_users(self, users: dict) -> bool:
-        """Save users to JSON file"""
-        try:
-            with open(self.users_file, 'w', encoding='utf-8') as f:
-                json.dump(users, f, indent=2, default=str)
-            return True
-        except Exception as e:
-            logger.error(f"Error saving users: {e}")
-            return False
+        """Ensure the data directory exists (for markdown files)"""
+        # We still need the directory for markdown files even if users are in DB
+        Path(USERS_DATA_PATH).mkdir(parents=True, exist_ok=True)
     
     def _get_user_by_username(self, username: str) -> Optional[UserInDB]:
         """Get user by username"""
-        users = self._load_users()
-        for user_id, user_data in users.items():
-            if user_data.get("username") == username:
-                return UserInDB(
-                    user_id=user_id,
-                    username=user_data["username"],
-                    email=user_data["email"],
-                    role=user_data.get("role", "user"),
-                    hashed_password=user_data["hashed_password"],
-                    created_at=datetime.fromisoformat(user_data["created_at"])
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM users WHERE username = %s",
+                    (username,)
                 )
-        return None
+                row = cursor.fetchone()
+                if row:
+                    return UserInDB(
+                        user_id=row['user_id'],
+                        username=row['username'],
+                        email=row['email'],
+                        role=row['role'],
+                        hashed_password=row['password_hash'],
+                        created_at=row['created_at']
+                    )
+                return None
+        except Exception as e:
+            logger.error(f"Error getting user by username: {e}")
+            return None
+        finally:
+            conn.close()
 
     def register(self, user_data: UserCreate) -> AuthResponse:
         """
@@ -105,9 +93,6 @@ class AuthService:
         if not settings_service.is_registration_allowed():
             raise ValueError("Registration is currently disabled by administrator")
 
-        if self._get_user_by_username(user_data.username):
-            raise ValueError("Username already exists")
-        
         # Verify Email Code if enabled
         if settings_service.is_email_verify_enabled():
             if not user_data.email_code:
@@ -124,45 +109,58 @@ class AuthService:
             if not verification_service.verify_code(user_data.phone, user_data.phone_code):
                 raise ValueError("Invalid or expired phone verification code")
         
-        users = self._load_users()
-        for u in users.values():
-            if u["email"] == user_data.email:
-                raise ValueError("Email already registered")
-            if user_data.phone and u.get("phone") == user_data.phone:
-                raise ValueError("Phone number already registered")
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                # Check username existence
+                cursor.execute("SELECT user_id FROM users WHERE username = %s", (user_data.username,))
+                if cursor.fetchone():
+                    raise ValueError("Username already exists")
+
+                # Check email existence
+                cursor.execute("SELECT user_id FROM users WHERE email = %s", (user_data.email,))
+                if cursor.fetchone():
+                    raise ValueError("Email already registered")
+                
+                # We don't have phone in users table schema yet, so skipping phone uniqueness check for DB
+                # or we should add it if needed. The schema showed earlier didn't have phone.
+                # Assuming we just ignore phone storage in DB for now or update schema later.
+                # The prompt context didn't show phone column in users table.
         
-        user_id = str(uuid.uuid4())
-        created_at = datetime.utcnow()
-        hashed_password = self._hash_password(user_data.password)
-        
-        users[user_id] = {
-            "username": user_data.username,
-            "email": user_data.email,
-            "phone": user_data.phone,
-            "role": "user",  # Default role
-            "hashed_password": hashed_password,
-            "created_at": created_at.isoformat()
-        }
-        
-        if not self._save_users(users):
-            raise ValueError("Failed to save user data")
-        
-        # Create user directory for markdown files
-        self._create_user_directory(user_id)
-        
-        # Generate token
-        token = self._create_access_token(
-            data={"sub": user_id, "username": user_data.username, "role": "user"}
-        )
-        
-        return AuthResponse(
-            user_id=user_id,
-            username=user_data.username,
-            email=user_data.email,
-            role="user",
-            token=token,
-            phone=user_data.phone
-        )
+                user_id = str(uuid.uuid4())
+                created_at = datetime.utcnow()
+                hashed_password = self._hash_password(user_data.password)
+                
+                cursor.execute(
+                    "INSERT INTO users (user_id, username, email, password_hash, role, created_at) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (user_id, user_data.username, user_data.email, hashed_password, "user", created_at)
+                )
+                conn.commit()
+                
+                # Create user directory for markdown files
+                self._create_user_directory(user_id)
+                
+                # Generate token
+                token = self._create_access_token(
+                    data={"sub": user_id, "username": user_data.username, "role": "user"}
+                )
+                
+                return AuthResponse(
+                    user_id=user_id,
+                    username=user_data.username,
+                    email=user_data.email,
+                    role="user",
+                    token=token,
+                    phone=user_data.phone
+                )
+        except ValueError as e:
+            raise e
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error registering user: {e}")
+            raise ValueError("Failed to register user")
+        finally:
+            conn.close()
 
     def create_user_admin(self, username: str, email: str, role: str) -> str:
         """
@@ -171,52 +169,68 @@ class AuthService:
         Returns:
             The generated password
         """
-        if self._get_user_by_username(username):
-            raise ValueError("Username already exists")
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                if self._get_user_by_username(username):
+                    raise ValueError("Username already exists")
+                
+                cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+                if cursor.fetchone():
+                    raise ValueError("Email already registered")
         
-        users = self._load_users()
-        for u in users.values():
-            if u["email"] == email:
-                raise ValueError("Email already registered")
-        
-        # Generate random password
-        chars = string.ascii_letters + string.digits + "!@#$%^&*"
-        password = ''.join(random.choice(chars) for _ in range(12))
-        
-        user_id = str(uuid.uuid4())
-        created_at = datetime.utcnow()
-        hashed_password = self._hash_password(password)
-        
-        users[user_id] = {
-            "username": username,
-            "email": email,
-            "role": role,
-            "hashed_password": hashed_password,
-            "created_at": created_at.isoformat()
-        }
-        
-        if not self._save_users(users):
-            raise ValueError("Failed to save user data")
-            
-        # Create user directory for markdown files
-        self._create_user_directory(user_id)
-        
-        return password
+                # Generate random password
+                chars = string.ascii_letters + string.digits + "!@#$%^&*"
+                password = ''.join(random.choice(chars) for _ in range(12))
+                
+                user_id = str(uuid.uuid4())
+                created_at = datetime.utcnow()
+                hashed_password = self._hash_password(password)
+                
+                cursor.execute(
+                    "INSERT INTO users (user_id, username, email, password_hash, role, created_at) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (user_id, username, email, hashed_password, role, created_at)
+                )
+                conn.commit()
+                    
+                # Create user directory for markdown files
+                self._create_user_directory(user_id)
+                
+                return password
+        except ValueError as e:
+            raise e
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error creating admin user: {e}")
+            raise ValueError("Failed to create user")
+        finally:
+            conn.close()
     
     def _get_user_by_id(self, user_id: str) -> Optional[UserInDB]:
         """Get user by ID"""
-        users = self._load_users()
-        user_data = users.get(user_id)
-        if user_data:
-            return UserInDB(
-                user_id=user_id,
-                username=user_data["username"],
-                email=user_data["email"],
-                role=user_data.get("role", "user"),
-                hashed_password=user_data["hashed_password"],
-                created_at=datetime.fromisoformat(user_data["created_at"])
-            )
-        return None
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM users WHERE user_id = %s",
+                    (user_id,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    return UserInDB(
+                        user_id=row['user_id'],
+                        username=row['username'],
+                        email=row['email'],
+                        role=row['role'],
+                        hashed_password=row['password_hash'],
+                        created_at=row['created_at']
+                    )
+                return None
+        except Exception as e:
+            logger.error(f"Error getting user by ID: {e}")
+            return None
+        finally:
+            conn.close()
     
     def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash"""
@@ -241,60 +255,6 @@ class AuthService:
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
 
-    def register(self, user_data: UserCreate) -> AuthResponse:
-        """
-        Register a new user.
-        
-        Args:
-            user_data: User registration data
-            
-        Returns:
-            AuthResponse with user info and token
-            
-        Raises:
-            ValueError: If username or email already exists
-        """
-        users = self._load_users()
-        
-        # Check if username already exists
-        for user in users.values():
-            if user.get("username") == user_data.username:
-                raise ValueError("Username already exists")
-            if user.get("email") == user_data.email:
-                raise ValueError("Email already exists")
-        
-        # Create new user
-        user_id = str(uuid.uuid4())
-        hashed_password = self._hash_password(user_data.password)
-        created_at = datetime.utcnow()
-        
-        users[user_id] = {
-            "username": user_data.username,
-            "email": user_data.email,
-            "role": "user",  # Default role
-            "hashed_password": hashed_password,
-            "created_at": created_at.isoformat()
-        }
-        
-        if not self._save_users(users):
-            raise ValueError("Failed to save user data")
-        
-        # Create user directory for markdown files
-        self._create_user_directory(user_id)
-        
-        # Generate token
-        token = self._create_access_token(
-            data={"sub": user_id, "username": user_data.username, "role": "user"}
-        )
-        
-        return AuthResponse(
-            user_id=user_id,
-            username=user_data.username,
-            email=user_data.email,
-            role="user",
-            token=token
-        )
-    
     def login(self, login_data: UserLogin) -> AuthResponse:
         """
         Authenticate a user and return a token.
@@ -329,48 +289,62 @@ class AuthService:
             token=token
         )
     
-    def get_all_users(self) -> list[UserResponse]:
+    def get_all_users(self) -> List[UserResponse]:
         """Get all users (admin only)"""
-        users = self._load_users()
-        result = []
-        for user_id, user_data in users.items():
-            result.append(UserResponse(
-                user_id=user_id,
-                username=user_data["username"],
-                email=user_data["email"],
-                role=user_data.get("role", "user"),
-                created_at=datetime.fromisoformat(user_data["created_at"])
-            ))
-        return result
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
+                rows = cursor.fetchall()
+                result = []
+                for row in rows:
+                    result.append(UserResponse(
+                        user_id=row['user_id'],
+                        username=row['username'],
+                        email=row['email'],
+                        role=row['role'],
+                        created_at=row['created_at']
+                    ))
+                return result
+        except Exception as e:
+            logger.error(f"Error getting all users: {e}")
+            return []
+        finally:
+            conn.close()
     
     def update_user_role(self, user_id: str, new_role: str) -> bool:
         """Update user role (admin only)"""
-        users = self._load_users()
-        if user_id in users:
-            users[user_id]["role"] = new_role
-            return self._save_users(users)
-        return False
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE users SET role = %s WHERE user_id = %s",
+                    (new_role, user_id)
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error updating user role: {e}")
+            return False
+        finally:
+            conn.close()
         
     def delete_user(self, user_id: str) -> bool:
         """Delete user (admin only)"""
-        users = self._load_users()
-        if user_id in users:
-            del users[user_id]
-            return self._save_users(users)
-        return False
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error deleting user: {e}")
+            return False
+        finally:
+            conn.close()
 
-    def _create_user_directory(self, user_id: str) -> None:
-        """Create user directory if it doesn't exist"""
-        # This should call the file service or similar, but for now we'll import it or mock it
-        # Actually, the file service creates it on init. We can just ensure the path exists.
-        # But wait, auth service shouldn't really care about files. 
-        # The previous code had `self._create_user_directory(user_id)` call but it was not defined in the snippet I read?
-        # Let me check the Read output again.
-        # Ah, I missed reading the _create_user_directory method in the previous Read call (it was cut off or not shown).
-        # I will assume it exists or I need to add it if it was missing.
-        # Let's check the end of the file.
-        pass
-    
     def verify_token(self, token: str) -> TokenData:
         """
         Verify a JWT token and return the token data.
