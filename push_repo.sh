@@ -47,7 +47,7 @@ if [ -z "$MSG" ]; then
 fi
 
 # 批处理阈值
-BATCH_LIMIT=50
+BATCH_LIMIT=200
 
 if [ "$FILE_COUNT" -gt "$BATCH_LIMIT" ]; then
     echo -e "${YELLOW}警告: 变更文件数量 ($FILE_COUNT) 较多，建议分批提交以降低风险。${NC}"
