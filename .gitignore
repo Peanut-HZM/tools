@@ -69,6 +69,8 @@ Thumbs.db
 downloads/
 download/
 backend/data/
+backend_deploy/data/
+backend_deploy.tar.gz
 
 # Design files
 design/
