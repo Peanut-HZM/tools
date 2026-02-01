@@ -11,5 +11,6 @@ class OCRSettings(BaseSettings):
     class Config:
         env_file = ".env"
         env_prefix = "OCR_"
+        extra = "ignore"
 
 ocr_settings = OCRSettings()

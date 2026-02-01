@@ -1,0 +1,124 @@
+import React, { useState } from 'react';
+import { setRedisKey } from '../../../api/redisToolApi';
+import { useToast } from '../../../hooks/useToast';
+import { useI18n } from '../../../i18n';
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  configId: string;
+  onSuccess: () => void;
+}
+
+export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSuccess }) => {
+  const { addToast } = useToast();
+  const { t } = useI18n();
+  const [key, setKey] = useState('');
+  const [type, setType] = useState('string');
+  const [value, setValue] = useState('');
+  const [ttl, setTtl] = useState<number>(-1);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let parsedValue: any = value;
+      if (type !== 'string') {
+        try {
+          parsedValue = JSON.parse(value);
+        } catch (e) {
+          addToast(t.redis.invalidJson, 'error');
+          return;
+        }
+      }
+
+      await setRedisKey(configId, {
+        key,
+        type,
+        value: parsedValue,
+        ttl
+      });
+      addToast(t.redis.keyCreated, 'success');
+      onSuccess();
+      onClose();
+      // Reset form
+      setKey('');
+      setType('string');
+      setValue('');
+      setTtl(-1);
+    } catch (error) {
+      addToast(t.common.error, 'error');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-slate-700">
+        <h2 className="text-xl font-bold mb-4 text-white">{t.redis.addKey}</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.keys}</label>
+            <input
+              type="text"
+              required
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              value={key}
+              onChange={e => setKey(e.target.value)}
+              placeholder="my:key:name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.type}</label>
+            <select
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              value={type}
+              onChange={e => setType(e.target.value)}
+            >
+              <option value="string">{t.redis.keyType.string}</option>
+              <option value="list">{t.redis.keyType.list} (JSON Array)</option>
+              <option value="set">{t.redis.keyType.set} (JSON Array)</option>
+              <option value="hash">{t.redis.keyType.hash} (JSON Object)</option>
+              <option value="zset">{t.redis.keyType.zset} (JSON Object/Array)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.ttl}</label>
+            <input
+              type="number"
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              value={ttl}
+              onChange={e => setTtl(parseInt(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.value}</label>
+            <textarea
+              required
+              rows={4}
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              placeholder={type === 'string' ? 'Value' : 'JSON content'}
+            />
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-600 transition-colors"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              {t.common.create}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};

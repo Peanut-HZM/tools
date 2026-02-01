@@ -77,6 +77,3 @@ design/
 
 # Skills directory - 包含已下载的 AI Agent Skills
 # skills/ 目录现在会被提交到仓库
-
-# Worktrees
-.worktrees/

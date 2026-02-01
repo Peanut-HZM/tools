@@ -2,13 +2,14 @@
 Tools Service - Handles tool management and persistence using PostgreSQL
 """
 import logging
+import uuid
 from typing import List, Optional, Dict
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from app.config.database import get_db_connection
 from app.data.tools_data import TOOLS_DATA
-from app.models import Tool
+from app.models import Tool, Category, ToolCreateRequest, CategoryCreateRequest
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,20 @@ class ToolsService:
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
+                # Create tool_categories table
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS tool_categories (
+                        id VARCHAR(64) PRIMARY KEY,
+                        name VARCHAR(50) NOT NULL UNIQUE,
+                        description VARCHAR(255),
+                        icon VARCHAR(50),
+                        sort_order INT DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        deleted BOOLEAN DEFAULT FALSE
+                    )
+                """)
+
                 # Create tools table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS tools (
@@ -36,6 +51,7 @@ class ToolsService:
                         status VARCHAR(20) DEFAULT 'online',
                         usage_count INTEGER DEFAULT 0,
                         rating FLOAT DEFAULT 5.0,
+                        sort_order INT DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
@@ -49,6 +65,22 @@ class ToolsService:
                         user_id VARCHAR(50)
                     )
                 """)
+
+                # Seed categories
+                default_categories = [
+                    "文本工具", "转换工具", "计算工具", "设计工具", "实用工具", "开发工具", "AI工具"
+                ]
+                # Ensure all categories from TOOLS_DATA are included
+                for tool in TOOLS_DATA:
+                    if tool.category and tool.category not in default_categories:
+                        default_categories.append(tool.category)
+                
+                for idx, cat_name in enumerate(default_categories):
+                    cur.execute("""
+                        INSERT INTO tool_categories (id, name, sort_order)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (name) DO NOTHING
+                    """, (str(uuid.uuid4()), cat_name, idx))
                 
                 # Seed or update tools database from TOOLS_DATA
                 logger.info("Syncing tools database with static data...")
@@ -198,9 +230,86 @@ class ToolsService:
                 return True
         except Exception as e:
             logger.error(f"Error recording visit: {e}")
+
+    def get_all_categories(self) -> List[Category]:
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM tool_categories WHERE deleted = FALSE ORDER BY sort_order")
+                rows = cur.fetchall()
+                return [Category(**row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error fetching categories: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+
+    def create_category(self, request: CategoryCreateRequest) -> Optional[Category]:
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cat_id = str(uuid.uuid4())
+                cur.execute("""
+                    INSERT INTO tool_categories (id, name, description, icon, sort_order)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING *
+                """, (cat_id, request.name, request.description, request.icon, request.sort_order))
+                row = cur.fetchone()
+                conn.commit()
+                if row:
+                    return Category(**row)
+                return None
+        except Exception as e:
+            logger.error(f"Error creating category: {e}")
             if conn:
                 conn.rollback()
-            return False
+            raise e
+        finally:
+            if conn:
+                conn.close()
+
+    def update_category(self, cat_id: str, request: CategoryCreateRequest) -> Optional[Category]:
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE tool_categories 
+                    SET name = %s, description = %s, icon = %s, sort_order = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s AND deleted = FALSE
+                    RETURNING *
+                """, (request.name, request.description, request.icon, request.sort_order, cat_id))
+                row = cur.fetchone()
+                conn.commit()
+                if row:
+                    return Category(**row)
+                return None
+        except Exception as e:
+            logger.error(f"Error updating category: {e}")
+            if conn:
+                conn.rollback()
+            raise e
+        finally:
+            if conn:
+                conn.close()
+
+    def delete_category(self, cat_id: str) -> bool:
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                # Logical delete
+                cur.execute("UPDATE tool_categories SET deleted = TRUE WHERE id = %s", (cat_id,))
+                conn.commit()
+                return cur.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting category: {e}")
+            if conn:
+                conn.rollback()
+            raise e
         finally:
             if conn:
                 conn.close()

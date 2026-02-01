@@ -111,6 +111,16 @@ TOOLS_DATA = [
         rating=5.0,
         usageCount="New",
         category="开发工具"
+    ),
+    Tool(
+        id="redis-tool",
+        icon="fa-server",
+        iconColor="bg-red-600",
+        title="Redis 管理",
+        description="Redis 多连接管理，支持 Key 的增删查改",
+        rating=4.9,
+        usageCount="New",
+        category="开发工具"
     )
 ]
 

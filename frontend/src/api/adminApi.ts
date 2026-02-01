@@ -3,6 +3,56 @@ import { UserResponse } from './authApi';
 import { AUTH_API_BASE_URL } from '../config/api';
 
 const API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '/admin');
+const PUBLIC_API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '');
+
+export interface ToolCategory {
+    id: string;
+    name: string;
+    description?: string;
+    icon?: string;
+    sort_order: number;
+}
+
+export async function listCategories(): Promise<ToolCategory[]> {
+    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories`);
+    if (!response.ok) throw new Error('Failed to list categories');
+    return response.json();
+}
+
+export async function createCategory(data: Partial<ToolCategory>): Promise<ToolCategory> {
+    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories`, {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create category');
+    return response.json();
+}
+
+export async function updateCategory(id: string, data: Partial<ToolCategory>): Promise<ToolCategory> {
+    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories/${id}`, {
+        method: 'PUT',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update category');
+    return response.json();
+}
+
+export async function deleteCategory(id: string): Promise<boolean> {
+    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete category');
+    return response.json();
+}
 
 export interface OssFile {
     id: number;

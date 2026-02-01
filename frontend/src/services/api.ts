@@ -1,5 +1,18 @@
-import { Tool } from '../types';
+import { Tool, ToolCategory } from '../types';
 import { API_BASE_URL } from '../config/api';
+
+export async function fetchCategories(): Promise<ToolCategory[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch categories');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    throw error;
+  }
+}
 
 export async function fetchTools(): Promise<Tool[]> {
   try {

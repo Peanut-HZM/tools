@@ -23,9 +23,10 @@ import MarkItDownConverter from './components/Tools/MarkItDownConverter';
 import OCRTool from './components/Tools/OCR/OCRTool';
 import ASRTool from './components/Tools/ASR/ASRTool';
 import DatabaseTool from './components/Tools/DatabaseTool/DatabaseTool';
+import RedisTool from './components/Tools/RedisTool/RedisTool';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
-import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory } from './services/api';
+import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
 import { Tool } from './types';
 import { useI18n, interpolate } from './i18n';
 import { I18nProvider } from './i18n/I18nProvider';
@@ -46,6 +47,7 @@ function HomePage() {
   const [filteredTools, setFilteredTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>(["全部工具"]);
   const { t } = useI18n();
 
   const { activeCategory, handleCategoryChange } = useCategory();
@@ -62,8 +64,20 @@ function HomePage() {
 
   // 初始加载所有工具
   useEffect(() => {
+    loadCategories();
     loadTools();
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const cats = await fetchCategories();
+      const catNames = ["全部工具", ...cats.map(c => c.name)];
+      setCategories(Array.from(new Set(catNames)));
+    } catch (e) {
+      console.error("Failed to load categories", e);
+      // Fallback to default if failed? Or keep "全部工具"
+    }
+  };
 
   const loadTools = async () => {
     try {
@@ -151,6 +165,7 @@ function HomePage() {
       'ocr-tool': '/tools/ocr',
       'asr-tool': '/tools/asr',
       'database-tool': '/tools/database-tool',
+      'redis-tool': '/tools/redis-tool',
     };
 
     const route = toolRoutes[toolId];
@@ -180,6 +195,7 @@ function HomePage() {
             onCategoryChange={handleCategoryChange}
             tools={filteredTools}
             onToolClick={handleToolClick}
+            categories={categories}
           />
           <Features />
           <Statistics />
@@ -210,6 +226,7 @@ function App() {
               <Route path="/tools/ocr" element={<OCRTool />} />
               <Route path="/tools/asr" element={<ASRTool />} />
               <Route path="/tools/database-tool" element={<DatabaseTool />} />
+              <Route path="/tools/redis-tool" element={<RedisTool />} />
             </Route>
 
             {/* Admin Routes */}

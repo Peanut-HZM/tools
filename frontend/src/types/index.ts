@@ -1,10 +1,12 @@
-export type Category = 
-  | "全部工具"
-  | "文本工具"
-  | "转换工具"
-  | "计算工具"
-  | "设计工具"
-  | "实用工具";
+export interface ToolCategory {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  sort_order: number;
+}
+
+export type Category = string;
 
 export interface Tool {
   id: string;

@@ -1,0 +1,176 @@
+import React, { useState, useEffect } from 'react';
+import { getRedisKeyContent, setRedisKey, RedisKeyContent } from '../../../api/redisToolApi';
+import { useToast } from '../../../hooks/useToast';
+import { useI18n } from '../../../i18n';
+
+interface Props {
+  configId: string;
+  keyName: string;
+  onKeyUpdated: () => void;
+}
+
+export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) => {
+  const { addToast } = useToast();
+  const { t } = useI18n();
+  const [content, setContent] = useState<RedisKeyContent | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [editTTL, setEditTTL] = useState<number>(-1);
+
+  const loadContent = async () => {
+    setLoading(true);
+    try {
+      const data = await getRedisKeyContent(configId, keyName);
+      setContent(data);
+      // Format value for editing based on type
+      let val = data.value;
+      if (typeof val === 'object') {
+          val = JSON.stringify(val, null, 2);
+      }
+      setEditValue(val);
+      setEditTTL(data.ttl);
+    } catch (error) {
+      addToast(t.common.error, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadContent();
+    setEditing(false);
+  }, [configId, keyName]);
+
+  const handleSave = async () => {
+    if (!content) return;
+    try {
+      let value = editValue;
+      // Parse value if original was object (list, set, hash, zset)
+      if (content.type !== 'string') {
+          try {
+              value = JSON.parse(editValue);
+          } catch (e) {
+              addToast(t.redis.invalidJson, 'error');
+              return;
+          }
+      }
+
+      await setRedisKey(configId, {
+        key: keyName,
+        type: content.type,
+        value: value,
+        ttl: editTTL
+      });
+      addToast(t.redis.keyUpdated, 'success');
+      setEditing(false);
+      loadContent();
+      onKeyUpdated();
+    } catch (error) {
+      addToast(t.common.error, 'error');
+    }
+  };
+
+  // Helper to format value
+  const formatValue = (value: any) => {
+    if (typeof value === 'object') {
+      return JSON.stringify(value, null, 2);
+    }
+    // Try to parse string as JSON
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return JSON.stringify(parsed, null, 2);
+        }
+      } catch (e) {
+        // Not a JSON string, return as is
+      }
+    }
+    return value;
+  };
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-full text-slate-500">
+            <i className="fas fa-spinner fa-spin mr-2"></i> {t.common.loading}
+        </div>
+    );
+  }
+
+  if (!content) {
+    return <div className="p-8 text-center text-slate-500">{t.redis.noKeysFound}</div>;
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-slate-900">
+      <div className="p-4 border-b border-slate-700 bg-slate-800 shadow-sm">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="text-lg font-medium text-slate-100 break-all">{content.key}</h3>
+            <div className="mt-1 flex space-x-4 text-sm text-slate-400">
+              <span className="bg-slate-700 px-2 py-0.5 rounded uppercase text-slate-300 font-mono text-xs">{content.type}</span>
+              <span>TTL: {content.ttl === -1 ? 'None' : `${content.ttl}s`}</span>
+            </div>
+          </div>
+          <div className="space-x-2">
+            {!editing ? (
+              <button
+                onClick={() => setEditing(true)}
+                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-md text-sm font-medium text-slate-300 transition-colors"
+              >
+                <i className="fas fa-pen mr-1"></i> {t.common.edit || 'Edit'}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => { setEditing(false); loadContent(); }} // Reset
+                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-md text-sm font-medium text-slate-300 transition-colors"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors"
+                >
+                  {t.common.save}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        {editing && (
+            <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-400 mb-1">{t.redis.ttl}</label>
+                <input
+                    type="number"
+                    value={editTTL}
+                    onChange={(e) => setEditTTL(parseInt(e.target.value))}
+                    className="block w-32 bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                />
+            </div>
+        )}
+      </div>
+      <div className="flex-1 p-4 overflow-hidden flex flex-col">
+        {editing ? (
+          <div className="h-full flex flex-col">
+            <label className="block text-sm font-medium text-slate-400 mb-2">
+              {t.redis.value} {content.type !== 'string' && '(JSON)'}
+            </label>
+            <textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 w-full bg-slate-800 border border-slate-700 rounded-md text-slate-200 font-mono text-sm p-4 focus:outline-none focus:border-blue-500 resize-none"
+            />
+          </div>
+        ) : (
+          <div className="flex-1 bg-slate-800 rounded-md border border-slate-700 p-4 overflow-auto">
+            <pre className="font-mono text-sm text-slate-300 whitespace-pre-wrap break-all">
+              {formatValue(content.value)}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

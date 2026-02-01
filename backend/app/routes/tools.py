@@ -1,8 +1,47 @@
-from fastapi import APIRouter, Query
-from app.models import ToolsResponse, SearchResponse, CategoryResponse
+from fastapi import APIRouter, Query, HTTPException
+from typing import List
+from app.models import ToolsResponse, SearchResponse, CategoryResponse, Category, CategoryCreateRequest
 from app.services.tools_service import tools_service
 
 router = APIRouter(tags=["tools"])
+
+@router.get("/categories", response_model=List[Category])
+def get_categories():
+    """获取所有工具分类"""
+    return tools_service.get_all_categories()
+
+@router.post("/categories", response_model=Category)
+def create_category(request: CategoryCreateRequest):
+    """创建工具分类"""
+    try:
+        category = tools_service.create_category(request)
+        if not category:
+            raise HTTPException(status_code=500, detail="Failed to create category")
+        return category
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/categories/{cat_id}", response_model=Category)
+def update_category(cat_id: str, request: CategoryCreateRequest):
+    """更新工具分类"""
+    try:
+        category = tools_service.update_category(cat_id, request)
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+        return category
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/categories/{cat_id}")
+def delete_category(cat_id: str):
+    """删除工具分类"""
+    try:
+        success = tools_service.delete_category(cat_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Category not found")
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/tools", response_model=ToolsResponse)
 def get_tools():

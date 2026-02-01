@@ -8,19 +8,11 @@ interface HeroProps {
   onCategoryChange: (category: Category) => void;
   tools: Tool[];
   onToolClick?: (toolId: string) => void;
+  categories: Category[];
 }
 
-export default function Hero({ activeCategory, onCategoryChange, tools, onToolClick }: HeroProps) {
+export default function Hero({ activeCategory, onCategoryChange, tools, onToolClick, categories }: HeroProps) {
   const { t } = useI18n();
-
-  const categories: Category[] = [
-    "全部工具",
-    "文本工具",
-    "转换工具",
-    "计算工具",
-    "设计工具",
-    "实用工具"
-  ];
 
   return (
     <section className="mb-16">

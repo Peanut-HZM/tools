@@ -1,34 +1,22 @@
 # Models package
-from pydantic import BaseModel
-from typing import Literal
-
-# Tool models (from old models.py)
-Category = Literal["全部工具", "文本工具", "转换工具", "计算工具", "设计工具", "实用工具"]
-
-class Tool(BaseModel):
-    id: str
-    icon: str
-    iconColor: str
-    title: str
-    description: str
-    rating: float
-    usageCount: str
-    category: str
-    status: str = "online"
-
-class ToolsResponse(BaseModel):
-    tools: list[Tool]
-
-class SearchResponse(BaseModel):
-    tools: list[Tool]
-    count: int
-
-class CategoryResponse(BaseModel):
-    tools: list[Tool]
-    category: str
+from app.models.tool_models import (
+    Tool, 
+    Category, 
+    ToolCreateRequest, 
+    CategoryCreateRequest,
+    ToolsResponse,
+    SearchResponse,
+    CategoryResponse
+)
 
 # Re-export from submodules
 from app.models.auth_models import *
 from app.models.file_models import *
 from app.models.config_models import *
 from app.models.search_models import *
+from app.models.stats_models import *
+from app.models.database_tool_models import *
+from app.models.redis_tool_models import *
+from app.models.oss_models import *
+from app.models.ocr_models import *
+from app.models.asr_models import *

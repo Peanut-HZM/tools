@@ -9,5 +9,6 @@ class ASRSettings(BaseSettings):
     class Config:
         env_file = ".env"
         env_prefix = "ASR_"
+        extra = "ignore"
 
 asr_settings = ASRSettings()

@@ -14,7 +14,7 @@ export default function CategoryTabs({ categories, activeCategory, onCategoryCha
             activeCategory === category ? 'active' : ''
           }`}
         >
-          {t.categories[category as keyof typeof t.categories]}
+          {t.categories[category as keyof typeof t.categories] || category}
         </button>
       ))}
     </div>
