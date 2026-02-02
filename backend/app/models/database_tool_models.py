@@ -59,7 +59,7 @@ class DatabaseConfigResponse(DatabaseConfigBase):
     last_connected_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-    # 密码不返回
+    password: Optional[str] = None
 
 class TestConnectionRequest(BaseModel):
     db_type: DatabaseType

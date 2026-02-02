@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Path as PathParam, Body
 from typing import List, Optional, Dict, Any
 
-from app.middleware.auth_middleware import get_current_user_id
+from app.middleware.auth_middleware import get_current_user_id, get_current_user
 from app.models.database_tool_models import (
     DatabaseConfigResponse, CreateDatabaseRequest, UpdateDatabaseRequest,
     TestConnectionRequest, ConnectionTestResult,
@@ -18,10 +18,14 @@ router = APIRouter(prefix="/database-tool", tags=["database-tool"])
 
 @router.get("/databases", response_model=List[DatabaseConfigResponse])
 async def get_databases(
-    user_id: str = Depends(get_current_user_id)
+    include_password: bool = Query(False),
+    user_id: str = Depends(get_current_user_id),
+    current_user=Depends(get_current_user)
 ):
     """Get all database configurations for the current user"""
-    return DatabaseToolService.get_all_configs(user_id)
+    if include_password and getattr(current_user, "role", None) != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied: Admin access required")
+    return DatabaseToolService.get_all_configs(user_id, include_password=include_password)
 
 @router.post("/databases", response_model=DatabaseConfigResponse)
 async def create_database(
@@ -39,10 +43,14 @@ async def create_database(
 @router.get("/databases/{id}", response_model=DatabaseConfigResponse)
 async def get_database(
     id: str = PathParam(..., description="Configuration ID"),
-    user_id: str = Depends(get_current_user_id)
+    include_password: bool = Query(False),
+    user_id: str = Depends(get_current_user_id),
+    current_user=Depends(get_current_user)
 ):
     """Get a specific database configuration"""
-    config = DatabaseToolService.get_config(id, user_id)
+    if include_password and getattr(current_user, "role", None) != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied: Admin access required")
+    config = DatabaseToolService.get_config(id, user_id, include_password=include_password)
     if not config:
         raise HTTPException(status_code=404, detail="Configuration not found")
     return config

@@ -332,7 +332,7 @@ class DatabaseToolService:
     # --------------------------------------------------------------------------
     
     @staticmethod
-    def get_all_configs(user_id: str) -> List[DatabaseConfigResponse]:
+    def get_all_configs(user_id: str, include_password: bool = False) -> List[DatabaseConfigResponse]:
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
@@ -344,6 +344,12 @@ class DatabaseToolService:
                 
                 configs = []
                 for row in rows:
+                    password = None
+                    if include_password:
+                        try:
+                            password = EncryptionUtils.decrypt(row['password_encrypted'])
+                        except Exception:
+                            password = None
                     # 'row' is a RealDictRow
                     config = DatabaseConfigResponse(
                         id=row['id'],
@@ -365,7 +371,8 @@ class DatabaseToolService:
                         is_active=row['is_active'],
                         last_connected_at=row['last_connected_at'],
                         created_at=row['created_at'],
-                        updated_at=row['updated_at']
+                        updated_at=row['updated_at'],
+                        password=password
                     )
                     configs.append(config)
                 return configs
@@ -373,7 +380,7 @@ class DatabaseToolService:
             conn.close()
 
     @staticmethod
-    def get_config(config_id: str, user_id: str) -> Optional[DatabaseConfigResponse]:
+    def get_config(config_id: str, user_id: str, include_password: bool = False) -> Optional[DatabaseConfigResponse]:
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
@@ -384,7 +391,12 @@ class DatabaseToolService:
                 row = cursor.fetchone()
                 if not row:
                     return None
-                
+                password = None
+                if include_password:
+                    try:
+                        password = EncryptionUtils.decrypt(row['password_encrypted'])
+                    except Exception:
+                        password = None
                 return DatabaseConfigResponse(
                     id=row['id'],
                     user_id=row['user_id'],
@@ -405,7 +417,8 @@ class DatabaseToolService:
                     is_active=row['is_active'],
                     last_connected_at=row['last_connected_at'],
                     created_at=row['created_at'],
-                    updated_at=row['updated_at']
+                    updated_at=row['updated_at'],
+                    password=password
                 )
         finally:
             conn.close()
@@ -1438,4 +1451,3 @@ class DatabaseToolService:
             # Don't fail the whole request, just return empty or what we found
             
         return results
-

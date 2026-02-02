@@ -34,6 +34,7 @@ export interface DatabaseConfig {
   last_connected_at?: string;
   created_at: string;
   updated_at: string;
+  password?: string;
 }
 
 export interface CreateDatabaseRequest {

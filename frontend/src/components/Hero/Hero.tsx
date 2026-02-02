@@ -16,13 +16,6 @@ export default function Hero({ activeCategory, onCategoryChange, tools, onToolCl
 
   return (
     <section className="mb-16">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">{t.hero.title}</h1>
-        <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-          {t.hero.subtitle}
-        </p>
-      </div>
-
       <CategoryTabs
         categories={categories}
         activeCategory={activeCategory}

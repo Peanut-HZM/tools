@@ -16,7 +16,7 @@ const getApiBaseUrl = (): string => {
   }
   
   // 开发环境默认地址
-  return 'http://localhost:19092/api';
+  return 'http://127.0.0.1:19092/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

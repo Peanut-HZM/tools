@@ -4,6 +4,7 @@ import { CreateDatabaseRequest, UpdateDatabaseRequest, DatabaseType, Environment
 import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
+import { useAuth } from '../../../stores';
 
 interface DatabaseConfigPanelProps {
   editConfigId?: string | null;
@@ -14,6 +15,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
   const { refreshConfigs, configs } = useDatabaseTool();
   const toast = useToast();
   const { t } = useI18n();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   
@@ -44,7 +46,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
           port: config.port,
           database_name: config.database_name,
           username: config.username,
-          password: '', // Password is not returned
+          password: config.password || '',
           environment: config.environment,
           charset: config.charset,
           connect_timeout: config.connect_timeout,
@@ -232,7 +234,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
             <div className="sm:col-span-3">
               <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.password}</label>
               <input
-                type="password"
+                type={user?.role === 'admin' ? 'text' : 'password'}
                 name="password"
                 placeholder={editConfigId ? t.common.leaveBlankToKeep : ""}
                 required={!editConfigId}

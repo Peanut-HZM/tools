@@ -26,8 +26,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 // Database Configs
 
-export async function getDatabases(): Promise<DatabaseConfig[]> {
-  const response = await fetch(`${BASE_URL}/databases`, {
+export async function getDatabases(includePassword = false): Promise<DatabaseConfig[]> {
+  const query = includePassword ? '?include_password=true' : '';
+  const response = await fetch(`${BASE_URL}/databases${query}`, {
     headers: getAuthHeaders()
   });
   return handleResponse<DatabaseConfig[]>(response);
@@ -42,8 +43,9 @@ export async function createDatabase(data: CreateDatabaseRequest): Promise<Datab
   return handleResponse<DatabaseConfig>(response);
 }
 
-export async function getDatabase(id: string): Promise<DatabaseConfig> {
-  const response = await fetch(`${BASE_URL}/databases/${id}`, {
+export async function getDatabase(id: string, includePassword = false): Promise<DatabaseConfig> {
+  const query = includePassword ? '?include_password=true' : '';
+  const response = await fetch(`${BASE_URL}/databases/${id}${query}`, {
     headers: getAuthHeaders()
   });
   return handleResponse<DatabaseConfig>(response);

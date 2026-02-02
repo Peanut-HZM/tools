@@ -26,13 +26,13 @@ export const DatabaseToolProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [history, setHistory] = useState<ExecutionHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const refreshConfigs = useCallback(async () => {
     if (!isAuthenticated) return;
     setIsLoading(true);
     try {
-      const data = await api.getDatabases();
+      const data = await api.getDatabases(user?.role === 'admin');
       setConfigs(data);
       
       // If current config is in the list, update it (to get latest status)
@@ -51,7 +51,7 @@ export const DatabaseToolProvider: React.FC<{ children: ReactNode }> = ({ childr
     } finally {
       setIsLoading(false);
     }
-  }, [currentConfig, toast, isAuthenticated]);
+  }, [currentConfig, toast, isAuthenticated, user?.role]);
 
   const refreshHistory = useCallback(async () => {
     if (!isAuthenticated) return;
