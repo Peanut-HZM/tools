@@ -121,6 +121,16 @@ TOOLS_DATA = [
         rating=4.9,
         usageCount="New",
         category="开发工具"
+    ),
+    Tool(
+        id="ssh-tool",
+        icon="fa-terminal",
+        iconColor="bg-slate-600",
+        title="SSH 管理",
+        description="集中管理 SSH 连接配置，提供在线终端操作",
+        rating=4.9,
+        usageCount="New",
+        category="开发工具"
     )
 ]
 

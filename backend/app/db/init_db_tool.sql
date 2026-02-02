@@ -106,3 +106,25 @@ CREATE TABLE IF NOT EXISTS redis_configs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_redis_configs_user_id ON redis_configs(user_id);
+
+-- SSH配置表
+CREATE TABLE IF NOT EXISTS ssh_configs (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    alias VARCHAR(64) NOT NULL,
+    host VARCHAR(255) NOT NULL,
+    port INT NOT NULL DEFAULT 22,
+    username VARCHAR(128) NOT NULL,
+    password_encrypted TEXT,
+    private_key_encrypted TEXT,
+    passphrase_encrypted TEXT,
+    group_name VARCHAR(64),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ssh_configs_user_id ON ssh_configs(user_id);
+CREATE INDEX IF NOT EXISTS idx_ssh_configs_user_alias ON ssh_configs(user_id, alias);

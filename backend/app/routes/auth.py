@@ -37,7 +37,7 @@ def get_current_user_id(authorization: Optional[str] = Header(None)) -> str:
     
     try:
         auth_service = get_auth_service()
-        token_data = auth_service.verify_token(token)
+        token_data = auth_service.verify_token_data(token)
         return token_data.user_id
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
@@ -171,7 +171,7 @@ async def verify_token(authorization: Optional[str] = Header(None)):
     
     try:
         auth_service = get_auth_service()
-        token_data = auth_service.verify_token(token)
+        token_data = auth_service.verify_token_data(token)
         return {
             "valid": True,
             "user_id": token_data.user_id,

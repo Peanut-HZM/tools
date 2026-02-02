@@ -5,6 +5,7 @@ import os
 import json
 import uuid
 import logging
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List
@@ -255,6 +256,32 @@ class AuthService:
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
 
+    def hash_password(self, password: str) -> str:
+        return self._hash_password(password)
+
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        return self._verify_password(plain_password, hashed_password)
+
+    def create_token(self, user_id: str, username: str) -> str:
+        return self._create_access_token(data={"sub": user_id, "username": username, "role": "user"})
+
+    def validate_username(self, username: str) -> bool:
+        if not username:
+            return False
+        if len(username) < 3 or len(username) > 50:
+            return False
+        return re.match(r"^[A-Za-z0-9_]+$", username) is not None
+
+    def validate_email(self, email: str) -> bool:
+        if not email:
+            return False
+        return re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) is not None
+
+    def validate_password(self, password: str) -> bool:
+        if not password:
+            return False
+        return len(password) >= 6
+
     def login(self, login_data: UserLogin) -> AuthResponse:
         """
         Authenticate a user and return a token.
@@ -345,7 +372,7 @@ class AuthService:
         finally:
             conn.close()
 
-    def verify_token(self, token: str) -> TokenData:
+    def verify_token_data(self, token: str) -> TokenData:
         """
         Verify a JWT token and return the token data.
         
@@ -376,6 +403,20 @@ class AuthService:
             )
         except JWTError as e:
             raise ValueError(f"Invalid token: {str(e)}")
+
+    def verify_token(self, token: Optional[str]):
+        if not token:
+            return None
+        try:
+            token_data = self.verify_token_data(token)
+            return {
+                "user_id": token_data.user_id,
+                "username": token_data.username,
+                "role": token_data.role,
+                "exp": token_data.exp
+            }
+        except ValueError:
+            return None
     
     def get_current_user(self, token: str) -> UserResponse:
         """
@@ -390,7 +431,7 @@ class AuthService:
         Raises:
             ValueError: If token is invalid or user not found
         """
-        token_data = self.verify_token(token)
+        token_data = self.verify_token_data(token)
         user = self._get_user_by_id(token_data.user_id)
         
         if not user:

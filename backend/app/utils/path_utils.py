@@ -3,10 +3,10 @@ Path validation utilities for security
 """
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional
 
 
-def validate_path(path: str, root_path: str) -> Tuple[bool, str]:
+def validate_path(path: str, root_path: Optional[str] = None):
     """
     Validate that a path is safe and within the root directory.
     
@@ -17,6 +17,16 @@ def validate_path(path: str, root_path: str) -> Tuple[bool, str]:
     Returns:
         Tuple of (is_valid, error_message or resolved_path)
     """
+    if root_path is None:
+        if path in ("", "."):
+            return True
+        normalized = normalize_path(path)
+        if os.path.isabs(normalized):
+            return False
+        parts = [p for p in normalized.split("/") if p]
+        if ".." in parts:
+            return False
+        return True
     if not path:
         return False, "Path cannot be empty"
     
@@ -65,7 +75,24 @@ def get_relative_path(full_path: str, root_path: str) -> str:
 
 def normalize_path(path: str) -> str:
     """Normalize path separators to forward slashes"""
-    return path.replace('\\', '/')
+    normalized = path.replace('\\', '/')
+    while '//' in normalized:
+        normalized = normalized.replace('//', '/')
+    return normalized
+
+def is_safe_path(root_path: str, target_path: str) -> bool:
+    root = Path(root_path).resolve()
+    target = Path(target_path).resolve()
+    try:
+        target.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+def join_user_path(user_id: str, relative_path: str, base_path: str = "./data/users") -> str:
+    user_root = Path(get_user_root_path(user_id, base_path)).resolve()
+    target = user_root / relative_path if relative_path else user_root
+    return str(target)
 
 
 def get_user_root_path(user_id: str, base_path: str = "./data/users") -> str:

@@ -48,7 +48,7 @@ async def get_current_user_id(authorization: Optional[str] = Header(None)) -> st
     
     try:
         auth_service = get_auth_service()
-        token_data = auth_service.verify_token(token)
+        token_data = auth_service.verify_token_data(token)
         return token_data.user_id
     except ValueError as e:
         raise HTTPException(
@@ -139,7 +139,7 @@ async def get_token_data(authorization: Optional[str] = Header(None)) -> TokenDa
     
     try:
         auth_service = get_auth_service()
-        return auth_service.verify_token(token)
+        return auth_service.verify_token_data(token)
     except ValueError as e:
         raise HTTPException(
             status_code=401, 
@@ -185,7 +185,7 @@ async def optional_auth(authorization: Optional[str] = Header(None)) -> Optional
     
     try:
         auth_service = get_auth_service()
-        token_data = auth_service.verify_token(token)
+        token_data = auth_service.verify_token_data(token)
         return token_data.user_id
     except ValueError:
         return None

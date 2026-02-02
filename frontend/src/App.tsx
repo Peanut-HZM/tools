@@ -24,6 +24,7 @@ import OCRTool from './components/Tools/OCR/OCRTool';
 import ASRTool from './components/Tools/ASR/ASRTool';
 import DatabaseTool from './components/Tools/DatabaseTool/DatabaseTool';
 import RedisTool from './components/Tools/RedisTool/RedisTool';
+import SSHTool from './components/Tools/SSHTool/SSHTool';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -166,6 +167,7 @@ function HomePage() {
       'asr-tool': '/tools/asr',
       'database-tool': '/tools/database-tool',
       'redis-tool': '/tools/redis-tool',
+      'ssh-tool': '/tools/ssh-tool',
     };
 
     const route = toolRoutes[toolId];
@@ -227,6 +229,7 @@ function App() {
               <Route path="/tools/asr" element={<ASRTool />} />
               <Route path="/tools/database-tool" element={<DatabaseTool />} />
               <Route path="/tools/redis-tool" element={<RedisTool />} />
+              <Route path="/tools/ssh-tool" element={<SSHTool />} />
             </Route>
 
             {/* Admin Routes */}

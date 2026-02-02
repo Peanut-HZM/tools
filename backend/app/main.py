@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.routes import tools, image_downloader, video_downloader, ytdlp_routes, calendar, key_generator, converter, oss, admin
-from app.routes import ocr_routes, asr_routes, database_tool, redis_tool
+from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool
 from app.routes import auth
 from app.routes import markdown_editor
 from app.services.download_manager import get_manager
@@ -87,6 +87,9 @@ app.include_router(database_tool.router, prefix="/api")
 
 # Redis Tool router
 app.include_router(redis_tool.router, prefix="/api")
+
+# SSH Tool router
+app.include_router(ssh_tool.router, prefix="/api")
 
 @app.get("/")
 def read_root():

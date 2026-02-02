@@ -3,9 +3,7 @@ Markdown File Service - Handles all file system operations with user isolation
 """
 import os
 import shutil
-import io
 from pathlib import Path
-from app.services.oss_service import oss_service
 from datetime import datetime
 from typing import Optional, Set
 
@@ -35,9 +33,9 @@ class MarkdownFileService:
         self.base_path = base_path
         
         if custom_root and os.path.exists(custom_root) and os.path.isdir(custom_root):
-            self.root_path = Path(custom_root).resolve()
+            self._root_path = Path(custom_root).resolve()
         else:
-            self.root_path = Path(ensure_user_directory(user_id, base_path)).resolve()
+            self._root_path = Path(ensure_user_directory(user_id, base_path)).resolve()
         
         self._gitignore_patterns: Set[str] = set()
         self._add_default_ignores()
@@ -54,7 +52,7 @@ class MarkdownFileService:
 
     def _load_gitignore(self) -> None:
         """Load patterns from .gitignore file if it exists"""
-        gitignore_path = self.root_path / '.gitignore'
+        gitignore_path = self._root_path / '.gitignore'
         if gitignore_path.exists():
             try:
                 with open(gitignore_path, 'r', encoding='utf-8') as f:
@@ -83,14 +81,14 @@ class MarkdownFileService:
     
     def _validate_and_resolve(self, path: str) -> Path:
         """Validate path and return resolved Path object"""
-        is_valid, result = validate_path(path, str(self.root_path))
+        is_valid, result = validate_path(path, str(self._root_path))
         if not is_valid:
             raise ValueError(result)
         return Path(result)
     
     def get_root_path(self) -> str:
         """Get the user's root path"""
-        return str(self.root_path)
+        return str(self._root_path)
     
     def get_directory_tree(self, path: str = "") -> FileNode:
         """
@@ -106,18 +104,20 @@ class MarkdownFileService:
         if path:
             target_path = self._validate_and_resolve(path)
         else:
-            target_path = self.root_path
+            target_path = Path(self._root_path)
         
         return self._scan_directory(target_path)
     
     def _scan_directory(self, dir_path: Path) -> FileNode:
         """Recursively scan a directory"""
-        rel_path = get_relative_path(str(dir_path), str(self.root_path))
+        if not isinstance(dir_path, Path):
+            dir_path = Path(dir_path)
+        rel_path = get_relative_path(str(dir_path), str(self._root_path))
         if rel_path == '.':
             rel_path = ''
         
         node = FileNode(
-            name=dir_path.name or str(self.root_path),
+            name=dir_path.name or str(self._root_path),
             path=normalize_path(rel_path),
             type="directory",
             children=[]
@@ -142,7 +142,7 @@ class MarkdownFileService:
             elif entry.is_file() and is_markdown_file(entry.name):
                 # Include markdown files
                 stat = entry.stat()
-                child_rel_path = get_relative_path(str(entry), str(self.root_path))
+                child_rel_path = get_relative_path(str(entry), str(self._root_path))
                 file_node = FileNode(
                     name=entry.name,
                     path=normalize_path(child_rel_path),
@@ -185,7 +185,7 @@ class MarkdownFileService:
     
     def save_file(self, path: str, content: str) -> SaveResult:
         """
-        Save content to a file (Upload to OSS).
+        Save content to a file.
         
         Args:
             path: Relative path to the file
@@ -194,47 +194,21 @@ class MarkdownFileService:
         Returns:
             SaveResult indicating success/failure
         """
-        try:
-            # Upload to OSS
-            # Path should be relative to user's root, e.g., "docs/notes.md"
-            # We prefix with "users/{user_id}/markdown/"
-            normalized_path = path.lstrip('/')
-            object_name = f"users/{self.user_id}/markdown/{normalized_path}"
-            
-            # Convert content to bytes
-            data = content.encode('utf-8')
-            size = len(data)
-            file_obj = io.BytesIO(data)
-            
-            url = oss_service.upload_file(
-                object_name=object_name,
-                data=file_obj,
-                size=size,
-                content_type="text/markdown",
-                uploaded_by=self.user_id
-            )
-            
-            if not url:
-                return SaveResult(
-                    success=False,
-                    message="Failed to upload to OSS"
-                )
-            
-            return SaveResult(
-                success=True,
-                message="File saved successfully",
-                modified=datetime.utcnow()
-            )
-            
-        except Exception as e:
-            return SaveResult(
-                success=False,
-                message=str(e)
-            )
+        file_path = self._validate_and_resolve(path)
+        if file_path.exists() and not file_path.is_file():
+            return SaveResult(success=False, message="Path is not a file")
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return SaveResult(
+            success=True,
+            message="File saved successfully",
+            modified=datetime.utcnow()
+        )
     
     def create_file(self, path: str, content: str = "") -> CreateResult:
         """
-        Create a new file (Upload to OSS).
+        Create a new file.
         
         Args:
             path: Relative path for the new file
@@ -243,18 +217,17 @@ class MarkdownFileService:
         Returns:
             CreateResult indicating success/failure
         """
-        # For OSS, creating and saving are similar (put_object)
-        save_result = self.save_file(path, content)
-        
-        return CreateResult(
-            success=save_result.success,
-            path=normalize_path(path),
-            message=save_result.message
-        )
+        file_path = self._validate_and_resolve(path)
+        if file_path.exists():
+            return CreateResult(success=False, path=normalize_path(path), message="File already exists")
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return CreateResult(success=True, path=normalize_path(path), message="File created successfully")
     
     def delete_file(self, path: str) -> DeleteResult:
         """
-        Delete a file (from OSS).
+        Delete a file.
         
         Args:
             path: Relative path from root
@@ -262,25 +235,14 @@ class MarkdownFileService:
         Returns:
             DeleteResult object
         """
+        file_path = self._validate_and_resolve(path)
         try:
-            normalized_path = path.lstrip('/')
-            object_name = f"users/{self.user_id}/markdown/{normalized_path}"
-            
-            success = oss_service.delete_file(object_name)
-            
-            if success:
-                return DeleteResult(
-                    success=True,
-                    path=normalize_path(path),
-                    message="File deleted successfully"
-                )
-            else:
-                return DeleteResult(
-                    success=False,
-                    path=normalize_path(path),
-                    message="Failed to delete file from OSS"
-                )
-                
+            if not file_path.exists():
+                return DeleteResult(success=False, path=normalize_path(path), message="File not found")
+            if not file_path.is_file():
+                return DeleteResult(success=False, path=normalize_path(path), message="Path is not a file")
+            file_path.unlink()
+            return DeleteResult(success=True, path=normalize_path(path), message="File deleted successfully")
         except Exception as e:
             return DeleteResult(success=False, path=normalize_path(path), message=str(e))
     
