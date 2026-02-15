@@ -4,6 +4,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import * as markdownEditorApi from '../api/markdownEditorApi';
 import type { FileNode, FileContent, RootPathResponse } from '../types/markdownEditor';
+import type { OssFileInfo } from '../types/offlineCache';
 
 export interface FileState {
   directoryTree: FileNode | null;
@@ -14,6 +15,9 @@ export interface FileState {
   isLoading: boolean;
   error: string | null;
   expandedNodes: Set<string>;
+  ossFiles: OssFileInfo[];
+  ossFilesLoading: boolean;
+  currentOssFile: string | null;
 }
 
 export interface FileActions {
@@ -30,6 +34,9 @@ export interface FileActions {
   toggleNode: (path: string) => void;
   closeCurrentFile: () => void;
   clearError: () => void;
+  loadOssFiles: () => Promise<void>;
+  refreshOssFiles: () => Promise<void>;
+  setCurrentOssFile: (path: string | null) => void;
 }
 
 export type FileContextType = FileState & FileActions;
@@ -44,6 +51,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [ossFiles, setOssFiles] = useState<OssFileInfo[]>([]);
+  const [ossFilesLoading, setOssFilesLoading] = useState(false);
+  const [currentOssFile, setCurrentOssFile] = useState<string | null>(null);
 
   const loadRootPath = useCallback(async () => {
     try {
@@ -215,6 +225,26 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
+  const loadOssFiles = useCallback(async () => {
+    setOssFilesLoading(true);
+    try {
+      const files = await markdownEditorApi.listOssFiles();
+      setOssFiles(files);
+    } catch (e) {
+      console.error('Failed to load OSS files:', e);
+    } finally {
+      setOssFilesLoading(false);
+    }
+  }, []);
+
+  const refreshOssFiles = useCallback(async () => {
+    await loadOssFiles();
+  }, [loadOssFiles]);
+
+  const setCurrentOssFileAction = useCallback((path: string | null) => {
+    setCurrentOssFile(path);
+  }, []);
+
   const value: FileContextType = {
     directoryTree,
     currentFile,
@@ -224,6 +254,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
     isLoading,
     error,
     expandedNodes,
+    ossFiles,
+    ossFilesLoading,
+    currentOssFile,
     loadRootPath,
     setRootPath: setRootPathAction,
     loadDirectoryTree,
@@ -236,7 +269,10 @@ export function FileProvider({ children }: { children: ReactNode }) {
     deleteDirectory,
     toggleNode,
     closeCurrentFile,
-    clearError
+    clearError,
+    loadOssFiles,
+    refreshOssFiles,
+    setCurrentOssFile: setCurrentOssFileAction
   };
 
   return (

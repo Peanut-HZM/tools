@@ -347,3 +347,5 @@ export async function listOssMarkdownFiles(): Promise<OssFileInfo[]> {
   
   return handleResponse<OssFileInfo[]>(response);
 }
+
+export const listOssFiles = listOssMarkdownFiles;

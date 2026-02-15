@@ -1,50 +1,51 @@
 import { useState, useRef, useCallback } from 'react';
-import { uploadMarkdownToOss, readMarkdownFromOss, OssUploadMarkdownResponse } from '../../../api/markdownEditorApi';
+import { uploadMarkdownToOss, readMarkdownFromOss } from '../../../api/markdownEditorApi';
+import { fileUploadService } from '../../../services/fileUploadService';
+import { useFileStore } from '../../../stores/fileStore';
 import './FileUpload.css';
 
 interface FileUploadProps {
-  onFileUploaded: (content: string, filename: string, filePath: string) => void;
+  onFileUploaded?: (content: string, filename: string, filePath: string) => void;
   onError?: (error: string) => void;
+  onUploadComplete?: () => void;
 }
 
-export default function FileUpload({ onFileUploaded, onError }: FileUploadProps) {
+export default function FileUpload({ onFileUploaded, onError, onUploadComplete }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { refreshOssFiles } = useFileStore();
 
   const handleFile = useCallback(async (file: File) => {
-    // Validate file type
-    const allowedExtensions = ['.md', '.markdown', '.txt'];
-    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-    
-    if (!allowedExtensions.includes(fileExtension)) {
-      onError?.('只支持上传 .md, .markdown, .txt 格式的文件');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      onError?.('文件大小不能超过 10MB');
+    const validation = fileUploadService.validateFile(file);
+    if (!validation.valid) {
+      onError?.(validation.error || 'Invalid file');
       return;
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
+    
     try {
-      // Upload to OSS
-      const uploadResult: OssUploadMarkdownResponse = await uploadMarkdownToOss(file);
+      const uploadResult = await fileUploadService.uploadFile(file, {
+        onProgress: (progress) => {
+          setUploadProgress(progress);
+        },
+      });
       
-      // Read content from OSS
       const readResult = await readMarkdownFromOss(uploadResult.file_path);
+      await refreshOssFiles();
       
-      // Callback with content
-      onFileUploaded(readResult.content, uploadResult.filename, uploadResult.file_path);
+      onFileUploaded?.(readResult.content, uploadResult.filename, uploadResult.file_path);
+      onUploadComplete?.();
     } catch (error) {
       onError?.(error instanceof Error ? error.message : '上传失败');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
-  }, [onFileUploaded, onError]);
+  }, [onFileUploaded, onError, onUploadComplete, refreshOssFiles]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -103,7 +104,12 @@ export default function FileUpload({ onFileUploaded, onError }: FileUploadProps)
       {isUploading ? (
         <div className="upload-status">
           <div className="spinner"></div>
-          <span>上传中...</span>
+          <span>上传中... {uploadProgress}%</span>
+          {uploadProgress > 0 && (
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${uploadProgress}%` }}></div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="upload-content">

@@ -12,7 +12,7 @@ import { useFileStore } from '../../stores/fileStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useI18n } from '../../i18n';
-import { saveMarkdownToOss, uploadMarkdownFile } from '../../api/markdownEditorApi';
+import { saveMarkdownToOss, uploadMarkdownFile, readMarkdownFromOss } from '../../api/markdownEditorApi';
 import type { EditorConfig } from '../../types/markdownEditor';
 import { useToast } from '../../hooks/useToast';
 import Toast from './Toast/Toast';
@@ -48,6 +48,8 @@ export default function MarkdownEditor() {
     rootPath,
     hasRootPath,
     expandedNodes,
+    ossFiles,
+    ossFilesLoading,
     isLoading: fileLoading,
     error: fileError,
     loadDirectoryTree,
@@ -61,7 +63,8 @@ export default function MarkdownEditor() {
     toggleNode,
     clearError: clearFileError,
     setRootPath,
-    loadRootPath
+    loadRootPath,
+    loadOssFiles
   } = useFileStore();
 
   const {
@@ -208,7 +211,8 @@ export default function MarkdownEditor() {
       }
     });
     loadConfig();
-  }, [loadRootPath, loadDirectoryTree, loadConfig]);
+    loadOssFiles();
+  }, [loadRootPath, loadDirectoryTree, loadConfig, loadOssFiles]);
 
   // Update editor content when file changes
   useEffect(() => {
@@ -311,6 +315,26 @@ export default function MarkdownEditor() {
     };
   }, [isDirty, content, currentFilePath, ossFilePath, config.autoSaveInterval, handleSave]);
 
+  const handleOssFileSelect = useCallback(async (filePath: string) => {
+    if (isDirty) {
+      const shouldSave = window.confirm('当前文件未保存，是否保存？');
+      if (shouldSave) {
+        await handleSave();
+      }
+    }
+    try {
+      const result = await readMarkdownFromOss(filePath);
+      if (result.success) {
+        setContent(result.content, true);
+        setOssFilePath(filePath);
+      } else {
+        showToast('Failed to open OSS file', 'error');
+      }
+    } catch (error) {
+      showToast('Error opening OSS file', 'error');
+    }
+  }, [isDirty, handleSave, setContent, showToast]);
+
   // Handle file select
   const handleFileSelect = useCallback(async (path: string) => {
     if (isDirty) {
@@ -319,20 +343,7 @@ export default function MarkdownEditor() {
         await handleSave();
       }
     }
-    // Clear OSS file path when opening a local file
     setOssFilePath(null);
-    // setCurrentFilePath(path); // Assuming this is needed or handled by openFile?
-    // Actually, openFile in fileStore sets currentFilePath. 
-    // But if we want to be explicit or if openFile doesn't do it:
-    // setCurrentFilePath(path); 
-    // Wait, setCurrentFilePath is not destructured from fileStore?
-    // Let's check fileStore usage.
-    // It seems setCurrentFilePath is not exposed or needed here as openFile handles it.
-    // So line 162 in original error log "setCurrentFilePath('');" was probably a leftover or mistake.
-    // I will just remove it or fix it if I find where it is.
-    // Ah, it was in my previous internal thought process or hidden code.
-    // The error log said: src/components/MarkdownEditor/MarkdownEditor.tsx:162:5 - error TS2552: Cannot find name 'setCurrentFilePath'.
-    // Let's find where it is used.
     await openFile(path);
   }, [isDirty, handleSave, openFile]);
 
@@ -573,8 +584,34 @@ export default function MarkdownEditor() {
 
       {/* Main Content */}
       <div className="main-content">
-        {/* Sidebar */}
         <div className="sidebar" style={{ width: sidebarWidth }}>
+          <div className="oss-files-section">
+            <div className="sidebar-section-header">
+              <span>云端文件</span>
+              {ossFilesLoading && <span className="loading-spinner">⟳</span>}
+            </div>
+            {ossFiles.length > 0 ? (
+              <div className="oss-files-list">
+                {ossFiles.map((file) => (
+                  <div
+                    key={file.file_path}
+                    className={`file-tree-item ${ossFilePath === file.file_path ? 'active' : ''}`}
+                    onClick={() => handleOssFileSelect(file.file_path)}
+                  >
+                    <svg className="file-icon cloud" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
+                    </svg>
+                    <span className="filename">{file.filename}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">暂无云端文件</div>
+            )}
+          </div>
+
+          <div className="sidebar-divider" />
+
           {!hasRootPath ? (
             <div className="no-folder-state">
               <p>{t.editor.selectFile}</p>
