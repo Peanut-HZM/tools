@@ -182,6 +182,14 @@ export const zhCN = {
       title: 'SSH 管理',
       description: '集中管理 SSH 连接配置，提供在线终端操作',
     },
+    'product-manager': {
+      title: '产品经理 Agent',
+      description: '智能产品需求分析与PRD生成助手，通过对话即可生成完整需求文档',
+    },
+    'learning-share': {
+      title: '学习分享演示平台',
+      description: '互动式知识分享与技术演示工具，支持多种内容形式',
+    },
   },
 
   // Editor (Existing)

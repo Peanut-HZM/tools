@@ -1,16 +1,58 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.routes import tools, image_downloader, video_downloader, ytdlp_routes, calendar, key_generator, converter, oss, admin
+from app.routes import (
+    tools,
+    image_downloader,
+    video_downloader,
+    ytdlp_routes,
+    calendar,
+    key_generator,
+    converter,
+    oss,
+    admin,
+)
 from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool
 from app.routes import auth
 from app.routes import markdown_editor
+from app.api.routes import llm_config, conversations, prd
 from app.services.download_manager import get_manager
 import asyncio
 import logging
 import os
+from pathlib import Path
+from logging.handlers import RotatingFileHandler
 
 from app.config.config import settings
+
+# 配置日志目录为项目根目录下的 logs 文件夹
+PROJECT_ROOT = Path(
+    __file__
+).parent.parent.parent.parent  # backend/app/main.py -> project root
+LOGS_DIR = PROJECT_ROOT / "logs"
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+# 配置日志格式
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+formatter = logging.Formatter(log_format)
+
+# 配置文件处理器（按大小轮转，保留5个备份，每个最大10MB）
+file_handler = RotatingFileHandler(
+    LOGS_DIR / "app.log",
+    maxBytes=10 * 1024 * 1024,  # 10MB
+    backupCount=5,
+    encoding="utf-8",
+)
+file_handler.setFormatter(formatter)
+
+# 配置控制台处理器
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+
+# 配置根日志记录器
+logging.basicConfig(
+    level=logging.INFO, handlers=[file_handler, console_handler], format=log_format
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,18 +60,19 @@ logger = logging.getLogger(__name__)
 JWT_SECRET_KEY = settings.JWT_SECRET_KEY
 JWT_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
     logger.info("Starting application...")
-    
+
     # 启动后台清理任务
     manager = get_manager()
     cleanup_task = asyncio.create_task(manager.start_cleanup_task())
-    
+
     yield
-    
+
     # 关闭时
     logger.info("Shutting down application...")
     cleanup_task.cancel()
@@ -38,10 +81,8 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-app = FastAPI(
-    title="MasterGO Tool Aggregation API",
-    lifespan=lifespan
-)
+
+app = FastAPI(title="MasterGO Tool Aggregation API", lifespan=lifespan)
 
 # Configure CORS - Updated to support Authorization header
 cors_origins = settings.CORS_ORIGINS.split(",")
@@ -90,6 +131,25 @@ app.include_router(redis_tool.router, prefix="/api")
 
 # SSH Tool router
 app.include_router(ssh_tool.router, prefix="/api")
+
+# Product Manager Agent routers
+app.include_router(llm_config.router, prefix="/api/v1")
+app.include_router(conversations.router, prefix="/api/v1")
+app.include_router(prd.router, prefix="/api/v1")
+
+# Chat stream router (SSE)
+from app.api.routes import chat_stream, admin_conversations
+
+app.include_router(chat_stream.router, prefix="/api/v1")
+
+# Admin conversation management router
+app.include_router(admin_conversations.router, prefix="/api/v1")
+
+# Agent management router
+from app.api.routes import agents as agents_router
+
+app.include_router(agents_router.router, prefix="/api/v1")
+
 
 @app.get("/")
 def read_root():

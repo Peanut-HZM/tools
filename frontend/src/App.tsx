@@ -12,6 +12,9 @@ import SystemSettingsPage from './components/Admin/SystemSettings';
 import Dashboard from './components/Admin/Dashboard';
 import UserManagement from './components/Admin/UserManagement';
 import OssManagement from './components/Admin/OssManagement';
+import LLMConfigsPage from './components/Admin/LLMConfigsPage';
+import AgentManagement from './components/Admin/AgentManagement';
+import ConversationManagement from './components/Admin/ConversationManagement';
 import ImageDownloader from './components/Tools/ImageDownloader';
 import VideoDownloader from './components/Tools/VideoDownloader';
 import JsonFormatter from './components/Tools/JsonFormatter';
@@ -25,6 +28,8 @@ import ASRTool from './components/Tools/ASR/ASRTool';
 import DatabaseTool from './components/Tools/DatabaseTool/DatabaseTool';
 import RedisTool from './components/Tools/RedisTool/RedisTool';
 import SSHTool from './components/Tools/SSHTool/SSHTool';
+import ProductManagerAgent from './components/Tools/ProductManagerAgent';
+import LearningSharePlatform from './components/Tools/LearningSharePlatform';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -80,11 +85,34 @@ function HomePage() {
     }
   };
 
+  const featuredTools: Tool[] = [
+    {
+      id: 'product-manager',
+      icon: 'fa-clipboard-list',
+      iconColor: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+      title: '产品经理 Agent',
+      description: '智能产品需求分析与PRD生成助手',
+      rating: 4.9,
+      usageCount: '1.2k',
+      category: '精选工具',
+    },
+    {
+      id: 'learning-share',
+      icon: 'fa-chalkboard-teacher',
+      iconColor: 'bg-gradient-to-br from-purple-500 to-pink-600',
+      title: '学习分享演示平台',
+      description: '互动式知识分享与技术演示工具',
+      rating: 4.8,
+      usageCount: '856',
+      category: '精选工具',
+    },
+  ];
+
   const loadTools = async () => {
     try {
       setLoading(true);
       const data = await fetchTools();
-      setFilteredTools(data);
+      setFilteredTools([...featuredTools, ...data]);
       setError(null);
     } catch (err) {
       setError(t.errors.toolLoadFailed);
@@ -168,6 +196,8 @@ function HomePage() {
       'database-tool': '/tools/database-tool',
       'redis-tool': '/tools/redis-tool',
       'ssh-tool': '/tools/ssh-tool',
+      'product-manager': '/tools/product-manager',
+      'learning-share': '/tools/learning-share',
     };
 
     const route = toolRoutes[toolId];
@@ -230,6 +260,9 @@ function App() {
               <Route path="/tools/database-tool" element={<DatabaseTool />} />
               <Route path="/tools/redis-tool" element={<RedisTool />} />
               <Route path="/tools/ssh-tool" element={<SSHTool />} />
+              <Route path="/tools/product-manager" element={<ProductManagerAgent />} />
+              <Route path="/tools/product-manager/:conversationId" element={<ProductManagerAgent />} />
+              <Route path="/tools/learning-share" element={<LearningSharePlatform />} />
             </Route>
 
             {/* Admin Routes */}
@@ -237,8 +270,11 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="tools" element={<ToolManagement />} />
               <Route path="users" element={<UserManagement />} />
+              <Route path="conversations" element={<ConversationManagement />} />
+              <Route path="agents" element={<AgentManagement />} />
               <Route path="settings" element={<SystemSettingsPage />} />
               <Route path="oss" element={<OssManagement />} />
+              <Route path="llm-configs" element={<LLMConfigsPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

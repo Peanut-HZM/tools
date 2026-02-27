@@ -1,12 +1,12 @@
 # Models package
 from app.models.tool_models import (
-    Tool, 
-    Category, 
-    ToolCreateRequest, 
+    Tool,
+    Category,
+    ToolCreateRequest,
     CategoryCreateRequest,
     ToolsResponse,
     SearchResponse,
-    CategoryResponse
+    CategoryResponse,
 )
 
 # Re-export from submodules
@@ -20,3 +20,12 @@ from app.models.redis_tool_models import *
 from app.models.oss_models import *
 from app.models.ocr_models import *
 from app.models.asr_models import *
+
+# 产品经理 Agent 模型
+from app.models.base import Base, get_db
+from app.models.conversation import Conversation
+from app.models.message import Message
+from app.models.prd import PRDDocument
+from app.models.competitor import CompetitorAnalysis
+from app.models.llm_config import LLMConfig
+from app.models.agent import Agent

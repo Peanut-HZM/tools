@@ -182,6 +182,14 @@ export const enUS = {
       title: 'SSH Manager',
       description: 'Manage SSH connection configs with an integrated terminal',
     },
+    'product-manager': {
+      title: 'Product Manager Agent',
+      description: 'Intelligent product requirement analysis and PRD generation assistant',
+    },
+    'learning-share': {
+      title: 'Learning & Sharing Platform',
+      description: 'Interactive knowledge sharing and technical demonstration tool',
+    },
   },
 
   // Editor (Existing)

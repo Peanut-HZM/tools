@@ -1,6 +1,7 @@
 """
 Tools Service - Handles tool management and persistence using PostgreSQL
 """
+
 import logging
 import uuid
 from typing import List, Optional, Dict
@@ -13,12 +14,13 @@ from app.models import Tool, Category, ToolCreateRequest, CategoryCreateRequest
 
 logger = logging.getLogger(__name__)
 
+
 class ToolsService:
     """Service for managing tools in database"""
-    
+
     def __init__(self):
         self._init_db()
-        
+
     def _init_db(self):
         """Initialize database tables"""
         conn = None
@@ -55,7 +57,7 @@ class ToolsService:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                
+
                 # Create tool_visits table for detailed tracking
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS tool_visits (
@@ -68,26 +70,36 @@ class ToolsService:
 
                 # Seed categories
                 default_categories = [
-                    "文本工具", "转换工具", "计算工具", "设计工具", "实用工具", "开发工具", "AI工具"
+                    "文本工具",
+                    "转换工具",
+                    "计算工具",
+                    "设计工具",
+                    "实用工具",
+                    "开发工具",
+                    "AI工具",
                 ]
                 # Ensure all categories from TOOLS_DATA are included
                 for tool in TOOLS_DATA:
                     if tool.category and tool.category not in default_categories:
                         default_categories.append(tool.category)
-                
+
                 for idx, cat_name in enumerate(default_categories):
-                    cur.execute("""
+                    cur.execute(
+                        """
                         INSERT INTO tool_categories (id, name, sort_order)
                         VALUES (%s, %s, %s)
                         ON CONFLICT (name) DO NOTHING
-                    """, (str(uuid.uuid4()), cat_name, idx))
-                
+                    """,
+                        (str(uuid.uuid4()), cat_name, idx),
+                    )
+
                 # Seed or update tools database from TOOLS_DATA
                 logger.info("Syncing tools database with static data...")
                 for tool in TOOLS_DATA:
                     # usage_count is initialized to 0 for new tools, but preserved for existing ones via ON CONFLICT
                     # rating is updated from static data
-                    cur.execute("""
+                    cur.execute(
+                        """
                         INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (id) DO UPDATE SET
@@ -97,11 +109,19 @@ class ToolsService:
                             icon_color = EXCLUDED.icon_color,
                             category = EXCLUDED.category,
                             rating = EXCLUDED.rating
-                    """, (
-                        tool.id, tool.title, tool.description, tool.icon, tool.iconColor, 
-                        tool.category, 0, tool.rating
-                    ))
-            
+                    """,
+                        (
+                            tool.id,
+                            tool.title,
+                            tool.description,
+                            tool.icon,
+                            tool.iconColor,
+                            tool.category,
+                            0,
+                            tool.rating,
+                        ),
+                    )
+
             conn.commit()
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
@@ -120,10 +140,12 @@ class ToolsService:
                 if include_offline:
                     cur.execute("SELECT * FROM tools ORDER BY category, title")
                 else:
-                    cur.execute("SELECT * FROM tools WHERE status = 'online' ORDER BY category, title")
-                
+                    cur.execute(
+                        "SELECT * FROM tools WHERE status = 'online' ORDER BY category, title"
+                    )
+
                 rows = cur.fetchall()
-                
+
                 tools = []
                 for row in rows:
                     # Map DB row back to Tool Pydantic model
@@ -131,17 +153,23 @@ class ToolsService:
                     # We need to ensure Tool model compatibility.
                     # Let's check Tool model definition in app/models/__init__.py or app/data/tools_data.py
                     # Assuming standard Tool model:
-                    tools.append(Tool(
-                        id=row['id'],
-                        title=row['title'],
-                        description=row['description'],
-                        icon=row['icon'],
-                        iconColor=row['icon_color'],
-                        category=row['category'],
-                        usageCount=str(row['usage_count']), # Convert back to string for frontend compatibility if needed
-                        rating=row['rating'],
-                        status=row['status'] # Add status field to Tool model if not exists
-                    ))
+                    tools.append(
+                        Tool(
+                            id=row["id"],
+                            title=row["title"],
+                            description=row["description"],
+                            icon=row["icon"],
+                            iconColor=row["icon_color"],
+                            category=row["category"],
+                            usageCount=str(
+                                row["usage_count"]
+                            ),  # Convert back to string for frontend compatibility if needed
+                            rating=row["rating"],
+                            status=row[
+                                "status"
+                            ],  # Add status field to Tool model if not exists
+                        )
+                    )
                 return tools
         except Exception as e:
             logger.error(f"Error fetching tools: {e}")
@@ -157,10 +185,15 @@ class ToolsService:
             conn = get_db_connection()
             with conn.cursor() as cur:
                 if category == "全部工具":
-                    cur.execute("SELECT * FROM tools WHERE status = 'online' ORDER BY title")
+                    cur.execute(
+                        "SELECT * FROM tools WHERE status = 'online' ORDER BY title"
+                    )
                 else:
-                    cur.execute("SELECT * FROM tools WHERE status = 'online' AND category = %s ORDER BY title", (category,))
-                
+                    cur.execute(
+                        "SELECT * FROM tools WHERE status = 'online' AND category = %s ORDER BY title",
+                        (category,),
+                    )
+
                 rows = cur.fetchall()
                 return [self._row_to_tool(row) for row in rows]
         except Exception as e:
@@ -177,12 +210,15 @@ class ToolsService:
             conn = get_db_connection()
             with conn.cursor() as cur:
                 search_term = f"%{query}%"
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT * FROM tools 
                     WHERE status = 'online' 
                     AND (LOWER(title) LIKE LOWER(%s) OR LOWER(description) LIKE LOWER(%s))
-                """, (search_term, search_term))
-                
+                """,
+                    (search_term, search_term),
+                )
+
                 rows = cur.fetchall()
                 return [self._row_to_tool(row) for row in rows]
         except Exception as e:
@@ -198,7 +234,9 @@ class ToolsService:
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
-                cur.execute("UPDATE tools SET status = %s WHERE id = %s", (status, tool_id))
+                cur.execute(
+                    "UPDATE tools SET status = %s WHERE id = %s", (status, tool_id)
+                )
                 conn.commit()
                 return cur.rowcount > 0
         except Exception as e:
@@ -216,27 +254,42 @@ class ToolsService:
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
-                # 1. Insert into log
+                # 1. 先检查工具是否存在（避免外键约束错误）
+                cur.execute("SELECT id FROM tools WHERE id = %s", (tool_id,))
+                if not cur.fetchone():
+                    logger.warning(f"Tool not found, cannot record visit: {tool_id}")
+                    return False
+
+                # 2. Insert into log
                 cur.execute(
                     "INSERT INTO tool_visits (tool_id, user_id) VALUES (%s, %s)",
-                    (tool_id, user_id)
+                    (tool_id, user_id),
                 )
-                # 2. Update count
+                # 3. Update count
                 cur.execute(
                     "UPDATE tools SET usage_count = usage_count + 1 WHERE id = %s",
-                    (tool_id,)
+                    (tool_id,),
                 )
                 conn.commit()
+                logger.info(f"Recorded visit for tool: {tool_id}")
                 return True
         except Exception as e:
-            logger.error(f"Error recording visit: {e}")
+            logger.error(f"Error recording visit for tool {tool_id}: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if conn:
+                conn.close()
 
     def get_all_categories(self) -> List[Category]:
         conn = None
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
-                cur.execute("SELECT * FROM tool_categories WHERE deleted = FALSE ORDER BY sort_order")
+                cur.execute(
+                    "SELECT * FROM tool_categories WHERE deleted = FALSE ORDER BY sort_order"
+                )
                 rows = cur.fetchall()
                 return [Category(**row) for row in rows]
         except Exception as e:
@@ -252,11 +305,20 @@ class ToolsService:
             conn = get_db_connection()
             with conn.cursor() as cur:
                 cat_id = str(uuid.uuid4())
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO tool_categories (id, name, description, icon, sort_order)
                     VALUES (%s, %s, %s, %s, %s)
                     RETURNING *
-                """, (cat_id, request.name, request.description, request.icon, request.sort_order))
+                """,
+                    (
+                        cat_id,
+                        request.name,
+                        request.description,
+                        request.icon,
+                        request.sort_order,
+                    ),
+                )
                 row = cur.fetchone()
                 conn.commit()
                 if row:
@@ -271,17 +333,28 @@ class ToolsService:
             if conn:
                 conn.close()
 
-    def update_category(self, cat_id: str, request: CategoryCreateRequest) -> Optional[Category]:
+    def update_category(
+        self, cat_id: str, request: CategoryCreateRequest
+    ) -> Optional[Category]:
         conn = None
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE tool_categories 
                     SET name = %s, description = %s, icon = %s, sort_order = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s AND deleted = FALSE
                     RETURNING *
-                """, (request.name, request.description, request.icon, request.sort_order, cat_id))
+                """,
+                    (
+                        request.name,
+                        request.description,
+                        request.icon,
+                        request.sort_order,
+                        cat_id,
+                    ),
+                )
                 row = cur.fetchone()
                 conn.commit()
                 if row:
@@ -302,7 +375,9 @@ class ToolsService:
             conn = get_db_connection()
             with conn.cursor() as cur:
                 # Logical delete
-                cur.execute("UPDATE tool_categories SET deleted = TRUE WHERE id = %s", (cat_id,))
+                cur.execute(
+                    "UPDATE tool_categories SET deleted = TRUE WHERE id = %s", (cat_id,)
+                )
                 conn.commit()
                 return cur.rowcount > 0
         except Exception as e:
@@ -322,12 +397,12 @@ class ToolsService:
             with conn.cursor() as cur:
                 # Total tools
                 cur.execute("SELECT COUNT(*) FROM tools")
-                total_tools = cur.fetchone()['count']
-                
+                total_tools = cur.fetchone()["count"]
+
                 # Total visits
                 cur.execute("SELECT COUNT(*) FROM tool_visits")
-                total_visits = cur.fetchone()['count']
-                
+                total_visits = cur.fetchone()["count"]
+
                 # Popular tools
                 cur.execute("""
                     SELECT t.id, t.title, t.usage_count, MAX(tv.visit_time) as last_visited
@@ -338,28 +413,28 @@ class ToolsService:
                     LIMIT 10
                 """)
                 popular_rows = cur.fetchall()
-                
+
                 popular_tools = []
                 for row in popular_rows:
-                    popular_tools.append({
-                        "tool_id": row['id'],
-                        "tool_name": row['title'],
-                        "visit_count": row['usage_count'],
-                        "last_visited": row['last_visited'] if row['last_visited'] else datetime.utcnow()
-                    })
-                
+                    popular_tools.append(
+                        {
+                            "tool_id": row["id"],
+                            "tool_name": row["title"],
+                            "visit_count": row["usage_count"],
+                            "last_visited": row["last_visited"]
+                            if row["last_visited"]
+                            else datetime.utcnow(),
+                        }
+                    )
+
                 return {
                     "total_tools": total_tools,
                     "total_visits": total_visits,
-                    "popular_tools": popular_tools
+                    "popular_tools": popular_tools,
                 }
         except Exception as e:
             logger.error(f"Error getting stats: {e}")
-            return {
-                "total_tools": 0,
-                "total_visits": 0,
-                "popular_tools": []
-            }
+            return {"total_tools": 0, "total_visits": 0, "popular_tools": []}
         finally:
             if conn:
                 conn.close()
@@ -371,17 +446,18 @@ class ToolsService:
         # For now, let's assume we update Tool model or use dynamic dict unpacking if strict validation is off.
         # Ideally, update Pydantic model first.
         return Tool(
-            id=row['id'],
-            title=row['title'],
-            description=row['description'],
-            icon=row['icon'],
-            iconColor=row['icon_color'],
-            category=row['category'],
-            usageCount=str(row['usage_count']),
-            rating=row['rating'],
+            id=row["id"],
+            title=row["title"],
+            description=row["description"],
+            icon=row["icon"],
+            iconColor=row["icon_color"],
+            category=row["category"],
+            usageCount=str(row["usage_count"]),
+            rating=row["rating"],
             # We will add status to Tool model
-            status=row.get('status', 'online')
+            status=row.get("status", "online"),
         )
+
 
 # Singleton instance
 tools_service = ToolsService()

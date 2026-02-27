@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getSystemSettings, updateSystemSettings, SystemSettings } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
@@ -128,7 +129,7 @@ export default function SystemSettingsPage() {
                 开启后，用户注册时必须输入手机号并验证。
               </p>
             </div>
-            
+
             <button
               onClick={handleTogglePhoneVerify}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
@@ -143,8 +144,26 @@ export default function SystemSettingsPage() {
             </button>
           </div>
         </div>
+
+        {/* LLM Configuration Link */}
+        <div className="bg-slate-700 rounded-lg p-6 border border-slate-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-white">大模型配置</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                配置产品经理 Agent 使用的大模型 API，支持 OpenAI、Anthropic、Azure、百度文心、阿里通义等多个供应商。
+              </p>
+            </div>
+            <Link
+              to="/admin/llm-configs"
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors text-sm"
+            >
+              管理配置
+            </Link>
+          </div>
+        </div>
       </div>
-      
+
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );

@@ -32,8 +32,11 @@ export default function AdminLayout() {
     { path: '/admin', label: '仪表盘' },
     { path: '/admin/tools', label: '工具管理' },
     { path: '/admin/users', label: '用户管理' },
+    { path: '/admin/conversations', label: '对话管理' },
+    { path: '/admin/agents', label: 'Agent管理' },
     { path: '/admin/settings', label: '系统设置' },
     { path: '/admin/oss', label: 'OSS 文件管理' },
+    { path: '/admin/llm-configs', label: '大模型配置' },
   ];
 
   return (
