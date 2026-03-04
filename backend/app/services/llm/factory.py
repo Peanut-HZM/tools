@@ -7,15 +7,18 @@ from typing import Optional, Dict, Type
 from .base import LLMProvider
 from .openai_adapter import OpenAIAdapter
 from .anthropic_adapter import AnthropicAdapter
+from .azure_adapter import AzureOpenAIAdapter
+from .baidu_adapter import BaiduWenxinAdapter
+from .aliyun_adapter import AliyunQwenAdapter
 
 
 # 适配器注册表
 ADAPTER_REGISTRY: Dict[str, Type[LLMProvider]] = {
     "openai": OpenAIAdapter,
     "anthropic": AnthropicAdapter,
-    "azure_openai": OpenAIAdapter,  # Azure 兼容 OpenAI 格式
-    "baidu": OpenAIAdapter,  # 百度兼容 OpenAI 格式
-    "aliyun": OpenAIAdapter,  # 阿里兼容 OpenAI 格式
+    "azure_openai": AzureOpenAIAdapter,
+    "baidu": BaiduWenxinAdapter,
+    "aliyun": AliyunQwenAdapter,
     "other": OpenAIAdapter,  # 通用 OpenAI 兼容格式
 }
 

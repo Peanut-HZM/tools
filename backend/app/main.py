@@ -15,7 +15,7 @@ from app.routes import (
 from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool
 from app.routes import auth
 from app.routes import markdown_editor
-from app.api.routes import llm_config, conversations, prd
+from app.api.routes import llm_config, conversations, prd, messages, health
 from app.services.download_manager import get_manager
 import asyncio
 import logging
@@ -133,6 +133,17 @@ app.include_router(redis_tool.router, prefix="/api")
 app.include_router(ssh_tool.router, prefix="/api")
 
 # Product Manager Agent routers
+app.include_router(llm_config.router, prefix="/api/v1")
+app.include_router(conversations.router, prefix="/api/v1")
+app.include_router(prd.router, prefix="/api/v1")
+app.include_router(messages.router, prefix="/api/v1")
+
+# Health check router
+app.include_router(health.router, prefix="/api/v1")
+app.include_router(llm_config.router, prefix="/api/v1")
+app.include_router(conversations.router, prefix="/api/v1")
+app.include_router(prd.router, prefix="/api/v1")
+app.include_router(messages.router, prefix="/api/v1")
 app.include_router(llm_config.router, prefix="/api/v1")
 app.include_router(conversations.router, prefix="/api/v1")
 app.include_router(prd.router, prefix="/api/v1")

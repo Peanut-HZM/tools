@@ -85,34 +85,12 @@ function HomePage() {
     }
   };
 
-  const featuredTools: Tool[] = [
-    {
-      id: 'product-manager',
-      icon: 'fa-clipboard-list',
-      iconColor: 'bg-gradient-to-br from-blue-500 to-indigo-600',
-      title: '产品经理 Agent',
-      description: '智能产品需求分析与PRD生成助手',
-      rating: 4.9,
-      usageCount: '1.2k',
-      category: '精选工具',
-    },
-    {
-      id: 'learning-share',
-      icon: 'fa-chalkboard-teacher',
-      iconColor: 'bg-gradient-to-br from-purple-500 to-pink-600',
-      title: '学习分享演示平台',
-      description: '互动式知识分享与技术演示工具',
-      rating: 4.8,
-      usageCount: '856',
-      category: '精选工具',
-    },
-  ];
 
   const loadTools = async () => {
     try {
       setLoading(true);
       const data = await fetchTools();
-      setFilteredTools([...featuredTools, ...data]);
+      setFilteredTools(data);
       setError(null);
     } catch (err) {
       setError(t.errors.toolLoadFailed);

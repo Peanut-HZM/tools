@@ -26,3 +26,9 @@ body {
 .category-tab {
   transition: all 0.2s ease;
 }
+
+
+/* Pacifico 字体 fallback - 当 Google Fonts 不可用时使用 */
+.font-\[Pacifico\] {
+  font-family: 'Pacifico', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}

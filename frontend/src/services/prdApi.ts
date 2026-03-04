@@ -105,4 +105,47 @@ export const prdApi = {
     );
     return response.data;
   },
+
+  // 回滚到指定版本
+  rollbackToVersion: async (
+    conversationId: string,
+    targetVersion: number
+  ): Promise<PRDVersion> => {
+    const response = await axios.post(
+      `${API_BASE_URL}/conversations/${conversationId}/prd/rollback`,
+      { target_version: targetVersion },
+      { headers: getAuthHeaders() }
+    );
+    return response.data;
+  },
+
+  // 更新章节
+  updateSection: async (
+    conversationId: string,
+    sectionTitle: string,
+    sectionContent: string
+  ): Promise<PRDVersion> => {
+    const response = await axios.post(
+      `${API_BASE_URL}/conversations/${conversationId}/prd/section/update`,
+      { section_title: sectionTitle, section_content: sectionContent },
+      { headers: getAuthHeaders() }
+    );
+    return response.data;
+  },
+};
+  exportPRD: async (
+    conversationId: string,
+    format: 'markdown' | 'pdf' | 'word' = 'markdown',
+    versionNumber?: number
+  ): Promise<Blob> => {
+    const response = await axios.get(
+      `${API_BASE_URL}/conversations/${conversationId}/prd/export`,
+      {
+        params: { format, version_number: versionNumber },
+        headers: getAuthHeaders(),
+        responseType: 'blob',
+      }
+    );
+    return response.data;
+  },
 };

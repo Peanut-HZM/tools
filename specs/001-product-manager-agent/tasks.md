@@ -36,14 +36,16 @@
 
 - [x] T007 [P] Implement AES-256-GCM encryption/decryption in backend/src/core/security.py (encrypt_api_key, decrypt_api_key functions)
 - [x] T008 Implement rate limiter using Redis in backend/src/core/rate_limiter.py (check_limit, increment_counter functions)
-- [ ] T009 [P] Setup logging configuration in backend/src/core/logging.py
+- [x] T009 [P] Setup logging configuration in backend/src/core/logging.py
 
 ### 2.2 LLM Provider Infrastructure
 
 - [x] T010 Create LLM Provider abstract base class in backend/src/services/llm/base.py (LLMProvider ABC with generate() and test_connection() methods)
 - [x] T011 Implement OpenAI adapter in backend/src/services/llm/openai_adapter.py
 - [x] T012 [P] Implement Anthropic adapter in backend/src/services/llm/anthropic_adapter.py
-- [ ] T013 [P] Implement Azure OpenAI adapter in backend/src/services/llm/azure_adapter.py
+- [x] T013 [P] Implement Azure OpenAI adapter in backend/src/services/llm/azure_adapter.py
+- [x] T014 [P] Implement Baidu Wenxin adapter in backend/src/services/llm/baidu_adapter.py
+- [x] T015 [P] Implement Aliyun Qwen adapter in backend/src/services/llm/aliyun_adapter.py
 - [ ] T014 [P] Implement Baidu Wenxin adapter in backend/src/services/llm/baidu_adapter.py
 - [ ] T015 [P] Implement Aliyun Qwen adapter in backend/src/services/llm/aliyun_adapter.py
 - [x] T016 Create adapter factory in backend/src/services/llm/factory.py (get_provider() function)
@@ -55,13 +57,13 @@
 - [x] T019 Create PRDDocument model in backend/src/models/prd.py (id, conversation_id, version_number, content, status, created_at)
 - [x] T020 Create CompetitorAnalysis model in backend/src/models/competitor.py (id, conversation_id, competitors JSON, suggestions, created_at)
 - [x] T021 Create LLMConfig model in backend/src/models/llm_config.py (id, name, provider_type, base_url, api_key_encrypted, model_name, params, is_default, is_active)
-- [ ] T022 Create database migration script for all models (alembic revision --autogenerate)
+- [x] T022 Create database migration script for all models (alembic revision --autogenerate)
 
 ### 2.4 API Dependencies & Middleware
 
 - [x] T023 Setup FastAPI dependencies in backend/src/api/dependencies.py (get_db, get_redis, get_current_user)
-- [ ] T024 Create rate limiting middleware in backend/src/api/middleware/rate_limit.py
-- [ ] T025 [P] Setup API router configuration in backend/src/api/router.py
+- [x] T024 Create rate limiting middleware in backend/src/api/middleware/rate_limit.py
+- [x] T025 [P] Setup API router configuration in backend/src/api/router.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -85,8 +87,8 @@
 - [x] T030 Create LLM config API service in frontend/src/services/llmConfigApi.ts
 - [x] T031 Create LLM config management component in frontend/src/components/Admin/LLMConfigManager.tsx (list, add, edit, delete, test connection)
 - [ ] T032 Create LLM config form component in frontend/src/components/Admin/LLMConfigForm.tsx (name, provider, baseUrl, apiKey, model, params)
-- [ ] T033 Create LLM stats component in frontend/src/components/Admin/LLMStats.tsx
-- [ ] T034 Integrate LLM config admin into existing admin layout in frontend/src/components/Admin/SystemSettings.tsx
+- [x] T033 Create LLM stats component in frontend/src/components/Admin/LLMStats.tsx
+- [x] T034 Integrate LLM config admin into existing admin layout in frontend/src/components/Admin/SystemSettings.tsx
 
 **Checkpoint**: LLM配置管理功能完成，可以配置和测试各种大模型供应商
 
@@ -107,32 +109,37 @@
 
 ### 4.2 Backend - PRD Generation
 
-- [ ] T039 Create PRD generator service in backend/src/services/prd_generator.py (generate_prd, generate_section, create_mermaid_diagrams)
+- [x] T039 Create PRD generator service in backend/src/services/prd_generator.py (generate_prd, generate_section, create_mermaid_diagrams)
+- [x] T040 Create PRD template in backend/src/templates/prd_template.md (8章节标准结构)
 - [ ] T040 Create PRD template in backend/src/templates/prd_template.md (8章节标准结构)
-- [ ] T041 Create PRD routes in backend/src/api/routes/prd.py (GET/POST /conversations/{id}/prd, PUT /prd/{version}, POST /export)
+- [x] T041 Create PRD routes in backend/src/api/routes/prd.py (GET/POST /conversations/{id}/prd, PUT /prd/{version}, POST /export)
+- [x] T042 Create stage transition logic in backend/src/services/stage_manager.py (handle_user_input, determine_next_stage)
 - [ ] T042 Create stage transition logic in backend/src/services/stage_manager.py (handle_user_input, determine_next_stage)
 
 ### 4.3 Backend - Competitor Analysis
 
-- [ ] T043 Create competitor analyzer service in backend/src/services/competitor_analyzer.py (search_competitors, analyze_features, generate_comparison_table)
+- [x] T043 Create competitor analyzer service in backend/src/services/competitor_analyzer.py (search_competitors, analyze_features, generate_comparison_table)
+- [x] T044 Integrate SerpAPI for competitor search in backend/src/services/competitor_analyzer.py
+- [x] T045 Create competitor routes in backend/src/api/routes/competitor.py (GET/POST /conversations/{id}/competitors)
 - [ ] T044 Integrate SerpAPI for competitor search in backend/src/services/competitor_analyzer.py
 - [ ] T045 Create competitor routes in backend/src/api/routes/competitor.py (GET/POST /conversations/{id}/competitors)
 
 ### 4.4 Frontend - Chat Interface
 
-- [ ] T046 Create conversation API service in frontend/src/services/conversationApi.ts
-- [ ] T047 Create conversation hook in frontend/src/hooks/useConversation.ts
-- [ ] T048 Create ChatInterface component in frontend/src/components/ProductManagerAgent/ChatInterface.tsx (message list, input, send button)
-- [ ] T049 Create MessageBubble component in frontend/src/components/ProductManagerAgent/MessageBubble.tsx (user/agent messages, structured content)
-- [ ] T050 Create Sidebar component in frontend/src/components/ProductManagerAgent/Sidebar.tsx (conversation list, current stage indicator)
-- [ ] T051 Integrate chat interface into main tool page in frontend/src/components/Tools/ProductManagerAgent.tsx
+- [x] T046 Create conversation API service in frontend/src/services/conversationApi.ts
+- [x] T047 Create conversation hook in frontend/src/hooks/useConversation.ts
+- [x] T048 Create ChatInterface component in frontend/src/components/ProductManagerAgent/ChatInterface.tsx (message list, input, send button)
+- [x] T049 Create MessageBubble component in frontend/src/components/ProductManagerAgent/MessageBubble.tsx (user/agent messages, structured content)
+- [x] T050 Create Sidebar component in frontend/src/components/ProductManagerAgent/Sidebar.tsx (conversation list, current stage indicator)
+- [x] T051 Integrate chat interface into main tool page in frontend/src/components/Tools/ProductManagerAgent.tsx
 
 ### 4.5 Frontend - PRD Preview
 
-- [ ] T052 Create PRD API service in frontend/src/services/prdApi.ts
-- [ ] T053 Create PRDPreview component in frontend/src/components/ProductManagerAgent/PRDPreview.tsx (markdown rendering, mermaid diagrams)
-- [ ] T054 Create export functionality in frontend/src/components/ProductManagerAgent/ExportDialog.tsx (markdown, pdf, word)
-- [ ] T055 [P] Implement Mermaid chart rendering in frontend/src/utils/mermaidRenderer.ts
+- [x] T052 Create PRD API service in frontend/src/services/prdApi.ts
+- [x] T053 Create PRDPreview component in frontend/src/components/ProductManagerAgent/PRDPreview.tsx (markdown rendering, mermaid diagrams)
+- [x] T054 Create export functionality in frontend/src/components/ProductManagerAgent/ExportDialog.tsx (markdown, pdf, word)
+- [x] T055 [P] Implement Mermaid chart rendering in frontend/src/utils/mermaidRenderer.ts
+
 
 **Checkpoint**: User Story 1 MVP complete - users can create conversations, chat with AI, and generate/export PRDs
 
@@ -145,6 +152,22 @@
 **Independent Test**: 用户上传文档后，Agent能解析并识别缺失信息，引导补充后生成完整PRD
 
 ### 5.1 Backend - Document Parsing
+
+- [x] T056 Create document parser service in backend/src/services/document_parser.py (parse_markdown, parse_docx, parse_pdf)
+- [x] T057 Implement document upload endpoint in backend/src/api/routes/messages.py (POST with file upload)
+- [x] T058 Create missing info detection logic in backend/src/services/document_parser.py (detect_missing_sections, suggest_questions)
+- [x] T059 Integrate document parsing into conversation flow in backend/src/services/conversation_service.py
+
+### 5.2 Frontend - Document Upload
+
+- [x] T060 Create file upload component in frontend/src/components/ProductManagerAgent/FileUpload.tsx (drag & drop, file type validation)
+- [x] T061 Create missing info display component in frontend/src/components/ProductManagerAgent/MissingInfoPanel.tsx (list missing sections, questions)
+- [x] T062 Integrate upload into chat interface in frontend/src/components/ProductManagerAgent/ChatInterface.tsx (upload button, file preview)
+
+### 5.3 Backend - Partial PRD Update
+
+- [x] T063 Create partial update service in backend/src/services/prd_generator.py (update_section, merge_changes)
+- [x] T064 Implement partial PRD generation endpoint in backend/src/api/routes/prd.py (POST with section parameter)
 
 - [ ] T056 Create document parser service in backend/src/services/document_parser.py (parse_markdown, parse_docx, parse_pdf)
 - [ ] T057 Implement document upload endpoint in backend/src/api/routes/messages.py (POST with file upload)
@@ -174,6 +197,23 @@
 
 ### 6.1 Backend - Version Management
 
+- [x] T065 Create version management service in backend/src/services/prd_version_service.py (create_version, list_versions, get_version, rollback)
+- [x] T066 Create diff generation utility in backend/src/utils/diff_generator.py (generate_diff, format_diff_view)
+- [x] T067 Implement version comparison endpoint in backend/src/api/routes/prd.py (POST /conversations/{id}/prd/compare)
+- [x] T068 Implement rollback endpoint in backend/src/api/routes/prd.py (POST /conversations/{id}/prd/rollback)
+
+### 6.2 Frontend - Version History
+
+- [x] T069 Create PRD hook in frontend/src/hooks/usePRD.ts
+- [x] T070 Create VersionHistory component in frontend/src/components/ProductManagerAgent/VersionHistory.tsx (version list, timestamps, status)
+- [x] T071 Create VersionDiff component in frontend/src/components/ProductManagerAgent/VersionDiff.tsx (diff view, side-by-side comparison)
+- [x] T072 Create rollback confirmation dialog in frontend/src/components/ProductManagerAgent/RollbackDialog.tsx
+
+### 6.3 Frontend - Partial Editing
+
+- [x] T073 Create PRD section editor in frontend/src/components/ProductManagerAgent/PRDSectionEditor.tsx (edit specific sections)
+- [x] T074 Implement inline editing in frontend/src/components/ProductManagerAgent/PRDPreview.tsx (edit buttons per section)
+
 - [ ] T065 Create version management service in backend/src/services/prd_version_service.py (create_version, list_versions, get_version, rollback)
 - [ ] T066 Create diff generation utility in backend/src/utils/diff_generator.py (generate_diff, format_diff_view)
 - [ ] T067 Implement version comparison endpoint in backend/src/api/routes/prd.py (POST /conversations/{id}/prd/compare)
@@ -200,6 +240,25 @@
 **Purpose**: Improvements that affect multiple user stories
 
 ### 7.1 Error Handling & Edge Cases
+
+- [x] T075 [P] Implement irrelevant input detection in backend/src/services/conversation_service.py (detect off-topic queries)
+- [x] T076 [P] Implement API failure fallback in backend/src/services/llm/fallback.py (switch to backup config, error messages)
+- [x] T077 [P] Implement content safety filter in backend/src/services/content_filter.py (detect inappropriate content)
+- [x] T078 [P] Implement debounce for rapid calls in backend/src/api/middleware/debounce.py (30-second duplicate prevention)
+
+### 7.2 UI/UX Polish
+
+- [x] T079 [P] Implement loading states and progress indicators in frontend/src/components/common/LoadingStates.tsx
+- [x] T080 Implement error message components in frontend/src/components/common/ErrorMessages.tsx
+- [x] T081 [P] Add responsive design breakpoints for tablet/mobile in frontend/src/styles/responsive.css
+- [x] T082 Implement dark/light mode support in frontend/src/styles/theme.ts
+
+### 7.3 Performance & Monitoring
+
+- [x] T083 [P] Add database indexes for frequent queries in backend/alembic/versions/add_indexes.py
+- [x] T084 Implement Redis caching for LLM configs in backend/src/services/llm_config_service.py
+- [x] T085 Add API response time logging in backend/src/api/middleware/timing.py
+- [x] T086 Create health check endpoint in backend/src/api/routes/health.py
 
 - [ ] T075 [P] Implement irrelevant input detection in backend/src/services/conversation_service.py (detect off-topic queries)
 - [ ] T076 [P] Implement API failure fallback in backend/src/services/llm/fallback.py (switch to backup config, error messages)

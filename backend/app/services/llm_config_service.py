@@ -25,6 +25,53 @@ class LLMConfigService:
         api_key: str,
         model_name: str,
         request_params: Optional[Dict[str, Any]] = None,
+        category: str = "chat",
+        notes: Optional[str] = None,
+        is_default: bool = False,
+        is_active: bool = True,
+    ) -> LLMConfig:
+        """创建新配置"""
+        # 加密 API Key
+        encrypted_key = encrypt_api_key(api_key)
+        # 提取 API Key 最后4位
+        api_key_suffix = api_key[-4:] if len(api_key) >= 4 else api_key
+
+        # 如果设置为默认，取消其他默认配置
+        if is_default:
+            self._unset_default_configs()
+
+        config = LLMConfig(
+            name=name,
+            provider_type=provider_type,
+            base_url=base_url,
+            api_key_encrypted=encrypted_key,
+            api_key_suffix=api_key_suffix,
+            model_name=model_name,
+            request_params=request_params or {},
+            category=category,
+            notes=notes,
+            is_default=is_default,
+            is_active=is_active,
+        )
+
+        self.db.add(config)
+        self.db.commit()
+        self.db.refresh(config)
+        return config
+
+    def update_config(self, config_id: str, **kwargs) -> Optional[LLMConfig]:
+
+        self.db.add(config)
+        self.db.commit()
+        self.db.refresh(config)
+        return config
+        self,
+        name: str,
+        provider_type: str,
+        base_url: str,
+        api_key: str,
+        model_name: str,
+        request_params: Optional[Dict[str, Any]] = None,
         is_default: bool = False,
         is_active: bool = True,
     ) -> LLMConfig:
@@ -53,6 +100,20 @@ class LLMConfigService:
         return config
 
     def update_config(self, config_id: str, **kwargs) -> Optional[LLMConfig]:
+        """更新配置"""
+        config = self.get_config(config_id)
+        if not config:
+            return None
+
+        # 如果更新 API Key，需要加密并更新后缀
+        if "api_key" in kwargs:
+            api_key = kwargs.pop("api_key")
+            kwargs["api_key_encrypted"] = encrypt_api_key(api_key)
+            kwargs["api_key_suffix"] = api_key[-4:] if len(api_key) >= 4 else api_key
+
+        # 如果设置为默认，取消其他默认配置
+        if kwargs.get("is_default"):
+            self._unset_default_configs()
         """更新配置"""
         config = self.get_config(config_id)
         if not config:

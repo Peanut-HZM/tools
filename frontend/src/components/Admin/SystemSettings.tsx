@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getSystemSettings, updateSystemSettings, SystemSettings } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
+import LLMStats from './LLMStats';
 
 export default function SystemSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -68,6 +69,12 @@ export default function SystemSettingsPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">系统设置</h2>
+      
+      {/* LLM Stats Section */}
+      <div className="bg-slate-700 rounded-lg p-6 border border-slate-600 mb-6">
+        <h3 className="text-lg font-medium text-white mb-4">大模型使用统计</h3>
+        <LLMStats />
+      </div>
       
       <div className="space-y-6">
         {/* User Registration Toggle */}

@@ -2,24 +2,26 @@ import { useState, useEffect } from 'react';
 import { llmConfigApi, LLMConfig, CreateLLMConfigRequest } from '../../services/llmConfigApi';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
+import { ApiKeyDisplay, ConfigModal, DeleteConfirmModal } from './LLMConfigs';
 
 export default function LLMConfigsPage() {
   const [configs, setConfigs] = useState<LLMConfig[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [testingId, setTestingId] = useState<string | null>(null);
-  const { toasts, removeToast, success, error } = useToast();
   
-  const [formData, setFormData] = useState<CreateLLMConfigRequest>({
-    name: '',
-    provider_type: 'openai',
-    base_url: 'https://api.openai.com/v1',
-    api_key: '',
-    model_name: 'gpt-4',
-    is_default: false,
-    is_active: true,
-  });
+  // 弹窗状态
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<LLMConfig | null>(null);
+  const [deletingConfig, setDeletingConfig] = useState<{ id: string; name: string } | null>(null);
+  
+  // 加载状态
+  const [submitting, setSubmitting] = useState(false);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  
+  // 分类筛选
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'chat' | 'code'>('all');
+
+  const { toasts, removeToast, success, error } = useToast();
 
   useEffect(() => {
     loadConfigs();
@@ -37,38 +39,65 @@ export default function LLMConfigsPage() {
     setLoading(false);
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      provider_type: 'openai',
-      base_url: 'https://api.openai.com/v1',
-      api_key: '',
-      model_name: 'gpt-4',
-      is_default: false,
-      is_active: true,
-    });
-    setEditingId(null);
-    setShowForm(false);
+  // 处理新增
+  const handleAdd = () => {
+    setEditingConfig(null);
+    setShowConfigModal(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 处理编辑
+  const handleEdit = (config: LLMConfig) => {
+    setEditingConfig(config);
+    setShowConfigModal(true);
+  };
+
+  // 处理删除
+  const handleDeleteClick = (config: LLMConfig) => {
+    setDeletingConfig({ id: config.id, name: config.name });
+    setShowDeleteModal(true);
+  };
+
+  // 确认删除
+  const handleDelete = async () => {
+    if (!deletingConfig) return;
+    
+    setSubmitting(true);
     try {
-      if (editingId) {
-        await llmConfigApi.updateConfig(editingId, formData);
-        success('配置更新成功');
-      } else {
-        await llmConfigApi.createConfig(formData);
-        success('配置创建成功');
-      }
-      resetForm();
+      await llmConfigApi.deleteConfig(deletingConfig.id);
+      success('配置删除成功');
+      setShowDeleteModal(false);
+      setDeletingConfig(null);
       loadConfigs();
     } catch (err) {
-      error(editingId ? '更新配置失败' : '创建配置失败');
-      console.error('Failed to save config:', err);
+      error('删除配置失败');
+      console.error('Failed to delete config:', err);
     }
+    setSubmitting(false);
   };
 
+  // 处理表单提交
+  const handleSubmit = async (data: CreateLLMConfigRequest) => {
+    setSubmitting(true);
+    try {
+      if (editingConfig) {
+        await llmConfigApi.updateConfig(editingConfig.id, data);
+        success('配置更新成功');
+      } else {
+        await llmConfigApi.createConfig(data);
+        success('配置创建成功');
+      }
+      setShowConfigModal(false);
+      setEditingConfig(null);
+      loadConfigs();
+    } catch (err) {
+      error(editingConfig ? '更新配置失败' : '创建配置失败');
+      console.error('Failed to save config:', err);
+      throw err; // 重新抛出错误，让 Modal 知道提交失败
+    }
+    setSubmitting(false);
+  };
+
+  // 测试连接
   const handleTest = async (id: string) => {
     setTestingId(id);
     try {
@@ -85,18 +114,7 @@ export default function LLMConfigsPage() {
     setTestingId(null);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`确定要删除配置 "${name}" 吗？此操作不可恢复。`)) return;
-    try {
-      await llmConfigApi.deleteConfig(id);
-      success('配置删除成功');
-      loadConfigs();
-    } catch (err) {
-      error('删除配置失败');
-      console.error('Failed to delete config:', err);
-    }
-  };
-
+  // 设置默认
   const handleSetDefault = async (id: string, name: string) => {
     try {
       await llmConfigApi.setDefault(id);
@@ -106,21 +124,6 @@ export default function LLMConfigsPage() {
       error('设置默认配置失败');
       console.error('Failed to set default config:', err);
     }
-  };
-
-  const handleEdit = (config: LLMConfig) => {
-    setEditingId(config.id);
-    setFormData({
-      name: config.name,
-      provider_type: config.provider_type,
-      base_url: config.base_url,
-      api_key: '', // API Key 不回填，留空表示不修改
-      model_name: config.model_name,
-      is_default: config.is_default,
-      is_active: config.is_active,
-      request_params: config.request_params,
-    });
-    setShowForm(true);
   };
 
   const getProviderLabel = (type: string) => {
@@ -139,12 +142,27 @@ export default function LLMConfigsPage() {
     return labels[type] || type;
   };
 
+  const getCategoryLabel = (category?: string) => {
+    return category === 'code' ? '编程' : '对话';
+  };
+
+  const getCategoryColor = (category?: string) => {
+    return category === 'code' 
+      ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+      : 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+  };
+
+  // 筛选配置
+  const filteredConfigs = categoryFilter === 'all' 
+    ? configs 
+    : configs.filter(c => c.category === categoryFilter);
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">大模型配置管理</h2>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={handleAdd}
           className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors flex items-center gap-2"
         >
           <span>+</span>
@@ -152,144 +170,39 @@ export default function LLMConfigsPage() {
         </button>
       </div>
 
-      {/* 配置表单 */}
-      {showForm && (
-        <div className="bg-slate-700 rounded-lg p-6 mb-6 border border-slate-600">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            {editingId ? '编辑配置' : '添加新配置'}
-          </h3>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  配置名称 <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  placeholder="例如：OpenAI GPT-4"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  供应商 <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  list="provider-suggestions"
-                  value={formData.provider_type}
-                  onChange={(e) => setFormData({ ...formData, provider_type: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  placeholder="例如：openai、anthropic、zhipu、openrouter 等"
-                  required
-                />
-                <datalist id="provider-suggestions">
-                  <option value="openai" />
-                  <option value="anthropic" />
-                  <option value="azure_openai" />
-                  <option value="baidu" />
-                  <option value="aliyun" />
-                  <option value="zhipu" />
-                  <option value="openrouter" />
-                  <option value="deepseek" />
-                  <option value="moonshot" />
-                  <option value="other" />
-                </datalist>
-                <p className="text-xs text-slate-500 mt-1">
-                  支持自定义输入，常用：openai、anthropic、zhipu（智谱）、openrouter 等
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Base URL <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.base_url}
-                  onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  placeholder="https://api.openai.com/v1"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  模型名称 <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.model_name}
-                  onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  placeholder="例如：gpt-4"
-                  required
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  API Key <span className="text-red-400">*</span>
-                  {editingId && (
-                    <span className="text-slate-400 text-xs ml-2">（留空则保持原值不变）</span>
-                  )}
-                </label>
-                <input
-                  type="password"
-                  value={formData.api_key}
-                  onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  placeholder="请输入 API Key"
-                  required={!editingId}
-                />
-              </div>
-
-              <div className="md:col-span-2 flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_default}
-                    onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-600 focus:ring-cyan-500"
-                  />
-                  <span className="text-slate-300">设为默认配置</span>
-                </label>
-                
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-600 focus:ring-cyan-500"
-                  />
-                  <span className="text-slate-300">启用配置</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-              >
-                {editingId ? '保存修改' : '创建配置'}
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-6 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors"
-              >
-                取消
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* 分类筛选 */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setCategoryFilter('all')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            categoryFilter === 'all'
+              ? 'bg-cyan-600 text-white'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          全部
+        </button>
+        <button
+          onClick={() => setCategoryFilter('chat')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            categoryFilter === 'chat'
+              ? 'bg-blue-600 text-white'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          对话类型
+        </button>
+        <button
+          onClick={() => setCategoryFilter('code')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            categoryFilter === 'code'
+              ? 'bg-purple-600 text-white'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          编程类型
+        </button>
+      </div>
 
       {/* 配置列表 */}
       {loading ? (
@@ -303,7 +216,7 @@ export default function LLMConfigsPage() {
           <h3 className="text-lg font-medium text-white mb-2">暂无大模型配置</h3>
           <p className="text-slate-400 mb-4">添加一个配置以开始使用大模型功能</p>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={handleAdd}
             className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
           >
             添加配置
@@ -316,19 +229,28 @@ export default function LLMConfigsPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">配置名称</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">供应商</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">模型</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">分类</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">API Key</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">默认</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">状态</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-600">
-              {configs.map((config) => (
+              {filteredConfigs.map((config) => (
                 <tr key={config.id} className="hover:bg-slate-600/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="text-white font-medium">{config.name}</div>
                     <div className="text-xs text-slate-400 mt-1 truncate max-w-[200px]">
                       {config.base_url}
+                    </div>
+                    {config.notes && (
+                      <div className="text-xs text-slate-500 mt-1 truncate max-w-[200px]" title={config.notes}>
+                        📝 {config.notes}
+                      </div>
+                    )}
+                    <div className="text-xs text-slate-500 mt-1">
+                      创建于: {new Date(config.created_at).toLocaleDateString('zh-CN')}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -336,7 +258,17 @@ export default function LLMConfigsPage() {
                       {getProviderLabel(config.provider_type)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-300">{config.model_name}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(config.category)}`}>
+                      {getCategoryLabel(config.category)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <ApiKeyDisplay 
+                      apiKeySuffix={config.api_key_suffix}
+                      fullApiKey={config.api_key_suffix ? `sk-xxxx...${config.api_key_suffix}` : undefined}
+                    />
+                  </td>
                   <td className="px-4 py-3 text-center">
                     {config.is_default ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
@@ -360,7 +292,7 @@ export default function LLMConfigsPage() {
                       {config.is_active ? '启用' : '禁用'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleTest(config.id)}
@@ -376,7 +308,7 @@ export default function LLMConfigsPage() {
                         编辑
                       </button>
                       <button
-                        onClick={() => handleDelete(config.id, config.name)}
+                        onClick={() => handleDeleteClick(config)}
                         className="px-3 py-1 text-sm bg-red-600/20 text-red-400 border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
                       >
                         删除
@@ -389,6 +321,30 @@ export default function LLMConfigsPage() {
           </table>
         </div>
       )}
+
+      {/* 新增/编辑弹窗 */}
+      <ConfigModal
+        isOpen={showConfigModal}
+        onClose={() => {
+          setShowConfigModal(false);
+          setEditingConfig(null);
+        }}
+        onSubmit={handleSubmit}
+        editingConfig={editingConfig}
+        isLoading={submitting}
+      />
+
+      {/* 删除确认弹窗 */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingConfig(null);
+        }}
+        onConfirm={handleDelete}
+        configName={deletingConfig?.name || ''}
+        isLoading={submitting}
+      />
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>

@@ -68,6 +68,84 @@ class PRDGeneratorService:
         self.db.refresh(prd)
         return prd
 
+    def update_section(
+        self, prd_id: str, section_title: str, section_content: str
+    ) -> Optional[PRDDocument]:
+        """更新 PRD 特定章节内容"""
+        prd = self.get_prd(prd_id)
+        if not prd:
+            return None
+
+        # 查找并替换章节内容
+        import re
+        
+        # 匹配章节标题（支持 1-3 级标题）
+        section_pattern = f"(#+\\s+{re.escape(section_title)}\\n)(.*?)(?=\\n#+\\s|$)"
+        match = re.search(section_pattern, prd.content, re.DOTALL | re.IGNORECASE)
+        
+        if match:
+            # 找到章节，替换内容
+            old_section = match.group(0)
+            header = match.group(1)
+            new_section = f"{header}{section_content}\n\n"
+            prd.content = prd.content.replace(old_section, new_section)
+        else:
+            # 章节不存在，添加到文档末尾
+            prd.content += f"\n\n## {section_title}\n\n{section_content}\n\n"
+        
+        self.db.commit()
+        self.db.refresh(prd)
+        return prd
+
+    async def generate_partial_prd(
+        self,
+        conversation_id: str,
+        sections: List[str],
+        context: List[Dict[str, str]],
+        llm_service
+    ) -> str:
+        """
+        生成 PRD 的指定章节
+        
+        Args:
+            conversation_id: 会话 ID
+            sections: 要生成的章节列表
+            context: 对话上下文
+            llm_service: LLM 服务实例
+        
+        Returns:
+            生成的 PRD 内容
+        """
+        # 构建提示词
+        section_list = ", ".join(sections)
+        prompt = f"请为以下章节生成详细的 PRD 内容：{section_list}\n\n"
+        
+        # 添加对话上下文
+        if context:
+            prompt += "基于以下对话内容：\n"
+            for msg in context[-10:]:  # 只使用最近 10 条消息
+                sender = "用户" if msg.get("sender_type") == "user" else "AI"
+                prompt += f"{sender}: {msg.get('content', '')}\n"
+        
+        prompt += "\n请生成专业、详细的产品需求文档内容。"
+        
+        # 调用 LLM 生成内容
+        try:
+            response = await llm_service.generate(prompt)
+            return response
+        except Exception as e:
+            # 生成失败时返回模板
+            return "\n\n".join([f"## {section}\n\n[待生成内容]" for section in sections])
+        """更新 PRD 状态"""
+        prd = self.get_prd(prd_id)
+        if not prd:
+            return None
+
+        prd.status = status
+        self.db.commit()
+        self.db.refresh(prd)
+        return prd
+
     async def generate_prd_content(
         self, context: List[Dict[str, str]], llm_service
     ) -> str:
