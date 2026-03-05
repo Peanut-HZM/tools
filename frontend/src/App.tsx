@@ -30,6 +30,7 @@ import RedisTool from './components/Tools/RedisTool/RedisTool';
 import SSHTool from './components/Tools/SSHTool/SSHTool';
 import ProductManagerAgent from './components/Tools/ProductManagerAgent';
 import LearningSharePlatform from './components/Tools/LearningSharePlatform';
+import OpenSpecCourse from './components/Tools/OpenSpecCourse';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -241,6 +242,7 @@ function App() {
               <Route path="/tools/product-manager" element={<ProductManagerAgent />} />
               <Route path="/tools/product-manager/:conversationId" element={<ProductManagerAgent />} />
               <Route path="/tools/learning-share" element={<LearningSharePlatform />} />
+              <Route path="/tools/openspec-course" element={<OpenSpecCourse />} />
             </Route>
 
             {/* Admin Routes */}

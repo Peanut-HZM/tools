@@ -29,3 +29,13 @@ from app.models.prd import PRDDocument
 from app.models.competitor import CompetitorAnalysis
 from app.models.llm_config import LLMConfig
 from app.models.agent import Agent
+
+# OpenSpec 课程模型
+from app.models.openspec_course import (
+    CourseChapter,
+    CourseQuiz,
+    CourseQuizQuestion,
+    CourseQuizOption,
+    UserCourseProgress,
+    CourseResource,
+)

@@ -15,6 +15,7 @@ from app.routes import (
 from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool
 from app.routes import auth
 from app.routes import markdown_editor
+from app.routes import openspec_course
 from app.api.routes import llm_config, conversations, prd, messages, health
 from app.services.download_manager import get_manager
 import asyncio
@@ -131,6 +132,9 @@ app.include_router(redis_tool.router, prefix="/api")
 
 # SSH Tool router
 app.include_router(ssh_tool.router, prefix="/api")
+
+# OpenSpec Course router
+app.include_router(openspec_course.router)
 
 # Product Manager Agent routers
 app.include_router(llm_config.router, prefix="/api/v1")

@@ -2,6 +2,7 @@ import { Category, Tool } from '../../types';
 import CategoryTabs from './CategoryTabs';
 import ToolGrid from './ToolGrid';
 import { useI18n } from '../../i18n';
+import OpenSpecCourseCard from '../Tools/OpenSpecCourse/OpenSpecCourseCard';
 
 interface HeroProps {
   activeCategory: Category;
@@ -16,6 +17,11 @@ export default function Hero({ activeCategory, onCategoryChange, tools, onToolCl
 
   return (
     <section className="mb-16">
+      {/* OpenSpec Course Banner */}
+      <div className="mb-8">
+        <OpenSpecCourseCard />
+      </div>
+
       <CategoryTabs
         categories={categories}
         activeCategory={activeCategory}
