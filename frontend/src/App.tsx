@@ -31,6 +31,7 @@ import SSHTool from './components/Tools/SSHTool/SSHTool';
 import ProductManagerAgent from './components/Tools/ProductManagerAgent';
 import LearningSharePlatform from './components/Tools/LearningSharePlatform';
 import OpenSpecCourse from './components/Tools/OpenSpecCourse';
+import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -243,6 +244,7 @@ function App() {
               <Route path="/tools/product-manager/:conversationId" element={<ProductManagerAgent />} />
               <Route path="/tools/learning-share" element={<LearningSharePlatform />} />
               <Route path="/tools/openspec-course" element={<OpenSpecCourse />} />
+              <Route path="/tools/cross-share" element={<CrossShareMain />} />
             </Route>
 
             {/* Admin Routes */}

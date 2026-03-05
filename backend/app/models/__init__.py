@@ -39,3 +39,11 @@ from app.models.openspec_course import (
     UserCourseProgress,
     CourseResource,
 )
+
+# CrossShare 跨设备共享模型
+from app.models.cross_share import (
+    Device,
+    CrossMessage,
+    CrossFile,
+    CrossShareConfig,
+)
