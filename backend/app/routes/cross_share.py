@@ -23,7 +23,6 @@ from app.schemas.cross_share import (
     FileResponse,
     FileListResponse,
     FileStats,
-    StorageStats,
     UploadTokenRequest,
     UploadTokenResponse,
     DownloadUrlResponse,
@@ -274,6 +273,25 @@ async def get_files(
     }
 
 
+@router.get("/files/stats")
+async def get_storage_stats(
+    service: CrossShareService = Depends(get_cross_share_service),
+    current_user: str = Depends(get_current_user_id),
+):
+    """获取存储统计"""
+    config = service.get_config(current_user)
+    stats = service.get_storage_stats(current_user, config)
+    # Ensure all values are proper types for JSON serialization
+    return {
+        "total_files": int(stats.get("total_files", 0)),
+        "total_size": int(stats.get("total_size", 0)),
+        "used_quota": int(stats.get("used_quota", 0)),
+        "available_quota": int(stats.get("available_quota", 0)),
+        "usage_percentage": float(stats.get("usage_percentage", 0.0)),
+        "files_by_type": stats.get("files_by_type", {}),
+    }
+
+
 @router.get("/files/{file_id}", response_model=FileResponse)
 async def get_file(
     file_id: str,
@@ -385,17 +403,6 @@ async def get_download_url(
         "download_url": download_url,
         "expires_at": datetime.now() + timedelta(hours=1),
     }
-
-
-@router.get("/files/stats", response_model=StorageStats)
-async def get_storage_stats(
-    service: CrossShareService = Depends(get_cross_share_service),
-    current_user: str = Depends(get_current_user_id),
-):
-    """获取存储统计"""
-    config = service.get_config(current_user)
-    stats = service.get_storage_stats(current_user, config)
-    return stats
 
 
 # ============ 配置管理 ============
