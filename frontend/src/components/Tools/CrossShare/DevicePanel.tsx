@@ -72,104 +72,102 @@ const DevicePanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-white/60">加载中...</div>
+      <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-xl shadow-md border border-slate-700">
+        <div className="text-slate-400">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white">📱 设备管理</h2>
-          <p className="text-sm text-white/60 mt-1">管理已登录的设备</p>
-        </div>
+    <div className="w-full h-full flex flex-col bg-slate-800 rounded-xl shadow-md border border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 p-6 border-b border-slate-700">
+        <h2 className="text-xl font-bold text-slate-100">📱 设备管理</h2>
+        <p className="text-sm text-slate-400 mt-1">管理已登录的设备</p>
+      </div>
 
-        {/* Device List */}
-        <div className="divide-y divide-white/5">
-          {devices.length === 0 ? (
-            <div className="text-center text-white/40 py-16">
-              <div className="text-6xl mb-4">📭</div>
-              <div>暂无设备</div>
-              <div className="text-sm mt-2">登录一个设备开始使用</div>
-            </div>
-          ) : (
-            devices.map((device) => {
-              const online = isOnline(device);
-              return (
-                <div
-                  key={device.id}
-                  className="flex items-center justify-between p-6 hover:bg-white/5 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="text-4xl">
-                      {getDeviceTypeIcon(device.device_type)}
-                    </div>
-                    <div>
-                      {editingId === device.id ? (
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            className="px-3 py-1 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-yellow-500"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleUpdateName(device.id)}
-                            className="px-3 py-1 text-sm bg-green-500 text-white rounded-lg"
-                          >
-                            保存
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="px-3 py-1 text-sm bg-gray-500 text-white rounded-lg"
-                          >
-                            取消
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="text-white font-medium flex items-center space-x-2">
-                            <span>{device.device_name}</span>
-                            {online && (
-                              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
-                                在线
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-white/40">
-                            {device.device_type} • 最后活跃：{device.last_seen_at ? new Date(device.last_seen_at).toLocaleString('zh-CN') : '从未'}
-                          </div>
-                        </>
-                      )}
-                    </div>
+      {/* Device List - 可滚动 */}
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-700">
+        {devices.length === 0 ? (
+          <div className="text-center text-slate-500 py-16">
+            <div className="text-6xl mb-4">📭</div>
+            <div className="text-slate-300">暂无设备</div>
+            <div className="text-sm mt-2 text-slate-500">登录一个设备开始使用</div>
+          </div>
+        ) : (
+          devices.map((device) => {
+            const online = isOnline(device);
+            return (
+              <div
+                key={device.id}
+                className="flex items-center justify-between p-6 hover:bg-slate-700/30 transition-colors"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="text-4xl">
+                    {getDeviceTypeIcon(device.device_type)}
                   </div>
-
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditingId(device.id);
-                        setEditingName(device.device_name);
-                      }}
-                      className="px-3 py-1.5 text-sm bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors"
-                    >
-                      ✏️ 重命名
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDevice(device.id, device.device_name)}
-                      className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors"
-                    >
-                      🗑️ 删除
-                    </button>
+                  <div>
+                    {editingId === device.id ? (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          className="px-3 py-1 bg-slate-600 border border-slate-500 rounded-md text-slate-100 focus:outline-none focus:border-blue-500"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleUpdateName(device.id)}
+                          className="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="px-3 py-1 text-sm bg-slate-600 text-slate-200 rounded-md hover:bg-slate-500 transition-colors"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-slate-100 font-medium flex items-center space-x-2">
+                          <span>{device.device_name}</span>
+                          {online && (
+                            <span className="px-2 py-0.5 bg-green-900/30 text-green-400 text-xs rounded-full">
+                              在线
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-slate-400">
+                          {device.device_type} • 最后活跃：{device.last_seen_at ? new Date(device.last_seen_at).toLocaleString('zh-CN') : '从未'}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      setEditingId(device.id);
+                      setEditingName(device.device_name);
+                    }}
+                    className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
+                  >
+                    ✏️ 重命名
+                  </button>
+                  <button
+                    onClick={() => handleDeleteDevice(device.id, device.device_name)}
+                    className="px-3 py-1.5 text-sm bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg transition-colors"
+                  >
+                    🗑️ 删除
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

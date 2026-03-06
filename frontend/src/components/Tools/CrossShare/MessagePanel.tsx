@@ -58,7 +58,6 @@ const MessagePanel: React.FC = () => {
       console.error('Failed to send message:', error);
       const errorMsg = error.response?.data?.detail || error.message || '未知错误';
       showToast('发送失败：' + errorMsg, 'error');
-      // 保留输入内容，不清空 inputValue，让用户可以重试
     } finally {
       setSending(false);
     }
@@ -72,7 +71,6 @@ const MessagePanel: React.FC = () => {
   };
 
   const handlePaste = async (e: React.ClipboardEvent) => {
-    // 同步剪贴板
     const text = e.clipboardData.getData('text');
     if (text) {
       try {
@@ -104,95 +102,89 @@ const MessagePanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-white/60">加载中...</div>
+      <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-xl shadow-md border border-slate-700">
+        <div className="text-slate-400">加载中...</div>
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden p-8">
-          <div className="text-center">
-            <div className="text-6xl mb-4">⚠️</div>
-            <div className="text-white text-xl font-semibold mb-2">加载消息失败</div>
-            <div className="text-white/60 mb-6">{loadError}</div>
-            <button
-              onClick={loadMessages}
-              className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl transition-colors"
-            >
-              重试
-            </button>
-          </div>
+      <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-xl shadow-md border border-slate-700">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <div className="text-slate-100 text-xl font-semibold mb-2">加载消息失败</div>
+          <div className="text-slate-400 mb-6">{loadError}</div>
+          <button
+            onClick={loadMessages}
+            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
+          >
+            重试
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
-        {/* Messages List */}
-        <div className="h-[60vh] overflow-y-auto p-6 space-y-4">
-          {messages.length === 0 ? (
-            <div className="text-center text-white/40 py-16">
-              <div className="text-6xl mb-4">📭</div>
-              <div>暂无消息</div>
-              <div className="text-sm mt-2">发送一条消息开始跨设备同步</div>
-            </div>
-          ) : (
-            <>
-              {messages.map((msg, index) => (
-                <div
-                  key={msg.id}
-                  className={`flex items-start space-x-3 ${
-                    msg.message_type === 'clipboard' ? 'opacity-70' : ''
-                  }`}
-                >
-                  <div className="text-2xl">{getMessageIcon(msg.message_type)}</div>
-                  <div className="flex-1 bg-white/5 rounded-xl p-4">
-                    {msg.message_type === 'text' || msg.message_type === 'clipboard' ? (
-                      <div className="prose prose-invert prose-sm max-w-none">
-                        <ReactMarkdown>{msg.content || ''}</ReactMarkdown>
-                      </div>
-                    ) : msg.message_type === 'file' ? (
-                      <div className="text-white">📎 文件消息</div>
-                    ) : msg.message_type === 'link' ? (
-                      <div className="text-white">🔗 {msg.content}</div>
-                    ) : null}
-                    <div className="text-xs text-white/40 mt-2">
-                      {new Date(msg.created_at).toLocaleString('zh-CN')}
-                      {msg.message_type === 'clipboard' && ' • 剪贴板'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
-
-        {/* Input Area */}
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-end space-x-3">
-            <textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              onPaste={handlePaste}
-              placeholder="输入消息... (支持 Markdown，Ctrl+V 同步剪贴板)"
-              className="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-yellow-500 resize-none"
-              rows={2}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!inputValue.trim() || sending}
-              className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-semibold rounded-xl transition-colors"
-            >
-              {sending ? '发送中...' : '发送'}
-            </button>
+    <div className="w-full h-full flex flex-col bg-slate-800 rounded-xl shadow-md border border-slate-700 overflow-hidden">
+      {/* Messages List - 使用 flex-1 填充剩余空间，内部滚动 */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {messages.length === 0 ? (
+          <div className="text-center text-slate-500 py-16">
+            <div className="text-6xl mb-4">📭</div>
+            <div className="text-slate-300">暂无消息</div>
+            <div className="text-sm mt-2 text-slate-500">发送一条消息开始跨设备同步</div>
           </div>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex items-start space-x-3 ${
+                msg.message_type === 'clipboard' ? 'opacity-70' : ''
+              }`}
+            >
+              <div className="text-2xl">{getMessageIcon(msg.message_type)}</div>
+              <div className="flex-1 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                {msg.message_type === 'text' || msg.message_type === 'clipboard' ? (
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <ReactMarkdown>{msg.content || ''}</ReactMarkdown>
+                  </div>
+                ) : msg.message_type === 'file' ? (
+                  <div className="text-slate-200">📎 文件消息</div>
+                ) : msg.message_type === 'link' ? (
+                  <div className="text-slate-200">🔗 {msg.content}</div>
+                ) : null}
+                <div className="text-xs text-slate-500 mt-2">
+                  {new Date(msg.created_at).toLocaleString('zh-CN')}
+                  {msg.message_type === 'clipboard' && ' • 剪贴板'}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area - 固定在底部 */}
+      <div className="flex-shrink-0 border-t border-slate-700 p-4">
+        <div className="flex items-end space-x-3">
+          <textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={handleKeyPress}
+            onPaste={handlePaste}
+            placeholder="输入消息... (支持 Markdown，Ctrl+V 同步剪贴板)"
+            className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+            rows={2}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!inputValue.trim() || sending}
+            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+          >
+            {sending ? '发送中...' : '发送'}
+          </button>
         </div>
       </div>
     </div>

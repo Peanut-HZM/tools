@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { deviceApi, messageApi, fileApi, configApi, StorageStats, generateDeviceToken } from '../../../services/crossShare';
 import { useToast } from '../../../hooks/useToast';
 import Toast, { ToastContainer } from '../../MarkdownEditor/Toast/Toast';
+import { useAuth } from '../../../stores/authStore';
 import Sidebar from './Sidebar';
 import MessagePanel from './MessagePanel';
 import FilePanel from './FilePanel';
@@ -17,10 +18,17 @@ type PanelType = 'messages' | 'files' | 'devices' | 'settings';
 const CrossShareMain: React.FC = () => {
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
+  const { user, logout } = useAuth();
   const [activePanel, setActivePanel] = useState<PanelType>('messages');
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    showToast('已退出登录', 'info');
+  };
 
   // 注册当前设备
   useEffect(() => {
@@ -106,65 +114,28 @@ const CrossShareMain: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <div className="text-white text-xl">正在加载 CrossShare...</div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="text-slate-400 text-xl">正在加载 CrossShare...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 relative">
+    <div className="flex flex-1 overflow-hidden">
       {/* Toast */}
       {toast && <Toast {...toast} />}
 
-      {/* Header */}
-      <header className="bg-black/30 backdrop-blur-sm border-b border-white/10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-white">📡 CrossShare 设备传传</h1>
-                <p className="text-sm text-white/60">跨设备消息和文件共享</p>
-              </div>
-            </div>
-
-            {/* Storage Stats */}
-            {storageStats && (
-              <div className="text-right">
-                <div className="text-sm text-white/60 mb-1">
-                  存储空间：{Math.round(storageStats.used_quota / 1024 / 1024)}MB / {Math.round(storageStats.storage_quota / 1024 / 1024)}MB
-                </div>
-                <div className="w-48 h-2 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-300"
-                    style={{ width: `${Math.min(storageStats.usage_percentage, 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="flex h-[calc(100vh-88px)]">
+      {/* Main Content - 自适应布局 */}
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <Sidebar activePanel={activePanel} onSelectPanel={setActivePanel} />
 
-        {/* Main Panel */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-6 py-6">
+        {/* Main Panel - 使用 flex 布局，内容区域自适应高度 */}
+        <main className="flex-1 overflow-hidden">
+          <div className="w-full h-full px-6 py-6">
             {renderPanel()}
           </div>
         </main>
