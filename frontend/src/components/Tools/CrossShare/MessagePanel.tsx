@@ -34,7 +34,11 @@ const MessagePanel: React.FC = () => {
     try {
       setLoadError(null);
       const data = await messageApi.getMessages(100, 0);
-      setMessages(data.reverse()); // 最新消息在最后
+      // 去重：根据消息 id 去重
+      const uniqueMessages = Array.from(
+        new Map(data.map(msg => [msg.id, msg])).values()
+      );
+      setMessages(uniqueMessages.reverse()); // 最新消息在最后
     } catch (error: any) {
       console.error('Failed to load messages:', error);
       const errorMsg = error.response?.data?.detail || error.message || '未知错误';
@@ -108,7 +112,6 @@ const MessagePanel: React.FC = () => {
   const renderMessageContent = (msg: Message) => {
     const content = msg.content || '';
     const contentType = detectContentType(content);
-    const lineCount = countLines(content);
 
     // JSON 类型
     if (contentType === 'json') {
@@ -122,14 +125,14 @@ const MessagePanel: React.FC = () => {
 
     // Markdown 或普通文本
     return (
-      <div className="relative group">
-        <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+      <div className="relative">
+        <div className="absolute right-0 top-0 opacity-0 hover:opacity-100 transition-opacity z-10">
           <CopyDropdown
             content={content}
             onCopySuccess={() => showToast('已复制到剪贴板', 'success')}
           />
         </div>
-        <div className="prose prose-invert prose-sm max-w-none pt-8">
+        <div className="prose prose-invert prose-sm max-w-none">
           <ReactMarkdown>{content}</ReactMarkdown>
         </div>
       </div>
