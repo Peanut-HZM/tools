@@ -5,6 +5,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { messageApi, Message } from '../../../services/crossShare';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '../../../hooks/useToast';
+import JsonViewer from './JsonViewer';
+import CodeViewer from './CodeViewer';
+import CopyDropdown from './CopyDropdown';
+import { detectContentType, countLines } from './utils/contentDetector';
 
 const MessagePanel: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -100,6 +104,38 @@ const MessagePanel: React.FC = () => {
     }
   };
 
+  // 渲染消息内容
+  const renderMessageContent = (msg: Message) => {
+    const content = msg.content || '';
+    const contentType = detectContentType(content);
+    const lineCount = countLines(content);
+
+    // JSON 类型
+    if (contentType === 'json') {
+      return <JsonViewer content={content} />;
+    }
+
+    // 代码块类型
+    if (contentType === 'code') {
+      return <CodeViewer content={content} />;
+    }
+
+    // Markdown 或普通文本
+    return (
+      <div className="relative group">
+        <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <CopyDropdown
+            content={content}
+            onCopySuccess={() => showToast('已复制到剪贴板', 'success')}
+          />
+        </div>
+        <div className="prose prose-invert prose-sm max-w-none pt-8">
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-xl shadow-md border border-slate-700">
@@ -146,15 +182,7 @@ const MessagePanel: React.FC = () => {
             >
               <div className="text-2xl">{getMessageIcon(msg.message_type)}</div>
               <div className="flex-1 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                {msg.message_type === 'text' || msg.message_type === 'clipboard' ? (
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    <ReactMarkdown>{msg.content || ''}</ReactMarkdown>
-                  </div>
-                ) : msg.message_type === 'file' ? (
-                  <div className="text-slate-200">📎 文件消息</div>
-                ) : msg.message_type === 'link' ? (
-                  <div className="text-slate-200">🔗 {msg.content}</div>
-                ) : null}
+                {renderMessageContent(msg)}
                 <div className="text-xs text-slate-500 mt-2">
                   {new Date(msg.created_at).toLocaleString('zh-CN')}
                   {msg.message_type === 'clipboard' && ' • 剪贴板'}

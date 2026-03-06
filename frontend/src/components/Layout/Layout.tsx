@@ -24,13 +24,17 @@ export default function Layout() {
   // but it won't affect the tool page.
   
   return (
-    <div className="bg-slate-900 text-slate-100 h-screen flex flex-col overflow-hidden">
+    <div className={`bg-slate-900 text-slate-100 ${
+      isToolPage ? 'h-screen overflow-hidden' : 'min-h-screen'
+    } flex flex-col`}>
       <Header
         searchValue={searchValue}
         onSearchChange={handleSearchChange}
         onSearch={onSearch}
       />
-      <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <main className={`flex-1 flex flex-col ${
+        isToolPage ? 'min-h-0 overflow-hidden' : ''
+      }`}>
         <Outlet context={{ searchValue, debouncedValue, handleSearchChange, handleSearch }} />
       </main>
       {!isToolPage && <Footer />}
