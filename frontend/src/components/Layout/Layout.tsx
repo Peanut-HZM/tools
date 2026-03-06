@@ -25,12 +25,12 @@ export default function Layout() {
   
   return (
     <div className="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
-      <Header 
-        searchValue={searchValue} 
-        onSearchChange={handleSearchChange} 
-        onSearch={onSearch} 
+      <Header
+        searchValue={searchValue}
+        onSearchChange={handleSearchChange}
+        onSearch={onSearch}
       />
-      <main className="flex-1 flex flex-col min-h-0">
+      <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <Outlet context={{ searchValue, debouncedValue, handleSearchChange, handleSearch }} />
       </main>
       {!isToolPage && <Footer />}

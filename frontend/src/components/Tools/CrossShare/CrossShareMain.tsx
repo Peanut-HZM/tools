@@ -114,7 +114,7 @@ const CrossShareMain: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <div className="text-slate-400 text-xl">正在加载 CrossShare...</div>
@@ -124,17 +124,17 @@ const CrossShareMain: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-col h-full w-full">
       {/* Toast */}
       {toast && <Toast {...toast} />}
 
       {/* Main Content - 自适应布局 */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden w-full h-full">
         {/* Sidebar */}
         <Sidebar activePanel={activePanel} onSelectPanel={setActivePanel} />
 
         {/* Main Panel - 使用 flex 布局，内容区域自适应高度 */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden h-full">
           <div className="w-full h-full px-6 py-6">
             {renderPanel()}
           </div>

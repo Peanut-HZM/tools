@@ -19,8 +19,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onSelectPanel }) => {
   ];
 
   return (
-    <aside className="w-64 bg-slate-800/50 backdrop-blur-sm border-r border-slate-700 rounded-lg mr-4">
-      <nav className="p-4">
+    <aside className="w-64 bg-slate-800/50 backdrop-blur-sm border-r border-slate-700 rounded-lg mr-4 h-full flex flex-col">
+      <nav className="p-4 flex-1">
         <div className="space-y-2">
           {menuItems.map((item) => (
             <button
