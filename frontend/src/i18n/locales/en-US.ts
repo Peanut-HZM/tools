@@ -203,6 +203,26 @@ export const enUS = {
     saveSuccess: 'Saved successfully',
     saveFailed: 'Save failed',
     autoSave: 'Auto Save',
+    importFile: 'Import File',
+  },
+
+  // OSS File Browser
+  ossFile: {
+    title: 'OSS Files',
+    uploadFile: 'Upload File',
+    refresh: 'Refresh',
+    empty: 'No OSS Files',
+    emptyDesc: 'Click upload button to upload Markdown files',
+    uploadTitle: 'Upload Markdown File',
+    selectFile: 'Select File',
+    uploading: 'Uploading...',
+    upload: 'Upload',
+    cancel: 'Cancel',
+    fileSupported: '.md and .markdown files supported',
+    openSuccess: 'Opened cloud file',
+    uploadSuccess: 'File uploaded successfully',
+    uploadFailed: 'Upload failed',
+    readFailed: 'Failed to read file',
   },
 
   // File Tree (Existing)

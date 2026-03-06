@@ -11,6 +11,8 @@ interface ToastItem {
 
 interface ToastContextType {
   toasts: ToastItem[];
+  toast: string;
+  showToast: (message: string, type?: ToastType) => void;
   addToast: (message: string, type?: ToastType) => string;
   removeToast: (id: string) => void;
   success: (message: string) => string;
@@ -24,12 +26,18 @@ const ToastContext = createContext<ToastContextType | null>(null);
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [toast, setToast] = useState<string>('');
 
   const addToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setToasts(prev => [...prev, { id, message, type }]);
     return id;
   }, []);
+
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    setToast(message);
+    addToast(message, type);
+  }, [addToast]);
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
@@ -46,6 +54,8 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const value = {
     toasts,
+    toast,
+    showToast,
     addToast,
     removeToast,
     success,

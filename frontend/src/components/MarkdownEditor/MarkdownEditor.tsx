@@ -2,6 +2,7 @@ import './MarkdownEditor.css';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FileTree from './FileTree/FileTree';
+import OssFileList from './OssFileList/OssFileList';
 import Editor from './Editor/Editor';
 import Preview from './Preview/Preview';
 import SearchDialog from './SearchDialog/SearchDialog';
@@ -179,6 +180,9 @@ export default function MarkdownEditor() {
   const [tocSidebarWidth, setTocSidebarWidth] = useState(220); // For view mode
   const [editorFlex, setEditorFlex] = useState(1);
 
+  // Tab state for file browser (local files vs OSS files)
+  const [activeTab, setActiveTab] = useState<'local' | 'oss'>('local');
+
   const [showSearch, setShowSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
@@ -315,24 +319,16 @@ export default function MarkdownEditor() {
     };
   }, [isDirty, content, currentFilePath, ossFilePath, config.autoSaveInterval, handleSave]);
 
-  const handleOssFileSelect = useCallback(async (filePath: string) => {
+  const handleOssFileSelect = useCallback(async (filePath: string, content: string) => {
     if (isDirty) {
       const shouldSave = window.confirm('当前文件未保存，是否保存？');
       if (shouldSave) {
         await handleSave();
       }
     }
-    try {
-      const result = await readMarkdownFromOss(filePath);
-      if (result.success) {
-        setContent(result.content, true);
-        setOssFilePath(filePath);
-      } else {
-        showToast('Failed to open OSS file', 'error');
-      }
-    } catch (error) {
-      showToast('Error opening OSS file', 'error');
-    }
+    setContent(content, true);
+    setOssFilePath(filePath);
+    showToast('已打开云端文件', 'success');
   }, [isDirty, handleSave, setContent, showToast]);
 
   // Handle file select
@@ -585,55 +581,69 @@ export default function MarkdownEditor() {
       {/* Main Content */}
       <div className="main-content">
         <div className="sidebar" style={{ width: sidebarWidth }}>
-          <div className="oss-files-section">
-            <div className="sidebar-section-header">
-              <span>云端文件</span>
-              {ossFilesLoading && <span className="loading-spinner">⟳</span>}
-            </div>
-            {ossFiles.length > 0 ? (
-              <div className="oss-files-list">
-                {ossFiles.map((file) => (
-                  <div
-                    key={file.file_path}
-                    className={`file-tree-item ${ossFilePath === file.file_path ? 'active' : ''}`}
-                    onClick={() => handleOssFileSelect(file.file_path)}
-                  >
-                    <svg className="file-icon cloud" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
-                    </svg>
-                    <span className="filename">{file.filename}</span>
-                  </div>
-                ))}
+          {/* Tab Header */}
+          <div className="flex items-center border-b border-slate-700/50">
+            <button
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'local'
+                  ? 'text-cyan-400 border-b-2 border-cyan-400 bg-slate-800/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/30'
+              }`}
+              onClick={() => setActiveTab('local')}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                本地文件
               </div>
-            ) : (
-              <div className="empty-state">暂无云端文件</div>
-            )}
+            </button>
+            <button
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'oss'
+                  ? 'text-cyan-400 border-b-2 border-cyan-400 bg-slate-800/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/30'
+              }`}
+              onClick={() => setActiveTab('oss')}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                OSS 文件
+              </div>
+            </button>
           </div>
 
-          <div className="sidebar-divider" />
-
-          {!hasRootPath ? (
-            <div className="no-folder-state">
-              <p>{t.editor.selectFile}</p>
-              <button className="neon-button primary" onClick={() => setShowFolderSelect(true)}>
-                <Icons.FolderOpened />
-                {t.common.openFolder || 'Open Folder'}
-              </button>
-            </div>
-          ) : (
-            <FileTree
-              tree={directoryTree}
-              currentFilePath={currentFilePath}
-              expandedNodes={expandedNodes}
-              onFileSelect={handleFileSelect}
-              onToggleNode={toggleNode}
-              onCreateFile={createFile}
-              onCreateDirectory={createDirectory}
-              onDeleteFile={deleteFile}
-              onDeleteDirectory={deleteDirectory}
-              onRenameFile={renameFile}
-            />
-          )}
+          {/* Tab Content */}
+          <div className="flex-1 overflow-hidden" style={{ height: 'calc(100% - 41px)' }}>
+            {activeTab === 'local' ? (
+              !hasRootPath ? (
+                <div className="no-folder-state">
+                  <p>{t.editor.selectFile}</p>
+                  <button className="neon-button primary" onClick={() => setShowFolderSelect(true)}>
+                    <Icons.FolderOpened />
+                    {t.common.openFolder || 'Open Folder'}
+                  </button>
+                </div>
+              ) : (
+                <FileTree
+                  tree={directoryTree}
+                  currentFilePath={currentFilePath}
+                  expandedNodes={expandedNodes}
+                  onFileSelect={handleFileSelect}
+                  onCreateFile={createFile}
+                  onCreateDirectory={createDirectory}
+                  onDeleteFile={deleteFile}
+                  onDeleteDirectory={deleteDirectory}
+                  onRenameFile={renameFile}
+                  onToggleNode={toggleNode}
+                />
+              )
+            ) : (
+              <OssFileList onFileOpen={handleOssFileSelect} />
+            )}
+          </div>
         </div>
 
         <div className="resize-handle" onMouseDown={() => startResize('sidebar')} />

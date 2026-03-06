@@ -84,7 +84,7 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(title="MasterGO Tool Aggregation API", lifespan=lifespan)
+app = FastAPI(title="Tool Aggregation API", lifespan=lifespan)
 
 # Configure CORS - Updated to support Authorization header
 cors_origins = settings.CORS_ORIGINS.split(",")
@@ -172,4 +172,4 @@ app.include_router(agents_router.router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():
-    return {"message": "MasterGO Tool Aggregation API"}
+    return {"message": "Tool Aggregation API"}

@@ -69,7 +69,7 @@ const SettingsPanel: React.FC = () => {
           {/* 文件大小限制 */}
           <div>
             <label className="block text-white font-medium mb-2">
-              单文件最大大小
+              单文件最大大小 (MB)
             </label>
             <input
               type="number"
@@ -78,17 +78,18 @@ const SettingsPanel: React.FC = () => {
                 setConfig({ ...config, max_file_size: Number(e.target.value) * 1024 * 1024 })
               }
               className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-yellow-500"
-              disabled
+              min="1"
+              max="10240"
             />
             <p className="text-sm text-white/40 mt-1">
-              当前限制：{formatFileSize(config.max_file_size)}
+              当前限制：{formatFileSize(config.max_file_size)} (1-10240 MB)
             </p>
           </div>
 
           {/* 存储配额 */}
           <div>
             <label className="block text-white font-medium mb-2">
-              总存储配额
+              总存储配额 (GB)
             </label>
             <input
               type="number"
@@ -97,10 +98,11 @@ const SettingsPanel: React.FC = () => {
                 setConfig({ ...config, storage_quota: Number(e.target.value) * 1024 * 1024 * 1024 })
               }
               className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-yellow-500"
-              disabled
+              min="1"
+              max="1024"
             />
             <p className="text-sm text-white/40 mt-1">
-              当前配额：{formatFileSize(config.storage_quota)}
+              当前配额：{formatFileSize(config.storage_quota)} (1-1024 GB)
             </p>
           </div>
 
@@ -116,9 +118,11 @@ const SettingsPanel: React.FC = () => {
                 setConfig({ ...config, file_expire_days: Number(e.target.value) })
               }
               className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-yellow-500"
+              min="1"
+              max="365"
             />
             <p className="text-sm text-white/40 mt-1">
-              超过此天数的文件将被自动清理
+              超过此天数的文件将被自动清理 (1-365 天)
             </p>
           </div>
 

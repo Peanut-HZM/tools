@@ -21,15 +21,15 @@ class LLMConfigCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     provider_type: str = Field(
         ...,
-        description="供应商类型: openai, anthropic, azure_openai, baidu, aliyun, other",
+        description="供应商类型：openai, anthropic, azure_openai, baidu, aliyun, other",
     )
     base_url: str = Field(..., max_length=500)
     api_key: str = Field(..., description="API Key (明文，后端加密存储)")
     model_name: str = Field(..., max_length=100)
     request_params: Optional[Dict[str, Any]] = Field(
-        default={}, description="请求参数: temperature, max_tokens, timeout"
+        default={}, description="请求参数：temperature, max_tokens, timeout"
     )
-    category: str = Field(default="chat", description="分类: chat(对话类型), code(编程类型)")
+    category: str = Field(default="chat", description="分类：chat(对话类型), code(编程类型)")
     notes: Optional[str] = Field(None, max_length=500, description="备注")
     is_default: bool = False
     is_active: bool = True
@@ -44,7 +44,7 @@ class LLMConfigUpdate(BaseModel):
     api_key: Optional[str] = Field(None, description="API Key (明文，后端加密存储)")
     model_name: Optional[str] = Field(None, max_length=100)
     request_params: Optional[Dict[str, Any]] = None
-    category: Optional[str] = Field(None, description="分类: chat(对话类型), code(编程类型)")
+    category: Optional[str] = Field(None, description="分类：chat(对话类型), code(编程类型)")
     notes: Optional[str] = Field(None, max_length=500, description="备注")
     is_default: Optional[bool] = None
     is_active: Optional[bool] = None
@@ -57,10 +57,10 @@ class LLMConfigResponse(BaseModel):
     name: str
     provider_type: str
     base_url: str
-    api_key_suffix: Optional[str]  # API Key 最后4位
+    api_key_suffix: Optional[str]  # API Key 最后 4 位
     model_name: str
     request_params: Dict[str, Any]
-    category: str  # chat: 对话类型, code: 编程类型
+    category: str  # chat: 对话类型，code: 编程类型
     notes: Optional[str]  # 备注
     is_default: bool
     is_active: bool
@@ -95,91 +95,6 @@ def _config_to_dict(config) -> dict:
         "is_active": config.is_active,
         "created_at": config.created_at.isoformat() if config.created_at else None,
         "updated_at": config.updated_at.isoformat() if config.updated_at else None,
-    }
-LLM 配置管理路由
-管理员接口
-"""
-
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-
-from app.api.dependencies import get_db
-from app.services.llm_config_service import LLMConfigService
-
-
-router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-class LLMConfigCreate(BaseModel):
-    """创建配置请求"""
-
-    name: str = Field(..., min_length=1, max_length=100)
-    provider_type: str = Field(
-        ...,
-        description="供应商类型: openai, anthropic, azure_openai, baidu, aliyun, other",
-    )
-    base_url: str = Field(..., max_length=500)
-    api_key: str = Field(..., description="API Key (明文，后端加密存储)")
-    model_name: str = Field(..., max_length=100)
-    request_params: Optional[Dict[str, Any]] = Field(
-        default={}, description="请求参数: temperature, max_tokens, timeout"
-    )
-    is_default: bool = False
-    is_active: bool = True
-
-
-class LLMConfigUpdate(BaseModel):
-    """更新配置请求"""
-
-    name: Optional[str] = Field(None, max_length=100)
-    provider_type: Optional[str] = None
-    base_url: Optional[str] = Field(None, max_length=500)
-    api_key: Optional[str] = Field(None, description="API Key (明文，后端加密存储)")
-    model_name: Optional[str] = Field(None, max_length=100)
-    request_params: Optional[Dict[str, Any]] = None
-    is_default: Optional[bool] = None
-    is_active: Optional[bool] = None
-
-
-class LLMConfigResponse(BaseModel):
-    """配置响应"""
-
-    id: str
-    name: str
-    provider_type: str
-    base_url: str
-    model_name: str
-    request_params: Dict[str, Any]
-    is_default: bool
-    is_active: bool
-    created_at: str
-
-    class Config:
-        from_attributes = True
-
-
-class TestConnectionResponse(BaseModel):
-    """连接测试结果"""
-
-    success: bool
-    message: str
-    latency_ms: int
-
-
-def _config_to_dict(config) -> dict:
-    """将 SQLAlchemy 配置对象转换为字典"""
-    return {
-        "id": str(config.id),
-        "name": config.name,
-        "provider_type": config.provider_type,
-        "base_url": config.base_url,
-        "model_name": config.model_name,
-        "request_params": config.request_params or {},
-        "is_default": config.is_default,
-        "is_active": config.is_active,
-        "created_at": config.created_at.isoformat() if config.created_at else None,
     }
 
 
@@ -284,9 +199,10 @@ async def get_rate_limits():
     return DEFAULT_RATE_LIMITS
 
 
+
 @router.put("/rate-limits")
 async def update_rate_limits(limits: Dict[str, Dict[str, int]]):
-    """更新限流配置"""
+    # 更新限流配置
     global DEFAULT_RATE_LIMITS
     DEFAULT_RATE_LIMITS.update(limits)
     return DEFAULT_RATE_LIMITS

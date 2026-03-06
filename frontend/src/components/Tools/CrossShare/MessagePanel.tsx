@@ -4,13 +4,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { messageApi, Message } from '../../../services/crossShare';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '../../../hooks/useToast';
 
 const MessagePanel: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     loadMessages();
@@ -25,10 +28,14 @@ const MessagePanel: React.FC = () => {
 
   const loadMessages = async () => {
     try {
+      setLoadError(null);
       const data = await messageApi.getMessages(100, 0);
       setMessages(data.reverse()); // 最新消息在最后
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load messages:', error);
+      const errorMsg = error.response?.data?.detail || error.message || '未知错误';
+      setLoadError(errorMsg);
+      showToast('加载消息失败：' + errorMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -46,8 +53,12 @@ const MessagePanel: React.FC = () => {
       await messageApi.sendMessage(inputValue.trim(), 'text');
       setInputValue('');
       loadMessages();
-    } catch (error) {
+      showToast('消息发送成功', 'success');
+    } catch (error: any) {
       console.error('Failed to send message:', error);
+      const errorMsg = error.response?.data?.detail || error.message || '未知错误';
+      showToast('发送失败：' + errorMsg, 'error');
+      // 保留输入内容，不清空 inputValue，让用户可以重试
     } finally {
       setSending(false);
     }
@@ -66,8 +77,10 @@ const MessagePanel: React.FC = () => {
     if (text) {
       try {
         await messageApi.syncClipboard(text);
-      } catch (error) {
+        showToast('剪贴板已同步', 'success');
+      } catch (error: any) {
         console.error('Failed to sync clipboard:', error);
+        showToast('同步剪贴板失败：' + (error.response?.data?.detail || error.message), 'error');
       }
     }
   };
@@ -93,6 +106,26 @@ const MessagePanel: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-white/60">加载中...</div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden p-8">
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <div className="text-white text-xl font-semibold mb-2">加载消息失败</div>
+            <div className="text-white/60 mb-6">{loadError}</div>
+            <button
+              onClick={loadMessages}
+              className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl transition-colors"
+            >
+              重试
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

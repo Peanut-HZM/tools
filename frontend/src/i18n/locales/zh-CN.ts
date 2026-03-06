@@ -203,6 +203,26 @@ export const zhCN = {
     saveSuccess: '保存成功',
     saveFailed: '保存失败',
     autoSave: '自动保存',
+    importFile: '导入文件',
+  },
+
+  // OSS File Browser
+  ossFile: {
+    title: 'OSS 文件',
+    uploadFile: '上传文件',
+    refresh: '刷新列表',
+    empty: '暂无 OSS 文件',
+    emptyDesc: '点击上传按钮上传 Markdown 文件',
+    uploadTitle: '上传 Markdown 文件',
+    selectFile: '选择文件',
+    uploading: '上传中...',
+    upload: '上传',
+    cancel: '取消',
+    fileSupported: '支持 .md 和.markdown 格式',
+    openSuccess: '已打开云端文件',
+    uploadSuccess: '文件上传成功',
+    uploadFailed: '上传失败',
+    readFailed: '无法读取文件',
   },
 
   // File Tree (Existing)

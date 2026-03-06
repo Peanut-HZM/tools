@@ -3,7 +3,6 @@ import CategoryTabs from './CategoryTabs';
 import ToolGrid from './ToolGrid';
 import { useI18n } from '../../i18n';
 import OpenSpecCourseCard from '../Tools/OpenSpecCourse/OpenSpecCourseCard';
-import CrossShareCard from '../Tools/CrossShare/CrossShareCard';
 
 interface HeroProps {
   activeCategory: Category;
@@ -18,14 +17,9 @@ export default function Hero({ activeCategory, onCategoryChange, tools, onToolCl
 
   return (
     <section className="mb-16">
-      {/* OpenSpec Course Banner */}
+      {/* OpenSpec Course Banner - 热门课程展示 */}
       <div className="mb-8">
         <OpenSpecCourseCard />
-      </div>
-
-      {/* CrossShare Banner */}
-      <div className="mb-8">
-        <CrossShareCard />
       </div>
 
       <CategoryTabs

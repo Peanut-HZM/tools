@@ -3,20 +3,75 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { deviceApi, messageApi, fileApi, configApi, StorageStats } from '../../services/crossShare';
-import Sidebar from './CrossShare/Sidebar';
-import MessagePanel from './CrossShare/MessagePanel';
-import FilePanel from './CrossShare/FilePanel';
-import DevicePanel from './CrossShare/DevicePanel';
-import SettingsPanel from './CrossShare/SettingsPanel';
+import { deviceApi, messageApi, fileApi, configApi, StorageStats, generateDeviceToken } from '../../../services/crossShare';
+import { useToast } from '../../../hooks/useToast';
+import Toast, { ToastContainer } from '../../MarkdownEditor/Toast/Toast';
+import Sidebar from './Sidebar';
+import MessagePanel from './MessagePanel';
+import FilePanel from './FilePanel';
+import DevicePanel from './DevicePanel';
+import SettingsPanel from './SettingsPanel';
 
 type PanelType = 'messages' | 'files' | 'devices' | 'settings';
 
 const CrossShareMain: React.FC = () => {
   const navigate = useNavigate();
+  const { toast, showToast } = useToast();
   const [activePanel, setActivePanel] = useState<PanelType>('messages');
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
+
+  // 注册当前设备
+  useEffect(() => {
+    registerCurrentDevice();
+  }, []);
+
+  const registerCurrentDevice = async () => {
+    try {
+      // 生成设备 token
+      const deviceToken = generateDeviceToken();
+      
+      // 获取设备信息
+      const ua = navigator.userAgent;
+      let deviceType: 'desktop' | 'mobile' | 'tablet' = 'desktop';
+      if (/mobile/i.test(ua)) {
+        deviceType = 'mobile';
+      } else if (/tablet/i.test(ua)) {
+        deviceType = 'tablet';
+      }
+
+      // 生成设备名称
+      let deviceName = 'Unknown Device';
+      if (ua.includes('Mac')) {
+        deviceName = 'Mac';
+      } else if (ua.includes('Win')) {
+        deviceName = 'Windows';
+      } else if (ua.includes('Linux')) {
+        deviceName = 'Linux';
+      } else if (ua.includes('iPhone')) {
+        deviceName = 'iPhone';
+      } else if (ua.includes('iPad')) {
+        deviceName = 'iPad';
+      } else if (ua.includes('Android')) {
+        deviceName = 'Android';
+      }
+
+      // 添加浏览器信息
+      const browser = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : 'Safari';
+      deviceName += ` (${browser})`;
+
+      // 注册设备
+      const device = await deviceApi.registerDevice(deviceName, deviceToken, deviceType);
+      setCurrentDeviceId(device.id);
+      
+      // 存储设备 ID 到 localStorage
+      localStorage.setItem('crossshare_device_id', device.id);
+      localStorage.setItem('crossshare_device_token', deviceToken);
+    } catch (error) {
+      console.error('Failed to register device:', error);
+    }
+  };
 
   // Load initial data
   useEffect(() => {
@@ -61,7 +116,10 @@ const CrossShareMain: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 relative">
+      {/* Toast */}
+      {toast && <Toast {...toast} />}
+
       {/* Header */}
       <header className="bg-black/30 backdrop-blur-sm border-b border-white/10">
         <div className="container mx-auto px-6 py-4">

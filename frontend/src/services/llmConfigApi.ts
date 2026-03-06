@@ -15,15 +15,15 @@ export interface LLMConfig {
   name: string;
   provider_type: string;
   base_url: string;
-  api_key_suffix?: string;  // API Key 最后4位
+  api_key_suffix?: string;
   model_name: string;
   request_params: {
     temperature?: number;
     max_tokens?: number;
     timeout?: number;
   };
-  category: LLMConfigCategory;  // chat: 对话类型, code: 编程类型
-  notes?: string;  // 备注
+  category: LLMConfigCategory;
+  notes?: string;
   is_default: boolean;
   is_active: boolean;
   created_at: string;
@@ -43,51 +43,6 @@ export interface CreateLLMConfigRequest {
   };
   category?: LLMConfigCategory;
   notes?: string;
-  is_default?: boolean;
-  is_active?: boolean;
-}
-
-export interface TestConnectionResponse {
-  success: boolean;
-  message: string;
-  latency_ms: number;
-}
-import { getAuthToken } from '../api/authApi';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-
-const getAuthHeaders = () => {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-export interface LLMConfig {
-  id: string;
-  name: string;
-  provider_type: string;
-  base_url: string;
-  model_name: string;
-  request_params: {
-    temperature?: number;
-    max_tokens?: number;
-    timeout?: number;
-  };
-  is_default: boolean;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface CreateLLMConfigRequest {
-  name: string;
-  provider_type: string;
-  base_url: string;
-  api_key: string;
-  model_name: string;
-  request_params?: {
-    temperature?: number;
-    max_tokens?: number;
-    timeout?: number;
-  };
   is_default?: boolean;
   is_active?: boolean;
 }

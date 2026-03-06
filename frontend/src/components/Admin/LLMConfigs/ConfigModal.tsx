@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LLMConfig, CreateLLMConfigRequest, LLMConfigCategory } from '../../services/llmConfigApi';
+import { LLMConfig, CreateLLMConfigRequest, LLMConfigCategory } from '../../../services/llmConfigApi';
 
 interface ConfigModalProps {
   isOpen: boolean;

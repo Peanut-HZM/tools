@@ -98,9 +98,10 @@ export const deviceApi = {
   },
 
   /** 注册设备 */
-  registerDevice: async (deviceName: string, deviceToken: string): Promise<Device> => {
+  registerDevice: async (deviceName: string, deviceToken: string, deviceType?: string): Promise<Device> => {
     const response = await axios.post(`${API_BASE_URL}/devices`, {
       device_name: deviceName,
+      device_type: deviceType,
       device_token: deviceToken,
     });
     return response.data;

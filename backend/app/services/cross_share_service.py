@@ -254,8 +254,14 @@ class CrossShareService:
             )
         ).first()
 
-    def create_file(self, user_id: str, file: FileCreate) -> CrossFile:
-        """创建文件记录"""
+    def create_file(self, user_id: str, file: FileCreate, expires_at: datetime = None) -> CrossFile:
+        """创建文件记录
+        
+        参数:
+            user_id: 用户 ID
+            file: 文件创建信息
+            expires_at: 文件过期时间，如果不传则根据配置的 file_expire_days 计算
+        """
         db_file = CrossFile(
             user_id=user_id,
             upload_device_id=file.upload_device_id,
@@ -265,11 +271,12 @@ class CrossShareService:
             file_size=file.file_size,
             file_type=file.file_type.value if isinstance(file.file_type, FileType) else file.file_type,
             file_hash=file.file_hash,
+            expires_at=expires_at,
         )
         self.db.add(db_file)
         self.db.commit()
         self.db.refresh(db_file)
-        logger.info(f"文件已创建：{file.file_name}, user_id={user_id}")
+        logger.info(f"文件已创建：{file.file_name}, user_id={user_id}, expires_at={expires_at}")
         return db_file
 
     def delete_file(self, file_id: str, user_id: str) -> bool:

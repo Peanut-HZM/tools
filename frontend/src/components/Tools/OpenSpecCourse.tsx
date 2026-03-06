@@ -12,11 +12,11 @@ import {
   Chapter,
   UserProgress,
 } from '../../services/openspecCourse';
-import ChapterNavigation from './ChapterNavigation';
-import ChapterContent from './ChapterContent';
-import QuizView from './QuizView';
-import SpecEditor from './SpecEditor';
-import ProgressBar from './ProgressBar';
+import ChapterNavigation from './OpenSpecCourse/ChapterNavigation';
+import ChapterContent from './OpenSpecCourse/ChapterContent';
+import QuizView from './OpenSpecCourse/QuizView';
+import SpecEditor from './OpenSpecCourse/SpecEditor';
+import ProgressBar from './OpenSpecCourse/ProgressBar';
 
 const OpenSpecCourse: React.FC = () => {
   const navigate = useNavigate();
@@ -30,7 +30,6 @@ const OpenSpecCourse: React.FC = () => {
   const [progress, setProgress] = useState<UserProgress[]>([]);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showSpecEditor, setShowSpecEditor] = useState(false);
-  const [completedChapters, setCompletedChapters] = useState<number[]>([]);
 
   // Load chapters on mount
   useEffect(() => {
@@ -60,11 +59,6 @@ const OpenSpecCourse: React.FC = () => {
     try {
       const summary = await getCourseProgress();
       setProgress(summary.chapters);
-      setCompletedChapters(
-        summary.chapters
-          .filter((p) => p.status === 'completed')
-          .map((p) => p.chapter_id)
-      );
     } catch (err) {
       console.error('Failed to load progress:', err);
     }
@@ -93,15 +87,6 @@ const OpenSpecCourse: React.FC = () => {
   };
 
   const handleChapterSelect = (chapterId: number) => {
-    const chapter = chapters.find((c) => c.id === chapterId);
-    const chapterProgress = progress.find((p) => p.chapter_id === chapterId);
-
-    // 检查章节是否已解锁
-    if (chapter?.is_locked && chapterProgress?.status !== 'completed') {
-      // 显示锁定提示
-      return;
-    }
-
     loadChapter(chapterId);
   };
 
@@ -208,7 +193,6 @@ const OpenSpecCourse: React.FC = () => {
                 onNextChapter={handleContinueToNextChapter}
                 onStartQuiz={() => setShowQuiz(true)}
                 onOpenSpecEditor={() => setShowSpecEditor(true)}
-                isCompleted={completedChapters.includes(currentChapter.id)}
               />
             ) : (
               <div className="text-center text-white/60 py-16">

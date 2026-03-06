@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useToast } from '../../hooks/useToast';
+import { useToast } from '../../../hooks/useToast';
 
 interface ApiKeyDisplayProps {
   apiKeySuffix?: string;

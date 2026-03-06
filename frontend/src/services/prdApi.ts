@@ -133,19 +133,3 @@ export const prdApi = {
     return response.data;
   },
 };
-  exportPRD: async (
-    conversationId: string,
-    format: 'markdown' | 'pdf' | 'word' = 'markdown',
-    versionNumber?: number
-  ): Promise<Blob> => {
-    const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/prd/export`,
-      {
-        params: { format, version_number: versionNumber },
-        headers: getAuthHeaders(),
-        responseType: 'blob',
-      }
-    );
-    return response.data;
-  },
-};

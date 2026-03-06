@@ -60,46 +60,6 @@ class LLMConfigService:
         return config
 
     def update_config(self, config_id: str, **kwargs) -> Optional[LLMConfig]:
-
-        self.db.add(config)
-        self.db.commit()
-        self.db.refresh(config)
-        return config
-        self,
-        name: str,
-        provider_type: str,
-        base_url: str,
-        api_key: str,
-        model_name: str,
-        request_params: Optional[Dict[str, Any]] = None,
-        is_default: bool = False,
-        is_active: bool = True,
-    ) -> LLMConfig:
-        """创建新配置"""
-        # 加密 API Key
-        encrypted_key = encrypt_api_key(api_key)
-
-        # 如果设置为默认，取消其他默认配置
-        if is_default:
-            self._unset_default_configs()
-
-        config = LLMConfig(
-            name=name,
-            provider_type=provider_type,
-            base_url=base_url,
-            api_key_encrypted=encrypted_key,
-            model_name=model_name,
-            request_params=request_params or {},
-            is_default=is_default,
-            is_active=is_active,
-        )
-
-        self.db.add(config)
-        self.db.commit()
-        self.db.refresh(config)
-        return config
-
-    def update_config(self, config_id: str, **kwargs) -> Optional[LLMConfig]:
         """更新配置"""
         config = self.get_config(config_id)
         if not config:

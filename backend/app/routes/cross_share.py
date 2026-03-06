@@ -349,6 +349,9 @@ async def upload_file(
     elif request.file_type in ["application/zip", "application/x-rar"]:
         file_type = FileType.ARCHIVE
 
+    # 计算文件过期时间
+    expires_at = datetime.now() + timedelta(days=config.file_expire_days)
+    
     db_file = service.create_file(
         user_id=current_user,
         file=FileCreate(
@@ -359,6 +362,7 @@ async def upload_file(
             oss_key=oss_key,
             upload_device_id=from_device_id,
         ),
+        expires_at=expires_at,
     )
 
     return {

@@ -12,7 +12,6 @@ interface ChapterContentProps {
   onNextChapter: () => void;
   onStartQuiz: () => void;
   onOpenSpecEditor: () => void;
-  isCompleted: boolean;
 }
 
 const ChapterContent: React.FC<ChapterContentProps> = ({
@@ -20,7 +19,6 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
   onNextChapter,
   onStartQuiz,
   onOpenSpecEditor,
-  isCompleted,
 }) => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
@@ -43,11 +41,6 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
           </span>
           <h2 className="text-3xl font-bold text-white">{chapter.title}</h2>
         </div>
-        {isCompleted && (
-          <div className="inline-flex items-center px-3 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded-full text-sm">
-            ✅ 已完成
-          </div>
-        )}
       </div>
 
       {/* Video Section (if available) */}
@@ -65,43 +58,60 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
 
       {/* Content */}
       <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 mb-8">
-        <ReactMarkdown
-          className="prose prose-invert prose-lg max-w-none"
-          components={{
-            code({ node, inline, className, children, ...props }: any) {
-              const match = /language-(\w+)/.exec(className || '');
-              const code = String(children).replace(/\n$/, '');
+        <div className="prose prose-invert prose-lg max-w-none">
+          <ReactMarkdown
+            components={{
+              code({ node, inline, className, children, ...props }: any) {
+                const match = /language-(\w+)/.exec(className || '');
+                const code = String(children).replace(/\n$/, '');
 
-              if (!inline && match) {
+                if (!inline && match) {
+                  return (
+                    <div className="relative group">
+                      <SyntaxHighlighter
+                        style={vscDarkPlus}
+                        language={match[1]}
+                        PreTag="div"
+                        {...props}
+                      >
+                        {code}
+                      </SyntaxHighlighter>
+                      <button
+                        onClick={() => handleCopyCode(code)}
+                        className="absolute top-2 right-2 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        {copiedCode === code ? '✅ 已复制' : '📋 复制'}
+                      </button>
+                    </div>
+                  );
+                }
                 return (
-                  <div className="relative group">
-                    <SyntaxHighlighter
-                      style={vscDarkPlus}
-                      language={match[1]}
-                      PreTag="div"
-                      {...props}
-                    >
-                      {code}
-                    </SyntaxHighlighter>
-                    <button
-                      onClick={() => handleCopyCode(code)}
-                      className="absolute top-2 right-2 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      {copiedCode === code ? '✅ 已复制' : '📋 复制'}
-                    </button>
-                  </div>
+                  <code className="bg-gray-800 px-2 py-1 rounded text-pink-400" {...props}>
+                    {children}
+                  </code>
                 );
-              }
-              return (
-                <code className="bg-gray-800 px-2 py-1 rounded text-pink-400" {...props}>
-                  {children}
-                </code>
-              );
-            },
-          }}
-        >
-          {chapter.content}
-        </ReactMarkdown>
+              },
+              // 自定义 Markdown 元素样式以确保正确的预览效果
+              h1: ({node, ...props}: any) => <h1 className="text-3xl font-bold text-white mb-4" {...props} />,
+              h2: ({node, ...props}: any) => <h2 className="text-2xl font-bold text-white mb-3" {...props} />,
+              h3: ({node, ...props}: any) => <h3 className="text-xl font-semibold text-white mb-2" {...props} />,
+              p: ({node, ...props}: any) => <p className="text-white/80 leading-relaxed mb-4" {...props} />,
+              ul: ({node, ...props}: any) => <ul className="list-disc list-inside text-white/80 mb-4 space-y-1" {...props} />,
+              ol: ({node, ...props}: any) => <ol className="list-decimal list-inside text-white/80 mb-4 space-y-1" {...props} />,
+              li: ({node, ...props}: any) => <li className="text-white/80" {...props} />,
+              blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-yellow-500 pl-4 text-white/70 italic my-4" {...props} />,
+              a: ({node, ...props}: any) => <a className="text-yellow-400 hover:text-yellow-300 underline" {...props} />,
+              strong: ({node, ...props}: any) => <strong className="font-bold text-white" {...props} />,
+              em: ({node, ...props}: any) => <em className="italic text-white/70" {...props} />,
+              hr: ({node, ...props}: any) => <hr className="border-white/20 my-6" {...props} />,
+              table: ({node, ...props}: any) => <table className="w-full border-collapse border border-white/20 my-4" {...props} />,
+              th: ({node, ...props}: any) => <th className="border border-white/20 bg-white/10 px-3 py-2 text-left text-white font-semibold" {...props} />,
+              td: ({node, ...props}: any) => <td className="border border-white/20 px-3 py-2 text-white/80" {...props} />,
+            }}
+          >
+            {chapter.content}
+          </ReactMarkdown>
+        </div>
       </div>
 
       {/* Resources Section */}
@@ -146,7 +156,7 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
           💻 打开 Spec 编辑器
         </button>
 
-        {chapter.quiz && !isCompleted && (
+        {chapter.quiz && (
           <button
             onClick={onStartQuiz}
             className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl transition-colors font-medium"
@@ -155,14 +165,12 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
           </button>
         )}
 
-        {isCompleted && (
-          <button
-            onClick={onNextChapter}
-            className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors font-medium"
-          >
-            继续下一章 →
-          </button>
-        )}
+        <button
+          onClick={onNextChapter}
+          className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors font-medium"
+        >
+          继续下一章 →
+        </button>
       </div>
     </div>
   );

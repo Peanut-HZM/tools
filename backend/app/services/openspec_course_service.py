@@ -18,6 +18,7 @@ from app.models.openspec_course import (
 from app.schemas.openspec_course import (
     ChapterCreate,
     ChapterUpdate,
+    ChapterReorderRequest,
     QuizCreate,
     QuizUpdate,
     QuizSubmitRequest,
@@ -86,6 +87,28 @@ class OpenSpecCourseService:
         logger.info(f"删除章节：{chapter_id}")
         return True
 
+    def reorder_chapters(self, reorder_request: ChapterReorderRequest) -> bool:
+        """批量更新章节顺序"""
+        try:
+            for chapter_data in reorder_request.chapters:
+                chapter_id = chapter_data.get("id")
+                new_order = chapter_data.get("order")
+
+                if chapter_id is None or new_order is None:
+                    continue
+
+                db_chapter = self.get_chapter_by_id(chapter_id)
+                if db_chapter:
+                    db_chapter.order = new_order
+
+            self.db.commit()
+            logger.info(f"批量更新章节顺序：{len(reorder_request.chapters)} 个章节")
+            return True
+        except Exception as e:
+            logger.error(f"批量更新章节顺序失败：{e}")
+            self.db.rollback()
+            return False
+
     # ============ 测验管理 ============
 
     def get_quiz_by_chapter_id(self, chapter_id: int) -> Optional[CourseQuiz]:
@@ -95,6 +118,37 @@ class OpenSpecCourseService:
     def get_quiz_by_id(self, quiz_id: int) -> Optional[CourseQuiz]:
         """根据 ID 获取测验"""
         return self.db.query(CourseQuiz).filter(CourseQuiz.id == quiz_id).first()
+
+    def get_quiz_questions(self, quiz_id: int):
+        """获取测验的所有问题"""
+        from app.models.openspec_course import CourseQuizQuestion, CourseQuizOption
+        questions = self.db.query(CourseQuizQuestion).filter(
+            CourseQuizQuestion.quiz_id == quiz_id
+        ).order_by(CourseQuizQuestion.order).all()
+        
+        result = []
+        for q in questions:
+            options = self.db.query(CourseQuizOption).filter(
+                CourseQuizOption.question_id == q.id
+            ).all()
+            result.append({
+                "id": q.id,
+                "quiz_id": q.quiz_id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "correct_answer": q.correct_answer,
+                "explanation": q.explanation,
+                "order": q.order,
+                "created_at": q.created_at,
+                "options": [{
+                    "id": opt.id,
+                    "question_id": opt.question_id,
+                    "option_text": opt.option_text,
+                    "option_index": opt.option_index,
+                    "created_at": opt.created_at,
+                } for opt in options],
+            })
+        return result
 
     def create_quiz(self, quiz: QuizCreate) -> CourseQuiz:
         """创建测验"""
@@ -211,6 +265,20 @@ class OpenSpecCourseService:
             else:
                 progress.status = "in_progress"
             self.db.commit()
+        else:
+            # 如果用户没有进度记录，创建一个新的
+            from app.models.openspec_course import UserCourseProgress
+            new_progress = UserCourseProgress(
+                user_id=user_id,
+                chapter_id=db_quiz.chapter_id,
+                status="completed" if passed else "in_progress",
+                quiz_score=score,
+                quiz_passed=passed,
+                video_progress=0,
+                completed_at=datetime.now() if passed else None,
+            )
+            self.db.add(new_progress)
+            self.db.commit()
 
         return QuizResult(
             quiz_id=quiz_id,
@@ -271,21 +339,39 @@ class OpenSpecCourseService:
         # 创建章节 ID 到进度的映射
         progress_map = {p.chapter_id: p for p in user_progress}
 
-        # 为没有进度的章节创建默认进度
+        # 为没有进度的章节创建默认进度（手动构建 dict 以回避 Schema 验证问题）
         chapters_with_progress = []
         for chapter in all_chapters:
             if chapter.id in progress_map:
-                chapters_with_progress.append(progress_map[chapter.id])
+                p = progress_map[chapter.id]
+                chapters_with_progress.append({
+                    "id": p.id,
+                    "user_id": p.user_id,
+                    "chapter_id": p.chapter_id,
+                    "status": p.status,
+                    "quiz_score": p.quiz_score,
+                    "quiz_passed": p.quiz_passed or False,
+                    "video_progress": p.video_progress or 0,
+                    "completed_at": p.completed_at,
+                    "created_at": p.created_at,
+                    "updated_at": p.updated_at,
+                })
             else:
-                # 创建临时进度对象
-                temp_progress = UserCourseProgress(
-                    user_id=user_id,
-                    chapter_id=chapter.id,
-                    status="not_started",
-                )
-                chapters_with_progress.append(temp_progress)
+                # 创建默认进度数据
+                chapters_with_progress.append({
+                    "id": 0,
+                    "user_id": user_id,
+                    "chapter_id": chapter.id,
+                    "status": "not_started",
+                    "quiz_score": None,
+                    "quiz_passed": False,
+                    "video_progress": 0,
+                    "completed_at": None,
+                    "created_at": None,
+                    "updated_at": None,
+                })
 
-        completed_count = sum(1 for p in chapters_with_progress if p.status == "completed")
+        completed_count = sum(1 for p in chapters_with_progress if p.get("status") == "completed")
         total = len(all_chapters)
         percentage = (completed_count / total * 100) if total > 0 else 0
 

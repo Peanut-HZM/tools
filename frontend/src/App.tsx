@@ -13,6 +13,7 @@ import Dashboard from './components/Admin/Dashboard';
 import UserManagement from './components/Admin/UserManagement';
 import OssManagement from './components/Admin/OssManagement';
 import LLMConfigsPage from './components/Admin/LLMConfigsPage';
+import CourseManagement from './components/Admin/CourseManagement';
 import AgentManagement from './components/Admin/AgentManagement';
 import ConversationManagement from './components/Admin/ConversationManagement';
 import ImageDownloader from './components/Tools/ImageDownloader';
@@ -178,6 +179,7 @@ function HomePage() {
       'ssh-tool': '/tools/ssh-tool',
       'product-manager': '/tools/product-manager',
       'learning-share': '/tools/learning-share',
+      'cross-share': '/tools/cross-share',
     };
 
     const route = toolRoutes[toolId];
@@ -257,6 +259,7 @@ function App() {
               <Route path="settings" element={<SystemSettingsPage />} />
               <Route path="oss" element={<OssManagement />} />
               <Route path="llm-configs" element={<LLMConfigsPage />} />
+              <Route path="course" element={<CourseManagement />} />
             </Route>
           </Routes>
         </BrowserRouter>

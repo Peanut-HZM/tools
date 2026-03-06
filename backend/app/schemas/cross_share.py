@@ -1,10 +1,11 @@
 """
 CrossShare Schemas
 """
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, ConfigDict, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+import uuid
 
 
 class MessageType(str, Enum):
@@ -57,6 +58,8 @@ class DeviceUpdate(BaseModel):
 
 class DeviceResponse(DeviceBase):
     """设备响应"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     device_token: str
@@ -65,8 +68,10 @@ class DeviceResponse(DeviceBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    @field_validator('id', mode='before')
+    @classmethod
+    def validate_id(cls, v):
+        return str(v) if v else v
 
 
 # ============ 消息相关 Schemas ============
@@ -91,6 +96,8 @@ class MessageUpdate(BaseModel):
 
 class MessageResponse(MessageBase):
     """消息响应"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     from_device_id: Optional[str] = None
@@ -100,8 +107,10 @@ class MessageResponse(MessageBase):
     expires_at: Optional[datetime] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    @field_validator('id', 'from_device_id', 'file_id', mode='before')
+    @classmethod
+    def validate_uuid_fields(cls, v):
+        return str(v) if v else v
 
 
 class ClipboardSyncRequest(BaseModel):
@@ -134,6 +143,8 @@ class FileUpdate(BaseModel):
 
 class FileResponse(FileBase):
     """文件响应"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     oss_url: Optional[str] = None
@@ -143,8 +154,10 @@ class FileResponse(FileBase):
     created_at: datetime
     expires_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    @field_validator('id', mode='before')
+    @classmethod
+    def validate_id(cls, v):
+        return str(v) if v else v
 
 
 class UploadTokenRequest(BaseModel):
@@ -206,9 +219,9 @@ class ConfigCreate(ConfigBase):
 
 class ConfigUpdate(BaseModel):
     """更新配置请求"""
-    max_file_size: Optional[int] = None
-    storage_quota: Optional[int] = None
-    file_expire_days: Optional[int] = None
+    max_file_size: Optional[int] = Field(None, ge=1048576, le=10737418240)  # 1MB - 10GB
+    storage_quota: Optional[int] = Field(None, ge=1073741824, le=1099511627776)  # 1GB - 1TB
+    file_expire_days: Optional[int] = Field(None, ge=1, le=365)
     enable_encryption: Optional[bool] = None
     enable_clipboard: Optional[bool] = None
     allowed_file_types: Optional[str] = None
