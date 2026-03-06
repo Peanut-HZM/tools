@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:clean": "./scripts/cleanup-port.sh 5178 && vite",
     "test": "vitest run",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "restart": "./scripts/cleanup-port.sh 5178 && vite"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -24,7 +26,7 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.11.0",
-    "react-syntax-highlighter": "^16.1.1",
+    "react-syntax-highlighter": "^15.5.0",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0",
     "xterm-addon-web-links": "^0.9.0",
@@ -36,7 +38,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
-    "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/react-syntax-highlighter": "^15.5.0",
     "@types/xterm": "^2.0.3",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",

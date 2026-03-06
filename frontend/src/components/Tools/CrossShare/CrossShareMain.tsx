@@ -2,11 +2,9 @@
  * CrossShare 跨设备共享主页面
  */
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { deviceApi, messageApi, fileApi, configApi, StorageStats, generateDeviceToken } from '../../../services/crossShare';
 import { useToast } from '../../../hooks/useToast';
 import Toast, { ToastContainer } from '../../MarkdownEditor/Toast/Toast';
-import { useAuth } from '../../../stores/authStore';
 import Sidebar from './Sidebar';
 import MessagePanel from './MessagePanel';
 import FilePanel from './FilePanel';
@@ -16,19 +14,11 @@ import SettingsPanel from './SettingsPanel';
 type PanelType = 'messages' | 'files' | 'devices' | 'settings';
 
 const CrossShareMain: React.FC = () => {
-  const navigate = useNavigate();
   const { toast, showToast } = useToast();
-  const { user, logout } = useAuth();
   const [activePanel, setActivePanel] = useState<PanelType>('messages');
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    showToast('已退出登录', 'info');
-  };
 
   // 注册当前设备
   useEffect(() => {
@@ -124,7 +114,7 @@ const CrossShareMain: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Toast */}
       {toast && <Toast {...toast} />}
 
@@ -134,10 +124,8 @@ const CrossShareMain: React.FC = () => {
         <Sidebar activePanel={activePanel} onSelectPanel={setActivePanel} />
 
         {/* Main Panel - 使用 flex 布局，内容区域自适应高度 */}
-        <main className="flex-1 overflow-hidden h-full">
-          <div className="w-full h-full px-6 py-6">
-            {renderPanel()}
-          </div>
+        <main className="flex-1 overflow-hidden h-full py-6 px-6">
+          {renderPanel()}
         </main>
       </div>
     </div>

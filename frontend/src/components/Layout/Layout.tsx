@@ -24,7 +24,7 @@ export default function Layout() {
   // but it won't affect the tool page.
   
   return (
-    <div className="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+    <div className="bg-slate-900 text-slate-100 h-screen flex flex-col overflow-hidden">
       <Header
         searchValue={searchValue}
         onSearchChange={handleSearchChange}
