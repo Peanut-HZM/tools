@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:clean": "./scripts/cleanup-port.sh 5178 && vite",
+    "dev:clean": "./scripts/cleanup-all-vite.sh && vite",
     "test": "vitest run",
     "build": "vite build",
     "preview": "vite preview",
-    "restart": "./scripts/cleanup-port.sh 5178 && vite"
+    "restart": "./scripts/cleanup-all-vite.sh && vite",
+    "cleanup": "./scripts/cleanup-all-vite.sh"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
