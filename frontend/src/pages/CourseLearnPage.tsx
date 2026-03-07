@@ -4,6 +4,10 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeSanitize from 'rehype-sanitize';
 import {
   getCourseDetail,
   enrollCourse,
@@ -317,10 +321,45 @@ const CourseLearnPage: React.FC = () => {
                 {/* Content */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-8 border border-slate-700/50 mb-8">
                   <div className="prose prose-invert prose-lg max-w-none">
-                    <div
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight, rehypeSanitize]}
                       className="text-white/80 leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: currentChapter.content }}
-                    />
+                      components={{
+                        // 自定义代码块渲染
+                        code({ node, inline, className, children, ...props }: any) {
+                          return inline ? (
+                            <code className="px-1.5 py-0.5 bg-slate-700 rounded text-sm" {...props}>
+                              {children}
+                            </code>
+                          ) : (
+                            <code className="block p-4 bg-slate-900 rounded-lg overflow-x-auto text-sm" {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                        // 自定义链接渲染
+                        a({ node, ...props }: any) {
+                          return <a className="text-cyan-400 hover:text-cyan-300 underline" {...props} />;
+                        },
+                        // 自定义表格渲染
+                        table({ node, ...props }: any) {
+                          return <table className="min-w-full border border-slate-600 my-4" {...props} />;
+                        },
+                        th({ node, ...props }: any) {
+                          return <th className="border border-slate-600 px-4 py-2 bg-slate-700 text-left" {...props} />;
+                        },
+                        td({ node, ...props }: any) {
+                          return <td className="border border-slate-600 px-4 py-2" {...props} />;
+                        },
+                        // 自定义引用块渲染
+                        blockquote({ node, ...props }: any) {
+                          return <blockquote className="border-l-4 border-cyan-500 pl-4 italic my-4" {...props} />;
+                        },
+                      }}
+                    >
+                      {currentChapter.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
 
