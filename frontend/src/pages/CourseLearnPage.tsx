@@ -292,10 +292,10 @@ const CourseLearnPage: React.FC = () => {
                 <div className="mb-8">
                   <div className="flex items-center space-x-3 mb-4">
                     <span className="text-4xl">
-                      {chapter.chapter_type === 'story' && '📖'}
-                      {chapter.chapter_type === 'code' && '💻'}
-                      {chapter.chapter_type === 'quiz' && '📝'}
-                      {chapter.chapter_type === 'video' && '🎬'}
+                      {currentChapter.chapter_type === 'story' && '📖'}
+                      {currentChapter.chapter_type === 'code' && '💻'}
+                      {currentChapter.chapter_type === 'quiz' && '📝'}
+                      {currentChapter.chapter_type === 'video' && '🎬'}
                     </span>
                     <h2 className="text-3xl font-bold text-white">{currentChapter.title}</h2>
                   </div>
