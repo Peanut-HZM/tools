@@ -33,6 +33,9 @@ import ProductManagerAgent from './components/Tools/ProductManagerAgent';
 import LearningSharePlatform from './components/Tools/LearningSharePlatform';
 import OpenSpecCourse from './components/Tools/OpenSpecCourse';
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
+import CourseLearnPage from './pages/CourseLearnPage';
+import CoursesPage from './pages/CoursesPage';
+import CourseDetailPage from './pages/CourseDetailPage';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -180,6 +183,7 @@ function HomePage() {
       'product-manager': '/tools/product-manager',
       'learning-share': '/tools/learning-share',
       'cross-share': '/tools/cross-share',
+      'course-platform': '/courses',
     };
 
     const route = toolRoutes[toolId];
@@ -229,6 +233,9 @@ function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/courses/:slug" element={<CourseDetailPage />} />
+              <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
               <Route path="/tools/image-downloader" element={<ImageDownloader />} />
               <Route path="/tools/video-downloader" element={<VideoDownloader />} />
               <Route path="/tools/json-formatter" element={<JsonFormatter />} />
@@ -246,6 +253,7 @@ function App() {
               <Route path="/tools/product-manager/:conversationId" element={<ProductManagerAgent />} />
               <Route path="/tools/learning-share" element={<LearningSharePlatform />} />
               <Route path="/tools/openspec-course" element={<OpenSpecCourse />} />
+              <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
               <Route path="/tools/cross-share" element={<CrossShareMain />} />
             </Route>
 

@@ -11,8 +11,8 @@ import json
 from .base import Base
 
 
-class CourseChapter(Base):
-    """课程章节表"""
+class OpenSpecCourseChapter(Base):
+    """OpenSpec 课程章节表"""
 
     __tablename__ = "openspec_course_chapters"
 
@@ -33,11 +33,11 @@ class CourseChapter(Base):
     )
 
     def __repr__(self):
-        return f"<CourseChapter(id={self.id}, slug={self.slug}, title={self.title})>"
+        return f"<OpenSpecCourseChapter(id={self.id}, slug={self.slug}, title={self.title})>"
 
 
-class CourseQuiz(Base):
-    """课程测验表"""
+class OpenSpecCourseQuiz(Base):
+    """OpenSpec 课程测验表"""
 
     __tablename__ = "openspec_course_quizzes"
 
@@ -53,11 +53,11 @@ class CourseQuiz(Base):
     )
 
     def __repr__(self):
-        return f"<CourseQuiz(id={self.id}, chapter_id={self.chapter_id}, title={self.title})>"
+        return f"<OpenSpecCourseQuiz(id={self.id}, chapter_id={self.chapter_id}, title={self.title})>"
 
 
-class CourseQuizQuestion(Base):
-    """课程测验题目表"""
+class OpenSpecCourseQuizQuestion(Base):
+    """OpenSpec 课程测验题目表"""
 
     __tablename__ = "openspec_course_quiz_questions"
 
@@ -75,11 +75,11 @@ class CourseQuizQuestion(Base):
     )
 
     def __repr__(self):
-        return f"<CourseQuizQuestion(id={self.id}, quiz_id={self.quiz_id}, question={self.question_text[:50]}...)"
+        return f"<OpenSpecCourseQuizQuestion(id={self.id}, quiz_id={self.quiz_id}, question={self.question_text[:50]}...)"
 
 
-class CourseQuizOption(Base):
-    """课程测验选项表"""
+class OpenSpecCourseQuizOption(Base):
+    """OpenSpec 课程测验选项表"""
 
     __tablename__ = "openspec_course_quiz_options"
 
@@ -94,7 +94,7 @@ class CourseQuizOption(Base):
     )
 
     def __repr__(self):
-        return f"<CourseQuizOption(id={self.id}, question_id={self.question_id}, index={self.option_index})>"
+        return f"<OpenSpecCourseQuizOption(id={self.id}, question_id={self.question_id}, index={self.option_index})>"
 
 
 class UserCourseProgress(Base):
@@ -123,8 +123,8 @@ class UserCourseProgress(Base):
         return f"<UserCourseProgress(id={self.id}, user_id={self.user_id}, chapter_id={self.chapter_id}, status={self.status})>"
 
 
-class CourseResource(Base):
-    """课程资源表"""
+class OpenSpecCourseResource(Base):
+    """OpenSpec 课程资源表"""
 
     __tablename__ = "openspec_course_resources"
 
@@ -142,7 +142,7 @@ class CourseResource(Base):
     )
 
     def __repr__(self):
-        return f"<CourseResource(id={self.id}, chapter_id={self.chapter_id}, type={self.resource_type})>"
+        return f"<OpenSpecCourseResource(id={self.id}, chapter_id={self.chapter_id}, type={self.resource_type})>"
 
     def get_metadata(self):
         """解析元数据为字典"""

@@ -32,12 +32,12 @@ from app.models.agent import Agent
 
 # OpenSpec 课程模型
 from app.models.openspec_course import (
-    CourseChapter,
-    CourseQuiz,
-    CourseQuizQuestion,
-    CourseQuizOption,
+    OpenSpecCourseChapter,
+    OpenSpecCourseQuiz,
+    OpenSpecCourseQuizQuestion,
+    OpenSpecCourseQuizOption,
     UserCourseProgress,
-    CourseResource,
+    OpenSpecCourseResource,
 )
 
 # CrossShare 跨设备共享模型

@@ -8,12 +8,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from app.models.openspec_course import (
-    CourseChapter,
-    CourseQuiz,
-    CourseQuizQuestion,
-    CourseQuizOption,
+    OpenSpecCourseChapter,
+    OpenSpecCourseQuiz,
+    OpenSpecCourseQuizQuestion,
+    OpenSpecCourseQuizOption,
     UserCourseProgress,
-    CourseResource,
+    OpenSpecCourseResource,
 )
 from app.schemas.openspec_course import (
     ChapterCreate,
@@ -40,28 +40,28 @@ class OpenSpecCourseService:
 
     # ============ 章节管理 ============
 
-    def get_chapters(self) -> List[CourseChapter]:
+    def get_chapters(self) -> List[OpenSpecCourseChapter]:
         """获取所有章节"""
-        return self.db.query(CourseChapter).order_by(CourseChapter.order).all()
+        return self.db.query(OpenSpecCourseChapter).order_by(OpenSpecCourseChapter.order).all()
 
-    def get_chapter_by_id(self, chapter_id: int) -> Optional[CourseChapter]:
+    def get_chapter_by_id(self, chapter_id: int) -> Optional[OpenSpecCourseChapter]:
         """根据 ID 获取章节"""
-        return self.db.query(CourseChapter).filter(CourseChapter.id == chapter_id).first()
+        return self.db.query(OpenSpecCourseChapter).filter(OpenSpecCourseChapter.id == chapter_id).first()
 
-    def get_chapter_by_slug(self, slug: str) -> Optional[CourseChapter]:
+    def get_chapter_by_slug(self, slug: str) -> Optional[OpenSpecCourseChapter]:
         """根据 slug 获取章节"""
-        return self.db.query(CourseChapter).filter(CourseChapter.slug == slug).first()
+        return self.db.query(OpenSpecCourseChapter).filter(OpenSpecCourseChapter.slug == slug).first()
 
-    def create_chapter(self, chapter: ChapterCreate) -> CourseChapter:
+    def create_chapter(self, chapter: ChapterCreate) -> OpenSpecCourseChapter:
         """创建章节"""
-        db_chapter = CourseChapter(**chapter.model_dump())
+        db_chapter = OpenSpecCourseChapter(**chapter.model_dump())
         self.db.add(db_chapter)
         self.db.commit()
         self.db.refresh(db_chapter)
         logger.info(f"创建章节：{db_chapter.slug}")
         return db_chapter
 
-    def update_chapter(self, chapter_id: int, chapter: ChapterUpdate) -> Optional[CourseChapter]:
+    def update_chapter(self, chapter_id: int, chapter: ChapterUpdate) -> Optional[OpenSpecCourseChapter]:
         """更新章节"""
         db_chapter = self.get_chapter_by_id(chapter_id)
         if not db_chapter:
@@ -111,25 +111,25 @@ class OpenSpecCourseService:
 
     # ============ 测验管理 ============
 
-    def get_quiz_by_chapter_id(self, chapter_id: int) -> Optional[CourseQuiz]:
+    def get_quiz_by_chapter_id(self, chapter_id: int) -> Optional[OpenSpecCourseQuiz]:
         """根据章节 ID 获取测验"""
-        return self.db.query(CourseQuiz).filter(CourseQuiz.chapter_id == chapter_id).first()
+        return self.db.query(OpenSpecCourseQuiz).filter(OpenSpecCourseQuiz.chapter_id == chapter_id).first()
 
-    def get_quiz_by_id(self, quiz_id: int) -> Optional[CourseQuiz]:
+    def get_quiz_by_id(self, quiz_id: int) -> Optional[OpenSpecCourseQuiz]:
         """根据 ID 获取测验"""
-        return self.db.query(CourseQuiz).filter(CourseQuiz.id == quiz_id).first()
+        return self.db.query(OpenSpecCourseQuiz).filter(OpenSpecCourseQuiz.id == quiz_id).first()
 
     def get_quiz_questions(self, quiz_id: int):
         """获取测验的所有问题"""
-        from app.models.openspec_course import CourseQuizQuestion, CourseQuizOption
-        questions = self.db.query(CourseQuizQuestion).filter(
-            CourseQuizQuestion.quiz_id == quiz_id
-        ).order_by(CourseQuizQuestion.order).all()
-        
+        from app.models.openspec_course import OpenSpecCourseQuizQuestion, OpenSpecCourseQuizOption
+        questions = self.db.query(OpenSpecCourseQuizQuestion).filter(
+            OpenSpecCourseQuizQuestion.quiz_id == quiz_id
+        ).order_by(OpenSpecCourseQuizQuestion.order).all()
+
         result = []
         for q in questions:
-            options = self.db.query(CourseQuizOption).filter(
-                CourseQuizOption.question_id == q.id
+            options = self.db.query(OpenSpecCourseQuizOption).filter(
+                OpenSpecCourseQuizOption.question_id == q.id
             ).all()
             result.append({
                 "id": q.id,
@@ -150,9 +150,9 @@ class OpenSpecCourseService:
             })
         return result
 
-    def create_quiz(self, quiz: QuizCreate) -> CourseQuiz:
+    def create_quiz(self, quiz: QuizCreate) -> OpenSpecCourseQuiz:
         """创建测验"""
-        db_quiz = CourseQuiz(
+        db_quiz = OpenSpecCourseQuiz(
             chapter_id=quiz.chapter_id,
             title=quiz.title,
             passing_score=quiz.passing_score,
@@ -162,7 +162,7 @@ class OpenSpecCourseService:
 
         # 创建问题和选项
         for q_idx, question in enumerate(quiz.questions):
-            db_question = CourseQuizQuestion(
+            db_question = OpenSpecCourseQuizQuestion(
                 quiz_id=db_quiz.id,
                 question_text=question.question_text,
                 question_type=question.question_type,
@@ -175,7 +175,7 @@ class OpenSpecCourseService:
 
             # 创建选项
             for option in question.options:
-                db_option = CourseQuizOption(
+                db_option = OpenSpecCourseQuizOption(
                     question_id=db_question.id,
                     option_text=option.option_text,
                     option_index=option.option_index,
@@ -187,7 +187,7 @@ class OpenSpecCourseService:
         logger.info(f"创建测验：{quiz.title}")
         return db_quiz
 
-    def update_quiz(self, quiz_id: int, quiz: QuizUpdate) -> Optional[CourseQuiz]:
+    def update_quiz(self, quiz_id: int, quiz: QuizUpdate) -> Optional[OpenSpecCourseQuiz]:
         """更新测验"""
         db_quiz = self.get_quiz_by_id(quiz_id)
         if not db_quiz:
@@ -218,8 +218,8 @@ class OpenSpecCourseService:
             raise ValueError(f"Quiz {quiz_id} not found")
 
         # 获取所有问题
-        questions = self.db.query(CourseQuizQuestion).filter(
-            CourseQuizQuestion.quiz_id == quiz_id
+        questions = self.db.query(OpenSpecCourseQuizQuestion).filter(
+            OpenSpecCourseQuizQuestion.quiz_id == quiz_id
         ).all()
 
         total_questions = len(questions)
@@ -235,8 +235,8 @@ class OpenSpecCourseService:
                 correct_count += 1
 
             # 获取选项文本
-            options = self.db.query(CourseQuizOption).filter(
-                CourseQuizOption.question_id == question.id
+            options = self.db.query(OpenSpecCourseQuizOption).filter(
+                OpenSpecCourseQuizOption.question_id == question.id
             ).all()
             option_texts = {opt.option_index: opt.option_text for opt in options}
 
@@ -384,24 +384,24 @@ class OpenSpecCourseService:
 
     # ============ 资源管理 ============
 
-    def get_resources_by_chapter_id(self, chapter_id: int) -> List[CourseResource]:
+    def get_resources_by_chapter_id(self, chapter_id: int) -> List[OpenSpecCourseResource]:
         """根据章节 ID 获取资源"""
-        return self.db.query(CourseResource).filter(
-            CourseResource.chapter_id == chapter_id
+        return self.db.query(OpenSpecCourseResource).filter(
+            OpenSpecCourseResource.chapter_id == chapter_id
         ).all()
 
-    def get_resource_by_id(self, resource_id: int) -> Optional[CourseResource]:
+    def get_resource_by_id(self, resource_id: int) -> Optional[OpenSpecCourseResource]:
         """根据 ID 获取资源"""
-        return self.db.query(CourseResource).filter(CourseResource.id == resource_id).first()
+        return self.db.query(OpenSpecCourseResource).filter(OpenSpecCourseResource.id == resource_id).first()
 
-    def create_resource(self, resource: ResourceCreate) -> CourseResource:
+    def create_resource(self, resource: ResourceCreate) -> OpenSpecCourseResource:
         """创建资源"""
         extra_data_str = None
         if resource.extra_data:
             import json
             extra_data_str = json.dumps(resource.extra_data, ensure_ascii=False)
 
-        db_resource = CourseResource(
+        db_resource = OpenSpecCourseResource(
             chapter_id=resource.chapter_id,
             resource_type=resource.resource_type,
             title=resource.title,
@@ -413,7 +413,7 @@ class OpenSpecCourseService:
         self.db.refresh(db_resource)
         return db_resource
 
-    def update_resource(self, resource_id: int, resource: ResourceUpdate) -> Optional[CourseResource]:
+    def update_resource(self, resource_id: int, resource: ResourceUpdate) -> Optional[OpenSpecCourseResource]:
         """更新资源"""
         db_resource = self.get_resource_by_id(resource_id)
         if not db_resource:

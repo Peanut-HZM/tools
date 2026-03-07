@@ -1,7 +1,7 @@
 """add category and suffix to llm_configs
 
 Revision ID: add_llm_config_category
-Revises:
+Revises: 5472dbd39274
 Create Date: 2026-03-03
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers
 revision = "add_llm_config_category"
-down_revision = None  # 设置为上一个迁移的 revision ID
+down_revision = "5472dbd39274"  # 依赖于 Product Manager Agent 表的迁移
 branch_labels = None
 depends_on = None
 

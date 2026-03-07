@@ -52,7 +52,43 @@ def init_course_data():
 - 📝 **复制粘贴所有代码**：要让 AI 改代码？先把整段代码贴给它
 - 🤔 **反复确认**：AI 生成的代码真的要逐行检查
 
-### 当时的 Prompt 示例
+### 为什么需要详细沟通？
+
+在初级阶段，AI 没有上下文理解能力，需要用户提供完整的信息：
+
+**❌ 糟糕的指令：**
+```
+"帮我改一下登录页面"
+```
+
+**✅ 好的指令：**
+```
+我需要修改前端登录页面，具体如下：
+1. 前端组件：frontend/src/components/Auth/LoginPage.tsx
+2. 修改内容：在表单底部添加"记住我"复选框
+3. 样式要求：使用 Tailwind CSS，复选框右侧对齐，文字为灰色
+4. 后端接口：POST /api/v1/auth/login
+5. 入参示例：{"email": "user@example.com", "password": "123456", "remember": true}
+6. 出参示例：{"token": "eyJhbGc...", "expiresIn": 86400}
+7. 需要同时修改类型定义：frontend/src/types/auth.ts
+```
+
+### 前端修改沟通模板
+
+修改前端组件时，需要说明的信息：
+
+| 信息类别 | 说明内容 | 示例 |
+|----------|----------|------|
+| **目标组件** | 要修改的文件路径 | `frontend/src/components/Header/Header.tsx` |
+| **容器/区域** | 具体修改的位置 | "Header 组件右侧，用户头像按钮旁边" |
+| **样式变更** | CSS/Tailwind 类名 | "添加 `ml-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded`" |
+| **功能逻辑** | 交互行为 | "点击后跳转到 /settings 页面，使用 useNavigate hook" |
+| **调用接口** | 后端 API | "调用 GET /api/v1/user/profile 获取用户信息" |
+| **入参示例** | 请求参数 | `{"userId": 123, "includeDetails": true}` |
+| **出参示例** | 响应数据 | `{"id": 123, "name": "张三", "email": "..."}` |
+| **类型定义** | TypeScript 类型 | "需要更新 `frontend/src/types/user.ts` 中的 User 接口" |
+
+### 当时我的 Prompt 示例
 
 ```
 请帮我写一个 Python 函数，功能是：
@@ -212,6 +248,70 @@ OpenSpec 是一个基于 Spec 的开发方法论，核心思想是：
 1. **Spec First**：先写规范，再生成代码
 2. **AI Native**：专为 AI 协作设计
 3. **Iterative**：支持迭代和版本管理
+4. **Skill-Based**：通过技能系统实现复杂任务
+
+### OpenSpec 技能详解
+
+#### 技能 1：openspec-new-change
+**用途：** 创建一个新的变更（change），启动结构化的开发流程。
+
+**什么时候使用：**
+- ✅ 有一个新功能要开发
+- ✅ 需要修复一个复杂的 bug
+- ✅ 要进行代码重构
+- ✅ 不确定具体实现方案，需要探索
+
+**使用示例：**
+```bash
+# 创建一个名为 add-user-auth 的变更
+openspec new change "add-user-auth"
+```
+
+#### 技能 2：openspec-explore（探索模式）
+**用途：** 进入探索模式，作为思考伙伴帮助探索想法、调查问题、澄清需求。
+
+**什么时候使用：**
+- ✅ 需求不明确，需要澄清
+- ✅ 面临多个技术方案，需要比较
+- ✅ stuck 在某个问题上，需要灵感
+
+**重要提醒：** 探索模式不写代码！只用于思考和捕获想法。
+
+#### 技能 3：openspec-continue-change
+**用途：** 继续一个进行中的变更，创建下一个所需的 artifact（产物）。
+
+**产物创建顺序（spec-driven schema）：**
+```
+proposal.md → specs/<capability>/spec.md → design.md → tasks.md
+```
+
+#### 技能 4：openspec-ff-change（Fast-Forward）
+**用途：** 快速跳过所有 artifact 的创建过程，一次性生成实现所需的所有产物。
+
+**什么时候使用：**
+- ✅ 需求明确，不需要逐步讨论
+- ✅ 时间紧张，想跳过中间的确认步骤
+- ✅ 已经有清晰的设计思路
+
+#### 技能 5：openspec-apply-change
+**用途：** 实现变更中的任务，按照 tasks.md 逐一完成开发工作。
+
+**工作流程：**
+```
+1. 读取 tasks.md → 2. 识别未完成的任务 → 3. 逐一实现
+```
+
+#### 技能 6：openspec-archive-change
+**用途：** 归档已完成的变更。
+
+### Superpowers 技能包
+
+Superpowers（brainstorming）是一套增强 AI 能力的技能系统：
+
+- 🔍 **代码理解**：快速理解大型代码库
+- 📝 **文档生成**：自动生成技术文档
+- 🧪 **测试生成**：自动编写单元测试
+- 🐛 **Bug 修复**：智能定位和修复问题
 
 ### Spec 文件示例
 
@@ -231,26 +331,25 @@ constraints:
   - 密码至少 8 位
   - token 有效期 24 小时
   - 支持记住登录状态
+
+api:
+  - POST /api/v1/auth/login
+    request:
+      email: string (required)
+      password: string (required, min: 8)
+      remember: boolean (optional)
+    response:
+      token: string
+      expiresIn: number
+      user: UserDTO
 ```
-
-### Superpowers 技能包
-
-Superpowers 是一套增强 AI 能力的技能系统：
-
-- 🔍 **代码理解**：快速理解大型代码库
-- 📝 **文档生成**：自动生成技术文档
-- 🧪 **测试生成**：自动编写单元测试
-- 🐛 **Bug 修复**：智能定位和修复问题
 
 ### 我的工作流
 
-```mermaid
-graph LR
-    A[写 Spec] --> B[AI 生成代码]
-    B --> C[Code Review]
-    C --> D{通过？}
-    D -->|是 | E[合并]
-    D -->|否 | A
+```
+写 Spec → AI 生成代码 → Code Review → 通过？→ 合并
+                                    ↓
+                                  不通过 → 修改 Spec
 ```
 
 ### 效率对比
@@ -267,68 +366,115 @@ graph LR
 
 ---
 
-**最后一章**：OpenSpec vs spec-kit 大对比！
+**最后一章**：OpenSpec vs spec-kit vs Superpowers 大对比！
 """,
                 "chapter_type": "code",
                 "is_locked": True,
             },
             {
                 "slug": "openspec-vs-speckit",
-                "title": "第五章：对比思考 - OpenSpec vs spec-kit ⚖️",
+                "title": "第五章：对比思考 - 三大工具对比 ⚖️",
                 "order": 5,
-                "content": """## 终极对比！
+                "content": """## 三大工具全方位对比！
 
-GitHub 也推出了 spec-kit，它和 OpenSpec 有什么区别？
+GitHub 有 spec-kit，Claude 有 Superpowers (brainstorming)，它们和 OpenSpec 有什么区别？
 
-### 功能对比表
+### 完整对比表
 
-| 功能 | OpenSpec | spec-kit |
-|------|----------|----------|
-| Spec 语法 | YAML/Markdown | Markdown |
-| 版本管理 | ✅ 完整支持 | ⚠️ 基础支持 |
-| AI 集成 | 🔥 深度集成 | 🔌 插件模式 |
-| 学习曲线 | 🟢 平缓 | 🟡 中等 |
-| 社区生态 | 🟡 发展中 | 🟢 GitHub 背书 |
-| 本地化 | ✅ 优秀 | ⚠️ 一般 |
-| 扩展性 | ✅ 强 | ✅ 强 |
+| 对比维度 | OpenSpec | spec-kit | Superpowers (brainstorming) |
+|----------|----------|----------|----------------------------|
+| **定位** | Spec 驱动的结构化开发方法论 | GitHub 官方的 Spec 工具包 | 头脑风暴与设计探索技能 |
+| **目标用户** | 追求高效 AI 协作的团队 | GitHub 重度用户、企业团队 | 需要设计先行的项目 |
+| **学习曲线** | 🟢 平缓（中文友好） | 🟡 中等（英文文档） | 🟢 低（对话式交互） |
+| **适用场景** | 功能开发、需求实现 | 大型项目、企业级规范 | 需求探索、设计讨论 |
+| **工作流** | new→explore→continue→apply→archive | propose→spec→design→build | explore→design→approve→plan |
+| **AI 协作深度** | 🔥 深度集成（技能系统） | 🔌 插件模式 | 🤖 原生 AI 对话 |
 
-### 各自优势
+### 工具选择决策树
 
-#### OpenSpec 的优势
+```
+需求是否清晰？
+│
+├── 否 ──→ Superpowers (brainstorming) 探索
+│          │
+│          ▼
+│       明确需求后
+│
+├── 是，复杂功能 ──→ OpenSpec
+│                   ├── 需求明确？→ /opsx:ff (快速创建)
+│                   └── 需要讨论？→ /opsx:new + continue
+│
+└── 是，简单修改 ──→ 直接用 AI 对话
+```
 
-1. **中文友好**：对中文 Spec 支持更好
-2. **开箱即用**：配置简单，快速上手
-3. **VibeCoding 理念**：更符合国内开发者习惯
-4. **活跃社区**：国内开发者社区活跃
+### 如何结合使用三个工具
 
-#### spec-kit 的优势
+**推荐的工作流：**
 
-1. **GitHub 原生**：与 GitHub 深度集成
-2. **企业支持**：适合大型企业
-3. **成熟稳定**：经过大量项目验证
-4. **生态丰富**：丰富的插件和模板
+```
+第一阶段              第二阶段              第三阶段
+─────────            ─────────            ─────────
+Superpowers    →     OpenSpec       →     编码实现
+(探索需求)            (创建规范)            (apply)
+     │                   │
+     │                   ▼
+     │              创建 Spec
+     │                   │
+     ▼                   ▼
+ 探索清楚后          逐一实现任务
+```
 
-### 我的建议
+**实际案例：开发用户认证系统**
 
-**选择 OpenSpec，如果你：**
-- ✅ 是 AI 编程新手
-- ✅ 想要快速上手
-- ✅ 主要写中文文档
-- ✅ 喜欢 VibeCoding 文化
+1. **阶段 1：使用 Superpowers 探索（需求不明确）**
+   - 分析认证方案（JWT vs Session vs OAuth）
+   - 比较各方案优劣
+   - 产出：design doc（设计文档）
 
-**选择 spec-kit，如果你：**
-- ✅ 已经在用 GitHub 生态
-- ✅ 需要企业级支持
-- ✅ 有国际化需求
-- ✅ 需要高度定制
+2. **阶段 2：使用 OpenSpec 创建规范（需求明确后）**
+   - `/opsx:new add-user-auth`
+   - 创建 proposal.md、specs/、design.md、tasks.md
 
-### 最终总结
+3. **阶段 3：使用 OpenSpec Apply 实现**
+   - `/opsx:apply add-user-auth`
+   - 逐一完成任务
 
-无论是 OpenSpec 还是 spec-kit，**核心都是提升开发效率**。
+### 各工具的最佳实践时刻
 
-> **工具只是手段，高效开发才是目的。**
+**OpenSpec 适合：**
+- ✅ "我们要开发一个新的仪表盘功能"
+- ✅ "需要重构用户模块，提升可维护性"
+- ✅ "这个 bug 需要系统性修复"
 
-重要的是掌握 Spec-Driven 的思维方式，而不是纠结于选择哪个工具。
+**spec-kit 适合：**
+- ✅ "这是一个开源项目，需要社区讨论"
+- ✅ "我们要写一个 RFC，征求团队意见"
+- ✅ "需要与企业 GitHub 工作流集成"
+
+**Superpowers 适合：**
+- ✅ "我有一个想法，但不确定是否可行"
+- ✅ "这个项目应该怎么架构？"
+- ✅ "方案 A 和方案 B 哪个更好？"
+
+### 总结
+
+> **重要的不是选择哪个工具，而是掌握 Spec-Driven 的思维方式。**
+
+无论选择哪个工具，核心都是：
+1. **先思考，再行动** - 不要冲动编码
+2. **文档化** - 把想法写下来
+3. **结构化** - 分解复杂问题
+4. **可迭代** - 允许修改和完善
+
+**我们的建议：**
+
+| 你的情况 | 推荐工具 |
+|----------|----------|
+| 国内团队，中文环境 | OpenSpec |
+| GitHub 重度用户 | spec-kit |
+| 需求不明确，需要探索 | Superpowers |
+| 复杂功能开发 | OpenSpec |
+| 简单修改 | 直接用 AI 对话 |
 
 ---
 
@@ -339,6 +485,7 @@ GitHub 也推出了 spec-kit，它和 OpenSpec 有什么区别？
 - ✅ Rules 的使用方法
 - ✅ OpenSpec 的基础知识
 - ✅ Spec 文件的编写技巧
+- ✅ 三大工具的选择策略
 
 **开始你的 VibeCoding 之旅吧！** 🚀
 """,
@@ -359,7 +506,7 @@ GitHub 也推出了 spec-kit，它和 OpenSpec 有什么区别？
 
         quizzes_data = [
             {
-                "chapter_id": 1,
+                "chapter": created_chapters[0],  # 使用章节对象
                 "title": "VibeCoding 入门测验",
                 "passing_score": 60,
                 "questions": [
@@ -390,7 +537,7 @@ GitHub 也推出了 spec-kit，它和 OpenSpec 有什么区别？
                 ],
             },
             {
-                "chapter_id": 2,
+                "chapter": created_chapters[1],  # 使用章节对象
                 "title": "AI 问题识别测验",
                 "passing_score": 60,
                 "questions": [
@@ -421,7 +568,7 @@ GitHub 也推出了 spec-kit，它和 OpenSpec 有什么区别？
                 ],
             },
             {
-                "chapter_id": 3,
+                "chapter": created_chapters[2],  # 使用章节对象
                 "title": "Rules 使用测验",
                 "passing_score": 80,
                 "questions": [
@@ -455,8 +602,9 @@ GitHub 也推出了 spec-kit，它和 OpenSpec 有什么区别？
 
         created_quizzes = []
         for quiz_data in quizzes_data:
+            chapter = quiz_data.pop("chapter")  # 取出章节对象
             questions = quiz_data.pop("questions")
-            quiz = CourseQuiz(**quiz_data)
+            quiz = CourseQuiz(**quiz_data, chapter_id=chapter.id)  # 使用章节 ID
             session.add(quiz)
             session.flush()
 

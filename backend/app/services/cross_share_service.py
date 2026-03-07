@@ -177,6 +177,22 @@ class CrossShareService:
         self.db.refresh(db_message)
         return db_message
 
+    def update_message(self, message_id: str, user_id: str, content: Optional[str] = None, message_type: Optional[str] = None) -> Optional[CrossMessage]:
+        """更新消息"""
+        db_message = self.get_message_by_id(message_id, user_id)
+        if not db_message:
+            return None
+
+        if content is not None:
+            db_message.content = content
+        if message_type is not None:
+            db_message.message_type = message_type
+
+        self.db.commit()
+        self.db.refresh(db_message)
+        logger.info(f"消息已更新：id={message_id}, user_id={user_id}")
+        return db_message
+
     def delete_message(self, message_id: str, user_id: str) -> bool:
         """删除消息"""
         db_message = self.get_message_by_id(message_id, user_id)
@@ -290,6 +306,22 @@ class CrossShareService:
         self.db.commit()
         logger.info(f"文件已删除：{file_id}")
         return True
+
+    def update_file(self, file_id: str, user_id: str, file_name: Optional[str] = None, file_type: Optional[str] = None) -> Optional[CrossFile]:
+        """更新文件信息"""
+        db_file = self.get_file_by_id(file_id, user_id)
+        if not db_file:
+            return None
+
+        if file_name is not None:
+            db_file.file_name = file_name
+        if file_type is not None:
+            db_file.file_type = file_type
+
+        self.db.commit()
+        self.db.refresh(db_file)
+        logger.info(f"文件已更新：id={file_id}, user_id={user_id}")
+        return db_file
 
     def increment_download_count(self, file_id: str, user_id: str) -> Optional[CrossFile]:
         """增加下载计数"""

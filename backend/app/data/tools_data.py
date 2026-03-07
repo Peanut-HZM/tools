@@ -152,6 +152,16 @@ TOOLS_DATA = [
         usageCount="New",
         category="实用工具",
     ),
+    Tool(
+        id="course-platform",
+        icon="fa-graduation-cap",
+        iconColor="bg-cyan-500",
+        title="技术分享",
+        description="技术课程学习平台，提供高质量的技術课程和实战练习",
+        rating=5.0,
+        usageCount="New",
+        category="学习工具",
+    ),
 ]
 
 

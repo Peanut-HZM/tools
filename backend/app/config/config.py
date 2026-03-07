@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     USERS_DATA_PATH: str = "./data/users"
     
     # Database
-    DATABASE_URL: str = "postgresql://postgres:Peanut2817*#@39.107.229.30:5432/tools"
+    DATABASE_URL: str
     # Security
     JWT_SECRET_KEY: str = "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4="
     JWT_ALGORITHM: str = "HS256"

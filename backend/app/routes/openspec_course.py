@@ -128,9 +128,21 @@ async def get_chapter(
                 r_data["extra_data"] = None
             processed_resources.append(r_data)
 
-        resources = processed_resources
+        # 处理测验数据（手动构建 questions）
+        quiz_data = None
+        if quiz:
+            questions = service.get_quiz_questions(quiz.id)
+            quiz_data = {
+                "id": quiz.id,
+                "chapter_id": quiz.chapter_id,
+                "title": quiz.title,
+                "passing_score": quiz.passing_score,
+                "created_at": quiz.created_at,
+                "updated_at": quiz.updated_at,
+                "questions": questions or [],
+            }
 
-        # 构建响应数据
+        # 构建响应数据 - 直接使用 ORM 对象，让 Pydantic 的 from_attributes 处理
         result = {
             "id": chapter.id,
             "slug": chapter.slug,
@@ -143,30 +155,17 @@ async def get_chapter(
             "required_quiz_id": chapter.required_quiz_id,
             "created_at": chapter.created_at,
             "updated_at": chapter.updated_at,
-            "resources": resources,
+            "quiz": quiz_data,
+            "resources": processed_resources,
         }
-
-        # 处理测验数据（手动构建 questions）
-        if quiz:
-            questions = service.get_quiz_questions(quiz.id)
-            quiz_data = {
-                "id": quiz.id,
-                "chapter_id": quiz.chapter_id,
-                "title": quiz.title,
-                "passing_score": quiz.passing_score,
-                "created_at": quiz.created_at,
-                "updated_at": quiz.updated_at,
-                "questions": questions or [],
-            }
-            result["quiz"] = quiz_data
-        else:
-            result["quiz"] = None
 
         return result
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"获取章节详情失败 (chapter_id={chapter_id}): {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="获取章节详情失败")
 
 
@@ -316,12 +315,24 @@ async def get_quiz_by_chapter(
     service: OpenSpecCourseService = Depends(get_course_service),
     db: Session = Depends(get_db),
 ):
-    """获取章节对应的测验"""
+    """获取章节对应的测验（包含题目和选项）"""
     try:
         quiz = service.get_quiz_by_chapter_id(chapter_id)
         if not quiz:
             raise HTTPException(status_code=404, detail="该章节没有测验")
-        return quiz
+
+        # 手动构建包含题目的响应
+        questions = service.get_quiz_questions(quiz.id)
+        quiz_data = {
+            "id": quiz.id,
+            "chapter_id": quiz.chapter_id,
+            "title": quiz.title,
+            "passing_score": quiz.passing_score,
+            "created_at": quiz.created_at,
+            "updated_at": quiz.updated_at,
+            "questions": questions or [],
+        }
+        return quiz_data
     except HTTPException:
         raise
     except Exception as e:

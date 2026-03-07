@@ -26,6 +26,14 @@ import {
   type ResourceCreate,
   type ResourceUpdate,
 } from '../services/openspecCourseAdmin';
+import {
+  getAdminCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  publishCourse,
+  type Course,
+} from '../services/coursePlatform';
 
 interface ChapterState {
   chapters: Chapter[];
@@ -250,6 +258,74 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         Object.entries(state.resources).map(([key, value]) =>
           [key, value.filter((r) => r.id !== resourceId)]
         )
+      ),
+    }));
+  },
+
+  clearError: () => {
+    set({ error: null });
+  },
+}));
+
+// ============ 课程 Store ============
+
+interface CourseState {
+  courses: Course[];
+  loading: boolean;
+  error: string | null;
+
+  // Actions
+  fetchCourses: (params?: { status?: string; page?: number; limit?: number }) => Promise<void>;
+  saveCourse: (courseData: Partial<Course>, courseId?: number) => Promise<Course>;
+  deleteCourse: (courseId: number) => Promise<void>;
+  togglePublish: (courseId: number, publish: boolean) => Promise<void>;
+  clearError: () => void;
+}
+
+export const useCourseAdminStore = create<CourseState>((set, get) => ({
+  courses: [],
+  loading: false,
+  error: null,
+
+  fetchCourses: async (params) => {
+    set({ loading: true, error: null });
+    try {
+      const data = await getAdminCourses(params);
+      set({ courses: data.courses, loading: false });
+    } catch (error) {
+      set({
+        loading: false,
+        error: error instanceof Error ? error.message : '获取课程列表失败',
+      });
+    }
+  },
+
+  saveCourse: async (courseData, courseId) => {
+    let course: Course;
+    if (courseId) {
+      course = await updateCourse(courseId, courseData);
+      set((state) => ({
+        courses: state.courses.map((c) => (c.id === courseId ? course : c)),
+      }));
+    } else {
+      course = await createCourse(courseData);
+      set((state) => ({ courses: [...state.courses, course] }));
+    }
+    return course;
+  },
+
+  deleteCourse: async (courseId) => {
+    await deleteCourse(courseId);
+    set((state) => ({
+      courses: state.courses.filter((c) => c.id !== courseId),
+    }));
+  },
+
+  togglePublish: async (courseId, publish) => {
+    await publishCourse(courseId, publish);
+    set((state) => ({
+      courses: state.courses.map((c) =>
+        c.id === courseId ? { ...c, is_published: publish } : c
       ),
     }));
   },

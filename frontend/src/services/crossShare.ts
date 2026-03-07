@@ -5,6 +5,23 @@ import axios from 'axios';
 
 const API_BASE_URL = '/api/cross-share';
 
+/**
+ * 获取认证请求头
+ * 从 localStorage 获取 auth_token，与主系统保持一致
+ */
+function getHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  }
+  return {
+    'Content-Type': 'application/json'
+  };
+}
+
 // ============ 类型定义 ============
 
 export interface Device {
@@ -93,7 +110,7 @@ export interface DownloadUrlResponse {
 export const deviceApi = {
   /** 获取设备列表 */
   getDevices: async (): Promise<Device[]> => {
-    const response = await axios.get(`${API_BASE_URL}/devices`);
+    const response = await axios.get(`${API_BASE_URL}/devices`, { headers: getHeaders() });
     return response.data.devices;
   },
 
@@ -103,24 +120,24 @@ export const deviceApi = {
       device_name: deviceName,
       device_type: deviceType,
       device_token: deviceToken,
-    });
+    }, { headers: getHeaders() });
     return response.data;
   },
 
   /** 更新设备 */
   updateDevice: async (deviceId: string, data: Partial<Device>): Promise<Device> => {
-    const response = await axios.put(`${API_BASE_URL}/devices/${deviceId}`, data);
+    const response = await axios.put(`${API_BASE_URL}/devices/${deviceId}`, data, { headers: getHeaders() });
     return response.data;
   },
 
   /** 删除设备 */
   deleteDevice: async (deviceId: string): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/devices/${deviceId}`);
+    await axios.delete(`${API_BASE_URL}/devices/${deviceId}`, { headers: getHeaders() });
   },
 
   /** 更新设备活跃时间 */
   pingDevice: async (deviceId: string): Promise<Device> => {
-    const response = await axios.post(`${API_BASE_URL}/devices/${deviceId}/ping`);
+    const response = await axios.post(`${API_BASE_URL}/devices/${deviceId}/ping`, {}, { headers: getHeaders() });
     return response.data;
   },
 };
@@ -135,7 +152,7 @@ export const messageApi = {
     if (messageType) {
       params.message_type = messageType;
     }
-    const response = await axios.get(`${API_BASE_URL}/messages`, { params });
+    const response = await axios.get(`${API_BASE_URL}/messages`, { params, headers: getHeaders() });
     return response.data.messages;
   },
 
@@ -149,18 +166,31 @@ export const messageApi = {
       content,
       message_type: messageType,
       file_id: fileId,
-    });
+    }, { headers: getHeaders() });
+    return response.data;
+  },
+
+  /** 编辑消息 */
+  updateMessage: async (
+    messageId: string,
+    content?: string,
+    messageType?: string
+  ): Promise<Message> => {
+    const response = await axios.put(`${API_BASE_URL}/messages/${messageId}`, {
+      content,
+      message_type: messageType,
+    }, { headers: getHeaders() });
     return response.data;
   },
 
   /** 删除消息 */
   deleteMessage: async (messageId: string): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/messages/${messageId}`);
+    await axios.delete(`${API_BASE_URL}/messages/${messageId}`, { headers: getHeaders() });
   },
 
   /** 标记消息为已读 */
   markMessageRead: async (messageId: string): Promise<Message> => {
-    const response = await axios.post(`${API_BASE_URL}/messages/${messageId}/read`);
+    const response = await axios.post(`${API_BASE_URL}/messages/${messageId}/read`, {}, { headers: getHeaders() });
     return response.data;
   },
 
@@ -168,6 +198,7 @@ export const messageApi = {
   getClipboardHistory: async (limit = 100): Promise<Message[]> => {
     const response = await axios.get(`${API_BASE_URL}/messages/clipboard`, {
       params: { limit },
+      headers: getHeaders()
     });
     return response.data.messages;
   },
@@ -176,7 +207,7 @@ export const messageApi = {
   syncClipboard: async (content: string): Promise<Message> => {
     const response = await axios.post(`${API_BASE_URL}/messages/clipboard`, {
       content,
-    });
+    }, { headers: getHeaders() });
     return response.data;
   },
 };
@@ -199,13 +230,13 @@ export const fileApi = {
     if (search) {
       params.search = search;
     }
-    const response = await axios.get(`${API_BASE_URL}/files`, { params });
+    const response = await axios.get(`${API_BASE_URL}/files`, { params, headers: getHeaders() });
     return response.data.files;
   },
 
   /** 获取文件详情 */
   getFile: async (fileId: string): Promise<CrossFile> => {
-    const response = await axios.get(`${API_BASE_URL}/files/${fileId}`);
+    const response = await axios.get(`${API_BASE_URL}/files/${fileId}`, { headers: getHeaders() });
     return response.data;
   },
 
@@ -219,7 +250,7 @@ export const fileApi = {
       file_name: fileName,
       file_size: fileSize,
       file_type: fileType,
-    });
+    }, { headers: getHeaders() });
     return response.data;
   },
 
@@ -229,7 +260,7 @@ export const fileApi = {
     uploadUrl: string,
     ossKey: string
   ): Promise<void> => {
-    // 直传 OSS
+    // 直传 OSS，不需要认证头
     await axios.put(uploadUrl, file, {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
@@ -239,18 +270,31 @@ export const fileApi = {
 
   /** 删除文件 */
   deleteFile: async (fileId: string): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/files/${fileId}`);
+    await axios.delete(`${API_BASE_URL}/files/${fileId}`, { headers: getHeaders() });
+  },
+
+  /** 更新文件信息 */
+  updateFile: async (
+    fileId: string,
+    fileName?: string,
+    fileType?: string
+  ): Promise<CrossFile> => {
+    const response = await axios.put(`${API_BASE_URL}/files/${fileId}`, {
+      file_name: fileName,
+      file_type: fileType,
+    }, { headers: getHeaders() });
+    return response.data;
   },
 
   /** 获取下载链接 */
   getDownloadUrl: async (fileId: string): Promise<DownloadUrlResponse> => {
-    const response = await axios.post(`${API_BASE_URL}/files/${fileId}/download`);
+    const response = await axios.post(`${API_BASE_URL}/files/${fileId}/download`, {}, { headers: getHeaders() });
     return response.data;
   },
 
   /** 获取存储统计 */
   getStorageStats: async (): Promise<StorageStats> => {
-    const response = await axios.get(`${API_BASE_URL}/files/stats`);
+    const response = await axios.get(`${API_BASE_URL}/files/stats`, { headers: getHeaders() });
     return response.data;
   },
 };
@@ -261,13 +305,13 @@ export const fileApi = {
 export const configApi = {
   /** 获取用户配置 */
   getConfig: async (): Promise<UserConfig> => {
-    const response = await axios.get(`${API_BASE_URL}/config`);
+    const response = await axios.get(`${API_BASE_URL}/config`, { headers: getHeaders() });
     return response.data;
   },
 
   /** 更新用户配置 */
   updateConfig: async (data: Partial<UserConfig>): Promise<UserConfig> => {
-    const response = await axios.put(`${API_BASE_URL}/config`, data);
+    const response = await axios.put(`${API_BASE_URL}/config`, data, { headers: getHeaders() });
     return response.data;
   },
 };

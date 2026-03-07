@@ -14,7 +14,7 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
   const { t, language, toggleLanguage } = useI18n();
 
   return (
-    <header className="bg-slate-800 border-b border-slate-700">
+    <header className="sticky top-0 z-50 bg-slate-800 border-b border-slate-700">
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-10">
           <Link to="/" className="text-2xl font-['Pacifico'] text-primary" key={language}>

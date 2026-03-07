@@ -17,6 +17,8 @@ from app.routes import auth
 from app.routes import markdown_editor
 from app.routes import openspec_course
 from app.routes import cross_share
+from app.routes import course_platform
+from app.routes import course_platform_admin
 from app.api.routes import llm_config, conversations, prd, messages, health
 from app.services.download_manager import get_manager
 import asyncio
@@ -139,6 +141,12 @@ app.include_router(openspec_course.router)
 
 # CrossShare router
 app.include_router(cross_share.router)
+
+# Course Platform router
+app.include_router(course_platform.router)
+
+# Course Platform Admin router
+app.include_router(course_platform_admin.router)
 
 # Product Manager Agent routers
 app.include_router(llm_config.router, prefix="/api/v1")

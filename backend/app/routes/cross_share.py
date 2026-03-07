@@ -16,10 +16,12 @@ from app.schemas.cross_share import (
     DeviceResponse,
     DeviceListResponse,
     MessageCreate,
+    MessageUpdate,
     MessageResponse,
     MessageListResponse,
     ClipboardSyncRequest,
     FileCreate,
+    FileUpdate,
     FileResponse,
     FileListResponse,
     FileStats,
@@ -31,28 +33,40 @@ from app.schemas.cross_share import (
     MessageType,
     FileType,
 )
+from app.services.auth_service import get_auth_service
 
 router = APIRouter(prefix="/api/cross-share", tags=["cross-share"])
 
 
 def get_current_user_id(
-    request: Request,
-    authorization: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None, description="Bearer token"),
 ) -> str:
-    """获取当前用户 ID"""
-    # TODO: 从 JWT token 中解析用户 ID
-    # 暂时从 header 中获取（简化处理）
-    user_id = request.headers.get("X-User-Id")
-    if not user_id and authorization:
-        # 尝试从 authorization header 解析
-        # 这里应该解析 JWT，暂时简化处理
-        pass
+    """
+    从 JWT token 中获取当前用户 ID
 
-    if not user_id:
-        # 对于开发环境，使用默认用户 ID
-        user_id = "default-user"
+    Args:
+        authorization: Authorization header (Bearer <token>)
 
-    return user_id
+    Returns:
+        用户 ID
+
+    Raises:
+        HTTPException: 如果 token 缺失或无效
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header format")
+
+    token = authorization[7:]  # Remove "Bearer " prefix
+
+    try:
+        auth_service = get_auth_service()
+        token_data = auth_service.verify_token_data(token)
+        return token_data.user_id
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 
 def get_cross_share_service(db: Session = Depends(get_db)) -> CrossShareService:
@@ -205,6 +219,25 @@ async def delete_message(
     if not service.delete_message(message_id, current_user):
         raise HTTPException(status_code=404, detail="消息不存在")
     return {"message": "消息已删除"}
+
+
+@router.put("/messages/{message_id}", response_model=MessageResponse)
+async def update_message(
+    message_id: str,
+    message: MessageUpdate,
+    service: CrossShareService = Depends(get_cross_share_service),
+    current_user: str = Depends(get_current_user_id),
+):
+    """编辑消息"""
+    updated = service.update_message(
+        message_id=message_id,
+        user_id=current_user,
+        content=message.content,
+        message_type=message.message_type.value if message.message_type else None,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="消息不存在")
+    return updated
 
 
 @router.post("/messages/{message_id}/read", response_model=MessageResponse)
@@ -384,6 +417,25 @@ async def delete_file(
     if not service.delete_file(file_id, current_user):
         raise HTTPException(status_code=404, detail="文件不存在")
     return {"message": "文件已删除"}
+
+
+@router.put("/files/{file_id}", response_model=FileResponse)
+async def update_file(
+    file_id: str,
+    file: FileUpdate,
+    service: CrossShareService = Depends(get_cross_share_service),
+    current_user: str = Depends(get_current_user_id),
+):
+    """更新文件信息"""
+    updated = service.update_file(
+        file_id=file_id,
+        user_id=current_user,
+        file_name=file.file_name,
+        file_type=file.file_type.value if file.file_type else None,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="文件不存在")
+    return updated
 
 
 @router.post("/files/{file_id}/download", response_model=DownloadUrlResponse)

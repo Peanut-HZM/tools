@@ -8,18 +8,30 @@ interface OpenSpecCourseCardProps {
   progress?: number;
   completedChapters?: number;
   totalChapters?: number;
+  courseId?: number;
+  courseSlug?: string;
 }
 
 const OpenSpecCourseCard: React.FC<OpenSpecCourseCardProps> = ({
   progress = 0,
   completedChapters = 0,
   totalChapters = 5,
+  courseId,
+  courseSlug = 'openspec-vibecoding', // 默认 slug
 }) => {
   const navigate = useNavigate();
 
+  const handleClick = () => {
+    if (courseSlug) {
+      navigate(`/courses/${courseSlug}`);
+    } else {
+      navigate('/tools/openspec-course');
+    }
+  };
+
   return (
     <div
-      onClick={() => navigate('/tools/openspec-course')}
+      onClick={handleClick}
       className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/30"
     >
       {/* Animated Background Pattern */}
@@ -78,7 +90,13 @@ const OpenSpecCourseCard: React.FC<OpenSpecCourseCardProps> = ({
             )}
 
             {/* CTA Button */}
-            <button className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl transition-colors inline-flex items-center space-x-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClick();
+              }}
+              className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl transition-colors inline-flex items-center space-x-2"
+            >
               <span>{progress > 0 ? '继续学习' : '开始学习'}</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />

@@ -91,6 +91,8 @@ class MessageCreate(MessageBase):
 
 class MessageUpdate(BaseModel):
     """更新消息请求"""
+    content: Optional[str] = None
+    message_type: Optional[MessageType] = None
     is_read: Optional[bool] = None
 
 
@@ -138,7 +140,8 @@ class FileCreate(FileBase):
 
 class FileUpdate(BaseModel):
     """更新文件请求"""
-    pass
+    file_name: Optional[str] = None
+    file_type: Optional[FileType] = None
 
 
 class FileResponse(FileBase):

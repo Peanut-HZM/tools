@@ -16,6 +16,7 @@ const MessagePanel: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast, showToast } = useToast();
 
@@ -88,6 +89,23 @@ const MessagePanel: React.FC = () => {
         console.error('Failed to sync clipboard:', error);
         showToast('同步剪贴板失败：' + (error.response?.data?.detail || error.message), 'error');
       }
+    }
+  };
+
+  const handleDelete = async (messageId: string) => {
+    if (!confirm('确定要删除这条消息吗？')) return;
+
+    setDeletingId(messageId);
+    try {
+      await messageApi.deleteMessage(messageId);
+      showToast('消息已删除', 'success');
+      loadMessages();
+    } catch (error: any) {
+      console.error('Failed to delete message:', error);
+      const errorMsg = error.response?.data?.detail || error.message || '未知错误';
+      showToast('删除失败：' + errorMsg, 'error');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -179,16 +197,26 @@ const MessagePanel: React.FC = () => {
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex items-start space-x-3 ${
+              className={`flex items-start space-x-3 group ${
                 msg.message_type === 'clipboard' ? 'opacity-70' : ''
               }`}
             >
               <div className="text-2xl">{getMessageIcon(msg.message_type)}</div>
-              <div className="flex-1 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+              <div className="flex-1 bg-slate-700/50 rounded-lg p-4 border border-slate-600 relative">
                 {renderMessageContent(msg)}
-                <div className="text-xs text-slate-500 mt-2">
-                  {new Date(msg.created_at).toLocaleString('zh-CN')}
-                  {msg.message_type === 'clipboard' && ' • 剪贴板'}
+                <div className="text-xs text-slate-500 mt-2 flex items-center justify-between">
+                  <span>
+                    {new Date(msg.created_at).toLocaleString('zh-CN')}
+                    {msg.message_type === 'clipboard' && ' • 剪贴板'}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(msg.id)}
+                    disabled={deletingId === msg.id}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="删除消息"
+                  >
+                    {deletingId === msg.id ? '删除中...' : '🗑️ 删除'}
+                  </button>
                 </div>
               </div>
             </div>

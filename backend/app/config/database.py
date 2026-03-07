@@ -6,6 +6,7 @@ from typing import Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import logging
+from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,8 @@ def parse_database_url(url: str) -> dict:
             auth_part, conn_part = url.split("@", 1)
             if ":" in auth_part:
                 user, password = auth_part.split(":", 1)
+                # URL 解码密码（处理特殊字符如 *=%2A, #=%23）
+                password = unquote(password)
             else:
                 user = auth_part
                 password = ""

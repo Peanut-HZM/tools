@@ -15,7 +15,7 @@ class ChapterBase(BaseModel):
     title: str = Field(..., description="章节标题", min_length=1, max_length=200)
     order: int = Field(default=0, description="章节顺序", ge=0)
     content: str = Field(..., description="章节内容（Markdown 格式）", min_length=1)
-    chapter_type: str = Field(default="story", description="章节类型：story-故事章，lesson-课程章，quiz-only-纯测验章")
+    chapter_type: str = Field(default="story", description="章节类型：story-故事章，lesson-课程章，quiz-only-纯测验章，code-代码章，video-视频章")
     video_url: Optional[str] = Field(default=None, description="视频外链 URL", max_length=500)
     is_locked: bool = Field(default=False, description="是否锁定（锁定后用户无法学习）")
     required_quiz_id: Optional[int] = Field(default=None, description="关联的测验 ID")
@@ -32,7 +32,7 @@ class ChapterBase(BaseModel):
     @classmethod
     def validate_chapter_type(cls, v: str) -> str:
         """验证章节类型"""
-        allowed_types = ["story", "lesson", "quiz-only"]
+        allowed_types = ["story", "lesson", "quiz-only", "code", "video"]
         if v not in allowed_types:
             raise ValueError(f"章节类型必须是 {', '.join(allowed_types)} 之一")
         return v
@@ -265,7 +265,7 @@ class ResourceBase(BaseModel):
     @classmethod
     def validate_resource_type(cls, v: str) -> str:
         """验证资源类型"""
-        allowed_types = ["code", "contrast", "video", "template"]
+        allowed_types = ["code", "contrast", "video", "template", "code_sample"]
         if v not in allowed_types:
             raise ValueError(f"资源类型必须是 {', '.join(allowed_types)} 之一")
         return v
