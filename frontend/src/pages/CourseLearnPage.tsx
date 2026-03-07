@@ -320,11 +320,10 @@ const CourseLearnPage: React.FC = () => {
 
                 {/* Content */}
                 <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-8 border border-slate-700/50 mb-8">
-                  <div className="prose prose-invert prose-lg max-w-none">
+                  <div className="prose prose-invert prose-lg max-w-none text-white/80">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       rehypePlugins={[rehypeHighlight, rehypeSanitize]}
-                      className="text-white/80 leading-relaxed"
                       components={{
                         // 自定义代码块渲染
                         code({ node, inline, className, children, ...props }: any) {
