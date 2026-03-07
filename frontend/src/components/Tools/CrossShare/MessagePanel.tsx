@@ -17,10 +17,11 @@ const MessagePanel: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [isAtBottom, setIsAtBottom] = useState(true); // 追踪用户是否在底部
-  const [hasNewMessage, setHasNewMessage] = useState(false); // 是否有新消息（当用户不在底部时）
+  const [hasUserScrolled, setHasUserScrolled] = useState(false); // 用户是否曾经手动向上滚动
+  const [showScrollButton, setShowScrollButton] = useState(false); // 是否显示滚动按钮
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isInitialLoad = useRef(true); // 是否是首次加载
   const { toast, showToast } = useToast();
 
   // 检查用户是否在底部
@@ -28,7 +29,7 @@ const MessagePanel: React.FC = () => {
     const container = messagesContainerRef.current;
     if (!container) return true;
 
-    const threshold = 50; // 距离底部 50px 以内都算在底部
+    const threshold = 100; // 距离底部 100px 以内都算在底部
     const scrollTop = container.scrollTop;
     const scrollHeight = container.scrollHeight;
     const clientHeight = container.clientHeight;
@@ -42,7 +43,13 @@ const MessagePanel: React.FC = () => {
     if (!container) return;
 
     const handleScroll = () => {
-      setIsAtBottom(checkIsAtBottom());
+      const atBottom = checkIsAtBottom();
+      if (!atBottom) {
+        setHasUserScrolled(true);
+        setShowScrollButton(true);
+      } else {
+        setShowScrollButton(false);
+      }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -56,15 +63,23 @@ const MessagePanel: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 只有当用户在底部时才自动滚动
+  // 只在首次加载或用户已经在底部时才自动滚动
   useEffect(() => {
-    if (isAtBottom) {
-      scrollToBottom();
-      setHasNewMessage(false);
-    } else {
-      // 用户不在底部，标记有新消息
-      setHasNewMessage(true);
+    if (isInitialLoad.current) {
+      // 首次加载完成后，延迟滚动确保 DOM 已渲染
+      setTimeout(() => {
+        scrollToBottom();
+        isInitialLoad.current = false;
+      }, 100);
+    } else if (!hasUserScrolled) {
+      // 如果用户从未手动滚动过，保持自动滚动
+      setTimeout(() => {
+        if (checkIsAtBottom()) {
+          scrollToBottom();
+        }
+      }, 50);
     }
+    // 如果用户已经手动滚动过，不再自动滚动
   }, [messages]);
 
   const loadMessages = async () => {
@@ -93,7 +108,8 @@ const MessagePanel: React.FC = () => {
   // 手动滚动到底部按钮
   const handleScrollToBottom = () => {
     scrollToBottom();
-    setHasNewMessage(false);
+    setHasUserScrolled(false); // 重置标志，允许后续自动滚动
+    setShowScrollButton(false);
   };
 
   const handleSend = async () => {
@@ -266,18 +282,14 @@ const MessagePanel: React.FC = () => {
         )}
         <div ref={messagesEndRef} />
 
-        {/* 滚动到底部按钮 - 当用户不在底部时显示 */}
-        {!isAtBottom && (
+        {/* 滚动到底部按钮 - 当用户手动向上滚动后显示 */}
+        {showScrollButton && (
           <button
             onClick={handleScrollToBottom}
             className="absolute bottom-4 right-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-lg transition-all duration-300 flex items-center space-x-2"
           >
+            <i className="fas fa-arrow-down"></i>
             <span>滚动到底部</span>
-            {hasNewMessage && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                新
-              </span>
-            )}
           </button>
         )}
       </div>
