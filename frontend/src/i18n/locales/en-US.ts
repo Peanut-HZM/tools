@@ -37,6 +37,7 @@ export const enUS = {
     about: 'About',
     help: 'Help',
     feedback: 'Feedback',
+    contactUs: 'Contact Us',
   },
 
   // Auth
@@ -86,7 +87,7 @@ export const enUS = {
     '设计工具': 'Design',
     '实用工具': 'Utilities',
     '开发工具': 'Dev Tools',
-    'AI工具': 'AI Tools',
+    'AI 工具': 'AI Tools',
   },
 
   // Features
@@ -112,24 +113,32 @@ export const enUS = {
   // Footer
   footer: {
     desc: 'One-stop collection of practical tools to improve work efficiency and simplify daily tasks.',
-    toolCategories: 'Categories',
-    support: 'Support',
-    about: 'About Us',
-    copyright: '© 2024 . All rights reserved. | ICP 12345678',
-    links: {
-      textTools: 'Text Tools',
-      convertTools: 'Conversion Tools',
-      calcTools: 'Calculation Tools',
-      designTools: 'Design Tools',
-      help: 'Help',
-      feedback: 'Feedback',
-      api: 'API',
-      docs: 'Documentation',
-      intro: 'Company',
-      team: 'Team',
-      contact: 'Contact',
-      jobs: 'Careers',
-    }
+    copyright: '© 2024 Toolbox. All rights reserved.',
+    contactUs: 'Contact Us',
+  },
+
+  // Contact Modal
+  contactModal: {
+    title: 'Contact Us',
+    subtitle: 'Have questions or suggestions? Feel free to leave a message!',
+    name: 'Name',
+    namePlaceholder: 'Enter your name',
+    email: 'Email',
+    emailPlaceholder: 'Enter your email',
+    subject: 'Subject',
+    subjectPlaceholder: 'Enter subject (optional)',
+    content: 'Message',
+    contentPlaceholder: 'Enter your message...',
+    submit: 'Send Message',
+    submitting: 'Sending...',
+    submitSuccess: 'Message sent successfully! We will reply soon',
+    submitFailed: 'Failed to send, please try again later',
+    nameRequired: 'Please enter your name',
+    emailRequired: 'Please enter your email',
+    emailInvalid: 'Please enter a valid email address',
+    contentRequired: 'Please enter your message',
+    contentMinLength: 'Message must be at least 10 characters',
+    cancel: 'Cancel',
   },
 
   // Tools Data (Titles and Descriptions)
@@ -491,6 +500,55 @@ export const enUS = {
     testing: 'Testing...',
     testSuccess: 'Connection successful',
     testFailed: 'Connection failed',
+  },
+  // Admin - Contact Message Management
+  admin: {
+    contactMessages: {
+      title: 'Messages',
+      listTitle: 'User Messages',
+      id: 'ID',
+      name: 'Name',
+      email: 'Email',
+      subject: 'Subject',
+      content: 'Content',
+      statusLabel: 'Status',
+      adminReply: 'Admin Reply',
+      createdAt: 'Submitted At',
+      updatedAt: 'Updated At',
+      actions: 'Actions',
+      viewDetail: 'View Detail',
+      reply: 'Reply',
+      markAsRead: 'Mark as Read',
+      markAsProcessing: 'Mark as Processing',
+      markAsResolved: 'Mark as Resolved',
+      delete: 'Delete',
+      batchDelete: 'Batch Delete',
+      batchMarkAsRead: 'Batch Mark as Read',
+      deleteConfirm: 'Are you sure you want to delete this message?',
+      batchDeleteConfirm: 'Are you sure you want to delete {count} selected messages?',
+      noData: 'No messages yet',
+      filter: {
+        all: 'All',
+        unread: 'Unread',
+        read: 'Read',
+        processing: 'Processing',
+        resolved: 'Resolved',
+      },
+      status: {
+        unread: 'Unread',
+        read: 'Read',
+        processing: 'Processing',
+        resolved: 'Resolved',
+      },
+      detailTitle: 'Message Detail',
+      replyPlaceholder: 'Enter your reply...',
+      saveReply: 'Save Reply',
+      replySuccess: 'Reply saved successfully',
+      replyFailed: 'Failed to save reply',
+      deleteSuccess: 'Deleted successfully',
+      deleteFailed: 'Failed to delete',
+      keywordSearch: 'Search messages...',
+    },
   },
 };
 

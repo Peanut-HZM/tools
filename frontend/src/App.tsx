@@ -16,6 +16,7 @@ import LLMConfigsPage from './components/Admin/LLMConfigsPage';
 import CourseManagement from './components/Admin/CourseManagement';
 import AgentManagement from './components/Admin/AgentManagement';
 import ConversationManagement from './components/Admin/ConversationManagement';
+import ContactMessagesManagement from './components/Admin/ContactMessagesManagement';
 import ImageDownloader from './components/Tools/ImageDownloader';
 import VideoDownloader from './components/Tools/VideoDownloader';
 import JsonFormatter from './components/Tools/JsonFormatter';
@@ -262,6 +263,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="tools" element={<ToolManagement />} />
               <Route path="users" element={<UserManagement />} />
+              <Route path="contact-messages" element={<ContactMessagesManagement />} />
               <Route path="conversations" element={<ConversationManagement />} />
               <Route path="agents" element={<AgentManagement />} />
               <Route path="settings" element={<SystemSettingsPage />} />

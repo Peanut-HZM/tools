@@ -1,80 +1,45 @@
 import { useI18n } from '../../i18n';
+import { useState } from 'react';
+import ContactModal from '../ContactModal/ContactModal';
 
 export default function Footer() {
   const { t } = useI18n();
-  
-  const toolCategories = [
-    t.footer.links.textTools,
-    t.footer.links.convertTools,
-    t.footer.links.calcTools,
-    t.footer.links.designTools
-  ];
-  
-  const supportLinks = [
-    t.footer.links.help,
-    t.footer.links.feedback,
-    t.footer.links.api,
-    t.footer.links.docs
-  ];
-  
-  const aboutLinks = [
-    t.footer.links.intro,
-    t.footer.links.team,
-    t.footer.links.contact,
-    t.footer.links.jobs
-  ];
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   return (
-    <footer className="bg-slate-800 border-t border-slate-700">
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <div className="text-xl font-['Pacifico'] text-primary mb-4">{t.common.logo}</div>
-            <p className="text-slate-400 text-sm">
-              {t.footer.desc}
-            </p>
+    <>
+      <footer className="bg-slate-800 border-t border-slate-700">
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+            {/* Logo 和简介 */}
+            <div className="text-center md:text-left">
+              <div className="text-xl font-['Pacifico'] text-primary mb-2">{t.common.logo}</div>
+              <p className="text-slate-400 text-sm">{t.footer.desc}</p>
+            </div>
+
+            {/* 联系我们链接 */}
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => setIsContactModalOpen(true)}
+                className="text-slate-400 hover:text-white transition-colors text-sm"
+              >
+                {t.footer.contactUs}
+              </button>
+            </div>
           </div>
-          <div>
-            <h4 className="font-semibold mb-4">{t.footer.toolCategories}</h4>
-            <ul className="space-y-2 text-sm text-slate-400">
-              {toolCategories.map((link) => (
-                <li key={link}>
-                  <a href="#" className="hover:text-white transition-colors">
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-4">{t.footer.support}</h4>
-            <ul className="space-y-2 text-sm text-slate-400">
-              {supportLinks.map((link) => (
-                <li key={link}>
-                  <a href="#" className="hover:text-white transition-colors">
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-4">{t.footer.about}</h4>
-            <ul className="space-y-2 text-sm text-slate-400">
-              {aboutLinks.map((link) => (
-                <li key={link}>
-                  <a href="#" className="hover:text-white transition-colors">
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
+
+          {/* 版权信息 */}
+          <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
+            <p>{t.footer.copyright}</p>
           </div>
         </div>
-        <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
-          <p>{t.footer.copyright}</p>
-        </div>
-      </div>
-    </footer>
+      </footer>
+
+      {/* 联系我们弹窗 */}
+      <ContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+      />
+    </>
   );
 }

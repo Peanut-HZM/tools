@@ -47,3 +47,13 @@ from app.models.cross_share import (
     CrossFile,
     CrossShareConfig,
 )
+
+# Contact Message 联系留言模型
+from app.models.contact_message import (
+    ContactMessage,
+    MessageStatus,
+    ContactMessageCreate,
+    ContactMessageUpdate,
+    ContactMessageResponse,
+    ContactMessageListResponse,
+)

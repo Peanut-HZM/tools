@@ -34,6 +34,7 @@ export default function AdminLayout() {
     { path: '/admin', label: '仪表盘', icon: 'fa-chart-line' },
     { path: '/admin/tools', label: '工具管理', icon: 'fa-toolbox' },
     { path: '/admin/users', label: '用户管理', icon: 'fa-users' },
+    { path: '/admin/contact-messages', label: '留言管理', icon: 'fa-envelope' },
     { path: '/admin/conversations', label: '对话管理', icon: 'fa-comments' },
     { path: '/admin/agents', label: 'Agent 管理', icon: 'fa-robot' },
     { path: '/admin/settings', label: '系统设置', icon: 'fa-cog' },
