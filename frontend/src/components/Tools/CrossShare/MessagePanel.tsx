@@ -17,8 +17,37 @@ const MessagePanel: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true); // 追踪用户是否在底部
+  const [hasNewMessage, setHasNewMessage] = useState(false); // 是否有新消息（当用户不在底部时）
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { toast, showToast } = useToast();
+
+  // 检查用户是否在底部
+  const checkIsAtBottom = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+
+    const threshold = 50; // 距离底部 50px 以内都算在底部
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+
+    return scrollHeight - scrollTop - clientHeight < threshold;
+  };
+
+  // 监听滚动事件
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setIsAtBottom(checkIsAtBottom());
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     loadMessages();
@@ -27,8 +56,15 @@ const MessagePanel: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // 只有当用户在底部时才自动滚动
   useEffect(() => {
-    scrollToBottom();
+    if (isAtBottom) {
+      scrollToBottom();
+      setHasNewMessage(false);
+    } else {
+      // 用户不在底部，标记有新消息
+      setHasNewMessage(true);
+    }
   }, [messages]);
 
   const loadMessages = async () => {
@@ -52,6 +88,12 @@ const MessagePanel: React.FC = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // 手动滚动到底部按钮
+  const handleScrollToBottom = () => {
+    scrollToBottom();
+    setHasNewMessage(false);
   };
 
   const handleSend = async () => {
@@ -186,7 +228,7 @@ const MessagePanel: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col bg-slate-800 rounded-xl shadow-md border border-slate-700 overflow-hidden">
       {/* Messages List - 使用 flex-1 填充剩余空间，内部滚动 */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 relative">
         {messages.length === 0 ? (
           <div className="text-center text-slate-500 py-16">
             <div className="text-6xl mb-4">📭</div>
@@ -223,6 +265,21 @@ const MessagePanel: React.FC = () => {
           ))
         )}
         <div ref={messagesEndRef} />
+
+        {/* 滚动到底部按钮 - 当用户不在底部时显示 */}
+        {!isAtBottom && (
+          <button
+            onClick={handleScrollToBottom}
+            className="absolute bottom-4 right-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-lg transition-all duration-300 flex items-center space-x-2"
+          >
+            <span>滚动到底部</span>
+            {hasNewMessage && (
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                新
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Input Area - 固定在底部 */}
