@@ -38,6 +38,7 @@ export const enUS = {
     help: 'Help',
     feedback: 'Feedback',
     contactUs: 'Contact Us',
+    admin: 'Admin',
   },
 
   // Auth

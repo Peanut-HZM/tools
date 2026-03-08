@@ -4,6 +4,7 @@ import LoginButton from './LoginButton';
 import { useI18n } from '../../i18n';
 import ContactModal from '../ContactModal/ContactModal';
 import { useState } from 'react';
+import { useAuth } from '../../stores/authStore';
 
 interface HeaderProps {
   searchValue: string;
@@ -13,6 +14,7 @@ interface HeaderProps {
 
 export default function Header({ searchValue, onSearchChange, onSearch }: HeaderProps) {
   const { t, language, toggleLanguage } = useI18n();
+  const { user } = useAuth();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   return (
@@ -30,6 +32,14 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
               onChange={onSearchChange}
               onSearch={onSearch}
             />
+            {user?.role === 'admin' && (
+              <Link
+                to="/admin"
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors cursor-pointer"
+              >
+                {t.nav.admin}
+              </Link>
+            )}
             <button
               onClick={() => setIsContactModalOpen(true)}
               className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors cursor-pointer"

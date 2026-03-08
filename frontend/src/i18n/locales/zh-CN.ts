@@ -38,6 +38,7 @@ export const zhCN = {
     help: '使用帮助',
     feedback: '反馈',
     contactUs: '联系我们',
+    admin: '后台管理',
   },
 
   // Auth
