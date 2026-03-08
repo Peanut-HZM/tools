@@ -193,9 +193,9 @@ def deploy_backend():
         f"ssh {SERVER_USER}@{SERVER_HOST} "
         f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
         f"cd {BACKEND_DEPLOY_PATH} && "
-        f"rm -rf app data utils middleware models routes services && "
+        f"rm -rf app alembic data utils middleware models routes services bin migrations && "
         f"tar -xzf /tmp/backend_deploy.tar.gz && "
-        f"mv backend_deploy/* . && "
+        f"cp -r backend_deploy/* . && "
         f"rm -rf backend_deploy && "
         f"rm -f /tmp/backend_deploy.tar.gz\""
     )

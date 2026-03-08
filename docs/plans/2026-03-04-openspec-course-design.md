@@ -1,9 +1,9 @@
 # OpenSpec VibeCoding 互动课程设计文档
 
 **创建日期:** 2026-03-04
-**更新日期:** 2026-03-06
+**更新日期:** 2026-03-08
 **作者:** VibeCoding 推广团队
-**版本:** 2.0
+**版本:** 3.0 - 与实际实现对齐
 
 ---
 
@@ -16,7 +16,41 @@
 - **主题:** OpenSpec 入门和深入使用，以及与 spec-kit 的区别对比
 - **形式:** 网页 + 视频的混合式互动课程
 - **风格:** 生动、幽默、富有互动性
-- **入口:** 在工具箱首页增加醒目的课程入口
+- **入口:** 在工具箱首页增加醒目的课程入口卡片
+
+### 实际实现架构
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     OpenSpec 课程系统架构                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  前端 (React)                    后端 (FastAPI)                  │
+│  ──────────                      ────────────                   │
+│                                                                 │
+│  /tools/openspec-course    →     /api/openspec-course           │
+│                                                                 │
+│  组件：                          路由：                          │
+│  • OpenSpecCourse.tsx           • openspec_course.py            │
+│  • ChapterNavigation.tsx        • course_platform.py            │
+│  • ChapterContent.tsx           • course_platform_admin.py      │
+│  • QuizView.tsx                                                     │
+│  • SpecEditor.tsx               服务：                          │
+│  • ProgressBar.tsx              • openspec_course_service.py    │
+│  • OpenSpecCourseCard.tsx                                           │
+│                                                                 │
+│  数据库 (SQLite - pm_agent.db)                                   │
+│  ─────────────────────────────                                   │
+│  • course_chapters (章节表)                                      │
+│  • course_quizzes (测验表)                                       │
+│  • course_quiz_questions (题目表)                                 │
+│  • course_quiz_options (选项表)                                   │
+│  • course_resources (资源表)                                     │
+│  • course_enrollments (报名表的)                                  │
+│  • course_progress (学习进度表)                                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### 核心理念
 本课程不仅要教会用户如何使用 OpenSpec，更要传达一种**渐进式 AI 协作**的思维方式：
@@ -53,1174 +87,750 @@
 
 ---
 
-## 故事驱动的课程结构
+## 课程章节结构（实际实现）
 
-### 第一章："最初的我" - 谨慎使用 AI 😰
+### 章节类型定义
 
-**核心目标:** 让学员理解初级阶段与 AI 沟通的必要细节，建立"详细沟通"的意识。
+系统支持 5 种章节类型，通过 `chapter_type` 字段区分：
 
-**内容:**
+| 类型 | chapter_type | 用途 | 示例 |
+|------|-------------|------|------|
+| **story** | `story` | 故事驱动，引入场景 | "最初的我 - 谨慎使用 AI" |
+| **lesson** | `lesson` | 课程内容，知识点讲解 | "详细沟通的必要性" |
+| **quiz-only** | `quiz-only` | 纯测验章节 | "阶段测试" |
+| **code** | `code` | 代码实战 | "实战 Spec 编辑" |
+| **video** | `video` | 视频教学 | "视频讲解" |
 
-#### 1.1 故事引入
-- 刚开始使用 AI 编程时的谨慎心态
-- 什么都要描述得很清楚
-- 要改的代码都会复制引用到对话中
-- 心理活动：生怕 AI 理解错了
+### 实际课程内容（已实现）
 
-#### 1.2 详细沟通的必要性
-
-**为什么需要详细沟通？**
-
-在初级阶段，AI 没有上下文理解能力，需要用户提供完整的信息：
+课程共 5 个主章节：
 
 ```
-❌ 糟糕的指令：
-"帮我改一下登录页面"
+第一章：📖 "最初的我" - 谨慎使用 AI (story)
+  ├── 1.1 故事引入
+  ├── 1.2 详细沟通的必要性
+  ├── 1.3 前端修改沟通模板
+  ├── 1.4 后端接口沟通模板
+  └── 1.5 完整示例
 
-✅ 好的指令：
-"我需要修改前端登录页面，具体如下：
-1. 前端组件：frontend/src/components/Auth/LoginPage.tsx
-2. 修改内容：在表单底部添加'记住我'复选框
-3. 样式要求：使用 Tailwind CSS，复选框右侧对齐，文字为灰色
-4. 后端接口：POST /api/v1/auth/login
-5. 入参示例：{"email": "user@example.com", "password": "123456", "remember": true}
-6. 出参示例：{"token": "eyJhbGc...", "expiresIn": 86400}
-7. 需要同时修改类型定义：frontend/src/types/auth.ts"
-```
+第二章：🤯 "遇到问题" - AI 乱改代码的困扰 (story)
+  ├── 2.1 AI 乱改代码的场景
+  └── 2.2 对比演示
 
-#### 1.3 前端修改沟通模板
+第三章：🎉 "发现规则" - rules 的拯救 (lesson)
+  ├── 3.1 Rules 介绍
+  └── 3.2 对比演示
 
-**修改前端组件时，需要说明的信息：**
+第四章：🚀 "进阶工具" - OpenSpec & Superpowers (lesson)
+  ├── 4.1 OpenSpec 是什么
+  ├── 4.2 OpenSpec 技能详解
+  └── 4.3 Spec 文件示例
 
-| 信息类别 | 说明内容 | 示例 |
-|----------|----------|------|
-| **目标组件** | 要修改的文件路径 | `frontend/src/components/Header/Header.tsx` |
-| **容器/区域** | 具体修改的位置 | "Header 组件右侧，用户头像按钮旁边" |
-| **样式变更** | CSS/Tailwind 类名 | "添加 `ml-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded`" |
-| **功能逻辑** | 交互行为 | "点击后跳转到 /settings 页面，使用 useNavigate hook" |
-| **调用接口** | 后端 API | "调用 GET /api/v1/user/profile 获取用户信息" |
-| **入参示例** | 请求参数 | `{"userId": 123, "includeDetails": true}` |
-| **出参示例** | 响应数据 | `{"id": 123, "name": "张三", "email": "..."}` |
-| **类型定义** | TypeScript 类型 | "需要更新 `frontend/src/types/user.ts` 中的 User 接口" |
-
-#### 1.4 后端接口沟通模板
-
-**修改后端接口时，需要说明的信息：**
-
-| 信息类别 | 说明内容 | 示例 |
-|----------|----------|------|
-| **目标路由** | API 路径和方法 | `POST /api/v1/auth/login` |
-| **路由文件** | 代码位置 | `backend/app/routes/auth.py` |
-| **入参模型** | Pydantic Schema | `class LoginRequest(BaseModel): email: str, password: str` |
-| **出参模型** | 返回数据结构 | `class LoginResponse(BaseModel): token: str, user: UserDTO` |
-| **业务逻辑** | 处理流程 | "1.验证邮箱格式 2.查询用户 3.验证密码 4.生成 JWT" |
-| **错误处理** | 异常情况 | "401: 密码错误，404: 用户不存在，500: 服务器错误" |
-
-#### 1.5 完整示例：修改 CrossShare 消息面板
-
-**场景：** 在 CrossShare 消息面板中添加 Markdown 渲染功能
-
-```markdown
-## 需求描述
-给 CrossShare 消息面板添加 Markdown 渲染功能
-
-## 前端修改
-### 目标组件
-- 文件：frontend/src/components/Tools/CrossShare/MessagePanel.tsx
-- 位置：消息内容展示区域（原第 45-52 行的 div）
-
-### 样式变更
-- 原样式：`<div className="message-content text-white/80">`
-- 新样式：保持不变，但内部使用 ReactMarkdown 组件
-
-### 功能逻辑
-1. 引入 ReactMarkdown 组件
-2. 将消息内容传入 Markdown 渲染
-3. 支持代码高亮（使用 Prism.js）
-
-### 调用接口
-- GET /api/cross-share/messages/{id}
-- 出参示例：
-{
-  "id": 1,
-  "content": "# Hello\n\n这是一段 **Markdown** 内容",
-  "created_at": "2026-03-06T10:00:00Z"
-}
-
-## 后端修改
-### 目标路由
-- 文件：backend/app/routes/cross_share.py
-- 接口：GET /api/cross-share/messages/{id}
-
-### 出参模型
-- 文件：backend/app/schemas/cross_share.py
-- 新增字段：content_rendered (可选，用于预渲染的 HTML)
-
-## 类型定义
-- 文件：frontend/src/types/cross-share.ts
-- 更新：Message 接口添加 content_rendered?: string
-```
-
-#### 1.6 交互元素
-
-**互动练习 1：** 识别好的指令
-- 展示 3 个指令示例
-- 让学员选择哪个指令更清晰
-- 即时反馈和解析
-
-**互动练习 2：** 填写沟通模板
-- 给出一个修改场景
-- 让学员填写完整的前端/后端修改信息
-- 系统自动检查是否遗漏关键信息
-
-**对比演示：**
-- 左边：模糊指令导致的错误修改
-- 右边：详细指令带来的准确修改
-
-### 第二章："遇到问题" - AI 乱改代码的困扰 🤯
-**内容:**
-- AI 经常乱改代码，超出修改范围
-- 改的东西不符合要求
-- 觉得 AI 很傻很笨
-- 逐渐失去信心
-
-**交互元素:**
-- 对比演示：期望的修改 vs AI 实际修改
-- 互动测验：识别"AI 乱改"的常见场景
-
-### 第三章："发现规则" - rules 的拯救 🎉
-**内容:**
-- 发现可以使用 rules 规范开发
-- 一开始觉得惊艳很好用
-- 代码质量明显提升
-- 建立信心
-
-**交互元素:**
-- 代码示例：展示有效的 rules 配置
-- 对比演示：有 rules 前后的 AI 输出对比
-
-### 第四章："进阶工具" - OpenSpec & Superpowers 🚀
-
-**核心目标：** 掌握 OpenSpec 的技能系统，理解每个技能的用途和使用场景。
-
-#### 4.1 OpenSpec 是什么？
-
-OpenSpec 是一个基于 Spec 的开发方法论，核心思想是：
-
-1. **Spec First**：先写规范，再生成代码
-2. **AI Native**：专为 AI 协作设计
-3. **Iterative**：支持迭代和版本管理
-4. **Skill-Based**：通过技能系统实现复杂任务
-
-#### 4.2 OpenSpec 技能详解
-
-OpenSpec 提供了一套完整的技能系统，每个技能都有明确的职责和使用场景：
-
----
-
-##### 技能 1：openspec-new-change
-**用途：** 创建一个新的变更（change），启动结构化的开发流程。
-
-**什么时候使用：**
-- ✅ 有一个新功能要开发
-- ✅ 需要修复一个复杂的 bug
-- ✅ 要进行代码重构
-- ✅ 不确定具体实现方案，需要探索
-
-**不适合的场景：**
-- ❌ 简单的单文件修改（直接用 AI 对话即可）
-- ❌ 紧急的热修复（来不及走完整流程）
-
-**使用示例：**
-```bash
-# 创建一个名为 add-user-auth 的变更
-openspec new change "add-user-auth"
-
-# 创建一个自定义 schema 的变更
-openspec new change "add-dashboard" --schema spec-driven
-```
-
-**工作流程：**
-```
-1. 用户描述需求 → 2. 创建 change 目录 → 3. 生成初始结构
-                                        ↓
-                              openspec/changes/add-user-auth/
-                              ├── proposal.md
-                              ├── design.md
-                              ├── tasks.md
-                              └── specs/
-```
-
-**输出产物：**
-- `proposal.md` - 变更提案（Why、What、Impact）
-- 后续可创建：`design.md`、`tasks.md`、`specs/`
-
----
-
-##### 技能 2：openspec-explore（探索模式）
-**用途：** 进入探索模式，作为思考伙伴帮助探索想法、调查问题、澄清需求。
-
-**核心原则：**
-- 🔍 **探索问题空间** - 提问、挑战假设、重构问题
-- 📊 **可视化思考** - 使用 ASCII 图表、对比表格
-- 🧠 **调查代码库** - 映射现有架构、识别集成点
-- ⚖️ **比较选项** - 头脑风暴多个方案、分析权衡
-
-**什么时候使用：**
-- ✅ 需求不明确，需要澄清
-- ✅ 面临多个技术方案，需要比较
-- ✅  stuck 在某个问题上，需要灵感
-- ✅ 要修改复杂系统，先理解影响范围
-
-**重要提醒：**
-> 🚫 探索模式不写代码！只用于思考和捕获想法。
-> 准备好实现时，使用 `/opsx:new` 或 `/opsx:ff` 启动变更。
-
-**使用示例：**
-```
-用户：我想给系统添加实时协作功能
-
-助手：实时协作是个大方向，让我帮你思考一下...
-
-     协作功能光谱
-     ════════════════════════════════════
-
-     感知层          协调层           同步层
-        │               │               │
-        ▼               ▼               ▼
-     ┌────┐        ┌────┐         ┌────┐
-     │在线 │        │多光标│        │CRDT │
-     │人数 │        │选择 │        │冲突 │
-     │状态 │        │操作 │        │解决 │
-     └────┘        └────┘         └────┘
-        │               │               │
-     简单 (~1h)      中等 (~1d)      复杂 (~1w)
-
-     你的需求更接近哪一层？
+第五章：⚖️ "对比思考" - 工具对比与最佳实践 (lesson)
+  ├── 5.1 三大工具对比
+  ├── 5.2 决策树
+  └── 5.3 互动测验
 ```
 
 ---
 
-##### 技能 3：openspec-continue-change
-**用途：** 继续一个进行中的变更，创建下一个所需的 artifact（产物）。
+## 技术架构（实际实现）
 
-**什么时候使用：**
-- ✅ 已经创建了 change，要继续创建下一个产物
-- ✅  proposal 写好了，现在要创建设计文档
-- ✅ 设计完成了，接下来要创建任务列表
+### 前端架构
 
-**工作流程：**
+**技术栈:**
+- React 18 + TypeScript
+- Tailwind CSS
+- React Router DOM
+- ReactMarkdown (Markdown 渲染)
+- react-syntax-highlighter (代码高亮)
+- Axios (HTTP 请求)
+
+**目录结构:**
 ```
-1. 检查变更状态 → 2. 识别下一个可创建的 artifact → 3. 创建该 artifact
-                                                          ↓
-                                            如果是 proposal → 问用户需求
-                                            如果是 design → 读 proposal 后写设计
-                                            如果是 tasks → 读 design 后拆解任务
-```
-
-**使用示例：**
-```bash
-# 继续最近的变更
-openspec continue change
-
-# 继续指定的变更
-openspec continue change "add-user-auth"
-```
-
-**产物创建顺序（spec-driven schema）：**
-```
-proposal.md (必须先创建)
-    ↓
-specs/<capability>/spec.md (每个 capability 一个)
-    ↓
-design.md
-    ↓
-tasks.md
+frontend/src/
+├── components/
+│   └── Tools/
+│       ├── OpenSpecCourse.tsx              # 主页面组件
+│       ├── OpenSpecCourse/
+│       │   ├── OpenSpecCourseCard.tsx      # 首页入口卡片
+│       │   ├── ChapterNavigation.tsx       # 章节导航（左侧）
+│       │   ├── ChapterContent.tsx          # 章节内容展示
+│       │   ├── QuizView.tsx                # 测验界面
+│       │   ├── SpecEditor.tsx              # Spec 编辑器
+│       │   └── ProgressBar.tsx             # 进度条组件
+│       └── ...
+├── services/
+│   └── openspecCourse.ts                   # API 服务层
+└── types/
 ```
 
----
+**组件职责:**
 
-##### 技能 4：openspec-ff-change（Fast-Forward）
-**用途：** 快速跳过所有 artifact 的创建过程，一次性生成实现所需的所有产物。
+| 组件 | 职责 |
+|------|------|
+| `OpenSpecCourse.tsx` | 主页面，管理章节加载、进度追踪、路由控制 |
+| `OpenSpecCourseCard.tsx` | 首页入口卡片，展示课程信息和进度 |
+| `ChapterNavigation.tsx` | 左侧章节列表导航，显示锁章状态 |
+| `ChapterContent.tsx` | 章节内容渲染，支持 Markdown、代码高亮、视频嵌入 |
+| `QuizView.tsx` | 测验界面，支持单选/多选、即时反馈、答案解析 |
+| `SpecEditor.tsx` | Spec 编辑器，在线尝试写 Spec |
+| `ProgressBar.tsx` | 学习进度展示 |
 
-**什么时候使用：**
-- ✅ 需求明确，不需要逐步讨论
-- ✅ 时间紧张，想跳过中间的确认步骤
-- ✅ 已经有清晰的设计思路
-- ✅ 小功能，不需要复杂的 artifact
+### 后端架构
 
-**与 continue-change 的区别：**
-| 对比项 | continue-change | ff-change |
-|--------|-----------------|-----------|
-| 创建速度 | 逐步确认 | 一次性生成 |
-| 用户参与 | 每个 artifact 都可能需要确认 | 只需初始需求描述 |
-| 适用场景 | 复杂功能、需要讨论 | 需求明确、快速实现 |
-| 产物质量 | 经过多轮打磨 | 基于初始理解 |
+**技术栈:**
+- FastAPI (Python 3.10+)
+- SQLAlchemy (ORM)
+- Pydantic (数据验证)
+- SQLite/PostgreSQL
 
-**使用示例：**
-```bash
-# 快速创建所有产物
-openspec ff change "add-login-button"
-
-# 输出：
-✓ Created proposal.md
-✓ Created specs/user-auth/spec.md
-✓ Created design.md
-✓ Created tasks.md
-
-所有产物已创建！使用 /opsx:apply 开始实现。
+**目录结构:**
+```
+backend/app/
+├── models/
+│   ├── openspec_course.py     # 课程数据模型定义
+│   └── course_platform.py     # 通用课程平台模型
+├── schemas/
+│   ├── openspec_course.py     # Pydantic Schemas
+│   └── course_platform.py     # 通用课程平台 Schemas
+├── routes/
+│   ├── openspec_course.py     # OpenSpec 课程 API
+│   ├── course_platform.py     # 通用课程平台 API
+│   └── course_platform_admin.py  # 管理端 API
+└── services/
+    └── openspec_course_service.py  # 业务逻辑层
 ```
 
----
-
-##### 技能 5：openspec-apply-change
-**用途：** 实现变更中的任务，按照 tasks.md 逐一完成开发工作。
-
-**什么时候使用：**
-- ✅ 所有 artifact 已创建完成
-- ✅ 开始写代码实现功能
-- ✅ 继续之前未完成的实现
-
-**工作流程：**
-```
-1. 读取 tasks.md → 2. 识别未完成的任务 → 3. 逐一实现
-                                              ↓
-                                    每个任务完成后标记 [x]
-                                              ↓
-                                    遇到 blocker → 暂停等待指示
-```
-
-**使用示例：**
-```bash
-# 开始实现变更
-openspec apply change "add-user-auth"
-
-# 输出：
-## 实现中：add-user-auth
-
-任务 1/7：创建用户模型
-✓ 完成：backend/app/models/user.py
-
-任务 2/7：创建认证路由
-✓ 完成：backend/app/routes/auth.py
-
-任务 3/7：创建前端登录表单
-...
-```
-
-**状态处理：**
-- `blocked` - 产物不完整，建议先用 continue-change 创建
-- `all_done` - 所有任务完成，建议归档
-- `in_progress` - 继续实现
-
----
-
-##### 技能 6：openspec-sync-specs
-**用途：** 将变更目录中的 delta specs 同步到主 specs 目录。
-
-**什么时候使用：**
-- ✅ 在变更中修改了 spec 文件
-- ✅ 需要将修改合并到主规范
-- ✅ 准备归档变更前
-
-**同步逻辑：**
-```
-变更目录 specs/          主 specs/
-openspec/changes/...    openspec/specs/
-       ↓                      ↑
-       └───── 同步 ───────────┘
-```
-
-**使用示例：**
-```bash
-openspec sync specs "add-user-auth"
-```
-
----
-
-##### 技能 7：openspec-archive-change
-**用途：** 归档已完成的变更。
-
-**什么时候使用：**
-- ✅ 所有任务已完成
-- ✅ 所有产物已创建
-- ✅ spec 已同步到主目录
-
-**归档流程：**
-```
-1. 检查 artifact 完成状态 → 2. 检查任务完成状态 → 3. 移动到 archive
-                                                              ↓
-                                        openspec/changes/archive/
-                                        YYYY-MM-DD-add-user-auth/
-```
-
-**使用示例：**
-```bash
-# 归档变更
-openspec archive change "add-user-auth"
-
-# 输出：
-## 归档完成
-变更：add-user-auth
-归档位置：openspec/changes/archive/2026-03-06-add-user-auth/
-状态：所有产物完成 ✓ 所有任务完成 ✓
-```
-
----
-
-##### 技能 8：openspec-bulk-archive-change
-**用途：** 批量归档多个已完成的变更。
-
-**什么时候使用：**
-- ✅ 有多个平行变更需要归档
-- ✅ 一次迭代完成多个功能
-
----
-
-##### 技能 9：openspec-verify-change
-**用途：** 验证实现是否与变更产物一致。
-
-**什么时候使用：**
-- ✅ 实现完成后，检查是否遗漏
-- ✅ 归档前确认所有任务完成
-- ✅ 代码审查时
-
----
-
-#### 4.3 技能选择决策树
+**API 接口:**
 
 ```
-开始
- │
- ▼
-需求是否明确？
- │
- ├── 否 ──→ 使用 openspec-explore (探索模式)
- │          │
- │          ▼
- │       明确需求后
- │
- ▼
-是明确的小功能？
- │
- ├── 是 ──→ 使用 openspec-ff-change (快速创建所有产物)
- │          │
- │          ▼
- │       直接使用 openspec-apply-change 实现
- │
- ▼
-是复杂功能，需要讨论？
- │
- ├── 是 ──→ 使用 openspec-new-change + openspec-continue-change
- │          │
- │          ▼
- │       逐步创建 proposal → specs → design → tasks
- │
- ▼
-实现中遇到问题？
- │
- ├── 是 ──→ 回到 openspec-explore (探索模式) 重新思考
- │
- ▼
-实现完成 → openspec-verify-change (验证) → openspec-archive-change (归档)
+# 章节管理
+GET    /api/openspec-course/chapters              # 获取所有章节
+GET    /api/openspec-course/chapters/{id}         # 获取章节详情
+POST   /api/openspec-course/chapters              # 创建章节 (Admin)
+PUT    /api/openspec-course/chapters/{id}         # 更新章节 (Admin)
+DELETE /api/openspec-course/chapters/{id}         # 删除章节 (Admin)
+PUT    /api/openspec-course/chapters/reorder      # 批量更新顺序 (Admin)
+
+# 测验管理
+GET    /api/openspec-course/quizzes/{chapter_id}  # 获取章节测验
+POST   /api/openspec-course/quizzes/{quiz_id}/submit  # 提交测验
+POST   /api/openspec-course/quizzes               # 创建测验 (Admin)
+PUT    /api/openspec-course/quizzes/{quiz_id}     # 更新测验 (Admin)
+DELETE /api/openspec-course/quizzes/{quiz_id}     # 删除测验 (Admin)
+
+# 进度管理
+GET    /api/openspec-course/progress              # 获取用户进度
+GET    /api/openspec-course/progress/chapter/{id} # 获取章节进度
+PUT    /api/openspec-course/progress/chapter/{id} # 更新进度
+
+# 资源管理
+GET    /api/openspec-course/resources/chapter/{id} # 获取章节资源
+GET    /api/openspec-course/resources/{id}         # 获取资源详情
+POST   /api/openspec-course/resources              # 创建资源 (Admin)
+PUT    /api/openspec-course/resources/{id}         # 更新资源 (Admin)
+DELETE /api/openspec-course/resources/{id}         # 删除资源 (Admin)
 ```
 
-#### 4.4 Spec 文件示例
+### 数据库设计（实际实现）
 
-```yaml
-# user-login.spec
-feature: 用户登录
-description: 用户可以通过邮箱和密码登录系统
+**数据库:** SQLite (`backend/pm_agent.db`)
 
-requirements:
-  - 用户输入邮箱和密码
-  - 验证邮箱格式
-  - 验证密码正确性
-  - 登录成功返回 token
-  - 失败显示错误信息
+**核心表结构:**
 
-constraints:
-  - 密码至少 8 位
-  - token 有效期 24 小时
-  - 支持记住登录状态
+```sql
+-- 课程章节表
+CREATE TABLE course_chapters (
+    id INTEGER PRIMARY KEY,
+    course_id INTEGER NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,  -- 章节标识符（用于 URL）
+    title VARCHAR(200) NOT NULL,        -- 章节标题
+    "order" INTEGER DEFAULT 0,          -- 章节顺序
+    content TEXT NOT NULL,              -- 章节内容（Markdown）
+    chapter_type VARCHAR(50) DEFAULT 'story',  -- story/lesson/quiz-only/code/video
+    video_url VARCHAR(500),             -- 视频链接
+    is_locked BOOLEAN DEFAULT 0,        -- 是否锁定
+    duration_minutes INTEGER DEFAULT 0, -- 学习时长（分钟）
+    created_at DATETIME,
+    updated_at DATETIME,
+    FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE
+);
 
-api:
-  - POST /api/v1/auth/login
-    request:
-      email: string (required)
-      password: string (required, min: 8)
-      remember: boolean (optional)
-    response:
-      token: string
-      expiresIn: number
-      user: UserDTO
-```
+-- 课程测验表
+CREATE TABLE course_quizzes (
+    id INTEGER PRIMARY KEY,
+    chapter_id INTEGER NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    passing_score INTEGER DEFAULT 60,  -- 及格分数 (0-100)
+    created_at DATETIME,
+    updated_at DATETIME,
+    FOREIGN KEY(chapter_id) REFERENCES course_chapters(id) ON DELETE CASCADE
+);
 
-#### 4.5 Superpowers 技能包
+-- 测验题目表
+CREATE TABLE course_quiz_questions (
+    id INTEGER PRIMARY KEY,
+    quiz_id INTEGER NOT NULL,
+    question_text TEXT NOT NULL,
+    question_type VARCHAR(20) DEFAULT 'single',  -- single/multiple
+    correct_answer VARCHAR(100) NOT NULL,  -- 逗号分隔的选项索引
+    explanation TEXT,  -- 答案解析
+    "order" INTEGER DEFAULT 0,
+    created_at DATETIME,
+    FOREIGN KEY(quiz_id) REFERENCES course_quizzes(id) ON DELETE CASCADE
+);
 
-Superpowers 是一套增强 AI 能力的技能系统：
+-- 测验选项表
+CREATE TABLE course_quiz_options (
+    id INTEGER PRIMARY KEY,
+    question_id INTEGER NOT NULL,
+    option_text TEXT NOT NULL,
+    option_index INTEGER NOT NULL,  -- 0=A, 1=B, 2=C, 3=D
+    created_at DATETIME,
+    FOREIGN KEY(question_id) REFERENCES course_quiz_questions(id) ON DELETE CASCADE
+);
 
-- 🔍 **代码理解**：快速理解大型代码库
-- 📝 **文档生成**：自动生成技术文档
-- 🧪 **测试生成**：自动编写单元测试
-- 🐛 **Bug 修复**：智能定位和修复问题
+-- 课程资源表
+CREATE TABLE course_resources (
+    id INTEGER PRIMARY KEY,
+    chapter_id INTEGER NOT NULL,
+    resource_type VARCHAR(50) NOT NULL,  -- code/contrast/video/template
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    extra_data JSON,  -- 额外元数据
+    created_at DATETIME,
+    updated_at DATETIME,
+    FOREIGN KEY(chapter_id) REFERENCES course_chapters(id) ON DELETE CASCADE
+);
 
-#### 4.6 我的工作流
-
-```mermaid
-graph LR
-    A[写 Spec] --> B[AI 生成代码]
-    B --> C[Code Review]
-    C --> D{通过？}
-    D -->|是 | E[合并]
-    D -->|否 | A
-```
-
-#### 4.7 效率对比
-
-| 开发阶段 | 传统方式 | AI + OpenSpec |
-|----------|----------|---------------|
-| 需求分析 | 2 小时 | 30 分钟 |
-| 代码实现 | 8 小时 | 2 小时 |
-| 代码 Review | 2 小时 | 30 分钟 |
-| 单元测试 | 4 小时 | 1 小时 |
-| **总计** | **16 小时** | **4 小时** |
-
-效率提升 **4 倍**！🚀
-
-### 第五章："对比思考" - 工具对比与最佳实践 ⚖️
-
-**核心目标：** 理解 OpenSpec、spec-kit、superpowers (brainstorming) 的定位差异，掌握选择策略。
-
-#### 5.1 三大工具全方位对比
-
-##### 对比维度说明
-
-我们从 9 个维度对三个工具进行对比：
-1. **定位** - 工具的核心价值主张
-2. **目标用户** - 最适合的使用人群
-3. **学习曲线** - 上手的难易程度
-4. **适用场景** - 最擅长解决的问题
-5. **工作流** - 典型的使用流程
-6. **产物输出** - 生成什么内容
-7. **AI 协作深度** - 与 AI 的集成程度
-8. **灵活性** - 适应不同工作流的能力
-9. **社区生态** - 社区支持和资源丰富度
-
----
-
-##### 完整对比表
-
-| 对比维度 | OpenSpec | spec-kit | Superpowers (brainstorming) |
-|----------|----------|----------|----------------------------|
-| **定位** | Spec 驱动的结构化开发方法论 | GitHub 官方的 Spec 工具包 | 头脑风暴与设计探索技能 |
-| **目标用户** | 追求高效 AI 协作的团队 | GitHub 重度用户、企业团队 | 需要设计先行的项目 |
-| **学习曲线** | 🟢 平缓（中文友好） | 🟡 中等（英文文档） | 🟢 低（对话式交互） |
-| **适用场景** | 功能开发、需求实现 | 大型项目、企业级规范 | 需求探索、设计讨论 |
-| **工作流** | new→explore→continue→apply→archive | propose→spec→design→build | explore→design→approve→plan |
-| **产物输出** | proposal/specs/design/tasks | proposal/design/specs | design doc |
-| **AI 协作深度** | 🔥 深度集成（技能系统） | 🔌 插件模式 | 🤖 原生 AI 对话 |
-| **灵活性** | ✅ 高（多 schema 支持） | ✅ 高（自定义模板） | ✅ 极高（自由对话） |
-| **社区生态** | 🟡 发展中（国内活跃） | 🟢 GitHub 背书 | 🟢 Claude 官方技能 |
-
----
-
-#### 5.2 各工具详细解析
-
-##### OpenSpec：结构化开发的最佳选择
-
-**核心理念：**
-> "Spec First, Code Second" - 先写规范，再生成代码
-
-**核心优势：**
-1. **完整的生命周期管理** - 从探索到归档的全流程支持
-2. **技能系统** - 每个技能专注一个环节，职责清晰
-3. **增量迭代** - 支持 delta spec，渐进式更新规范
-4. **中文友好** - 对中文文档和国内开发习惯优化
-
-**典型使用场景：**
-```
-场景 1：新功能开发
-用户：/opsx:new 添加用户注册功能
-→ 创建 proposal.md
-→ 创建 specs/user-registration/spec.md
-→ 创建 design.md
-→ 创建 tasks.md
-→ /opsx:apply 开始实现
-
-场景 2：需求不明确时的探索
-用户：/opsx:explore
-我想改进系统的认证流程，但不确定怎么设计...
-→ AI 帮助分析现状、比较方案、给出建议
-→ 探索清楚后，再启动变更
-
-场景 3：快速实现小功能
-用户：/opsx:ff 修改登录按钮颜色
-→ 一次性创建所有产物
-→ 直接进入实现阶段
-```
-
-**什么时候选择 OpenSpec：**
-- ✅ 需要结构化的开发流程
-- ✅ 团队协作，需要清晰的文档
-- ✅ 复杂功能，需要 Spec 先行
-- ✅ 希望 AI 深度参与开发过程
-
----
-
-##### spec-kit：GitHub 生态的原生选择
-
-**核心理念：**
-> "Collaborative Spec-Driven Development" - 协作式的 Spec 驱动开发
-
-**核心优势：**
-1. **GitHub 原生集成** - 与 Issues、PRs、Actions 无缝衔接
-2. **企业级支持** - 适合大型组织和复杂工作流
-3. **成熟稳定** - 经过大量开源项目验证
-4. **丰富模板** - 大量的社区模板和最佳实践
-
-**典型使用场景：**
-```
-场景 1：开源项目功能提案
-开发者：创建一个 feature proposal
-→ 使用 proposal 模板
-→ 关联 GitHub Issue
-→ 社区讨论和 Review
-→ 合并后自动生成 tasks
-
-场景 2：企业规范文档
-团队：编写 API 设计规范
-→ 使用 spec 模板
-→ 团队 Review 和批注
-→ 版本管理和变更追踪
-```
-
-**什么时候选择 spec-kit：**
-- ✅ 已经在 GitHub 生态中
-- ✅ 需要与企业工具链集成
-- ✅ 开源项目，需要社区协作
-- ✅ 国际化团队，英文工作环境
-
----
-
-##### Superpowers (brainstorming)：设计先行的思考伙伴
-
-**核心理念：**
-> "Think First, Build Second" - 先思考，再构建
-
-**核心优势：**
-1. **对话式探索** - 自然的对话流程，无需学习成本
-2. **设计先行** - 强制先设计后实现，避免冲动编码
-3. **可视化思考** - 自动生成图表、对比表
-4. **灵活适应** - 根据项目规模调整设计深度
-
-**典型使用场景：**
-```
-场景 1：新项目启动
-用户：/brainstorming
-我想做一个在线协作文档工具...
-
-AI：让我帮你思考一下这个产品...
-
-     协作文档系统架构
-     ════════════════════════════════
-
-     ┌────────────────────────────────┐
-     │          前端编辑器             │
-     │   (React + Prosemirror)        │
-     └─────────────┬──────────────────┘
-                   │ WebSocket
-     ┌─────────────▼──────────────────┐
-     │         协同引擎               │
-     │   (OT / CRDT 算法)            │
-     └─────────────┬──────────────────┘
-                   │ REST API
-     ┌─────────────▼──────────────────┐
-     │         后端服务               │
-     │   (Node.js + PostgreSQL)      │
-     └────────────────────────────────┘
-
-     有几个关键设计决策需要讨论...
-→ 探索清楚后，生成 design doc
-→ 转入实现阶段
-
-场景 2：技术方案对比
-用户：应该在 Next.js 和 Nuxt 之间怎么选？
-
-AI：让我帮你分析一下这两个框架...
-
-     Next.js vs Nuxt
-     ════════════════════════════════
-
-     维度        Next.js    Nuxt
-     学习曲线     中等       较低
-     SSR 支持     ✅         ✅
-     静态生成     ✅         ✅
-     生态规模     大         中
-     企业采用     高         中
-
-     你的项目更看重哪个维度？
-```
-
-**什么时候选择 Superpowers：**
-- ✅ 需求不明确，需要探索
-- ✅ 面临多个技术方案，需要对比
-- ✅ 新项目启动，需要设计文档
-- ✅ 任何"先想清楚再动手"的场景
-
----
-
-#### 5.3 工具选择决策树
-
-```
-开始
- │
- ▼
-需求是否清晰？
- │
- ├── 否 ──→ Superpowers (brainstorming)
- │          │
- │          ▼
- │       探索清楚后
- │          │
- │          ▼
- │       需要设计文档 ──→ brainstorming 输出 design doc
- │          │
- │          ▼
- │       需要实现 ──→ 转到 OpenSpec
- │
- ▼
-是
- │
- ▼
-是否需要写代码实现？
- │
- ├── 是，复杂功能 ──→ OpenSpec
- │                   │
- │                   ├── 需求明确？
- │                   │   ├── 是 ──→ /opsx:ff (快速创建)
- │                   │   └── 否 ──→ /opsx:new + /opsx:continue (逐步创建)
- │                   │
- │                   └── 实现 ──→ /opsx:apply
- │
- ├── 是，简单修改 ──→ 直接用 AI 对话
- │
- └── 否，只需文档 ──→ spec-kit (提案/规范文档)
-                    或 brainstorming (设计文档)
+-- 学习进度表
+CREATE TABLE course_progress (
+    id INTEGER PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    chapter_id INTEGER NOT NULL,
+    status VARCHAR(20) DEFAULT 'not_started',  -- not_started/in_progress/completed
+    quiz_score FLOAT,  -- 测验分数 (0-100)
+    quiz_passed BOOLEAN DEFAULT 0,
+    completed_at DATETIME,
+    video_progress INTEGER DEFAULT 0,  -- 视频进度（秒）
+    created_at DATETIME,
+    updated_at DATETIME,
+    UNIQUE(user_id, chapter_id),
+    FOREIGN KEY(chapter_id) REFERENCES course_chapters(id) ON DELETE CASCADE
+);
 ```
 
 ---
 
-#### 5.4 如何结合使用三个工具
+## 数据模型（Pydantic Schemas）
 
-##### 推荐的工作流
+### 章节相关 Schema
+
+```python
+class ChapterBase(BaseModel):
+    slug: str  # 章节标识符（唯一，用于 URL）
+    title: str  # 章节标题
+    order: int  # 章节顺序
+    content: str  # 章节内容（Markdown）
+    chapter_type: str  # story/lesson/quiz-only/code/video
+    video_url: Optional[str]
+    is_locked: bool
+    required_quiz_id: Optional[int]
+
+class ChapterResponse(ChapterBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+class ChapterDetailResponse(ChapterResponse):
+    quiz: Optional[QuizResponse]
+    resources: List[ResourceResponse]
+    user_progress: Optional[UserProgressResponse]
+```
+
+### 测验相关 Schema
+
+```python
+class QuizOptionResponse(BaseModel):
+    id: int
+    option_text: str
+    option_index: int  # 0=A, 1=B...
+
+class QuizQuestionResponse(BaseModel):
+    id: int
+    question_text: str
+    question_type: str  # single/multiple
+    correct_answer: str  # 逗号分隔
+    explanation: Optional[str]
+    options: List[QuizOptionResponse]
+
+class QuizResponse(BaseModel):
+    id: int
+    chapter_id: int
+    title: str
+    passing_score: int
+    questions: List[QuizQuestionResponse]
+
+class QuizResult(BaseModel):
+    quiz_id: int
+    total_questions: int
+    correct_count: int
+    score: float
+    passed: bool
+    details: List[Dict[str, Any]]
+```
+
+### 进度相关 Schema
+
+```python
+class UserProgressResponse(BaseModel):
+    id: Optional[int]
+    user_id: str
+    chapter_id: int
+    status: str  # not_started/in_progress/completed
+    quiz_score: Optional[float]
+    quiz_passed: bool
+    completed_at: Optional[datetime]
+    video_progress: int
+
+class CourseProgressSummary(BaseModel):
+    total_chapters: int
+    completed_chapters: int
+    progress_percentage: float
+    chapters: List[UserProgressResponse]
+```
+
+---
+
+## 前端组件详细设计
+
+### OpenSpecCourse 主组件
+
+**职责:**
+- 加载章节列表和进度
+- 管理当前选中的章节
+- 处理测验完成后的进度更新
+- 控制子组件显示（内容/测验/编辑器）
+
+**状态管理:**
+```typescript
+const [chapters, setChapters] = useState<Chapter[]>([]);
+const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
+const [currentChapterId, setCurrentChapterId] = useState<number | null>(null);
+const [progress, setProgress] = useState<UserProgress[]>([]);
+const [showQuiz, setShowQuiz] = useState(false);
+const [showSpecEditor, setShowSpecEditor] = useState(false);
+```
+
+### ChapterNavigation 组件
+
+**功能:**
+- 左侧章节列表展示
+- 锁章状态显示（🔒 图标）
+- 完成状态显示（✅ 图标）
+- 点击切换章节
+
+**视觉设计:**
+```
+┌─────────────────────────┐
+│ 📖 第一章：最初的我      │ ← 当前章节（高亮）
+│ ✅ 已完成               │
+├─────────────────────────┤
+│ 📖 第二章：遇到问题      │ ← 已完成
+│ ✅ 已完成               │
+├─────────────────────────┤
+│ 📖 第三章：发现规则      │ ← 进行中
+│ 🔄 进行中               │
+├─────────────────────────┤
+│ 🔒 第四章：进阶工具      │ ← 锁定
+│ 需要通过第三章测验       │
+└─────────────────────────┘
+```
+
+### ChapterContent 组件
+
+**功能:**
+- Markdown 内容渲染（ReactMarkdown）
+- 代码高亮（react-syntax-highlighter）
+- 视频嵌入（如果有 video_url）
+- 资源列表展示
+- 操作按钮（下一章、开始测验、打开编辑器）
+
+**Markdown 自定义样式:**
+```typescript
+components={{
+  h1: ({node, ...props}) => <h1 className="text-3xl font-bold text-white mb-4" {...props} />,
+  h2: ({node, ...props}) => <h2 className="text-2xl font-bold text-white mb-3" {...props} />,
+  p: ({node, ...props}) => <p className="text-white/80 leading-relaxed mb-4" {...props} />,
+  code: ({node, inline, ...props}) => { /* 代码高亮 */ },
+  // ... 其他自定义样式
+}}
+```
+
+### QuizView 组件
+
+**功能:**
+- 测验题目展示
+- 单选/多选支持
+- 即时判题反馈
+- 答案解析展示
+- 重试机制
+
+**交互流程:**
+```
+1. 用户选择答案 → 2. 提交答案 → 3. 显示结果
+                                    │
+                    ┌───────────────┴───────────────┐
+                    ↓                               ↓
+               通过 ✅                          失败 ❌
+                    │                               │
+                    ↓                               ↓
+               更新进度为完成                   显示重试按钮
+               解锁下一章                       允许重新答题
+```
+
+---
+
+## 服务层实现
+
+### openspecCourse.ts API 服务
+
+```typescript
+// 获取所有章节列表
+export const getChapters = async (): Promise<Chapter[]> => {
+  const response = await axios.get(`${API_BASE_URL}/chapters`);
+  return response.data.chapters;
+};
+
+// 获取章节详情（包含测验、资源、进度）
+export const getChapterDetail = async (chapterId: number): Promise<ChapterDetail> => {
+  const response = await axios.get(`${API_BASE_URL}/chapters/${chapterId}`);
+  return response.data;
+};
+
+// 提交测验答案
+export const submitQuiz = async (
+  quizId: number,
+  answers: Record<number, number[]>
+): Promise<QuizResult> => {
+  const response = await axios.post(`${API_BASE_URL}/quizzes/${quizId}/submit`, {
+    answers,
+  });
+  return response.data;
+};
+
+// 获取用户进度汇总
+export const getCourseProgress = async (): Promise<CourseProgressSummary> => {
+  const response = await axios.get(`${API_BASE_URL}/progress`);
+  return response.data;
+};
+
+// 更新章节进度
+export const updateChapterProgress = async (
+  chapterId: number,
+  data: Partial<UserProgress>
+): Promise<UserProgress> => {
+  const response = await axios.put(`${API_BASE_URL}/progress/chapter/${chapterId}`, data);
+  return response.data;
+};
+```
+
+### openspec_course_service.py 业务逻辑
+
+**核心方法:**
+
+```python
+class OpenSpecCourseService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    # 章节管理
+    def get_chapters(self) -> List[OpenSpecCourseChapter]
+    def get_chapter_by_id(self, chapter_id: int) -> Optional[...]
+    def get_chapter_by_slug(self, slug: str) -> Optional[...]
+    def create_chapter(self, chapter: ChapterCreate) -> OpenSpecCourseChapter
+    def update_chapter(self, chapter_id: int, chapter: ChapterUpdate) -> Optional[...]
+    def delete_chapter(self, chapter_id: int) -> bool
+    def reorder_chapters(self, request: ChapterReorderRequest) -> bool
+
+    # 测验管理
+    def get_quiz_by_chapter_id(self, chapter_id: int) -> Optional[OpenSpecCourseQuiz]
+    def get_quiz_questions(self, quiz_id: int) -> List[Dict]
+    def create_quiz(self, quiz: QuizCreate) -> OpenSpecCourseQuiz
+    def submit_quiz(self, quiz_id: int, user_id: str, answers: Dict) -> QuizResult
+
+    # 进度管理
+    def get_user_progress(self, user_id: str, chapter_id: int) -> Optional[...]
+    def create_or_update_progress(self, user_id: str, chapter_id: int, progress: UserProgressUpdate) -> [...]
+    def get_course_progress_summary(self, user_id: str) -> Dict[str, Any]
+
+    # 资源管理
+    def get_resources_by_chapter_id(self, chapter_id: int) -> List[...]
+    def create_resource(self, resource: ResourceCreate) -> OpenSpecCourseResource
+```
+
+---
+
+## 用户学习流程
+
+### 完整学习路径
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    完整的开发流程                                │
+│                        用户学习流程                              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  第一阶段          第二阶段          第三阶段                    │
-│  ──────          ──────          ──────                        │
-│                                                                 │
-│  Superpowers     OpenSpec        编码实现                        │
-│  (brainstorming)                 │                             │
-│       │                        ┌─┴─┐                           │
-│       ▼                        ▼   ▼                           │
-│  ┌─────────┐              ┌────────┐                           │
-│  │ 探索需求 │              │ 创建   │                           │
-│  │ 比较方案 │───── ──────→│ Spec  │                           │
-│  │ 产出设计 │   明确需求    │ 实现   │                           │
-│  └─────────┘              └────────┘                           │
-│       │                        │                               │
-│       │                        ▼                               │
-│       │                   ┌────────┐                           │
-│       │                   │ 归档   │                           │
-│       │                   └────────┘                           │
-│                                                                 │
-│  💡 思考工具          📋 规范工具          🔨 实现工具           │
+│  1. 首页入口 → 2. 课程主页 → 3. 选择章节 → 4. 学习内容          │
+│      │            │             │             │                │
+│      │            │             │             │                │
+│      ▼            ▼             ▼             ▼                │
+│  ┌────────┐  ┌────────┐   ┌────────┐   ┌────────┐            │
+│  │ 课程   │  │ 显示   │   │ 左侧   │   │ 阅读   │            │
+│  │ 卡片   │→ │ 章节   │→ │ 导航   │→ │ 内容   │            │
+│  │        │  │ 列表   │   │ 列表   │   │        │            │
+│  └────────┘  └────────┘   └────────┘   └────────┘            │
+│                                           │                    │
+│                                           ▼                    │
+│                                    ┌────────────┐              │
+│                                    │ 完成测验？ │              │
+│                                    └─────┬──────┘              │
+│                                          │                      │
+│                    ┌─────────────────────┼─────────────────┐   │
+│                    │                     │                 │   │
+│                    ▼                     ▼                 │   │
+│               ┌────────┐          ┌────────────┐          │   │
+│               │ 是     │          │ 否         │          │   │
+│               │ 提交   │          │ 继续下一章 │          │   │
+│               │ 测验   │          │            │          │   │
+│               └───┬────┘          └────────────┘          │   │
+│                   │                                         │   │
+│                   ▼                                         │   │
+│            ┌──────────────┐                                │   │
+│            │  通过？      │                                │   │
+│            └───┬──────┬───┘                                │   │
+│                │      │                                     │   │
+│         通过 ✅│      │❌ 失败                               │   │
+│                │      │                                     │   │
+│                ▼      ▼                                     │   │
+│           ┌────────┐ ┌────────┐                             │   │
+│           │ 更新   │ │ 重试   │                             │   │
+│           │ 进度   │ │ 测验   │                             │   │
+│           └────────┘ └────────┘                             │   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-##### 实际案例：开发用户认证系统
+### 锁章机制
 
-**阶段 1：使用 Superpowers 探索（需求不明确）**
 ```
-用户：/brainstorming
-我们想给用户添加认证功能，但不确定怎么设计...
+章节锁定逻辑：
+1. is_locked = true 的章节，用户无法访问
+2. required_quiz_id 指向的测验通过后，章节解锁
+3. 用户完成前一章后，下一章自动解锁（可选配置）
 
-AI：让我帮你分析一下认证系统的设计选项...
-
-认证方案对比：
-1. JWT Token - 无状态，适合 API
-2. Session - 有状态，易于撤销
-3. OAuth - 第三方登录
-
-你的使用场景是什么？
-→ 经过多轮对话，明确需求
-→ 产出：design doc（设计文档）
-```
-
-**阶段 2：使用 OpenSpec 创建规范（需求明确后）**
-```
-用户：/opsx:new add-user-auth
-基于之前的设计，创建 Spec...
-
-→ proposal.md - 说明为什么要做认证
-→ specs/user-auth/spec.md - 详细的功能规范
-→ design.md - 技术设计文档
-→ tasks.md - 实现任务列表
-```
-
-**阶段 3：使用 OpenSpec Apply 实现**
-```
-用户：/opsx:apply add-user-auth
-
-任务 1/10: 创建用户模型
-任务 2/10: 创建认证路由
-任务 3/10: 创建 JWT 工具
-...
-→ 逐一完成任务
-→ 完成后归档
-```
-
----
-
-#### 5.5 各工具的"最佳实践时刻"
-
-##### OpenSpec 最佳实践时刻
-```
-✅ 适合：
-- "我们要开发一个新的仪表盘功能"
-- "需要重构用户模块，提升可维护性"
-- "这个 bug 需要系统性修复，不能只打补丁"
-
-❌ 不适合：
-- "把这个按钮从蓝色改成红色"（太简单）
-- "马上上线，先改了再说"（来不及）
-- "我只是想看看有没有更好的方案"（用 brainstorming）
-```
-
-##### spec-kit 最佳实践时刻
-```
-✅ 适合：
-- "这是一个开源项目，需要社区讨论"
-- "我们要写一个 RFC，征求团队意见"
-- "需要与企业 GitHub 工作流集成"
-
-❌ 不适合：
-- "我只是想快速实现一个小功能"
-- "需求还不明确，先探索一下"
-- "国内团队，全中文工作环境"
-```
-
-##### Superpowers 最佳实践时刻
-```
-✅ 适合：
-- "我有一个想法，但不确定是否可行"
-- "这个项目应该怎么架构？"
-- "方案 A 和方案 B 哪个更好？"
-- "帮我画个系统架构图"
-
-❌ 不适合：
-- "我已经想清楚了，直接帮我写代码"（用 OpenSpec apply）
-- "我们需要详细的 Spec 文档"（用 OpenSpec）
+解锁流程：
+┌─────────────┐
+│ 用户访问章节 │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐     是     ┌─────────────┐
+│ is_locked?  │ ──────────→│ 拒绝访问    │
+└──────┬──────┘           └─────────────┘
+       │ 否
+       ▼
+┌─────────────────┐
+│ required_quiz?  │
+└──────┬──────────┘
+       │
+   ┌───┴───┐
+   │       │
+   是      否
+   │       │
+   ▼       ▼
+┌─────┐ ┌───────┐
+│ 检查 │ │ 允许  │
+│ 通过 │ │ 访问  │
+└──┬──┘ └───────┘
+   │
+┌──┴──┐
+│通过？│
+└──┬──┘
+   │
+┌──┴──┐    ┌───────┐    ┌───────┐
+│ 是  │    │  否   │    │ 未考  │
+└──┬──┘    └───┬───┘    └───┬───┘
+   │          │            │
+   ▼          ▼            ▼
+┌──────┐  ┌──────────┐ ┌────────┐
+│ 允许 │  │ 提示去考 │  │ 提示去 │
+│ 访问 │  │ 前一章   │  │ 考试   │
+└──────┘  └──────────┘ └────────┘
 ```
 
 ---
 
-#### 5.6 总结：工具只是手段，高效才是目的
+## 数据初始化
 
-> **重要的不是选择哪个工具，而是掌握 Spec-Driven 的思维方式。**
+### 初始化脚本位置
 
-无论选择 OpenSpec、spec-kit 还是 Superpowers，核心都是：
-1. **先思考，再行动** - 不要冲动编码
-2. **文档化** - 把想法写下来
-3. **结构化** - 分解复杂问题
-4. **可迭代** - 允许修改和完善
+数据库初始化脚本位于 `backend/app/db/init_db_tool.sql`，但当前课程数据需要手动插入。
 
-**我们的建议：**
+### 初始化数据示例
 
-| 你的情况 | 推荐工具 |
-|----------|----------|
-| 国内团队，中文环境 | OpenSpec |
-| GitHub 重度用户 | spec-kit |
-| 需求不明确，需要探索 | Superpowers |
-| 复杂功能开发 | OpenSpec |
-| 简单修改 | 直接用 AI 对话 |
-| 新项目启动 | Superpowers → OpenSpec |
+```sql
+-- 插入示例章节数据
+INSERT INTO course_chapters (course_id, slug, title, "order", content, chapter_type, video_url, is_locked, duration_minutes)
+VALUES
+(1, 'intro-ai-beginner', '第一章：最初的我 - 谨慎使用 AI', 0,
+ '# 第一章：最初的我 - 谨慎使用 AI\n\n刚开始使用 AI 编程时的谨慎心态...',
+ 'story', NULL, 0, 15),
 
----
+(1, 'encounter-problems', '第二章：遇到问题 - AI 乱改代码', 1,
+ '# 第二章：遇到问题 - AI 乱改代码的困扰\n\nAI 经常乱改代码，超出修改范围...',
+ 'story', NULL, 0, 15),
 
-#### 5.7 互动测验
+(1, 'discover-rules', '第三章：发现规则 - rules 的拯救', 2,
+ '# 第三章：发现规则 - rules 的拯救\n\n发现可以使用 rules 规范开发...',
+ 'lesson', NULL, 0, 20),
 
-**测验 1：选择合适的工具**
+(1, 'advanced-tools', '第四章：进阶工具 - OpenSpec', 3,
+ '# 第四章：进阶工具 - OpenSpec & Superpowers\n\nOpenSpec 是一个基于 Spec 的开发方法论...',
+ 'lesson', NULL, 1, 25),  -- is_locked=1，需要解锁
 
-场景：你想给系统添加实时通知功能，但不确定是用 WebSocket 还是轮询...
-
-你的选择：
-A. 直接用 OpenSpec 开始实现
-B. 使用 Superpowers 先探索方案
-C. 使用 spec-kit 写提案
-
-**答案：B** - 需求不明确，先探索
-
-**测验 2：工具组合使用**
-
-场景：经过讨论后，你明确了需求，现在要开始开发了...
-
-你的选择：
-A. 继续用 Superpowers
-B. 使用 OpenSpec 创建变更
-C. 直接写代码
-
-**答案：B** - 需求明确后，用 OpenSpec 结构化开发
+(1, 'comparison', '第五章：对比思考 - 工具对比', 4,
+ '# 第五章：对比思考 - 工具对比与最佳实践\n\n理解 OpenSpec、spec-kit、superpowers 的定位差异...',
+ 'lesson', NULL, 1, 20);  -- is_locked=1，需要解锁
+```
 
 ---
 
-## 功能需求
+## 部署配置
 
-### 1. 课程展示系统
-| 功能 | 描述 |
-|------|------|
-| 章节导航 | 左侧显示章节列表，支持点击跳转 |
-| 内容渲染 | 支持 Markdown、代码高亮、视频嵌入 |
-| 进度追踪 | 显示每章的学习进度（未开始/进行中/已完成） |
-| 锁章机制 | 需要通过测验才能解锁下一章 |
+### 前端部署
 
-### 2. 互动测验系统
-| 功能 | 描述 |
-|------|------|
-| 题型支持 | 单选题、多选题、判断题 |
-| 即时反馈 | 答题后立即显示正确/错误及解析 |
-| 分数记录 | 记录每次测验的分数和用时 |
-| 重试机制 | 答错可以重试，取最高分 |
+```bash
+# 安装依赖
+cd frontend
+npm install
 
-### 3. 代码示例展示
-| 功能 | 描述 |
-|------|------|
-| 语法高亮 | 支持 TypeScript、JSON、Markdown 等 |
-| 一键复制 | 点击按钮复制代码到剪贴板 |
-| 对比视图 | 并排展示 Before/After 代码 |
+# 开发模式
+npm run dev  # 启动于 http://localhost:5178
 
-### 4. 在线尝试区
-| 功能 | 描述 |
-|------|------|
-| 简化的 spec 编辑器 | 提供基础模板，用户可编辑 |
-| 实时预览 | 预览 spec 的效果 |
-| 示例库 | 提供多个示例供参考 |
+# 生产构建
+npm run build
+npm run preview
+```
 
-### 5. 视频嵌入
-| 功能 | 描述 |
-|------|------|
-| 视频播放器 | 支持本地视频或外链（B 站/YouTube） |
-| 断点续播 | 记录上次播放位置 |
-| 字幕支持 | 支持中文字幕 |
+### 后端部署
 
----
+```bash
+# 安装依赖
+cd backend
+pip install -r requirements.txt
 
-## 数据模型设计
+# 启动开发服务器
+uvicorn app.main:app --reload --port 19092
 
-### Chapter (课程章节)
+# 生产环境
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:19092
+```
+
+### CORS 配置
+
+后端已配置 CORS，允许前端访问：
+
 ```python
-class Chapter(BaseModel):
-    id: int
-    title: str                    # 章节标题
-    slug: str                     # 章节标识符
-    order: int                    # 章节顺序
-    content: str                  # 章节内容 (Markdown)
-    chapter_type: str             # 类型：story/code/quiz/video
-    video_url: Optional[str]      # 视频链接
-    is_locked: bool               # 是否锁定
-    required_quiz_id: Optional[int]  # 解锁所需的测验 ID
-    created_at: datetime
-    updated_at: datetime
-```
-
-### Quiz (测验题目)
-```python
-class Quiz(BaseModel):
-    id: int
-    chapter_id: int               # 所属章节
-    title: str                    # 测验标题
-    questions: List[QuizQuestion] # 题目列表
-    passing_score: int            # 及格分数 (百分比)
-    created_at: datetime
-    updated_at: datetime
-
-class QuizQuestion(BaseModel):
-    id: int
-    question_text: str            # 题目内容
-    question_type: str            # single/multiple/true_false
-    options: List[QuizOption]     # 选项
-    correct_answer: List[int]     # 正确答案索引
-    explanation: str              # 答案解析
-
-class QuizOption(BaseModel):
-    id: int
-    option_text: str              # 选项内容
-    option_index: int             # 选项索引 (A/B/C/D)
-```
-
-### UserProgress (用户进度)
-```python
-class UserProgress(BaseModel):
-    id: int
-    user_id: int                  # 用户 ID
-    chapter_id: int               # 章节 ID
-    status: str                   # not_started/in_progress/completed
-    quiz_score: Optional[int]     # 测验分数
-    quiz_passed: bool             # 测验是否通过
-    completed_at: Optional[datetime]  # 完成时间
-    video_progress: int           # 视频播放进度 (秒)
-    created_at: datetime
-    updated_at: datetime
-```
-
-### Resource (课程资源)
-```python
-class Resource(BaseModel):
-    id: int
-    chapter_id: int               # 所属章节
-    resource_type: str            # code_sample/contrast/video/template
-    title: str                    # 资源标题
-    content: str                  # 资源内容
-    metadata: dict                # 额外元数据
-    created_at: datetime
-    updated_at: datetime
+# backend/app/config/config.py
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5178")
 ```
 
 ---
 
-## API 接口设计
+## 视频制作指南
 
-### 课程相关
-```
-GET    /api/openspec-course/chapters          # 获取所有章节
-GET    /api/openspec-course/chapters/{id}     # 获取单个章节详情
-POST   /api/openspec-course/chapters          # 创建章节 (Admin)
-PUT    /api/openspec-course/chapters/{id}     # 更新章节 (Admin)
-DELETE /api/openspec-course/chapters/{id}     # 删除章节 (Admin)
-```
+### 视频结构建议
 
-### 测验相关
-```
-GET    /api/openspec-course/quizzes/{chapter_id}  # 获取章节测验
-POST   /api/openspec-course/quizzes/submit        # 提交测验答案
-GET    /api/openspec-course/quizzes/{id}/result   # 获取测验结果
-```
+根据实际实现的课程内容，建议视频结构如下：
 
-### 进度相关
-```
-GET    /api/openspec-course/progress              # 获取用户进度
-PUT    /api/openspec-course/progress/{chapter_id} # 更新进度
-```
+#### 第一部分：课程介绍（2-3 分钟）
 
-### 资源相关
-```
-GET    /api/openspec-course/resources/{chapter_id} # 获取章节资源
-```
+**内容:**
+- 课程目标：从 AI 小白到 Spec 高手
+- 学习形式：故事驱动 + 互动测验
+- 课程特色：实战编辑、视频讲解、锁章机制
 
----
+**画面:**
+- 首页课程入口卡片展示
+- 课程主页整体布局
+- 学习路径图
 
-## 前端组件设计
+#### 第二部分：第一阶段 - 谨慎使用 AI（5-8 分钟）
 
-### 页面结构
-```
-/OpenSpecCourse/
-├── CourseHomepage.tsx          # 课程主页（入口）
-├── ChapterView.tsx             # 章节内容展示
-├── QuizView.tsx                # 测验界面
-├── SpecEditor.tsx              # spec 编辑器
-├── ProgressBar.tsx             # 进度条组件
-└── ChapterNavigation.tsx       # 章节导航
-```
+**内容:**
+- 故事引入：刚开始使用 AI 的心态
+- 详细沟通模板演示
+- 前端/后端修改沟通示例
 
-### 入口设计
-在首页 Hero 区域上方添加一个醒目的课程入口卡片：
-- 大尺寸卡片，带有动画效果
-- 包含课程标题和简介
-- "开始学习" 按钮
-- 显示课程进度（如果已开始学习）
+**画面:**
+- 第一章内容滚动展示
+- 代码示例高亮显示
+- 沟通模板表格展示
 
----
+#### 第三部分：第二阶段 - 遇到问题（3-5 分钟）
 
-## 技术实现
+**内容:**
+- AI 乱改代码的场景
+- 对比演示：期望 vs 实际
 
-### 后端技术栈
-- FastAPI (Python)
-- SQLAlchemy (ORM)
-- Pydantic (数据验证)
-- JWT 认证
+**画面:**
+- 错误示例代码
+- 对比视图
 
-### 前端技术栈
-- React 18 + TypeScript
-- Tailwind CSS
-- React Router
-- CodeMirror (代码编辑器)
-- React Player (视频播放)
+#### 第四部分：第三阶段 - Rules 拯救（5-8 分钟）
 
-### 数据库
-- SQLite (开发环境)
-- PostgreSQL/MySQL (生产环境)
+**内容:**
+- Rules 介绍
+- Rules 配置示例
+- 效果对比
 
----
+**画面:**
+- Rules 文件内容
+- 有/无 Rules 对比
 
-## 项目结构
+#### 第五部分：第四阶段 - OpenSpec（10-15 分钟）
 
-```
-backend/
-├── app/
-│   ├── models/
-│   │   └── openspec_course.py    # 数据模型定义
-│   ├── routes/
-│   │   └── openspec_course.py    # API 路由
-│   ├── services/
-│   │   └── openspec_course.py    # 业务逻辑
-│   └── schemas/
-│       └── openspec_course.py    # Pydantic 模型
+**内容:**
+- OpenSpec 技能系统介绍
+- 每个技能的用途
+- Spec 文件示例
 
-frontend/
-├── src/
-│   ├── components/
-│   │   └── OpenSpecCourse/
-│   │       ├── CourseHomepage.tsx
-│   │       ├── ChapterView.tsx
-│   │       ├── QuizView.tsx
-│   │       ├── SpecEditor.tsx
-│   │       └── ...
-│   ├── pages/
-│   │   └── OpenSpecCourse.tsx
-│   └── services/
-│       └── openspecCourse.ts
-```
+**画面:**
+- 技能列表
+- openspec-new-change 演示
+- openspec-explore 对话示例
+- Spec 编辑器演示
 
----
+#### 第六部分：第五阶段 - 工具对比（5-8 分钟）
 
-## 时间估算
+**内容:**
+- OpenSpec vs spec-kit vs Superpowers
+- 决策树
+- 最佳实践
 
-| 阶段 | 任务 | 估算时间 |
-|------|------|----------|
-| 1 | 后端数据模型和 API | 4-6 小时 |
-| 2 | 前端页面框架和组件 | 6-8 小时 |
-| 3 | 测验系统和进度追踪 | 3-4 小时 |
-| 4 | Spec 编辑器集成 | 2-3 小时 |
-| 5 | 视频嵌入和优化 | 1-2 小时 |
-| 6 | 内容填充和测试 | 4-6 小时 |
-| **总计** | | **20-29 小时** |
+**画面:**
+- 对比表格
+- 决策树流程图
+- 互动测验演示
 
----
+### 录屏建议
 
-## 成功标准
-
-1. ✅ 用户可以完整浏览所有章节内容
-2. ✅ 测验系统正常工作，能够正确判分
-3. ✅ 学习进度正确记录和显示
-4. ✅ 代码示例可以正常复制
-5. ✅ Spec 编辑器可以正常使用
-6. ✅ 视频可以正常播放
-7. ✅ 页面风格活泼有趣，符合宣讲需求
+1. **首页入口:** 展示课程卡片的动画效果和"开始学习"按钮
+2. **章节导航:** 展示左侧章节列表、锁章状态、进度显示
+3. **内容浏览:** 滚动展示 Markdown 内容、代码高亮
+4. **互动测验:** 演示答题、提交、判题、解析全流程
+5. **Spec 编辑器:** 演示在线编辑 Spec
 
 ---
 
@@ -1231,3 +841,37 @@ frontend/
 - [ ] 支持课程证书生成
 - [ ] 多语言支持
 - [ ] 更多互动游戏化元素
+
+---
+
+## 附录：当前实现状态
+
+### 已实现功能 ✅
+
+| 功能 | 状态 |
+|------|------|
+| 章节列表展示 | ✅ 已实现 |
+| 章节内容渲染（Markdown） | ✅ 已实现 |
+| 代码高亮 | ✅ 已实现 |
+| 章节导航 | ✅ 已实现 |
+| 学习进度追踪 | ✅ 已实现 |
+| 测验系统 | ✅ 已实现 |
+| 锁章机制 | ✅ 已实现（基础） |
+| 进度条组件 | ✅ 已实现 |
+| Spec 编辑器 | ✅ 已实现（基础） |
+| 首页入口卡片 | ✅ 已实现 |
+
+### 待实现功能 🚧
+
+| 功能 | 状态 |
+|------|------|
+| 视频嵌入播放 | 🚧 框架已实现，待填充视频 |
+| 资源管理 | 🚧 API 已实现，待前端集成 |
+| 完整锁章逻辑 | 🚧 基础已实现，待完善 |
+| 互动游戏化元素 | 🚧 待实现 |
+
+---
+
+**文档版本:** 3.0
+**最后更新:** 2026-03-08
+**更新内容:** 根据实际实现调整，包括数据库结构、API 接口、前端组件、章节内容
