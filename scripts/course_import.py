@@ -4,10 +4,128 @@ OpenSpec 课程数据导入脚本
 
 从 Markdown 文档导入课程数据到数据库，支持增量导入、数据验证和失败回滚。
 
-用法:
-    python scripts/course_import.py course_data/openspec-vibecoding.md
-    python scripts/course_import.py course_data/openspec-vibecoding.md --force  # 强制导入（跳过验证）
-    python scripts/course_import.py course_data/openspec-vibecoding.md --dry-run  # 模拟导入
+## 功能特性
+
+- ✅ **增量导入**：按 slug 匹配，存在则更新，不存在则新增
+- ✅ **数据验证**：导入前验证数据完整性和一致性
+- ✅ **自动备份**：导入前自动备份现有数据
+- ✅ **失败回滚**：导入失败时恢复到备份状态
+- ✅ **用户进度保护**：不影响用户学习进度数据
+
+## 使用方法
+
+### 基本用法
+```bash
+python3 scripts/course_import.py course_data/openspec-vibecoding.md
+```
+
+### 模拟导入（不实际写入）
+```bash
+python3 scripts/course_import.py course_data/openspec-vibecoding.md --dry-run
+```
+
+### 强制导入（跳过验证）
+```bash
+python3 scripts/course_import.py course_data/openspec-vibecoding.md --force
+```
+
+### 不备份直接导入（不推荐）
+```bash
+python3 scripts/course_import.py course_data/openspec-vibecoding.md --no-backup
+```
+
+## 参数说明
+
+| 参数 | 说明 |
+|------|------|
+| `markdown_file` | Markdown 文件路径（必填） |
+| `--dry-run` | 模拟导入模式，不实际写入数据库 |
+| `--force` | 强制导入，跳过数据验证 |
+| `--no-backup` | 不备份现有数据直接导入 |
+
+## 工作流程
+
+1. **读取 Markdown 文件** - 解析章节、测验、题目、资源数据
+2. **数据验证** - 检查 slug 唯一性、order 连续性、必填字段等
+3. **备份现有数据** - 自动生成备份文件（YYYYMMDD_HHMMSS_NNN.json）
+4. **增量导入** - 按 slug 匹配，存在则更新，不存在则新增
+5. **生成报告** - 输出导入结果统计
+
+## 导入报告示例
+
+```
+============================================================
+OpenSpec 课程数据导入工具
+============================================================
+
+读取文件：course_data/openspec-vibecoding.md
+正在连接数据库...
+正在解析 Markdown 内容...
+✅ 解析成功，共 5 个章节
+   - intro-vibe-coding: 第一章：最初的我 - 谨慎使用 AI 😰
+     └─ 1 个测验
+     └─ 1 个资源
+   ...
+
+正在验证数据...
+✅ 数据验证通过
+
+正在备份现有数据...
+✅ 备份完成：course_data/backups/20260309_100000_001.json
+
+正在导入数据...
+
+✅ 导入完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+新增章节：0
+更新章节：5
+新增测验：0
+更新测验：3
+新增题目：0
+更新题目：6
+新增资源：0
+更新资源：3
+备份文件：course_data/backups/20260309_100000_001.json
+```
+
+## 数据验证规则
+
+### 章节验证
+- slug 必须唯一
+- order 必须连续且不重复
+- title 不能为空
+- content 不能为空
+- chapter_type 必须是：story, code, quiz, video, quiz-only
+
+### 测验验证
+- passing_score 范围必须在 0-100 之间
+
+### 题目验证
+- question_type 必须是：single, multiple
+- correct_answer 不能为空
+- options 不能为空
+
+## 注意事项
+
+1. **编辑 Markdown 时不要修改 YAML 块的格式**，否则可能无法正确解析
+2. **导入前会删除不在 Markdown 中的测验和资源**，确保 Markdown 文件包含完整数据
+3. **定期备份数据库**，以防意外数据丢失
+4. **在生产环境使用前，先在测试环境验证**
+
+## 常见问题
+
+**Q: 提示"章节 slug 重复"？**
+A: Markdown 文件中有两个章节使用了相同的 slug，检查并确保每个章节的 slug 唯一。
+
+**Q: 提示"章节 order 重复"？**
+A: 两个章节的 order 值相同，确保章节的 order 值连续且不重复。
+
+**Q: 导入失败后如何恢复？**
+A: 导入脚本会自动回滚到备份，或手动执行：
+   `python3 scripts/course_backup.py --restore <备份文件>`
+
+**Q: 如何验证导入结果？**
+A: 访问网站查看课程内容，或运行导出脚本重新导出对比。
 """
 
 import sys

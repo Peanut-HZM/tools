@@ -4,15 +4,108 @@ OpenSpec 课程数据导出脚本
 
 将数据库中的课程数据导出为 Markdown 文档，方便人工编辑和版本管理。
 
-用法:
-    python scripts/course_export.py
+## 功能特性
 
-输出:
-    - course_data/openspec-vibecoding.md
+- 导出 OpenSpec VibeCoding 课程的所有章节、测验、题目、选项和资源
+- 生成结构化的 Markdown 文档，使用 YAML Frontmatter 格式
+- 支持自定义输出文件路径
+- 导出报告详细统计
+
+## 使用方法
+
+### 基本用法
+```bash
+python3 scripts/course_export.py
+```
+
+### 指定输出文件
+```bash
+python3 scripts/course_export.py --output my-course.md
+```
+
+## 输出文件格式
+
+导出的 Markdown 文件包含以下部分：
+
+1. **文件头**：导出时间和说明
+2. **章节**：每个章节包含 slug、order、title、chapter_type、is_locked 等元数据
+3. **测验**：每个测验包含 passing_score 和题目列表
+4. **题目**：每道题目包含 type、correct_answer、explanation 和选项
+5. **资源**：每个资源包含 type 和内容
+
+示例格式：
+```markdown
+# OpenSpec VibeCoding 课程数据
+
+> 导出时间：2026-03-09 10:00:00
+
+---
+
+## 章节：intro-vibe-coding
+
+```yaml
+order: 1
+title: 第一章：最初的我 - 谨慎使用 AI 😰
+chapter_type: story
+is_locked: false
+```
+
+## 内容
+
+章节内容...
+
+---
+
+## 测验：VibeCoding 入门测验
+
+```yaml
+passing_score: 60
+```
+
+### 题目 1
+
+```yaml
+question_type: single
+correct_answer: 2
+explanation: 答案解析
+```
+
+**题目内容：** 题目文本...
+
+- A) 选项 A
+- B) 选项 B
+- C) 选项 C
+- D) 选项 D
+```
+
+## 依赖
+
+- Python 3.10+
+- SQLAlchemy
+- 数据库连接配置（从 backend/app/config/config.py 读取）
+
+## 注意事项
+
+1. 确保数据库连接配置正确
+2. 确保有读取数据库的权限
+3. 导出文件默认保存在 course_data/openspec-vibecoding.md
+4. 如果数据库中没有课程数据，脚本会提示并退出
+
+## 常见问题
+
+**Q: 提示数据库连接失败？**
+A: 检查 backend/app/config/config.py 中的 DATABASE_URL 配置
+
+**Q: 导出的内容为空？**
+A: 数据库中可能没有课程数据，先运行 init_openspec_course.py 初始化数据
+
+**Q: 如何自定义导出路径？**
+A: 使用 --output 参数指定输出文件路径
 """
 
 import sys
 import os
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -266,6 +359,31 @@ class CourseExporter:
 
 def main():
     """主函数"""
+    parser = argparse.ArgumentParser(
+        description="OpenSpec 课程数据导出工具",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  python3 scripts/course_export.py                    # 导出到默认路径
+  python3 scripts/course_export.py -o my-course.md    # 导出到指定文件
+
+详细说明:
+  本脚本将数据库中的课程数据导出为 Markdown 文档，支持：
+  - 章节数据（slug, title, content, chapter_type 等）
+  - 测验数据（题目、选项、答案、解析）
+  - 资源数据（code_sample, template 等）
+
+  导出的 Markdown 文件可以直接编辑，然后通过 course_import.py 重新导入数据库。
+        """
+    )
+    parser.add_argument(
+        "-o", "--output",
+        type=str,
+        default=None,
+        help="输出文件路径（默认：course_data/openspec-vibecoding.md）"
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("OpenSpec 课程数据导出工具")
     print("=" * 60)
@@ -289,8 +407,11 @@ def main():
         # 创建导出器
         exporter = CourseExporter(session)
 
-        # 导出到 Markdown
-        output_path = Path(__file__).parent.parent / "course_data" / "openspec-vibecoding.md"
+        # 确定输出路径
+        if args.output:
+            output_path = Path(args.output)
+        else:
+            output_path = Path(__file__).parent.parent / "course_data" / "openspec-vibecoding.md"
         print(f"正在导出课程数据到：{output_path}")
 
         stats = exporter.export_to_md(str(output_path))
