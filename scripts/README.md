@@ -545,3 +545,126 @@ python3 scripts/course_backup.py --list
 # 清理测试文件
 rm -f course_data/test-export.md
 ```
+
+---
+
+## Git 双远程仓库同步工具
+
+本目录包含两个用于管理双远程仓库（GitHub + Gitee）的 Python 脚本。
+
+### 前置条件
+
+确保已配置两个远程仓库：
+
+```bash
+# 添加 GitHub 远程仓库
+git remote add github git@github.com:USERNAME/tools.git
+
+# 添加 Gitee 远程仓库（或使用 origin）
+git remote add origin git@gitee.com:USERNAME/tools.git
+
+# 验证配置
+git remote -v
+```
+
+### 脚本一：sync_to_remotes.py - 双仓库同步推送
+
+**功能**：将本地提交同时推送到所有配置的远程仓库
+
+**使用方法**：
+
+```bash
+# 基本用法（推送到所有远程仓库）
+python scripts/sync_to_remotes.py
+
+# 指定分支
+python scripts/sync_to_remotes.py -b main
+
+# 强制推送（谨慎使用）
+python scripts/sync_to_remotes.py -f
+
+# 排除特定远程仓库（只推送到 github）
+python scripts/sync_to_remotes.py -e origin
+
+# 排除特定远程仓库（只推送到 gitee）
+python scripts/sync_to_remotes.py -e github
+```
+
+**参数说明**：
+| 参数 | 说明 |
+|------|------|
+| `-p, --path` | Git 仓库路径，默认为当前目录 |
+| `-b, --branch` | 指定要推送的分支，默认为当前分支 |
+| `-f, --force` | 强制推送 |
+| `-e, --exclude` | 要排除的远程仓库名称 |
+| `-v, --verbose` | 显示详细信息 |
+
+### 脚本二：rebase_update.py - Rebase 方式更新
+
+**功能**：使用 rebase 方式从远程仓库更新本地代码，保持提交历史线性
+
+**使用方法**：
+
+```bash
+# 从默认 remote 更新
+python scripts/rebase_update.py
+
+# 从指定 remote 更新（如 gitee）
+python scripts/rebase_update.py -r origin
+
+# 从 github 更新
+python scripts/rebase_update.py -r github
+
+# 指定分支
+python scripts/rebase_update.py -b main
+
+# 冲突时自动中止 rebase
+python scripts/rebase_update.py --abort-on-conflict
+
+# 中止正在进行的 rebase
+python scripts/rebase_update.py --abort
+```
+
+**参数说明**：
+| 参数 | 说明 |
+|------|------|
+| `-p, --path` | Git 仓库路径，默认为当前目录 |
+| `-b, --branch` | 指定要更新的分支，默认为当前分支 |
+| `-r, --remote` | 指定远程仓库名称 |
+| `--abort` | 中止正在进行的 rebase |
+| `--abort-on-conflict` | 冲突时自动中止 rebase |
+
+### 典型工作流
+
+#### 场景 1：日常开发，推送变更到两个仓库
+
+```bash
+# 1. 提交本地更改
+git add .
+git commit -m "feat: 添加新功能"
+
+# 2. 同步到两个远程仓库
+python scripts/sync_to_remotes.py
+```
+
+#### 场景 2：本地落后于远程，需要更新后推送
+
+```bash
+# 1. 使用 rebase 更新本地（从 Gitee）
+python scripts/rebase_update.py -r origin
+
+# 2. 如果需要，强制推送到 GitHub（rebase 后历史改变）
+python scripts/sync_to_remotes.py -e origin -f
+```
+
+### 注意事项
+
+1. **Rebase 后需要强制推送**：使用 `rebase_update.py` 更新后，提交历史会改变，需要使用 `--force` 选项推送到已推送过的远程仓库。
+
+2. **冲突处理**：如果 rebase 过程中出现冲突：
+   - 手动编辑冲突文件解决冲突
+   - 运行 `git add <文件名>` 标记为解决
+   - 运行 `git rebase --continue` 继续
+   - 或运行脚本的 `--abort` 参数中止
+
+3. **推送顺序**：建议先推送到主要开发仓库，更新后再同步到镜像仓库。
