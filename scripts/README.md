@@ -571,10 +571,16 @@ git remote -v
 
 **功能**：将本地提交同时推送到所有配置的远程仓库
 
+**主要特性**：
+- ✅ 自动检测远程分支是否存在
+- ✅ 推送前自动 rebase 更新本地代码（避免推送失败）
+- ✅ 首次推送新分支时自动设置上游分支
+- ✅ 支持排除指定仓库、强制推送等选项
+
 **使用方法**：
 
 ```bash
-# 基本用法（推送到所有远程仓库）
+# 基本用法（推送到所有远程仓库，推送前自动 rebase 更新）
 python scripts/sync_to_remotes.py
 
 # 指定分支
@@ -588,6 +594,9 @@ python scripts/sync_to_remotes.py -e origin
 
 # 排除特定远程仓库（只推送到 gitee）
 python scripts/sync_to_remotes.py -e github
+
+# 跳过推送前的 rebase 更新（直接推送）
+python scripts/sync_to_remotes.py --skip-rebase
 ```
 
 **参数说明**：
@@ -597,6 +606,7 @@ python scripts/sync_to_remotes.py -e github
 | `-b, --branch` | 指定要推送的分支，默认为当前分支 |
 | `-f, --force` | 强制推送 |
 | `-e, --exclude` | 要排除的远程仓库名称 |
+| `--skip-rebase` | 跳过推送前的 rebase 更新 |
 | `-v, --verbose` | 显示详细信息 |
 
 ### 脚本二：rebase_update.py - Rebase 方式更新
@@ -643,28 +653,56 @@ python scripts/rebase_update.py --abort
 git add .
 git commit -m "feat: 添加新功能"
 
-# 2. 同步到两个远程仓库
+# 2. 同步到两个远程仓库（自动 rebase 更新）
 python scripts/sync_to_remotes.py
 ```
 
 #### 场景 2：本地落后于远程，需要更新后推送
 
 ```bash
-# 1. 使用 rebase 更新本地（从 Gitee）
+# 脚本会自动检测并 rebase 更新
+python scripts/sync_to_remotes.py
+
+# 如果 rebase 失败，手动使用 rebase_update.py
 python scripts/rebase_update.py -r origin
 
-# 2. 如果需要，强制推送到 GitHub（rebase 后历史改变）
-python scripts/sync_to_remotes.py -e origin -f
+# 解决冲突后再次同步
+python scripts/sync_to_remotes.py
+```
+
+#### 场景 3：新建分支首次推送
+
+```bash
+# 创建新分支
+git checkout -b feature/new-feature
+
+# 提交更改
+git add .
+git commit -m "feat: 新功能"
+
+# 同步脚本会自动检测远程分支不存在，执行首次推送并设置上游
+python scripts/sync_to_remotes.py
+```
+
+#### 场景 4：跳过 rebase 直接推送
+
+```bash
+# 确定不需要更新时，跳过 rebase 直接推送
+python scripts/sync_to_remotes.py --skip-rebase
 ```
 
 ### 注意事项
 
-1. **Rebase 后需要强制推送**：使用 `rebase_update.py` 更新后，提交历史会改变，需要使用 `--force` 选项推送到已推送过的远程仓库。
+1. **自动 Rebase 更新**：脚本默认在推送前自动 rebase 更新本地代码。如果本地落后于远程，会自动执行 rebase。
 
-2. **冲突处理**：如果 rebase 过程中出现冲突：
+2. **Rebase 冲突处理**：如果 rebase 过程中出现冲突：
    - 手动编辑冲突文件解决冲突
    - 运行 `git add <文件名>` 标记为解决
    - 运行 `git rebase --continue` 继续
-   - 或运行脚本的 `--abort` 参数中止
+   - 或运行 `git rebase --abort` 中止
 
-3. **推送顺序**：建议先推送到主要开发仓库，更新后再同步到镜像仓库。
+3. **首次推送新分支**：当远程仓库不存在当前分支时，脚本会自动使用 `-u` 参数设置上游分支。
+
+4. **跳过 Rebase**：如果确定本地是最新且不想 rebase，使用 `--skip-rebase` 参数。
+
+5. **推送顺序**：脚本会自动从第一个配置的远程仓库（通常是 origin/gitee）fetch 更新进行 rebase。
