@@ -155,9 +155,10 @@ export const submitReview = async (
 
 export const getAdminCourses = async (params?: {
   status?: string;
+  search?: string;
   page?: number;
   limit?: number;
-}): Promise<{ courses: Course[]; total: number }> => {
+}): Promise<{ courses: Course[]; total: number; page: number; limit: number }> => {
   const response = await axios.get(`${API_BASE}/admin/courses`, { params });
   return response.data;
 };

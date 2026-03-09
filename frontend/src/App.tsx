@@ -14,6 +14,7 @@ import UserManagement from './components/Admin/UserManagement';
 import OssManagement from './components/Admin/OssManagement';
 import LLMConfigsPage from './components/Admin/LLMConfigsPage';
 import CourseManagement from './components/Admin/CourseManagement';
+import CourseDetail from './components/Admin/CourseDetail';
 import AgentManagement from './components/Admin/AgentManagement';
 import ConversationManagement from './components/Admin/ConversationManagement';
 import ContactMessagesManagement from './components/Admin/ContactMessagesManagement';
@@ -37,6 +38,8 @@ import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
+import TechContentsPage from './pages/TechContentsPage';
+import TechContentDetailPage from './pages/TechContentDetailPage';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -237,6 +240,8 @@ function App() {
               <Route path="/courses" element={<CoursesPage />} />
               <Route path="/courses/:slug" element={<CourseDetailPage />} />
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
+              <Route path="/tech-contents" element={<TechContentsPage />} />
+              <Route path="/tech-contents/:slug" element={<TechContentDetailPage />} />
               <Route path="/tools/image-downloader" element={<ImageDownloader />} />
               <Route path="/tools/video-downloader" element={<VideoDownloader />} />
               <Route path="/tools/json-formatter" element={<JsonFormatter />} />
@@ -270,6 +275,7 @@ function App() {
               <Route path="oss" element={<OssManagement />} />
               <Route path="llm-configs" element={<LLMConfigsPage />} />
               <Route path="course" element={<CourseManagement />} />
+              <Route path="course/:id" element={<CourseDetail />} />
             </Route>
           </Routes>
         </BrowserRouter>

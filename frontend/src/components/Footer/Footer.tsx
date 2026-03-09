@@ -13,7 +13,7 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
             {/* Logo 和简介 */}
             <div className="text-center md:text-left">
-              <div className="text-xl font-['Pacifico'] text-primary mb-2">{t.common.logo}</div>
+              <div className="text-xl font-['Pacifico'] text-primary mb-2">{t.common.tools}</div>
               <p className="text-slate-400 text-sm">{t.footer.desc}</p>
             </div>
 

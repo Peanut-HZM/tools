@@ -39,7 +39,7 @@ class CourseCategory(Base):
 
 
 class Course(Base):
-    """课程主表"""
+    """课程主表（支持技术分析内容）"""
 
     __tablename__ = "courses"
 
@@ -52,6 +52,13 @@ class Course(Base):
     instructor_id = Column(String(64), comment="讲师 ID")
     price = Column(DECIMAL(10, 2), default=0, comment="价格")
     status = Column(String(20), default="draft", comment="状态：draft/published/archived")
+
+    # 技术分析内容新增字段
+    content_type = Column(String(20), default="analysis", comment="内容类型：analysis(技术分析)/sharing(技术分享)/case_study(项目案例)")
+    author = Column(String(100), comment="作者")
+    reading_time = Column(Integer, default=0, comment="阅读时长（分钟）")
+    tags = Column(Text, comment="标签（JSON 数组）")
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -66,6 +73,21 @@ class Course(Base):
     def __repr__(self):
         return f"<Course(id={self.id}, slug={self.slug}, title={self.title})>"
 
+    def get_tags(self) -> list:
+        """解析标签为列表"""
+        if self.tags:
+            import json
+            try:
+                return json.loads(self.tags)
+            except:
+                return []
+        return []
+
+    def set_tags(self, tags: list):
+        """设置标签"""
+        import json
+        self.tags = json.dumps(tags, ensure_ascii=False)
+
 
 class CourseChapter(Base):
     """课程章节表"""
@@ -78,7 +100,7 @@ class CourseChapter(Base):
     title = Column(String(200), nullable=False, comment="章节标题")
     order = Column(Integer, default=0, comment="章节顺序")
     content = Column(Text, nullable=False, comment="章节内容 (Markdown)")
-    chapter_type = Column(String(50), default="story", comment="类型：story/lesson/quiz-only/code/video")
+    chapter_type = Column(String(50), default="story", comment="类型：story/lesson/quiz-only/code/video/section/slides")
     video_url = Column(String(500), comment="视频链接")
     is_locked = Column(Boolean, default=False, comment="是否锁定")
     duration_minutes = Column(Integer, default=0, comment="学习时长 (分钟)")

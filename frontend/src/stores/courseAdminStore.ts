@@ -273,12 +273,26 @@ interface CourseState {
   courses: Course[];
   loading: boolean;
   error: string | null;
+  total: number;
+  page: number;
+  limit: number;
+  statusFilter: string;
+  searchKeyword: string;
 
   // Actions
-  fetchCourses: (params?: { status?: string; page?: number; limit?: number }) => Promise<void>;
+  fetchCourses: (params?: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => Promise<void>;
   saveCourse: (courseData: Partial<Course>, courseId?: number) => Promise<Course>;
   deleteCourse: (courseId: number) => Promise<void>;
   togglePublish: (courseId: number, publish: boolean) => Promise<void>;
+  setPage: (page: number) => void;
+  setLimit: (limit: number) => void;
+  setStatusFilter: (status: string) => void;
+  setSearchKeyword: (keyword: string) => void;
   clearError: () => void;
 }
 
@@ -286,12 +300,23 @@ export const useCourseAdminStore = create<CourseState>((set, get) => ({
   courses: [],
   loading: false,
   error: null,
+  total: 0,
+  page: 1,
+  limit: 9,
+  statusFilter: 'all',
+  searchKeyword: '',
 
   fetchCourses: async (params) => {
     set({ loading: true, error: null });
     try {
       const data = await getAdminCourses(params);
-      set({ courses: data.courses, loading: false });
+      set({
+        courses: data.courses,
+        total: data.total,
+        page: data.page,
+        limit: data.limit,
+        loading: false
+      });
     } catch (error) {
       set({
         loading: false,
@@ -318,6 +343,7 @@ export const useCourseAdminStore = create<CourseState>((set, get) => ({
     await deleteCourse(courseId);
     set((state) => ({
       courses: state.courses.filter((c) => c.id !== courseId),
+      total: state.total - 1,
     }));
   },
 
@@ -328,6 +354,22 @@ export const useCourseAdminStore = create<CourseState>((set, get) => ({
         c.id === courseId ? { ...c, is_published: publish } : c
       ),
     }));
+  },
+
+  setPage: (page) => {
+    set({ page });
+  },
+
+  setLimit: (limit) => {
+    set({ limit, page: 1 }); // Reset page to 1 when changing limit
+  },
+
+  setStatusFilter: (status) => {
+    set({ statusFilter: status });
+  },
+
+  setSearchKeyword: (keyword) => {
+    set({ searchKeyword: keyword });
   },
 
   clearError: () => {

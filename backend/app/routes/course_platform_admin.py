@@ -45,6 +45,7 @@ def is_admin() -> bool:
 )
 async def get_admin_courses(
     status_filter: Optional[str] = Query(None, alias="status", description="状态筛选：draft/published/archived"),
+    search: Optional[str] = Query(None, description="搜索关键词（课程标题/描述/章节内容）"),
     page: int = Query(1, ge=1, description="页码"),
     limit: int = Query(20, ge=1, le=100, description="每页数量"),
     db: Session = Depends(get_db),
@@ -56,6 +57,21 @@ async def get_admin_courses(
         # 状态筛选
         if status_filter:
             query = query.filter(Course.status == status_filter)
+
+        # 搜索：课程标题、描述或章节内容
+        if search:
+            search_filter = f"%{search}%"
+            # 搜索课程标题和描述
+            course_match = Course.title.ilike(search_filter) | Course.description.ilike(search_filter)
+
+            # 搜索章节内容（通过子查询）
+            chapter_subquery = db.query(CourseChapter.course_id).filter(
+                CourseChapter.title.ilike(search_filter) | CourseChapter.content.ilike(search_filter)
+            ).distinct()
+
+            chapter_match = Course.id.in_(chapter_subquery)
+
+            query = query.filter(course_match | chapter_match)
 
         total = query.count()
         courses = query.order_by(Course.created_at.desc()).offset((page - 1) * limit).limit(limit).all()

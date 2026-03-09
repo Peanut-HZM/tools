@@ -57,6 +57,12 @@ class CourseBase(BaseModel):
     price: Decimal = Field(default=0, description="价格", ge=0)
     status: str = Field(default="draft", description="状态：draft/published/archived")
 
+    # 技术分析内容新增字段
+    content_type: Optional[str] = Field(default="analysis", description="内容类型：analysis/sharing/case_study")
+    author: Optional[str] = Field(None, description="作者", max_length=100)
+    reading_time: Optional[int] = Field(default=0, description="阅读时长（分钟）", ge=0)
+    tags: Optional[List[str]] = Field(None, description="标签列表")
+
     @field_validator("status")
     @classmethod
     def validate_status(cls, v: str) -> str:
@@ -64,6 +70,17 @@ class CourseBase(BaseModel):
         allowed_statuses = ["draft", "published", "archived"]
         if v not in allowed_statuses:
             raise ValueError(f"状态必须是 {', '.join(allowed_statuses)} 之一")
+        return v
+
+    @field_validator("content_type")
+    @classmethod
+    def validate_content_type(cls, v: Optional[str]) -> Optional[str]:
+        """验证内容类型"""
+        if v is None:
+            return v
+        allowed_types = ["analysis", "sharing", "case_study"]
+        if v not in allowed_types:
+            raise ValueError(f"内容类型必须是 {', '.join(allowed_types)} 之一")
         return v
 
 
@@ -82,6 +99,11 @@ class CourseUpdate(BaseModel):
     instructor_id: Optional[str] = None
     price: Optional[Decimal] = None
     status: Optional[str] = None
+    # 技术分析内容字段
+    content_type: Optional[str] = None
+    author: Optional[str] = None
+    reading_time: Optional[int] = None
+    tags: Optional[List[str]] = None
 
 
 class CourseResponse(CourseBase):
@@ -104,6 +126,11 @@ class CourseListItem(BaseModel):
     cover_image: Optional[str] = None
     category: Optional[CourseCategoryResponse] = None
     statistics: Optional["CourseStatisticsResponse"] = None
+    # 技术分析内容字段
+    content_type: Optional[str] = None
+    author: Optional[str] = None
+    reading_time: Optional[int] = None
+    tags: Optional[List[str]] = None
 
 
 # ============ 课程章节 Schemas ============
