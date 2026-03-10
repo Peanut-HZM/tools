@@ -918,11 +918,16 @@ async def export_course_zip(
         zip_bytes, filename = export_service.export_to_zip(course_id=course_id, course_title=course_title)
 
         from fastapi.responses import StreamingResponse
+        import urllib.parse
+
+        # 使用 RFC 5987 编码处理中文文件名
+        encoded_filename = urllib.parse.quote(filename)
+
         return StreamingResponse(
             io.BytesIO(zip_bytes),
             media_type="application/zip",
             headers={
-                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
             },
         )
     except Exception as e:
