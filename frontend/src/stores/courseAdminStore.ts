@@ -293,6 +293,7 @@ interface CourseState {
   setLimit: (limit: number) => void;
   setStatusFilter: (status: string) => void;
   setSearchKeyword: (keyword: string) => void;
+  getCourseById: (courseId: number) => Course | null;
   clearError: () => void;
 }
 
@@ -370,6 +371,10 @@ export const useCourseAdminStore = create<CourseState>((set, get) => ({
 
   setSearchKeyword: (keyword) => {
     set({ searchKeyword: keyword });
+  },
+
+  getCourseById: (courseId) => {
+    return get().courses.find((c) => c.id === courseId) || null;
   },
 
   clearError: () => {
