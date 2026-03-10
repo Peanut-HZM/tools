@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCourseAdminStore } from '../../../stores/courseAdminStore';
 import type { Course, CourseCategory } from '../../../services/coursePlatform';
+import { MarkdownEditor } from './MarkdownEditor';
 
 interface CourseEditorProps {
   courseId?: number;
@@ -26,15 +27,10 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
   // 加载课程数据（编辑模式）
   useEffect(() => {
     if (courseId) {
-      // TODO: 从 store 或 API 加载课程详情
-      // 这里暂时使用 localStorage 模拟
-      const savedCourses = localStorage.getItem('admin_courses');
-      if (savedCourses) {
-        const courses = JSON.parse(savedCourses) as Course[];
-        const course = courses.find((c) => c.id === courseId);
-        if (course) {
-          setFormData(course);
-        }
+      // 从 Zustand store 获取课程数据
+      const course = useCourseAdminStore.getState().courses.find((c) => c.id === courseId);
+      if (course) {
+        setFormData(course);
       }
     }
   }, [courseId]);
@@ -195,25 +191,27 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                 </div>
               </div>
 
-              {/* 课程描述 */}
+              {/* 课程描述 - Markdown 编辑器 */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   <i className="fas fa-align-left mr-2 text-cyan-400"></i>
                   课程描述 *
                 </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  required
-                  rows={4}
-                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 transition-all resize-none"
-                  placeholder="用简洁的语言描述课程内容和目标学员..."
+                <MarkdownEditor
+                  value={formData.description || ''}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, description: val }))}
+                  placeholder="## 课程简介
+
+在此编写课程描述，支持 **Markdown** 格式...
+
+### 内容大纲
+- 第一点
+- 第二点"
+                  height="300px"
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  {(formData.description || '').length} 字
+                <p className="text-xs text-slate-500 mt-2">
+                  <i className="fas fa-markdown mr-1"></i>
+                  支持 Markdown 格式，点击"并排预览"查看实时效果
                 </p>
               </div>
 
