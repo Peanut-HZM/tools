@@ -248,5 +248,7 @@ MarkdownEditor
 
 ### 2026-03-10
 - ✅ 完成设计方案
-- ⏳ 待实现：数据加载修复
-- ⏳ 待实现：MarkdownEditor 组件
+- ✅ 实现数据加载修复
+- ✅ 实现 MarkdownEditor 组件
+- ✅ 集成到 CourseEditor
+- ✅ 通过构建验证
