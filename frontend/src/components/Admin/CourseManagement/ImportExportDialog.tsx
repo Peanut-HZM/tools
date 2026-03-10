@@ -9,8 +9,8 @@ import {
   importCourseData,
   type ExportData,
   type ImportConflictInfo,
-} from '../../services/openspecCourseAdmin';
-import { useToast } from '../../hooks/useToast';
+} from '../../../services/openspecCourseAdmin';
+import { useToast } from '../../../hooks/useToast';
 
 interface ImportExportDialogProps {
   courseId?: number;
