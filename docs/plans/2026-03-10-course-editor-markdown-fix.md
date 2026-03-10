@@ -252,3 +252,8 @@ MarkdownEditor
 - ✅ 实现 MarkdownEditor 组件
 - ✅ 集成到 CourseEditor
 - ✅ 通过构建验证
+- ✅ 实现课程 ZIP 导出功能（包含 JSON + 所有章节 Markdown 文件）
+- ✅ 添加后端 export_to_zip 方法和/export-zip API 端点
+- ✅ 添加前端 downloadCourseExportZip API 函数
+- ✅ 更新 ImportExportDialog 启用 ZIP 导出选项
+- ✅ 通过 API 测试验证，ZIP 导出功能正常工作
