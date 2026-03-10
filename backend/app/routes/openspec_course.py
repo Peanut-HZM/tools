@@ -5,15 +5,17 @@ OpenSpec VibeCoding 互动课程 API 路由
 """
 import json
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
 from app.models.base import get_db
 from app.services.openspec_course_service import OpenSpecCourseService
+from app.services.course_import_export_service import CourseExportService, CourseImportService
 from app.schemas.openspec_course import (
     ChapterCreate,
     ChapterUpdate,
@@ -33,6 +35,10 @@ from app.schemas.openspec_course import (
     ResourceCreate,
     ResourceUpdate,
     ResourceResponse,
+    CourseExportData,
+    ImportStrategy,
+    ImportPreviewRequest,
+    ImportResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -712,3 +718,179 @@ async def delete_resource(
     except Exception as e:
         logger.error(f"删除资源失败 (resource_id={resource_id}): {e}")
         raise HTTPException(status_code=500, detail="删除资源失败")
+
+
+# ============ 导入/导出接口 ============
+
+@router.post(
+    "/export",
+    response_model=Dict[str, Any],
+    summary="导出课程数据",
+    description="导出课程数据为 JSON 格式（管理员专用）",
+    responses={
+        200: {"description": "导出成功"},
+        500: {"description": "服务器内部错误"},
+    },
+)
+async def export_course_data(
+    course_id: Optional[int] = Body(None, description="课程 ID（可选，用于元数据）"),
+    course_title: Optional[str] = Body(None, description="课程标题（可选，用于元数据）"),
+    service: OpenSpecCourseService = Depends(get_course_service),
+    db: Session = Depends(get_db),
+):
+    """导出课程数据为 JSON（Admin）"""
+    try:
+        export_service = CourseExportService(db)
+        export_data = export_service.export_to_json(course_id=course_id, course_title=course_title)
+
+        return {
+            "success": True,
+            "data": export_data.model_dump(),
+            "filename": f"course-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json",
+        }
+    except Exception as e:
+        logger.error(f"导出课程数据失败：{e}")
+        raise HTTPException(status_code=500, detail=f"导出失败：{str(e)}")
+
+
+@router.post(
+    "/import/preview",
+    summary="预览导入",
+    description="预览导入结果，不实际执行导入（管理员专用）",
+    responses={
+        200: {"description": "预览成功"},
+        400: {"description": "请求参数验证失败"},
+        500: {"description": "服务器内部错误"},
+    },
+)
+async def preview_import(
+    request: ImportPreviewRequest,
+    service: OpenSpecCourseService = Depends(get_course_service),
+    db: Session = Depends(get_db),
+):
+    """预览导入结果（Admin）"""
+    try:
+        import_service = CourseImportService(db)
+        preview = import_service.preview_import(request.import_data, request.strategy)
+        return preview
+    except Exception as e:
+        logger.error(f"预览导入失败：{e}")
+        raise HTTPException(status_code=500, detail=f"预览失败：{str(e)}")
+
+
+@router.post(
+    "/import",
+    response_model=ImportResponse,
+    summary="导入课程数据",
+    description="从 JSON 导入课程数据（管理员专用）",
+    responses={
+        200: {"description": "导入成功"},
+        400: {"description": "请求参数验证失败"},
+        500: {"description": "服务器内部错误"},
+    },
+)
+async def import_course_data(
+    import_data: CourseExportData,
+    strategy: ImportStrategy = Body(ImportStrategy.MERGE, description="导入策略"),
+    service: OpenSpecCourseService = Depends(get_course_service),
+    db: Session = Depends(get_db),
+):
+    """从 JSON 导入课程数据（Admin）"""
+    try:
+        import_service = CourseImportService(db)
+        result = import_service.import_from_json(import_data, strategy)
+        return result
+    except Exception as e:
+        logger.error(f"导入课程数据失败：{e}")
+        raise HTTPException(status_code=500, detail=f"导入失败：{str(e)}")
+
+
+@router.get(
+    "/chapters/{chapter_id}/export-md",
+    summary="导出章节为 Markdown",
+    description="导出指定章节为 Markdown 格式",
+    responses={
+        200: {"description": "导出成功", "content": {"text/markdown": {}}},
+        404: {"description": "章节不存在"},
+        500: {"description": "服务器内部错误"},
+    },
+)
+async def export_chapter_markdown(
+    chapter_id: int,
+    service: OpenSpecCourseService = Depends(get_course_service),
+    db: Session = Depends(get_db),
+):
+    """导出章节为 Markdown"""
+    try:
+        export_service = CourseExportService(db)
+        markdown_content, filename = export_service.export_chapter_to_markdown(chapter_id)
+
+        from fastapi.responses import Response
+        return Response(
+            content=markdown_content,
+            media_type="text/markdown",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"导出章节 Markdown 失败 (chapter_id={chapter_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"导出失败：{str(e)}")
+
+
+@router.post(
+    "/chapters/{chapter_id}/import-md/preview",
+    summary="预览 Markdown 导入",
+    description="预览 Markdown 导入的变更（管理员专用）",
+    responses={
+        200: {"description": "预览成功"},
+        404: {"description": "章节不存在"},
+        500: {"description": "服务器内部错误"},
+    },
+)
+async def preview_markdown_import(
+    chapter_id: int,
+    markdown_content: str = Body(..., embed=True, description="Markdown 内容"),
+    service: OpenSpecCourseService = Depends(get_course_service),
+    db: Session = Depends(get_db),
+):
+    """预览 Markdown 导入（Admin）"""
+    try:
+        import_service = CourseImportService(db)
+        preview = import_service.parse_markdown_import(markdown_content, chapter_id)
+        return {"success": True, "preview": preview.model_dump()}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"预览 Markdown 导入失败 (chapter_id={chapter_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"预览失败：{str(e)}")
+
+
+@router.put(
+    "/chapters/{chapter_id}/import-md",
+    summary="从 Markdown 导入更新",
+    description="从 Markdown 文件更新章节内容（管理员专用）",
+    responses={
+        200: {"description": "导入成功"},
+        404: {"description": "章节不存在"},
+        500: {"description": "服务器内部错误"},
+    },
+)
+async def import_markdown_update(
+    chapter_id: int,
+    markdown_content: str = Body(..., embed=True, description="Markdown 内容"),
+    service: OpenSpecCourseService = Depends(get_course_service),
+    db: Session = Depends(get_db),
+):
+    """从 Markdown 导入章节更新（Admin）"""
+    try:
+        import_service = CourseImportService(db)
+        result = import_service.import_from_markdown(markdown_content, chapter_id, apply_changes=True)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"从 Markdown 导入失败 (chapter_id={chapter_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"导入失败：{str(e)}")

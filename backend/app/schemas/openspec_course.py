@@ -327,3 +327,125 @@ class ChapterReorderRequest(BaseModel):
             if item["order"] < 0:
                 raise ValueError("章节顺序必须大于等于 0")
         return v
+
+
+# ============ 导入/导出相关 Schemas ============
+
+class ExportedQuizOption(BaseModel):
+    """导出的测验选项"""
+    option_text: str
+    option_index: int
+
+
+class ExportedQuizQuestion(BaseModel):
+    """导出的测验题目"""
+    question_text: str
+    question_type: str
+    correct_answer: str
+    explanation: Optional[str] = None
+    order: int = 0
+    options: List[ExportedQuizOption]
+
+
+class ExportedQuiz(BaseModel):
+    """导出的测验"""
+    slug: Optional[str] = None  # 用于导入时匹配
+    title: str
+    passing_score: int = 60
+    questions: List[ExportedQuizQuestion] = []
+
+
+class ExportedResource(BaseModel):
+    """导出的资源"""
+    resource_type: str
+    title: str
+    content: str
+    extra_data: Optional[Dict[str, Any]] = None
+
+
+class ExportedChapter(BaseModel):
+    """导出的章节"""
+    slug: str
+    title: str
+    order: int
+    content: str
+    chapter_type: str = "story"
+    video_url: Optional[str] = None
+    is_locked: bool = False
+    required_quiz_slug: Optional[str] = None  # 使用 slug 而非 ID 进行导入时匹配
+    quizzes: List[ExportedQuiz] = []
+    resources: List[ExportedResource] = []
+
+
+class CourseExportData(BaseModel):
+    """课程导出数据"""
+    version: str = "1.0"
+    export_timestamp: str
+    course_id: Optional[int] = None
+    course_title: Optional[str] = None
+    chapters: List[ExportedChapter]
+    export_stats: Dict[str, int]
+
+
+class CourseExportResponse(BaseModel):
+    """导出响应"""
+    success: bool
+    data: CourseExportData
+    filename: str
+
+
+class ImportStrategy(str):
+    """导入策略"""
+    MERGE = "merge"  # 合并：跳过已存在的 slug，导入新的
+    REPLACE = "replace"  # 替换：更新已存在的 slug，导入新的
+    SKIP_EXISTING = "skip_existing"  # 完全跳过已存在的 slug
+
+
+class ChapterReorderItem(BaseModel):
+    """章节顺序项"""
+    id: int
+    order: int
+
+
+class ImportPreviewRequest(BaseModel):
+    """导入预览请求"""
+    import_data: CourseExportData
+    strategy: ImportStrategy = ImportStrategy.MERGE
+
+
+class ImportConflictInfo(BaseModel):
+    """冲突信息"""
+    chapter_slug: str
+    chapter_title: str
+    conflict_type: str  # "exists" | "new"
+    exists_in_db: bool
+
+
+class ImportPreviewResponse(BaseModel):
+    """导入预览响应"""
+    success: bool
+    preview: bool = True
+    strategy: str
+    chapters_to_import: int
+    chapters_to_update: int
+    chapters_to_skip: int
+    conflicts: List[ImportConflictInfo] = []
+    warnings: List[str] = []
+
+
+class ImportResponse(BaseModel):
+    """导入响应"""
+    success: bool
+    message: str
+    imported_stats: Dict[str, int]
+    warnings: List[str] = []
+    errors: List[str] = []
+
+
+class MarkdownImportPreview(BaseModel):
+    """Markdown 导入预览"""
+    original_title: Optional[str] = None
+    original_content: Optional[str] = None
+    proposed_title: str
+    proposed_content: str
+    changes: List[str]

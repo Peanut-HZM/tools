@@ -9,6 +9,7 @@ import ChapterForm from './CourseManagement/ChapterForm';
 import QuizManager from './CourseManagement/QuizManager';
 import ResourceManager from './CourseManagement/ResourceManager';
 import CourseEditor from './CourseManagement/CourseEditor';
+import ImportExportDialog from './CourseManagement/ImportExportDialog';
 import { useToast } from '../../hooks/useToast';
 import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 
@@ -25,6 +26,7 @@ export default function CourseDetail() {
   const [activeTab, setActiveTab] = useState<TabType>('chapters');
   const [showChapterForm, setShowChapterForm] = useState(false);
   const [showCourseEditor, setShowCourseEditor] = useState(false);
+  const [showImportExportDialog, setShowImportExportDialog] = useState(false);
   const [editingChapterId, setEditingChapterId] = useState<number | null>(null);
   const [editingCourseId, setEditingCourseId] = useState<number | null>(null);
 
@@ -63,6 +65,10 @@ export default function CourseDetail() {
   const handleCloseCourseEditor = () => {
     setShowCourseEditor(false);
     setEditingCourseId(null);
+  };
+
+  const handleCloseImportExportDialog = () => {
+    setShowImportExportDialog(false);
   };
 
   const handleSelectChapter = (chapterId: number) => {
@@ -120,6 +126,13 @@ export default function CourseDetail() {
           </div>
         </div>
         <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowImportExportDialog(true)}
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all duration-200 font-medium shadow-lg shadow-green-500/20 hover:shadow-green-500/30 hover:-translate-y-0.5 flex items-center"
+          >
+            <i className="fas fa-file-import mr-2"></i>
+            导入/导出
+          </button>
           <button
             onClick={handleEditCourse}
             className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-xl transition-all duration-200 font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:-translate-y-0.5 flex items-center"
@@ -235,6 +248,19 @@ export default function CourseDetail() {
         <CourseEditor
           courseId={editingCourseId || undefined}
           onClose={handleCloseCourseEditor}
+        />
+      )}
+
+      {/* Import/Export Dialog Modal */}
+      {showImportExportDialog && (
+        <ImportExportDialog
+          courseId={courseId || undefined}
+          courseTitle={course?.title}
+          onClose={handleCloseImportExportDialog}
+          onImportSuccess={() => {
+            fetchChapters();
+            success('导入成功，章节列表已更新');
+          }}
         />
       )}
     </div>
