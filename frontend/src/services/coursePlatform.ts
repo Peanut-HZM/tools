@@ -186,6 +186,14 @@ export const publishCourse = async (courseId: number, publish: boolean): Promise
   });
 };
 
+/**
+ * 获取单个课程详情（管理后台）
+ */
+export const getCourse = async (courseId: number): Promise<Course> => {
+  const response = await axios.get(`${API_BASE}/admin/courses/${courseId}`);
+  return response.data;
+};
+
 export const createChapter = async (
   courseId: number,
   chapterData: Partial<CourseChapter>
