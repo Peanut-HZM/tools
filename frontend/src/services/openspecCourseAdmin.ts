@@ -442,3 +442,25 @@ export const importMarkdownUpdate = async (chapterId: number, markdownContent: s
   });
   return response.data;
 };
+
+/**
+ * 导出课程数据为 ZIP 文件（包含 JSON + 所有章节 Markdown 文件）
+ */
+export const downloadCourseExportZip = async (courseId?: number, courseTitle?: string): Promise<void> => {
+  const response = await axios.get(`${API_BASE_URL}/export-zip`, {
+    params: {
+      course_id: courseId,
+      course_title: courseTitle,
+    },
+    responseType: 'blob',
+  });
+
+  const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/zip' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `course-export-${new Date().toISOString().split('T')[0]}.zip`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

@@ -5,6 +5,7 @@ OpenSpec VibeCoding 互动课程 API 路由
 """
 import json
 import logging
+import io
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
@@ -15,7 +16,7 @@ from pydantic import ValidationError
 
 from app.models.base import get_db
 from app.services.openspec_course_service import OpenSpecCourseService
-from app.services.course_import_export_service import CourseExportService, CourseImportService
+from app.services.course_import_export_service import CourseExportService, CourseImportService, CourseImportService
 from app.schemas.openspec_course import (
     ChapterCreate,
     ChapterUpdate,
@@ -894,3 +895,36 @@ async def import_markdown_update(
     except Exception as e:
         logger.error(f"从 Markdown 导入失败 (chapter_id={chapter_id}): {e}")
         raise HTTPException(status_code=500, detail=f"导入失败：{str(e)}")
+
+
+@router.get(
+    "/export-zip",
+    summary="导出课程为 ZIP 包",
+    description="导出课程数据为 ZIP 格式，包含 JSON 数据和所有章节 Markdown 文件（管理员专用）",
+    responses={
+        200: {"description": "导出成功", "content": {"application/zip": {}}},
+        500: {"description": "服务器内部错误"},
+    },
+)
+async def export_course_zip(
+    course_id: Optional[int] = Query(None, description="课程 ID（可选，用于元数据）"),
+    course_title: Optional[str] = Query(None, description="课程标题（可选，用于元数据）"),
+    service: OpenSpecCourseService = Depends(get_course_service),
+    db: Session = Depends(get_db),
+):
+    """导出课程为 ZIP 包（Admin）"""
+    try:
+        export_service = CourseExportService(db)
+        zip_bytes, filename = export_service.export_to_zip(course_id=course_id, course_title=course_title)
+
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(
+            io.BytesIO(zip_bytes),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+            },
+        )
+    except Exception as e:
+        logger.error(f"导出课程 ZIP 包失败：{e}")
+        raise HTTPException(status_code=500, detail=f"导出失败：{str(e)}")

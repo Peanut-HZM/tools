@@ -5,6 +5,7 @@ import React, { useState, useRef } from 'react';
 import {
   exportCourseData,
   downloadCourseExport,
+  downloadCourseExportZip,
   previewImport,
   importCourseData,
   type ExportData,
@@ -43,7 +44,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
     setMode(initialMode);
   }, [initialMode]);
 
-  // 导出课程数据
+  // 导出课程数据（JSON）
   const handleExport = async () => {
     setLoading(true);
     try {
@@ -62,6 +63,19 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
       window.URL.revokeObjectURL(url);
 
       success('导出成功！');
+    } catch (e) {
+      error('导出失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 导出课程数据为 ZIP 包（JSON + Markdown 文件）
+  const handleExportZip = async () => {
+    setLoading(true);
+    try {
+      await downloadCourseExportZip(courseId, courseTitle);
+      success('导出成功！已下载 ZIP 包，包含 JSON 数据和所有章节 Markdown 文件。');
     } catch (e) {
       error('导出失败');
     } finally {
@@ -235,21 +249,49 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               <div className="space-y-3">
                 <label className="text-slate-300 text-sm font-medium">导出格式:</label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-300 hover:border-cyan-500/50 hover:bg-cyan-500/10 hover:text-cyan-400 transition-all">
-                    <div className="flex items-center gap-2">
+                  {/* JSON 格式 */}
+                  <button
+                    onClick={handleExport}
+                    disabled={loading}
+                    className="px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-300 hover:border-cyan-500/50 hover:bg-cyan-500/10 hover:text-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
                       <i className="fas fa-file-code"></i>
                       <span className="font-medium">JSON 格式</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1 text-left">完整数据，包含所有测验和资源</p>
+                    <p className="text-xs text-slate-500 text-left">完整数据，包含所有测验和资源</p>
                   </button>
-                  <button className="px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-300 opacity-50 cursor-not-allowed" disabled>
-                    <div className="flex items-center gap-2">
-                      <i className="fas fa-file-markdown"></i>
-                      <span className="font-medium">Markdown 格式</span>
-                      <span className="ml-auto text-xs bg-slate-600 px-2 py-0.5 rounded">即将推出</span>
+
+                  {/* Markdown/ZIP 格式 */}
+                  <button
+                    onClick={handleExportZip}
+                    disabled={loading}
+                    className="px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <i className="fas fa-file-archive"></i>
+                      <span className="font-medium">ZIP 压缩包</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1 text-left">便于编辑和预览章节内容</p>
+                    <p className="text-xs text-slate-500 text-left">JSON + 所有章节 Markdown 文件</p>
                   </button>
+                </div>
+
+                {/* 格式说明 */}
+                <div className="mt-3 p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                  <h4 className="text-white font-medium text-sm mb-2 flex items-center gap-2">
+                    <i className="fas fa-info-circle text-cyan-400"></i>
+                    格式说明
+                  </h4>
+                  <ul className="text-slate-400 text-xs space-y-1.5">
+                    <li className="flex items-start gap-2">
+                      <span className="text-cyan-400 mt-0.5">•</span>
+                      <span><strong className="text-white">JSON 格式</strong> - 适合程序化处理，完整保留所有数据结构</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-400 mt-0.5">•</span>
+                      <span><strong className="text-white">ZIP 压缩包</strong> - 包含 JSON 数据和 Markdown 章节文件，便于手动编辑和版本控制</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>

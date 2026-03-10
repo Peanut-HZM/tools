@@ -6,6 +6,8 @@ OpenSpec 课程导出/导入服务
 import json
 import logging
 import re
+import zipfile
+import io
 from datetime import datetime
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session
@@ -287,6 +289,117 @@ is_locked: {str(chapter.is_locked).lower()}
 
         filename = f"{chapter.slug}.md"
         return markdown, filename
+
+    def export_to_zip(self, course_id: Optional[int] = None, course_title: Optional[str] = None) -> Tuple[bytes, str]:
+        """
+        导出课程数据为 ZIP 格式（包含 JSON + 所有章节 Markdown 文件）
+
+        Args:
+            course_id: 课程 ID（可选，用于元数据）
+            course_title: 课程标题（可选，用于元数据）
+
+        Returns:
+            Tuple[bytes, str]: (ZIP 文件字节，文件名)
+        """
+        logger.info(f"开始导出课程 ZIP 包，course_id={course_id}")
+
+        # 创建 ZIP 文件到内存
+        zip_buffer = io.BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # 1. 导出 JSON 数据
+            export_data = self.export_to_json(course_id=course_id, course_title=course_title)
+            json_filename = "course-export.json"
+            json_content = json.dumps(export_data.model_dump(), ensure_ascii=False, indent=2)
+            zip_file.writestr(json_filename, json_content)
+
+            # 2. 导出所有章节为 Markdown 文件
+            chapters = self.db.query(OpenSpecCourseChapter).order_by(OpenSpecCourseChapter.order).all()
+
+            for chapter in chapters:
+                # 复用 export_chapter_to_markdown 方法
+                markdown_content, md_filename = self.export_chapter_to_markdown(chapter.id)
+
+                # 将 Markdown 文件写入 zip 的 markdowns/ 目录
+                zip_file.writestr(f"markdowns/{md_filename}", markdown_content)
+
+            # 3. 添加 README 文件
+            readme_content = self._generate_readme(export_data)
+            zip_file.writestr("README.md", readme_content)
+
+        # 获取 ZIP 文件字节
+        zip_bytes = zip_buffer.getvalue()
+        zip_buffer.close()
+
+        # 生成文件名
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        safe_title = (course_title or "course").lower().replace(" ", "-").replace("/", "-")
+        filename = f"{safe_title}-export-{timestamp}.zip"
+
+        logger.info(f"ZIP 导出完成：{filename}, 包含 {len(chapters)} 个章节 Markdown 文件")
+        return zip_bytes, filename
+
+    def _generate_readme(self, export_data: CourseExportData) -> str:
+        """
+        生成 ZIP 包的 README 文件
+
+        Args:
+            export_data: 导出数据对象
+
+        Returns:
+            str: README Markdown 内容
+        """
+        readme = f"""# {export_data.course_title or 'Course'} - 导出包
+
+**导出时间**: {export_data.export_timestamp}
+**导出版本**: {export_data.version}
+
+## 统计信息
+
+- 章节数量：{export_data.export_stats['chapters_count']}
+- 测验数量：{export_data.export_stats['quizzes_count']}
+- 问题数量：{export_data.export_stats['questions_count']}
+- 选项数量：{export_data.export_stats['options_count']}
+- 资源数量：{export_data.export_stats['resources_count']}
+
+## 文件结构
+
+```
+{export_data.course_title or 'course'}-export/
+├── README.md                  # 本文件
+├── course-export.json         # 完整课程数据（JSON 格式）
+└── markdowns/                 # 章节 Markdown 文件目录
+    ├── chapter-1.md           # 第 1 章
+    ├── chapter-2.md           # 第 2 章
+    └── ...
+```
+
+## 使用说明
+
+### 导入 JSON 文件
+
+1. 在管理后台点击"导入课程"
+2. 选择 `course-export.json` 文件
+3. 选择导入策略（合并/替换/跳过）
+4. 确认导入
+
+### 导入 Markdown 文件
+
+Markdown 文件包含完整的章节内容、测验和资源数据，可直接用于版本控制或手动编辑。
+
+每个 Markdown 文件包含：
+- Frontmatter 元数据（slug, title, order, chapter_type 等）
+- 章节正文内容
+- 测验部分（如果有）
+- 资源部分（如果有）
+
+## 注意事项
+
+- 导入前建议先备份现有数据
+- Markdown 文件的 Frontmatter 必须保持有效的 YAML 格式
+- 测验和资源部分由分隔符 `---` 标识，不要手动修改这些区域
+"""
+        return readme
 
 
 class CourseImportService:
