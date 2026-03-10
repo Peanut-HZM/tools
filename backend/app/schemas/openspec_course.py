@@ -301,6 +301,22 @@ class ResourceResponse(ResourceBase):
     class Config:
         from_attributes = True
 
+    @field_validator("extra_data", mode="before")
+    @classmethod
+    def parse_extra_data(cls, v):
+        """解析 extra_data 字段（从数据库读取时为 JSON 字符串）"""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            try:
+                import json
+                return json.loads(v)
+            except (json.JSONDecodeError, Exception):
+                return None
+        return v
+
 
 # ============ 组合响应 ============
 

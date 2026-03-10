@@ -562,9 +562,35 @@ class CourseImportService:
                 existing.chapter_type = exported_chapter.chapter_type
                 existing.video_url = exported_chapter.video_url
                 existing.is_locked = exported_chapter.is_locked
-                self.db.commit()
+                # 清除 required_quiz_id 引用
+                existing.required_quiz_id = None
+                self.db.flush()
                 result["updated"] = 1
                 chapter_id = existing.id
+
+                # 删除旧的资源和测验（级联删除）
+                self.db.query(OpenSpecCourseResource).filter(
+                    OpenSpecCourseResource.chapter_id == chapter_id
+                ).delete(synchronize_session=False)
+                # 获取章节的测验 ID
+                quizzes = self.db.query(OpenSpecCourseQuiz).filter(
+                    OpenSpecCourseQuiz.chapter_id == chapter_id
+                ).all()
+                for quiz in quizzes:
+                    # 删除问题和选项（通过级联或手动）
+                    questions = self.db.query(OpenSpecCourseQuizQuestion).filter(
+                        OpenSpecCourseQuizQuestion.quiz_id == quiz.id
+                    ).all()
+                    for question in questions:
+                        self.db.query(OpenSpecCourseQuizOption).filter(
+                            OpenSpecCourseQuizOption.question_id == question.id
+                        ).delete(synchronize_session=False)
+                    self.db.query(OpenSpecCourseQuizQuestion).filter(
+                        OpenSpecCourseQuizQuestion.quiz_id == quiz.id
+                    ).delete(synchronize_session=False)
+                self.db.query(OpenSpecCourseQuiz).filter(
+                    OpenSpecCourseQuiz.chapter_id == chapter_id
+                ).delete(synchronize_session=False)
             else:
                 result["skipped"] = 1
                 return result
