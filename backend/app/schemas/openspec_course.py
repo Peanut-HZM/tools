@@ -5,6 +5,14 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import re
+from enum import Enum
+
+
+class ImportStrategy(str, Enum):
+    """导入策略"""
+    MERGE = "merge"  # 合并：跳过已存在的 slug，导入新的
+    REPLACE = "replace"  # 替换：更新已存在的 slug，导入新的
+    SKIP_EXISTING = "skip_existing"  # 完全跳过已存在的 slug
 
 
 # ============ 章节相关 Schemas ============
@@ -392,13 +400,6 @@ class CourseExportResponse(BaseModel):
     success: bool
     data: CourseExportData
     filename: str
-
-
-class ImportStrategy(str):
-    """导入策略"""
-    MERGE = "merge"  # 合并：跳过已存在的 slug，导入新的
-    REPLACE = "replace"  # 替换：更新已存在的 slug，导入新的
-    SKIP_EXISTING = "skip_existing"  # 完全跳过已存在的 slug
 
 
 class ChapterReorderItem(BaseModel):
