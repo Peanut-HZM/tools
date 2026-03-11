@@ -34,7 +34,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
   const [mode, setMode] = useState<'export' | 'import' | 'preview'>(initialMode);
   const [loading, setLoading] = useState(false);
   const [exportData, setExportData] = useState<ExportData | null>(null);
-  const [importStrategy, setImportStrategy] = useState<'merge' | 'replace' | 'skip_existing'>('merge');
+  const [importStrategy, setImportStrategy] = useState<'merge' | 'replace' | 'skip_existing'>('replace');
   const [previewData, setPreviewData] = useState<any | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -321,23 +321,23 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                     onChange={(e) => setImportStrategy(e.target.value as 'merge' | 'replace' | 'skip_existing')}
                     className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer"
                   >
+                    <option value="replace">🔄 替换（更新已存在的章节 slug）- 推荐</option>
                     <option value="merge">🔀 合并（跳过已存在的章节 slug）</option>
-                    <option value="replace">🔄 替换（更新已存在的章节 slug）</option>
                     <option value="skip_existing">⏭️ 完全跳过（不导入任何已存在的章节）</option>
                   </select>
 
                   {/* 策略说明 */}
                   <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                    {importStrategy === 'replace' && (
+                      <p className="text-slate-400 text-xs">
+                        <span className="text-amber-400 font-medium">替换模式（推荐）：</span>
+                        对于已存在的章节 slug 将更新内容，同时导入新的章节。适合批量更新课程数据。
+                      </p>
+                    )}
                     {importStrategy === 'merge' && (
                       <p className="text-slate-400 text-xs">
                         <span className="text-cyan-400 font-medium">合并模式：</span>
                         对于已存在的章节 slug 将跳过，只导入新的章节。适合增量添加内容。
-                      </p>
-                    )}
-                    {importStrategy === 'replace' && (
-                      <p className="text-slate-400 text-xs">
-                        <span className="text-amber-400 font-medium">替换模式：</span>
-                        对于已存在的章节 slug 将更新内容，同时导入新的章节。适合批量更新。
                       </p>
                     )}
                     {importStrategy === 'skip_existing' && (

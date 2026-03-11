@@ -389,8 +389,9 @@ export const previewImport = async (importData: ExportData, strategy: 'merge' | 
  * 导入课程数据
  */
 export const importCourseData = async (importData: ExportData, strategy: 'merge' | 'replace' | 'skip_existing'): Promise<ImportResponse> => {
-  const response = await axios.post(`${API_BASE_URL}/import`, importData, {
-    params: { strategy },
+  const response = await axios.post(`${API_BASE_URL}/import`, {
+    import_data: importData,
+    strategy,
   });
   return response.data;
 };
