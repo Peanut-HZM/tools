@@ -41,7 +41,7 @@ export default function CourseDetail() {
 
   useEffect(() => {
     if (courseId) {
-      fetchChapters();
+      fetchChapters(courseId);
       fetchCourses({ page: 1, limit: 100 }); // 加载所有课程用于查找
     }
   }, [courseId]);

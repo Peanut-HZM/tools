@@ -195,6 +195,14 @@ export const getCourse = async (courseId: number): Promise<Course> => {
 };
 
 /**
+ * 获取章节列表（管理后台）
+ */
+export const getChapters = async (courseId: number): Promise<CourseChapter[]> => {
+  const response = await axios.get(`${API_BASE}/admin/courses/${courseId}/chapters`);
+  return response.data;
+};
+
+/**
  * 创建章节（管理后台）
  */
 export const createChapter = async (

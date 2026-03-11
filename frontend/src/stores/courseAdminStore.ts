@@ -34,7 +34,7 @@ interface ChapterState {
   selectedChapterId: number | null;
 
   // Actions
-  fetchChapters: () => Promise<void>;
+  fetchChapters: (courseId?: number) => Promise<void>;
   createChapter: (data: ChapterCreate) => Promise<Chapter>;
   updateChapter: (chapterId: number, data: ChapterUpdate) => Promise<Chapter>;
   deleteChapter: (chapterId: number) => Promise<void>;
@@ -77,11 +77,11 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   error: null,
   selectedChapterId: null,
 
-  fetchChapters: async () => {
+  fetchChapters: async (courseId?: number) => {
     set({ loading: true, error: null });
     try {
-      const courseId = getCurrentCourseId();
-      const response = await axios.get(`/api/admin/courses/${courseId}/chapters`);
+      const id = courseId ?? getCurrentCourseId();
+      const response = await axios.get(`/api/admin/courses/${id}/chapters`);
       const chapters = response.data;
       set({ chapters, loading: false });
     } catch (error) {

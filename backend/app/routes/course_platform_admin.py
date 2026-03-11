@@ -258,6 +258,34 @@ async def publish_admin_course(
 
 # ============ 章节管理接口 ============
 
+@router.get(
+    "/courses/{course_id}/chapters",
+    response_model=List[CourseChapterResponse],
+    summary="获取章节列表",
+    description="获取指定课程的所有章节（管理员专用）",
+)
+async def get_admin_chapters(
+    course_id: int,
+    db: Session = Depends(get_db),
+):
+    """获取章节列表（Admin）"""
+    try:
+        # 验证课程存在
+        course = db.query(Course).filter_by(id=course_id).first()
+        if not course:
+            raise HTTPException(status_code=404, detail="课程不存在")
+
+        # 获取章节列表，按 order 排序
+        chapters = db.query(CourseChapter).filter_by(course_id=course_id).order_by(CourseChapter.order).all()
+        return chapters
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取章节列表失败 (course_id={course_id}): {e}")
+        raise HTTPException(status_code=500, detail="获取章节列表失败")
+
+
 @router.post(
     "/courses/{course_id}/chapters",
     response_model=CourseChapterResponse,
