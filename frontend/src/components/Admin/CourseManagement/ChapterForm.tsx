@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useChapterStore } from '../../../stores/courseAdminStore';
-import type { ChapterCreate, ChapterUpdate } from '../../../services/openspecCourseAdmin';
+import type { CourseChapter as Chapter, CourseChapter } from '../../../services/coursePlatform';
 
 interface ChapterFormProps {
   chapterId: number | null;
@@ -15,7 +15,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
   const { createChapter, updateChapter, chapters } = useChapterStore();
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [formData, setFormData] = useState<Partial<ChapterCreate>>({
+  const [formData, setFormData] = useState<Partial<CourseChapter>>({
     slug: '',
     title: '',
     content: '',

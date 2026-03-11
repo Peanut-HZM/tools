@@ -194,6 +194,9 @@ export const getCourse = async (courseId: number): Promise<Course> => {
   return response.data;
 };
 
+/**
+ * 创建章节（管理后台）
+ */
 export const createChapter = async (
   courseId: number,
   chapterData: Partial<CourseChapter>
@@ -205,6 +208,9 @@ export const createChapter = async (
   return response.data;
 };
 
+/**
+ * 更新章节（管理后台）
+ */
 export const updateChapter = async (
   courseId: number,
   chapterId: number,
@@ -217,13 +223,300 @@ export const updateChapter = async (
   return response.data;
 };
 
+/**
+ * 删除章节（管理后台）
+ */
 export const deleteChapter = async (courseId: number, chapterId: number): Promise<void> => {
   await axios.delete(`${API_BASE}/admin/courses/${courseId}/chapters/${chapterId}`);
 };
 
+/**
+ * 重新排序章节（管理后台）
+ */
 export const reorderChapters = async (
   courseId: number,
   chapterOrders: { id: number; order: number }[]
 ): Promise<void> => {
   await axios.put(`${API_BASE}/admin/courses/${courseId}/chapters/reorder`, chapterOrders);
 };
+
+// ============ 课程导入导出接口 ============
+
+export interface ExportData {
+  version: string;
+  course_id?: number;
+  course_title: string;
+  export_timestamp: string;
+  export_stats: {
+    total_chapters: number;
+    total_quizzes: number;
+    total_questions: number;
+    total_resources: number;
+  };
+  chapters: ExportChapter[];
+}
+
+export interface ExportChapter {
+  slug: string;
+  title: string;
+  order: number;
+  content: string;
+  chapter_type: string;
+  video_url?: string | null;
+  is_locked: boolean;
+  quizzes: ExportQuiz[];
+  resources: ExportResource[];
+}
+
+export interface ExportQuiz {
+  title: string;
+  passing_score: number;
+  questions: ExportQuestion[];
+}
+
+export interface ExportQuestion {
+  question_text: string;
+  question_type: string;
+  correct_answer: string;
+  explanation?: string;
+  order: number;
+  options: ExportOption[];
+}
+
+export interface ExportOption {
+  option_text: string;
+  option_index: number;
+}
+
+export interface ExportResource {
+  resource_type: string;
+  title: string;
+  content: string;
+  extra_data?: Record<string, any> | null;
+}
+
+export interface ImportPreviewRequest {
+  import_data: ExportData;
+  strategy: 'merge' | 'replace' | 'skip_existing';
+}
+
+export interface ImportConflictInfo {
+  chapter_slug: string;
+  chapter_title: string;
+  conflict_type: 'new' | 'exists' | 'will_update';
+  exists_in_db: boolean;
+}
+
+export interface ImportPreviewResponse {
+  success: boolean;
+  preview: boolean;
+  strategy: string;
+  chapters_to_import: number;
+  chapters_to_update: number;
+  chapters_to_skip: number;
+  conflicts: ImportConflictInfo[];
+  warnings?: string[];
+}
+
+export interface ImportResponse {
+  success: boolean;
+  preview: boolean;
+  message?: string;
+  imported_stats: {
+    chapters_imported: number;
+    chapters_updated: number;
+    chapters_skipped: number;
+    quizzes_imported: number;
+    questions_imported: number;
+    options_imported: number;
+    resources_imported: number;
+  };
+  warnings?: string[];
+}
+
+/**
+ * 导出课程数据
+ */
+export const exportCourseData = async (courseId?: number): Promise<ExportData> => {
+  const response = await axios.post(`${API_BASE}/admin/courses/export`, null, {
+    params: { course_id: courseId },
+  });
+  return response.data;
+};
+
+/**
+ * 下载课程 JSON 文件
+ */
+export const downloadCourseExport = async (courseId?: number): Promise<void> => {
+  const response = await axios.post(`${API_BASE}/admin/courses/export-download`, null, {
+    params: { course_id: courseId },
+    responseType: 'blob',
+  });
+
+  // 创建下载链接
+  const blob = new Blob([response.data], { type: 'application/json' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  const timestamp = new Date().toISOString().split('T')[0];
+  link.setAttribute('download', `course-export-${timestamp}.json`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
+/**
+ * 预览课程导入
+ */
+export const previewImport = async (
+  importData: ExportData,
+  strategy: 'merge' | 'replace' | 'skip_existing'
+): Promise<ImportPreviewResponse> => {
+  const response = await axios.post(`${API_BASE}/admin/courses/import/preview`, {
+    import_data: importData,
+    strategy: strategy,
+  });
+  return response.data;
+};
+
+/**
+ * 导入课程数据
+ */
+export const importCourseData = async (
+  importData: ExportData,
+  strategy: 'merge' | 'replace' | 'skip_existing'
+): Promise<ImportResponse> => {
+  const response = await axios.post(`${API_BASE}/admin/courses/import`, importData, {
+    params: { strategy: strategy },
+  });
+  return response.data;
+};
+
+/**
+ * 导出章节 Markdown
+ */
+export const exportChapterMarkdown = async (courseId: number, chapterId: number): Promise<string> => {
+  const response = await axios.post(`${API_BASE}/admin/courses/${courseId}/chapters/${chapterId}/export-md`);
+  return response.data.markdown;
+};
+
+/**
+ * 预览 Markdown 导入
+ */
+export const previewMarkdownImport = async (
+  courseId: number,
+  chapterId: number,
+  markdownContent: string
+): Promise<any> => {
+  const response = await axios.post(
+    `${API_BASE}/admin/courses/${courseId}/chapters/${chapterId}/import-md/preview`,
+    markdownContent,
+    {
+      headers: { 'Content-Type': 'text/plain' },
+    }
+  );
+  return response.data;
+};
+
+/**
+ * 导入 Markdown 更新
+ */
+export const importMarkdownUpdate = async (
+  courseId: number,
+  chapterId: number,
+  markdownContent: string
+): Promise<any> => {
+  const response = await axios.post(
+    `${API_BASE}/admin/courses/${courseId}/chapters/${chapterId}/import-md`,
+    markdownContent,
+    {
+      headers: { 'Content-Type': 'text/plain' },
+    }
+  );
+  return response.data;
+};
+
+// ============ 测验和资源类型定义 ============
+
+export interface CourseQuiz {
+  id: number;
+  chapter_id: number;
+  title: string;
+  passing_score: number;
+  created_at: string;
+  updated_at: string;
+  questions: CourseQuizQuestion[];
+}
+
+export interface CourseQuizQuestion {
+  id: number;
+  quiz_id: number;
+  question_text: string;
+  question_type: 'single' | 'multiple' | 'true_false';
+  correct_answer: string;
+  explanation?: string;
+  order: number;
+  created_at: string;
+  options: CourseQuizOption[];
+}
+
+export interface CourseQuizOption {
+  id: number;
+  question_id: number;
+  option_text: string;
+  option_index: number;
+  created_at: string;
+}
+
+export interface CourseResource {
+  id: number;
+  chapter_id: number;
+  resource_type: string;
+  title: string;
+  content: string;
+  extra_data?: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizCreate {
+  chapter_id: number;
+  title: string;
+  passing_score?: number;
+  questions?: QuizQuestionCreate[];
+}
+
+export interface QuizUpdate {
+  title?: string;
+  passing_score?: number;
+}
+
+export interface QuizQuestionCreate {
+  question_text: string;
+  question_type?: string;
+  correct_answer: string;
+  explanation?: string;
+  order?: number;
+  options: QuizOptionCreate[];
+}
+
+export interface QuizOptionCreate {
+  option_text: string;
+  option_index: number;
+}
+
+export interface ResourceCreate {
+  chapter_id: number;
+  resource_type: string;
+  title: string;
+  content: string;
+  extra_data?: Record<string, any> | null;
+}
+
+export interface ResourceUpdate {
+  resource_type?: string;
+  title?: string;
+  content?: string;
+  extra_data?: Record<string, any> | null;
+}

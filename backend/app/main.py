@@ -15,7 +15,6 @@ from app.routes import (
 from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool
 from app.routes import auth, contact_message
 from app.routes import markdown_editor
-from app.routes import openspec_course
 from app.routes import cross_share
 from app.routes import course_platform
 from app.routes import course_platform_admin
@@ -136,9 +135,6 @@ app.include_router(redis_tool.router, prefix="/api")
 
 # SSH Tool router
 app.include_router(ssh_tool.router, prefix="/api")
-
-# OpenSpec Course router
-app.include_router(openspec_course.router)
 
 # CrossShare router
 app.include_router(cross_share.router)

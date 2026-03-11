@@ -1,7 +1,8 @@
 """
-OpenSpec 课程导出/导入服务
+课程导出/导入服务
 
 提供课程数据的 JSON 导出、导入，以及 Markdown 导出/导入功能。
+使用 course_platform 模型。
 """
 import json
 import logging
@@ -12,14 +13,15 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 
-from app.models.openspec_course import (
-    OpenSpecCourseChapter,
-    OpenSpecCourseQuiz,
-    OpenSpecCourseQuizQuestion,
-    OpenSpecCourseQuizOption,
-    OpenSpecCourseResource,
+from app.models.course_platform import (
+    Course,
+    CourseChapter,
+    CourseQuiz,
+    CourseQuizQuestion,
+    CourseQuizOption,
+    CourseResource,
 )
-from app.schemas.openspec_course import (
+from app.schemas.course_platform import (
     CourseExportData,
     ExportedChapter,
     ExportedQuiz,
@@ -55,8 +57,18 @@ class CourseExportService:
         """
         logger.info(f"开始导出课程数据，course_id={course_id}")
 
-        # 获取所有章节（按顺序）
-        chapters = self.db.query(OpenSpecCourseChapter).order_by(OpenSpecCourseChapter.order).all()
+        # 如果提供了 course_id，获取课程标题
+        if course_id and not course_title:
+            course = self.db.query(Course).filter_by(id=course_id).first()
+            if course:
+                course_title = course.title
+
+        # 如果没有 course_title，使用默认值
+        if not course_title:
+            course_title = "课程导出"
+
+        # 获取所有章节（按顺序）- 使用 CourseChapter 模型
+        chapters = self.db.query(CourseChapter).order_by(CourseChapter.order).all()
 
         exported_chapters = []
         total_quizzes = 0
@@ -70,26 +82,17 @@ class CourseExportService:
             exported_chapters.append(exported_chapter)
 
             # 统计
-            if chapter.required_quiz_id:
-                quiz = self.db.query(OpenSpecCourseQuiz).filter(
-                    OpenSpecCourseQuiz.id == chapter.required_quiz_id
-                ).first()
-                if quiz:
-                    total_quizzes += 1
-                    questions = self.db.query(OpenSpecCourseQuizQuestion).filter(
-                        OpenSpecCourseQuizQuestion.quiz_id == quiz.id
-                    ).all()
-                    total_questions += len(questions)
-                    for q in questions:
-                        options = self.db.query(OpenSpecCourseQuizOption).filter(
-                            OpenSpecCourseQuizOption.question_id == q.id
-                        ).all()
-                        total_options += len(options)
+            quiz = self.db.query(CourseQuiz).filter_by(chapter_id=chapter.id).first()
+            if quiz:
+                total_quizzes += 1
+                questions = self.db.query(CourseQuizQuestion).filter_by(quiz_id=quiz.id).all()
+                total_questions += len(questions)
+                for q in questions:
+                    options = self.db.query(CourseQuizOption).filter_by(question_id=q.id).all()
+                    total_options += len(options)
 
             # 统计章节资源
-            resources = self.db.query(OpenSpecCourseResource).filter(
-                OpenSpecCourseResource.chapter_id == chapter.id
-            ).all()
+            resources = self.db.query(CourseResource).filter_by(chapter_id=chapter.id).all()
             total_resources += len(resources)
 
         export_data = CourseExportData(
@@ -110,30 +113,23 @@ class CourseExportService:
         logger.info(f"导出完成：{len(exported_chapters)} 个章节，{total_quizzes} 个测验，{total_questions} 个问题")
         return export_data
 
-    def _export_chapter(self, chapter: OpenSpecCourseChapter) -> ExportedChapter:
+    def _export_chapter(self, chapter: CourseChapter) -> ExportedChapter:
         """导出单个章节"""
-        # 获取关联的测验
-        quiz = None
+        # 获取关联的测验（通过 chapter_id 关联）
+        quiz = self.db.query(CourseQuiz).filter_by(chapter_id=chapter.id).first()
         required_quiz_slug = None
         quizzes = []
 
-        if chapter.required_quiz_id:
-            quiz = self.db.query(OpenSpecCourseQuiz).filter(
-                OpenSpecCourseQuiz.id == chapter.required_quiz_id
-            ).first()
-
         if quiz:
             # 为测验生成 slug（用于导入时匹配）
-            quiz_slug = f"quiz-{quiz.chapter_id}-{quiz.id}"
+            quiz_slug = f"quiz-{chapter.slug}"
             required_quiz_slug = quiz_slug
 
             exported_quiz = self._export_quiz(quiz, quiz_slug)
             quizzes.append(exported_quiz)
 
         # 获取资源
-        resources = self.db.query(OpenSpecCourseResource).filter(
-            OpenSpecCourseResource.chapter_id == chapter.id
-        ).all()
+        resources = self.db.query(CourseResource).filter_by(chapter_id=chapter.id).all()
         exported_resources = [self._export_resource(r) for r in resources]
 
         return ExportedChapter(
@@ -149,17 +145,13 @@ class CourseExportService:
             resources=exported_resources,
         )
 
-    def _export_quiz(self, quiz: OpenSpecCourseQuiz, slug: Optional[str] = None) -> ExportedQuiz:
+    def _export_quiz(self, quiz: CourseQuiz, slug: Optional[str] = None) -> ExportedQuiz:
         """导出测验"""
-        questions = self.db.query(OpenSpecCourseQuizQuestion).filter(
-            OpenSpecCourseQuizQuestion.quiz_id == quiz.id
-        ).order_by(OpenSpecCourseQuizQuestion.order).all()
+        questions = self.db.query(CourseQuizQuestion).filter_by(quiz_id=quiz.id).order_by(CourseQuizQuestion.order).all()
 
         exported_questions = []
         for q in questions:
-            options = self.db.query(OpenSpecCourseQuizOption).filter(
-                OpenSpecCourseQuizOption.question_id == q.id
-            ).all()
+            options = self.db.query(CourseQuizOption).filter_by(question_id=q.id).all()
             exported_options = [
                 ExportedQuizOption(
                     option_text=opt.option_text,
@@ -183,7 +175,7 @@ class CourseExportService:
             questions=exported_questions,
         )
 
-    def _export_resource(self, resource: OpenSpecCourseResource) -> ExportedResource:
+    def _export_resource(self, resource: CourseResource) -> ExportedResource:
         """导出资源"""
         extra_data = None
         if resource.extra_data:
@@ -209,9 +201,7 @@ class CourseExportService:
         Returns:
             Tuple[str, str]: (markdown 内容，文件名)
         """
-        chapter = self.db.query(OpenSpecCourseChapter).filter(
-            OpenSpecCourseChapter.id == chapter_id
-        ).first()
+        chapter = self.db.query(CourseChapter).filter_by(id=chapter_id).first()
 
         if not chapter:
             raise ValueError(f"章节不存在：{chapter_id}")
@@ -226,52 +216,40 @@ is_locked: {str(chapter.is_locked).lower()}
 """
         if chapter.video_url:
             frontmatter += f"video_url: {chapter.video_url}\n"
-        if chapter.required_quiz_id:
-            # 获取测验 slug
-            quiz = self.db.query(OpenSpecCourseQuiz).filter(
-                OpenSpecCourseQuiz.id == chapter.required_quiz_id
-            ).first()
-            if quiz:
-                frontmatter += f"required_quiz_slug: quiz-{quiz.chapter_id}-{quiz.id}\n"
+
+        # 获取关联测验
+        quiz = self.db.query(CourseQuiz).filter_by(chapter_id=chapter.id).first()
+        if quiz:
+            frontmatter += f"required_quiz_slug: quiz-{chapter.slug}\n"
         frontmatter += "---\n\n"
 
         # 构建正文
         markdown = frontmatter + chapter.content
 
         # 添加测验部分
-        if chapter.required_quiz_id:
-            quiz = self.db.query(OpenSpecCourseQuiz).filter(
-                OpenSpecCourseQuiz.id == chapter.required_quiz_id
-            ).first()
-            if quiz:
-                markdown += "\n\n---\n\n## 测验：" + quiz.title
-                markdown += f"\n\n**及格分数**: {quiz.passing_score}\n"
+        if quiz:
+            markdown += "\n\n---\n\n## 测验：" + quiz.title
+            markdown += f"\n\n**及格分数**: {quiz.passing_score}\n"
 
-                questions = self.db.query(OpenSpecCourseQuizQuestion).filter(
-                    OpenSpecCourseQuizQuestion.quiz_id == quiz.id
-                ).order_by(OpenSpecCourseQuizQuestion.order).all()
+            questions = self.db.query(CourseQuizQuestion).filter_by(quiz_id=quiz.id).order_by(CourseQuizQuestion.order).all()
 
-                for i, q in enumerate(questions, 1):
-                    markdown += f"\n\n### 问题 {i}\n\n"
-                    markdown += f"{q.question_text}\n"
+            for i, q in enumerate(questions, 1):
+                markdown += f"\n\n### 问题 {i}\n\n"
+                markdown += f"{q.question_text}\n"
 
-                    options = self.db.query(OpenSpecCourseQuizOption).filter(
-                        OpenSpecCourseQuizOption.question_id == q.id
-                    ).all()
-                    correct_answers = [int(x) for x in q.correct_answer.split(",")]
+                options = self.db.query(CourseQuizOption).filter_by(question_id=q.id).all()
+                correct_answers = [int(x) for x in q.correct_answer.split(",")]
 
-                    for opt in options:
-                        checkbox = "[x]" if opt.option_index in correct_answers else "[ ]"
-                        markdown += f"- {checkbox} {opt.option_text}\n"
+                for opt in options:
+                    checkbox = "[x]" if opt.option_index in correct_answers else "[ ]"
+                    markdown += f"- {checkbox} {opt.option_text}\n"
 
-                    if q.explanation:
-                        markdown += f"\n**答案**: {q.correct_answer}\n"
-                        markdown += f"**解析**: {q.explanation}\n"
+                if q.explanation:
+                    markdown += f"\n**答案**: {q.correct_answer}\n"
+                    markdown += f"**解析**: {q.explanation}\n"
 
         # 添加资源部分
-        resources = self.db.query(OpenSpecCourseResource).filter(
-            OpenSpecCourseResource.chapter_id == chapter.id
-        ).all()
+        resources = self.db.query(CourseResource).filter_by(chapter_id=chapter.id).all()
 
         if resources:
             markdown += "\n\n---\n\n## 资源\n"
@@ -314,7 +292,7 @@ is_locked: {str(chapter.is_locked).lower()}
             zip_file.writestr(json_filename, json_content)
 
             # 2. 导出所有章节为 Markdown 文件
-            chapters = self.db.query(OpenSpecCourseChapter).order_by(OpenSpecCourseChapter.order).all()
+            chapters = self.db.query(CourseChapter).order_by(CourseChapter.order).all()
 
             for chapter in chapters:
                 # 复用 export_chapter_to_markdown 方法
@@ -429,9 +407,7 @@ class CourseImportService:
 
         for exported_chapter in export_data.chapters:
             # 检查是否已存在
-            existing = self.db.query(OpenSpecCourseChapter).filter(
-                OpenSpecCourseChapter.slug == exported_chapter.slug
-            ).first()
+            existing = self.db.query(CourseChapter).filter_by(slug=exported_chapter.slug).first()
 
             if existing:
                 if strategy == ImportStrategy.SKIP_EXISTING:
@@ -543,9 +519,7 @@ class CourseImportService:
         result = {"imported": 0, "updated": 0, "skipped": 0, "quizzes": 0, "questions": 0, "options": 0, "resources": 0}
 
         # 检查是否已存在
-        existing = self.db.query(OpenSpecCourseChapter).filter(
-            OpenSpecCourseChapter.slug == exported_chapter.slug
-        ).first()
+        existing = self.db.query(CourseChapter).filter_by(slug=exported_chapter.slug).first()
 
         if existing:
             if strategy == ImportStrategy.SKIP_EXISTING:
@@ -562,41 +536,39 @@ class CourseImportService:
                 existing.chapter_type = exported_chapter.chapter_type
                 existing.video_url = exported_chapter.video_url
                 existing.is_locked = exported_chapter.is_locked
-                # 清除 required_quiz_id 引用
-                existing.required_quiz_id = None
                 self.db.flush()
                 result["updated"] = 1
                 chapter_id = existing.id
 
-                # 删除旧的资源和测验（级联删除）
-                self.db.query(OpenSpecCourseResource).filter(
-                    OpenSpecCourseResource.chapter_id == chapter_id
+                # 删除旧的资源和测验
+                self.db.query(CourseResource).filter(
+                    CourseResource.chapter_id == chapter_id
                 ).delete(synchronize_session=False)
                 # 获取章节的测验 ID
-                quizzes = self.db.query(OpenSpecCourseQuiz).filter(
-                    OpenSpecCourseQuiz.chapter_id == chapter_id
+                quizzes = self.db.query(CourseQuiz).filter(
+                    CourseQuiz.chapter_id == chapter_id
                 ).all()
                 for quiz in quizzes:
-                    # 删除问题和选项（通过级联或手动）
-                    questions = self.db.query(OpenSpecCourseQuizQuestion).filter(
-                        OpenSpecCourseQuizQuestion.quiz_id == quiz.id
+                    # 删除问题和选项
+                    questions = self.db.query(CourseQuizQuestion).filter(
+                        CourseQuizQuestion.quiz_id == quiz.id
                     ).all()
                     for question in questions:
-                        self.db.query(OpenSpecCourseQuizOption).filter(
-                            OpenSpecCourseQuizOption.question_id == question.id
+                        self.db.query(CourseQuizOption).filter(
+                            CourseQuizOption.question_id == question.id
                         ).delete(synchronize_session=False)
-                    self.db.query(OpenSpecCourseQuizQuestion).filter(
-                        OpenSpecCourseQuizQuestion.quiz_id == quiz.id
+                    self.db.query(CourseQuizQuestion).filter(
+                        CourseQuizQuestion.quiz_id == quiz.id
                     ).delete(synchronize_session=False)
-                self.db.query(OpenSpecCourseQuiz).filter(
-                    OpenSpecCourseQuiz.chapter_id == chapter_id
+                self.db.query(CourseQuiz).filter(
+                    CourseQuiz.chapter_id == chapter_id
                 ).delete(synchronize_session=False)
             else:
                 result["skipped"] = 1
                 return result
         else:
             # 创建新章节
-            new_chapter = OpenSpecCourseChapter(
+            new_chapter = CourseChapter(
                 slug=exported_chapter.slug,
                 title=exported_chapter.title,
                 order=exported_chapter.order,
@@ -604,6 +576,7 @@ class CourseImportService:
                 chapter_type=exported_chapter.chapter_type,
                 video_url=exported_chapter.video_url,
                 is_locked=exported_chapter.is_locked,
+                duration_minutes=10,  # 默认值
             )
             self.db.add(new_chapter)
             self.db.flush()
@@ -612,7 +585,7 @@ class CourseImportService:
 
         # 导入资源
         for exported_resource in exported_chapter.resources:
-            resource = OpenSpecCourseResource(
+            resource = CourseResource(
                 chapter_id=chapter_id,
                 resource_type=exported_resource.resource_type,
                 title=exported_resource.title,
@@ -624,7 +597,7 @@ class CourseImportService:
 
         # 导入测验
         for exported_quiz in exported_chapter.quizzes:
-            quiz = OpenSpecCourseQuiz(
+            quiz = CourseQuiz(
                 chapter_id=chapter_id,
                 title=exported_quiz.title,
                 passing_score=exported_quiz.passing_score,
@@ -635,7 +608,7 @@ class CourseImportService:
 
             # 导入问题
             for exported_question in exported_quiz.questions:
-                question = OpenSpecCourseQuizQuestion(
+                question = CourseQuizQuestion(
                     quiz_id=quiz.id,
                     question_text=exported_question.question_text,
                     question_type=exported_question.question_type,
@@ -649,7 +622,7 @@ class CourseImportService:
 
                 # 导入选项
                 for exported_option in exported_question.options:
-                    option = OpenSpecCourseQuizOption(
+                    option = CourseQuizOption(
                         question_id=question.id,
                         option_text=exported_option.option_text,
                         option_index=exported_option.option_index,
@@ -672,9 +645,7 @@ class CourseImportService:
             MarkdownImportPreview: 预览对象
         """
         # 获取原章节
-        chapter = self.db.query(OpenSpecCourseChapter).filter(
-            OpenSpecCourseChapter.id == chapter_id
-        ).first()
+        chapter = self.db.query(CourseChapter).filter_by(id=chapter_id).first()
 
         if not chapter:
             raise ValueError(f"章节不存在：{chapter_id}")
@@ -754,9 +725,7 @@ class CourseImportService:
             return {"preview": True, "data": preview}
 
         # 更新章节
-        chapter = self.db.query(OpenSpecCourseChapter).filter(
-            OpenSpecCourseChapter.id == chapter_id
-        ).first()
+        chapter = self.db.query(CourseChapter).filter_by(id=chapter_id).first()
 
         if not chapter:
             raise ValueError(f"章节不存在：{chapter_id}")

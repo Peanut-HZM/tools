@@ -3,7 +3,7 @@
  */
 import React, { useState } from 'react';
 import { useQuizStore } from '../../../stores/courseAdminStore';
-import type { Chapter } from '../../../services/openspecCourseAdmin';
+import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import QuizForm from './QuizForm';
 
 interface QuizManagerProps {

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useResourceStore } from '../../../stores/courseAdminStore';
-import type { ResourceCreate, ResourceUpdate } from '../../../services/openspecCourseAdmin';
+import type { ResourceCreate, ResourceUpdate, CourseResource as Resource } from '../../../services/coursePlatform';
 
 interface ResourceFormProps {
   chapterId: number;

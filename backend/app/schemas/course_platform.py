@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 
 
 # ============ 课程分类 Schemas ============
@@ -211,16 +212,6 @@ class CourseQuizUpdate(BaseModel):
     passing_score: Optional[int] = None
 
 
-class CourseQuizResponse(CourseQuizBase):
-    """课程测验响应"""
-    id: int
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
 # ============ 测验题目 Schemas ============
 
 class CourseQuizQuestionBase(BaseModel):
@@ -279,6 +270,28 @@ class CourseQuizOptionResponse(CourseQuizOptionBase):
         from_attributes = True
 
 
+class CourseQuizQuestionWithOptionResponse(CourseQuizQuestionBase):
+    """测验题目响应（包含选项）"""
+    id: int
+    quiz_id: int
+    created_at: datetime
+    options: List["CourseQuizOptionResponse"] = []
+
+    class Config:
+        from_attributes = True
+
+
+class CourseQuizResponse(CourseQuizBase):
+    """课程测验响应"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    questions: List[CourseQuizQuestionWithOptionResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
 # ============ 课程资源 Schemas ============
 
 class CourseResourceBase(BaseModel):
@@ -323,6 +336,22 @@ class CourseResourceResponse(CourseResourceBase):
 
     class Config:
         from_attributes = True
+
+    @field_validator("extra_data", mode="before")
+    @classmethod
+    def parse_extra_data(cls, v):
+        """解析 extra_data 为字典（如果它是 JSON 字符串）"""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            try:
+                import json
+                return json.loads(v)
+            except:
+                return None
+        return v
 
 
 # ============ 用户报名 Schemas ============
@@ -553,3 +582,110 @@ class MyCourseResponse(BaseModel):
     enrollment: CourseEnrollmentResponse
     completed_chapters: int = 0
     total_chapters: int = 0
+
+
+# ============ 课程导入导出 Schemas ============
+
+class ExportedQuizOption(BaseModel):
+    """导出测验选项"""
+    option_text: str
+    option_index: int
+
+
+class ExportedQuizQuestion(BaseModel):
+    """导出测验题目"""
+    question_text: str
+    question_type: str
+    correct_answer: str
+    explanation: Optional[str] = None
+    order: int
+    options: List[ExportedQuizOption] = []
+
+
+class ExportedQuiz(BaseModel):
+    """导出测验"""
+    title: str
+    passing_score: int
+    questions: List[ExportedQuizQuestion] = []
+
+
+class ExportedResource(BaseModel):
+    """导出资源"""
+    resource_type: str
+    title: str
+    content: str
+    extra_data: Optional[Dict[str, Any]] = None
+
+
+class ExportedChapter(BaseModel):
+    """导出章节"""
+    slug: str
+    title: str
+    order: int
+    content: str
+    chapter_type: str
+    video_url: Optional[str] = None
+    is_locked: bool
+    quizzes: List[ExportedQuiz] = []
+    resources: List[ExportedResource] = []
+
+
+class CourseExportData(BaseModel):
+    """课程导出数据"""
+    version: str = "2.0"
+    course_id: Optional[int] = None
+    course_title: str
+    export_timestamp: str
+    export_stats: Dict[str, int]
+    chapters: List[ExportedChapter]
+
+
+class ImportStrategy(str, Enum):
+    """导入策略"""
+    MERGE = "merge"
+    REPLACE = "replace"
+    SKIP_EXISTING = "skip_existing"
+
+
+class ImportPreviewRequest(BaseModel):
+    """导入预览请求"""
+    import_data: CourseExportData
+    strategy: ImportStrategy
+
+
+class ImportConflictInfo(BaseModel):
+    """导入冲突信息"""
+    chapter_slug: str
+    chapter_title: str
+    conflict_type: str  # "new", "exists", "will_update"
+    exists_in_db: bool
+
+
+class ImportPreviewResponse(BaseModel):
+    """导入预览响应"""
+    success: bool
+    preview: bool
+    strategy: str
+    chapters_to_import: int
+    chapters_to_update: int
+    chapters_to_skip: int
+    conflicts: List[ImportConflictInfo]
+    warnings: Optional[List[str]] = None
+
+
+class ImportResponse(BaseModel):
+    """导入响应"""
+    success: bool
+    preview: bool
+    message: Optional[str] = None
+    imported_stats: Dict[str, int]
+    warnings: Optional[List[str]] = None
+
+
+class MarkdownImportPreview(BaseModel):
+    """Markdown 导入预览"""
+    original_title: str
+    original_content: str
+    proposed_title: str
+    proposed_content: str
+    changes: List[str]

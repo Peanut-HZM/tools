@@ -5,12 +5,11 @@ import React, { useState, useRef } from 'react';
 import {
   exportCourseData,
   downloadCourseExport,
-  downloadCourseExportZip,
   previewImport,
   importCourseData,
   type ExportData,
   type ImportConflictInfo,
-} from '../../../services/openspecCourseAdmin';
+} from '../../../services/coursePlatform';
 import { useToast } from '../../../hooks/useToast';
 
 interface ImportExportDialogProps {

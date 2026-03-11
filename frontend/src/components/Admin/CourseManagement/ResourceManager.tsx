@@ -3,7 +3,7 @@
  */
 import React, { useState } from 'react';
 import { useResourceStore } from '../../../stores/courseAdminStore';
-import type { Chapter } from '../../../services/openspecCourseAdmin';
+import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import ResourceForm from './ResourceForm';
 
 interface ResourceManagerProps {

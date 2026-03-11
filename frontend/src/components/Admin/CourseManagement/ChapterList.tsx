@@ -3,7 +3,7 @@
  */
 import React, { useState } from 'react';
 import { useChapterStore } from '../../../stores/courseAdminStore';
-import type { Chapter } from '../../../services/openspecCourseAdmin';
+import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 
 interface ChapterListProps {
   chapters: Chapter[];

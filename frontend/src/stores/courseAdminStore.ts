@@ -2,30 +2,7 @@
  * 课程管理状态管理
  */
 import { create } from 'zustand';
-import {
-  getChapters,
-  createChapter,
-  updateChapter,
-  deleteChapter,
-  reorderChapters,
-  getQuizByChapter,
-  createQuiz,
-  updateQuiz,
-  deleteQuiz,
-  getChapterResources,
-  createResource,
-  updateResource,
-  deleteResource,
-  type Chapter,
-  type ChapterCreate,
-  type ChapterUpdate,
-  type Quiz,
-  type QuizCreate,
-  type QuizUpdate,
-  type Resource,
-  type ResourceCreate,
-  type ResourceUpdate,
-} from '../services/openspecCourseAdmin';
+import axios from 'axios';
 import {
   getAdminCourses,
   createCourse,
@@ -33,7 +10,22 @@ import {
   deleteCourse,
   publishCourse,
   type Course,
+  type CourseChapter as Chapter,
+  type CourseChapterCreate as ChapterCreate,
+  type CourseChapterUpdate as ChapterUpdate,
+  type CourseQuiz as Quiz,
+  type CourseResource as Resource,
+  type ResourceCreate,
+  type ResourceUpdate,
+  type QuizCreate,
+  type QuizUpdate,
 } from '../services/coursePlatform';
+
+// 获取当前选中的课程 ID（从 localStorage 或 store 中获取）
+const getCurrentCourseId = (): number => {
+  const stored = localStorage.getItem('currentCourseId');
+  return stored ? parseInt(stored, 10) : 4; // 默认为 4（OpenSpec 课程）
+};
 
 interface ChapterState {
   chapters: Chapter[];
@@ -88,7 +80,9 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   fetchChapters: async () => {
     set({ loading: true, error: null });
     try {
-      const chapters = await getChapters();
+      const courseId = getCurrentCourseId();
+      const response = await axios.get(`/api/admin/courses/${courseId}/chapters`);
+      const chapters = response.data;
       set({ chapters, loading: false });
     } catch (error) {
       set({
@@ -99,13 +93,15 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   },
 
   createChapter: async (data) => {
-    const chapter = await createChapter(data);
+    const courseId = getCurrentCourseId();
+    const chapter = await _createChapter(courseId, data);
     set((state) => ({ chapters: [...state.chapters, chapter] }));
     return chapter;
   },
 
   updateChapter: async (chapterId, data) => {
-    const chapter = await updateChapter(chapterId, data);
+    const courseId = getCurrentCourseId();
+    const chapter = await _updateChapter(courseId, chapterId, data);
     set((state) => ({
       chapters: state.chapters.map((c) => (c.id === chapterId ? chapter : c)),
     }));
@@ -113,7 +109,8 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   },
 
   deleteChapter: async (chapterId) => {
-    await deleteChapter(chapterId);
+    const courseId = getCurrentCourseId();
+    await _deleteChapter(courseId, chapterId);
     set((state) => ({
       chapters: state.chapters.filter((c) => c.id !== chapterId),
       selectedChapterId: state.selectedChapterId === chapterId ? null : state.selectedChapterId,
@@ -121,7 +118,8 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   },
 
   reorderChapters: async (chapters) => {
-    await reorderChapters({ chapters });
+    const courseId = getCurrentCourseId();
+    await _reorderChapters(courseId, chapters);
     // Optimistic update
     set((state) => ({
       chapters: state.chapters.map((chapter) => {
@@ -150,7 +148,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   fetchQuiz: async (chapterId) => {
     set({ loading: true, error: null });
     try {
-      const quiz = await getQuizByChapter(chapterId);
+      const courseId = getCurrentCourseId();
+      const response = await axios.get(`/api/admin/courses/${courseId}/chapters/${chapterId}/quiz`);
+      const quiz = response.data;
       set((state) => ({
         quizzes: { ...state.quizzes, [chapterId]: quiz },
         loading: false
@@ -166,7 +166,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   createQuiz: async (chapterId, data) => {
-    const quiz = await createQuiz(data);
+    const courseId = getCurrentCourseId();
+    const response = await axios.post(`/api/admin/courses/${courseId}/chapters/${chapterId}/quiz`, data);
+    const quiz = response.data;
     set((state) => ({
       quizzes: { ...state.quizzes, [chapterId]: quiz },
     }));
@@ -174,7 +176,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   updateQuiz: async (quizId, data) => {
-    const quiz = await updateQuiz(quizId, data);
+    const response = await axios.put(`/api/admin/courses/quizzes/${quizId}`, data);
+    const quiz = response.data;
     set((state) => ({
       quizzes: Object.fromEntries(
         Object.entries(state.quizzes).map(([key, value]) =>
@@ -186,7 +189,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   deleteQuiz: async (quizId) => {
-    await deleteQuiz(quizId);
+    await axios.delete(`/api/admin/courses/quizzes/${quizId}`);
     set((state) => {
       const newQuizzes = { ...state.quizzes };
       Object.keys(newQuizzes).forEach((key) => {
@@ -213,7 +216,9 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
   fetchResources: async (chapterId) => {
     set({ loading: true, error: null });
     try {
-      const resources = await getChapterResources(chapterId);
+      const courseId = getCurrentCourseId();
+      const response = await axios.get(`/api/admin/courses/${courseId}/chapters/${chapterId}/resources`);
+      const resources = response.data;
       set((state) => ({
         resources: { ...state.resources, [chapterId]: resources },
         loading: false
@@ -229,7 +234,8 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
   },
 
   createResource: async (data) => {
-    const resource = await createResource(data);
+    const response = await axios.post(`/api/admin/courses/resources`, data);
+    const resource = response.data;
     set((state) => ({
       resources: {
         ...state.resources,
@@ -240,7 +246,8 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
   },
 
   updateResource: async (resourceId, data) => {
-    const resource = await updateResource(resourceId, data);
+    const response = await axios.put(`/api/admin/courses/resources/${resourceId}`, data);
+    const resource = response.data;
     set((state) => ({
       resources: Object.fromEntries(
         Object.entries(state.resources).map(([key, value]) =>
@@ -252,7 +259,7 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
   },
 
   deleteResource: async (resourceId) => {
-    await deleteResource(resourceId);
+    await axios.delete(`/api/admin/courses/resources/${resourceId}`);
     set((state) => ({
       resources: Object.fromEntries(
         Object.entries(state.resources).map(([key, value]) =>

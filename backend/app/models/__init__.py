@@ -30,16 +30,6 @@ from app.models.competitor import CompetitorAnalysis
 from app.models.llm_config import LLMConfig
 from app.models.agent import Agent
 
-# OpenSpec 课程模型
-from app.models.openspec_course import (
-    OpenSpecCourseChapter,
-    OpenSpecCourseQuiz,
-    OpenSpecCourseQuizQuestion,
-    OpenSpecCourseQuizOption,
-    UserCourseProgress,
-    OpenSpecCourseResource,
-)
-
 # CrossShare 跨设备共享模型
 from app.models.cross_share import (
     Device,
