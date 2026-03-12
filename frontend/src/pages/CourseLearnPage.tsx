@@ -3,7 +3,7 @@
  * 支持多课程切换和学习进度追踪
  */
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -25,6 +25,7 @@ interface ChapterProgress {
 const CourseLearnPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // State
   const [loading, setLoading] = useState(true);
@@ -40,6 +41,25 @@ const CourseLearnPage: React.FC = () => {
     checkEnrollment();
   }, [slug]);
 
+  // 监听 URL 参数变化（chapterId）
+  useEffect(() => {
+    if (!course) return; // 课程未加载时不处理
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const chapterIdParam = urlParams.get('chapterId');
+
+    if (chapterIdParam) {
+      // 找到对应章节
+      const chapter = course.chapters.find((ch) => ch.id.toString() === chapterIdParam);
+      if (chapter && currentChapter?.id !== chapter.id) {
+        setCurrentChapter(chapter);
+      }
+    } else if (course.chapters.length > 0 && !currentChapter) {
+      // 没有参数，默认选择第一个章节
+      setCurrentChapter(course.chapters[0]);
+    }
+  }, [location.search, course, currentChapter]);
+
   const loadCourse = async () => {
     if (!slug) return;
     setLoading(true);
@@ -53,19 +73,14 @@ const CourseLearnPage: React.FC = () => {
       }));
       setChapterProgress(progress);
 
-      // 从 URL 参数获取章节 ID
+      // 从 URL 参数获取章节 ID（如果存在）
       const urlParams = new URLSearchParams(window.location.search);
       const chapterIdParam = urlParams.get('chapterId');
 
-      if (chapterIdParam) {
+      if (chapterIdParam && data.chapters.length > 0) {
         // 找到对应章节
         const chapter = data.chapters.find((ch) => ch.id.toString() === chapterIdParam);
-        if (chapter) {
-          setCurrentChapter(chapter);
-        } else {
-          // 章节不存在，使用第一章
-          setCurrentChapter(data.chapters[0]);
-        }
+        setCurrentChapter(chapter || data.chapters[0]);
       } else if (data.chapters.length > 0) {
         // 没有参数，默认选择第一个章节
         setCurrentChapter(data.chapters[0]);
