@@ -12,6 +12,7 @@ import {
   type ImportConflictInfo,
 } from '../../../services/coursePlatform';
 import { useToast } from '../../../hooks/useToast';
+import { generateTimestampFilename } from '../../../utils/filenameUtils';
 
 interface ImportExportDialogProps {
   courseId?: number;
@@ -56,7 +57,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `course-export-${new Date().toISOString().split('T')[0]}.json`);
+      link.setAttribute('download', generateTimestampFilename('course-export', 'json'));
       document.body.appendChild(link);
       link.click();
       link.remove();

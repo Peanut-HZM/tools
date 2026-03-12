@@ -2,6 +2,7 @@
  * 课程平台 API 服务
  */
 import axios from 'axios';
+import { generateTimestampFilename } from '../utils/filenameUtils';
 
 const API_BASE = '/api';
 
@@ -366,8 +367,7 @@ export const downloadCourseExport = async (courseId?: number): Promise<void> => 
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  const timestamp = new Date().toISOString().split('T')[0];
-  link.setAttribute('download', `course-export-${timestamp}.json`);
+  link.setAttribute('download', generateTimestampFilename('course-export', 'json'));
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -394,8 +394,7 @@ export const downloadCourseExportZip = async (
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  const timestamp = new Date().toISOString().split('T')[0];
-  link.setAttribute('download', `course-export-${timestamp}.zip`);
+  link.setAttribute('download', generateTimestampFilename('course-export', 'zip'));
   document.body.appendChild(link);
   link.click();
   link.remove();
