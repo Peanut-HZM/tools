@@ -19,6 +19,7 @@ from app.routes import cross_share
 from app.routes import course_platform
 from app.routes import course_platform_admin
 from app.routes import tech_contents
+from app.routes import cursor_history
 from app.api.routes import llm_config, conversations, prd, messages, health
 from app.services.download_manager import get_manager
 import asyncio
@@ -179,6 +180,9 @@ app.include_router(agents_router.router, prefix="/api/v1")
 
 # Contact Message router
 app.include_router(contact_message.router)
+
+# Cursor History router
+app.include_router(cursor_history.router, prefix="/api")
 
 
 @app.get("/")
