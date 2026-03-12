@@ -533,11 +533,14 @@ async def export_course_zip(
         zip_buffer, filename = export_service.export_to_zip(course_id=course_id, course_title=course.title)
 
         # 返回 ZIP 文件
+        import urllib.parse
         response = StreamingResponse(
             io.BytesIO(zip_buffer),
             media_type="application/zip",
         )
-        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        # 对文件名进行 URL 编码，支持中文字符
+        encoded_filename = urllib.parse.quote(filename, safe='')
+        response.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{encoded_filename}"
         return response
 
     except HTTPException:
