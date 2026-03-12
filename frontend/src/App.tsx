@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
 import Hero from './components/Hero/Hero';
-import Statistics from './components/Statistics/Statistics';
 import Layout from './components/Layout/Layout';
 import AdminLayout from './components/Admin/AdminLayout';
 import ToolManagement from './components/Admin/ToolManagement';
@@ -219,7 +218,6 @@ function HomePage() {
             onToolClick={handleToolClick}
             categories={categories}
           />
-          <Statistics />
         </>
       )}
     </div>
