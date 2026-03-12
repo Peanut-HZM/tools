@@ -51,7 +51,7 @@ export default function AdminLayout() {
         onSearch={() => {}}
       />
 
-      <div className="flex flex-1 w-full px-6 py-8 gap-8">
+      <div className="flex flex-1 w-full px-6 py-8 gap-8 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 flex-shrink-0 sticky top-8 self-start max-h-[calc(100vh-4rem)]">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 border border-slate-700/50 shadow-xl">
@@ -81,7 +81,7 @@ export default function AdminLayout() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700/50 shadow-xl overflow-auto">
+        <main className="flex-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700/50 shadow-xl">
           <Outlet />
         </main>
       </div>
