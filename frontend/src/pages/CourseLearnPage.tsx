@@ -118,6 +118,8 @@ const CourseLearnPage: React.FC = () => {
     setCurrentChapter(chapter);
     setShowContent('content');
     updateChapterProgress(chapter.id, 'in_progress');
+    // 同步更新 URL 参数
+    navigate(`/courses/${slug}/learn?chapterId=${chapter.id}`, { replace: true });
   };
 
   const updateChapterProgress = (chapterId: number, status: 'not_started' | 'in_progress' | 'completed') => {
