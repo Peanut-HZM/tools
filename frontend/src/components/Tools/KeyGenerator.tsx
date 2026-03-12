@@ -23,6 +23,7 @@ interface GeneratedKey {
   uuid_hex?: string;
   api_key?: string;
   api_key_hex?: string;
+  base64_string?: string;
 }
 
 export default function KeyGenerator() {
@@ -385,6 +386,26 @@ export default function KeyGenerator() {
                     </div>
                     <div className="p-3 bg-slate-900">
                       <code className="text-orange-400 font-mono text-sm break-all">{generatedKey.api_key}</code>
+                    </div>
+                  </div>
+                )}
+
+                {/* Base64 字符串 */}
+                {generatedKey.base64_string && (
+                  <div className="bg-slate-800 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 bg-pink-500/10 border-b border-slate-700">
+                      <span className="text-sm font-medium text-pink-400">
+                        <i className="fas fa-font mr-2"></i>Base64 字符串
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(generatedKey.base64_string!, 'Base64 字符串')}
+                        className="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded"
+                      >
+                        <i className="fas fa-copy mr-1"></i>复制
+                      </button>
+                    </div>
+                    <div className="p-3 bg-slate-900">
+                      <code className="text-pink-400 font-mono text-sm break-all">{generatedKey.base64_string}</code>
                     </div>
                   </div>
                 )}
