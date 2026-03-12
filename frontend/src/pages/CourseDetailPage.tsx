@@ -172,7 +172,7 @@ const CourseDetailPage: React.FC = () => {
                       </div>
                     </div>
                     <button
-                      onClick={() => navigate(`/courses/${slug}/learn`)}
+                      onClick={() => navigate(`/courses/${slug}/learn?chapterId=${chapter.id}`)}
                       className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm transition-colors"
                     >
                       开始学习

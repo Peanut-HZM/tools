@@ -53,8 +53,21 @@ const CourseLearnPage: React.FC = () => {
       }));
       setChapterProgress(progress);
 
-      // 默认选择第一个章节
-      if (data.chapters.length > 0) {
+      // 从 URL 参数获取章节 ID
+      const urlParams = new URLSearchParams(window.location.search);
+      const chapterIdParam = urlParams.get('chapterId');
+
+      if (chapterIdParam) {
+        // 找到对应章节
+        const chapter = data.chapters.find((ch) => ch.id.toString() === chapterIdParam);
+        if (chapter) {
+          setCurrentChapter(chapter);
+        } else {
+          // 章节不存在，使用第一章
+          setCurrentChapter(data.chapters[0]);
+        }
+      } else if (data.chapters.length > 0) {
+        // 没有参数，默认选择第一个章节
         setCurrentChapter(data.chapters[0]);
       }
     } catch (error) {
