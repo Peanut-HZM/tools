@@ -375,6 +375,34 @@ export const downloadCourseExport = async (courseId?: number): Promise<void> => 
 };
 
 /**
+ * 下载课程 ZIP 包（包含 JSON + Markdown 文件）
+ */
+export const downloadCourseExportZip = async (
+  courseId?: number,
+  courseTitle?: string
+): Promise<void> => {
+  const response = await axios.post(
+    `${API_BASE}/admin/courses/${courseId || 4}/export-zip`,
+    null,
+    {
+      responseType: 'blob',
+    }
+  );
+
+  // 创建下载链接
+  const blob = new Blob([response.data], { type: 'application/zip' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  const timestamp = new Date().toISOString().split('T')[0];
+  link.setAttribute('download', `course-export-${timestamp}.zip`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
+/**
  * 预览课程导入
  */
 export const previewImport = async (

@@ -512,6 +512,42 @@ async def import_course_data(
 
 
 @router.post(
+    "/courses/{course_id}/export-zip",
+    summary="导出课程 ZIP 包",
+    description="导出课程数据为 ZIP 格式（包含 JSON 和 Markdown 文件）（管理员专用）",
+)
+async def export_course_zip(
+    course_id: int,
+    db: Session = Depends(get_db),
+):
+    """导出课程 ZIP 包（Admin）"""
+    try:
+        # 验证课程存在
+        course = db.query(Course).filter_by(id=course_id).first()
+        if not course:
+            raise HTTPException(status_code=404, detail="课程不存在")
+
+        export_service = CourseExportService(db)
+
+        # 生成 ZIP 文件
+        zip_buffer, filename = export_service.export_to_zip(course_id=course_id, course_title=course.title)
+
+        # 返回 ZIP 文件
+        response = StreamingResponse(
+            io.BytesIO(zip_buffer),
+            media_type="application/zip",
+        )
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"导出 ZIP 失败 (course_id={course_id}): {e}")
+        raise HTTPException(status_code=500, detail="导出 ZIP 失败")
+
+
+@router.post(
     "/courses/{course_id}/chapters/{chapter_id}/export-md",
     summary="导出章节 Markdown",
     description="导出单个章节为 Markdown 格式（管理员专用）",
