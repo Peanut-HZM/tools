@@ -143,126 +143,76 @@
           "passing_score": 60,
           "questions": [
             {
-              "question_text": "AI 经常乱改代码，可能的原因是什么？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,1,2",
-              "explanation": "以上三个选项都是常见原因。",
+              "question_text": "【场景】你和 AI 的对话：\n\n你：请帮我修改 login 函数的密码验证逻辑\nAI：好的，我修改了以下内容：\n  - ✅ 修改了 login 函数\n  - ✅ 修改了 user 模型\n  - ✅ 修改了数据库迁移文件\n  - ✅ 修改了前端登录页面\n  - ✅ 修改了 API 文档\n\n你：？？？我只是想改个密码验证啊！\n\n问题：导致 AI 改了这么多文件的根本原因是什么？",
+              "question_type": "single",
+              "correct_answer": 1,
+              "explanation": "指令没有明确指定修改范围，AI 默认进行'完整实现'。应该在 Prompt 中明确限制修改范围，如'只修改 login 函数中的密码验证逻辑，不要改动其他文件'。",
               "order": 0,
               "options": [
                 {
-                  "option_text": "没有明确的 Rules 约束",
+                  "option_text": "AI 过于兴奋，想要展示自己的能力",
                   "option_index": 0
                 },
                 {
-                  "option_text": "需求描述不够清晰",
+                  "option_text": "指令没有明确指定修改范围，AI 默认进行完整实现",
                   "option_index": 1
                 },
                 {
-                  "option_text": "AI 过度理解了需求",
+                  "option_text": "密码验证本身就需要修改这么多文件",
                   "option_index": 2
                 },
                 {
-                  "option_text": "电脑配置不够好",
+                  "option_text": "AI 模型有 bug，无法理解函数级别修改",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "AI 经常乱改代码，可能的原因是什么？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,1,2",
-              "explanation": "缺少 Rules 约束、需求描述模糊、AI 过度理解都是常见原因。",
-              "order": 0,
-              "options": [
-                {
-                  "option_text": "没有明确的 Rules 约束",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "需求描述不够清晰",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "AI 过度理解了需求",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "电脑配置不够好",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "当你发现 AI 改了不该改的文件时，应该怎么做？",
+              "question_text": "【诊断】以下需求描述存在什么问题？\n\n'把这个页面弄得好看一点，用户友好一些'",
               "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "使用 Rules 明确约束 AI 的行为是最有效的解决方案。",
+              "correct_answer": 1,
+              "explanation": "'好看'和'用户友好'是主观且模糊的描述，AI 无法准确理解。应该具体说明：颜色方案、布局调整、交互反馈等具体要求。",
               "order": 1,
               "options": [
                 {
-                  "option_text": "放弃使用 AI，太难用了",
+                  "option_text": "描述太长，AI 记不住",
                   "option_index": 0
                 },
                 {
-                  "option_text": "使用 Rules 明确告诉 AI 只修改指定文件",
+                  "option_text": "'好看'和'用户友好'是主观模糊的描述，无法执行",
                   "option_index": 1
                 },
                 {
-                  "option_text": "每次都手动改回来",
+                  "option_text": "没有指定使用什么 CSS 框架",
                   "option_index": 2
                 },
                 {
-                  "option_text": "把 AI 骂一顿",
+                  "option_text": "应该提供设计稿而不是文字描述",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "当你发现 AI 改了不该改的文件时，应该怎么做？",
+              "question_text": "【决策】当你发现 AI 改了不该改的文件时，应该怎么做？",
               "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "使用 Rules 明确约束 AI 的行为是最有效的解决方案。",
-              "order": 1,
-              "options": [
-                {
-                  "option_text": "放弃使用 AI，太难用了",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "使用 Rules 明确告诉 AI 只修改指定文件",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "每次都手动改回来",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "把 AI 骂一顿",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "以下哪种情况最可能是由于需求描述模糊导致的？",
-              "question_type": "single",
-              "correct_answer": "2",
-              "explanation": "当指令模糊时，AI 容易按照自己的理解执行，导致结果不符合预期。",
+              "correct_answer": 2,
+              "explanation": "最佳做法是：1) 撤销改动；2) 用更明确的指令重新沟通，指定修改范围；3) 考虑将此约束加入 Rules。抱怨或放弃都不是建设性的做法。",
               "order": 2,
               "options": [
                 {
-                  "option_text": "AI 修改了正确的文件",
+                  "option_text": "放弃使用 AI，太不可靠了",
                   "option_index": 0
                 },
                 {
-                  "option_text": "AI 生成的代码有语法错误",
+                  "option_text": "继续让 AI 改，改到对为止",
                   "option_index": 1
                 },
                 {
-                  "option_text": "AI 把按钮改成蓝色，结果整个页面主题都变了",
+                  "option_text": "撤销改动，用更明确的指令重新沟通，指定修改范围",
                   "option_index": 2
                 },
                 {
-                  "option_text": "AI 拒绝执行指令",
+                  "option_text": "向 AI 抱怨它理解能力太差",
                   "option_index": 3
                 }
               ]
@@ -295,151 +245,76 @@
           "passing_score": 60,
           "questions": [
             {
-              "question_text": "Rules 的主要作用是什么？",
+              "question_text": "【场景】对比两次 AI 编程体验：\n\n使用前：\n- 每次都要重复说明'用 TypeScript''用中文回复''要写注释'\n- AI 经常忘记之前的约束\n- 同样的话要说很多遍\n\n使用后（配置了 Rules）：\n- AI 自动遵循预设规范\n- 代码风格一致\n- 沟通效率大幅提升\n\n问题：Rules 为什么有效？",
               "question_type": "single",
-              "correct_answer": "2",
-              "explanation": "Rules 的核心作用是规范 AI 的行为模式。",
+              "correct_answer": 1,
+              "explanation": "Rules 作为系统上下文的一部分被注入到每次对话中，AI 会优先遵循这些明确的指令。这比每次重复沟通要高效得多。",
               "order": 0,
               "options": [
                 {
-                  "option_text": "让代码运行更快",
+                  "option_text": "AI 被 Rules 限制了，不敢乱来",
                   "option_index": 0
                 },
                 {
-                  "option_text": "自动生成代码",
+                  "option_text": "Rules 作为系统上下文，每次对话都会被 AI 优先考虑",
                   "option_index": 1
                 },
                 {
-                  "option_text": "规范 AI 的行为模式",
+                  "option_text": "Rules 改变了 AI 模型的权重",
                   "option_index": 2
                 },
                 {
-                  "option_text": "美化代码格式",
+                  "option_text": "心理作用，实际上没区别",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "Rules 的核心作用是什么？",
+              "question_text": "【诊断】以下这条 Rules 存在什么问题？\n\n'修改代码时要小心，不要破坏现有功能，保持代码整洁'",
               "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "Rules 的主要作用是规范 AI 的行为，让 AI 按照预设的规则进行回应。",
-              "order": 0,
-              "options": [
-                {
-                  "option_text": "让代码运行更快",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "规范 AI 的行为",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "自动修复 bug",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "生成单元测试",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "以下哪些内容适合放入 Rules？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,1,3",
-              "explanation": "代码规范、沟通偏好、项目约束都是 Rules 的内容，但业务逻辑不应该放在 Rules 中。",
+              "correct_answer": 1,
+              "explanation": "'小心''不要破坏''整洁'都是模糊词汇，AI 无法准确执行。好的 Rules 应该是可执行的，如'修改前先运行测试''保持与现有代码风格一致'。",
               "order": 1,
               "options": [
                 {
-                  "option_text": "代码风格和规范",
+                  "option_text": "规则太长，AI 记不住",
                   "option_index": 0
                 },
                 {
-                  "option_text": "具体的业务逻辑",
+                  "option_text": "规则过于模糊，'小心''整洁'等词汇无法执行",
                   "option_index": 1
                 },
                 {
-                  "option_text": "今天的天气",
+                  "option_text": "规则数量太少，需要更多",
                   "option_index": 2
                 },
                 {
-                  "option_text": "沟通方式和偏好",
+                  "option_text": "规则没有用编号列表",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "好的 Rules 应该具备哪些特点？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,1,3",
-              "explanation": "好的 Rules 应该具体明确、可执行、有优先级。模糊的规则无法有效约束 AI。",
-              "order": 1,
-              "options": [
-                {
-                  "option_text": "具体明确",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "可执行",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "越复杂越好",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "有优先级",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "以下哪条 Rules 写得最好？",
+              "question_text": "【决策】当你想要 AI 只修改指定文件而不改动其他文件时，应该使用哪条 Rules？",
               "question_type": "single",
-              "correct_answer": "2",
-              "explanation": "第 3 条规则具体明确，给出了具体的代码风格要求，是可执行的好规则。",
+              "correct_answer": 2,
+              "explanation": "选项 3 最具体且可执行：明确了修改范围（仅指定文件）、禁止行为（不新增/删除文件）、额外要求（修改前说明）。其他选项要么太模糊，要么不够全面。",
               "order": 2,
               "options": [
                 {
-                  "option_text": "保持代码质量",
+                  "option_text": "不要乱改代码",
                   "option_index": 0
                 },
                 {
-                  "option_text": "写出好的代码",
+                  "option_text": "修改代码前要先思考",
                   "option_index": 1
                 },
                 {
-                  "option_text": "遵循 PEP8 规范，使用 4 空格缩进",
+                  "option_text": "仅修改用户明确指定的文件，不新增或删除任何文件；修改前需先说明改动范围",
                   "option_index": 2
                 },
                 {
-                  "option_text": "尽量写得简洁",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "当你想要 AI 只修改指定文件而不改动其他文件时，应该使用哪条 Rules？",
-              "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "这条规则明确约束了 AI 的修改范围，是最有效的。",
-              "order": 3,
-              "options": [
-                {
-                  "option_text": "请小心修改",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "只修改我指定的文件，不要改动其他文件",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "修改代码时要注意",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "不要改太多东西",
+                  "option_text": "尽量保持代码整洁",
                   "option_index": 3
                 }
               ]
@@ -488,126 +363,76 @@
           "passing_score": 60,
           "questions": [
             {
-              "question_text": "Skills 和 Rules 的核心区别是什么？",
+              "question_text": "【场景】对比两种工作流程：\n\n流程 A（无 Skills）：\n用户：帮我设计一个用户登录功能\nAI：好的，请问需要支持哪些登录方式？\n用户：邮箱和密码\nAI：需要记住登录状态吗？\n用户：需要\nAI：错误处理有什么要求？\n用户：...（来回沟通 10 轮）\n\n流程 B（使用 Skills）：\n用户：/brainstorming 设计一个用户登录功能，支持邮箱和密码，需要记住登录状态\nAI：好的，我来帮你探索这个需求。让我们从几个维度分析：\n1. 认证流程设计\n2. 安全性考虑\n3. 会话管理\n...（一次性输出完整分析）\n\n问题：流程 B 的优势是什么？",
               "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "Rules 是约束 AI 行为的规范（如'用中文回复'），自动应用；Skills 是扩展 AI 能力的工具（如'/brainstorming'），需要主动调用。",
+              "correct_answer": 1,
+              "explanation": "Skills 通过预设的框架和流程，让 AI 一次性输出结构化、全面的分析，避免了重复沟通。这是 Skill 系统的核心价值。",
               "order": 0,
               "options": [
                 {
-                  "option_text": "没有区别，只是名称不同",
+                  "option_text": "流程 B 更省时间，因为 AI 回答更快",
                   "option_index": 0
                 },
                 {
-                  "option_text": "Rules 约束行为，Skills 扩展能力",
+                  "option_text": "Skills 通过预设框架让 AI 一次性输出结构化分析，避免重复沟通",
                   "option_index": 1
                 },
                 {
-                  "option_text": "Rules 更高级，Skills 更基础",
+                  "option_text": "流程 A 太笨了，AI 学不会",
                   "option_index": 2
                 },
                 {
-                  "option_text": "Skills 只能用于前端，Rules 用于后端",
+                  "option_text": "流程 B 看起来更高级",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "以下哪些场景适合使用 Skills？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,2,3",
-              "explanation": "Skills 适合复杂工作流（开发新功能）、重复性任务（代码审查）和专业场景（UI 设计）。简单问答（如问天气）不需要使用 Skills。",
+              "question_text": "【诊断】前端开发者设计新页面时，以下技能调用顺序哪个是正确的？",
+              "question_type": "single",
+              "correct_answer": 1,
+              "explanation": "正确的顺序是：/brainstorming（探索需求）→ /write-prd（定义需求）→ /design（技术方案）→ /implement（实现）。这个顺序符合软件开发的自然流程。",
               "order": 1,
               "options": [
                 {
-                  "option_text": "开发一个完整的新功能",
+                  "option_text": "/implement → /design → /write-prd → /brainstorming",
                   "option_index": 0
                 },
                 {
-                  "option_text": "询问今天天气如何",
+                  "option_text": "/brainstorming → /write-prd → /design → /implement",
                   "option_index": 1
                 },
                 {
-                  "option_text": "执行标准化的代码审查",
+                  "option_text": "/design → /implement → /brainstorming → /write-prd",
                   "option_index": 2
                 },
                 {
-                  "option_text": "设计 UI 页面配色方案",
+                  "option_text": "顺序不重要，可以随意调用",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "前端开发者设计新页面时，首选哪个技能？",
+              "question_text": "【决策】开发复杂功能时，正确的技能调用策略是？",
               "question_type": "single",
-              "correct_answer": "2",
-              "explanation": "ui-ux-pro-max 专门提供 UI/UX 设计指导，包含配色方案、字体搭配、布局建议等。frontend-design 用于生成代码，writing-plans 用于创建计划。",
+              "correct_answer": 2,
+              "explanation": "对于复杂功能，应该按照 Skill 系统设计的流程逐步推进：探索→定义→设计→实现。每个阶段都有其特定价值，跳过任何阶段都可能导致问题。",
               "order": 2,
               "options": [
                 {
-                  "option_text": "/writing-plans",
+                  "option_text": "直接/implement，效率最高",
                   "option_index": 0
                 },
                 {
-                  "option_text": "/simplify",
+                  "option_text": "只用/brainstorming，其他不重要",
                   "option_index": 1
                 },
                 {
-                  "option_text": "/ui-ux-pro-max",
+                  "option_text": "按流程逐步推进：探索→定义→设计→实现",
                   "option_index": 2
                 },
                 {
-                  "option_text": "/openspec-new-change",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "开发复杂功能时，正确的技能调用顺序是？",
-              "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "标准流程：先用 brainstorming 探索需求和澄清问题，再用 writing-plans 创建详细实现计划，最后用 openspec-new-change 启动变更流程。",
-              "order": 3,
-              "options": [
-                {
-                  "option_text": "直接开始写代码",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "/brainstorming → /writing-plans → /openspec-new-change",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "/simplify → /frontend-design → /ui-ux-pro-max",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "随便调用，顺序不重要",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "以下哪些是 Skills 的正确使用方式？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,1,3",
-              "explanation": "正确使用 Skills 需要：明确调用技能名称、提供清晰的任务描述、结合具体场景选择技能、避免同时调用冲突的技能。在简单任务上使用复杂技能是浪费。",
-              "order": 4,
-              "options": [
-                {
-                  "option_text": "明确调用技能名称",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "同时调用多个冲突的技能",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "在简单任务上使用复杂技能",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "结合具体场景选择技能",
+                  "option_text": "所有技能一起调用，让 AI 自己决定",
                   "option_index": 3
                 }
               ]
@@ -644,126 +469,76 @@
           "passing_score": 60,
           "questions": [
             {
-              "question_text": "OpenSpec 的核心理念是什么？",
+              "question_text": "【场景】OpenSpec 工作流案例：\n\n1. /opsx:new - 创建变更提案\n2. /opsx:continue - 继续设计\n3. /opsx:apply - 应用变更\n4. /opsx:verify - 验证实现\n\n问题：这个工作流体现了什么核心理念？",
               "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "OpenSpec 的核心理念是 Spec-Driven（规格驱动）、Change-Based（变更驱动）、Artifact-Driven（工件驱动）。",
+              "correct_answer": 1,
+              "explanation": "OpenSpec 的核心理念是 Spec-Driven（规格驱动）：先写清楚规格，再开始实现。每个步骤都有明确的工件产出。",
               "order": 0,
               "options": [
                 {
-                  "option_text": "快速编码，尽快交付",
+                  "option_text": "快速迭代，边做边改",
                   "option_index": 0
                 },
                 {
-                  "option_text": "Spec-Driven、Change-Based、Artifact-Driven",
+                  "option_text": "Spec-Driven：先明确规格，再逐步实现",
                   "option_index": 1
                 },
                 {
-                  "option_text": "测试驱动开发",
+                  "option_text": "让 AI 自动完成所有工作",
                   "option_index": 2
                 },
                 {
-                  "option_text": "敏捷开发",
+                  "option_text": "尽可能减少人工干预",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "以下哪些场景适合使用 explore 模式？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,1,3",
-              "explanation": "explore 模式适用于探索问题空间、收集需求和分析技术方案，不适合紧急修复。",
+              "question_text": "【诊断】以下哪个技能用于快速向前推进变更，自动创建所有工件？",
+              "question_type": "single",
+              "correct_answer": 0,
+              "explanation": "/opsx:ff（fast-forward）用于快速向前推进，自动创建提案、设计、规格等所有工件。适合需求明确的场景。",
               "order": 1,
               "options": [
                 {
-                  "option_text": "探索问题空间",
+                  "option_text": "/opsx:ff",
                   "option_index": 0
                 },
                 {
-                  "option_text": "收集需求",
+                  "option_text": "/opsx:explore",
                   "option_index": 1
                 },
                 {
-                  "option_text": "紧急 bug 修复",
+                  "option_text": "/opsx:new",
                   "option_index": 2
                 },
                 {
-                  "option_text": "分析技术方案",
+                  "option_text": "/opsx:apply",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "以下哪个技能用于快速向前推进变更，自动创建所有工件？",
+              "question_text": "【决策】当你想要探索需求但还不确定具体实现方案时，应该使用哪个技能？",
               "question_type": "single",
-              "correct_answer": "2",
-              "explanation": "openspec-ff-change 用于快速推进变更，自动生成所有工件。",
+              "correct_answer": 1,
+              "explanation": "/opsx:explore 用于探索阶段，帮助分析需求的各个方面，适合需求不明确的场景。/opsx:ff 适合需求明确时快速推进。",
               "order": 2,
               "options": [
                 {
-                  "option_text": "openspec-new-change",
+                  "option_text": "/opsx:ff 快速推进",
                   "option_index": 0
                 },
                 {
-                  "option_text": "openspec-continue-change",
+                  "option_text": "/opsx:explore 探索需求",
                   "option_index": 1
                 },
                 {
-                  "option_text": "openspec-ff-change",
+                  "option_text": "/opsx:apply 直接实现",
                   "option_index": 2
                 },
                 {
-                  "option_text": "openspec-apply-change",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "当你想要开始实现代码时，应该使用哪个技能？",
-              "question_type": "single",
-              "correct_answer": "3",
-              "explanation": "openspec-apply-change 用于应用变更，开始实现代码。",
-              "order": 3,
-              "options": [
-                {
-                  "option_text": "openspec-new-change",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "openspec-explore",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "openspec-verify-change",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "openspec-apply-change",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "OpenSpec 工作流的正确顺序是什么？",
-              "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "OpenSpec 的正确工作流是 Proposal → Design → Specs → Tasks → Implementation。",
-              "order": 4,
-              "options": [
-                {
-                  "option_text": "Design → Proposal → Tasks → Specs → Implementation",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "Proposal → Design → Specs → Tasks → Implementation",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "Tasks → Specs → Design → Proposal → Implementation",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "Implementation → Tasks → Specs → Design → Proposal",
+                  "option_text": "/opsx:archive 归档变更",
                   "option_index": 3
                 }
               ]
@@ -812,126 +587,76 @@
           "passing_score": 60,
           "questions": [
             {
-              "question_text": "以下哪个工具使用技能自动触发机制？",
+              "question_text": "【场景】某创业公司（5 人团队）正在开发 SaaS 产品，技术栈为 TypeScript + React + Node.js。团队需求：\n\n1. 需要快速迭代，每两周一个版本\n2. 团队成员 AI 工具偏好不同（有人用 Claude Code，有人用 Cursor）\n3. 希望保持灵活性，随时调整需求\n4. 需要一定的文档追溯能力\n\n问题：以下哪个工具最适合这个团队？",
               "question_type": "single",
-              "correct_answer": "2",
-              "explanation": "Superpowers 使用技能自动触发机制，根据上下文自动激活对应技能。",
+              "correct_answer": 0,
+              "explanation": "OpenSpec 最适合小团队：支持 20+ AI 工具（满足偏好差异），灵活迭代（适应快速变化），artifact 驱动（提供基本追溯）。Spec-Kit 流程过重，Superpowers 协作支持弱。",
               "order": 0,
               "options": [
                 {
-                  "option_text": "OpenSpec",
+                  "option_text": "OpenSpec - 平衡灵活性和结构性，支持多工具",
                   "option_index": 0
                 },
                 {
-                  "option_text": "Spec-Kit",
+                  "option_text": "Spec-Kit - GitHub 官方，企业级支持",
                   "option_index": 1
                 },
                 {
-                  "option_text": "Superpowers",
+                  "option_text": "Superpowers - 高度自动化，零配置",
                   "option_index": 2
                 },
                 {
-                  "option_text": "以上都是",
+                  "option_text": "三个工具都适合，随意选择",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "OpenSpec 的核心工作流 OPSX 的特点是什么？",
+              "question_text": "【诊断】某团队使用 Spec-Kit 进行开发，以下哪个流程是正确的？",
               "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "OPSX 是 Artifact 驱动，支持自由迭代，不强制线性流程。",
+              "correct_answer": 1,
+              "explanation": "Spec-Kit 采用线性 SDD 流程：specify（创建规格）→ plan（生成计划）→ tasks（生成任务）→ 实现。这个顺序体现了规格驱动开发的核心理念。",
               "order": 1,
               "options": [
                 {
-                  "option_text": "线性阶段，严格流程",
+                  "option_text": "直接编写代码，然后补充规格文档",
                   "option_index": 0
                 },
                 {
-                  "option_text": "Artifact 驱动，自由迭代",
+                  "option_text": "/speckit.specify → /speckit.plan → /speckit.tasks → 实现",
                   "option_index": 1
                 },
                 {
-                  "option_text": "完全自动化，无需手动操作",
+                  "option_text": "先写测试，再写实现代码，最后写规格",
                   "option_index": 2
                 },
                 {
-                  "option_text": "仅支持单一 AI 工具",
+                  "option_text": "根据上下文自动触发，无需手动调用命令",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "Spec-Kit 的核心理念是什么？",
+              "question_text": "【决策】企业级项目（20+ 人团队）需要严格的合规审查和统一规范，应该选择哪个工具组合？",
               "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "Spec-Kit 实现 Spec-Driven Development (SDD)，规格是可执行的，直接生成实现。",
+              "correct_answer": 2,
+              "explanation": "Spec-Kit 专为大型企业设计，提供严格流程和统一规范。Superpowers 不适合大型团队协作，OpenSpec 虽好但企业特性不如 Spec-Kit。",
               "order": 2,
               "options": [
                 {
-                  "option_text": "Fluid not rigid",
+                  "option_text": "Superpowers + OpenSpec - 自动化与灵活性结合",
                   "option_index": 0
                 },
                 {
-                  "option_text": "Specification-Driven Development",
+                  "option_text": "OpenSpec + Superpowers - 多工具支持与自动化",
                   "option_index": 1
                 },
                 {
-                  "option_text": "Skill-based autonomous development",
+                  "option_text": "Spec-Kit - 企业级流程和严格审查",
                   "option_index": 2
                 },
                 {
-                  "option_text": "Code first, spec later",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "对于 20+ 人的企业级团队，哪个工具最合适？",
-              "question_type": "single",
-              "correct_answer": "1",
-              "explanation": "Spec-Kit 提供严格的企业级流程和统一规范，适合大型团队。",
-              "order": 3,
-              "options": [
-                {
-                  "option_text": "OpenSpec",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "Spec-Kit",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "Superpowers",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "都可以",
-                  "option_index": 3
-                }
-              ]
-            },
-            {
-              "question_text": "以下哪些是推荐的工具组合？（多选）",
-              "question_type": "multiple",
-              "correct_answer": "0,1",
-              "explanation": "OpenSpec+Superpowers 和 Spec-Kit+OpenSpec 是推荐组合，Superpowers+Spec-Kit 工作流冲突不推荐。",
-              "order": 4,
-              "options": [
-                {
-                  "option_text": "OpenSpec + Superpowers",
-                  "option_index": 0
-                },
-                {
-                  "option_text": "Spec-Kit + OpenSpec",
-                  "option_index": 1
-                },
-                {
-                  "option_text": "Superpowers + Spec-Kit",
-                  "option_index": 2
-                },
-                {
-                  "option_text": "所有组合都推荐",
+                  "option_text": "三个工具混合使用 - 取长补短",
                   "option_index": 3
                 }
               ]
