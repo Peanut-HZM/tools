@@ -126,7 +126,7 @@ export default function CourseDetail() {
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
 
       {/* ===== 优化后的 Header 区域 ===== */}
-      <div className="flex items-center justify-between mb-8 px-2">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-5">
           {/* 返回按钮 */}
           <button
@@ -195,7 +195,7 @@ export default function CourseDetail() {
       </div>
 
       {/* ===== 优化后的课程信息卡片 ===== */}
-      <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 rounded-2xl border border-slate-700/50 p-6 mb-6 backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 rounded-2xl border border-slate-700/50 p-4 mb-4 backdrop-blur-sm">
         <div className="flex items-start gap-6">
           {/* 课程封面 */}
           {course.cover_image && (
@@ -281,7 +281,7 @@ export default function CourseDetail() {
       </div>
 
       {/* ===== 优化后的 Tabs 标签页 ===== */}
-      <div className="flex items-center gap-2 border-b border-slate-700/50 mb-6">
+      <div className="flex items-center gap-2 border-b border-slate-700/50 mb-4">
         {(['chapters', 'quiz', 'resources'] as TabType[]).map((tab) => (
           <button
             key={tab}
@@ -314,7 +314,7 @@ export default function CourseDetail() {
       </div>
 
       {/* ===== Content 内容区域 ===== */}
-      <div className="flex-1 overflow-hidden bg-slate-800/30 rounded-2xl border border-slate-700/50 p-5 backdrop-blur-sm">
+      <div className="flex-1 overflow-hidden bg-slate-800/30 rounded-2xl border border-slate-700/50 p-4 backdrop-blur-sm">
         {activeTab === 'chapters' && (
           <ChapterList
             chapters={chapters}
