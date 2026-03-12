@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
 import Hero from './components/Hero/Hero';
-import Features from './components/Features/Features';
 import Statistics from './components/Statistics/Statistics';
-import Recommendations from './components/Recommendations/Recommendations';
 import Layout from './components/Layout/Layout';
 import AdminLayout from './components/Admin/AdminLayout';
 import ToolManagement from './components/Admin/ToolManagement';
@@ -35,6 +33,7 @@ import ProductManagerAgent from './components/Tools/ProductManagerAgent';
 import LearningSharePlatform from './components/Tools/LearningSharePlatform';
 import OpenSpecCourse from './components/Tools/OpenSpecCourse';
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
+import CursorHistory from './components/Tools/CursorHistory/CursorHistory';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
@@ -188,6 +187,7 @@ function HomePage() {
       'learning-share': '/tools/learning-share',
       'cross-share': '/tools/cross-share',
       'course-platform': '/courses',
+      'cursor-history': '/tools/cursor-history',
     };
 
     const route = toolRoutes[toolId];
@@ -219,9 +219,7 @@ function HomePage() {
             onToolClick={handleToolClick}
             categories={categories}
           />
-          <Features />
           <Statistics />
-          <Recommendations />
         </>
       )}
     </div>
@@ -261,6 +259,7 @@ function App() {
               <Route path="/tools/openspec-course" element={<OpenSpecCourse />} />
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
               <Route path="/tools/cross-share" element={<CrossShareMain />} />
+              <Route path="/tools/cursor-history" element={<CursorHistory />} />
             </Route>
 
             {/* Admin Routes */}
