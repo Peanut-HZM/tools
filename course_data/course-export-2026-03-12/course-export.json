@@ -6,9 +6,9 @@
   "export_stats": {
     "chapters_count": 6,
     "quizzes_count": 6,
-    "questions_count": 31,
-    "options_count": 124,
-    "resources_count": 14
+    "questions_count": 22,
+    "options_count": 88,
+    "resources_count": 15
   },
   "chapters": [
     {
@@ -459,86 +459,186 @@
       "slug": "openspec-skills-system",
       "title": "第 5 章：OpenSpec 技能系统 - Spec-Driven 开发实践",
       "order": 5,
-      "content": "## 发现新大陆：OpenSpec！\n\n在我掌握了 rules 之后，我又发现了一个更强大的工具——**OpenSpec**。\n\n### 什么是 OpenSpec？\n\nOpenSpec 是一个基于 Spec-Driven 的开发方法论，它提供了一套完整的技能系统来规范 AI 的编程行为。\n\n**核心理念**：\n\n1. **Spec-Driven（规格驱动）**：先写清楚规格，再开始实现\n2. **Change-Based（变更驱动）**：每个变更都是独立的单元\n3. **Artifact-Driven（工件驱动）**：通过创建工件来推进开发\n\n### OpenSpec 的核心概念\n\n#### 1. Change（变更）\n\nChange 是 OpenSpec 中的基本单位，代表一个独立的开发任务。\n\n```\nopenspec/changes/\n└── add-user-auth/          # 一个 Change\n    ├── proposal.md         # 提案\n    ├── design.md           # 设计\n    ├── specs/              # 规格\n    │   └── auth-spec/\n    │       └── spec.md\n    └── tasks.md            # 任务清单\n```\n\n#### 2. Artifact（工件）\n\nArtifact 是 OpenSpec 中创建的文档或文件，包括：\n\n| 工件类型 | 用途 | 内容 |\n|----------|------|------|\n| **Proposal** | 提案 | 为什么要做、做什么、预期影响 |\n| **Design** | 设计 | 技术方案、权衡考虑、风险评估 |\n| **Spec** | 规格 | 详细的功能规格和场景 |\n| **Tasks** | 任务 | 具体的实现步骤清单 |\n\n#### 3. Spec-Driven Workflow\n\nOpenSpec 的工作流程：\n\n```\nProposal → Design → Specs → Tasks → Implementation\n```\n\n每个阶段都有明确的目标和输出。\n\n### OpenSpec 技能系统\n\nOpenSpec 提供了一套强大的技能（Skills），每个技能对应一个特定的操作：\n\n#### 1. openspec-new-change\n\n**用途**：创建新的变更\n\n**适用场景**：\n- 开始一个新功能开发\n- 修复一个 bug\n- 进行代码重构\n\n**常用命令**：\n```bash\nopenspec new change <change-name>\nopenspec new change <change-name> --schema <schema-name>\n```\n\n**示例**：\n```bash\n# 创建一个添加用户认证功能的变更\nopenspec new change add-user-auth\n\n# 使用自定义 schema\nopenspec new change add-payment --schema payment-feature\n```\n\n#### 2. openspec-explore\n\n**用途**：探索模式，用于思考和分析\n\n**适用场景**：\n- 探索问题空间\n- 收集需求\n- 分析技术方案\n\n**常用命令**：\n```bash\nopenspec explore\nopenspec explore --change <change-name>\n```\n\n**示例**：\n```bash\n# 探索用户认证方案\nopenspec explore --change add-user-auth\n```\n\n#### 3. openspec-continue-change\n\n**用途**：继续一个变更，创建下一个工件\n\n**适用场景**：\n- 完成 proposal 后继续创建 design\n- 完成 design 后继续创建 specs\n\n**常用命令**：\n```bash\nopenspec continue change <change-name>\n```\n\n**示例**：\n```bash\n# 继续 add-user-auth 变更，创建下一个工件\nopenspec continue change add-user-auth\n```\n\n#### 4. openspec-ff-change\n\n**用途**：快速向前推进变更，自动创建所有工件\n\n**适用场景**：\n- 快速原型开发\n- 熟悉的任务类型\n- 时间紧迫时\n\n**常用命令**：\n```bash\nopenspec ff change <change-name>\n```\n\n**示例**：\n```bash\n# 快速推进变更，自动生成所有工件\nopenspec ff change add-simple-feature\n```\n\n#### 5. openspec-apply-change\n\n**用途**：应用变更，开始实现\n\n**适用场景**：\n- 所有工件准备就绪\n- 开始编写代码\n\n**常用命令**：\n```bash\nopenspec apply change <change-name>\n```\n\n**示例**：\n```bash\n# 应用变更，开始实现\nopenspec apply change add-user-auth\n```\n\n#### 6. openspec-archive-change\n\n**用途**：归档完成的变更\n\n**适用场景**：\n- 变更已完成\n- 清理工作区\n\n**常用命令**：\n```bash\nopenspec archive change <change-name>\n```\n\n**示例**：\n```bash\n# 归档已完成的变更\nopenspec archive change add-user-auth\n```\n\n#### 7. openspec-verify-change\n\n**用途**：验证变更实现\n\n**适用场景**：\n- 实现完成后\n- 确保实现符合规格\n\n**常用命令**：\n```bash\nopenspec verify change <change-name>\n```\n\n**示例**：\n```bash\n# 验证变更实现是否符合规格\nopenspec verify change add-user-auth\n```\n\n### 完整工作流示例\n\n下面是一个完整的 OpenSpec 工作流示例：\n\n```bash\n# 1. 创建新变更\nopenspec new change add-user-auth\n\n# 2. 查看变更状态\nopenspec status --change add-user-auth\n\n# 3. 获取 Proposal 指令\nopenspec instructions proposal --change add-user-auth\n\n# 4. 创建 Proposal（手动编写）\n# 编辑 openspec/changes/add-user-auth/proposal.md\n\n# 5. 继续创建 Design\nopenspec continue change add-user-auth\n\n# 6. 创建 Specs\nopenspec continue change add-user-auth\n\n# 7. 创建 Tasks\nopenspec continue change add-user-auth\n\n# 8. 应用变更（开始实现）\nopenspec apply change add-user-auth\n\n# 9. 验证实现\nopenspec verify change add-user-auth\n\n# 10. 归档变更\nopenspec archive change add-user-auth\n```\n\n### OpenSpec 带来的提升\n\n使用 OpenSpec 后，我的开发效率有了显著提升：\n\n| 指标 | 之前 | 使用 OpenSpec 后 | 提升 |\n|------|------|-----------------|------|\n| **需求理解时间** | 30 分钟 | 10 分钟 | ⬆️ 66% |\n| **返工率** | 40% | 10% | ⬇️ 75% |\n| **代码审查时间** | 45 分钟 | 15 分钟 | ⬆️ 66% |\n| **整体交付速度** | 基准 | 2.5 倍 | ⬆️ 150% |\n\n### 为什么 OpenSpec 有效？\n\n1. **清晰的规格**：AI 确切知道要做什么\n2. **结构化的流程**：每个阶段都有明确目标\n3. **可追溯的变更**：每个变更都有完整记录\n4. **可复用的模式**：成功的模式可以重复使用\n\n---\n\n**动手试试**：下一章我们会对比三大主流 AI 编程工具！",
+      "content": "## 发现新大陆：OpenSpec！\n\n在我掌握了 Rules 之后，新的问题又出现了...\n\n### 新的挑战\n\n即使有了 Rules，我仍然面临这些问题：\n\n| 问题 | 场景 | 痛点 |\n|------|------|------|\n| **需求不清晰** | AI 经常理解错需求，实现偏离目标 | 反复沟通，浪费时间 |\n| **上下文丢失** | 长对话后 AI 忘记之前的约定 | 需要反复重申要求 |\n| **变更混乱** | 多个功能同时开发，代码改动混在一起 | 难以追溯，难以回滚 |\n| **缺乏文档** | 实现完成后不知道当时为什么这样设计 | 后续维护困难 |\n\n直到我发现了 **OpenSpec** —— 一个改变我开发方式的 Spec-Driven 框架。\n\n---\n\n## 1. OpenSpec 是什么？\n\n### 核心理念\n\nOpenSpec 是一个基于 **Spec-Driven（规格驱动）** 的开发方法论，由 Fission AI 开发，旨在让 AI 辅助编程更加可预测和高效。\n\n**三大核心理念**：\n\n```\n→ fluid not rigid        (灵活而非僵化)\n→ iterative not waterfall (迭代而非瀑布)\n→ easy not complex       (简单而非复杂)\n```\n\n### OpenSpec vs 传统开发\n\n| 传统开发 | OpenSpec 开发 |\n|----------|---------------|\n| 需求在聊天记录中 | 需求在结构化文档中 |\n| AI 直接写代码 | AI 先写规格，再实现 |\n| 变更难以追溯 | 每个变更独立管理 |\n| 文档滞后于代码 | 文档驱动代码实现 |\n\n### OpenSpec 的核心价值\n\n1. **Agree before you build（实现前先达成共识）**\n   - 人类和 AI 在写代码前就规格达成一致\n   - 避免\"我以为你想要...\"的情况\n\n2. **Stay organized（保持组织性）**\n   - 每个变更都有独立的文件夹\n   - 包含 Proposal、Specs、Design、Tasks\n\n3. **Work fluidly（灵活工作）**\n   - 没有僵化的阶段限制\n   - 可以随时更新任何文档\n\n4. **Use your tools（使用你的工具）**\n   - 支持 20+ AI 助手\n   - 通过 Slash Commands 集成\n\n---\n\n## 2. Spec-Driven 工作原理\n\n### 什么是 Spec-Driven？\n\n**Spec-Driven（规格驱动）** 是一种开发方法，核心流程是：\n\n```\nProposal（提案） → Design（设计） → Specs（规格） → Tasks（任务） → Implementation（实现）\n```\n\n每个阶段都有明确的输入和输出：\n\n| 阶段 | 输入 | 输出 | 目的 |\n|------|------|------|------|\n| **Proposal** | 想法/需求 | proposal.md | 说明为什么要做、做什么、预期影响 |\n| **Design** | Proposal | design.md | 技术方案、权衡考虑、风险评估 |\n| **Specs** | Design | specs/*.md | 详细的功能规格和场景 |\n| **Tasks** | Specs | tasks.md | 具体的实现步骤清单 |\n| **Implementation** | Tasks | 代码 | 按照任务清单实现功能 |\n\n### Spec-Driven 的优势\n\n**传统方式（Prompt-Driven）**：\n```\n用户：\"帮我加个登录功能\"\nAI：直接开始写代码\n结果：代码可能不符合预期，需要反复修改\n```\n\n**Spec-Driven 方式**：\n```\n用户：\"帮我加个登录功能\"\nAI：先创建 Proposal → Design → Specs → Tasks\n用户：确认规格\nAI：再开始实现\n结果：实现符合预期，返工率低\n```\n\n### Spec-Driven 为什么有效？\n\n1. **清晰的规格**：AI 确切知道要做什么\n2. **结构化的流程**：每个阶段都有明确目标\n3. **可追溯的变更**：每个变更都有完整记录\n4. **可复用的模式**：成功的模式可以重复使用\n\n---\n\n## 3. 核心命令详解\n\nOpenSpec 提供了一套完整的技能系统（Skills），每个技能对应一个特定的操作。\n\n### 3.1 openspec-new-change\n\n**用途**：创建新的变更\n\n**适用场景**：\n- 开始一个新功能开发\n- 修复一个 bug\n- 进行代码重构\n\n**命令语法**：\n```bash\nopenspec new change <change-name>\nopenspec new change <change-name> --schema <schema-name>\n```\n\n**参数说明**：\n| 参数 | 必填 | 说明 |\n|------|------|------|\n| `change-name` | 否 | 变更名称（推荐使用 kebab-case 格式） |\n| `--schema` | 否 | 使用的 Schema 名称（默认从配置读取） |\n\n**示例**：\n```bash\n# 创建一个添加用户认证功能的变更\nopenspec new change add-user-auth\n\n# 使用自定义 schema\nopenspec new change add-payment --schema payment-feature\n```\n\n**创建后的目录结构**：\n```\nopenspec/changes/add-user-auth/\n└── .openspec.yaml    # 变更元数据\n```\n\n**使用技巧**：\n- 使用描述性名称：`add-feature`、`fix-bug`、`refactor-module`\n- 避免通用名称：`update`、`changes`、`wip`\n\n---\n\n### 3.2 openspec-explore\n\n**用途**：探索模式，用于思考和分析\n\n**适用场景**：\n- 探索问题空间\n- 收集需求\n- 分析技术方案\n- 调查代码库\n\n**命令语法**：\n```bash\nopenspec explore\nopenspec explore --change <change-name>\n```\n\n**示例**：\n```bash\n# 探索用户认证方案\nopenspec explore --change add-user-auth\n\n# 探索：如何处理移动端的认证？\nopenspec explore\n\nAI: 你想探索什么？\n\n你：移动端认证应该如何处理？\n\nAI: 让我调查一下当前的认证设置...\n     [分析代码库]\n\n     我看到 Web 端使用基于会话的认证。\n     移动端有三种主要选择：\n\n     1. JWT 令牌（无状态，可离线工作）\n     2. OAuth2（如需第三方登录）\n     3. 扩展现有会话（更简单，但需要连接）\n\n     你的 API 已配置 CORS。哪种方案你更感兴趣？\n```\n\n**使用技巧**：\n- 适用于需求不清晰或需要调查的场景\n- 探索阶段不会创建任何文档\n- 适合比较多种方案后再做决定\n- 可以读取文件和搜索代码库\n\n---\n\n### 3.3 openspec-continue-change\n\n**用途**：继续变更，创建下一个工件\n\n**适用场景**：\n- 完成 proposal 后继续创建 design\n- 完成 design 后继续创建 specs\n- 逐步创建工件，每次审查后再继续\n\n**命令语法**：\n```bash\nopenspec continue change <change-name>\n```\n\n**示例**：\n```bash\n# 继续 add-user-auth 变更\nopenspec continue change add-user-auth\n\nAI: 变更：add-user-auth\n\n     工件状态：\n     ✓ proposal    (已完成)\n     ◆ specs       (就绪)\n     ◆ design      (就绪)\n     ○ tasks       (阻塞 - 需要：specs)\n\n     正在创建 specs...\n\n     ✓ 创建了 openspec/changes/add-user-auth/specs/ui/spec.md\n\n     现在可用：tasks\n     运行 /openspec-continue-change 创建下一个工件。\n```\n\n**使用技巧**：\n- 适用于想要审查每个工件后再继续的场景\n- 适合复杂变更，需要精细控制\n- 多个工件可能同时就绪\n- 可以在继续前编辑已创建的工件\n\n---\n\n### 3.4 openspec-ff-change\n\n**用途**：快速向前推进变更，自动创建所有工件\n\n**适用场景**：\n- 快速原型开发\n- 熟悉的任务类型\n- 时间紧迫时\n- 需求明确的简单功能\n\n**命令语法**：\n```bash\nopenspec ff change <change-name>\n```\n\n**示例**：\n```bash\n# 快速推进变更\nopenspec ff change add-dark-mode\n\nAI: 快速推进 add-dark-mode...\n\n     ✓ 创建 proposal.md\n     ✓ 创建 specs/ui/spec.md\n     ✓ 创建 design.md\n     ✓ 创建 tasks.md\n\n     所有工件创建完成！\n     准备实现。运行 /openspec-apply-change 开始。\n```\n\n**使用技巧**：\n- 适用于对实现内容有清晰想法的场景\n- 比 `/openspec-continue-change` 更快\n- 创建后仍可编辑工件\n- 适合中小型功能\n\n---\n\n### 3.5 openspec-apply-change\n\n**用途**：应用变更，开始实现代码\n\n**适用场景**：\n- 所有工件准备就绪\n- 开始编写代码\n- 继续未完成的实现\n\n**命令语法**：\n```bash\nopenspec apply change <change-name>\n```\n\n**示例**：\n```bash\n# 应用变更\nopenspec apply change add-user-auth\n\nAI: 正在实现 add-user-auth...\n\n     读取 tasks.md:\n     - [ ] 1.1 创建 ThemeContext\n     - [ ] 1.2 添加 CSS 自定义属性\n     - [ ] 1.3 实现 localStorage 持久化\n\n     正在处理 1.1：创建 ThemeContext...\n     [创建 src/context/ThemeContext.tsx]\n\n     ✓ 1.1 完成\n\n     正在处理 1.2：添加 CSS 自定义属性...\n     [更新 src/styles/globals.css]\n\n     ✓ 1.2 完成\n     ...\n```\n\n**使用技巧**：\n- 可以从中断处继续\n- 通过指定变更名称支持并行变更\n- 完成状态在 `tasks.md` 的复选框中跟踪\n\n---\n\n### 3.6 openspec-archive-change\n\n**用途**：归档完成的变更\n\n**适用场景**：\n- 变更已完成\n- 清理工作区\n- 保留审计记录\n\n**命令语法**：\n```bash\nopenspec archive change <change-name>\n```\n\n**示例**：\n```bash\n# 归档变更\nopenspec archive change add-user-auth\n\nAI: 正在归档 add-user-auth...\n\n     工件状态：\n     ✓ proposal.md 存在\n     ✓ specs/ 存在\n     ✓ design.md 存在\n     ✓ tasks.md 存在 (8/8 任务完成)\n\n     Delta specs：尚未同步\n     → 现在同步？（推荐）\n\n你：是\n\nAI: ✓ 已同步 specs 到 openspec/specs/ui/spec.md\n     ✓ 已移动到 openspec/changes/archive/2025-01-24-add-user-auth/\n\n     变更归档成功。\n```\n\n**使用技巧**：\n- 归档前建议运行 `/openspec-verify-change`\n- 未完成的任务会警告但不会阻止归档\n- 归档的变更会保留所有工件作为历史记录\n\n---\n\n### 3.7 openspec-verify-change\n\n**用途**：验证变更实现是否符合规格\n\n**适用场景**：\n- 实现完成后\n- 确保实现符合规格\n- 归档前检查\n\n**命令语法**：\n```bash\nopenspec verify change <change-name>\n```\n\n**验证维度**：\n| 维度 | 验证内容 |\n|------|----------|\n| **Completeness（完整性）** | 所有任务完成、所有需求实现、场景覆盖 |\n| **Correctness（正确性）** | 实现符合规格意图、边界情况处理 |\n| **Coherence（一致性）** | 设计决策在代码中体现、模式一致 |\n\n**示例**：\n```bash\n# 验证变更\nopenspec verify change add-dark-mode\n\nAI: 验证 add-dark-mode...\n\n     完整性\n     ✓ tasks.md 中 8 个任务全部完成\n     ✓ specs 中所有需求都有对应代码\n     ⚠ \"系统偏好检测\" 场景没有测试覆盖\n\n     正确性\n     ✓ 实现符合规格意图\n     ✓ 边界情况已处理\n     ✓ 错误状态符合规格定义\n\n     一致性\n     ✓ 设计决策在代码结构中体现\n     ✓ 命名约定与设计一致\n     ⚠ 设计提到\"CSS 变量\"但实现使用 Tailwind 类\n\n     总结\n     ─────────────────────────────\n     严重问题：0\n     警告：2\n     可以归档：是（带有警告）\n\n     建议：\n     1. 添加系统偏好检测测试\n     2. 更新 design.md 反映 Tailwind 使用，或重构使用 CSS 变量\n```\n\n**使用技巧**：\n- 归档前运行以尽早发现问题\n- 警告不会阻止归档，但表示潜在问题\n- 适合审查 AI 的工作后再提交\n\n---\n\n## 4. 完整工作流示例\n\n### 场景：为网站添加暗色模式\n\n让我们通过一个完整的示例来看看 OpenSpec 工作流：\n\n#### 步骤 1：创建新变更\n\n```bash\nopenspec new change add-dark-mode\n```\n\n输出：\n```\n创建了 openspec/changes/add-dark-mode/\nSchema: spec-driven\n\n准备创建：proposal\n使用 /openspec-continue-change 创建，或 /openspec-ff-change 快速创建所有工件。\n```\n\n#### 步骤 2：查看变更状态\n\n```bash\nopenspec status --change add-dark-mode\n```\n\n输出：\n```\n变更：add-dark-mode\n状态：0/4 工件完成\n\n工件：\n- [ ] proposal（就绪）\n- [ ] design（等待）\n- [ ] specs（等待）\n- [ ] tasks（等待）\n```\n\n#### 步骤 3：获取 Proposal 指令\n\n```bash\nopenspec instructions proposal --change add-dark-mode\n```\n\n#### 步骤 4：创建 Proposal\n\n编辑 `openspec/changes/add-dark-mode/proposal.md`：\n\n```markdown\n# Proposal: Add Dark Mode\n\n## Why\n\n用户反馈希望支持暗色模式，特别是在夜间使用场景。\n暗色模式可以减少眼睛疲劳，提升用户体验。\n\n## What Changes\n\n1. 添加主题切换功能\n2. 支持亮色/暗色两种模式\n3. 记住用户偏好设置\n4. 支持系统主题自动检测\n\n## Capabilities\n\n- 主题切换功能\n- localStorage 持久化\n- 系统主题检测\n- 平滑过渡动画\n\n## Impact\n\n- 需要添加新的 CSS 变量\n- 部分组件需要适配暗色主题\n- 需要更新用户设置页面\n```\n\n#### 步骤 5：继续创建 Design\n\n```bash\nopenspec continue change add-dark-mode\n```\n\nAI 会自动创建 `design.md`：\n\n```markdown\n# Design: Add Dark Mode\n\n## Context\n\n当前网站只有亮色主题，用户需要在夜间手动调节亮度。\n\n## Goals\n\n- 支持亮色/暗色主题切换\n- 保持设计一致性\n- 最小化性能影响\n\n## Decisions\n\n1. 使用 CSS 变量管理主题\n2. 主题状态存储在 localStorage\n3. 使用 React Context 管理主题状态\n\n## Risks\n\n- 部分第三方组件可能不支持主题切换\n- 需要确保平滑过渡，避免闪烁\n```\n\n#### 步骤 6：创建 Specs\n\n```bash\nopenspec continue change add-dark-mode\n```\n\nAI 会创建规格文件 `specs/ui/spec.md`：\n\n```markdown\n# Spec: UI Theme System\n\n## Requirements\n\n### 主题切换\n\n- WHEN 用户点击主题切换按钮\n- THEN 主题在亮色/暗色之间切换\n- AND 用户偏好保存到 localStorage\n\n### 系统主题检测\n\n- WHEN 用户启用\"跟随系统\"\n- THEN 自动检测系统主题\n- AND 根据系统设置自动切换\n\n## Scenarios\n\n### Scenario: 首次访问\n- WHEN 用户首次访问网站\n- AND 未设置主题偏好\n- THEN 使用系统主题\n\n### Scenario: 切换主题\n- WHEN 用户点击主题切换按钮\n- THEN 立即切换主题\n- AND 页面不刷新\n```\n\n#### 步骤 7：创建 Tasks\n\n```bash\nopenspec continue change add-dark-mode\n```\n\nAI 会创建任务清单 `tasks.md`：\n\n```markdown\n# Tasks: Add Dark Mode\n\n## Task 1: 创建主题上下文\n\n**Files:**\n- Create: `src/context/ThemeContext.tsx`\n\n**Steps:**\n1. 创建 ThemeContext\n2. 添加 useTheme hook\n3. 导出 ThemeProvider 组件\n\n## Task 2: 添加 CSS 变量\n\n**Files:**\n- Modify: `src/styles/globals.css`\n\n**Steps:**\n1. 定义亮色主题变量\n2. 定义暗色主题变量\n3. 添加主题切换类\n\n## Task 3: 实现 localStorage 持久化\n\n**Files:**\n- Modify: `src/context/ThemeContext.tsx`\n\n**Steps:**\n1. 读取 localStorage 中的主题设置\n2. 保存主题切换到 localStorage\n3. 处理初次访问场景\n\n## Task 4: 添加主题切换按钮\n\n**Files:**\n- Create: `src/components/Theme/ThemeToggle.tsx`\n\n**Steps:**\n1. 创建切换按钮组件\n2. 添加图标\n3. 绑定点击事件\n```\n\n#### 步骤 8：应用变更\n\n```bash\nopenspec apply change add-dark-mode\n```\n\nAI 会开始按照任务清单实现代码。\n\n#### 步骤 9：验证实现\n\n```bash\nopenspec verify change add-dark-mode\n```\n\nAI 会验证实现是否符合规格。\n\n#### 步骤 10：归档变更\n\n```bash\nopenspec archive change add-dark-mode\n```\n\n变更被移动到归档目录：\n```\nopenspec/changes/archive/2025-01-24-add-dark-mode/\n```\n\n---\n\n## 5. 应用场景\n\n### 场景 1：新功能开发\n\n**适用命令**：`openspec-new-change` → `openspec-ff-change` → `openspec-apply-change`\n\n对于熟悉的功能类型，可以快速推进：\n\n```bash\nopenspec new change add-user-profile\nopenspec ff change add-user-profile\nopenspec apply change add-user-profile\n```\n\n### 场景 2：复杂需求探索\n\n**适用命令**：`openspec-explore` → `openspec-new-change` → ...\n\n对于需求不清晰的场景，先探索再实现：\n\n```bash\nopenspec explore \"如何优化网站性能？\"\n# 探索后\nopenspec new change optimize-performance\n```\n\n### 场景 3：Bug 修复\n\n**适用命令**：`openspec-new-change` → `openspec-apply-change`\n\n对于简单的 bug 修复，可以简化流程：\n\n```bash\nopenspec new change fix-login-error\nopenspec apply change fix-login-error\n```\n\n### 场景 4：代码重构\n\n**适用命令**：`openspec-explore` → `openspec-new-change` → `openspec-ff-change` → `openspec-apply-change`\n\n对于大型重构，先探索再实现：\n\n```bash\nopenspec explore \"如何重构认证模块？\"\nopenspec new change refactor-auth\nopenspec ff change refactor-auth\nopenspec apply change refactor-auth\n```\n\n---\n\n## 6. 最佳实践\n\n### 命名规范\n\n| 类型 | 命名格式 | 示例 |\n|------|----------|------|\n| **变更名称** | kebab-case | `add-user-auth`、`fix-login-bug` |\n| **功能名称** | descriptive | `add-dark-mode`、`add-search` |\n| **Bug 修复** | fix-开头 | `fix-null-pointer`、`fix-cors-error` |\n| **重构** | refactor-开头 | `refactor-auth-module` |\n\n### 变更管理\n\n1. **一个变更一个功能**：不要在一个变更中塞入多个功能\n2. **及时归档**：完成一个变更就及时归档\n3. **并行变更**：使用变更名称支持并行开发\n\n### 文档质量\n\n1. **Proposal**：清晰说明为什么要做、做什么\n2. **Design**：记录关键决策和权衡考虑\n3. **Specs**：使用场景化描述，包含 WHEN/THEN\n4. **Tasks**：任务拆解到可执行的最小单元\n\n### 效率技巧\n\n| 场景 | 推荐命令 | 说明 |\n|------|----------|------|\n| 需求明确 | `openspec-ff-change` | 快速创建所有工件 |\n| 需求模糊 | `openspec-explore` → `openspec-new-change` | 先探索再创建 |\n| 复杂变更 | `openspec-continue-change` | 逐步审查每个工件 |\n| 快速修复 | `openspec-new-change` → `openspec-apply-change` | 跳过文档直接实现 |\n\n---\n\n## OpenSpec 带来的提升\n\n使用 OpenSpec 后，开发效率有了显著提升：\n\n| 指标 | 之前 | 使用 OpenSpec 后 | 提升 |\n|------|------|-----------------|------|\n| **需求理解时间** | 30 分钟 | 10 分钟 | ⬆️ 66% |\n| **返工率** | 40% | 10% | ⬇️ 75% |\n| **代码审查时间** | 45 分钟 | 15 分钟 | ⬆️ 66% |\n| **整体交付速度** | 基准 | 2.5 倍 | ⬆️ 150% |\n\n### 为什么 OpenSpec 有效？\n\n1. **清晰的规格**：AI 确切知道要做什么\n2. **结构化的流程**：每个阶段都有明确目标\n3. **可追溯的变更**：每个变更都有完整记录\n4. **可复用的模式**：成功的模式可以重复使用\n\n---\n\n**动手试试**：下一章我们会对比三大主流 AI 编程工具！",
       "chapter_type": "code",
       "video_url": null,
       "is_locked": true,
       "quizzes": [
         {
-          "title": "OpenSpec 技能测验",
+          "title": "OpenSpec 基础测验",
           "passing_score": 60,
           "questions": [
             {
-              "question_text": "【场景】OpenSpec 工作流案例：\n\n1. /opsx:new - 创建变更提案\n2. /opsx:continue - 继续设计\n3. /opsx:apply - 应用变更\n4. /opsx:verify - 验证实现\n\n问题：这个工作流体现了什么核心理念？",
+              "question_text": "OpenSpec 的核心理念是什么？",
               "question_type": "single",
-              "correct_answer": 1,
-              "explanation": "OpenSpec 的核心理念是 Spec-Driven（规格驱动）：先写清楚规格，再开始实现。每个步骤都有明确的工件产出。",
+              "correct_answer": "1",
+              "explanation": "OpenSpec 的核心理念是 fluid not rigid（灵活而非僵化）、iterative not waterfall（迭代而非瀑布）、easy not complex（简单而非复杂）。",
               "order": 0,
               "options": [
                 {
-                  "option_text": "快速迭代，边做边改",
+                  "option_text": "快速编码，尽快交付",
                   "option_index": 0
                 },
                 {
-                  "option_text": "Spec-Driven：先明确规格，再逐步实现",
+                  "option_text": "fluid not rigid, iterative not waterfall, easy not complex",
                   "option_index": 1
                 },
                 {
-                  "option_text": "让 AI 自动完成所有工作",
+                  "option_text": "测试驱动开发",
                   "option_index": 2
                 },
                 {
-                  "option_text": "尽可能减少人工干预",
+                  "option_text": "敏捷开发",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "【诊断】以下哪个技能用于快速向前推进变更，自动创建所有工件？",
+              "question_text": "Spec-Driven 工作流的正确顺序是什么？",
               "question_type": "single",
-              "correct_answer": 0,
-              "explanation": "/opsx:ff（fast-forward）用于快速向前推进，自动创建提案、设计、规格等所有工件。适合需求明确的场景。",
+              "correct_answer": "2",
+              "explanation": "Spec-Driven 的正确流程是 Proposal → Design → Specs → Tasks → Implementation。",
               "order": 1,
               "options": [
                 {
-                  "option_text": "/opsx:ff",
+                  "option_text": "Design → Proposal → Tasks → Implementation",
                   "option_index": 0
                 },
                 {
-                  "option_text": "/opsx:explore",
+                  "option_text": "Tasks → Specs → Design → Implementation",
                   "option_index": 1
                 },
                 {
-                  "option_text": "/opsx:new",
+                  "option_text": "Proposal → Design → Specs → Tasks → Implementation",
                   "option_index": 2
                 },
                 {
-                  "option_text": "/opsx:apply",
+                  "option_text": "Implementation → Tasks → Specs → Design",
                   "option_index": 3
                 }
               ]
             },
             {
-              "question_text": "【决策】当你想要探索需求但还不确定具体实现方案时，应该使用哪个技能？",
-              "question_type": "single",
-              "correct_answer": 1,
-              "explanation": "/opsx:explore 用于探索阶段，帮助分析需求的各个方面，适合需求不明确的场景。/opsx:ff 适合需求明确时快速推进。",
+              "question_text": "以下哪些场景适合使用 openspec-explore 命令？（多选）",
+              "question_type": "multiple",
+              "correct_answer": "0,1,3",
+              "explanation": "explore 命令适用于探索问题空间、收集需求、分析技术方案，不适合紧急 bug 修复。",
               "order": 2,
               "options": [
                 {
-                  "option_text": "/opsx:ff 快速推进",
+                  "option_text": "探索问题空间",
                   "option_index": 0
                 },
                 {
-                  "option_text": "/opsx:explore 探索需求",
+                  "option_text": "收集需求",
                   "option_index": 1
                 },
                 {
-                  "option_text": "/opsx:apply 直接实现",
+                  "option_text": "紧急 bug 修复",
                   "option_index": 2
                 },
                 {
-                  "option_text": "/opsx:archive 归档变更",
+                  "option_text": "分析技术方案",
+                  "option_index": 3
+                }
+              ]
+            },
+            {
+              "question_text": "当你想要快速创建所有工件（proposal、specs、design、tasks）时，应该使用哪个命令？",
+              "question_type": "single",
+              "correct_answer": "1",
+              "explanation": "openspec-ff-change 用于快速推进变更，一次性创建所有工件。",
+              "order": 3,
+              "options": [
+                {
+                  "option_text": "openspec-continue-change",
+                  "option_index": 0
+                },
+                {
+                  "option_text": "openspec-ff-change",
+                  "option_index": 1
+                },
+                {
+                  "option_text": "openspec-apply-change",
+                  "option_index": 2
+                },
+                {
+                  "option_text": "openspec-new-change",
+                  "option_index": 3
+                }
+              ]
+            },
+            {
+              "question_text": "openspec-verify-change 命令验证哪三个维度？（多选）",
+              "question_type": "multiple",
+              "correct_answer": "0,1,2",
+              "explanation": "verify 命令验证 Completeness（完整性）、Correctness（正确性）、Coherence（一致性）三个维度。",
+              "order": 4,
+              "options": [
+                {
+                  "option_text": "Completeness（完整性）",
+                  "option_index": 0
+                },
+                {
+                  "option_text": "Correctness（正确性）",
+                  "option_index": 1
+                },
+                {
+                  "option_text": "Coherence（一致性）",
+                  "option_index": 2
+                },
+                {
+                  "option_text": "Performance（性能）",
+                  "option_index": 3
+                }
+              ]
+            },
+            {
+              "question_text": "在 OpenSpec 中，变更名称的推荐命名格式是什么？",
+              "question_type": "single",
+              "correct_answer": "2",
+              "explanation": "变更名称推荐使用 kebab-case 格式，如 add-user-auth、fix-login-bug。",
+              "order": 5,
+              "options": [
+                {
+                  "option_text": "camelCase",
+                  "option_index": 0
+                },
+                {
+                  "option_text": "PascalCase",
+                  "option_index": 1
+                },
+                {
+                  "option_text": "kebab-case",
+                  "option_index": 2
+                },
+                {
+                  "option_text": "snake_case",
+                  "option_index": 3
+                }
+              ]
+            },
+            {
+              "question_text": "当你开始实现代码时，应该使用哪个命令？",
+              "question_type": "single",
+              "correct_answer": "1",
+              "explanation": "openspec-apply-change 用于应用变更，开始实现代码。",
+              "order": 6,
+              "options": [
+                {
+                  "option_text": "openspec-verify-change",
+                  "option_index": 0
+                },
+                {
+                  "option_text": "openspec-apply-change",
+                  "option_index": 1
+                },
+                {
+                  "option_text": "openspec-archive-change",
+                  "option_index": 2
+                },
+                {
+                  "option_text": "openspec-explore",
                   "option_index": 3
                 }
               ]
@@ -558,17 +658,25 @@
         {
           "resource_type": "template",
           "title": "OpenSpec 完整工作流示例",
-          "content": "## OpenSpec 完整工作流示例\n\n### 场景：添加用户认证功能\n\n#### 步骤 1：创建新变更\n```bash\nopenspec new change add-user-auth\n```\n\n#### 步骤 2：查看变更状态\n```bash\nopenspec status --change add-user-auth\n```\n输出：\n```\nChange: add-user-auth\nStatus: 0/4 artifacts complete\n\nArtifacts:\n- [ ] proposal (ready)\n- [ ] design (waiting)\n- [ ] specs (waiting)\n- [ ] tasks (waiting)\n```\n\n#### 步骤 3：获取 Proposal 指令\n```bash\nopenspec instructions proposal --change add-user-auth\n```\n\n#### 步骤 4：创建 Proposal\n编辑 `openspec/changes/add-user-auth/proposal.md`：\n```markdown\n# Proposal: Add User Authentication\n\n## Why\n\n为什么要做这个变更？解决什么问题？\n\n## What Changes\n\n具体要做什么改动？\n\n## Capabilities\n\n新增哪些能力？\n\n## Impact\n\n预期带来什么影响？\n```\n\n#### 步骤 5：继续创建 Design\n```bash\nopenspec continue change add-user-auth\n```\n\n#### 步骤 6：创建 Specs\n```bash\nopenspec continue change add-user-auth\n```\n\n#### 步骤 7：创建 Tasks\n```bash\nopenspec continue change add-user-auth\n```\n\n#### 步骤 8：应用变更\n```bash\nopenspec apply change add-user-auth\n```\n\n#### 步骤 9：验证实现\n```bash\nopenspec verify change add-user-auth\n```\n\n#### 步骤 10：归档变更\n```bash\nopenspec archive change add-user-auth\n```",
+          "content": "## OpenSpec 完整工作流示例\n\n### 场景：添加用户认证功能\n\n#### 步骤 1：创建新变更\n```bash\nopenspec new change add-user-auth\n```\n\n#### 步骤 2：查看变更状态\n```bash\nopenspec status --change add-user-auth\n```\n输出：\n```\n变更：add-user-auth\n状态：0/4 工件完成\n\n工件：\n- [ ] proposal（就绪）\n- [ ] design（等待）\n- [ ] specs（等待）\n- [ ] tasks（等待）\n```\n\n#### 步骤 3：获取 Proposal 指令\n```bash\nopenspec instructions proposal --change add-user-auth\n```\n\n#### 步骤 4：创建 Proposal\n编辑 `openspec/changes/add-user-auth/proposal.md`：\n```markdown\n# Proposal: Add User Authentication\n\n## Why\n用户需要安全的认证机制来保护账户数据。\n\n## What Changes\n1. 添加登录/注册功能\n2. 实现 JWT 令牌认证\n3. 添加密码重置功能\n\n## Capabilities\n- 用户注册\n- 用户登录\n- 密码重置\n- 令牌刷新\n\n## Impact\n- 需要添加用户表\n- 需要实现邮件发送功能\n- 前端需要添加认证页面\n```\n\n#### 步骤 5：继续创建 Design\n```bash\nopenspec continue change add-user-auth\n```\n\n#### 步骤 6：创建 Specs\n```bash\nopenspec continue change add-user-auth\n```\n\n#### 步骤 7：创建 Tasks\n```bash\nopenspec continue change add-user-auth\n```\n\n#### 步骤 8：应用变更\n```bash\nopenspec apply change add-user-auth\n```\n\n#### 步骤 9：验证实现\n```bash\nopenspec verify change add-user-auth\n```\n\n#### 步骤 10：归档变更\n```bash\nopenspec archive change add-user-auth\n```",
           "extra_data": {
             "template_type": "workflow_example"
           }
         },
         {
           "resource_type": "template",
-          "title": "OpenSpec 技能速查表",
-          "content": "## OpenSpec 技能速查表\n\n### openspec-new-change\n- **用途**：创建新的变更\n- **适用场景**：新功能开发、bug 修复、代码重构\n- **命令**：`openspec new change <change-name>`\n\n### openspec-explore\n- **用途**：探索模式，思考和分析\n- **适用场景**：探索问题空间、收集需求、分析技术方案\n- **命令**：`openspec explore --change <change-name>`\n\n### openspec-continue-change\n- **用途**：继续变更，创建下一个工件\n- **适用场景**：完成 proposal 后继续创建 design\n- **命令**：`openspec continue change <change-name>`\n\n### openspec-ff-change\n- **用途**：快速推进变更，自动创建所有工件\n- **适用场景**：快速原型、熟悉的任务、时间紧迫\n- **命令**：`openspec ff change <change-name>`\n\n### openspec-apply-change\n- **用途**：应用变更，开始实现\n- **适用场景**：工件准备就绪，开始编写代码\n- **命令**：`openspec apply change <change-name>`\n\n### openspec-archive-change\n- **用途**：归档完成的变更\n- **适用场景**：变更已完成，清理工作区\n- **命令**：`openspec archive change <change-name>`\n\n### openspec-verify-change\n- **用途**：验证变更实现\n- **适用场景**：实现完成后，确保符合规格\n- **命令**：`openspec verify change <change-name>`",
+          "title": "OpenSpec 命令速查表",
+          "content": "## OpenSpec 命令速查表\n\n### 创建和探索\n\n| 命令 | 用途 | 适用场景 |\n|------|------|----------|\n| `openspec new change <name>` | 创建新变更 | 新功能、bug 修复、重构 |\n| `openspec explore [topic]` | 探索模式 | 需求不明确、需要调查 |\n\n### 工件创建\n\n| 命令 | 用途 | 适用场景 |\n|------|------|----------|\n| `openspec continue change <name>` | 创建下一个工件 | 逐步审查、复杂变更 |\n| `openspec ff change <name>` | 快速创建所有工件 | 需求明确、简单功能 |\n\n### 实现和验证\n\n| 命令 | 用途 | 适用场景 |\n|------|------|----------|\n| `openspec apply change <name>` | 实现变更 | 开始写代码 |\n| `openspec verify change <name>` | 验证实现 | 归档前检查 |\n\n### 归档\n\n| 命令 | 用途 | 适用场景 |\n|------|------|----------|\n| `openspec archive change <name>` | 归档变更 | 完成变更 |\n| `openspec bulk-archive` | 批量归档 | 多个完成变更 |\n\n### 快速参考\n\n```\n# 标准流程\nopenspec new change <name>\nopenspec ff change <name>     # 或 openspec continue change <name>\nopenspec apply change <name>\nopenspec verify change <name>\nopenspec archive change <name>\n\n# 探索流程\nopenspec explore <topic>\nopenspec new change <name>\n...\n```",
           "extra_data": {
-            "cheatsheet_type": "openspec_skills"
+            "cheatsheet_type": "openspec_commands"
+          }
+        },
+        {
+          "resource_type": "reference",
+          "title": "OpenSpec 官方文档链接",
+          "content": "## OpenSpec 官方资源\n\n### 核心文档\n\n- **GitHub 仓库**: https://github.com/Fission-AI/OpenSpec\n- **npm 包**: https://www.npmjs.com/package/@fission-ai/openspec\n- **官方文档**: https://github.com/Fission-AI/OpenSpec/tree/main/docs\n\n### 关键文档链接\n\n- [Getting Started](https://github.com/Fission-AI/OpenSpec/blob/main/docs/getting-started.md) - 入门指南\n- [Commands](https://github.com/Fission-AI/OpenSpec/blob/main/docs/commands.md) - 命令参考\n- [CLI](https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md) - 命令行工具\n- [Workflows](https://github.com/Fission-AI/OpenSpec/blob/main/docs/workflows.md) - 工作流模式\n- [Supported Tools](https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md) - 支持的 AI 工具\n\n### 社区\n\n- **Discord**: https://discord.gg/YctCnvvshC\n- **X (Twitter)**: https://x.com/0xTab",
+          "extra_data": {
+            "resource_type": "links"
           }
         }
       ]
