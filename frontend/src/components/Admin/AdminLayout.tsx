@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../stores/authStore';
 import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
 import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
 
 export default function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -44,16 +43,16 @@ export default function AdminLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
+    <div className="h-screen bg-slate-900 flex flex-col overflow-hidden">
       <Header
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         onSearch={() => {}}
       />
 
-      <div className="flex flex-1 w-full px-6 py-8 gap-8 overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-64 flex-shrink-0 sticky top-8 self-start max-h-[calc(100vh-4rem)]">
+      <div className="flex flex-1 w-full px-6 py-8 gap-8 min-h-0">
+        {/* Sidebar - 固定不随内容滚动 */}
+        <aside className="w-64 flex-shrink-0 overflow-y-auto">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 border border-slate-700/50 shadow-xl">
             <div className="flex items-center space-x-3 mb-6 px-4">
               <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
@@ -80,13 +79,12 @@ export default function AdminLayout() {
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700/50 shadow-xl">
+        {/* Main Content - 仅内容区域可滚动 */}
+        <main className="flex-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700/50 shadow-xl overflow-y-auto">
           <Outlet />
         </main>
       </div>
 
-      <Footer />
     </div>
   );
 }

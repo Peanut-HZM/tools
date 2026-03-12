@@ -35,6 +35,8 @@ export default function CourseDetail() {
   const [importExportMode, setImportExportMode] = useState<'import' | 'export'>('export');
   const [editingChapterId, setEditingChapterId] = useState<number | null>(null);
   const [editingCourseId, setEditingCourseId] = useState<number | null>(null);
+  // 课程介绍折叠状态，默认折叠
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const courseId = id ? parseInt(id, 10) : null;
   const course = courses.find(c => c.id === courseId);
@@ -124,7 +126,7 @@ export default function CourseDetail() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="bg-slate-900">
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
 
       {/* ===== 优化后的 Header 区域 ===== */}
@@ -253,30 +255,44 @@ export default function CourseDetail() {
               </div>
             </div>
 
-            {/* 课程简介 - Markdown 渲染 */}
-            <div className="prose prose-invert prose-sm max-w-none">
-              <div className="text-slate-300 leading-relaxed">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                  components={{
-                    p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
-                    strong: ({children}) => <strong className="text-white font-semibold">{children}</strong>,
-                    em: ({children}) => <em className="text-cyan-300">{children}</em>,
-                    h1: ({children}) => <h1 className="text-xl font-bold text-white mb-3">{children}</h1>,
-                    h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-2">{children}</h2>,
-                    h3: ({children}) => <h3 className="text-base font-medium text-white mb-1">{children}</h3>,
-                    ul: ({children}) => <ul className="list-disc list-inside space-y-1 my-2 text-slate-400">{children}</ul>,
-                    ol: ({children}) => <ol className="list-decimal list-inside space-y-1 my-2 text-slate-400">{children}</ol>,
-                    li: ({children}) => <li className="text-slate-300">{children}</li>,
-                    code: ({children}) => <code className="px-1.5 py-0.5 bg-slate-700/50 rounded text-pink-400 text-xs">{children}</code>,
-                    pre: ({children}) => <pre className="bg-slate-900/50 rounded-lg p-3 my-2 overflow-x-auto border border-slate-700/30">{children}</pre>,
-                    blockquote: ({children}) => <blockquote className="border-l-4 border-cyan-500/50 pl-4 my-2 text-slate-400 italic">{children}</blockquote>,
-                  }}
-                >
-                  {course.description || '_暂无课程简介_'}
-                </ReactMarkdown>
-              </div>
+            {/* 课程简介 - 可折叠区域 */}
+            <div>
+              {/* 折叠/展开按钮 */}
+              <button
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                className="flex items-center gap-2 text-sm text-slate-400 hover:text-cyan-400 transition-colors mb-2"
+              >
+                <i className={`fas fa-chevron-right text-xs transition-transform duration-200 ${isDescriptionExpanded ? 'rotate-90' : ''}`}></i>
+                <span className="font-medium">课程简介</span>
+              </button>
+
+              {/* 可折叠的简介内容 */}
+              {isDescriptionExpanded && (
+                <div className="prose prose-invert prose-sm max-w-none pl-5">
+                  <div className="text-slate-300 leading-relaxed">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={{
+                        p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                        strong: ({children}) => <strong className="text-white font-semibold">{children}</strong>,
+                        em: ({children}) => <em className="text-cyan-300">{children}</em>,
+                        h1: ({children}) => <h1 className="text-xl font-bold text-white mb-3">{children}</h1>,
+                        h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-2">{children}</h2>,
+                        h3: ({children}) => <h3 className="text-base font-medium text-white mb-1">{children}</h3>,
+                        ul: ({children}) => <ul className="list-disc list-inside space-y-1 my-2 text-slate-400">{children}</ul>,
+                        ol: ({children}) => <ol className="list-decimal list-inside space-y-1 my-2 text-slate-400">{children}</ol>,
+                        li: ({children}) => <li className="text-slate-300">{children}</li>,
+                        code: ({children}) => <code className="px-1.5 py-0.5 bg-slate-700/50 rounded text-pink-400 text-xs">{children}</code>,
+                        pre: ({children}) => <pre className="bg-slate-900/50 rounded-lg p-3 my-2 overflow-x-auto border border-slate-700/30">{children}</pre>,
+                        blockquote: ({children}) => <blockquote className="border-l-4 border-cyan-500/50 pl-4 my-2 text-slate-400 italic">{children}</blockquote>,
+                      }}
+                    >
+                      {course.description || '_暂无课程简介_'}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -316,7 +332,7 @@ export default function CourseDetail() {
       </div>
 
       {/* ===== Content 内容区域 ===== */}
-      <div className="flex-1 overflow-hidden bg-slate-800/30 rounded-2xl border border-slate-700/50 p-4 backdrop-blur-sm">
+      <div className="bg-slate-800/30 rounded-2xl border border-slate-700/50 p-4 backdrop-blur-sm">
         {activeTab === 'chapters' && (
           <ChapterList
             chapters={chapters}
