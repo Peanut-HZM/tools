@@ -41,6 +41,8 @@ export default function CourseDetail() {
 
   useEffect(() => {
     if (courseId) {
+      // 将课程 ID 存储到 localStorage，供 store 中的 API 调用使用
+      localStorage.setItem('currentCourseId', courseId.toString());
       fetchChapters(courseId);
       fetchCourses({ page: 1, limit: 100 }); // 加载所有课程用于查找
     }

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useChapterStore } from '../../../stores/courseAdminStore';
-import type { CourseChapter as Chapter, CourseChapter } from '../../../services/coursePlatform';
+import type { CourseChapter as Chapter, CourseChapter, CourseChapterCreate as ChapterCreate, CourseChapterUpdate as ChapterUpdate } from '../../../services/coursePlatform';
 
 interface ChapterFormProps {
   chapterId: number | null;
