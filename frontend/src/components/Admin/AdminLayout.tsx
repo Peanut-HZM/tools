@@ -53,8 +53,8 @@ export default function AdminLayout() {
 
       <div className="flex flex-1 w-full px-6 py-8 gap-8">
         {/* Sidebar */}
-        <aside className="w-64 flex-shrink-0">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 border border-slate-700/50 h-full shadow-xl">
+        <aside className="w-64 flex-shrink-0 sticky top-8 self-start max-h-[calc(100vh-4rem)]">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 border border-slate-700/50 shadow-xl">
             <div className="flex items-center space-x-3 mb-6 px-4">
               <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <i className="fas fa-shield-alt text-white text-lg"></i>
