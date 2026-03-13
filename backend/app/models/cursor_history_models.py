@@ -104,3 +104,38 @@ class WorkspacePathResponse(BaseModel):
     # 默认路径
     default_path: str
 
+
+class ExportData(BaseModel):
+    """导出数据"""
+    # 会话信息
+    composer_id: str
+    session_name: Optional[str] = None
+    workspace_hash: Optional[str] = None
+    project_name: Optional[str] = None
+    created_at: Optional[int] = None
+    # 消息列表
+    messages: List[CursorMessage]
+    # 统计信息
+    total_messages: int
+    user_messages: int
+    ai_messages: int
+
+
+class ExportResponse(BaseModel):
+    """导出响应"""
+    success: bool
+    format: str  # markdown, json, html
+    data: str  # 导出内容
+    filename: str
+
+
+class ExportRequest(BaseModel):
+    """导出请求"""
+    composer_id: str
+    session_name: Optional[str] = None
+    workspace_hash: Optional[str] = None
+    format: str = "markdown"  # markdown, json, html
+    include_code_blocks: bool = True
+    include_timestamps: bool = True
+    include_avatars: bool = False
+

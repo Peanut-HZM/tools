@@ -87,6 +87,16 @@ export default function CursorHistory() {
   const [loadingMore, setLoadingMore] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
 
+  // 导出功能状态
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'markdown' | 'json' | 'html'>('markdown');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportOptions, setExportOptions] = useState({
+    includeCodeBlocks: true,
+    includeTimestamps: true,
+    includeAvatars: false,
+  });
+
   // ==================== 数据加载 ====================
 
   /** 构建带 base_path 的查询参数 */
@@ -255,6 +265,55 @@ export default function CursorHistory() {
       console.error('Failed to copy code:', err);
     }
   }, [showSuccess, showError]);
+
+  /** 导出会话数据 */
+  const handleExport = useCallback(async () => {
+    if (!selectedSession) return;
+
+    setExportLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/cursor-history/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          composer_id: selectedSession.composer_id,
+          session_name: selectedSession.name || undefined,
+          format: exportFormat,
+          include_code_blocks: exportOptions.includeCodeBlocks,
+          include_timestamps: exportOptions.includeTimestamps,
+          include_avatars: exportOptions.includeAvatars,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '导出失败');
+      }
+
+      const result = await response.json();
+
+      // 创建下载
+      const blob = new Blob([result.data], {
+        type: exportFormat === 'json' ? 'application/json' : exportFormat === 'html' ? 'text/html' : 'text/markdown',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showSuccess(`导出成功：${result.filename}`);
+      setShowExportDialog(false);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : '导出失败');
+      console.error('Export failed:', err);
+    } finally {
+      setExportLoading(false);
+    }
+  }, [selectedSession, exportFormat, exportOptions, showSuccess, showError]);
 
   // 初始加载项目
   useEffect(() => { loadProjects(); }, [loadProjects]);
@@ -625,19 +684,30 @@ export default function CursorHistory() {
               <>
                 {/* 会话标题 */}
                 <div className="p-4 border-b border-slate-700/30 bg-slate-900/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                      <i className="fas fa-comments text-violet-400 text-sm" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-white truncate">{selectedSession.name || `会话 ${selectedSession.composer_id.slice(0, 8)}`}</h3>
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span>已加载 {messages.length} / {totalMessages} 条消息</span>
-                        {selectedSession.created_at && (
-                          <span><i className="fas fa-clock mr-1" />{formatTime(selectedSession.created_at)}</span>
-                        )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                        <i className="fas fa-comments text-violet-400 text-sm" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold text-white truncate">{selectedSession.name || `会话 ${selectedSession.composer_id.slice(0, 8)}`}</h3>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span>已加载 {messages.length} / {totalMessages} 条消息</span>
+                          {selectedSession.created_at && (
+                            <span><i className="fas fa-clock mr-1" />{formatTime(selectedSession.created_at)}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    {/* 导出按钮 */}
+                    <button
+                      onClick={() => setShowExportDialog(true)}
+                      className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/40 rounded-lg text-xs text-violet-400 hover:bg-violet-500/30 transition-all flex items-center gap-1.5"
+                      title="导出会话"
+                    >
+                      <i className="fas fa-download" />
+                      <span>导出</span>
+                    </button>
                   </div>
                 </div>
 
@@ -780,6 +850,106 @@ export default function CursorHistory() {
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* 导出对话框 */}
+      {showExportDialog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                <i className="fas fa-download text-violet-400 text-lg" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">导出会话</h3>
+                <p className="text-xs text-slate-400">选择导出格式和选项</p>
+              </div>
+            </div>
+
+            {/* 导出格式选择 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-300 mb-3">导出格式</label>
+              <div className="grid grid-cols-3 gap-3">
+                {(['markdown', 'json', 'html'] as const).map((format) => (
+                  <button
+                    key={format}
+                    onClick={() => setExportFormat(format)}
+                    className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                      exportFormat === format
+                        ? 'bg-violet-500/20 border-violet-500/50 text-violet-400'
+                        : 'bg-slate-700/30 border-slate-600/50 text-slate-400 hover:border-slate-500'
+                    }`}
+                  >
+                    {format === 'markdown' && <><i className="fas fa-file-alt mr-2" />MD</>}
+                    {format === 'json' && <><i className="fas fa-file-code mr-2" />JSON</>}
+                    {format === 'html' && <><i className="fas fa-file-html mr-2" />HTML</>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 导出选项 */}
+            <div className="mb-6 space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={exportOptions.includeCodeBlocks}
+                  onChange={e => setExportOptions(prev => ({ ...prev, includeCodeBlocks: e.target.checked }))}
+                  className="w-4 h-4 rounded border-slate-600 text-violet-500 focus:ring-violet-500/50 bg-slate-700"
+                />
+                <span className="text-sm text-slate-300">包含代码块</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={exportOptions.includeTimestamps}
+                  onChange={e => setExportOptions(prev => ({ ...prev, includeTimestamps: e.target.checked }))}
+                  className="w-4 h-4 rounded border-slate-600 text-violet-500 focus:ring-violet-500/50 bg-slate-700"
+                />
+                <span className="text-sm text-slate-300">包含序号</span>
+              </label>
+              {exportFormat === 'html' && (
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={exportOptions.includeAvatars}
+                    onChange={e => setExportOptions(prev => ({ ...prev, includeAvatars: e.target.checked }))}
+                    className="w-4 h-4 rounded border-slate-600 text-violet-500 focus:ring-violet-500/50 bg-slate-700"
+                  />
+                  <span className="text-sm text-slate-300">包含头像图标 (HTML)</span>
+                </label>
+              )}
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowExportDialog(false)}
+                disabled={exportLoading}
+                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700/50 text-white rounded-xl transition-all text-sm font-medium"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={exportLoading}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 text-white rounded-xl transition-all text-sm font-medium flex items-center justify-center gap-2"
+              >
+                {exportLoading ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin" />
+                    <span>导出中...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-download" />
+                    <span>导出</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

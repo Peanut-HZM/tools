@@ -445,3 +445,292 @@ class CursorHistoryService:
 
         return project_map
 
+    @classmethod
+    def export_session(
+        cls,
+        composer_id: str,
+        export_format: str = "markdown",
+        custom_base: Optional[str] = None,
+        include_code_blocks: bool = True,
+        include_timestamps: bool = True,
+        include_avatars: bool = False,
+    ) -> tuple:
+        """
+        导出指定会话的数据
+        参数：composer_id - 会话 ID, export_format - 导出格式 (markdown/json/html)
+              custom_base - 自定义基础路径
+              include_code_blocks - 是否包含代码块
+              include_timestamps - 是否包含时间戳
+              include_avatars - 是否包含头像标记
+        返回：(导出内容，文件名)
+        """
+        logger.info(f"导出会话：{composer_id}, 格式：{export_format}")
+
+        # 获取项目信息
+        project_map = cls._build_project_map(custom_base)
+        proj_info = project_map.get(composer_id, {})
+        project_name = proj_info.get("project_name", "未知项目")
+        session_name = proj_info.get("session_name") or f"会话 {composer_id[:8]}"
+
+        # 获取所有消息
+        messages, total, _ = cls.get_messages(composer_id, custom_base, 1, 1000)
+
+        # 统计数据
+        user_messages = sum(1 for m in messages if m.message_type == 1)
+        ai_messages = sum(1 for m in messages if m.message_type == 0)
+
+        if export_format == "json":
+            content = cls._export_json(
+                composer_id, session_name, project_name, messages,
+                total, user_messages, ai_messages, include_code_blocks
+            )
+            filename = f"{session_name}.json"
+        elif export_format == "html":
+            content = cls._export_html(
+                composer_id, session_name, project_name, messages,
+                include_code_blocks, include_timestamps, include_avatars
+            )
+            filename = f"{session_name}.html"
+        else:  # markdown
+            content = cls._export_markdown(
+                composer_id, session_name, project_name, messages,
+                include_code_blocks, include_timestamps
+            )
+            filename = f"{session_name}.md"
+
+        return content, filename
+
+    @classmethod
+    def _export_json(
+        cls, composer_id: str, session_name: str, project_name: str,
+        messages: List[CursorMessage], total: int, user_messages: int, ai_messages: int,
+        include_code_blocks: bool = True
+    ) -> str:
+        """导出为 JSON 格式"""
+        from datetime import datetime
+
+        data = {
+            "export_info": {
+                "exported_at": datetime.now().isoformat(),
+                "format": "json",
+                "source": "Cursor History"
+            },
+            "session": {
+                "composer_id": composer_id,
+                "name": session_name,
+                "project": project_name,
+            },
+            "statistics": {
+                "total_messages": total,
+                "user_messages": user_messages,
+                "ai_messages": ai_messages,
+            },
+            "messages": []
+        }
+
+        for msg in messages:
+            msg_data = {
+                "message_id": msg.message_id,
+                "message_type": "user" if msg.message_type == 1 else "ai",
+                "text": msg.text,
+            }
+            if include_code_blocks and msg.code_blocks:
+                msg_data["code_blocks"] = msg.code_blocks
+            data["messages"].append(msg_data)
+
+        return json.dumps(data, ensure_ascii=False, indent=2)
+
+    @classmethod
+    def _export_markdown(
+        cls, composer_id: str, session_name: str, project_name: str,
+        messages: List[CursorMessage], include_code_blocks: bool = True,
+        include_timestamps: bool = True
+    ) -> str:
+        """导出为 Markdown 格式"""
+        from datetime import datetime
+
+        lines = [
+            f"# {session_name}",
+            "",
+            f"**项目**: {project_name}",
+            f"**导出时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            "",
+            "---",
+            "",
+        ]
+
+        for i, msg in enumerate(messages, 1):
+            role = "用户" if msg.message_type == 1 else "AI"
+            prefix = f"## {role}" if msg.message_type == 1 else f"## 🤖 {role}"
+
+            if include_timestamps:
+                lines.append(f"{prefix} #{i}")
+            else:
+                lines.append(prefix)
+            lines.append("")
+            lines.append(msg.text)
+            lines.append("")
+
+            if include_code_blocks and msg.code_blocks:
+                for j, block in enumerate(msg.code_blocks, 1):
+                    code_text = block if isinstance(block, str) else json.dumps(block, ensure_ascii=False, indent=2)
+                    lines.append(f"```")
+                    lines.append(code_text)
+                    lines.append(f"```")
+                    lines.append("")
+
+            lines.append("---")
+            lines.append("")
+
+        return "\n".join(lines)
+
+    @classmethod
+    def _export_html(
+        cls, composer_id: str, session_name: str, project_name: str,
+        messages: List[CursorMessage], include_code_blocks: bool = True,
+        include_timestamps: bool = True, include_avatars: bool = False
+    ) -> str:
+        """导出为 HTML 格式"""
+        from datetime import datetime
+
+        html = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{session_name} - Cursor 对话历史</title>
+    <style>
+        :root {{
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-message-user: #7c3aed20;
+            --bg-message-ai: #334155;
+            --border-color: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-user: #8b5cf6;
+            --accent-ai: #10b981;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+        .header {{
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }}
+        .header h1 {{ margin: 0; color: var(--text-primary); }}
+        .header p {{ color: var(--text-secondary); margin: 10px 0 0; }}
+        .message {{
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            max-width: 85%;
+        }}
+        .message-user {{
+            background: var(--bg-message-user);
+            border: 1px solid var(--accent-user)30;
+            margin-left: auto;
+        }}
+        .message-ai {{
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }}
+        .message-header {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }}
+        .avatar {{
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }}
+        .avatar-user {{ background: var(--accent-user); }}
+        .avatar-ai {{ background: var(--accent-ai); }}
+        .message-content {{
+            white-space: pre-wrap;
+            word-break: break-word;
+        }}
+        .code-block {{
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 13px;
+        }}
+        .print-btn {{
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--accent-user);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }}
+        @media print {{
+            .print-btn {{ display: none; }}
+            body {{ background: white; color: black; }}
+        }}
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">打印 / 保存为 PDF</button>
+    <div class="container">
+        <div class="header">
+            <h1>{session_name}</h1>
+            <p>项目：{project_name} | 导出时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p>共 {len(messages)} 条消息</p>
+        </div>
+"""
+
+        for i, msg in enumerate(messages, 1):
+            role = "用户" if msg.message_type == 1 else "AI"
+            role_class = "user" if msg.message_type == 1 else "ai"
+            avatar = "👤" if msg.message_type == 1 else "🤖"
+
+            html += f"""
+        <div class="message message-{role_class}">
+            <div class="message-header">
+                {f'<div class="avatar avatar-{role_class}">{avatar}</div>' if include_avatars else ''}
+                <span>{role}</span>
+                {f'<span>#{i}</span>' if include_timestamps else ''}
+            </div>
+            <div class="message-content">{msg.text.replace('<', '&lt;').replace('>', '&gt;')}</div>
+"""
+
+            if include_code_blocks and msg.code_blocks:
+                for block in msg.code_blocks:
+                    code_text = block if isinstance(block, str) else json.dumps(block, ensure_ascii=False, indent=2)
+                    html += f'<pre class="code-block"><code>{code_text.replace('<', '&lt;').replace('>', '&gt;')}</code></pre>'
+
+            html += """
+        </div>
+"""
+
+        html += """
+    </div>
+</body>
+</html>
+"""
+        return html
+

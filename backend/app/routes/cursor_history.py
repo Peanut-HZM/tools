@@ -15,6 +15,8 @@ from app.models.cursor_history_models import (
     SearchResponse,
     SessionListResponse,
     WorkspacePathResponse,
+    ExportResponse,
+    ExportRequest,
 )
 from app.services.cursor_history_service import (
     CursorHistoryService,
@@ -120,4 +122,30 @@ async def search_messages(
     )
     logger.info(f"搜索返回 {len(results)} 条结果")
     return SearchResponse(results=results, total=len(results), query=query)
+
+
+@router.post("/export")
+async def export_session(request: ExportRequest):
+    """导出会话数据"""
+    logger.info(f"请求导出会话：{request.composer_id}, 格式：{request.format}")
+    try:
+        content, filename = CursorHistoryService.export_session(
+            composer_id=request.composer_id,
+            export_format=request.format,
+            custom_base=None,
+            include_code_blocks=request.include_code_blocks,
+            include_timestamps=request.include_timestamps,
+            include_avatars=request.include_avatars,
+        )
+        logger.info(f"导出成功，文件名：{filename}")
+        return ExportResponse(
+            success=True,
+            format=request.format,
+            data=content,
+            filename=filename,
+        )
+    except Exception as e:
+        logger.error(f"导出失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"导出失败：{str(e)}")
 
