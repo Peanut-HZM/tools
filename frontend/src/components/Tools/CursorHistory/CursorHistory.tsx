@@ -17,6 +17,7 @@ import { cacheSessionMessages, getCachedSessionMessages } from '../../../utils/c
 import { addRecentSession, getRecentSessions, formatVisitedTime, type RecentSession } from '../../../utils/recentSessions';
 import TagManager from './TagManager';
 import TagFilter from './TagFilter';
+import BatchActions from './BatchActions';
 
 // ==================== 类型定义 ====================
 
@@ -128,6 +129,10 @@ export default function CursorHistory() {
 
   // 标签筛选状态
   const [selectedFilterTag, setSelectedFilterTag] = useState<string | null>(null);
+
+  // 批量操作状态
+  const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
 
   // ==================== 数据加载 ====================
 
@@ -665,6 +670,12 @@ export default function CursorHistory() {
 
   /** 选中会话 */
   const handleSessionClick = (session: CursorSession) => {
+    // 如果是选择模式，只切换选中状态
+    if (selectMode) {
+      toggleSessionSelect(session.composer_id);
+      return;
+    }
+
     setSelectedSession(session);
     loadMessages(session.composer_id, session.name || undefined);
 
@@ -681,6 +692,28 @@ export default function CursorHistory() {
       setRecentSessions(getRecentSessions());
       // 检查收藏状态
       checkFavoriteStatus(session.composer_id);
+    }
+  };
+
+  // 批量选择相关函数
+  const toggleSessionSelect = (composerId: string) => {
+    setSelectedSessionIds(prev =>
+      prev.includes(composerId)
+        ? prev.filter(id => id !== composerId)
+        : [...prev, composerId]
+    );
+  };
+
+  const clearSelection = () => {
+    setSelectedSessionIds([]);
+    setSelectMode(false);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedSessionIds.length === sessions.length) {
+      setSelectedSessionIds([]);
+    } else {
+      setSelectedSessionIds(sessions.map(s => s.composer_id));
     }
   };
 
@@ -1108,23 +1141,73 @@ export default function CursorHistory() {
                   <p>暂无会话</p>
                 </div>
               ) : (
-                sessions.map(session => (
-                  <div
-                    key={session.composer_id}
-                    onClick={() => handleSessionClick(session)}
-                    className={`px-4 py-3 cursor-pointer border-b border-slate-800/30 transition-all hover:bg-slate-800/40 ${
-                      selectedSession?.composer_id === session.composer_id
-                        ? 'bg-violet-500/10 border-l-2 border-l-violet-500'
-                        : ''
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-white truncate">{session.name || `会话 ${session.composer_id.slice(0, 8)}`}</div>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
-                      {session.created_at && <span>{formatTime(session.created_at)}</span>}
-                      <span>{session.message_count} 条消息</span>
+                <>
+                  {/* 批量操作工具栏 */}
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/30 bg-slate-800/30">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectMode(!selectMode)}
+                        className={`px-2 py-1 rounded text-xs transition-colors ${
+                          selectMode
+                            ? 'bg-violet-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        {selectMode ? '退出选择' : '多选'}
+                      </button>
+                      {selectMode && (
+                        <button
+                          onClick={toggleSelectAll}
+                          className="px-2 py-1 bg-slate-700 text-slate-300 hover:bg-slate-600 rounded text-xs transition-colors"
+                        >
+                          {selectedSessionIds.length === sessions.length ? '取消全选' : '全选'}
+                        </button>
+                      )}
                     </div>
+                    {selectMode && selectedSessionIds.length > 0 && (
+                      <span className="text-xs text-slate-400">
+                        已选择 {selectedSessionIds.length} 个会话
+                      </span>
+                    )}
                   </div>
-                ))
+
+                  {/* 会话列表 */}
+                  {sessions.map(session => (
+                    <div
+                      key={session.composer_id}
+                      onClick={() => handleSessionClick(session)}
+                      className={`px-4 py-3 cursor-pointer border-b border-slate-800/30 transition-all hover:bg-slate-800/40 flex items-start gap-3 ${
+                        selectedSession?.composer_id === session.composer_id
+                          ? 'bg-violet-500/10 border-l-2 border-l-violet-500'
+                          : ''
+                      } ${
+                        selectMode && selectedSessionIds.includes(session.composer_id)
+                          ? 'bg-blue-500/10'
+                          : ''
+                      }`}
+                    >
+                      {selectMode && (
+                        <input
+                          type="checkbox"
+                          checked={selectedSessionIds.includes(session.composer_id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleSessionSelect(session.composer_id);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-1 w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white truncate">{session.name || `会话 ${session.composer_id.slice(0, 8)}`}</div>
+                        <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                          {session.created_at && <span>{formatTime(session.created_at)}</span>}
+                          <span>{session.message_count} 条消息</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           </div>
@@ -1346,6 +1429,19 @@ export default function CursorHistory() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 批量操作工具栏 */}
+      {selectMode && (
+        <BatchActions
+          selectedIds={selectedSessionIds}
+          onClearSelection={clearSelection}
+          onRefresh={() => {
+            if (selectedProject) {
+              loadSessions(selectedProject.workspace_hash, sessionSearch || undefined, selectedFilterTag);
+            }
+          }}
+        />
       )}
     </div>
   );
