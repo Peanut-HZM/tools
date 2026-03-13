@@ -185,9 +185,9 @@ export default function CursorHistory() {
     setLoading(prev => ({ ...prev, messages: true }));
     setCurrentPage(1);
 
-    // 尝试从缓存加载
+    // 尝试从缓存加载（只有非空缓存才提前返回）
     const cachedMessages = await getCachedSessionMessages(composerId);
-    if (cachedMessages) {
+    if (cachedMessages && cachedMessages.length > 0) {
       setMessages(cachedMessages);
       setLoading(prev => ({ ...prev, messages: false }));
       return;
