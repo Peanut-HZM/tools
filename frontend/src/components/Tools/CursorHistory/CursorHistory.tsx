@@ -294,8 +294,8 @@ export default function CursorHistory() {
     try {
       let textToCopy = msg.text;
 
-      // 如果是 Markdown 模式，保留原始格式
-      if (copyType === 'markdown' && msg.message_type === 0) {
+      // 如果是 Markdown 模式，保留原始格式（AI 消息可能是 type=0 或 type=2）
+      if (copyType === 'markdown' && (msg.message_type === 0 || msg.message_type === 2)) {
         textToCopy = msg.text;
       }
 
@@ -454,7 +454,9 @@ export default function CursorHistory() {
 
     const isThinking = msg.capability_type === 30;
     const isToolCall = msg.capability_type === 15;
+    // 消息类型：1=用户，0 或 2=AI（2 是 Cursor 原始格式，0 是后端映射后的格式）
     const isUser = msg.message_type === 1;
+    const isAI = msg.message_type === 0 || msg.message_type === 2;
 
     // 思考块渲染
     if (isThinking) {

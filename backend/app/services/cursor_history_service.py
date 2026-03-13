@@ -299,7 +299,10 @@ class CursorHistoryService:
                 continue
 
             text = val.get("text", "")
-            msg_type = val.get("type", 0)
+            raw_msg_type = val.get("type", 0)
+            # Cursor 消息类型映射：1=用户，2=AI（不是 0！）
+            # 统一映射为：1=用户，0=AI
+            msg_type = 0 if raw_msg_type == 2 else raw_msg_type
             code_blocks = val.get("codeBlocks", [])
             created_at = val.get("createdAt")
             capability_type = val.get("capabilityType")
