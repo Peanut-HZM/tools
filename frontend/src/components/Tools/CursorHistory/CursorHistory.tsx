@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { API_BASE_URL } from '../../../config/api';
+import { useToast } from '../../../hooks/useToast';
 
 // ==================== 类型定义 ====================
 
@@ -52,6 +53,7 @@ interface SearchResultItem {
 
 export default function CursorHistory() {
   const navigate = useNavigate();
+  const { success: showSuccess, error: showError } = useToast();
 
   // 数据状态
   const [projects, setProjects] = useState<CursorProject[]>([]);
@@ -223,6 +225,36 @@ export default function CursorHistory() {
     setShowPathSettings(false);
     // 重新加载项目列表会自动触发
   }, [pathInput]);
+
+  /** 复制消息内容 */
+  const handleCopyMessage = useCallback(async (msg: CursorMessage, copyType: 'text' | 'markdown' = 'text') => {
+    try {
+      let textToCopy = msg.text;
+
+      // 如果是 Markdown 模式，保留原始格式
+      if (copyType === 'markdown' && msg.message_type === 0) {
+        textToCopy = msg.text;
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
+      showSuccess('复制成功');
+    } catch (err) {
+      showError('复制失败');
+      console.error('Failed to copy:', err);
+    }
+  }, [showSuccess, showError]);
+
+  /** 复制代码块 */
+  const handleCopyCodeBlock = useCallback(async (code: string) => {
+    try {
+      const codeText = typeof code === 'object' ? JSON.stringify(code, null, 2) : String(code);
+      await navigator.clipboard.writeText(codeText);
+      showSuccess('代码已复制');
+    } catch (err) {
+      showError('复制失败');
+      console.error('Failed to copy code:', err);
+    }
+  }, [showSuccess, showError]);
 
   // 初始加载项目
   useEffect(() => { loadProjects(); }, [loadProjects]);
@@ -622,18 +654,39 @@ export default function CursorHistory() {
                     </div>
                   ) : (
                     messages.map((msg, idx) => (
-                      <div key={idx} className={`flex ${msg.message_type === 1 ? 'justify-end' : 'justify-start'}`}>
+                      <div key={idx} className={`flex group ${msg.message_type === 1 ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 ${
                           msg.message_type === 1
                             ? 'bg-violet-500/20 border border-violet-500/20'
                             : 'bg-slate-800/60 border border-slate-700/30'
                         }`}>
-                          {/* 消息头 */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <i className={`fas ${msg.message_type === 1 ? 'fa-user text-violet-400' : 'fa-robot text-emerald-400'} text-xs`} />
-                            <span className={`text-xs font-medium ${msg.message_type === 1 ? 'text-violet-400' : 'text-emerald-400'}`}>
-                              {msg.message_type === 1 ? '用户' : 'AI 助手'}
-                            </span>
+                          {/* 消息头和复制按钮 */}
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <i className={`fas ${msg.message_type === 1 ? 'fa-user text-violet-400' : 'fa-robot text-emerald-400'} text-xs`} />
+                              <span className={`text-xs font-medium ${msg.message_type === 1 ? 'text-violet-400' : 'text-emerald-400'}`}>
+                                {msg.message_type === 1 ? '用户' : 'AI 助手'}
+                              </span>
+                            </div>
+                            {/* 复制按钮组（hover 显示） */}
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleCopyMessage(msg, 'text')}
+                                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
+                                title="复制纯文本"
+                              >
+                                <i className="fas fa-copy text-xs" />
+                              </button>
+                              {msg.message_type === 0 && (
+                                <button
+                                  onClick={() => handleCopyMessage(msg, 'markdown')}
+                                  className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
+                                  title="复制 Markdown"
+                                >
+                                  <i className="fas fa-file-code text-xs" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           {/* 消息内容：AI 回复使用 Markdown 渲染，用户消息保持纯文本 */}
                           {msg.message_type === 1 ? (
@@ -664,11 +717,24 @@ export default function CursorHistory() {
                           {/* 代码块（独立的 codeBlocks 字段） */}
                           {msg.code_blocks.length > 0 && (
                             <div className="mt-3 space-y-2">
-                              {msg.code_blocks.map((block, bi) => (
-                                <pre key={bi} className="bg-slate-900/80 border border-slate-700/40 rounded-lg p-3 text-xs text-slate-300 overflow-x-auto">
-                                  <code>{typeof block === 'object' ? JSON.stringify(block, null, 2) : String(block)}</code>
-                                </pre>
-                              ))}
+                              {msg.code_blocks.map((block, bi) => {
+                                const codeText = typeof block === 'object' ? JSON.stringify(block, null, 2) : String(block);
+                                return (
+                                  <div key={bi} className="group/code relative">
+                                    <pre className="bg-slate-900/80 border border-slate-700/40 rounded-lg p-3 pr-12 text-xs text-slate-300 overflow-x-auto">
+                                      <code>{codeText}</code>
+                                    </pre>
+                                    {/* 代码块复制按钮 */}
+                                    <button
+                                      onClick={() => handleCopyCodeBlock(codeText)}
+                                      className="absolute top-2 right-2 p-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 rounded text-slate-400 hover:text-white opacity-0 group-hover/code:opacity-100 transition-all"
+                                      title="复制代码"
+                                    >
+                                      <i className="fas fa-copy text-xs" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
