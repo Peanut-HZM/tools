@@ -20,6 +20,9 @@ from app.models.cursor_history_models import (
     FavoriteRequest,
     FavoriteItem,
     FavoriteListResponse,
+    StatsOverview,
+    StatsTrendItem,
+    StatsResponse,
 )
 from app.services.cursor_history_service import (
     CursorHistoryService,
@@ -314,4 +317,83 @@ async def check_favorite(composer_id: str):
         logger.error(f"检查收藏失败：{e}")
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"检查收藏失败：{str(e)}")
+
+
+@router.get("/stats")
+async def get_stats(days: int = 7):
+    """获取统计数据"""
+    logger.info(f"获取统计数据，天数：{days}")
+    try:
+        from datetime import datetime, timedelta
+        import sqlite3
+
+        db_path = "cursor_history.db"
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # 创建表（如果不存在）
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS cursor_favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                composer_id TEXT NOT NULL,
+                session_name TEXT,
+                project_name TEXT,
+                workspace_hash TEXT,
+                note TEXT,
+                tags TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        # 获取收藏统计
+        cursor.execute("SELECT COUNT(*) as cnt FROM cursor_favorites")
+        total_favorites = cursor.fetchone()["cnt"]
+
+        # 计算今天的日期
+        today = datetime.now().date()
+        today_start = datetime.combine(today, datetime.min.time())
+
+        # 今天的收藏数
+        cursor.execute("""
+            SELECT COUNT(*) as cnt FROM cursor_favorites
+            WHERE date(created_at) = ?
+        """, (today.isoformat(),))
+        today_favorites = cursor.fetchone()["cnt"]
+
+        # 获取趋势数据（最近 N 天）
+        trends = []
+        for i in range(days - 1, -1, -1):
+            date = today - timedelta(days=i)
+            date_str = date.isoformat()
+
+            cursor.execute("""
+                SELECT COUNT(*) as cnt FROM cursor_favorites
+                WHERE date(created_at) = ?
+            """, (date_str,))
+            cnt = cursor.fetchone()["cnt"]
+
+            trends.append({
+                "date": date_str,
+                "sessions": cnt,
+                "messages": cnt * 5,  # 估算消息数
+            })
+
+        conn.close()
+
+        return StatsResponse(
+            overview=StatsOverview(
+                total_sessions=total_favorites,
+                total_messages=total_favorites * 5,
+                today_sessions=today_favorites,
+                today_messages=today_favorites * 5,
+                total_projects=0,
+            ),
+            trends=trends,
+        )
+    except Exception as e:
+        logger.error(f"获取统计数据失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"获取统计失败：{str(e)}")
 

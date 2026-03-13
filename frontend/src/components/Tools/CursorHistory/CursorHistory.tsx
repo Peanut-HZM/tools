@@ -113,6 +113,9 @@ export default function CursorHistory() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showFavoritesPanel, setShowFavoritesPanel] = useState(false);
 
+  // 统计面板状态
+  const [showStatsPanel, setShowStatsPanel] = useState(false);
+
   // ==================== 数据加载 ====================
 
   /** 构建带 base_path 的查询参数 */
@@ -639,6 +642,14 @@ export default function CursorHistory() {
             >
               <i className="fas fa-star text-lg" />
             </button>
+            {/* 统计按钮 */}
+            <button
+              onClick={() => setShowStatsPanel(prev => !prev)}
+              className={`text-slate-400 hover:text-white transition-colors relative ${showStatsPanel ? 'text-cyan-400' : ''}`}
+              title="数据统计"
+            >
+              <i className="fas fa-chart-bar text-lg" />
+            </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
                 <i className="fas fa-clock-rotate-left text-violet-400 text-lg" />
@@ -780,6 +791,11 @@ export default function CursorHistory() {
       ) : (
         /* 三栏布局（高度根据路径设置面板动态调整） */
         <div className="max-w-[1920px] mx-auto flex" style={{ height: showPathSettings ? 'calc(100vh - 170px)' : 'calc(100vh - 73px)' }}>
+
+          {/* 统计面板（覆盖模式） */}
+          {showStatsPanel && (
+          <StatsPanel onClose={() => setShowStatsPanel(false)} />
+          )}
 
           {/* 收藏面板（覆盖模式） */}
           {showFavoritesPanel && (
@@ -1308,6 +1324,110 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
       </div>
       <div className="p-3 border-t border-slate-700/30 text-xs text-slate-500 text-center">
         共 {favorites.length} 个收藏
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 统计面板组件
+ */
+interface StatsPanelProps {
+  onClose: () => void;
+}
+
+const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    overview: {
+      total_sessions: 0,
+      total_messages: 0,
+      today_sessions: 0,
+      today_messages: 0,
+      total_projects: 0,
+    },
+    trends: [] as Array<{ date: string; sessions: number; messages: number }>,
+  });
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/cursor-history/stats?days=7`);
+      if (!res.ok) throw new Error('加载统计失败');
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      console.error('加载统计失败:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-96 flex-shrink-0 border-r border-slate-700/30 flex flex-col bg-slate-900/40 absolute left-0 top-0 bottom-0 z-20 overflow-y-auto">
+      <div className="p-3 border-b border-slate-700/30 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <i className="fas fa-chart-bar text-cyan-400 text-sm" />
+          <span className="text-sm font-semibold text-white">数据统计</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-slate-500 hover:text-white transition-colors"
+        >
+          <i className="fas fa-times text-xs" />
+        </button>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <i className="fas fa-spinner fa-spin text-violet-400" />
+          </div>
+        ) : (
+          <>
+            {/* 概览卡片 */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3">
+                <div className="text-xs text-slate-400 mb-1">总会话</div>
+                <div className="text-2xl font-bold text-white">{stats.overview.total_sessions}</div>
+              </div>
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3">
+                <div className="text-xs text-slate-400 mb-1">总消息</div>
+                <div className="text-2xl font-bold text-white">{stats.overview.total_messages}</div>
+              </div>
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3">
+                <div className="text-xs text-slate-400 mb-1">今日会话</div>
+                <div className="text-2xl font-bold text-emerald-400">{stats.overview.today_sessions}</div>
+              </div>
+              <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3">
+                <div className="text-xs text-slate-400 mb-1">今日消息</div>
+                <div className="text-2xl font-bold text-emerald-400">{stats.overview.today_messages}</div>
+              </div>
+            </div>
+
+            {/* 趋势图表 */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3">
+              <div className="text-xs text-slate-400 mb-3">近 7 天趋势</div>
+              <div className="space-y-2">
+                {stats.trends.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="text-xs text-slate-500 w-12">{item.date.slice(5)}</div>
+                    <div className="flex-1 h-6 bg-slate-700/30 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
+                        style={{ width: `${Math.max(5, (item.sessions / Math.max(...stats.trends.map(t => t.sessions))) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-slate-400 w-8 text-right">{item.sessions}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -167,3 +167,25 @@ class FavoriteListResponse(BaseModel):
     favorites: List[FavoriteItem]
     total: int
 
+
+class StatsOverview(BaseModel):
+    """统计概览"""
+    total_sessions: int
+    total_messages: int
+    today_sessions: int
+    today_messages: int
+    total_projects: int
+
+
+class StatsTrendItem(BaseModel):
+    """统计趋势项"""
+    date: str
+    sessions: int
+    messages: int
+
+
+class StatsResponse(BaseModel):
+    """统计响应"""
+    overview: StatsOverview
+    trends: List[StatsTrendItem]
+
