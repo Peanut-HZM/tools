@@ -14,6 +14,7 @@ import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { API_BASE_URL } from '../../../config/api';
 import { useToast } from '../../../hooks/useToast';
 import { cacheSessionMessages, getCachedSessionMessages } from '../../../utils/cursorCache';
+import { addRecentSession, getRecentSessions, formatVisitedTime, type RecentSession } from '../../../utils/recentSessions';
 
 // ==================== 类型定义 ====================
 
@@ -103,6 +104,10 @@ export default function CursorHistory() {
     includeTimestamps: true,
     includeAvatars: false,
   });
+
+  // 最近访问状态
+  const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
+  const [showRecentPanel, setShowRecentPanel] = useState(false);
 
   // ==================== 数据加载 ====================
 
@@ -432,6 +437,11 @@ export default function CursorHistory() {
   // 初始加载项目
   useEffect(() => { loadProjects(); }, [loadProjects]);
 
+  // 加载最近访问记录
+  useEffect(() => {
+    setRecentSessions(getRecentSessions());
+  }, []);
+
   // 项目搜索防抖
   useEffect(() => {
     const timer = setTimeout(() => loadProjects(projectSearch), 300);
@@ -485,6 +495,19 @@ export default function CursorHistory() {
   const handleSessionClick = (session: CursorSession) => {
     setSelectedSession(session);
     loadMessages(session.composer_id, session.name || undefined);
+
+    // 添加到最近访问
+    if (selectedProject) {
+      addRecentSession({
+        composer_id: session.composer_id,
+        session_name: session.name || `会话 ${session.composer_id.slice(0, 8)}`,
+        project_name: selectedProject.project_name,
+        workspace_hash: selectedProject.workspace_hash,
+        visited_at: Date.now(),
+      });
+      // 重新加载最近访问列表
+      setRecentSessions(getRecentSessions());
+    }
   };
 
   /** 点击搜索结果跳转 */
@@ -527,13 +550,25 @@ export default function CursorHistory() {
             <button onClick={() => navigate('/')} className="text-slate-400 hover:text-white transition-colors">
               <i className="fas fa-arrow-left text-lg" />
             </button>
-            {/* 切换项目列表面板 */}
             <button
               onClick={() => setShowProjectPanel(prev => !prev)}
               className="text-slate-400 hover:text-white transition-colors"
               title={showProjectPanel ? '隐藏项目列表' : '显示项目列表'}
             >
               <i className={`fas ${showProjectPanel ? 'fa-indent' : 'fa-outdent'} text-lg`} />
+            </button>
+            {/* 最近访问按钮 */}
+            <button
+              onClick={() => setShowRecentPanel(prev => !prev)}
+              className={`text-slate-400 hover:text-white transition-colors relative ${showRecentPanel ? 'text-violet-400' : ''}`}
+              title="最近访问"
+            >
+              <i className="fas fa-history text-lg" />
+              {recentSessions.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 rounded-full text-[10px] flex items-center justify-center">
+                  {Math.min(recentSessions.length, 9)}
+                </span>
+              )}
             </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
@@ -676,6 +711,77 @@ export default function CursorHistory() {
       ) : (
         /* 三栏布局（高度根据路径设置面板动态调整） */
         <div className="max-w-[1920px] mx-auto flex" style={{ height: showPathSettings ? 'calc(100vh - 170px)' : 'calc(100vh - 73px)' }}>
+
+          {/* 最近访问面板（覆盖模式） */}
+          {showRecentPanel && (
+          <div className="w-72 flex-shrink-0 border-r border-slate-700/30 flex flex-col bg-slate-900/40 absolute left-0 top-0 bottom-0 z-20">
+            <div className="p-3 border-b border-slate-700/30 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-history text-violet-400 text-sm" />
+                <span className="text-sm font-semibold text-white">最近访问</span>
+              </div>
+              <button
+                onClick={() => setShowRecentPanel(false)}
+                className="text-slate-500 hover:text-white transition-colors"
+              >
+                <i className="fas fa-times text-xs" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {recentSessions.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-sm">
+                  <i className="fas fa-history text-2xl mb-2 block opacity-30" />
+                  <p>暂无最近访问</p>
+                </div>
+              ) : (
+                recentSessions.map((session, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      // 查找并选中项目
+                      const proj = projects.find(p => p.workspace_hash === session.workspace_hash);
+                      if (proj) {
+                        setSelectedProject(proj);
+                        loadSessions(proj.workspace_hash);
+                      }
+                      // 选中会话
+                      setSelectedSession({
+                        composer_id: session.composer_id,
+                        name: session.session_name,
+                        created_at: null,
+                        message_count: 0,
+                        workspace_hash: session.workspace_hash,
+                      });
+                      loadMessages(session.composer_id, session.session_name);
+                      setShowRecentPanel(false);
+                    }}
+                    className="px-4 py-3 cursor-pointer border-b border-slate-800/50 transition-all hover:bg-slate-800/50"
+                  >
+                    <div className="text-sm font-medium text-white truncate">{session.session_name}</div>
+                    <div className="text-xs text-slate-500 truncate mt-1">{session.project_name}</div>
+                    <div className="text-xs text-violet-400 mt-1">{formatVisitedTime(session.visited_at)}</div>
+                  </div>
+                ))
+              )}
+            </div>
+            {recentSessions.length > 0 && (
+              <div className="p-3 border-t border-slate-700/30">
+                <button
+                  onClick={() => {
+                    if (confirm('确定清空最近访问记录吗？')) {
+                      localStorage.removeItem('cursor_history_recent_sessions');
+                      setRecentSessions([]);
+                    }
+                  }}
+                  className="w-full py-2 text-xs text-slate-400 hover:text-white transition-colors"
+                >
+                  <i className="fas fa-trash mr-2" />
+                  清空记录
+                </button>
+              </div>
+            )}
+          </div>
+          )}
 
           {/* 第一栏：项目列表（可折叠） */}
           {showProjectPanel && (
