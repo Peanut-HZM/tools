@@ -278,7 +278,7 @@ class CursorHistoryService:
             (f"bubbleId:{composer_id}:%",),
         )
 
-        # 先解析所有有效消息
+        # 解析所有消息（包括 thinking、tool_call 等类型）
         all_messages = []
         for row in rows:
             key = row.get("key", "")
@@ -294,9 +294,42 @@ class CursorHistoryService:
             text = val.get("text", "")
             msg_type = val.get("type", 0)
             code_blocks = val.get("codeBlocks", [])
+            created_at = val.get("createdAt")
+            capability_type = val.get("capabilityType")
 
-            # 跳过空消息
-            if not text and not code_blocks:
+            # 解析 thinking 内容（capabilityType=30）
+            thinking = None
+            if capability_type == 30:
+                thinking_val = val.get("thinking")
+                if isinstance(thinking_val, dict):
+                    # thinking 可能是字典格式 {"text": "...", "signature": "..."}
+                    thinking = thinking_val.get("text", "") or text or ""
+                elif isinstance(thinking_val, str):
+                    thinking = thinking_val or text or ""
+                else:
+                    thinking = text or ""
+
+            # 解析工具调用信息（capabilityType=15）
+            tool_call = None
+            if capability_type == 15:
+                tool_former = val.get("toolFormerData")
+                if tool_former and isinstance(tool_former, dict):
+                    tool_call = {
+                        "toolName": tool_former.get("toolName", ""),
+                        "status": tool_former.get("status", ""),
+                        "responseText": tool_former.get("responseText", ""),
+                    }
+                elif tool_former and isinstance(tool_former, list) and len(tool_former) > 0:
+                    # 有时 toolFormerData 是列表
+                    first = tool_former[0] if isinstance(tool_former[0], dict) else {}
+                    tool_call = {
+                        "toolName": first.get("toolName", ""),
+                        "status": first.get("status", ""),
+                        "responseText": first.get("responseText", ""),
+                    }
+
+            # 跳过完全空的消息（没有任何有效内容）
+            if not text and not code_blocks and not thinking and not tool_call:
                 continue
 
             all_messages.append(CursorMessage(
@@ -304,6 +337,10 @@ class CursorHistoryService:
                 message_type=msg_type,
                 text=text,
                 code_blocks=code_blocks,
+                timestamp=created_at,
+                thinking=thinking,
+                tool_call=tool_call,
+                capability_type=capability_type,
             ))
 
         total = len(all_messages)

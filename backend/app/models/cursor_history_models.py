@@ -44,6 +44,14 @@ class CursorMessage(BaseModel):
     text: str = ""
     # 代码块列表
     code_blocks: List[dict] = []
+    # 消息创建时间戳（毫秒）- 支持整数或字符串格式
+    timestamp: Optional[str] = None
+    # AI 思考/推理内容（capabilityType=30）- 支持字符串或字典格式
+    thinking: Optional[str] = None
+    # 工具调用信息（capabilityType=15），包含 toolName, status 等
+    tool_call: Optional[dict] = None
+    # 能力类型：None=普通消息, 30=思考, 15=工具调用
+    capability_type: Optional[int] = None
 
 
 class ProjectListResponse(BaseModel):
