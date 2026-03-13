@@ -286,9 +286,16 @@ class CursorHistoryService:
             parts = key.split(":")
             message_id = parts[-1] if len(parts) >= 3 else key
 
+            # 跳过 value 为空的行
+            value_str = row.get("value")
+            if not value_str:
+                logger.debug(f"跳过 value 为空的行：key={key}")
+                continue
+
             try:
-                val = json.loads(row.get("value", "{}"))
+                val = json.loads(value_str)
             except json.JSONDecodeError:
+                logger.debug(f"解析 JSON 失败：key={key}")
                 continue
 
             text = val.get("text", "")
@@ -392,8 +399,14 @@ class CursorHistoryService:
                 continue
 
             composer_id = parts[1]
+
+            # 跳过 value 为空的行
+            value_str = row.get("value")
+            if not value_str:
+                continue
+
             try:
-                val = json.loads(row.get("value", "{}"))
+                val = json.loads(value_str)
             except json.JSONDecodeError:
                 continue
 
