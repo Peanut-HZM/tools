@@ -18,6 +18,7 @@ import { addRecentSession, getRecentSessions, formatVisitedTime, type RecentSess
 import TagManager from './TagManager';
 import TagFilter from './TagFilter';
 import BatchActions from './BatchActions';
+import ThemeSwitcher from './ThemeSwitcher';
 
 // ==================== 类型定义 ====================
 
@@ -837,6 +838,8 @@ export default function CursorHistory() {
             >
               <i className="fas fa-folder-tree" />
             </button>
+            {/* 主题切换按钮 */}
+            <ThemeSwitcher />
           </div>
         </div>
 
