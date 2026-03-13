@@ -139,3 +139,31 @@ class ExportRequest(BaseModel):
     include_timestamps: bool = True
     include_avatars: bool = False
 
+
+class FavoriteRequest(BaseModel):
+    """收藏请求"""
+    composer_id: str
+    session_name: Optional[str] = None
+    project_name: Optional[str] = None
+    workspace_hash: Optional[str] = None
+    note: Optional[str] = None
+    tags: Optional[str] = None
+
+
+class FavoriteItem(BaseModel):
+    """收藏项"""
+    id: int
+    composer_id: str
+    session_name: Optional[str] = None
+    project_name: Optional[str] = None
+    workspace_hash: Optional[str] = None
+    note: Optional[str] = None
+    tags: Optional[str] = None
+    created_at: str
+
+
+class FavoriteListResponse(BaseModel):
+    """收藏列表响应"""
+    favorites: List[FavoriteItem]
+    total: int
+

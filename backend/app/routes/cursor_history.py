@@ -17,6 +17,9 @@ from app.models.cursor_history_models import (
     WorkspacePathResponse,
     ExportResponse,
     ExportRequest,
+    FavoriteRequest,
+    FavoriteItem,
+    FavoriteListResponse,
 )
 from app.services.cursor_history_service import (
     CursorHistoryService,
@@ -148,4 +151,167 @@ async def export_session(request: ExportRequest):
         logger.error(f"导出失败：{e}")
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"导出失败：{str(e)}")
+
+
+@router.post("/favorites")
+async def add_favorite(request: FavoriteRequest):
+    """添加收藏"""
+    logger.info(f"添加收藏：{request.composer_id}")
+    try:
+        import sqlite3
+        from datetime import datetime
+
+        db_path = "cursor_history.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # 创建表（如果不存在）
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS cursor_favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                composer_id TEXT NOT NULL,
+                session_name TEXT,
+                project_name TEXT,
+                workspace_hash TEXT,
+                note TEXT,
+                tags TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        # 检查是否已收藏
+        cursor.execute(
+            "SELECT id FROM cursor_favorites WHERE composer_id = ?",
+            (request.composer_id,)
+        )
+        if cursor.fetchone():
+            # 已存在则更新
+            cursor.execute("""
+                UPDATE cursor_favorites
+                SET session_name = ?, project_name = ?, workspace_hash = ?, note = ?, tags = ?
+                WHERE composer_id = ?
+            """, (
+                request.session_name, request.project_name, request.workspace_hash,
+                request.note, request.tags, request.composer_id
+            ))
+        else:
+            # 新增
+            cursor.execute("""
+                INSERT INTO cursor_favorites (composer_id, session_name, project_name, workspace_hash, note, tags)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                request.composer_id, request.session_name, request.project_name,
+                request.workspace_hash, request.note, request.tags
+            ))
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"收藏成功：{request.composer_id}")
+        return {"success": True, "message": "收藏成功"}
+    except Exception as e:
+        logger.error(f"收藏失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"收藏失败：{str(e)}")
+
+
+@router.get("/favorites")
+async def get_favorites():
+    """获取收藏列表"""
+    logger.info("获取收藏列表")
+    try:
+        import sqlite3
+
+        db_path = "cursor_history.db"
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS cursor_favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                composer_id TEXT NOT NULL,
+                session_name TEXT,
+                project_name TEXT,
+                workspace_hash TEXT,
+                note TEXT,
+                tags TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        cursor.execute("SELECT * FROM cursor_favorites ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+        conn.close()
+
+        favorites = []
+        for row in rows:
+            favorites.append(FavoriteItem(
+                id=row["id"],
+                composer_id=row["composer_id"],
+                session_name=row["session_name"],
+                project_name=row["project_name"],
+                workspace_hash=row["workspace_hash"],
+                note=row["note"],
+                tags=row["tags"],
+                created_at=row["created_at"],
+            ))
+
+        return FavoriteListResponse(favorites=favorites, total=len(favorites))
+    except Exception as e:
+        logger.error(f"获取收藏失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"获取收藏失败：{str(e)}")
+
+
+@router.delete("/favorites/{composer_id}")
+async def remove_favorite(composer_id: str):
+    """删除收藏"""
+    logger.info(f"删除收藏：{composer_id}")
+    try:
+        import sqlite3
+
+        db_path = "cursor_history.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM cursor_favorites WHERE composer_id = ?", (composer_id,))
+        conn.commit()
+        deleted = cursor.rowcount
+        conn.close()
+
+        if deleted > 0:
+            logger.info(f"删除收藏成功：{composer_id}")
+            return {"success": True, "message": "删除成功"}
+        else:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="收藏不存在")
+    except Exception as e:
+        logger.error(f"删除收藏失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"删除收藏失败：{str(e)}")
+
+
+@router.get("/favorites/check/{composer_id}")
+async def check_favorite(composer_id: str):
+    """检查是否已收藏"""
+    logger.info(f"检查收藏状态：{composer_id}")
+    try:
+        import sqlite3
+
+        db_path = "cursor_history.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id FROM cursor_favorites WHERE composer_id = ?", (composer_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        return {"is_favorite": row is not None}
+    except Exception as e:
+        logger.error(f"检查收藏失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"检查收藏失败：{str(e)}")
 

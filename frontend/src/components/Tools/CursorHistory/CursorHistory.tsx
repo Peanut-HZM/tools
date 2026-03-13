@@ -109,6 +109,10 @@ export default function CursorHistory() {
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
   const [showRecentPanel, setShowRecentPanel] = useState(false);
 
+  // 收藏功能状态
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showFavoritesPanel, setShowFavoritesPanel] = useState(false);
+
   // ==================== 数据加载 ====================
 
   /** 构建带 base_path 的查询参数 */
@@ -341,6 +345,61 @@ export default function CursorHistory() {
     }
   }, [selectedSession, exportFormat, exportOptions, showSuccess, showError]);
 
+  /** 检查收藏状态 */
+  const checkFavoriteStatus = useCallback(async (composerId: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/cursor-history/favorites/check/${composerId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setIsFavorite(data.is_favorite || false);
+    } catch (error) {
+      console.error('检查收藏状态失败:', error);
+    }
+  }, []);
+
+  /** 添加/取消收藏 */
+  const handleToggleFavorite = useCallback(async () => {
+    if (!selectedSession || !selectedProject) return;
+
+    try {
+      if (isFavorite) {
+        // 取消收藏
+        const res = await fetch(`${API_BASE_URL}/cursor-history/favorites/${selectedSession.composer_id}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.detail || '取消收藏失败');
+        }
+        setIsFavorite(false);
+        showSuccess('已取消收藏');
+      } else {
+        // 添加收藏
+        const response = await fetch(`${API_BASE_URL}/cursor-history/favorites`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            composer_id: selectedSession.composer_id,
+            session_name: selectedSession.name || undefined,
+            project_name: selectedProject.project_name,
+            workspace_hash: selectedProject.workspace_hash,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '收藏失败');
+        }
+
+        setIsFavorite(true);
+        showSuccess('收藏成功');
+      }
+    } catch (err) {
+      showError(err instanceof Error ? err.message : '操作失败');
+      console.error('Toggle favorite failed:', err);
+    }
+  }, [selectedSession, selectedProject, isFavorite, showSuccess, showError]);
+
   /** 虚拟滚动：消息项渲染器 */
   const MessageRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const msg = messages[index];
@@ -507,6 +566,8 @@ export default function CursorHistory() {
       });
       // 重新加载最近访问列表
       setRecentSessions(getRecentSessions());
+      // 检查收藏状态
+      checkFavoriteStatus(session.composer_id);
     }
   };
 
@@ -569,6 +630,14 @@ export default function CursorHistory() {
                   {Math.min(recentSessions.length, 9)}
                 </span>
               )}
+            </button>
+            {/* 收藏夹按钮 */}
+            <button
+              onClick={() => setShowFavoritesPanel(prev => !prev)}
+              className={`text-slate-400 hover:text-white transition-colors relative ${showFavoritesPanel ? 'text-amber-400' : ''}`}
+              title="收藏夹"
+            >
+              <i className="fas fa-star text-lg" />
             </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
@@ -711,6 +780,31 @@ export default function CursorHistory() {
       ) : (
         /* 三栏布局（高度根据路径设置面板动态调整） */
         <div className="max-w-[1920px] mx-auto flex" style={{ height: showPathSettings ? 'calc(100vh - 170px)' : 'calc(100vh - 73px)' }}>
+
+          {/* 收藏面板（覆盖模式） */}
+          {showFavoritesPanel && (
+          <FavoritesPanel
+            onClose={() => setShowFavoritesPanel(false)}
+            onSelectSession={(composerId, workspaceHash, sessionName, projectName) => {
+              // 查找并选中项目
+              const proj = projects.find(p => p.workspace_hash === workspaceHash);
+              if (proj) {
+                setSelectedProject(proj);
+                loadSessions(proj.workspace_hash);
+              }
+              // 选中会话
+              setSelectedSession({
+                composer_id: composerId,
+                name: sessionName,
+                created_at: null,
+                message_count: 0,
+                workspace_hash: workspaceHash,
+              });
+              loadMessages(composerId, sessionName);
+              setShowFavoritesPanel(false);
+            }}
+          />
+          )}
 
           {/* 最近访问面板（覆盖模式） */}
           {showRecentPanel && (
@@ -919,15 +1013,29 @@ export default function CursorHistory() {
                         </div>
                       </div>
                     </div>
-                    {/* 导出按钮 */}
-                    <button
-                      onClick={() => setShowExportDialog(true)}
-                      className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/40 rounded-lg text-xs text-violet-400 hover:bg-violet-500/30 transition-all flex items-center gap-1.5"
-                      title="导出会话"
-                    >
-                      <i className="fas fa-download" />
-                      <span>导出</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* 收藏按钮 */}
+                      <button
+                        onClick={handleToggleFavorite}
+                        className={`p-2 rounded-lg transition-all ${
+                          isFavorite
+                            ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                            : 'bg-slate-700/50 text-slate-400 hover:text-amber-400'
+                        }`}
+                        title={isFavorite ? '取消收藏' : '收藏会话'}
+                      >
+                        <i className={`fas fa-star ${isFavorite ? 'fas' : 'far'}`} />
+                      </button>
+                      {/* 导出按钮 */}
+                      <button
+                        onClick={() => setShowExportDialog(true)}
+                        className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/40 rounded-lg text-xs text-violet-400 hover:bg-violet-500/30 transition-all flex items-center gap-1.5"
+                        title="导出会话"
+                      >
+                        <i className="fas fa-download" />
+                        <span>导出</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1103,3 +1211,104 @@ export default function CursorHistory() {
     </div>
   );
 }
+
+/**
+ * 收藏面板组件
+ */
+interface FavoritesPanelProps {
+  onClose: () => void;
+  onSelectSession: (composerId: string, workspaceHash: string, sessionName: string, projectName: string) => void;
+}
+
+const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSession }) => {
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { success: showSuccess, error: showError } = useToast();
+
+  // 加载收藏列表
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/cursor-history/favorites`);
+      if (!res.ok) throw new Error('加载收藏失败');
+      const data = await res.json();
+      setFavorites(data.favorites || []);
+    } catch (err) {
+      console.error('加载收藏失败:', err);
+      showError('加载收藏失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (composerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`${API_BASE_URL}/cursor-history/favorites/${composerId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('删除失败');
+      showSuccess('删除成功');
+      loadFavorites();
+    } catch (err) {
+      showError('删除失败');
+    }
+  };
+
+  return (
+    <div className="w-72 flex-shrink-0 border-r border-slate-700/30 flex flex-col bg-slate-900/40 absolute left-0 top-0 bottom-0 z-20">
+      <div className="p-3 border-b border-slate-700/30 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <i className="fas fa-star text-amber-400 text-sm" />
+          <span className="text-sm font-semibold text-white">收藏夹</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-slate-500 hover:text-white transition-colors"
+        >
+          <i className="fas fa-times text-xs" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <i className="fas fa-spinner fa-spin text-violet-400" />
+          </div>
+        ) : favorites.length === 0 ? (
+          <div className="text-center py-8 text-slate-500 text-sm">
+            <i className="fas fa-star text-2xl mb-2 block opacity-30" />
+            <p>暂无收藏</p>
+          </div>
+        ) : (
+          favorites.map((fav, idx) => (
+            <div
+              key={idx}
+              onClick={() => onSelectSession(fav.composer_id, fav.workspace_hash || '', fav.session_name || '', fav.project_name || '')}
+              className="px-4 py-3 cursor-pointer border-b border-slate-800/50 transition-all hover:bg-slate-800/50"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-amber-400 truncate">{fav.session_name || '未命名会话'}</div>
+                  <div className="text-xs text-slate-500 truncate mt-1">{fav.project_name || '未知项目'}</div>
+                  <div className="text-xs text-slate-600 mt-1">{new Date(fav.created_at).toLocaleDateString('zh-CN')}</div>
+                </div>
+                <button
+                  onClick={(e) => handleDelete(fav.composer_id, e)}
+                  className="text-slate-600 hover:text-red-400 transition-colors p-1"
+                >
+                  <i className="fas fa-trash text-xs" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="p-3 border-t border-slate-700/30 text-xs text-slate-500 text-center">
+        共 {favorites.length} 个收藏
+      </div>
+    </div>
+  );
+};
