@@ -19,6 +19,7 @@ import TagManager from './TagManager';
 import TagFilter from './TagFilter';
 import BatchActions from './BatchActions';
 import ThemeSwitcher from './ThemeSwitcher';
+import ResizablePanel from './ResizablePanel';
 
 // ==================== 类型定义 ====================
 
@@ -1041,7 +1042,8 @@ export default function CursorHistory() {
 
           {/* 第一栏：项目列表（可折叠） */}
           {showProjectPanel && (
-          <div className="w-72 flex-shrink-0 border-r border-slate-700/30 flex flex-col bg-slate-900/40">
+          <ResizablePanel defaultWidth={280} minWidth={220} maxWidth={450} storageKey="cursor-projects-width">
+          <div className="w-full h-full border-r border-slate-700/30 flex flex-col bg-slate-900/40">
             <div className="p-3 border-b border-slate-700/30">
               <div className="relative">
                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" />
@@ -1091,10 +1093,12 @@ export default function CursorHistory() {
               共 {projects.length} 个项目
             </div>
           </div>
+          </ResizablePanel>
           )}
 
           {/* 第二栏：会话列表 */}
-          <div className="w-80 flex-shrink-0 border-r border-slate-700/30 flex flex-col bg-slate-900/20">
+          <ResizablePanel defaultWidth={300} minWidth={250} maxWidth={500} storageKey="cursor-sessions-width">
+          <div className="w-full h-full border-r border-slate-700/30 flex flex-col bg-slate-900/20">
             <div className="p-3 border-b border-slate-700/30">
               {selectedProject ? (
                 <div>
@@ -1214,6 +1218,7 @@ export default function CursorHistory() {
               )}
             </div>
           </div>
+          </ResizablePanel>
 
 
           {/* 第三栏：消息内容 */}
