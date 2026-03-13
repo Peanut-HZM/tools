@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { listAllTools, updateToolStatus, Tool, listCategories, createCategory, updateCategory, deleteCategory, ToolCategory } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
-
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
   const [tools, setTools] = useState<Tool[]>([]);
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toasts, removeToast, success, error } = useToast();
+  const { success, error  } = useToast();
 
   // Category Form State
   const [isEditingCategory, setIsEditingCategory] = useState(false);
@@ -275,9 +273,6 @@ export default function ToolManagement() {
             </table>
           </div>
         </div>
-      )}
-      
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      )}    </div>
   );
 }

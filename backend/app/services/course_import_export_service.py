@@ -495,10 +495,10 @@ class CourseImportService:
             logger.info(f"导入完成：{stats}")
             return ImportResponse(
                 success=True,
+                preview=False,
                 message=f"成功导入 {stats['chapters_imported']} 个章节，{stats['quizzes_imported']} 个测验",
                 imported_stats=stats,
                 warnings=warnings,
-                errors=errors,
             )
 
         except Exception as e:
@@ -506,10 +506,10 @@ class CourseImportService:
             errors.append(str(e))
             return ImportResponse(
                 success=False,
+                preview=False,
                 message="导入失败",
                 imported_stats=stats,
                 warnings=warnings,
-                errors=errors,
             )
 
     def _import_chapter(

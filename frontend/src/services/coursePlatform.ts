@@ -257,10 +257,11 @@ export interface ExportData {
   course_title: string;
   export_timestamp: string;
   export_stats: {
-    total_chapters: number;
-    total_quizzes: number;
-    total_questions: number;
-    total_resources: number;
+    chapters_count: number;
+    quizzes_count: number;
+    questions_count: number;
+    options_count: number;
+    resources_count: number;
   };
   chapters: ExportChapter[];
 }

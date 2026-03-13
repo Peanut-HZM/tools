@@ -15,7 +15,6 @@ import ResourceManager from './CourseManagement/ResourceManager';
 import CourseEditor from './CourseManagement/CourseEditor';
 import ImportExportDialog from './CourseManagement/ImportExportDialog';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 import 'highlight.js/styles/atom-one-dark.css';
 
 type TabType = 'chapters' | 'quiz' | 'resources';
@@ -23,7 +22,7 @@ type TabType = 'chapters' | 'quiz' | 'resources';
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toasts, addToast, removeToast, error, success } = useToast();
+  const { addToast, error, success } = useToast();
 
   const { fetchChapters, chapters, selectedChapterId, selectChapter } = useChapterStore();
   const { courses, fetchCourses } = useCourseAdminStore();
@@ -127,8 +126,6 @@ export default function CourseDetail() {
 
   return (
     <div className="bg-slate-900">
-      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-
       {/* ===== 优化后的 Header 区域 ===== */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-5">

@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../stores/authStore';
-import Toast from '../MarkdownEditor/Toast/Toast';
+import { useToast } from '../../hooks/useToast';
 import { useI18n } from '../../i18n';
 
 interface LoginFormProps {
@@ -13,21 +13,19 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const { login, isLoading, error, clearError } = useAuth();
+  const { error: showError, success: showSuccess } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
   const { t } = useI18n();
 
   // 当有错误时显示 Toast
   useEffect(() => {
     if (error) {
-      setToastMessage(error);
-      setShowToast(true);
+      showError(error);
       clearError();
     }
-  }, [error, clearError]);
+  }, [error, clearError, showError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,18 +33,17 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
     clearError();
 
     if (!username.trim()) {
-      setToastMessage(t.auth.inputUsername);
-      setShowToast(true);
+      showError(t.auth.inputUsername);
       return;
     }
     if (!password) {
-      setToastMessage(t.auth.inputPassword);
-      setShowToast(true);
+      showError(t.auth.inputPassword);
       return;
     }
 
     try {
       await login(username, password);
+      showSuccess(t.auth.loginSuccess);
       onSuccess?.();
     } catch (e) {
       // Error is handled by the auth store and useEffect
@@ -108,14 +105,6 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
           </button>
         </div>
       </div>
-
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          type="error"
-          onClose={() => setShowToast(false)}
-        />
-      )}
     </div>
   );
 }

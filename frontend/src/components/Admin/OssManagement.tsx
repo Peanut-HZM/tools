@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { listOssFiles, deleteOssFile, OssFile } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 import { useAuth } from '../../stores/authStore';
 
 export default function OssManagement() {
   const [files, setFiles] = useState<OssFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toasts, removeToast, success, error } = useToast();
+  const { success, error  } = useToast();
   const { user } = useAuth();
   
   // Filter state
@@ -139,9 +138,6 @@ export default function OssManagement() {
             )}
           </tbody>
         </table>
-      </div>
-      
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      </div>    </div>
   );
 }

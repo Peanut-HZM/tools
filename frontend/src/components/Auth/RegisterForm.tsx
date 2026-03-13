@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../stores/authStore';
-import Toast from '../MarkdownEditor/Toast/Toast';
+import { useToast } from '../../hooks/useToast';
 import { useI18n } from '../../i18n';
 import { getSystemSettings, SystemSettings } from '../../api/adminApi';
 import { sendVerificationCode } from '../../api/authApi';
@@ -15,6 +15,7 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
   const { register, isLoading, error, clearError } = useAuth();
+  const { error: showError, success: showSuccess } = useToast();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,14 +23,10 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   const [phone, setPhone] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
-  
+
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [emailCooldown, setEmailCooldown] = useState(0);
   const [phoneCooldown, setPhoneCooldown] = useState(0);
-  
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('error');
   const { t } = useI18n();
 
   useEffect(() => {
@@ -60,32 +57,25 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   // 当有错误时显示 Toast
   useEffect(() => {
     if (error) {
-      setToastMessage(error);
-      setToastType('error');
-      setShowToast(true);
+      showError(error);
       clearError();
     }
-  }, [error, clearError]);
+  }, [error, clearError, showError]);
 
   const handleSendCode = async (target: string, type: 'email' | 'phone') => {
     if (!target) {
-      setToastMessage(type === 'email' ? '请输入邮箱' : '请输入手机号');
-      setToastType('error');
-      setShowToast(true);
+      showError(type === 'email' ? '请输入邮箱' : '请输入手机号');
       return;
     }
-    
+
     try {
       await sendVerificationCode(target, type);
-      setToastMessage('验证码发送成功');
-      setToastType('success');
-      setShowToast(true);
+      showSuccess('验证码发送成功');
       if (type === 'email') setEmailCooldown(60);
       else setPhoneCooldown(60);
     } catch (e) {
-      setToastMessage(e instanceof Error ? e.message : '验证码发送失败');
-      setToastType('error');
-      setShowToast(true);
+      showError(e instanceof Error ? e.message : '验证码发送失败');
+      
     }
   };
 
@@ -94,76 +84,54 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     clearError();
 
     if (!username.trim()) {
-      setToastMessage(t.auth.inputUsername);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.inputUsername);
       return;
     }
     if (username.length < 3) {
-      setToastMessage(t.auth.usernameMinLength);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.usernameMinLength);
       return;
     }
     if (!email.trim()) {
-      setToastMessage(t.auth.inputEmail);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.inputEmail);
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setToastMessage(t.auth.invalidEmail);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.invalidEmail);
       return;
     }
     
     // Check Email Code
     if (settings?.enable_email_verify && !emailCode) {
-      setToastMessage('请输入邮箱验证码');
-      setToastType('error');
-      setShowToast(true);
+      showError('请输入邮箱验证码');
       return;
     }
 
     // Check Phone
     if (settings?.enable_phone_verify) {
       if (!phone.trim()) {
-        setToastMessage('请输入手机号');
-        setToastType('error');
-        setShowToast(true);
+        showError('请输入手机号');
         return;
       }
       if (!phoneCode) {
-        setToastMessage('请输入手机验证码');
-        setToastType('error');
-        setShowToast(true);
+        showError('请输入手机验证码');
         return;
       }
     }
 
     if (!password) {
-      setToastMessage(t.auth.inputPassword);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.inputPassword);
       return;
     }
     if (password.length < 6) {
-      setToastMessage(t.auth.passwordMinLength);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.passwordMinLength);
       return;
     }
     if (password.length > 50) {
-      setToastMessage(t.auth.passwordMaxLength);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.passwordMaxLength);
       return;
     }
     if (password !== confirmPassword) {
-      setToastMessage(t.auth.passwordMismatch);
-      setToastType('error');
-      setShowToast(true);
+      showError(t.auth.passwordMismatch);
       return;
     }
 
@@ -333,14 +301,6 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
           </button>
         </div>
       </div>
-
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
     </div>
   );
 }

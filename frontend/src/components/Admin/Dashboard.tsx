@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getDashboardStats, DashboardStats } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
-
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toasts, removeToast, error } = useToast();
+  const { error  } = useToast();
 
   useEffect(() => {
     fetchStats();
@@ -166,9 +164,6 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      </div>    </div>
   );
 }

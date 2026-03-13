@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { agentApi, Agent } from '../../services/agentApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
-
 export default function AgentManagement() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { toasts, removeToast, success, error } = useToast();
+  const { success, error  } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -285,9 +283,6 @@ export default function AgentManagement() {
             </tbody>
           </table>
         </div>
-      )}
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      )}    </div>
   );
 }

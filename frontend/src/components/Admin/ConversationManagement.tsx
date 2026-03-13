@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { adminConversationApi, ConversationListItem, ConversationStats, ModelUsageStat } from '../../services/adminConversationApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
-
 export default function ConversationManagement() {
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [stats, setStats] = useState<ConversationStats | null>(null);
   const [modelStats, setModelStats] = useState<ModelUsageStat[]>([]);
   const [loading, setLoading] = useState(false);
-  const { toasts, removeToast, success, error } = useToast();
+  const { success, error  } = useToast();
 
   useEffect(() => {
     loadData();
@@ -159,9 +157,6 @@ export default function ConversationManagement() {
             </tbody>
           </table>
         )}
-      </div>
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      </div>    </div>
   );
 }

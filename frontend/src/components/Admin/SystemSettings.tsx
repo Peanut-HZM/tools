@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getSystemSettings, updateSystemSettings, SystemSettings } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 import LLMStats from './LLMStats';
 
 export default function SystemSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toasts, removeToast, success, error } = useToast();
+  const { success, error  } = useToast();
 
   useEffect(() => {
     fetchSettings();
@@ -169,9 +168,6 @@ export default function SystemSettingsPage() {
             </Link>
           </div>
         </div>
-      </div>
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      </div>    </div>
   );
 }

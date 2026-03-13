@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import { deviceApi, messageApi, fileApi, configApi, StorageStats, generateDeviceToken } from '../../../services/crossShare';
 import { useToast } from '../../../hooks/useToast';
-import Toast, { ToastContainer } from '../../MarkdownEditor/Toast/Toast';
 import Sidebar from './Sidebar';
 import MessagePanel from './MessagePanel';
 import FilePanel from './FilePanel';
@@ -115,9 +114,6 @@ const CrossShareMain: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Toast */}
-      {toast && <Toast {...toast} />}
-
       {/* Main Content - 自适应布局 */}
       <div className="flex flex-1 overflow-hidden w-full h-full">
         {/* Sidebar */}

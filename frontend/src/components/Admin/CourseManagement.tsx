@@ -6,8 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import { useCourseAdminStore } from '../../stores/courseAdminStore';
 import CourseEditor from './CourseManagement/CourseEditor';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
-
 const CourseManagement: React.FC = () => {
   const navigate = useNavigate();
   const { toasts, addToast, removeToast, error, success } = useToast();
@@ -94,10 +92,7 @@ const CourseManagement: React.FC = () => {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="h-full flex flex-col">
-      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-
-      {/* Header */}
+    <div className="h-full flex flex-col">      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center">

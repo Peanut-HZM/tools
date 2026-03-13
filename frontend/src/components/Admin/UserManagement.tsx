@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { listUsers, updateUserRole, deleteUser, createUser } from '../../api/adminApi';
 import { UserResponse } from '../../api/authApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
-
 export default function UserManagement() {
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toasts, removeToast, success, error } = useToast();
+  const { success, error  } = useToast();
   
   // Add User Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -124,11 +122,7 @@ export default function UserManagement() {
             ))}
           </tbody>
         </table>
-      </div>
-      
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-
-      {/* Add User Modal */}
+      </div>      {/* Add User Modal */}
       {isModalOpen && !generatedPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 p-6 rounded-lg w-full max-w-md border border-slate-700">

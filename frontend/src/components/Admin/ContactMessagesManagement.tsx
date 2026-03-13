@@ -9,8 +9,6 @@ import {
   ContactMessage,
 } from '../../services/contactApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
-
 type MessageStatus = 'unread' | 'read' | 'processing' | 'resolved';
 
 export default function ContactMessagesManagement() {
@@ -165,10 +163,7 @@ export default function ContactMessagesManagement() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div>
-      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-
-      {/* 页面标题 */}
+    <div>      {/* 页面标题 */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-white mb-2">{t.admin.contactMessages.title}</h2>
         <p className="text-slate-400">{t.admin.contactMessages.listTitle}</p>

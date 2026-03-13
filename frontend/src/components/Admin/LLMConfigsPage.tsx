@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { llmConfigApi, LLMConfig, CreateLLMConfigRequest } from '../../services/llmConfigApi';
 import { useToast } from '../../hooks/useToast';
-import { ToastContainer } from '../MarkdownEditor/Toast/Toast';
 import { ApiKeyDisplay, ConfigModal, DeleteConfirmModal } from './LLMConfigs';
 
 export default function LLMConfigsPage() {
@@ -21,7 +20,7 @@ export default function LLMConfigsPage() {
   // 分类筛选
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'chat' | 'code'>('all');
 
-  const { toasts, removeToast, success, error } = useToast();
+  const { success, error  } = useToast();
 
   useEffect(() => {
     loadConfigs();
@@ -344,9 +343,6 @@ export default function LLMConfigsPage() {
         onConfirm={handleDelete}
         configName={deletingConfig?.name || ''}
         isLoading={submitting}
-      />
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </div>
+      />    </div>
   );
 }
