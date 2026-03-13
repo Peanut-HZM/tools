@@ -13,6 +13,7 @@ import { List } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { API_BASE_URL } from '../../../config/api';
 import { useToast } from '../../../hooks/useToast';
+import { cacheSessionMessages, getCachedSessionMessages } from '../../../utils/cursorCache';
 
 // ==================== 类型定义 ====================
 
@@ -151,6 +152,15 @@ export default function CursorHistory() {
   const loadMessages = useCallback(async (composerId: string, sessionName?: string) => {
     setLoading(prev => ({ ...prev, messages: true }));
     setCurrentPage(1);
+
+    // 尝试从缓存加载
+    const cachedMessages = await getCachedSessionMessages(composerId);
+    if (cachedMessages) {
+      setMessages(cachedMessages);
+      setLoading(prev => ({ ...prev, messages: false }));
+      return;
+    }
+
     try {
       const params = new URLSearchParams({ composer_id: composerId, page: '1', page_size: '50' });
       if (sessionName) params.set('session_name', sessionName);
@@ -161,12 +171,17 @@ export default function CursorHistory() {
       setMessages(data.messages || []);
       setTotalMessages(data.total || 0);
       setHasMore(data.has_more || false);
+
+      // 存入缓存
+      if (data.messages && data.messages.length > 0) {
+        await cacheSessionMessages(composerId, data.messages, selectedProject?.project_name, sessionName);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(prev => ({ ...prev, messages: false }));
     }
-  }, [appendBasePath]);
+  }, [appendBasePath, selectedProject]);
 
   /** 加载更多消息（下一页，累积追加） */
   const loadMoreMessages = useCallback(async () => {
