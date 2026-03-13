@@ -397,3 +397,166 @@ async def get_stats(days: int = 7):
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"获取统计失败：{str(e)}")
 
+
+# ==================== 标签管理 API ====================
+
+from app.models.cursor_tag import TagAddRequest, TagRemoveRequest, TagListResponse, TagBulkRequest
+from app.services.cursor_tag_service import CursorTagService
+
+
+@router.post("/tags")
+async def add_tag(request: TagAddRequest):
+    """添加标签到会话"""
+    logger.info(f"添加标签：{request.composer_id} - {request.tag_name}")
+    try:
+        success = CursorTagService.add_tag(request.composer_id, request.tag_name)
+        return {"success": success, "message": "标签添加成功" if success else "标签已存在"}
+    except Exception as e:
+        logger.error(f"添加标签失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"添加标签失败：{str(e)}")
+
+
+@router.delete("/tags")
+async def remove_tag(request: TagRemoveRequest):
+    """移除会话标签"""
+    logger.info(f"移除标签：{request.composer_id} - {request.tag_name}")
+    try:
+        success = CursorTagService.remove_tag(request.composer_id, request.tag_name)
+        return {"success": success, "message": "标签移除成功" if success else "标签不存在"}
+    except Exception as e:
+        logger.error(f"移除标签失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"移除标签失败：{str(e)}")
+
+
+@router.get("/tags/{composer_id}")
+async def get_tags(composer_id: str):
+    """获取会话的所有标签"""
+    logger.info(f"获取标签：{composer_id}")
+    try:
+        tags = CursorTagService.get_tags(composer_id)
+        return TagListResponse(tags=tags, total=len(tags))
+    except Exception as e:
+        logger.error(f"获取标签失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"获取标签失败：{str(e)}")
+
+
+@router.get("/tags")
+async def get_all_tags():
+    """获取所有标签"""
+    logger.info("获取所有标签")
+    try:
+        all_tags = CursorTagService.get_all_tags()
+        return {"tags": all_tags, "total": len(all_tags)}
+    except Exception as e:
+        logger.error(f"获取所有标签失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"获取所有标签失败：{str(e)}")
+
+
+@router.get("/sessions/by-tag/{tag_name}")
+async def get_sessions_by_tag(tag_name: str):
+    """根据标签获取会话列表"""
+    logger.info(f"按标签获取会话：{tag_name}")
+    try:
+        composer_ids = CursorTagService.search_by_tag(tag_name)
+        return {"composer_ids": composer_ids, "total": len(composer_ids)}
+    except Exception as e:
+        logger.error(f"按标签获取会话失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"查询失败：{str(e)}")
+
+
+# ==================== 批量操作 API ====================
+
+@router.post("/batch/export")
+async def batch_export(request: TagBulkRequest):
+    """批量导出会话"""
+    logger.info(f"批量导出 {len(request.composer_ids)} 个会话")
+    try:
+        from app.services.cursor_history_service import CursorHistoryService
+        import zipfile
+        import io
+        import base64
+
+        # 创建 ZIP 文件
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for composer_id in request.composer_ids:
+                try:
+                    content, filename = CursorHistoryService.export_session(
+                        composer_id=composer_id,
+                        export_format='markdown',
+                        include_code_blocks=True,
+                        include_timestamps=True,
+                        include_avatars=False,
+                    )
+                    # 清理文件名
+                    safe_filename = "".join(c if c.isalnum() or c in '-_' else '_' for c in filename)
+                    zf.writestr(f"{safe_filename}.md", content)
+                except Exception as e:
+                    logger.error(f"导出会话 {composer_id} 失败：{e}")
+                    continue
+
+        zip_buffer.seek(0)
+        zip_data = base64.b64encode(zip_buffer.getvalue()).decode('utf-8')
+
+        return {
+            "success": True,
+            "data": zip_data,
+            "filename": "cursor_sessions_export.zip",
+        }
+    except Exception as e:
+        logger.error(f"批量导出失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"批量导出失败：{str(e)}")
+
+
+@router.post("/batch/tags")
+async def batch_add_tags(request: TagBulkRequest):
+    """批量添加标签"""
+    logger.info(f"批量添加标签 {request.tag_name} 到 {len(request.composer_ids)} 个会话")
+    try:
+        success_count = 0
+        for composer_id in request.composer_ids:
+            if CursorTagService.add_tag(composer_id, request.tag_name):
+                success_count += 1
+
+        return {
+            "success": True,
+            "message": f"已为 {success_count} 个会话添加标签",
+        }
+    except Exception as e:
+        logger.error(f"批量添加标签失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"批量操作失败：{str(e)}")
+
+
+@router.delete("/batch/favorites")
+async def batch_remove_favorites(request: TagBulkRequest):
+    """批量移除收藏"""
+    logger.info(f"批量移除 {len(request.composer_ids)} 个收藏")
+    try:
+        import sqlite3
+        db_path = "cursor_history.db"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        placeholders = ','.join(['?' for _ in request.composer_ids])
+        cursor.execute(f"DELETE FROM cursor_favorites WHERE composer_id IN ({placeholders})", request.composer_ids)
+
+        deleted = cursor.rowcount
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": f"已移除 {deleted} 个收藏",
+        }
+    except Exception as e:
+        logger.error(f"批量移除收藏失败：{e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"批量操作失败：{str(e)}")
+

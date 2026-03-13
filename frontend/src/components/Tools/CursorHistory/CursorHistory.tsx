@@ -15,6 +15,8 @@ import { API_BASE_URL } from '../../../config/api';
 import { useToast } from '../../../hooks/useToast';
 import { cacheSessionMessages, getCachedSessionMessages } from '../../../utils/cursorCache';
 import { addRecentSession, getRecentSessions, formatVisitedTime, type RecentSession } from '../../../utils/recentSessions';
+import TagManager from './TagManager';
+import TagFilter from './TagFilter';
 
 // ==================== 类型定义 ====================
 
@@ -41,6 +43,14 @@ interface CursorMessage {
   message_type: number;
   text: string;
   code_blocks: Record<string, unknown>[];
+  /** 消息创建时间戳（毫秒） */
+  timestamp: number | null;
+  /** AI 思考/推理内容 */
+  thinking: string | null;
+  /** 工具调用信息 */
+  tool_call: { toolName: string; status: string; responseText: string } | null;
+  /** 能力类型：null=普通, 30=思考, 15=工具调用 */
+  capability_type: number | null;
 }
 
 /** 搜索结果项 */
@@ -115,6 +125,9 @@ export default function CursorHistory() {
 
   // 统计面板状态
   const [showStatsPanel, setShowStatsPanel] = useState(false);
+
+  // 标签筛选状态
+  const [selectedFilterTag, setSelectedFilterTag] = useState<string | null>(null);
 
   // ==================== 数据加载 ====================
 
@@ -403,25 +416,122 @@ export default function CursorHistory() {
     }
   }, [selectedSession, selectedProject, isFavorite, showSuccess, showError]);
 
+  /** 思考块折叠状态 */
+  const [expandedThinking, setExpandedThinking] = useState<Set<string>>(new Set());
+
+  /** 切换思考块展开/折叠 */
+  const toggleThinking = useCallback((msgId: string) => {
+    setExpandedThinking(prev => {
+      const next = new Set(prev);
+      if (next.has(msgId)) next.delete(msgId);
+      else next.add(msgId);
+      return next;
+    });
+  }, []);
+
+  /** 格式化消息时间戳 */
+  const formatMessageTime = useCallback((ts: number | null) => {
+    if (!ts) return '';
+    try {
+      return new Date(ts).toLocaleString('zh-CN', {
+        month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      });
+    } catch { return ''; }
+  }, []);
+
   /** 虚拟滚动：消息项渲染器 */
   const MessageRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const msg = messages[index];
     if (!msg) return null;
 
+    const isThinking = msg.capability_type === 30;
+    const isToolCall = msg.capability_type === 15;
+    const isUser = msg.message_type === 1;
+
+    // 思考块渲染
+    if (isThinking) {
+      const isExpanded = expandedThinking.has(msg.message_id);
+      const thinkingText = msg.thinking || msg.text || '';
+      return (
+        <div style={style} className="flex justify-start group">
+          <div className="max-w-[80%] rounded-2xl px-5 py-3 bg-amber-500/5 border border-amber-500/15">
+            <div
+              className="flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => toggleThinking(msg.message_id)}
+            >
+              <i className="fas fa-brain text-amber-400/70 text-xs" />
+              <span className="text-xs font-medium text-amber-400/80">AI 思考过程</span>
+              {msg.timestamp && (
+                <span className="text-[10px] text-slate-600 ml-1">{formatMessageTime(msg.timestamp)}</span>
+              )}
+              <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'} text-amber-400/50 text-[10px] ml-auto`} />
+            </div>
+            {isExpanded && thinkingText && (
+              <div className="mt-2 text-xs text-slate-400 whitespace-pre-wrap break-words leading-relaxed max-h-[300px] overflow-y-auto italic">
+                {thinkingText}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // 工具调用渲染
+    if (isToolCall && msg.tool_call) {
+      const statusIcon = msg.tool_call.status === 'completed' ? 'fa-check-circle text-emerald-400' :
+                         msg.tool_call.status === 'running' ? 'fa-spinner fa-spin text-blue-400' :
+                         msg.tool_call.status === 'error' ? 'fa-times-circle text-red-400' :
+                         'fa-wrench text-slate-400';
+      return (
+        <div style={style} className="flex justify-start group">
+          <div className="max-w-[80%] rounded-xl px-4 py-2.5 bg-cyan-500/5 border border-cyan-500/15">
+            <div className="flex items-center gap-2">
+              <i className={`fas ${statusIcon} text-xs`} />
+              <span className="text-xs font-medium text-cyan-400/80">
+                {msg.tool_call.toolName || '工具调用'}
+              </span>
+              {msg.tool_call.status && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  msg.tool_call.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
+                  msg.tool_call.status === 'error' ? 'bg-red-500/10 text-red-400' :
+                  'bg-slate-700/50 text-slate-400'
+                }`}>
+                  {msg.tool_call.status === 'completed' ? '完成' : msg.tool_call.status === 'error' ? '失败' : msg.tool_call.status}
+                </span>
+              )}
+              {msg.timestamp && (
+                <span className="text-[10px] text-slate-600 ml-1">{formatMessageTime(msg.timestamp)}</span>
+              )}
+            </div>
+            {msg.text && (
+              <div className="mt-1.5 text-xs text-slate-500 whitespace-pre-wrap break-words line-clamp-3">
+                {msg.text}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // 普通消息渲染
     return (
-      <div style={style} className={`flex group ${msg.message_type === 1 ? 'justify-end' : 'justify-start'}`}>
+      <div style={style} className={`flex group ${isUser ? 'justify-end' : 'justify-start'}`}>
         <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 ${
-          msg.message_type === 1
+          isUser
             ? 'bg-violet-500/20 border border-violet-500/20'
             : 'bg-slate-800/60 border border-slate-700/30'
         }`}>
-          {/* 消息头和复制按钮 */}
+          {/* 消息头：角色 + 时间 + 复制按钮 */}
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
-              <i className={`fas ${msg.message_type === 1 ? 'fa-user text-violet-400' : 'fa-robot text-emerald-400'} text-xs`} />
-              <span className={`text-xs font-medium ${msg.message_type === 1 ? 'text-violet-400' : 'text-emerald-400'}`}>
-                {msg.message_type === 1 ? '用户' : 'AI 助手'}
+              <i className={`fas ${isUser ? 'fa-user text-violet-400' : 'fa-robot text-emerald-400'} text-xs`} />
+              <span className={`text-xs font-medium ${isUser ? 'text-violet-400' : 'text-emerald-400'}`}>
+                {isUser ? '用户' : 'AI 助手'}
               </span>
+              {msg.timestamp && (
+                <span className="text-[10px] text-slate-600">{formatMessageTime(msg.timestamp)}</span>
+              )}
             </div>
             {/* 复制按钮组（hover 显示） */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -432,7 +542,7 @@ export default function CursorHistory() {
               >
                 <i className="fas fa-copy text-xs" />
               </button>
-              {msg.message_type === 0 && (
+              {!isUser && (
                 <button
                   onClick={() => handleCopyMessage(msg, 'markdown')}
                   className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
@@ -444,7 +554,7 @@ export default function CursorHistory() {
             </div>
           </div>
           {/* 消息内容 */}
-          {msg.message_type === 1 ? (
+          {isUser ? (
             <div className="text-sm text-slate-200 whitespace-pre-wrap break-words leading-relaxed">
               {msg.text}
             </div>
@@ -494,7 +604,7 @@ export default function CursorHistory() {
         </div>
       </div>
     );
-  }, [messages, handleCopyMessage, handleCopyCodeBlock]);
+  }, [messages, handleCopyMessage, handleCopyCodeBlock, expandedThinking, toggleThinking, formatMessageTime]);
 
   // 初始加载项目
   useEffect(() => { loadProjects(); }, [loadProjects]);
@@ -956,15 +1066,27 @@ export default function CursorHistory() {
                     <i className="fas fa-folder-open text-violet-400 text-sm" />
                     <span className="text-sm font-semibold text-white truncate">{selectedProject.project_name}</span>
                   </div>
-                  <div className="relative">
-                    <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" />
-                    <input
-                      type="text"
-                      placeholder="搜索会话..."
-                      value={sessionSearch}
-                      onChange={e => setSessionSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all"
-                    />
+                  <div className="flex flex-col gap-2">
+                    <div className="relative">
+                      <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" />
+                      <input
+                        type="text"
+                        placeholder="搜索会话..."
+                        value={sessionSearch}
+                        onChange={e => {
+                          setSessionSearch(e.target.value);
+                          // 防抖：延迟 300ms 后搜索
+                          setTimeout(() => {
+                            loadSessions(selectedProject.workspace_hash, e.target.value, selectedFilterTag);
+                          }, 300);
+                        }}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all"
+                      />
+                    </div>
+                    <TagFilter onTagSelect={(tag) => {
+                      setSelectedFilterTag(tag);
+                      loadSessions(selectedProject.workspace_hash, sessionSearch || undefined, tag);
+                    }} />
                   </div>
                 </div>
               ) : (
@@ -1015,21 +1137,22 @@ export default function CursorHistory() {
                 {/* 会话标题 */}
                 <div className="p-4 border-b border-slate-700/30 bg-slate-900/30">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
                         <i className="fas fa-comments text-violet-400 text-sm" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-sm font-semibold text-white truncate">{selectedSession.name || `会话 ${selectedSession.composer_id.slice(0, 8)}`}</h3>
-                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
                           <span>已加载 {messages.length} / {totalMessages} 条消息</span>
                           {selectedSession.created_at && (
                             <span><i className="fas fa-clock mr-1" />{formatTime(selectedSession.created_at)}</span>
                           )}
+                          <TagManager composerId={selectedSession.composer_id} />
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {/* 收藏按钮 */}
                       <button
                         onClick={handleToggleFavorite}
