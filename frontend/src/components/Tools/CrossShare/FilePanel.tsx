@@ -38,11 +38,10 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
     setUploadProgress(0);
 
     try {
-      // 获取上传令牌
-      const tokenData = await fileApi.getUploadToken(file.name, file.size, file.type);
-
-      // 上传到 OSS
-      await fileApi.uploadToOSS(file, tokenData.upload_url, tokenData.oss_key);
+      // 上传文件到后端
+      const result = await fileApi.uploadFile(file, (progress) => {
+        setUploadProgress(progress);
+      });
 
       setUploadProgress(100);
       onStatsUpdate();

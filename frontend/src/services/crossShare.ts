@@ -240,32 +240,34 @@ export const fileApi = {
     return response.data;
   },
 
-  /** 获取上传令牌 */
-  getUploadToken: async (
-    fileName: string,
-    fileSize: number,
-    fileType: string
-  ): Promise<UploadTokenResponse> => {
-    const response = await axios.post(`${API_BASE_URL}/files/upload`, {
-      file_name: fileName,
-      file_size: fileSize,
-      file_type: fileType,
-    }, { headers: getHeaders() });
-    return response.data;
-  },
-
   /** 上传文件到 OSS */
-  uploadToOSS: async (
+  uploadFile: async (
     file: File,
-    uploadUrl: string,
-    ossKey: string
-  ): Promise<void> => {
-    // 直传 OSS，不需要认证头
-    await axios.put(uploadUrl, file, {
+    onProgress?: (progress: number) => void
+  ): Promise<{
+    file_id: string;
+    file_name: string;
+    file_size: number;
+    file_type: string;
+    oss_key: string;
+    download_url: string;
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post(`${API_BASE_URL}/files/upload`, formData, {
       headers: {
-        'Content-Type': file.type || 'application/octet-stream',
+        ...getHeaders(),
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
       },
     });
+    return response.data;
   },
 
   /** 删除文件 */
