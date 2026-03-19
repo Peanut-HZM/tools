@@ -115,7 +115,7 @@ export const zhCN = {
   // Footer
   footer: {
     desc: '一站式实用工具集合，提升工作效率，简化日常任务。',
-    copyright: '© 2024 工具箱。All rights reserved.',
+    copyright: '© 2026 工具箱。All rights reserved.',
     contactUs: '联系我们',
   },
 

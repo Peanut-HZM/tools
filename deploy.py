@@ -67,7 +67,7 @@ def deploy_frontend():
     
     # 安装依赖
     print("\n安装前端依赖...")
-    run_command("npm install", cwd=FRONTEND_DIR)
+    run_command("npm install --legacy-peer-deps", cwd=FRONTEND_DIR)
     
     # 构建前端项目
     print("\n构建前端项目...")

@@ -6,12 +6,14 @@ import React, { useState } from 'react';
 
 interface CopyDropdownProps {
   content: string;
+  messageId?: string;
+  onDelete?: (messageId: string) => void;
   onCopySuccess?: () => void;
 }
 
 type CopyType = 'text' | 'markdown' | 'html';
 
-const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, onCopySuccess }) => {
+const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelete, onCopySuccess }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const copyToClipboard = async (text: string, type: CopyType) => {
@@ -68,6 +70,13 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, onCopySuccess }) =
     copyToClipboard(html, 'html');
   };
 
+  const handleDelete = () => {
+    if (messageId && onDelete) {
+      setIsOpen(false);
+      onDelete(messageId);
+    }
+  };
+
   return (
     <div className="relative">
       <button
@@ -113,6 +122,20 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, onCopySuccess }) =
                 <span>复制渲染 HTML</span>
               </button>
             </div>
+            {onDelete && messageId && (
+              <>
+                <div className="border-t border-slate-600" />
+                <div className="py-1">
+                  <button
+                    onClick={handleDelete}
+                    className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-colors flex items-center space-x-2"
+                  >
+                    <span className="text-xs">🗑️</span>
+                    <span>删除消息</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

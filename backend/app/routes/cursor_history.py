@@ -23,11 +23,13 @@ from app.models.cursor_history_models import (
     StatsOverview,
     StatsTrendItem,
     StatsResponse,
+    BatchDeleteProjectsRequest,
 )
 from app.services.cursor_history_service import (
     CursorHistoryService,
     DEFAULT_CURSOR_BASE_PATH,
 )
+from app.services.cursor_cache_service import CursorCacheService
 
 logger = logging.getLogger(__name__)
 
@@ -51,40 +53,60 @@ async def get_base_path(
 @router.get("/projects", response_model=ProjectListResponse)
 async def get_projects(
     search: Optional[str] = Query(None, description="项目名搜索关键词"),
-    base_path: Optional[str] = Query(None, description="自定义 Cursor 基础路径"),
 ):
-    """获取所有 Cursor 项目列表"""
-    logger.info(f"请求获取项目列表, 搜索: {search}, 路径: {base_path}")
-    projects = CursorHistoryService.get_projects(
-        search=search, custom_base=base_path
-    )
-    logger.info(f"返回 {len(projects)} 个项目")
+    """获取所有 Cursor 项目列表（仅从 SQLite 缓存读取）"""
+    logger.info("请求获取项目列表, 搜索: %s", search)
+
+    # 确保缓存表已初始化
+    CursorCacheService.init_db()
+    projects = CursorCacheService.get_cached_projects()
+
+    # 支持搜索过滤
+    if search:
+        kw = search.lower()
+        projects = [
+            p for p in projects
+            if kw in (p.project_name or "").lower()
+        ]
+
+    logger.info("从缓存返回 %d 个项目", len(projects))
     return ProjectListResponse(projects=projects, total=len(projects))
 
 
 @router.get("/sessions", response_model=SessionListResponse)
 async def get_sessions(
     workspace_hash: str = Query(..., description="工作区哈希"),
-    search: Optional[str] = Query(None, description="会话搜索关键词（搜索名称和内容）"),
-    base_path: Optional[str] = Query(None, description="自定义 Cursor 基础路径"),
+    search: Optional[str] = Query(
+        None, description="会话搜索关键词（搜索名称和内容）"
+    ),
 ):
-    """获取指定项目下的所有会话"""
-    logger.info(f"请求获取会话列表, workspace: {workspace_hash}, 搜索: {search}")
-    sessions = CursorHistoryService.get_sessions(
-        workspace_hash=workspace_hash, search=search, custom_base=base_path
-    )
+    """获取指定项目下的所有会话（仅从 SQLite 缓存读取）"""
+    logger.info("请求获取会话列表, workspace: %s", workspace_hash)
+
+    # 确保缓存表已初始化
+    CursorCacheService.init_db()
+    sessions = CursorCacheService.get_cached_sessions(workspace_hash)
+
+    # 搜索过滤
+    if search:
+        kw = search.lower()
+        sessions = [
+            s for s in sessions
+            if kw in (s.name or "").lower()
+        ]
 
     # 获取项目名
-    projects = CursorHistoryService.get_projects(custom_base=base_path)
     project_name = None
-    for p in projects:
+    cached_projects = CursorCacheService.get_cached_projects()
+    for p in cached_projects:
         if p.workspace_hash == workspace_hash:
             project_name = p.project_name
             break
 
-    logger.info(f"返回 {len(sessions)} 个会话")
+    logger.info("从缓存返回 %d 个会话", len(sessions))
     return SessionListResponse(
-        sessions=sessions, total=len(sessions), project_name=project_name
+        sessions=sessions, total=len(sessions),
+        project_name=project_name,
     )
 
 
@@ -92,25 +114,37 @@ async def get_sessions(
 async def get_messages(
     composer_id: str = Query(..., description="会话ID"),
     session_name: Optional[str] = Query(None, description="会话名称"),
-    base_path: Optional[str] = Query(None, description="自定义 Cursor 基础路径"),
     page: int = Query(1, ge=1, description="页码（从1开始）"),
     page_size: int = Query(50, ge=10, le=200, description="每页数量"),
+    latest_first: bool = Query(
+        False, description="是否从最新消息开始加载（反向分页）"
+    ),
 ):
-    """获取指定会话的消息（支持分页）"""
-    logger.info(f"请求获取消息列表, composer_id: {composer_id}, page: {page}")
-    messages, total, has_more = CursorHistoryService.get_messages(
-        composer_id=composer_id,
-        custom_base=base_path,
-        page=page,
-        page_size=page_size,
+    """获取指定会话的消息（仅从 SQLite 缓存读取，支持分页）"""
+    logger.info(
+        "请求获取消息, composer_id: %s, page: %s",
+        composer_id, page,
     )
-    logger.info(f"返回 {len(messages)} 条消息, 总计: {total}")
+
+    # 确保缓存表已初始化
+    CursorCacheService.init_db()
+    messages, total, has_more, total_pages = (
+        CursorCacheService.get_cached_messages(
+            composer_id=composer_id,
+            page=page,
+            page_size=page_size,
+            latest_first=latest_first,
+        )
+    )
+    logger.info("从缓存返回 %d 条消息, 总计: %d", len(messages), total)
+
     return MessageListResponse(
         messages=messages,
         total=total,
         session_name=session_name,
         page=page,
         page_size=page_size,
+        total_pages=total_pages,
         has_more=has_more,
     )
 
@@ -118,16 +152,30 @@ async def get_messages(
 @router.get("/search", response_model=SearchResponse)
 async def search_messages(
     query: str = Query(..., description="搜索关键词"),
-    limit: int = Query(50, ge=1, le=200, description="返回结果数量限制"),
-    base_path: Optional[str] = Query(None, description="自定义 Cursor 基础路径"),
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
 ):
-    """全局搜索消息内容"""
-    logger.info(f"请求全局搜索, 关键词: {query}, limit: {limit}")
-    results = CursorHistoryService.search_messages(
-        query=query, limit=limit, custom_base=base_path
+    """全局搜索会话标题和消息内容（仅从 SQLite 缓存搜索）"""
+    logger.info("请求全局搜索, 关键词: %s, 页码: %d", query, page)
+
+    # 确保缓存表已初始化
+    CursorCacheService.init_db()
+    search_data = CursorCacheService.search_cached_messages(
+        keyword=query, page=page, page_size=page_size
     )
-    logger.info(f"搜索返回 {len(results)} 条结果")
-    return SearchResponse(results=results, total=len(results), query=query)
+    logger.info(
+        "搜索返回 %d 条结果, 总计 %d 条",
+        len(search_data["results"]), search_data["total"]
+    )
+
+    return SearchResponse(
+        results=search_data["results"],
+        total=search_data["total"],
+        query=query,
+        page=search_data["page"],
+        page_size=search_data["page_size"],
+        total_pages=search_data["total_pages"],
+    )
 
 
 @router.post("/export")
@@ -560,3 +608,85 @@ async def batch_remove_favorites(request: TagBulkRequest):
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"批量操作失败：{str(e)}")
 
+
+# ==================== 数据同步 API ====================
+
+@router.post("/sync")
+async def trigger_sync(
+    base_path: Optional[str] = Query(
+        None, description="自定义 Cursor 基础路径"
+    ),
+):
+    """
+    触发全量数据同步（后台线程执行）
+    将 Cursor 原始数据同步到本地 SQLite 缓存数据库
+    """
+    import threading
+
+    status = CursorCacheService.get_sync_status()
+    if status["syncing"]:
+        logger.warning("同步任务已在运行中")
+        return {"success": False, "message": "同步任务正在运行中"}
+
+    logger.info("触发全量数据同步, base_path: %s", base_path)
+    thread = threading.Thread(
+        target=CursorCacheService.sync_all_data,
+        args=(base_path,),
+        daemon=True,
+    )
+    thread.start()
+    return {"success": True, "message": "同步任务已启动"}
+
+
+@router.get("/sync/status")
+async def get_sync_status():
+    """获取数据同步进度和状态"""
+    status = CursorCacheService.get_sync_status()
+    return status
+
+
+@router.get("/cache/has-data")
+async def check_cache():
+    """检查缓存数据库是否有数据"""
+    has = CursorCacheService.has_cache()
+    return {"has_data": has}
+
+
+# ==================== 缓存 CRUD API ====================
+
+@router.delete("/cache/projects")
+async def delete_cached_project(
+    workspace_hash: str = Query(..., description="项目工作空间哈希"),
+):
+    """删除缓存中的项目及其所有关联数据"""
+    logger.info("删除缓存项目: %s", workspace_hash)
+    deleted = CursorCacheService.delete_project(workspace_hash)
+    if deleted:
+        return {"success": True, "message": "项目删除成功"}
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="项目不存在")
+
+
+@router.post("/cache/projects/batchDelete")
+async def batch_delete_cached_projects(request: BatchDeleteProjectsRequest):
+    """批量删除缓存中的多个项目及其所有关联数据"""
+    logger.info("批量删除缓存项目, 数量: %d", len(request.workspace_hashes))
+    deleted_count = CursorCacheService.batch_delete_projects(request.workspace_hashes)
+    return {
+        "success": True,
+        "message": f"成功删除 {deleted_count} 个项目",
+        "deleted_count": deleted_count,
+    }
+
+
+@router.delete("/cache/sessions")
+async def delete_cached_session(
+    composer_id: str = Query(..., description="会话 ID"),
+):
+    """删除缓存中的会话及其所有消息"""
+    logger.info("删除缓存会话: %s", composer_id)
+    deleted = CursorCacheService.delete_session(composer_id)
+    if deleted:
+        return {"success": True, "message": "会话删除成功"}
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="会话不存在")

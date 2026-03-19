@@ -18,6 +18,8 @@ class CursorProject(BaseModel):
     project_path: Optional[str] = None
     # 该项目下的会话数量
     session_count: int = 0
+    # Git 远程仓库地址（用于项目去重）
+    git_remote_url: Optional[str] = None
 
 
 class CursorSession(BaseModel):
@@ -76,7 +78,9 @@ class MessageListResponse(BaseModel):
     page: int = 1
     # 每页数量
     page_size: int = 50
-    # 是否有更多数据
+    # 总页数
+    total_pages: int = 1
+    # 是否有更多数据（向上加载历史时，表示是否还有更早的消息）
     has_more: bool = False
 
 
@@ -92,8 +96,10 @@ class SearchResultItem(BaseModel):
     session_name: Optional[str] = None
     # 匹配的消息文本片段
     matched_text: str = ""
-    # 消息类型
+    # 消息类型（0=消息内容匹配, 1=用户消息, 2=AI消息, -1=会话标题匹配）
     message_type: int = 0
+    # 匹配类型：title=会话标题匹配, content=消息内容匹配
+    match_type: str = "content"
 
 
 class SearchResponse(BaseModel):
@@ -101,6 +107,12 @@ class SearchResponse(BaseModel):
     results: List[SearchResultItem]
     total: int
     query: str
+    # 当前页码
+    page: int = 1
+    # 每页数量
+    page_size: int = 20
+    # 总页数
+    total_pages: int = 1
 
 
 class WorkspacePathResponse(BaseModel):
@@ -196,4 +208,10 @@ class StatsResponse(BaseModel):
     """统计响应"""
     overview: StatsOverview
     trends: List[StatsTrendItem]
+
+
+class BatchDeleteProjectsRequest(BaseModel):
+    """批量删除项目请求"""
+    # 要删除的项目工作空间哈希列表
+    workspace_hashes: List[str]
 

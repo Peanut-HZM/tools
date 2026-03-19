@@ -260,16 +260,19 @@ class CursorHistoryService:
         custom_base: Optional[str] = None,
         page: int = 1,
         page_size: int = 50,
+        latest_first: bool = False,
     ) -> tuple:
         """
         获取指定会话的消息（支持分页）
         参数：composer_id - 会话ID, custom_base - 自定义基础路径
               page - 页码（从1开始）, page_size - 每页数量
-        返回：(消息列表, 总数, 是否有更多)
+              latest_first - 是否从最新消息开始加载（反向分页）
+        返回：(消息列表, 总数, 是否有更多, 总页数)
         """
         logger.info(
             f"获取消息列表, composer_id: {composer_id}, "
-            f"page: {page}, page_size: {page_size}"
+            f"page: {page}, page_size: {page_size}, "
+            f"latest_first: {latest_first}"
         )
         _, _, global_db = _get_paths(custom_base)
         rows = cls._safe_db_query(
@@ -354,16 +357,30 @@ class CursorHistoryService:
             ))
 
         total = len(all_messages)
-        # 分页：返回前 page * page_size 条（累积加载模式）
-        end_idx = page * page_size
-        paged_messages = all_messages[:end_idx]
-        has_more = end_idx < total
+        import math
+        total_pages = max(1, math.ceil(total / page_size))
+
+        if latest_first:
+            # 反向分页：page=1 返回最后 page_size 条，
+            # page=2 返回倒数第二批，以此类推
+            # 每页内消息保持时间正序（旧→新）
+            end_idx = max(0, total - (page - 1) * page_size)
+            start_idx = max(0, end_idx - page_size)
+            paged_messages = all_messages[start_idx:end_idx]
+            has_more = start_idx > 0
+        else:
+            # 正向分页：page=1 返回最前面的消息
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
+            paged_messages = all_messages[start_idx:end_idx]
+            has_more = end_idx < total
 
         logger.info(
-            f"找到 {total} 条消息, 返回前 {len(paged_messages)} 条, "
-            f"has_more: {has_more}"
+            f"找到 {total} 条消息, 返回 {len(paged_messages)} 条"
+            f" [{start_idx}:{end_idx}], "
+            f"has_more: {has_more}, latest_first: {latest_first}"
         )
-        return paged_messages, total, has_more
+        return paged_messages, total, has_more, total_pages
 
     @classmethod
     def search_messages(

@@ -84,3 +84,32 @@ export function extractCodeContent(content: string): string {
   const cleaned = content.replace(/^```\w*\n/, '').replace(/\n```$/, '');
   return cleaned;
 }
+
+/**
+ * 检测是否是 URL 链接
+ * @param content - 要检测的内容
+ * @returns 是否是 URL
+ */
+export function isUrl(content: string): boolean {
+  if (!content || content.trim() === '') {
+    return false;
+  }
+
+  const trimmedContent = content.trim();
+
+  // 检查是否是完整的 URL（包含协议）
+  const urlPattern = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
+  const urlWithProtocolPattern = /^https?:\/\/([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
+
+  // 检查是否是常见的 URL 格式
+  if (urlWithProtocolPattern.test(trimmedContent)) {
+    return true;
+  }
+
+  // 检查是否是 www 开头的 URL
+  if (/^www\./.test(trimmedContent)) {
+    return true;
+  }
+
+  return false;
+}

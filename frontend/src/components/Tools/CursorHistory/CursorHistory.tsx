@@ -9,8 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { List } from 'react-window';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+// react-window 和 AutoSizer 已移除，改为普通滚动列表
 import { API_BASE_URL } from '../../../config/api';
 import { useToast } from '../../../hooks/useToast';
 import { cacheSessionMessages, getCachedSessionMessages } from '../../../utils/cursorCache';
@@ -64,6 +63,7 @@ interface SearchResultItem {
   session_name: string | null;
   matched_text: string;
   message_type: number;
+  match_type: 'title' | 'content';
 }
 
 // ==================== 主组件 ====================
@@ -89,6 +89,10 @@ export default function CursorHistory() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 搜索分页状态
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchTotalPages, setSearchTotalPages] = useState(1);
+  const [searchTotal, setSearchTotal] = useState(0);
 
   // 新增状态：侧边栏折叠、自定义路径、路径设置面板
   const [showProjectPanel, setShowProjectPanel] = useState(true);
@@ -97,16 +101,15 @@ export default function CursorHistory() {
   const [pathInput, setPathInput] = useState('');
   const [pathValid, setPathValid] = useState<boolean | null>(null);
 
-  // 分页状态
+  // 分页状态（反向加载：最新消息在底部，向上加载历史）
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalMessages, setTotalMessages] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
 
-  // 虚拟滚动状态
-  const [virtualListHeight, setVirtualListHeight] = useState(0);
-  const virtualListRef = useRef<List>(null);
+  // 虚拟滚动已移除，使用普通滚动
 
   // 导出功能状态
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -136,6 +139,20 @@ export default function CursorHistory() {
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [selectMode, setSelectMode] = useState(false);
 
+  // 项目多选删除状态
+  const [selectedProjectHashes, setSelectedProjectHashes] = useState<Set<string>>(new Set());
+  const [projectSelectMode, setProjectSelectMode] = useState(false);
+
+  // 同步状态
+  const [syncStatus, setSyncStatus] = useState<{
+    syncing: boolean;
+    progress: number;
+    total: number;
+    current_step: string;
+    last_sync_time: string | null;
+    error: string | null;
+  }>({ syncing: false, progress: 0, total: 0, current_step: '', last_sync_time: null, error: null });
+
   // ==================== 数据加载 ====================
 
   /** 构建带 base_path 的查询参数 */
@@ -150,7 +167,6 @@ export default function CursorHistory() {
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
-      appendBasePath(params);
       const res = await fetch(`${API_BASE_URL}/cursor-history/projects?${params}`);
       if (!res.ok) throw new Error('加载项目列表失败');
       const data = await res.json();
@@ -160,15 +176,15 @@ export default function CursorHistory() {
     } finally {
       setLoading(prev => ({ ...prev, projects: false }));
     }
-  }, [appendBasePath]);
+  }, []);
 
   /** 加载会话列表 */
-  const loadSessions = useCallback(async (workspaceHash: string, search?: string) => {
+  const loadSessions = useCallback(async (workspaceHash: string, search?: string, tag?: string) => {
     setLoading(prev => ({ ...prev, sessions: true }));
     try {
       const params = new URLSearchParams({ workspace_hash: workspaceHash });
       if (search) params.set('search', search);
-      appendBasePath(params);
+      if (tag) params.set('tag', tag);
       const res = await fetch(`${API_BASE_URL}/cursor-history/sessions?${params}`);
       if (!res.ok) throw new Error('加载会话列表失败');
       const data = await res.json();
@@ -178,9 +194,9 @@ export default function CursorHistory() {
     } finally {
       setLoading(prev => ({ ...prev, sessions: false }));
     }
-  }, [appendBasePath]);
+  }, []);
 
-  /** 加载消息列表（首次加载，重置分页） */
+  /** 加载消息列表（首次加载：加载最新消息，滚到底部） */
   const loadMessages = useCallback(async (composerId: string, sessionName?: string) => {
     setLoading(prev => ({ ...prev, messages: true }));
     setCurrentPage(1);
@@ -190,19 +206,34 @@ export default function CursorHistory() {
     if (cachedMessages && cachedMessages.length > 0) {
       setMessages(cachedMessages);
       setLoading(prev => ({ ...prev, messages: false }));
+      // 缓存加载后滚到底部
+      setTimeout(() => {
+        messageListRef.current?.scrollTo({ top: messageListRef.current.scrollHeight });
+      }, 50);
       return;
     }
 
     try {
-      const params = new URLSearchParams({ composer_id: composerId, page: '1', page_size: '50' });
+      // 使用 latest_first=true，page=1 返回最新的一批消息
+      const params = new URLSearchParams({
+        composer_id: composerId,
+        page: '1',
+        page_size: '50',
+        latest_first: 'true',
+      });
       if (sessionName) params.set('session_name', sessionName);
-      appendBasePath(params);
       const res = await fetch(`${API_BASE_URL}/cursor-history/messages?${params}`);
       if (!res.ok) throw new Error('加载消息失败');
       const data = await res.json();
       setMessages(data.messages || []);
       setTotalMessages(data.total || 0);
+      setTotalPages(data.total_pages || 1);
       setHasMore(data.has_more || false);
+
+      // 首次加载后滚动到底部（显示最新消息）
+      setTimeout(() => {
+        messageListRef.current?.scrollTo({ top: messageListRef.current.scrollHeight });
+      }, 50);
 
       // 存入缓存
       if (data.messages && data.messages.length > 0) {
@@ -213,57 +244,233 @@ export default function CursorHistory() {
     } finally {
       setLoading(prev => ({ ...prev, messages: false }));
     }
-  }, [appendBasePath, selectedProject]);
+  }, [selectedProject]);
 
-  /** 加载更多消息（下一页，累积追加） */
+  /** 加载更多历史消息（向上滚动时触发，prepend 到列表前面） */
   const loadMoreMessages = useCallback(async () => {
     if (!selectedSession || loadingMore || !hasMore) return;
     const nextPage = currentPage + 1;
     setLoadingMore(true);
+
+    // 记录当前滚动位置，用于 prepend 后保持视觉位置不跳
+    const container = messageListRef.current;
+    const prevScrollHeight = container?.scrollHeight || 0;
+
     try {
       const params = new URLSearchParams({
         composer_id: selectedSession.composer_id,
         page: String(nextPage),
         page_size: '50',
+        latest_first: 'true',
       });
-      appendBasePath(params);
       const res = await fetch(`${API_BASE_URL}/cursor-history/messages?${params}`);
       if (!res.ok) throw new Error('加载更多消息失败');
       const data = await res.json();
-      // 累积模式：后端返回前 nextPage*50 条，直接替换
-      setMessages(data.messages || []);
+      const olderMessages = data.messages || [];
+
+      // 将更旧的消息 prepend 到现有消息前面
+      setMessages(prev => [...olderMessages, ...prev]);
       setCurrentPage(nextPage);
       setHasMore(data.has_more || false);
       setTotalMessages(data.total || 0);
+
+      // 恢复滚动位置：prepend 后 scrollHeight 增大，
+      // 需要将 scrollTop 增加相应的差值
+      setTimeout(() => {
+        if (container) {
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop += (newScrollHeight - prevScrollHeight);
+        }
+      }, 0);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoadingMore(false);
     }
-  }, [selectedSession, loadingMore, hasMore, currentPage, appendBasePath]);
+  }, [selectedSession, loadingMore, hasMore, currentPage]);
 
-  /** 全局搜索 */
-  const doGlobalSearch = useCallback(async (query: string) => {
+  /** 全局搜索（支持分页） */
+  const doGlobalSearch = useCallback(async (query: string, page: number = 1) => {
     if (!query.trim()) {
       setIsSearchMode(false);
       setSearchResults([]);
+      setSearchPage(1);
+      setSearchTotalPages(1);
+      setSearchTotal(0);
       return;
     }
     setLoading(prev => ({ ...prev, search: true }));
     setIsSearchMode(true);
     try {
-      const params = new URLSearchParams({ query, limit: '50' });
-      appendBasePath(params);
+      const params = new URLSearchParams({
+        query,
+        page: String(page),
+        page_size: '20',
+      });
       const res = await fetch(`${API_BASE_URL}/cursor-history/search?${params}`);
       if (!res.ok) throw new Error('搜索失败');
       const data = await res.json();
       setSearchResults(data.results || []);
+      setSearchPage(data.page || 1);
+      setSearchTotalPages(data.total_pages || 1);
+      setSearchTotal(data.total || 0);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(prev => ({ ...prev, search: false }));
     }
-  }, [appendBasePath]);
+  }, []);
+
+  /** 轮询同步状态 */
+  const pollSyncStatus = useCallback(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const pollStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/cursor-history/sync/status`);
+        const data = await res.json();
+        setSyncStatus(data);
+
+        // 同步完成后刷新数据并停止轮询
+        if (!data.syncing && timer) {
+          if (data.last_sync_time) {
+            loadProjects();
+          }
+          clearInterval(timer);
+          timer = null;
+        }
+      } catch {
+        // 忽略轮询错误
+      }
+    };
+
+    // 初始检查一次
+    pollStatus();
+
+    // 每 2 秒轮询
+    timer = setInterval(pollStatus, 2000);
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [loadProjects]);
+
+  /** 触发数据同步 */
+  const triggerSync = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (customBasePath) params.set('base_path', customBasePath);
+      const res = await fetch(`${API_BASE_URL}/cursor-history/sync?${params}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showSuccess('同步任务已启动');
+        // 立即开始轮询同步状态
+        pollSyncStatus();
+      } else {
+        showError(data.message || '同步失败');
+      }
+    } catch (e) {
+      showError('触发同步失败：' + (e as Error).message);
+    }
+  }, [customBasePath, showSuccess, showError, pollSyncStatus]);
+
+  // 初始加载时检查同步状态
+  useEffect(() => {
+    const pollStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/cursor-history/sync/status`);
+        const data = await res.json();
+        setSyncStatus(data);
+      } catch {
+        // 忽略轮询错误
+      }
+    };
+    pollStatus();
+  }, []);
+
+
+
+  /** 删除缓存中的项目 */
+  const deleteCachedProject = useCallback(async (hash: string) => {
+    try {
+      const params = new URLSearchParams({ workspace_hash: hash });
+      const res = await fetch(`${API_BASE_URL}/cursor-history/cache/projects?${params}`, { method: 'DELETE' });
+      if (res.ok) {
+        showSuccess('项目已删除');
+        loadProjects();
+        if (selectedProject?.workspace_hash === hash) {
+          setSelectedProject(null);
+          setSessions([]);
+          setMessages([]);
+        }
+      }
+    } catch (e) {
+      showError('删除失败: ' + (e as Error).message);
+    }
+  }, [loadProjects, selectedProject, showSuccess, showError]);
+
+  /** 批量删除缓存中的项目 */
+  const batchDeleteProjects = useCallback(async () => {
+    if (selectedProjectHashes.size === 0) return;
+    const hashList = Array.from(selectedProjectHashes);
+    try {
+      const res = await fetch(`${API_BASE_URL}/cursor-history/cache/projects/batchDelete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_hashes: hashList }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showSuccess(data.message || '批量删除成功');
+        setSelectedProjectHashes(new Set());
+        setProjectSelectMode(false);
+        loadProjects();
+        // 如果删除了当前选中的项目，清空会话和消息
+        if (selectedProject && hashList.includes(selectedProject.workspace_hash)) {
+          setSelectedProject(null);
+          setSessions([]);
+          setMessages([]);
+        }
+      } else {
+        showError('批量删除失败');
+      }
+    } catch (e) {
+      showError('批量删除失败: ' + (e as Error).message);
+    }
+  }, [selectedProjectHashes, selectedProject, loadProjects, showSuccess, showError]);
+
+  /** 切换项目的选中状态 */
+  const toggleProjectSelect = useCallback((hash: string) => {
+    setSelectedProjectHashes(prev => {
+      const next = new Set(prev);
+      if (next.has(hash)) {
+        next.delete(hash);
+      } else {
+        next.add(hash);
+      }
+      return next;
+    });
+  }, []);
+
+  /** 删除缓存中的会话 */
+  const deleteCachedSession = useCallback(async (composerId: string) => {
+    try {
+      const params = new URLSearchParams({ composer_id: composerId });
+      const res = await fetch(`${API_BASE_URL}/cursor-history/cache/sessions?${params}`, { method: 'DELETE' });
+      if (res.ok) {
+        showSuccess('会话已删除');
+        if (selectedProject) {
+          loadSessions(selectedProject.workspace_hash);
+        }
+        if (selectedSession?.composer_id === composerId) {
+          setSelectedSession(null);
+          setMessages([]);
+        }
+      }
+    } catch (e) {
+      showError('删除失败: ' + (e as Error).message);
+    }
+  }, [selectedProject, selectedSession, loadSessions, showSuccess, showError]);
 
   /** 验证自定义路径 */
   const validatePath = useCallback(async (path: string) => {
@@ -447,10 +654,8 @@ export default function CursorHistory() {
     } catch { return ''; }
   }, []);
 
-  /** 虚拟滚动：消息项渲染器 */
-  const MessageRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const msg = messages[index];
-    if (!msg) return null;
+  /** 消息项渲染组件 */
+  const MessageItem = useCallback(({ msg }: { msg: CursorMessage }) => {
 
     const isThinking = msg.capability_type === 30;
     const isToolCall = msg.capability_type === 15;
@@ -463,7 +668,7 @@ export default function CursorHistory() {
       const isExpanded = expandedThinking.has(msg.message_id);
       const thinkingText = msg.thinking || msg.text || '';
       return (
-        <div style={style} className="flex justify-start group">
+        <div className="flex justify-start group">
           <div className="max-w-[80%] rounded-2xl px-5 py-3 bg-amber-500/5 border border-amber-500/15">
             <div
               className="flex items-center gap-2 cursor-pointer select-none"
@@ -493,7 +698,7 @@ export default function CursorHistory() {
                          msg.tool_call.status === 'error' ? 'fa-times-circle text-red-400' :
                          'fa-wrench text-slate-400';
       return (
-        <div style={style} className="flex justify-start group">
+        <div className="flex justify-start group">
           <div className="max-w-[80%] rounded-xl px-4 py-2.5 bg-cyan-500/5 border border-cyan-500/15">
             <div className="flex items-center gap-2">
               <i className={`fas ${statusIcon} text-xs`} />
@@ -525,7 +730,7 @@ export default function CursorHistory() {
 
     // 普通消息渲染
     return (
-      <div style={style} className={`flex group ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <div className={`flex group ${isUser ? 'justify-end' : 'justify-start'}`}>
         <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 ${
           isUser
             ? 'bg-violet-500/20 border border-violet-500/20'
@@ -613,7 +818,7 @@ export default function CursorHistory() {
         </div>
       </div>
     );
-  }, [messages, handleCopyMessage, handleCopyCodeBlock, expandedThinking, toggleThinking, formatMessageTime]);
+  }, [handleCopyMessage, handleCopyCodeBlock, expandedThinking, toggleThinking, formatMessageTime]);
 
   // 初始加载项目
   useEffect(() => { loadProjects(); }, [loadProjects]);
@@ -643,14 +848,13 @@ export default function CursorHistory() {
     return () => clearTimeout(timer);
   }, [pathInput, validatePath]);
 
-  // 消息列表滚动加载更多
+  // 消息列表滚动加载历史消息（滚动到顶部时触发）
   useEffect(() => {
     const container = messageListRef.current;
     if (!container) return;
     const handleScroll = () => {
-      // 距离底部 200px 时触发加载
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      if (scrollHeight - scrollTop - clientHeight < 200 && hasMore && !loadingMore) {
+      // 距离顶部 200px 时触发加载更早的消息
+      if (container.scrollTop < 200 && hasMore && !loadingMore) {
         loadMoreMessages();
       }
     };
@@ -797,6 +1001,20 @@ export default function CursorHistory() {
             >
               <i className="fas fa-chart-bar text-lg" />
             </button>
+            {/* 同步数据按钮 */}
+            <button
+              onClick={triggerSync}
+              disabled={syncStatus.syncing}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                syncStatus.syncing
+                  ? 'bg-blue-500/20 text-blue-400 cursor-not-allowed'
+                  : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30'
+              }`}
+              title={syncStatus.last_sync_time ? `上次同步: ${syncStatus.last_sync_time}` : '同步 Cursor 数据到本地缓存'}
+            >
+              <i className={`fas ${syncStatus.syncing ? 'fa-sync fa-spin' : 'fa-database'} mr-1.5`} />
+              {syncStatus.syncing ? '同步中...' : '同步数据'}
+            </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
                 <i className="fas fa-clock-rotate-left text-violet-400 text-lg" />
@@ -822,7 +1040,7 @@ export default function CursorHistory() {
               />
               {globalSearch && (
                 <button
-                  onClick={() => { setGlobalSearch(''); setIsSearchMode(false); setSearchResults([]); }}
+                  onClick={() => { setGlobalSearch(''); setIsSearchMode(false); setSearchResults([]); setSearchPage(1); setSearchTotalPages(1); setSearchTotal(0); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
                 >
                   <i className="fas fa-times text-sm" />
@@ -845,6 +1063,39 @@ export default function CursorHistory() {
             <ThemeSwitcher />
           </div>
         </div>
+
+        {/* 同步进度条 */}
+        {syncStatus.syncing && (
+          <div className="max-w-[1920px] mx-auto px-6 pb-2">
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-sync fa-spin text-blue-400 text-xs" />
+                  <span className="text-xs text-blue-300">{syncStatus.current_step}</span>
+                </div>
+                <span className="text-xs text-blue-400">
+                  {syncStatus.total > 0 ? `${syncStatus.progress}/${syncStatus.total}` : '准备中...'}
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                  style={{ width: `${syncStatus.total > 0 ? (syncStatus.progress / syncStatus.total) * 100 : 5}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 同步完成/错误提示 */}
+        {!syncStatus.syncing && syncStatus.error && (
+          <div className="max-w-[1920px] mx-auto px-6 pb-2">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2 flex items-center gap-2">
+              <i className="fas fa-exclamation-triangle text-red-400 text-xs" />
+              <span className="text-xs text-red-300">同步失败: {syncStatus.error}</span>
+            </div>
+          </div>
+        )}
 
         {/* 路径设置面板 */}
         {showPathSettings && (
@@ -906,25 +1157,33 @@ export default function CursorHistory() {
 
       {/* 搜索结果模式 */}
       {isSearchMode ? (
-        <div className="max-w-[1920px] mx-auto px-6 py-6">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="max-w-[1920px] mx-auto px-6 flex flex-col" style={{ height: showPathSettings ? 'calc(100vh - 170px)' : 'calc(100vh - 73px)' }}>
+          {/* 搜索结果头部 */}
+          <div className="flex items-center gap-2 py-4 flex-shrink-0">
             <h2 className="text-lg font-semibold text-white">搜索结果</h2>
-            <span className="text-sm text-slate-400">({searchResults.length} 条)</span>
+            <span className="text-sm text-slate-400">
+              (共 {searchTotal} 条，第 {searchPage}/{searchTotalPages} 页)
+            </span>
             {loading.search && <i className="fas fa-spinner fa-spin text-violet-400 text-sm" />}
           </div>
-          <div className="space-y-3">
+          {/* 搜索结果列表（可滚动） */}
+          <div className="flex-1 overflow-y-auto space-y-3 pb-4">
             {searchResults.map((item, idx) => (
               <div
-                key={idx}
+                key={`${item.composer_id}-${idx}`}
                 onClick={() => handleSearchResultClick(item)}
                 className="bg-slate-900/60 border border-slate-700/30 rounded-xl p-4 hover:border-violet-500/40 cursor-pointer transition-all group"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-medium text-violet-400 bg-violet-400/10 px-2 py-0.5 rounded-full">{item.project_name}</span>
                   {item.session_name && <span className="text-xs text-slate-500">/ {item.session_name}</span>}
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${item.message_type === 1 ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                    {item.message_type === 1 ? '用户' : 'AI'}
-                  </span>
+                  {item.match_type === 'title' ? (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">标题匹配</span>
+                  ) : (
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${item.message_type === 1 ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                      {item.message_type === 1 ? '用户' : 'AI'}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-slate-300 line-clamp-3">{item.matched_text}</p>
               </div>
@@ -936,6 +1195,42 @@ export default function CursorHistory() {
               </div>
             )}
           </div>
+          {/* 分页控件（固定在底部） */}
+          {searchTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-3 border-t border-slate-700/30 flex-shrink-0">
+              <button
+                onClick={() => doGlobalSearch(globalSearch, 1)}
+                disabled={searchPage <= 1 || loading.search}
+                className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                首页
+              </button>
+              <button
+                onClick={() => doGlobalSearch(globalSearch, searchPage - 1)}
+                disabled={searchPage <= 1 || loading.search}
+                className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <i className="fas fa-chevron-left mr-1" />上一页
+              </button>
+              <span className="text-xs text-slate-400 px-3">
+                {searchPage} / {searchTotalPages}
+              </span>
+              <button
+                onClick={() => doGlobalSearch(globalSearch, searchPage + 1)}
+                disabled={searchPage >= searchTotalPages || loading.search}
+                className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                下一页<i className="fas fa-chevron-right ml-1" />
+              </button>
+              <button
+                onClick={() => doGlobalSearch(globalSearch, searchTotalPages)}
+                disabled={searchPage >= searchTotalPages || loading.search}
+                className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                末页
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         /* 三栏布局（高度根据路径设置面板动态调整） */
@@ -1046,17 +1341,69 @@ export default function CursorHistory() {
           {showProjectPanel && (
           <ResizablePanel defaultWidth={280} minWidth={220} maxWidth={450} storageKey="cursor-projects-width">
           <div className="w-full h-full border-r border-slate-700/30 flex flex-col bg-slate-900/40">
-            <div className="p-3 border-b border-slate-700/30">
+            <div className="pl-1 pr-2 py-3 border-b border-slate-700/30">
               <div className="relative">
-                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" />
+                <i className="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs" />
                 <input
                   type="text"
                   placeholder="搜索项目..."
                   value={projectSearch}
                   onChange={e => setProjectSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all"
+                  className="w-full pl-8 pr-3 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all"
                 />
               </div>
+              {/* 多选模式切换和批量操作按钮 */}
+              {projects.length > 0 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={() => {
+                      setProjectSelectMode(prev => !prev);
+                      setSelectedProjectHashes(new Set());
+                    }}
+                    className={`px-2 py-1 text-xs rounded transition-all ${
+                      projectSelectMode
+                        ? 'bg-violet-600 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                    title={projectSelectMode ? '退出多选' : '多选模式'}
+                  >
+                    <i className="fas fa-check-square mr-1" />
+                    {projectSelectMode ? '退出多选' : '多选'}
+                  </button>
+                  {projectSelectMode && (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (selectedProjectHashes.size === projects.length) {
+                            setSelectedProjectHashes(new Set());
+                          } else {
+                            setSelectedProjectHashes(new Set(projects.map(p => p.workspace_hash)));
+                          }
+                        }}
+                        className="px-2 py-1 text-xs text-slate-400 hover:text-white hover:bg-slate-700/50 rounded transition-all"
+                      >
+                        {selectedProjectHashes.size === projects.length ? '取消全选' : '全选'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (selectedProjectHashes.size > 0 && confirm(`确定删除选中的 ${selectedProjectHashes.size} 个项目吗？`)) {
+                            batchDeleteProjects();
+                          }
+                        }}
+                        disabled={selectedProjectHashes.size === 0}
+                        className={`px-2 py-1 text-xs rounded transition-all ${
+                          selectedProjectHashes.size > 0
+                            ? 'text-red-400 hover:text-white hover:bg-red-600'
+                            : 'text-slate-600 cursor-not-allowed'
+                        }`}
+                      >
+                        <i className="fas fa-trash-alt mr-1" />
+                        删除({selectedProjectHashes.size})
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto">
               {loading.projects ? (
@@ -1064,24 +1411,61 @@ export default function CursorHistory() {
                   <i className="fas fa-spinner fa-spin text-violet-400" />
                 </div>
               ) : projects.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-sm">
-                  <i className="fas fa-folder-open text-2xl mb-2 block opacity-30" />
-                  <p>暂无项目</p>
+                <div className="text-center py-10 px-4">
+                  <i className="fas fa-database text-3xl mb-3 block text-violet-400/40" />
+                  <p className="text-sm text-slate-400 mb-1">暂无缓存数据</p>
+                  <p className="text-xs text-slate-500 mb-4">请先同步 Cursor 对话数据到本地数据库</p>
+                  <button
+                    onClick={triggerSync}
+                    className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs rounded-lg transition-all inline-flex items-center gap-2"
+                  >
+                    <i className="fas fa-sync-alt" />
+                    同步数据
+                  </button>
                 </div>
               ) : (
                 projects.map(project => (
                   <div
                     key={project.workspace_hash}
-                    onClick={() => handleProjectClick(project)}
-                    className={`px-4 py-3 cursor-pointer border-b border-slate-800/50 transition-all hover:bg-slate-800/50 ${
+                    onClick={() => {
+                      if (projectSelectMode) {
+                        toggleProjectSelect(project.workspace_hash);
+                      } else {
+                        handleProjectClick(project);
+                      }
+                    }}
+                    className={`group pl-1 pr-2 py-3 cursor-pointer border-b border-slate-800/50 transition-all hover:bg-slate-800/50 ${
                       selectedProject?.workspace_hash === project.workspace_hash
-                        ? 'bg-violet-500/10 border-l-2 border-l-violet-500'
+                        ? 'bg-violet-500/10'
                         : ''
-                    }`}
+                    } ${selectedProjectHashes.has(project.workspace_hash) ? 'bg-violet-500/5' : ''}`}
                   >
                     <div className="flex items-center gap-2">
+                      {projectSelectMode && (
+                        <input
+                          type="checkbox"
+                          checked={selectedProjectHashes.has(project.workspace_hash)}
+                          onChange={() => toggleProjectSelect(project.workspace_hash)}
+                          onClick={e => e.stopPropagation()}
+                          className="w-3.5 h-3.5 rounded border-slate-600 text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer"
+                        />
+                      )}
                       <i className="fas fa-folder text-violet-400/70 text-sm" />
                       <span className="text-sm font-medium text-white truncate flex-1">{project.project_name}</span>
+                      {!projectSelectMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`确定删除项目「${project.project_name}」吗？`)) {
+                              deleteCachedProject(project.workspace_hash);
+                            }
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all p-1"
+                          title="删除项目"
+                        >
+                          <i className="fas fa-trash-alt text-xs" />
+                        </button>
+                      )}
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                       <i className="fas fa-comments text-[10px]" />
@@ -1091,7 +1475,7 @@ export default function CursorHistory() {
                 ))
               )}
             </div>
-            <div className="p-3 border-t border-slate-700/30 text-xs text-slate-500 text-center">
+            <div className="pl-1 pr-2 py-3 border-t border-slate-700/30 text-xs text-slate-500 text-center">
               共 {projects.length} 个项目
             </div>
           </div>
@@ -1185,7 +1569,7 @@ export default function CursorHistory() {
                     <div
                       key={session.composer_id}
                       onClick={() => handleSessionClick(session)}
-                      className={`px-4 py-3 cursor-pointer border-b border-slate-800/30 transition-all hover:bg-slate-800/40 flex items-start gap-3 ${
+                      className={`group px-4 py-3 cursor-pointer border-b border-slate-800/30 transition-all hover:bg-slate-800/40 flex items-start gap-3 ${
                         selectedSession?.composer_id === session.composer_id
                           ? 'bg-violet-500/10 border-l-2 border-l-violet-500'
                           : ''
@@ -1208,7 +1592,21 @@ export default function CursorHistory() {
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-white truncate">{session.name || `会话 ${session.composer_id.slice(0, 8)}`}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white truncate flex-1">{session.name || `会话 ${session.composer_id.slice(0, 8)}`}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`确定删除会话「${session.name || session.composer_id.slice(0, 8)}」吗？`)) {
+                                deleteCachedSession(session.composer_id);
+                              }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all p-1 flex-shrink-0"
+                            title="删除会话"
+                          >
+                            <i className="fas fa-trash-alt text-xs" />
+                          </button>
+                        </div>
                         <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
                           {session.created_at && <span>{formatTime(session.created_at)}</span>}
                           <span>{session.message_count} 条消息</span>
@@ -1271,8 +1669,8 @@ export default function CursorHistory() {
                   </div>
                 </div>
 
-                {/* 消息列表（虚拟滚动） */}
-                <div className="flex-1 overflow-hidden p-6">
+                {/* 消息列表（普通滚动，向上加载历史） */}
+                <div ref={messageListRef} className="flex-1 overflow-y-auto p-6 space-y-4">
                   {loading.messages ? (
                     <div className="flex items-center justify-center py-12">
                       <i className="fas fa-spinner fa-spin text-violet-400 text-xl" />
@@ -1283,44 +1681,34 @@ export default function CursorHistory() {
                       <p>暂无消息</p>
                     </div>
                   ) : (
-                    <AutoSizer>
-                      {({ height, width }) => (
-                        <List
-                          ref={virtualListRef}
-                          height={height}
-                          width={width}
-                          itemCount={messages.length}
-                          itemSize={200}
-                          itemData={messages}
-                          overscanCount={5}
-                        >
-                          {MessageRow}
-                        </List>
+                    <>
+                      {/* 顶部加载历史消息提示 */}
+                      {!hasMore && messages.length > 0 && (
+                        <div className="text-center py-3 text-xs text-slate-600">
+                          — 已加载全部 {totalMessages} 条消息 —
+                        </div>
                       )}
-                    </AutoSizer>
-                  )}
-                  {/* 加载更多提示 */}
-                  {loadingMore && (
-                    <div className="flex items-center justify-center py-4">
-                      <i className="fas fa-spinner fa-spin text-violet-400 mr-2" />
-                      <span className="text-xs text-slate-500">加载更多消息...</span>
-                    </div>
-                  )}
-                  {!loadingMore && hasMore && (
-                    <div className="text-center py-3">
-                      <button
-                        onClick={loadMoreMessages}
-                        className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
-                      >
-                        <i className="fas fa-angle-down mr-1" />
-                        滚动或点击加载更多（还有 {totalMessages - messages.length} 条）
-                      </button>
-                    </div>
-                  )}
-                  {!hasMore && messages.length > 0 && !loading.messages && (
-                    <div className="text-center py-3 text-xs text-slate-600">
-                      — 已加载全部 {totalMessages} 条消息 —
-                    </div>
+                      {!loadingMore && hasMore && (
+                        <div className="text-center py-3">
+                          <button
+                            onClick={loadMoreMessages}
+                            className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                          >
+                            <i className="fas fa-angle-up mr-1" />
+                            向上滚动或点击加载更早消息（还有 {totalMessages - messages.length} 条）
+                          </button>
+                        </div>
+                      )}
+                      {loadingMore && (
+                        <div className="flex items-center justify-center py-4">
+                          <i className="fas fa-spinner fa-spin text-violet-400 mr-2" />
+                          <span className="text-xs text-slate-500">加载历史消息...</span>
+                        </div>
+                      )}
+                      {messages.map((msg, index) => (
+                        <MessageItem key={msg.message_id || index} msg={msg} />
+                      ))}
+                    </>
                   )}
                 </div>
               </>
