@@ -602,9 +602,10 @@ async def get_file_content(
     user_id = None
     if auth_token:
         try:
-            payload = jwt.decode(auth_token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+            from app.config.config import settings as app_settings
+            payload = jwt.decode(auth_token, app_settings.JWT_SECRET_KEY, algorithms=["HS256"])
             user_id = payload.get("sub")
-        except jwt.PyJWTError:
+        except Exception:
             pass
 
     if not user_id:
