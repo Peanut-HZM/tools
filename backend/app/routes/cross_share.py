@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import uuid
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.models.base import get_db
 from app.services.cross_share_service import CrossShareService
@@ -361,9 +364,7 @@ async def upload_file(
 ):
     """上传文件到 OSS - 使用流式上传支持大文件"""
     from app.services.oss_service import oss_service
-    import shutil
-    import tempfile
-    import os
+    import io
 
     file_name = file.filename or "unknown"
     file_type = file.content_type or "application/octet-stream"
@@ -384,14 +385,15 @@ async def upload_file(
         raise HTTPException(status_code=500, detail="OSS 服务未初始化")
 
     try:
-        # 使用流式上传到 OSS
-        # oss2 支持使用 file-like object 进行流式上传
-        result = oss_service.bucket.put_object(oss_key, file.file)
+        # 读取文件内容到内存（对于大文件，可以考虑使用临时文件）
+        file_content = await file.read()
+        file_size = len(file_content)
+
+        # 上传到 OSS
+        result = oss_service.bucket.put_object(oss_key, io.BytesIO(file_content))
         if result.status != 200:
             raise HTTPException(status_code=500, detail=f"上传到 OSS 失败，状态码：{result.status}")
 
-        # 获取实际文件大小
-        file_size = result.resp.response_len
         logger.info(f"File uploaded successfully: {file_name}, size: {file_size} bytes")
     except Exception as e:
         logger.error(f"上传文件到 OSS 失败：{e}")
