@@ -2,11 +2,15 @@
  * 视频预览器
  */
 import React from 'react';
-import ReactPlayer from 'react-player';
 import { PreviewProps } from './types';
 
-export const VideoViewer: React.FC<PreviewProps> = ({ url, fileName }) => {
+export const VideoViewer: React.FC<PreviewProps> = ({ fileName, fileId }) => {
   const [error, setError] = React.useState(false);
+
+  // 从 localStorage 获取 auth token
+  const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  // 在 URL 中添加 token 作为查询参数，因为 HTML5 video 标签无法设置 Authorization header
+  const videoUrl = `/api/cross-share/files/${fileId}/content${authToken ? `?token=${authToken}` : ''}`;
 
   if (error) {
     return (
@@ -21,21 +25,17 @@ export const VideoViewer: React.FC<PreviewProps> = ({ url, fileName }) => {
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-900">
-      <ReactPlayer
-        url={url}
+      <video
+        controls
         width="100%"
         height="100%"
-        controls
-        playing={false}
+        className="max-w-full max-h-full"
+        crossOrigin="anonymous"
         onError={() => setError(true)}
-        config={{
-          file: {
-            attributes: {
-              crossOrigin: 'anonymous',
-            },
-          },
-        }}
-      />
+      >
+        <source src={videoUrl} type="video/mp4" />
+        Your browser does not support video playback
+      </video>
     </div>
   );
 };

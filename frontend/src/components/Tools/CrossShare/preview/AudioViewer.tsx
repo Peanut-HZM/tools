@@ -6,7 +6,11 @@ import { PreviewProps } from './types';
 
 export const AudioViewer: React.FC<PreviewProps> = ({ fileName, fileId }) => {
   const [error, setError] = React.useState(false);
-  const audioUrl = `/api/cross-share/files/${fileId}/content`;
+
+  // 从 localStorage 获取 auth token
+  const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  // 在 URL 中添加 token 作为查询参数，因为 HTML5 audio 标签无法设置 Authorization header
+  const audioUrl = `/api/cross-share/files/${fileId}/content${authToken ? `?token=${authToken}` : ''}`;
 
   if (error) {
     return (
@@ -26,6 +30,7 @@ export const AudioViewer: React.FC<PreviewProps> = ({ fileName, fileId }) => {
           controls
           className="w-full"
           crossOrigin="anonymous"
+          onError={() => setError(true)}
         >
           <source src={audioUrl} type="audio/mpeg" />
           Your browser does not support audio playback

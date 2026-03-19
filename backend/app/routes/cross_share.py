@@ -578,17 +578,39 @@ async def preview_file(
 async def get_file_content(
     file_id: str,
     service: CrossShareService = Depends(get_cross_share_service),
-    current_user: str = Depends(get_current_user_id),
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+    token: Optional[str] = Query(None, description="JWT token for media files"),
 ):
     """获取文件内容 - 通过后端代理从 OSS 获取并返回，解决 CORS 问题
 
     支持文本类文件（markdown、json、txt 等）和媒体文件（视频、音频）的预览
+
+    支持两种认证方式：
+    - Authorization header: 适用于文本类文件预览
+    - Query parameter: 适用于 HTML5 video/audio 标签（无法设置 header）
     """
     from fastapi.responses import StreamingResponse
     from app.services.oss_service import oss_service
+    from app.services.auth_service import get_auth_service
     import io
+    import jwt
 
-    file = service.get_file_by_id(file_id, current_user)
+    # 优先使用 query parameter 的 token（适用于媒体文件）
+    auth_token = token or (authorization.replace("Bearer ", "") if authorization else None)
+
+    # 验证 token 并获取用户 ID
+    user_id = None
+    if auth_token:
+        try:
+            payload = jwt.decode(auth_token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+            user_id = payload.get("sub")
+        except jwt.PyJWTError:
+            pass
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="未授权访问")
+
+    file = service.get_file_by_id(file_id, user_id)
     if not file:
         raise HTTPException(status_code=404, detail="文件不存在")
 
