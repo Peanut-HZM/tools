@@ -593,7 +593,7 @@ async def get_file_content(
     from app.services.oss_service import oss_service
     from app.services.auth_service import get_auth_service
     import io
-    import jwt
+    from jose import jwt
 
     # 优先使用 query parameter 的 token（适用于媒体文件）
     auth_token = token or (authorization.replace("Bearer ", "") if authorization else None)
