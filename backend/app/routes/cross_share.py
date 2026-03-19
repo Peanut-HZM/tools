@@ -88,9 +88,22 @@ def get_oss_upload_url(oss_key: str) -> str:
 
 def get_oss_download_url(oss_key: str, expires: int = 3600) -> str:
     """获取 OSS 下载 URL（带签名）"""
-    # 简单实现：返回公共读 URL
-    # 如果需要签名 URL，需要使用 oss2 的 sign_url 方法
-    return f"https://{settings.ALIYUN_OSS_BUCKET_NAME}.{settings.ALIYUN_OSS_ENDPOINT}/{oss_key}"
+    from app.services.oss_service import oss_service
+
+    if not oss_service.bucket:
+        # 如果 OSS 未初始化，返回公共读 URL（降级）
+        logger.warning("OSS bucket not initialized, returning public URL")
+        return f"https://{settings.ALIYUN_OSS_BUCKET_NAME}.{settings.ALIYUN_OSS_ENDPOINT}/{oss_key}"
+
+    # 生成签名 URL，expires 单位是秒
+    # sign_url 方法会自动生成包含 OSSAccessKeyId、Expires 和 Signature 的 URL
+    download_url = oss_service.bucket.sign_url('GET', oss_key, expires)
+
+    # 确保使用 HTTPS
+    if download_url.startswith('http://'):
+        download_url = 'https://' + download_url[7:]
+
+    return download_url
 
 
 # ============ 设备管理 ============
