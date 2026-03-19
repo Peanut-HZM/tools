@@ -582,10 +582,11 @@ async def get_file_content(
 ):
     """获取文件内容 - 通过后端代理从 OSS 获取并返回，解决 CORS 问题
 
-    用于文本类文件（markdown、json、txt 等）的预览
+    支持文本类文件（markdown、json、txt 等）和媒体文件（视频、音频）的预览
     """
-    from fastapi.responses import Response
+    from fastapi.responses import StreamingResponse
     from app.services.oss_service import oss_service
+    import io
 
     file = service.get_file_by_id(file_id, current_user)
     if not file:
@@ -599,11 +600,12 @@ async def get_file_content(
         obj = oss_service.bucket.get_object(file.oss_key)
         content = obj.read()
 
-        # 根据文件类型设置正确的 Content-Type
-        content_type = "text/plain; charset=utf-8"
+        # 根据文件扩展名设置正确的 Content-Type
         ext = file.file_name.lower().split('.')[-1] if '.' in file.file_name else ''
 
+        # 扩展 Content-Type 映射表，支持媒体文件
         content_type_map = {
+            # 文本类
             'md': 'text/markdown; charset=utf-8',
             'markdown': 'text/markdown; charset=utf-8',
             'json': 'application/json; charset=utf-8',
@@ -611,14 +613,30 @@ async def get_file_content(
             'csv': 'text/csv; charset=utf-8',
             'xml': 'application/xml; charset=utf-8',
             'log': 'text/plain; charset=utf-8',
+            # 视频类
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'avi': 'video/x-msvideo',
+            'mov': 'video/quicktime',
+            'mkv': 'video/x-matroska',
+            'flv': 'video/x-flv',
+            'wmv': 'video/x-ms-wmv',
+            'm4v': 'video/x-m4v',
+            # 音频类
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'aac': 'audio/aac',
+            'ogg': 'audio/ogg',
+            'flac': 'audio/flac',
+            'm4a': 'audio/mp4',
+            'wma': 'audio/x-ms-wma',
         }
 
-        if ext in content_type_map:
-            content_type = content_type_map[ext]
+        content_type = content_type_map.get(ext, 'application/octet-stream')
 
-        # 返回文件内容，添加 CORS 头
-        return Response(
-            content=content,
+        # 返回流式响应，添加 CORS 头
+        return StreamingResponse(
+            io.BytesIO(content),
             media_type=content_type,
             headers={
                 "Access-Control-Allow-Origin": "*",
