@@ -359,28 +359,20 @@ async def upload_file(
     current_user: str = Depends(get_current_user_id),
     from_device_id: Optional[str] = Header(None, alias="X-Device-Id"),
 ):
-    """上传文件到 OSS"""
+    """上传文件到 OSS - 使用流式上传支持大文件"""
     from app.services.oss_service import oss_service
-    import io
+    import shutil
+    import tempfile
+    import os
 
-    # 读取文件内容
-    file_content = await file.read()
-    file_size = len(file_content)
     file_name = file.filename or "unknown"
     file_type = file.content_type or "application/octet-stream"
 
     # 获取用户配置，检查文件大小限制
     config = service.get_config(current_user)
-    if file_size > config.max_file_size:
-        raise HTTPException(
-            status_code=400,
-            detail=f"文件大小超过限制 ({config.max_file_size / 1024 / 1024:.0f}MB)"
-        )
 
-    # 检查存储空间
+    # 检查存储空间（先获取当前统计）
     stats = service.get_storage_stats(current_user, config)
-    if stats["used_quota"] + file_size > config.storage_quota:
-        raise HTTPException(status_code=400, detail="存储空间不足")
 
     # 生成 OSS key
     timestamp = datetime.now().strftime("%Y%m%d")
@@ -392,26 +384,87 @@ async def upload_file(
         raise HTTPException(status_code=500, detail="OSS 服务未初始化")
 
     try:
-        result = oss_service.bucket.put_object(oss_key, io.BytesIO(file_content))
+        # 使用流式上传到 OSS
+        # oss2 支持使用 file-like object 进行流式上传
+        result = oss_service.bucket.put_object(oss_key, file.file)
         if result.status != 200:
             raise HTTPException(status_code=500, detail=f"上传到 OSS 失败，状态码：{result.status}")
+
+        # 获取实际文件大小
+        file_size = result.resp.response_len
+        logger.info(f"File uploaded successfully: {file_name}, size: {file_size} bytes")
     except Exception as e:
         logger.error(f"上传文件到 OSS 失败：{e}")
         raise HTTPException(status_code=500, detail=f"上传文件失败：{str(e)}")
 
-    # 确定文件类型
+    # 检查文件大小限制
+    if file_size > config.max_file_size:
+        # 上传成功后删除文件
+        try:
+            oss_service.bucket.delete_object(oss_key)
+        except:
+            pass
+        raise HTTPException(
+            status_code=400,
+            detail=f"文件大小超过限制 ({config.max_file_size / 1024 / 1024:.0f}MB)"
+        )
+
+    # 检查存储空间
+    if stats["used_quota"] + file_size > config.storage_quota:
+        # 上传成功后删除文件
+        try:
+            oss_service.bucket.delete_object(oss_key)
+        except:
+            pass
+        raise HTTPException(status_code=400, detail="存储空间不足")
+
+    # 确定文件类型 - 优先根据扩展名判断，其次根据 MIME type
     response_file_type = FileType.OTHER
-    if file_type.startswith("image"):
+
+    # 获取文件扩展名
+    ext = file_name.lower().split('.')[-1] if '.' in file_name else ''
+
+    # 根据扩展名判断文件类型
+    ext_to_type = {
+        # 图片
+        'jpg': FileType.IMAGE, 'jpeg': FileType.IMAGE, 'png': FileType.IMAGE,
+        'gif': FileType.IMAGE, 'webp': FileType.IMAGE, 'svg': FileType.IMAGE,
+        'bmp': FileType.IMAGE, 'ico': FileType.IMAGE,
+        # 视频
+        'mp4': FileType.VIDEO, 'webm': FileType.VIDEO, 'avi': FileType.VIDEO,
+        'mov': FileType.VIDEO, 'mkv': FileType.VIDEO, 'flv': FileType.VIDEO,
+        'wmv': FileType.VIDEO, 'm4v': FileType.VIDEO,
+        # 音频
+        'mp3': FileType.AUDIO, 'wav': FileType.AUDIO, 'aac': FileType.AUDIO,
+        'ogg': FileType.AUDIO, 'flac': FileType.AUDIO, 'm4a': FileType.AUDIO,
+        'wma': FileType.AUDIO,
+        # 文档
+        'pdf': FileType.DOCUMENT, 'doc': FileType.DOCUMENT, 'docx': FileType.DOCUMENT,
+        'xls': FileType.DOCUMENT, 'xlsx': FileType.DOCUMENT, 'ppt': FileType.DOCUMENT,
+        'pptx': FileType.DOCUMENT, 'odt': FileType.DOCUMENT, 'ods': FileType.DOCUMENT,
+        # 文本
+        'txt': FileType.TEXT, 'md': FileType.TEXT, 'markdown': FileType.TEXT,
+        'json': FileType.TEXT, 'xml': FileType.TEXT, 'csv': FileType.TEXT,
+        'log': FileType.TEXT,
+        # 压缩包
+        'zip': FileType.ARCHIVE, 'rar': FileType.ARCHIVE, '7z': FileType.ARCHIVE,
+        'tar': FileType.ARCHIVE, 'gz': FileType.ARCHIVE, 'bz2': FileType.ARCHIVE,
+    }
+
+    if ext in ext_to_type:
+        response_file_type = ext_to_type[ext]
+    # 扩展名未匹配时，根据 MIME type 判断
+    elif file_type.startswith("image"):
         response_file_type = FileType.IMAGE
     elif file_type.startswith("video"):
         response_file_type = FileType.VIDEO
     elif file_type.startswith("audio"):
         response_file_type = FileType.AUDIO
-    elif file_type in ["application/pdf", "application/msword"]:
+    elif file_type in ["application/pdf", "application/msword", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
         response_file_type = FileType.DOCUMENT
-    elif file_type in ["text/plain", "text/markdown"]:
+    elif file_type in ["text/plain", "text/markdown", "application/json", "text/xml", "text/csv"]:
         response_file_type = FileType.TEXT
-    elif file_type in ["application/zip", "application/x-rar"]:
+    elif file_type in ["application/zip", "application/x-rar", "application/x-7z-compressed", "application/x-tar"]:
         response_file_type = FileType.ARCHIVE
 
     # 计算文件过期时间
@@ -496,6 +549,83 @@ async def get_download_url(
         "download_url": download_url,
         "expires_at": datetime.now() + timedelta(hours=1),
     }
+
+
+@router.get("/files/{file_id}/preview")
+async def preview_file(
+    file_id: str,
+    service: CrossShareService = Depends(get_cross_share_service),
+    current_user: str = Depends(get_current_user_id),
+):
+    """预览文件 - 通过后端代理转发到 OSS，解决 CORS 问题"""
+    from fastapi.responses import RedirectResponse
+
+    file = service.get_file_by_id(file_id, current_user)
+    if not file:
+        raise HTTPException(status_code=404, detail="文件不存在")
+
+    # 生成临时预览 URL（1 小时过期）
+    preview_url = get_oss_download_url(file.oss_key, expires=3600)
+
+    # 重定向到 OSS 签名 URL
+    # 使用 302 重定向，浏览器会自动跟随请求，绕过 CORS 限制
+    return RedirectResponse(url=preview_url, status_code=302)
+
+
+@router.get("/files/{file_id}/content")
+async def get_file_content(
+    file_id: str,
+    service: CrossShareService = Depends(get_cross_share_service),
+    current_user: str = Depends(get_current_user_id),
+):
+    """获取文件内容 - 通过后端代理从 OSS 获取并返回，解决 CORS 问题
+
+    用于文本类文件（markdown、json、txt 等）的预览
+    """
+    from fastapi.responses import Response
+    from app.services.oss_service import oss_service
+
+    file = service.get_file_by_id(file_id, current_user)
+    if not file:
+        raise HTTPException(status_code=404, detail="文件不存在")
+
+    if not oss_service.bucket:
+        raise HTTPException(status_code=500, detail="OSS 服务未初始化")
+
+    try:
+        # 从 OSS 获取文件内容
+        obj = oss_service.bucket.get_object(file.oss_key)
+        content = obj.read()
+
+        # 根据文件类型设置正确的 Content-Type
+        content_type = "text/plain; charset=utf-8"
+        ext = file.file_name.lower().split('.')[-1] if '.' in file.file_name else ''
+
+        content_type_map = {
+            'md': 'text/markdown; charset=utf-8',
+            'markdown': 'text/markdown; charset=utf-8',
+            'json': 'application/json; charset=utf-8',
+            'txt': 'text/plain; charset=utf-8',
+            'csv': 'text/csv; charset=utf-8',
+            'xml': 'application/xml; charset=utf-8',
+            'log': 'text/plain; charset=utf-8',
+        }
+
+        if ext in content_type_map:
+            content_type = content_type_map[ext]
+
+        # 返回文件内容，添加 CORS 头
+        return Response(
+            content=content,
+            media_type=content_type,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control": "public, max-age=3600",
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to get file content from OSS: {e}")
+        raise HTTPException(status_code=500, detail=f"获取文件内容失败：{str(e)}")
 
 
 # ============ 配置管理 ============

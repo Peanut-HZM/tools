@@ -294,6 +294,12 @@ export const fileApi = {
     return response.data;
   },
 
+  /** 获取预览 URL（与下载链接相同） */
+  getPreviewUrl: async (fileId: string): Promise<string> => {
+    const { download_url } = await fileApi.getDownloadUrl(fileId);
+    return download_url;
+  },
+
   /** 获取存储统计 */
   getStorageStats: async (): Promise<StorageStats> => {
     const response = await axios.get(`${API_BASE_URL}/files/stats`, { headers: getHeaders() });

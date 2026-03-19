@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { fileApi, CrossFile, formatFileSize, formatDateTime, getFileTypeIcon } from '../../../services/crossShare';
+import { FilePreviewModal } from './FilePreviewModal';
 
 interface FilePanelProps {
   onStatsUpdate: () => void;
@@ -14,6 +15,11 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // 预览相关状态
+  const [previewFile, setPreviewFile] = useState<CrossFile | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     loadFiles();
@@ -76,6 +82,23 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
     } catch (error) {
       console.error('Failed to get download URL:', error);
     }
+  };
+
+  const handlePreview = async (file: CrossFile) => {
+    try {
+      const url = await fileApi.getPreviewUrl(file.id);
+      setPreviewUrl(url);
+      setPreviewFile(file);
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error('Failed to get preview URL:', error);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    setPreviewFile(null);
+    setPreviewUrl(null);
   };
 
   const filteredFiles = files.filter((f) =>
@@ -160,6 +183,12 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
 
               <div className="flex items-center space-x-2">
                 <button
+                  onClick={() => handlePreview(file)}
+                  className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
+                >
+                  👁️ 预览
+                </button>
+                <button
                   onClick={() => handleDownload(file)}
                   className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
                 >
@@ -176,6 +205,15 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
           ))
         )}
       </div>
+
+      {/* 预览模态框 */}
+      <FilePreviewModal
+        file={previewFile}
+        previewUrl={previewUrl}
+        isOpen={isPreviewOpen}
+        onClose={handleClosePreview}
+        onDownload={() => previewFile && handleDownload(previewFile)}
+      />
     </div>
   );
 };
