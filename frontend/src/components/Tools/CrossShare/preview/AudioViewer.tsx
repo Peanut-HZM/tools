@@ -2,11 +2,11 @@
  * 音频预览器
  */
 import React from 'react';
-import ReactPlayer from 'react-player';
 import { PreviewProps } from './types';
 
-export const AudioViewer: React.FC<PreviewProps> = ({ url, fileName }) => {
+export const AudioViewer: React.FC<PreviewProps> = ({ fileName, fileId }) => {
   const [error, setError] = React.useState(false);
+  const audioUrl = `/api/cross-share/files/${fileId}/content`;
 
   if (error) {
     return (
@@ -21,22 +21,15 @@ export const AudioViewer: React.FC<PreviewProps> = ({ url, fileName }) => {
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-900">
-      <div className="w-full max-w-2xl">
-        <ReactPlayer
-          url={url}
-          width="100%"
-          height="auto"
+      <div className="w-full max-w-2xl px-8">
+        <audio
           controls
-          playing={false}
-          onError={() => setError(true)}
-          config={{
-            file: {
-              attributes: {
-                crossOrigin: 'anonymous',
-              },
-            },
-          }}
-        />
+          className="w-full"
+          crossOrigin="anonymous"
+        >
+          <source src={audioUrl} type="audio/mpeg" />
+          Your browser does not support audio playback
+        </audio>
       </div>
     </div>
   );
