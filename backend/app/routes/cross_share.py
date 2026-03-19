@@ -1,11 +1,12 @@
 """
 CrossShare API 路由
 """
-from fastapi import APIRouter, HTTPException, Depends, Query, Request, Header
+from fastapi import APIRouter, HTTPException, Depends, Query, Request, Header, File, UploadFile
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import uuid
+import io
 
 from app.models.base import get_db
 from app.services.cross_share_service import CrossShareService
@@ -351,17 +352,26 @@ async def get_file(
     return file
 
 
-@router.post("/files/upload", response_model=UploadTokenResponse)
+@router.post("/files/upload")
 async def upload_file(
-    request: UploadTokenRequest,
+    file: UploadFile = File(...),
     service: CrossShareService = Depends(get_cross_share_service),
     current_user: str = Depends(get_current_user_id),
     from_device_id: Optional[str] = Header(None, alias="X-Device-Id"),
 ):
-    """获取上传令牌"""
+    """上传文件到 OSS"""
+    from app.services.oss_service import oss_service
+    import io
+
+    # 读取文件内容
+    file_content = await file.read()
+    file_size = len(file_content)
+    file_name = file.filename or "unknown"
+    file_type = file.content_type or "application/octet-stream"
+
     # 获取用户配置，检查文件大小限制
     config = service.get_config(current_user)
-    if request.file_size > config.max_file_size:
+    if file_size > config.max_file_size:
         raise HTTPException(
             status_code=400,
             detail=f"文件大小超过限制 ({config.max_file_size / 1024 / 1024:.0f}MB)"
@@ -369,41 +379,50 @@ async def upload_file(
 
     # 检查存储空间
     stats = service.get_storage_stats(current_user, config)
-    if stats["used_quota"] + request.file_size > config.storage_quota:
+    if stats["used_quota"] + file_size > config.storage_quota:
         raise HTTPException(status_code=400, detail="存储空间不足")
 
     # 生成 OSS key
     timestamp = datetime.now().strftime("%Y%m%d")
     unique_id = uuid.uuid4().hex[:8]
-    oss_key = f"cross_share/{current_user}/{timestamp}/{unique_id}_{request.file_name}"
+    oss_key = f"cross_share/{current_user}/{timestamp}/{unique_id}_{file_name}"
 
-    # 获取上传 URL
-    upload_url = get_oss_upload_url(oss_key)
+    # 上传到 OSS
+    if not oss_service.bucket:
+        raise HTTPException(status_code=500, detail="OSS 服务未初始化")
 
-    # 创建文件记录
-    file_type = FileType.OTHER
-    if request.file_type.startswith("image"):
-        file_type = FileType.IMAGE
-    elif request.file_type.startswith("video"):
-        file_type = FileType.VIDEO
-    elif request.file_type.startswith("audio"):
-        file_type = FileType.AUDIO
-    elif request.file_type in ["application/pdf", "application/msword"]:
-        file_type = FileType.DOCUMENT
-    elif request.file_type in ["text/plain", "text/markdown"]:
-        file_type = FileType.TEXT
-    elif request.file_type in ["application/zip", "application/x-rar"]:
-        file_type = FileType.ARCHIVE
+    try:
+        result = oss_service.bucket.put_object(oss_key, io.BytesIO(file_content))
+        if result.status != 200:
+            raise HTTPException(status_code=500, detail=f"上传到 OSS 失败，状态码：{result.status}")
+    except Exception as e:
+        logger.error(f"上传文件到 OSS 失败：{e}")
+        raise HTTPException(status_code=500, detail=f"上传文件失败：{str(e)}")
+
+    # 确定文件类型
+    response_file_type = FileType.OTHER
+    if file_type.startswith("image"):
+        response_file_type = FileType.IMAGE
+    elif file_type.startswith("video"):
+        response_file_type = FileType.VIDEO
+    elif file_type.startswith("audio"):
+        response_file_type = FileType.AUDIO
+    elif file_type in ["application/pdf", "application/msword"]:
+        response_file_type = FileType.DOCUMENT
+    elif file_type in ["text/plain", "text/markdown"]:
+        response_file_type = FileType.TEXT
+    elif file_type in ["application/zip", "application/x-rar"]:
+        response_file_type = FileType.ARCHIVE
 
     # 计算文件过期时间
     expires_at = datetime.now() + timedelta(days=config.file_expire_days)
-    
+
     db_file = service.create_file(
         user_id=current_user,
         file=FileCreate(
-            file_name=request.file_name,
-            file_size=request.file_size,
-            file_type=file_type,
+            file_name=file_name,
+            file_size=file_size,
+            file_type=response_file_type,
             oss_bucket=settings.ALIYUN_OSS_BUCKET_NAME,
             oss_key=oss_key,
             upload_device_id=from_device_id,
@@ -411,12 +430,17 @@ async def upload_file(
         expires_at=expires_at,
     )
 
+    # 生成下载 URL
+    download_url = get_oss_download_url(oss_key, expires=3600)
+
     return {
-        "token": "direct-upload",  # OSS 直传不需要额外 token
-        "bucket": settings.ALIYUN_OSS_BUCKET_NAME,
-        "oss_key": oss_key,
-        "upload_url": upload_url,
         "file_id": str(db_file.id),
+        "file_name": file_name,
+        "file_size": file_size,
+        "file_type": response_file_type.value if isinstance(response_file_type, FileType) else response_file_type,
+        "oss_key": oss_key,
+        "download_url": download_url,
+        "created_at": db_file.created_at.isoformat() if db_file.created_at else None,
     }
 
 
