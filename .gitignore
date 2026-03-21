@@ -80,3 +80,7 @@ design/
 
 # Git Worktrees
 .worktrees/
+
+# Database files
+*.db
+cursor_history.db
