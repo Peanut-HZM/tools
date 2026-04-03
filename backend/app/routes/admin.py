@@ -1,7 +1,7 @@
 """
 Admin Routes - APIs for administrative tasks (User Management, OSS Management)
 """
-from fastapi import APIRouter, HTTPException, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, Depends, Query, Body, Request
 from typing import List, Dict, Any, Optional
 
 from app.services.auth_service import get_auth_service, AuthService
@@ -109,15 +109,13 @@ async def delete_user(
 async def admin_reset_password(
     user_id: str,
     password_reset: AdminPasswordReset,
+    request: Request,
     admin_user: UserResponse = Depends(get_admin_user),
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """Admin reset user password"""
     # Get client IP from request headers
-    request = getattr(admin_reset, "request", None)
-    ip_address = None
-    if request:
-        ip_address = request.headers.get("X-Forwarded-For", request.headers.get("X-Real-IP"))
+    ip_address = request.headers.get("X-Forwarded-For", request.headers.get("X-Real-IP"))
 
     success, message, new_password = auth_service.admin_reset_password(
         user_id=user_id,
