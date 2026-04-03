@@ -5,9 +5,10 @@ import { useToast } from '../../hooks/useToast';
 interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
+export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswordModalProps) {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -68,6 +69,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
       if (result.success) {
         setSuccess(true);
         toastSuccess('密码修改成功');
+        onSuccess?.();
         setTimeout(() => {
           handleClose();
         }, 1500);
