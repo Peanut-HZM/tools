@@ -33,11 +33,13 @@ import LearningSharePlatform from './components/Tools/LearningSharePlatform';
 import OpenSpecCourse from './components/Tools/OpenSpecCourse';
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
 import CursorHistory from './components/Tools/CursorHistory/CursorHistory';
+import HttpApiClient from './components/Tools/HttpApiClient/HttpApiClient';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import TechContentsPage from './pages/TechContentsPage';
 import TechContentDetailPage from './pages/TechContentDetailPage';
+import AccountSettings from './pages/AccountSettings';
 import { AuthProvider } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -187,6 +189,7 @@ function HomePage() {
       'cross-share': '/tools/cross-share',
       'course-platform': '/courses',
       'cursor-history': '/tools/cursor-history',
+      'http-api-client': '/tools/http-api-client',
     };
 
     const route = toolRoutes[toolId];
@@ -233,6 +236,7 @@ function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/account-settings" element={<AccountSettings />} />
               <Route path="/courses" element={<CoursesPage />} />
               <Route path="/courses/:slug" element={<CourseDetailPage />} />
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
@@ -258,6 +262,7 @@ function App() {
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
               <Route path="/tools/cross-share" element={<CrossShareMain />} />
               <Route path="/tools/cursor-history" element={<CursorHistory />} />
+              <Route path="/tools/http-api-client" element={<HttpApiClient />} />
             </Route>
 
             {/* Admin Routes */}

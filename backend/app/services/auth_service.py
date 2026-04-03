@@ -18,6 +18,7 @@ from app.models.auth_models import (
     AdminPasswordReset, AdminPasswordResetResponse, UserPasswordChange, UserPasswordChangeResponse
 )
 from app.config.database import get_db_connection
+from app.config.config import settings
 from app.utils.password_utils import validate_password_strength, generate_random_password
 from fastapi import Request
 
