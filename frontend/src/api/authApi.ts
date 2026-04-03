@@ -42,6 +42,16 @@ export interface ApiError {
   detail?: string;
 }
 
+export interface UserPasswordChangeRequest {
+  old_password: string;
+  new_password: string;
+}
+
+export interface UserPasswordChangeResponse {
+  success: boolean;
+  message: string;
+}
+
 /**
  * Get the stored auth token
  */
@@ -196,4 +206,25 @@ export async function verifyToken(): Promise<boolean> {
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * Change user password
+ */
+export async function changePassword(data: UserPasswordChangeRequest): Promise<UserPasswordChangeResponse> {
+  const response = await fetch(`${API_BASE_URL}/password`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to change password');
+  }
+
+  return response.json();
 }

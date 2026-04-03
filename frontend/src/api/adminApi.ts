@@ -191,11 +191,97 @@ export async function createUser(data: { username: string; email: string; role: 
     return response.json();
 }
 
-export async function listUsers(): Promise<UserResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+export interface UserListResponse {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+    users: UserResponse[];
+}
+
+export interface AdminPasswordResetRequest {
+    mode: 'direct' | 'random';
+    new_password?: string;
+}
+
+export interface AdminPasswordResetResponse {
+    success: boolean;
+    new_password: string;
+    message: string;
+}
+
+export async function resetUserPassword(userId: string, data: AdminPasswordResetRequest): Promise<AdminPasswordResetResponse> {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders() as Record<string, string>,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to reset password');
+    }
+    return response.json();
+}
+
+export interface UserListParams {
+    page?: number;
+    page_size?: number;
+    search?: string;
+    role?: string;
+}
+
+export async function listUsers(params?: UserListParams): Promise<UserListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.page_size) searchParams.append('page_size', params.page_size.toString());
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.role) searchParams.append('role', params.role);
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `${API_BASE_URL}/users?${queryString}` : `${API_BASE_URL}/users`;
+
+    const response = await fetch(url, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to list users');
+    return response.json();
+}
+
+export async function batchDeleteUsers(userIds: string[]): Promise<{ success_count: number; failed_count: number; errors: string[] }> {
+    const response = await fetch(`${API_BASE_URL}/users/batch-delete`, {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders() as Record<string, string>,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_ids: userIds })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to batch delete users');
+    }
+    return response.json();
+}
+
+export async function batchUpdateUserRole(userIds: string[], role: string): Promise<{ success_count: number; failed_count: number; errors: string[] }> {
+    const response = await fetch(`${API_BASE_URL}/users/batch-update-role`, {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders() as Record<string, string>,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_ids: userIds, role })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to batch update user role');
+    }
     return response.json();
 }
 

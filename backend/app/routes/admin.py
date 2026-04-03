@@ -2,14 +2,14 @@
 Admin Routes - APIs for administrative tasks (User Management, OSS Management)
 """
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from app.services.auth_service import get_auth_service, AuthService
 from app.services.oss_service import oss_service
 from app.services.stats_service import stats_service
 from app.services.tools_service import tools_service
 from app.services.settings_service import settings_service
-from app.models.auth_models import UserResponse, UserRoleUpdate, UserCreate
+from app.models.auth_models import UserResponse, UserRoleUpdate, UserCreate, UserListResponse, UserBatchDeleteRequest, UserBatchUpdateRoleRequest, AdminPasswordReset, AdminPasswordResetResponse
 from app.models.stats_models import DashboardStats, ToolVisitRequest
 from app.models import Tool
 from app.middleware.auth_middleware import get_current_user
@@ -24,13 +24,35 @@ def get_admin_user(current_user: UserResponse = Depends(get_current_user)):
 
 # ==================== User Management ====================
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=UserListResponse)
 async def list_users(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search keyword for username/email"),
+    role: Optional[str] = Query(None, pattern="^(user|admin)$", description="Filter by role"),
     admin_user: UserResponse = Depends(get_admin_user),
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    """List all users"""
-    return auth_service.get_all_users()
+    """List users with pagination, search, and filter"""
+    return auth_service.get_users_paginated(page=page, page_size=page_size, search=search, role=role)
+
+@router.post("/users/batch-delete", response_model=dict)
+async def batch_delete_users(
+    request: UserBatchDeleteRequest,
+    admin_user: UserResponse = Depends(get_admin_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """Batch delete users"""
+    return auth_service.batch_delete_users(request.user_ids, admin_user.user_id)
+
+@router.post("/users/batch-update-role", response_model=dict)
+async def batch_update_user_role(
+    request: UserBatchUpdateRoleRequest,
+    admin_user: UserResponse = Depends(get_admin_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """Batch update user role"""
+    return auth_service.batch_update_user_role(request.user_ids, request.role)
 
 @router.put("/users/{user_id}/role", response_model=bool)
 async def update_user_role(
@@ -74,11 +96,45 @@ async def delete_user(
     """Delete user"""
     if user_id == admin_user.user_id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
-    
+
     success = auth_service.delete_user(user_id)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
     return True
+
+
+# ==================== Password Management ====================
+
+@router.post("/users/{user_id}/reset-password", response_model=AdminPasswordResetResponse)
+async def admin_reset_password(
+    user_id: str,
+    password_reset: AdminPasswordReset,
+    admin_user: UserResponse = Depends(get_admin_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """Admin reset user password"""
+    # Get client IP from request headers
+    request = getattr(admin_reset, "request", None)
+    ip_address = None
+    if request:
+        ip_address = request.headers.get("X-Forwarded-For", request.headers.get("X-Real-IP"))
+
+    success, message, new_password = auth_service.admin_reset_password(
+        user_id=user_id,
+        mode=password_reset.mode,
+        new_password=password_reset.new_password,
+        reset_by_user_id=admin_user.user_id,
+        ip_address=ip_address
+    )
+
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+
+    return AdminPasswordResetResponse(
+        success=True,
+        new_password=new_password,
+        message=message
+    )
 
 # ==================== OSS Management ====================
 

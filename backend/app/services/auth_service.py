@@ -14,11 +14,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.models.auth_models import (
-    UserCreate, UserLogin, UserInDB, TokenData, AuthResponse, UserResponse
+    UserCreate, UserLogin, UserInDB, TokenData, AuthResponse, UserResponse,
+    AdminPasswordReset, AdminPasswordResetResponse, UserPasswordChange, UserPasswordChangeResponse
 )
-
-from app.config.config import settings
 from app.config.database import get_db_connection
+from app.utils.password_utils import validate_password_strength, generate_random_password
+from fastapi import Request
 
 logger = logging.getLogger(__name__)
 
@@ -317,7 +318,7 @@ class AuthService:
         )
     
     def get_all_users(self) -> List[UserResponse]:
-        """Get all users (admin only)"""
+        """Get all users (admin only) - deprecated, use get_users_paginated instead"""
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
@@ -338,7 +339,310 @@ class AuthService:
             return []
         finally:
             conn.close()
-    
+
+    def get_users_paginated(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        search: Optional[str] = None,
+        role: Optional[str] = None
+    ) -> dict:
+        """
+        Get paginated users with optional search and filter
+
+        Args:
+            page: Page number (1-indexed)
+            page_size: Number of users per page
+            search: Search keyword for username/email
+            role: Filter by role
+
+        Returns:
+            dict with total, page, page_size, total_pages, users
+        """
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                # Build query conditions
+                conditions = []
+                params = []
+
+                if search:
+                    conditions.append("(username ILIKE %s OR email ILIKE %s)")
+                    search_pattern = f"%{search}%"
+                    params.extend([search_pattern, search_pattern])
+
+                if role:
+                    conditions.append("role = %s")
+                    params.append(role)
+
+                where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
+
+                # Get total count
+                count_query = f"SELECT COUNT(*) FROM users{where_clause}"
+                cursor.execute(count_query, params)
+                total = cursor.fetchone()['count']
+
+                # Get paginated users
+                offset = (page - 1) * page_size
+                query = f"""
+                    SELECT * FROM users{where_clause}
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                """
+                cursor.execute(query, params + [page_size, offset])
+                rows = cursor.fetchall()
+
+                users = []
+                for row in rows:
+                    users.append(UserResponse(
+                        user_id=row['user_id'],
+                        username=row['username'],
+                        email=row['email'],
+                        role=row['role'],
+                        created_at=row['created_at']
+                    ))
+
+                total_pages = (total + page_size - 1) // page_size
+
+                return {
+                    "total": total,
+                    "page": page,
+                    "page_size": page_size,
+                    "total_pages": total_pages,
+                    "users": users
+                }
+        except Exception as e:
+            logger.error(f"Error getting paginated users: {e}")
+            return {
+                "total": 0,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": 0,
+                "users": []
+            }
+        finally:
+            conn.close()
+
+    def batch_delete_users(self, user_ids: List[str], current_user_id: str) -> dict:
+        """
+        Batch delete users
+
+        Args:
+            user_ids: List of user IDs to delete
+            current_user_id: Current admin user ID (to prevent self-deletion)
+
+        Returns:
+            dict with success_count, failed_count, errors
+        """
+        conn = get_db_connection()
+        success_count = 0
+        failed_count = 0
+        errors = []
+
+        try:
+            with conn.cursor() as cursor:
+                for user_id in user_ids:
+                    # Check if trying to delete self
+                    if user_id == current_user_id:
+                        failed_count += 1
+                        errors.append(f"Cannot delete yourself")
+                        continue
+
+                    try:
+                        cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+                        if cursor.rowcount > 0:
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                            errors.append(f"User {user_id} not found")
+                    except Exception as e:
+                        failed_count += 1
+                        errors.append(f"Failed to delete user {user_id}: {str(e)}")
+
+                conn.commit()
+
+                return {
+                    "success_count": success_count,
+                    "failed_count": failed_count,
+                    "errors": errors
+                }
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error batch deleting users: {e}")
+            return {
+                "success_count": 0,
+                "failed_count": len(user_ids),
+                "errors": [str(e)]
+            }
+        finally:
+            conn.close()
+
+    def batch_update_user_role(self, user_ids: List[str], new_role: str) -> dict:
+        """
+        Batch update user role
+
+        Args:
+            user_ids: List of user IDs to update
+            new_role: New role to assign
+
+        Returns:
+            dict with success_count, failed_count, errors
+        """
+        conn = get_db_connection()
+        success_count = 0
+        failed_count = 0
+        errors = []
+
+        try:
+            with conn.cursor() as cursor:
+                for user_id in user_ids:
+                    try:
+                        cursor.execute(
+                            "UPDATE users SET role = %s WHERE user_id = %s",
+                            (new_role, user_id)
+                        )
+                        if cursor.rowcount > 0:
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                            errors.append(f"User {user_id} not found")
+                    except Exception as e:
+                        failed_count += 1
+                        errors.append(f"Failed to update user {user_id}: {str(e)}")
+
+                conn.commit()
+
+                return {
+                    "success_count": success_count,
+                    "failed_count": failed_count,
+                    "errors": errors
+                }
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error batch updating user roles: {e}")
+            return {
+                "success_count": 0,
+                "failed_count": len(user_ids),
+                "errors": [str(e)]
+            }
+        finally:
+            conn.close()
+
+    def admin_reset_password(self, user_id: str, mode: str, new_password: Optional[str],
+                             reset_by_user_id: str, ip_address: Optional[str] = None) -> tuple[bool, str, str]:
+        """
+        管理员重置用户密码
+
+        Args:
+            user_id: 目标用户 ID
+            mode: "direct" 或 "random"
+            new_password: 新密码（mode=direct 时必填）
+            reset_by_user_id: 执行重置的管理员用户 ID
+            ip_address: 请求 IP 地址
+
+        Returns:
+            (success, message, actual_password)
+            - success: 是否成功
+            - message: 错误信息（成功时为空）
+            - actual_password: 实际设置的新密码
+        """
+        # 验证密码强度
+        if mode == "direct":
+            if not new_password:
+                return False, "新密码不能为空", ""
+            is_valid, error_msg = validate_password_strength(new_password)
+            if not is_valid:
+                return False, error_msg, ""
+            actual_password = new_password
+        else:  # mode == "random"
+            actual_password = generate_random_password(12)
+
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                # 检查用户是否存在
+                cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
+                if not cursor.fetchone():
+                    return False, "用户不存在", ""
+
+                # 更新密码
+                hashed_password = self._hash_password(actual_password)
+                cursor.execute(
+                    "UPDATE users SET password_hash = %s WHERE user_id = %s",
+                    (hashed_password, user_id)
+                )
+
+                # 记录日志
+                cursor.execute(
+                    """INSERT INTO password_reset_logs (id, user_id, reset_by_user_id, ip_address)
+                       VALUES (%s, %s, %s, %s)""",
+                    (str(uuid.uuid4()), user_id, reset_by_user_id, ip_address)
+                )
+
+                conn.commit()
+                return True, "", actual_password
+
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error resetting password: {e}")
+            return False, f"重置失败：{str(e)}", ""
+        finally:
+            conn.close()
+
+    def change_password(self, user_id: str, old_password: str, new_password: str) -> tuple[bool, str]:
+        """
+        用户修改密码
+
+        Args:
+            user_id: 用户 ID
+            old_password: 当前密码
+            new_password: 新密码
+
+        Returns:
+            (success, message)
+        """
+        # 验证新密码强度
+        is_valid, error_msg = validate_password_strength(new_password)
+        if not is_valid:
+            return False, error_msg
+
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                # 获取用户
+                cursor.execute(
+                    "SELECT password_hash FROM users WHERE user_id = %s",
+                    (user_id,)
+                )
+                row = cursor.fetchone()
+                if not row:
+                    return False, "用户不存在"
+
+                # 验证旧密码
+                if not self._verify_password(old_password, row['password_hash']):
+                    return False, "当前密码不正确"
+
+                # 检查新旧密码是否相同
+                if self._verify_password(new_password, row['password_hash']):
+                    return False, "新密码不能与当前密码相同"
+
+                # 更新密码
+                hashed_password = self._hash_password(new_password)
+                cursor.execute(
+                    "UPDATE users SET password_hash = %s WHERE user_id = %s",
+                    (hashed_password, user_id)
+                )
+
+                conn.commit()
+                return True, "密码修改成功"
+
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error changing password: {e}")
+            return False, f"修改失败：{str(e)}"
+        finally:
+            conn.close()
+
     def update_user_role(self, user_id: str, new_role: str) -> bool:
         """Update user role (admin only)"""
         conn = get_db_connection()

@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Body
 from typing import Optional
 
 from app.models.auth_models import (
-    UserCreate, UserLogin, AuthResponse, UserResponse
+    UserCreate, UserLogin, AuthResponse, UserResponse, UserPasswordChange, UserPasswordChangeResponse
 )
 from app.services.auth_service import get_auth_service, AuthService
 from app.services.verification_service import verification_service
@@ -154,21 +154,21 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
 async def verify_token(authorization: Optional[str] = Header(None)):
     """
     Verify if the current token is valid.
-    
+
     Args:
         authorization: Authorization header with Bearer token
-        
+
     Returns:
         Token validity status
     """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
-    
+
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization header format")
-    
+
     token = authorization[7:]
-    
+
     try:
         auth_service = get_auth_service()
         token_data = auth_service.verify_token_data(token)
@@ -177,5 +177,54 @@ async def verify_token(authorization: Optional[str] = Header(None)):
             "user_id": token_data.user_id,
             "username": token_data.username
         }
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+
+# ==================== Password Management ====================
+
+@router.put("/password", response_model=UserPasswordChangeResponse)
+async def change_password(
+    password_change: UserPasswordChange,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    User change their own password.
+
+    Args:
+        password_change: Password change data (old_password, new_password)
+        authorization: Authorization header with Bearer token
+
+    Returns:
+        UserPasswordChangeResponse with success status and message
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header format")
+
+    token = authorization[7:]
+
+    try:
+        auth_service = get_auth_service()
+        # Get user ID from token
+        token_data = auth_service.verify_token_data(token)
+        user_id = token_data.user_id
+
+        # Change password
+        success, message = auth_service.change_password(
+            user_id=user_id,
+            old_password=password_change.old_password,
+            new_password=password_change.new_password
+        )
+
+        if not success:
+            raise HTTPException(status_code=400, detail=message)
+
+        return UserPasswordChangeResponse(
+            success=True,
+            message="Password changed successfully"
+        )
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
