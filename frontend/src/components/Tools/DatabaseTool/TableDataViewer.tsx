@@ -69,15 +69,6 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     fetchData(1);
   }, [configId, databaseName, tableName]);
 
-  // Listen to pageSize changes and auto-refresh data
-  useEffect(() => {
-    // Only refresh if we already have data (avoid duplicate request on initial load)
-    if (result) {
-      setPage(1);
-      fetchData(1);
-    }
-  }, [pageSize, fetchData, result]);
-
   const handleExecute = () => {
     setPage(1);
     fetchData(1);
@@ -178,17 +169,13 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       <div className="p-2 border-t border-slate-700 bg-slate-800 flex items-center justify-between text-sm text-slate-400">
           <div className="flex items-center space-x-2">
              <span>Page size:</span>
-             <select 
+             <select
                value={pageSize}
                onChange={(e) => {
-                   setPageSize(Number(e.target.value));
-                   // Changing page size resets to page 1 automatically in next render or we can trigger it
-                   // Actually we should trigger fetch with new size and page 1
-                   // But `setPageSize` is async state update, so let's just update state and let user click run?
-                   // Or better, auto run.
-                   // Since we use `page` and `pageSize` state in `fetchData`, we need to be careful.
-                   // Let's just update state and trigger fetch manually or use useEffect.
-                   // For simplicity here, just update state. The user can click run, or we can use useEffect on pageSize.
+                   const newPageSize = Number(e.target.value);
+                   setPageSize(newPageSize);
+                   setPage(1);
+                   fetchData(1, newPageSize);
                }}
                className="bg-slate-900 border border-slate-600 rounded px-2 py-1 focus:outline-none"
              >
