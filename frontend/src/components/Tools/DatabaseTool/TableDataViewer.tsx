@@ -25,6 +25,39 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
   const [result, setResult] = useState<SQLExecutionResult | null>(null);
   const [schema, setSchema] = useState<TableSchema | null>(null);
 
+  const fetchSchema = useCallback(async () => {
+    try {
+      const s = await api.getTableSchema(configId, tableName, databaseName);
+      setSchema(s);
+    } catch (error) {
+      console.error("Failed to fetch table schema", error);
+    }
+  }, [configId, tableName, databaseName]);
+
+  const fetchData = useCallback(async (pageNum: number, newPageSize?: number) => {
+    setLoading(true);
+    try {
+      const data = await api.queryTableData(configId, tableName, {
+        database_name: databaseName,
+        where: whereClause,
+        order_by: orderByClause,
+        page: pageNum,
+        page_size: newPageSize ?? pageSize
+      });
+
+      setResult(data);
+      setPage(pageNum);
+
+      if (!data.success) {
+        toast.error(data.error_message || "Failed to load data");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Request failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [configId, tableName, databaseName, whereClause, orderByClause, pageSize, toast]);
+
   // Reset page when table changes
   useEffect(() => {
     setPage(1);
@@ -36,38 +69,14 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     fetchData(1);
   }, [configId, databaseName, tableName]);
 
-  const fetchSchema = async () => {
-    try {
-      const s = await api.getTableSchema(configId, tableName, databaseName);
-      setSchema(s);
-    } catch (error) {
-      console.error("Failed to fetch table schema", error);
+  // Listen to pageSize changes and auto-refresh data
+  useEffect(() => {
+    // Only refresh if we already have data (avoid duplicate request on initial load)
+    if (result) {
+      setPage(1);
+      fetchData(1);
     }
-  };
-
-  const fetchData = async (pageNum: number = page) => {
-    setLoading(true);
-    try {
-      const data = await api.queryTableData(configId, tableName, {
-        database_name: databaseName,
-        where: whereClause,
-        order_by: orderByClause,
-        page: pageNum,
-        page_size: pageSize
-      });
-      
-      setResult(data);
-      setPage(pageNum);
-      
-      if (!data.success) {
-        toast.error(data.error_message || "Failed to load data");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Request failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [pageSize, fetchData, result]);
 
   const handleExecute = () => {
     setPage(1);
@@ -158,6 +167,9 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              tableName={tableName}
              schema={schema}
              enableSelection={true}
+             configId={configId}
+             databaseName={databaseName}
+             onDeleted={() => fetchData(page)}
            />
         )}
       </div>
