@@ -12,11 +12,12 @@ from app.routes import (
     oss,
     admin,
 )
-from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool
+from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool, json_tool, resource_management
 from app.routes import auth, contact_message
 from app.routes import markdown_editor
 from app.routes import cross_share
 from app.routes import course_platform
+from app.routes import http_client
 from app.routes import course_platform_admin
 from app.routes import tech_contents
 from app.routes import cursor_history
@@ -31,9 +32,7 @@ from logging.handlers import RotatingFileHandler
 from app.config.config import settings
 
 # 配置日志目录为项目根目录下的 logs 文件夹
-PROJECT_ROOT = Path(
-    __file__
-).parent.parent.parent.parent  # backend/app/main.py -> project root
+PROJECT_ROOT = Path(__file__).parent.parent  # backend/app/main.py -> backend
 LOGS_DIR = PROJECT_ROOT / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -58,6 +57,19 @@ console_handler.setFormatter(formatter)
 logging.basicConfig(
     level=logging.INFO, handlers=[file_handler, console_handler], format=log_format
 )
+
+# 配置 uvicorn 日志，确保启动错误也写入文件
+uvicorn_logger = logging.getLogger("uvicorn")
+uvicorn_logger.addHandler(file_handler)
+uvicorn_logger.setLevel(logging.INFO)
+
+uvicorn_error_logger = logging.getLogger("uvicorn.error")
+uvicorn_error_logger.addHandler(file_handler)
+uvicorn_error_logger.setLevel(logging.INFO)
+
+uvicorn_access_logger = logging.getLogger("uvicorn.access")
+uvicorn_access_logger.addHandler(file_handler)
+uvicorn_access_logger.setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +149,12 @@ app.include_router(redis_tool.router, prefix="/api")
 # SSH Tool router
 app.include_router(ssh_tool.router, prefix="/api")
 
+# JSON Tool router
+app.include_router(json_tool.router, prefix="/api")
+
+# Resource Management router
+app.include_router(resource_management.router, prefix="/api")
+
 # CrossShare router
 app.include_router(cross_share.router)
 
@@ -183,6 +201,9 @@ app.include_router(contact_message.router)
 
 # Cursor History router
 app.include_router(cursor_history.router, prefix="/api")
+
+# HTTP Client router
+app.include_router(http_client.router, prefix="/api")
 
 
 @app.get("/")

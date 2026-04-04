@@ -34,35 +34,40 @@ const typeIcons: Record<ToastType, string> = {
   info: 'ℹ',
 };
 
+const typeColors: Record<ToastType, { border: string; bg: string; icon: string }> = {
+  success: { border: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)', icon: '#22c55e' },
+  error: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', icon: '#ef4444' },
+  warning: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', icon: '#f59e0b' },
+  info: { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)', icon: '#06b6d4' },
+};
+
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const showToast = useCallback((message: string, type: ToastType = 'info', duration?: number) => {
     const icon = typeIcons[type];
+    const colors = typeColors[type];
     const toastDuration = duration ?? DEFAULT_DURATION[type];
 
     sonnerToast.custom(
       (t) => (
         <div
           className={`
-            flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg
-            bg-slate-800 border border-slate-700
+            flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl
+            bg-slate-800/95 backdrop-blur-sm border border-slate-700/50
             text-slate-100
-            max-w-[356px]
+            max-w-[400px] min-w-[280px]
           `}
           style={{
-            borderLeft: `4px solid ${
-              type === 'success' ? '#22c55e' :
-              type === 'error' ? '#ef4444' :
-              type === 'warning' ? '#f59e0b' : '#06b6d4'
-            }`,
+            borderLeft: `4px solid ${colors.border}`,
+            background: `linear-gradient(135deg, ${colors.bg}, rgba(30, 41, 59, 0.95))`,
           }}
         >
-          <span className="text-lg font-bold">{icon}</span>
-          <span className="text-sm flex-1 break-words">{message}</span>
+          <span className="text-xl font-bold" style={{ color: colors.icon }}>{icon}</span>
+          <span className="text-sm flex-1 break-words leading-relaxed">{message}</span>
         </div>
       ),
       {
         duration: toastDuration,
-        position: 'bottom-right',
+        position: 'top-right',
       }
     );
 
@@ -111,7 +116,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     <ToastContext.Provider value={value}>
       {children}
       <Toaster
-        position="bottom-right"
+        position="top-right"
         toastOptions={{
           className: 'sonner-toast-dark',
           style: {

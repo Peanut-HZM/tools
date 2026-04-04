@@ -49,11 +49,12 @@ export default function UserManagement() {
       if (roleValue) params.role = roleValue;
 
       const data: UserListResponse = await listUsers(params);
-      setUsers(data.users);
-      setTotal(data.total);
-      setTotalPages(data.total_pages);
-      setPage(data.page);
+      setUsers(Array.isArray(data?.users) ? data.users : []);
+      setTotal(data?.total || 0);
+      setTotalPages(data?.total_pages || 0);
+      setPage(data?.page || 1);
     } catch (e) {
+      setUsers([]);
       error('获取用户列表失败');
     } finally {
       setLoading(false);
@@ -98,7 +99,7 @@ export default function UserManagement() {
   };
 
   const handleConfirmPasswordReset = async (mode: 'direct' | 'random', newPassword?: string) => {
-    if (!selectedUserForReset) return;
+    if (!selectedUserForReset) return { success: false };
 
     try {
       const result = await resetUserPassword(selectedUserForReset.userId, {
@@ -108,14 +109,11 @@ export default function UserManagement() {
 
       if (result.success) {
         success(result.message);
-        // Close modal will be handled by the modal's internal state
-        setTimeout(() => {
-          setIsPasswordResetModalOpen(false);
-          setSelectedUserForReset(null);
-        }, 500);
+        return { success: true, newPassword: result.new_password };
       }
+      return { success: false };
     } catch (e) {
-      throw e; // Re-throw to be caught by modal
+      throw e;
     }
   };
 
@@ -383,7 +381,7 @@ export default function UserManagement() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700">
-            {users.map((user) => (
+            {(users || []).map((user) => (
               <tr key={user.user_id} className="hover:bg-slate-700/50">
                 <td className="px-6 py-4">
                   {batchMode && (

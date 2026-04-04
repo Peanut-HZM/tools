@@ -1,157 +1,203 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, HttpUrl
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
-from typing import List
+from typing import List, Dict, Any
 import io
 import os
 import uuid
+import zipfile
+
+from app.models.image_downloader_models import (
+    ImageExtractRequest, ImageExtractResponse, ImageInfo,
+    DownloadedImage, BatchDownloadResponse,
+    ImageHistoryRecord, ImageHistoryListResponse,
+    ImageQuotaInfo, ImageExportFormat
+)
+from app.services.image_downloader_service import image_downloader_service
 from app.services.oss_service import oss_service
 from app.middleware.auth_middleware import get_current_user_id
 
-router = APIRouter(tags=["image-downloader"])
+router = APIRouter(prefix="/image-downloader", tags=["图片下载器"])
 
-class ImageExtractRequest(BaseModel):
-    url: HttpUrl
 
-class ImageInfo(BaseModel):
-    url: str
-    alt: str
-    index: int
-
-class ImageExtractResponse(BaseModel):
-    images: List[ImageInfo]
-    count: int
-
-@router.post("/tools/extract-images", response_model=ImageExtractResponse)
+@router.post("/extract-images", response_model=ImageExtractResponse)
 async def extract_images(request: ImageExtractRequest):
     """
-    从指定网页提取所有图片URL
+    从指定网页提取所有图片 URL
     """
     try:
-        # 发送HTTP请求获取网页内容
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        response = requests.get(str(request.url), headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        # 解析HTML
-        soup = BeautifulSoup(response.content, 'lxml')
-        
-        # 提取所有图片
-        images = []
-        img_tags = soup.find_all('img')
-        
-        for index, img in enumerate(img_tags):
-            # 获取图片URL
-            img_url = img.get('src') or img.get('data-src') or img.get('data-original')
-            
-            if not img_url:
-                continue
-            
-            # 转换为绝对URL
-            absolute_url = urljoin(str(request.url), img_url)
-            
-            # 过滤掉无效的URL
-            parsed = urlparse(absolute_url)
-            if not parsed.scheme or not parsed.netloc:
-                continue
-            
-            # 过滤掉太小的图片（可能是图标或像素追踪）
-            # 这里简单判断URL，实际使用中可以获取图片尺寸
-            if any(x in absolute_url.lower() for x in ['1x1', 'pixel', 'tracking']):
-                continue
-            
-            # 获取alt属性
-            alt = img.get('alt', '')
-            
-            images.append(ImageInfo(
-                url=absolute_url,
-                alt=alt,
-                index=index
-            ))
-        
-        # 去重（基于URL）
-        seen_urls = set()
-        unique_images = []
-        for img in images:
-            if img.url not in seen_urls:
-                seen_urls.add(img.url)
-                unique_images.append(img)
-        
+        images = image_downloader_service.extract_images(str(request.url))
         return ImageExtractResponse(
-            images=unique_images,
-            count=len(unique_images)
-        )
-        
-    except requests.RequestException as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"无法访问该网页: {str(e)}"
+            images=images,
+            count=len(images)
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"提取图片失败: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"提取图片失败：{str(e)}")
 
-@router.get("/tools/download-image")
-async def download_image(url: str, user_id: str = Depends(get_current_user_id)):
+
+@router.get("/download", response_model=DownloadedImage)
+async def download_image(
+    url: str,
+    save_history: bool = Query(True, description="是否保存历史记录"),
+    user_id: str = Depends(get_current_user_id)
+):
     """
-    下载图片并上传到OSS，返回OSS URL
+    下载图片并上传到 OSS，返回 OSS URL
     """
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        response = requests.get(url, headers=headers, stream=True, timeout=30)
-        response.raise_for_status()
-        
-        # Get content type
-        content_type = response.headers.get('content-type', 'image/jpeg')
-        
-        # Generate filename
-        parsed_url = urlparse(url)
-        original_filename = os.path.basename(parsed_url.path)
-        if not original_filename:
-            original_filename = "image.jpg"
-            
-        file_extension = os.path.splitext(original_filename)[1]
-        if not file_extension:
-            # Guess extension from content-type
-            if 'png' in content_type: file_extension = '.png'
-            elif 'gif' in content_type: file_extension = '.gif'
-            elif 'webp' in content_type: file_extension = '.webp'
-            else: file_extension = '.jpg'
-            
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        object_name = f"users/{user_id}/images/{unique_filename}"
-        
-        # Read content to memory (be careful with large files, but images are usually okay)
-        image_data = response.content
-        size = len(image_data)
-        file_obj = io.BytesIO(image_data)
-        
-        # Upload to OSS
-        oss_url = oss_service.upload_file(
-            object_name=object_name,
-            data=file_obj,
-            size=size,
-            content_type=content_type,
-            uploaded_by=user_id
+        result = image_downloader_service.download_image(
+            url=url,
+            user_id=user_id,
+            save_history=save_history
         )
-        
-        if not oss_url:
-            raise HTTPException(status_code=500, detail="Failed to upload image to OSS")
-            
-        return {"url": oss_url, "filename": unique_filename}
-        
-    except requests.RequestException as e:
-        raise HTTPException(status_code=400, detail=f"Download failed: {str(e)}")
+        return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Process failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"下载失败：{str(e)}")
+
+
+@router.post("/batch-download", response_model=Dict[str, Any])
+async def batch_download(
+    urls: List[str],
+    save_history: bool = Query(True, description="是否保存历史记录"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    批量下载图片
+    """
+    try:
+        result = image_downloader_service.batch_download(
+            user_id=user_id,
+            image_urls=urls,
+            save_history=save_history
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"批量下载失败：{str(e)}")
+
+
+@router.get("/history", response_model=ImageHistoryListResponse)
+async def get_history(
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取用户图片下载历史记录"""
+    try:
+        records, total = image_downloader_service.get_history(user_id, page, page_size)
+        return ImageHistoryListResponse(
+            records=records,
+            total=total,
+            page=page,
+            page_size=page_size
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/quota", response_model=ImageQuotaInfo)
+async def get_quota(user_id: str = Depends(get_current_user_id)):
+    """获取用户配额信息"""
+    try:
+        return image_downloader_service._check_quota(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/export")
+async def export_images(
+    history_ids: List[str],
+    format: ImageExportFormat = Query(ImageExportFormat.ZIP, description="导出格式"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """导出已下载的图片"""
+    try:
+        from app.database.db import get_db
+        from sqlalchemy.orm import Session
+        from sqlalchemy import text
+
+        db = Session(next(get_db()))
+
+        # 获取历史记录
+        placeholders = ','.join([f':id{i}' for i in range(len(history_ids))])
+        params = {f'id{i}': hid for i, hid in enumerate(history_ids)}
+        params['user_id'] = user_id
+
+        result = db.execute(text(f"""
+            SELECT oss_url, filename FROM image_history
+            WHERE id IN ({placeholders}) AND user_id = :user_id
+              AND (is_deleted IS NULL OR is_deleted = FALSE) AND (deleted IS NULL OR deleted = FALSE)
+        """), params).fetchall()
+
+        if not result:
+            raise HTTPException(status_code=404, detail="未找到要导出的图片")
+
+        if format == ImageExportFormat.ZIP:
+            # 创建 ZIP 文件
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for row in result:
+                    try:
+                        # 从 OSS 下载文件
+                        file_data = oss_service.download_file(row.oss_url)
+                        zf.writestr(row.filename, file_data)
+                    except Exception as e:
+                        logger.warning(f"Failed to add {row.filename} to ZIP: {e}")
+
+            zip_buffer.seek(0)
+
+            return StreamingResponse(
+                zip_buffer,
+                media_type="application/x-zip-compressed",
+                headers={"Content-Disposition": "attachment; filename=images.zip"}
+            )
+
+        elif format == ImageExportFormat.JSON:
+            import json
+            data = {
+                "images": [
+                    {"oss_url": row.oss_url, "filename": row.filename}
+                    for row in result
+                ]
+            }
+            return {
+                "content": json.dumps(data, ensure_ascii=False, indent=2),
+                "file_name": "images.json",
+                "file_size": len(json.dumps(data).encode('utf-8'))
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/history/{history_id}")
+async def delete_history(
+    history_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """删除图片下载历史记录"""
+    try:
+        from app.database.db import get_db
+        from sqlalchemy.orm import Session
+        from sqlalchemy import text
+
+        db = Session(next(get_db()))
+
+        # 软删除
+        result = db.execute(text("""
+            UPDATE image_history
+            SET is_deleted = TRUE
+            WHERE id = :history_id AND user_id = :user_id
+        """), {'history_id': history_id, 'user_id': user_id})
+
+        db.commit()
+
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="历史记录不存在")
+
+        return {"message": "历史记录已删除"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

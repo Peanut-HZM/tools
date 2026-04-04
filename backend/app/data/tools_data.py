@@ -172,6 +172,16 @@ TOOLS_DATA = [
         usageCount="New",
         category="开发工具",
     ),
+    Tool(
+        id="http-api-client",
+        icon="fa-plug",
+        iconColor="bg-purple-600",
+        title="HTTP API 客户端",
+        description="功能强大的 HTTP API 调试工具，支持请求管理、环境变量、认证配置等功能",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具",
+    ),
 ]
 
 

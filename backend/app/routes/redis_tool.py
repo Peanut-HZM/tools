@@ -4,7 +4,12 @@ from app.middleware.auth_middleware import get_current_user_id
 from app.models.redis_tool_models import (
     RedisConfigResponse, CreateRedisRequest, UpdateRedisRequest,
     TestConnectionRequest, ConnectionTestResult,
-    RedisKeyInfo, RedisKeyContent, KeyOperationRequest, KeyDeleteRequest
+    RedisKeyInfo, RedisKeyContent, KeyOperationRequest, KeyDeleteRequest,
+    KeyTTLRequest, KeysScanRequest, KeysScanResponse, KeyExportRequest,
+    KeyExportResponse, KeyImportRequest, KeyImportResponse, LuaScriptRequest,
+    LuaScriptResponse, ScriptTemplate, CreateScriptTemplateRequest,
+    UpdateScriptTemplateRequest, CLICommandRequest, CLICommandResponse,
+    KeyPersistRequest
 )
 from app.services.redis_tool_service import RedisToolService
 
@@ -120,3 +125,144 @@ async def delete_keys(
         return {"message": f"Deleted {count} keys", "count": count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/configs/{id}/keys/ttl")
+async def update_key_ttl(
+    request: KeyTTLRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Update key TTL"""
+    try:
+        RedisToolService.update_key_ttl(id, user_id, request)
+        return {"message": "Key TTL updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/configs/{id}/keys/persist")
+async def persist_key(
+    request: KeyPersistRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Remove key TTL"""
+    try:
+        RedisToolService.persist_key(id, user_id, request.key)
+        return {"message": "Key TTL removed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/configs/{id}/keys/scan", response_model=KeysScanResponse)
+async def scan_keys(
+    request: KeysScanRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Scan keys with pagination"""
+    try:
+        return RedisToolService.scan_keys(id, user_id, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/configs/{id}/keys/{key}/memory")
+async def get_key_memory(
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get key memory usage"""
+    try:
+        usage = RedisToolService.get_key_memory_usage(id, user_id, key)
+        return {"key": key, "memory_usage": usage}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/configs/{id}/keys/export", response_model=KeyExportResponse)
+async def export_keys(
+    request: KeyExportRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Export keys to JSON"""
+    try:
+        return RedisToolService.export_keys(id, user_id, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/configs/{id}/keys/import", response_model=KeyImportResponse)
+async def import_keys(
+    request: KeyImportRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Import keys from JSON"""
+    try:
+        return RedisToolService.import_keys(id, user_id, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/configs/{id}/lua", response_model=LuaScriptResponse)
+async def execute_lua(
+    request: LuaScriptRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Execute Lua script"""
+    try:
+        return RedisToolService.execute_lua_script(id, user_id, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/scripts", response_model=List[ScriptTemplate])
+async def get_script_templates(user_id: str = Depends(get_current_user_id)):
+    """Get user's script templates"""
+    return RedisToolService.get_script_templates(user_id)
+
+@router.post("/scripts", response_model=ScriptTemplate)
+async def create_script_template(
+    request: CreateScriptTemplateRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Create a script template"""
+    try:
+        return RedisToolService.create_script_template(user_id, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/scripts/{template_id}", response_model=ScriptTemplate)
+async def update_script_template(
+    request: UpdateScriptTemplateRequest,
+    template_id: str = PathParam(..., description="Template ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Update a script template"""
+    try:
+        RedisToolService.update_script_template(template_id, user_id, request)
+        return {"message": "Script template updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/scripts/{template_id}")
+async def delete_script_template(
+    template_id: str = PathParam(..., description="Template ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Delete a script template"""
+    try:
+        RedisToolService.delete_script_template(template_id, user_id)
+        return {"message": "Script template deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/configs/{id}/cli", response_model=CLICommandResponse)
+async def execute_cli_command(
+    request: CLICommandRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Execute Redis CLI command"""
+    try:
+        return RedisToolService.execute_cli_command(id, user_id, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
