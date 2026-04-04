@@ -162,3 +162,22 @@ export interface DatabaseStructure {
     tables: TableItem[];
     views: TableItem[];
 }
+
+export interface InsertRowRequest {
+  database_name?: string;
+  columns: Record<string, any>;
+}
+
+export interface UpdateRowRequest {
+  database_name?: string;
+  primary_keys: string[];
+  key_values: Record<string, any>;
+  columns: Record<string, any>;
+}
+
+export interface RowOperationResult {
+  success: boolean;
+  affected_rows: number;
+  execution_time_ms: number;
+  error_message?: string;
+}

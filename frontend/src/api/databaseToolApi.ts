@@ -11,7 +11,10 @@ import {
   ExecutionHistory,
   TableSchema,
   DatabaseStructure,
-  TableModificationRequest
+  TableModificationRequest,
+  InsertRowRequest,
+  UpdateRowRequest,
+  RowOperationResult,
 } from '../types/databaseTool';
 
 const BASE_URL = `${API_BASE_URL}/database-tool`;
@@ -232,6 +235,36 @@ export async function getTables(id: string): Promise<string[]> {
   return handleResponse<string[]>(response);
 }
 
+export interface BatchDeleteRequest {
+  database_name?: string;
+  primary_keys: string[];
+  key_values: Record<string, any>[];
+}
+
+export interface BatchDeleteResult {
+  success: boolean;
+  deleted_count: number;
+  failed_count: number;
+  error_message?: string;
+  execution_time_ms: number;
+}
+
+export async function batchDeleteRows(
+  id: string,
+  table: string,
+  params: BatchDeleteRequest
+): Promise<BatchDeleteResult> {
+  const response = await fetch(
+    `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/batch-delete`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(params)
+    }
+  );
+  return handleResponse<BatchDeleteResult>(response);
+}
+
 export async function searchTables(id: string, keyword: string): Promise<{database: string, table: string, type: string}[]> {
   const response = await fetch(`${BASE_URL}/databases/${id}/search`, {
     method: 'POST',
@@ -239,4 +272,36 @@ export async function searchTables(id: string, keyword: string): Promise<{databa
     body: JSON.stringify({ keyword })
   });
   return handleResponse<{database: string, table: string, type: string}[]>(response);
+}
+
+export async function insertRow(
+  id: string,
+  table: string,
+  params: InsertRowRequest
+): Promise<RowOperationResult> {
+  const response = await fetch(
+    `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/insert-row`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(params)
+    }
+  );
+  return handleResponse<RowOperationResult>(response);
+}
+
+export async function updateRow(
+  id: string,
+  table: string,
+  params: UpdateRowRequest
+): Promise<RowOperationResult> {
+  const response = await fetch(
+    `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/update-row`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(params)
+    }
+  );
+  return handleResponse<RowOperationResult>(response);
 }
