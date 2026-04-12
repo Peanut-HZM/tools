@@ -88,10 +88,24 @@ async def lifespan(app: FastAPI):
     manager = get_manager()
     cleanup_task = asyncio.create_task(manager.start_cleanup_task())
 
+    # 启动 OpenClaw 连接
+    try:
+        from app.services.openclaw_service import openclaw_service
+        await openclaw_service.start()
+    except Exception as e:
+        logger.warning(f"OpenClaw 连接启动失败（功能将不可用）: {e}")
+
     yield
 
     # 关闭时
     logger.info("Shutting down application...")
+
+    try:
+        from app.services.openclaw_service import openclaw_service
+        await openclaw_service.stop()
+    except Exception as e:
+        logger.error(f"OpenClaw 关闭异常: {e}")
+
     cleanup_task.cancel()
     try:
         await cleanup_task
@@ -202,8 +216,14 @@ app.include_router(contact_message.router)
 # Cursor History router
 app.include_router(cursor_history.router, prefix="/api")
 
+# OpenClaw router
+from app.routes import openclaw as openclaw_router
+
 # HTTP Client router
 app.include_router(http_client.router, prefix="/api")
+
+# OpenClaw router (SSE streaming)
+app.include_router(openclaw_router.router, prefix="/api")
 
 
 @app.get("/")
