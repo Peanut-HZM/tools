@@ -49,7 +49,11 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5179,http://localhost:5180,http://localhost:5181,http://localhost:5182,http://localhost:5183,http://localhost:5184,http://localhost:5185,http://localhost:5186,http://localhost:5187,http://localhost:5188,http://localhost:5189,http://localhost:5190,http://localhost:3000,https://tools.peanuthzm.com.cn"
-    
+
+    # OpenClaw Gateway
+    OPENCLAW_GATEWAY_URL: str = "ws://127.0.0.1:18081"
+    OPENCLAW_TOKEN: str = ""
+
     # Aliyun OSS
     ALIYUN_OSS_ACCESS_KEY_ID: str = "LTAI5t6mbZdwcN8dWgKv3p51"
     ALIYUN_OSS_ACCESS_KEY_SECRET: str = "uSIkuXXyPMgUOtBraMeNE8v4df54kn"
