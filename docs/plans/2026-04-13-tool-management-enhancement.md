@@ -1272,8 +1272,9 @@ git commit -m "feat(tool-mgmt): 管理后台新增分页组件和高级搜索筛
 
 **Files:**
 - Modify: `frontend/src/services/api.ts`
-- Modify: `frontend/src/components/ToolCard/ToolCard.tsx`（或对应文件）
-- Modify: `frontend/src/App.tsx`
+- Modify: `frontend/src/components/ToolCard/ToolCard.tsx`
+- Modify: `frontend/src/components/Hero/ToolGrid.tsx`
+- Modify: `frontend/src/types/index.ts`
 
 **Step 1: 修改前端 API 传 platform 参数**
 
@@ -1320,7 +1321,7 @@ export async function fetchToolsByCategory(category: string, platform?: string):
 
 **Step 2: 修改 App.tsx 首页加载逻辑**
 
-在 `HomePage` 组件中，将 `loadTools` 和 `loadToolsDataByCategory` 调用改为传 `platform='pc'`：
+在 `HomePage` 组件中（`frontend/src/App.tsx`），将 `loadTools` 和 `loadToolsDataByCategory` 调用改为传 `platform='pc'`：
 
 ```typescript
   const loadTools = async () => {
@@ -1362,14 +1363,70 @@ export async function loadToolsByCategory(category: string, platform?: string): 
 
 **Step 3: 修改 ToolCard 支持自定义图标**
 
-读取 `frontend/src/components/ToolCard/ToolCard.tsx` 当前内容后修改：
+**Step 3a: 更新 `ToolCardProps` 类型**
 
-如果 `tool.custom_icon_url` 存在，则渲染 `<img src={custom_icon_url}>` 代替 FontAwesome `<i>` 标签。
+在 `frontend/src/types/index.ts` 的 `ToolCardProps` 接口（第 30 行 `onClick` 之前）新增：
+
+```typescript
+  custom_icon_url?: string;
+```
+
+**Step 3b: 修改组件渲染逻辑**
+
+读取 `frontend/src/components/ToolCard/ToolCard.tsx` 后，替换整个组件为：
+
+```tsx
+import { ToolCardProps } from '../../types';
+
+export default function ToolCard({
+  icon,
+  iconColor,
+  title,
+  description,
+  rating,
+  usageCount,
+  custom_icon_url,
+  onClick
+}: ToolCardProps) {
+  return (
+    <div
+      onClick={onClick}
+      className="tool-card bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-primary transition-all cursor-pointer"
+    >
+      <div className={`w-12 h-12 ${iconColor} rounded-lg flex items-center justify-center mb-4`}>
+        {custom_icon_url ? (
+          <img src={custom_icon_url} alt={title} className="w-6 h-6 object-contain" />
+        ) : (
+          <i className={`fas ${icon} text-white text-xl`}></i>
+        )}
+      </div>
+      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <p className="text-slate-400 text-sm mb-4">{description}</p>
+      <div className="flex items-center text-xs text-slate-500">
+        <i className="fas fa-star mr-1"></i>
+        <span>{rating}</span>
+        <span className="mx-2">•</span>
+        <span>{usageCount} 使用</span>
+      </div>
+    </div>
+  );
+}
+```
+
+**关键逻辑**：`custom_icon_url` 存在时渲染 `<img>` 替代 `<i>`，`iconColor` 背景容器保持不变以维持布局一致性。
+
+**Step 3c: 修改 `ToolGrid` 传递 `custom_icon_url`**
+
+在 `frontend/src/components/Hero/ToolGrid.tsx` 第 42 行（`usageCount` 之后）添加：
+
+```tsx
+            custom_icon_url={tool.custom_icon_url}
+```
 
 **Step 4: 提交**
 
 ```bash
-git add frontend/src/services/api.ts frontend/src/App.tsx frontend/src/components/ToolCard/ToolCard.tsx
+git add frontend/src/services/api.ts frontend/src/types/index.ts frontend/src/components/ToolCard/ToolCard.tsx frontend/src/components/Hero/ToolGrid.tsx
 git commit -m "feat(tool-mgmt): PC 端首页按 platform 过滤 + 支持自定义图标"
 ```
 
