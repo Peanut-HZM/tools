@@ -32,6 +32,12 @@
     font-size: 40rpx;
   }
 
+  &-custom-icon {
+    width: 48rpx;
+    height: 48rpx;
+    object-fit: contain;
+  }
+
   &-info {
     flex: 1;
     display: flex;

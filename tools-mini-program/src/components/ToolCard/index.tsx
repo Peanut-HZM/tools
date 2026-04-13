@@ -46,10 +46,20 @@ function getToolEmoji(icon?: string): string {
 }
 
 export default function ToolCard({ tool, onClick }: ToolCardProps) {
+  const hasCustomIcon = !!tool.custom_icon_url
+
   return (
     <View className='tool-card' onClick={onClick}>
       <View className='tool-card-icon'>
-        <Text className='tool-card-emoji'>{getToolEmoji(tool.icon)}</Text>
+        {hasCustomIcon ? (
+          <Image
+            src={tool.custom_icon_url!}
+            className='tool-card-custom-icon'
+            mode='aspectFit'
+          />
+        ) : (
+          <Text className='tool-card-emoji'>{getToolEmoji(tool.icon)}</Text>
+        )}
       </View>
       <View className='tool-card-info'>
         <Text className='tool-card-name' numberOfLines={1}>{tool.title}</Text>

@@ -34,6 +34,9 @@ export interface Tool {
   status?: string;
   sort_order?: number;
   created_at?: string;
+  custom_icon_url?: string;
+  show_pc?: boolean;
+  show_mobile?: boolean;
   // 小程序端补充字段
   path?: string;
 }

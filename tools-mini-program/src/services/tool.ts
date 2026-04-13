@@ -33,9 +33,10 @@ const TOOL_PATH_MAP: Record<string, string | null> = {
 export const toolApi = {
   /** 获取所有工具列表 */
   getTools: async (category?: ToolCategory): Promise<Tool[]> => {
-    const params = category && category !== 'all' ? { category } : {};
-    const res = await request<{ tools: Tool[] }>('/tools', {
-      data: params,
+    const params = new URLSearchParams();
+    params.append('platform', 'mobile');
+    if (category && category !== 'all') params.append('category', category);
+    const res = await request<{ tools: Tool[] }>(`/tools?${params.toString()}`, {
       needAuth: false
     });
     // 为每个工具补充小程序端 path，过滤掉移动端不适用的工具和离线工具
