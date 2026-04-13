@@ -203,6 +203,26 @@ const PROJECT_TYPE_COLORS: Record<string, string> = {
   'Other': 'bg-slate-600/15 text-slate-400',
 };
 
+// 服务类型图标映射（FontAwesome class）
+const SERVICE_ICONS: Record<string, { icon: string; color: string }> = {
+  'Spring Boot': { icon: 'fa-leaf', color: 'text-emerald-400' },
+  'Java': { icon: 'fa-coffee', color: 'text-orange-400' },
+  'Node.js': { icon: 'fa-node-js', color: 'text-green-400' },
+  'Python': { icon: 'fa-python', color: 'text-blue-400' },
+  'MySQL': { icon: 'fa-database', color: 'text-blue-400' },
+  'PostgreSQL': { icon: 'fa-database', color: 'text-blue-400' },
+  'Redis': { icon: 'fa-bolt', color: 'text-red-400' },
+  'Nginx': { icon: 'fa-server', color: 'text-emerald-400' },
+  'Docker': { icon: 'fa-docker', color: 'text-blue-400' },
+  'Go': { icon: 'fa-golang', color: 'text-cyan-400' },
+  'FastAPI': { icon: 'fa-fire', color: 'text-orange-400' },
+  'Django': { icon: 'fa-python', color: 'text-blue-400' },
+  'Flask': { icon: 'fa-python', color: 'text-blue-400' },
+  'Celery': { icon: 'fa-python', color: 'text-blue-400' },
+  'Tomcat': { icon: 'fa-coffee', color: 'text-orange-400' },
+  'Vite': { icon: 'fa-bolt', color: 'text-cyan-400' },
+};
+
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 const REFRESH_INTERVAL_OPTIONS = [
   { label: '3s', value: 3000 },
@@ -222,6 +242,31 @@ function InfoTag({ label, value, mono = false }: { label: string; value: string;
       <span className="text-slate-500">{label}</span>
       <span className={`text-slate-200 ${mono ? 'font-mono' : ''}`}>{value}</span>
     </span>
+  );
+}
+
+// 服务概览卡片
+function ServiceCard({ type, count, cpuPercent, memoryRss, onClick }: {
+  type: string; count: number; cpuPercent: number; memoryRss: number; onClick?: () => void;
+}) {
+  const iconInfo = SERVICE_ICONS[type] || { icon: 'fa-cube', color: 'text-slate-400' };
+  const cpuColor = cpuPercent > 50 ? 'text-red-400' : cpuPercent > 20 ? 'text-amber-400' : 'text-slate-400';
+
+  return (
+    <div
+      className={`bg-slate-900 rounded-xl p-3 border border-slate-800 ${onClick ? 'cursor-pointer hover:border-slate-600 transition-colors' : ''}`}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-1.5 mb-1">
+        <i className={`fas ${iconInfo.icon} ${iconInfo.color} text-xs`}></i>
+        <span className="text-xs text-slate-500 truncate">{type}</span>
+      </div>
+      <div className="text-sm font-bold text-white mb-1">{count}</div>
+      <div className="flex items-center justify-between text-xs">
+        <span className={cpuColor}>{cpuPercent}%</span>
+        <span className="text-slate-600">{formatBytes(memoryRss)}</span>
+      </div>
+    </div>
   );
 }
 
