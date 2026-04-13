@@ -21,6 +21,9 @@ class Tool(BaseModel):
     category: str  # Still using category name for now, or change to category_id? Let's keep name for compatibility but validate it.
     status: str = "online"
     sort_order: int = 0
+    custom_icon_url: Optional[str] = None
+    show_pc: bool = True
+    show_mobile: bool = True
     created_at: Optional[str] = None
 
 class ToolCreateRequest(BaseModel):
@@ -48,4 +51,23 @@ class SearchResponse(BaseModel):
 class CategoryResponse(BaseModel):
     tools: List[Tool]
     category: str
+
+class ToolUpdateRequest(BaseModel):
+    """行编辑更新请求，所有字段可选"""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    iconColor: Optional[str] = None
+    category: Optional[str] = None
+    status: Optional[str] = None
+    sort_order: Optional[int] = None
+    show_pc: Optional[bool] = None
+    show_mobile: Optional[bool] = None
+
+class ToolsPaginatedResponse(BaseModel):
+    tools: List[Tool]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 

@@ -7,6 +7,8 @@ from app.models.tool_models import (
     ToolsResponse,
     SearchResponse,
     CategoryResponse,
+    ToolUpdateRequest,
+    ToolsPaginatedResponse,
 )
 
 # Re-export from submodules
