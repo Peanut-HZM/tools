@@ -54,8 +54,25 @@ class ToolsService:
                         usage_count INTEGER DEFAULT 0,
                         rating FLOAT DEFAULT 5.0,
                         sort_order INT DEFAULT 0,
+                        custom_icon_url VARCHAR(500) DEFAULT NULL,
+                        show_pc BOOLEAN DEFAULT TRUE,
+                        show_mobile BOOLEAN DEFAULT TRUE,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
+                """)
+
+                # 迁移：为已有 tools 表新增字段
+                cur.execute("""
+                    ALTER TABLE tools
+                    ADD COLUMN IF NOT EXISTS custom_icon_url VARCHAR(500) DEFAULT NULL
+                """)
+                cur.execute("""
+                    ALTER TABLE tools
+                    ADD COLUMN IF NOT EXISTS show_pc BOOLEAN DEFAULT TRUE
+                """)
+                cur.execute("""
+                    ALTER TABLE tools
+                    ADD COLUMN IF NOT EXISTS show_mobile BOOLEAN DEFAULT TRUE
                 """)
 
                 # Create tool_visits table for detailed tracking
@@ -100,8 +117,8 @@ class ToolsService:
                     # rating is updated from static data
                     cur.execute(
                         """
-                        INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating, custom_icon_url, show_pc, show_mobile)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, TRUE, TRUE)
                         ON CONFLICT (id) DO UPDATE SET
                             title = EXCLUDED.title,
                             description = EXCLUDED.description,
@@ -454,8 +471,10 @@ class ToolsService:
             category=row["category"],
             usageCount=str(row["usage_count"]),
             rating=row["rating"],
-            # We will add status to Tool model
             status=row.get("status", "online"),
+            custom_icon_url=row.get("custom_icon_url"),
+            show_pc=row.get("show_pc", True),
+            show_mobile=row.get("show_mobile", True),
         )
 
 
