@@ -166,6 +166,24 @@ class ToolsPaginatedResponse(BaseModel):
     total_pages: int
 ```
 
+**Step 3b: 更新 `__init__.py` 导出**
+
+在 `backend/app/models/__init__.py` 第 9 行（`CategoryResponse`）之后新增：
+
+```python
+from app.models.tool_models import (
+    Tool,
+    Category,
+    ToolCreateRequest,
+    CategoryCreateRequest,
+    ToolsResponse,
+    SearchResponse,
+    CategoryResponse,
+    ToolUpdateRequest,        # 新增
+    ToolsPaginatedResponse,   # 新增
+)
+```
+
 **Step 4: 验证语法**
 
 Run: `cd backend && python -m py_compile app/models/tool_models.py`
@@ -194,6 +212,17 @@ git commit -m "feat(tool-mgmt): 更新 Tool 模型，新增 ToolUpdateRequest �
         """完整更新工具信息（行编辑）"""
         conn = None
         try:
+            # 校验分类是否存在（如果提供了新分类）
+            if "category" in data and data["category"]:
+                cat_conn = get_db_connection()
+                try:
+                    with cat_conn.cursor() as cur:
+                        cur.execute("SELECT id FROM tool_categories WHERE name = %s AND deleted = FALSE", (data["category"],))
+                        if not cur.fetchone():
+                            raise ValueError(f"分类不存在: {data['category']}")
+                finally:
+                    cat_conn.close()
+
             # 构建动态 UPDATE 语句
             updates = []
             params = []
@@ -216,7 +245,6 @@ git commit -m "feat(tool-mgmt): 更新 Tool 模型，新增 ToolUpdateRequest �
             if not updates:
                 return None
 
-            updates.append("created_at = CURRENT_TIMESTAMP")  # 更新时间戳
             params.append(tool_id)
 
             conn = get_db_connection()
@@ -326,9 +354,10 @@ git commit -m "feat(tool-mgmt): 更新 Tool 模型，新增 ToolUpdateRequest �
 **Step 3: 新增图标上传方法**
 
 ```python
-    def upload_tool_icon(self, tool_id: str, file_data, filename: str) -> Optional[str]:
+    def upload_tool_icon(self, tool_id: str, content: bytes, filename: str) -> Optional[str]:
         """上传工具图标到 OSS，返回 URL"""
         from app.services.oss_service import oss_service
+        from io import BytesIO
 
         # 验证工具存在
         conn = None
@@ -348,11 +377,11 @@ git commit -m "feat(tool-mgmt): 更新 Tool 模型，新增 ToolUpdateRequest �
 
             object_name = f"tools/icons/{tool_id}.{ext}"
 
-            # 上传到 OSS
+            # 上传到 OSS（oss_service.upload_file 接受 BytesIO）
             url = oss_service.upload_file(
                 object_name=object_name,
-                data=file_data,
-                size=len(file_data) if isinstance(file_data, bytes) else 0,
+                data=BytesIO(content),
+                size=len(content),
                 content_type=f"image/{ext}",
                 uploaded_by="admin"
             )
@@ -402,18 +431,22 @@ git commit -m "feat(tool-mgmt): 更新 Tool 模型，新增 ToolUpdateRequest �
 **Step 4: 新增 `get_tools_for_platform` 方法**
 
 ```python
-    def get_tools_for_platform(self, platform: str) -> List[Tool]:
-        """按平台获取在线工具"""
+    def get_tools_for_platform(self, platform: str, category: Optional[str] = None) -> List[Tool]:
+        """按平台获取在线工具，支持分类过滤"""
         conn = None
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
+                base_conditions = "status = 'online'"
                 if platform == "pc":
-                    cur.execute("SELECT * FROM tools WHERE status = 'online' AND show_pc = TRUE ORDER BY category, title")
+                    base_conditions += " AND show_pc = TRUE"
                 elif platform == "mobile":
-                    cur.execute("SELECT * FROM tools WHERE status = 'online' AND show_mobile = TRUE ORDER BY category, title")
-                else:
-                    cur.execute("SELECT * FROM tools WHERE status = 'online' ORDER BY category, title")
+                    base_conditions += " AND show_mobile = TRUE"
+
+                if category and category != "全部工具":
+                    base_conditions += f" AND category = '{category}'"
+
+                cur.execute(f"SELECT * FROM tools WHERE {base_conditions} ORDER BY category, title")
 
                 rows = cur.fetchall()
                 return [self._row_to_tool(row) for row in rows]
@@ -504,8 +537,7 @@ async def upload_tool_icon(
     if len(content) > 2 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="文件大小不能超过 2MB")
 
-    from io import BytesIO
-    url = tools_service.upload_tool_icon(tool_id, BytesIO(content), file.filename or "icon.png")
+    url = tools_service.upload_tool_icon(tool_id, content, file.filename or "icon.png")
     return {"url": url}
 
 @router.delete("/tools/{tool_id}/icon", response_model=bool)
@@ -539,9 +571,12 @@ from app.models import Tool, ToolUpdateRequest
 
 ```python
 @router.get("/tools", response_model=ToolsResponse)
-def get_tools(platform: Optional[str] = Query(None, description="平台过滤: pc 或 mobile")):
-    """获取所有工具（支持 platform 过滤）"""
-    tools = tools_service.get_tools_for_platform(platform)
+def get_tools(
+    platform: Optional[str] = Query(None, description="平台过滤: pc 或 mobile"),
+    category: Optional[str] = Query(None, description="分类过滤")
+):
+    """获取所有工具（支持 platform 和 category 过滤）"""
+    tools = tools_service.get_tools_for_platform(platform, category)
     return ToolsResponse(tools=tools)
 ```
 
@@ -1403,7 +1438,7 @@ git commit -m "feat(tool-mgmt): 小程序按 platform 过滤 + 支持自定义�
 
 ---
 
-### Task 10: 后端搜索接口同步修改
+### Task 10: 后端搜索/分类接口同步 platform 过滤
 
 **Files:**
 - Modify: `backend/app/services/tools_service.py`
@@ -1413,15 +1448,103 @@ git commit -m "feat(tool-mgmt): 小程序按 platform 过滤 + 支持自定义�
 
 **Step 1: 修改 `search_tools` 方法**
 
-在 `tools_service.py` 的 `search_tools` 方法中新增 `platform` 参数，SQL 条件加上 `AND show_pc = TRUE` 或 `AND show_mobile = TRUE`。
+替换 `tools_service.py` 中第 206-229 行的 `search_tools` 方法：
+
+```python
+    def search_tools(self, query: str, platform: Optional[str] = None) -> List[Tool]:
+        """搜索工具，支持 platform 过滤"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                search_term = f"%{query}%"
+                conditions = "status = 'online'"
+                if platform == "pc":
+                    conditions += " AND show_pc = TRUE"
+                elif platform == "mobile":
+                    conditions += " AND show_mobile = TRUE"
+
+                cur.execute(
+                    f"""
+                    SELECT * FROM tools 
+                    WHERE {conditions}
+                    AND (LOWER(title) LIKE LOWER(%s) OR LOWER(description) LIKE LOWER(%s))
+                    """,
+                    (search_term, search_term),
+                )
+
+                rows = cur.fetchall()
+                return [self._row_to_tool(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error searching tools: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+```
 
 **Step 2: 修改 `get_tools_by_category` 方法**
 
-同样新增 `platform` 参数。
+替换 `tools_service.py` 中第 181-204 行的 `get_tools_by_category` 方法：
+
+```python
+    def get_tools_by_category(self, category: str, platform: Optional[str] = None) -> List[Tool]:
+        """按分类获取工具，支持 platform 过滤"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                conditions = "status = 'online'"
+                if platform == "pc":
+                    conditions += " AND show_pc = TRUE"
+                elif platform == "mobile":
+                    conditions += " AND show_mobile = TRUE"
+
+                if category == "全部工具":
+                    cur.execute(f"SELECT * FROM tools WHERE {conditions} ORDER BY title")
+                else:
+                    cur.execute(
+                        f"SELECT * FROM tools WHERE {conditions} AND category = %s ORDER BY title",
+                        (category,),
+                    )
+
+                rows = cur.fetchall()
+                return [self._row_to_tool(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error fetching tools by category: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+```
 
 **Step 3: 修改路由**
 
-`tools.py` 中 `/tools/search` 和 `/tools/category/{category}` 路由新增 `platform` 查询参数并传递给 service 方法。
+在 `tools.py` 中，修改搜索路由（第 52-56 行）：
+
+```python
+@router.get("/tools/search", response_model=SearchResponse)
+def search_tools_endpoint(
+    q: str = Query(..., description="搜索关键词"),
+    platform: Optional[str] = Query(None, description="平台过滤: pc 或 mobile")
+):
+    """搜索工具"""
+    tools = tools_service.search_tools(q, platform)
+    return SearchResponse(tools=tools, count=len(tools))
+```
+
+修改分类路由（第 58-62 行）：
+
+```python
+@router.get("/tools/category/{category}", response_model=CategoryResponse)
+def get_tools_by_category_endpoint(
+    category: str,
+    platform: Optional[str] = Query(None, description="平台过滤: pc 或 mobile")
+):
+    """按分类获取工具"""
+    tools = tools_service.get_tools_by_category(category, platform)
+    return CategoryResponse(tools=tools, category=category)
+```
 
 **Step 4: 验证语法**
 

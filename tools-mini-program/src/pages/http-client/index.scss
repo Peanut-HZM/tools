@@ -1,0 +1,225 @@
+.http-client-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom));
+}
+
+.url-bar {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  align-items: center;
+}
+
+.method-picker {
+  background: var(--color-primary);
+  color: #fff;
+  padding: 0 var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: 26rpx;
+  font-weight: 600;
+  min-height: var(--touch-target);
+  line-height: var(--touch-target);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.url-input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--spacing-md);
+  min-height: var(--touch-target);
+  color: var(--text-primary);
+  font-size: 26rpx;
+
+  &:focus {
+    border-color: var(--color-primary);
+  }
+}
+
+.request-panel {
+  margin: 0 var(--spacing-md) var(--spacing-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacing-sm) 0;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  min-height: calc(var(--touch-target) - var(--spacing-sm));
+  line-height: calc(var(--touch-target) - var(--spacing-sm));
+  border-bottom: 2px solid transparent;
+
+  &.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+}
+
+.headers-editor {
+  padding: var(--spacing-md);
+}
+
+.header-row {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.header-input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--spacing-sm);
+  min-height: 72rpx;
+  color: var(--text-primary);
+  font-size: 24rpx;
+}
+
+.remove-btn {
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  color: var(--color-danger);
+  font-size: 32rpx;
+  flex-shrink: 0;
+}
+
+.add-btn {
+  display: block;
+  text-align: center;
+  padding: var(--spacing-sm) 0;
+  color: var(--color-primary);
+  font-size: 26rpx;
+}
+
+.body-editor {
+  padding: var(--spacing-md);
+}
+
+.body-textarea {
+  width: 100%;
+  min-height: 200rpx;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  color: var(--text-primary);
+  font-size: 24rpx;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.body-hint {
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.hint-text {
+  color: var(--text-tertiary);
+  font-size: 26rpx;
+}
+
+.send-bar {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+}
+
+.send-btn {
+  width: 100%;
+  min-height: var(--touch-target);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 30rpx;
+  font-weight: 500;
+
+  &:active {
+    background: var(--color-primary-dark);
+  }
+
+  &[disabled] {
+    background: var(--text-disabled);
+    color: var(--text-tertiary);
+  }
+}
+
+.error-section {
+  margin: 0 var(--spacing-md) var(--spacing-md);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+}
+
+.error-text {
+  font-size: 26rpx;
+  color: var(--color-danger);
+}
+
+.response-section {
+  margin: 0 var(--spacing-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.response-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.resp-tab {
+  flex: 1;
+  text-align: center;
+  padding: var(--spacing-sm) 0;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+
+  &.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+}
+
+.response-content {
+  padding: var(--spacing-md);
+  max-height: 600rpx;
+  overflow-y: auto;
+}
+
+.response-text {
+  font-size: 24rpx;
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.status-line {
+  font-size: 26rpx;
+  color: var(--text-primary);
+}

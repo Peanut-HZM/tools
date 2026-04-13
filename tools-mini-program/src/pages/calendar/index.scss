@@ -1,0 +1,371 @@
+.calendar-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding: 24rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+}
+
+.nav-btn {
+  font-size: 48rpx;
+  color: var(--color-primary);
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+
+  &:active {
+    background: var(--bg-tertiary);
+  }
+}
+
+.month-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lunar-year-info {
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.lunar-year-text {
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+}
+
+.today-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16rpx;
+}
+
+.today-btn {
+  font-size: 24rpx;
+  color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: var(--radius-full);
+  padding: 8rpx 32rpx;
+  font-weight: 500;
+
+  &:active {
+    background: rgba(59, 130, 246, 0.2);
+  }
+}
+
+.legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 12rpx 16rpx;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16rpx;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.legend-green { background: #22C55E; }
+.legend-orange { background: #F59E0B; }
+.legend-blue { background: #3B82F6; }
+
+.legend-text {
+  font-size: 22rpx;
+  color: var(--text-tertiary);
+}
+
+.legend-festival {
+  font-size: 20rpx;
+  color: #EC4899;
+  font-weight: 600;
+}
+
+.selected-detail {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 16rpx;
+  position: relative;
+}
+
+.detail-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80rpx;
+  height: 80rpx;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.detail-day {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.detail-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+
+.detail-date {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.detail-lunar {
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+}
+
+.detail-ganzhi {
+  margin-left: 8rpx;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 4rpx;
+}
+
+.detail-tag {
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 4rpx;
+}
+
+.tag-green {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ADE80;
+}
+
+.tag-orange {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+}
+
+.tag-pink {
+  background: rgba(236, 72, 153, 0.2);
+  color: #F472B6;
+}
+
+.tag-cyan {
+  background: rgba(6, 182, 212, 0.2);
+  color: #22D3EE;
+}
+
+.detail-close {
+  position: absolute;
+  top: 12rpx;
+  right: 16rpx;
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+}
+
+.weekday-row {
+  display: flex;
+  justify-content: space-around;
+  padding: 16rpx 0;
+  margin-bottom: 4rpx;
+}
+
+.weekday-text {
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+  width: 14.28%;
+  text-align: center;
+
+  &.weekend {
+    color: #EF4444;
+  }
+}
+
+.calendar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8rpx;
+}
+
+.calendar-day {
+  width: 14.28%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rpx 2rpx;
+  border-radius: var(--radius-sm);
+  margin: 2rpx;
+  min-height: 100rpx;
+
+  &:active {
+    background: var(--bg-tertiary);
+  }
+
+  &.other-month {
+    opacity: 0.35;
+  }
+
+  &.today {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+
+  &.selected {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+  }
+}
+
+.day-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 2rpx;
+}
+
+.day-number {
+  font-size: 26rpx;
+  color: var(--text-primary);
+  line-height: 1;
+
+  &.today-number {
+    background: #3B82F6;
+    color: #fff;
+    width: 40rpx;
+    height: 40rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  &.other-number {
+    color: var(--text-tertiary);
+  }
+
+  &.weekend-number {
+    color: #EF4444;
+  }
+}
+
+.holiday-badge {
+  font-size: 18rpx;
+  padding: 1rpx 6rpx;
+  border-radius: 4rpx;
+  font-weight: 600;
+  line-height: 1;
+
+  &.badge-green {
+    background: #22C55E;
+    color: #fff;
+  }
+
+  &.badge-orange {
+    background: #F59E0B;
+    color: #fff;
+  }
+}
+
+.lunar-text {
+  font-size: 18rpx;
+  line-height: 1.3;
+  text-align: center;
+  width: 100%;
+
+  &.lunar-festival {
+    color: #EC4899;
+    font-weight: 500;
+  }
+
+  &.lunar-normal {
+    color: var(--text-tertiary);
+  }
+
+  &.lunar-other {
+    color: var(--text-disabled);
+  }
+}
+
+.holiday-name {
+  font-size: 16rpx;
+  line-height: 1.2;
+  text-align: center;
+  width: 100%;
+  margin-top: 2rpx;
+
+  &.name-green {
+    color: #4ADE80;
+  }
+
+  &.name-orange {
+    color: #FBBF24;
+  }
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40rpx;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-top: 8rpx;
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: var(--text-tertiary);
+}
+
+.usage-tips {
+  margin-top: 24rpx;
+  padding: 20rpx;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.tips-title {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  margin-bottom: 4rpx;
+}
+
+.tips-text {
+  font-size: 22rpx;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}

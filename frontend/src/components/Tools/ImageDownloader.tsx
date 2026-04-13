@@ -102,8 +102,6 @@ export default function ImageDownloader() {
       
       // 释放 Blob URL
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-      
-      console.log(`图片 ${index + 1} 下载成功`);
     } catch (err) {
       console.error('下载失败:', err);
       throw err; // 抛出错误以便批量下载时统计

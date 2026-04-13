@@ -195,9 +195,12 @@ async def delete_conversation(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """删除会话"""
-    # TODO: 实现删除逻辑
-    return None
+    """删除会话及其所有消息"""
+    service = ConversationService(db)
+    success = service.delete_conversation(conversation_id, current_user["id"])
+
+    if not success:
+        raise HTTPException(status_code=404, detail="会话不存在")
 
 
 @router.get("/{conversation_id}/messages", response_model=List[MessageResponse])

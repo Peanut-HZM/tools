@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import { useToast } from '../../../hooks/useToast';
 import JsonViewer from './JsonViewer';
 import CodeViewer from './CodeViewer';
-import CopyDropdown from './CopyDropdown';
+import MessageActions from './MessageActions';
 import { detectContentType, countLines, isUrl } from './utils/contentDetector';
 
 const COLLAPSE_HEIGHT = 200; // 折叠高度阈值（px）
@@ -277,23 +277,41 @@ const MessagePanel: React.FC = () => {
 
     // JSON 类型
     if (contentType === 'json') {
-      return <JsonViewer content={content} />;
+      return (
+        <JsonViewer
+          content={content}
+          messageId={msg.id}
+          onDelete={handleDelete}
+          onCopySuccess={() => showToast('已复制到剪贴板', 'success')}
+        />
+      );
     }
 
     // 代码块类型
     if (contentType === 'code') {
-      return <CodeViewer content={content} />;
+      return (
+        <CodeViewer
+          content={content}
+          messageId={msg.id}
+          onDelete={handleDelete}
+          onCopySuccess={() => showToast('已复制到剪贴板', 'success')}
+        />
+      );
     }
 
     // Markdown 或普通文本
     return (
       <div className="relative">
+        {/* 操作按钮 - 始终在顶部横铺 */}
         <div className="absolute right-0 top-0 z-10">
-          <CopyDropdown
+          <MessageActions
             content={content}
             messageId={msg.id}
             onDelete={handleDelete}
             onCopySuccess={() => showToast('已复制到剪贴板', 'success')}
+            isExpanded={isExpanded}
+            needsCollapse={needsCollapse}
+            onToggleExpand={() => toggleExpand(msg.id)}
           />
         </div>
         <div
@@ -313,7 +331,7 @@ const MessagePanel: React.FC = () => {
         >
           <ReactMarkdown>{content}</ReactMarkdown>
         </div>
-        {/* 渐变遮罩和展开/折叠按钮 */}
+        {/* 渐变遮罩 - 仅当消息折叠时显示 */}
         {!isExpanded && needsCollapse && (
           <div className="absolute bottom-0 left-0 right-0 h-24 flex items-end justify-center pb-4 bg-gradient-to-t from-slate-700/90 to-transparent pointer-events-none">
             <button
@@ -323,20 +341,6 @@ const MessagePanel: React.FC = () => {
               <span>展开</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-        )}
-        {/* 折叠按钮 - 当消息已展开时显示 */}
-        {isExpanded && needsCollapse && (
-          <div className="flex justify-end mt-2">
-            <button
-              onClick={() => toggleExpand(msg.id)}
-              className="px-3 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded transition-colors flex items-center space-x-1"
-            >
-              <span>折叠</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </button>
           </div>

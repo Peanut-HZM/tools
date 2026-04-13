@@ -23,12 +23,10 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
     // If it's an auto-refresh (no loading spinner for better UX)
     const isAutoRefresh = !searchPattern && !loading;
     if (!isAutoRefresh) setLoading(true);
-    
+
     const patternToUse = searchPattern ?? pattern;
-    console.log(`[RedisTool] Loading keys for config ${configId} with pattern: "${patternToUse}"`);
     try {
       const data = await getRedisKeys(configId, patternToUse);
-      console.log(`[RedisTool] Loaded ${data?.length} keys`);
       if (!Array.isArray(data)) {
         console.error('[RedisTool] Data is not an array:', data);
         setKeys([]);
@@ -50,7 +48,6 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
     // Force reset pattern to current input value or '*' if empty? 
     // Actually handleRefresh should probably use the current pattern in the input
     // But we need to make sure pattern state is up to date.
-    console.log('[RedisTool] Refreshing keys...');
     loadKeys();
     // Trigger KeyDetail refresh if a key is selected
     if (selectedKey) {
@@ -59,7 +56,6 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
   };
 
   useEffect(() => {
-    console.log(`[RedisTool] Config changed to ${configId}, resetting pattern and loading keys`);
     setPattern('*');
     setSelectedKey(null);
     loadKeys('*');
@@ -68,7 +64,6 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
   // Auto-refresh every 5 seconds
   useEffect(() => {
     const intervalId = setInterval(() => {
-      console.log('[RedisTool] Auto-refreshing keys...');
       loadKeys(); // Use current pattern
       
       // If a key is selected, we should also trigger its refresh.
@@ -139,7 +134,6 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
           </div>
           <div className="text-xs text-slate-500">
             {keys.length} {t.redis.keys}
-            {/* Debug info - hidden in production ideally, but useful now */}
             {keys.length === 0 && !loading && (
                <span className="ml-2 text-xs opacity-50 hidden group-hover:inline">
                  (Pattern: {pattern})

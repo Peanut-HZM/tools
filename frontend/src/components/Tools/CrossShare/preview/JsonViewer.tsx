@@ -2,7 +2,8 @@
  * JSON 预览器
  */
 import React from 'react';
-import ReactJsonView from 'react-json-view';
+import ReactJsonView from 'react18-json-view';
+import 'react18-json-view/src/style.css';
 import { PreviewProps } from './types';
 
 export const JsonViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) => {
@@ -75,15 +76,11 @@ export const JsonViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) =>
       </button>
       <ReactJsonView
         src={data}
-        theme="monokai"
+        theme="vitesse"
         collapsed={2}
-        enableClipboard={true}
-        displayDataTypes={true}
-        displayObjectSize={true}
-        name={null}
+        dark
         style={{
           backgroundColor: 'transparent',
-          fontSize: '14px',
         }}
       />
     </div>

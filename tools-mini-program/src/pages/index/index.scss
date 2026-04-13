@@ -1,0 +1,18 @@
+.index-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.tools-scroll {
+  flex: 1;
+  padding: 24rpx;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+}

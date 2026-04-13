@@ -4,7 +4,7 @@ HTTP Client 路由 - API 接口调用工具
 
 import logging
 from typing import List, Optional, Dict
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
 
 from app.models.http_client_models import (
     Collection,
@@ -23,6 +23,7 @@ from app.models.http_client_models import (
     SyncStatusResponse,
 )
 from app.services.http_client_service import http_client_service, is_safe_url
+from app.middleware.auth_middleware import optional_auth
 
 logger = logging.getLogger(__name__)
 
@@ -174,16 +175,10 @@ def delete_environment(env_id: str):
 # ============= Send Request Endpoint =============
 
 @router.post("/send", response_model=SendRequestResponse)
-async def send_request(request: SendRequestRequest, req: Request):
+async def send_request(request: SendRequestRequest, req: Request, user_id: Optional[str] = Depends(optional_auth)):
     """发送 HTTP 请求（代理转发）"""
     try:
-        # 从 JWT token 中获取用户 ID（暂时使用 anonymous）
-        user_id = "anonymous"
-        auth_header = req.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            # TODO: 解析 JWT token 获取真实用户 ID
-            user_id = "user_001"
-
+        user_id = user_id or "anonymous"
         result = await http_client_service.send_request(request, user_id)
         return result
 
@@ -203,11 +198,10 @@ async def send_request(request: SendRequestRequest, req: Request):
 @router.get("/history", response_model=List[RequestHistory])
 def get_history(
     limit: int = Query(default=50, ge=1, le=200, description="获取记录数量"),
-    req: Request = None,
+    user_id: Optional[str] = Depends(optional_auth),
 ):
     """获取请求历史"""
-    user_id = "anonymous"
-    # TODO: 从 JWT token 中获取真实用户 ID
+    user_id = user_id or "anonymous"
     history = http_client_service.get_request_history(user_id, limit)
     return history
 
@@ -220,10 +214,9 @@ def delete_history(history_id: str):
 
 
 @router.post("/history/clear")
-def clear_history(req: Request):
+def clear_history(user_id: Optional[str] = Depends(optional_auth)):
     """清空请求历史"""
-    user_id = "anonymous"
-    # TODO: 从 JWT token 中获取真实用户 ID
+    user_id = user_id or "anonymous"
     success = http_client_service.clear_request_history(user_id)
     if not success:
         raise HTTPException(status_code=500, detail="清空历史失败")

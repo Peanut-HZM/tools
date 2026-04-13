@@ -184,8 +184,11 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         let converted: any = value;
         if (value === '' || value.toLowerCase() === 'null') {
           converted = null;
+        } else if (colDef?.type?.toLowerCase().includes('bigint')) {
+          converted = value;
         } else if (colDef?.type?.toLowerCase().includes('int') || colDef?.type?.toLowerCase().includes('float') || colDef?.type?.toLowerCase().includes('decimal')) {
-          converted = isNaN(Number(value)) ? value : Number(value);
+          const numValue = Number(value);
+          converted = isNaN(numValue) || Math.abs(numValue) > Number.MAX_SAFE_INTEGER ? value : numValue;
         }
         next.set(key, { ...existing, newValue: converted });
       }
@@ -202,8 +205,11 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         converted = null;
       } else {
         const colDef = schema?.columns?.find((c: any) => c.name === colName);
-        if (colDef?.type?.toLowerCase().includes('int') || colDef?.type?.toLowerCase().includes('float') || colDef?.type?.toLowerCase().includes('decimal')) {
-          converted = isNaN(Number(value)) ? value : Number(value);
+        if (colDef?.type?.toLowerCase().includes('bigint')) {
+          converted = value;
+        } else if (colDef?.type?.toLowerCase().includes('int') || colDef?.type?.toLowerCase().includes('float') || colDef?.type?.toLowerCase().includes('decimal')) {
+          const numValue = Number(value);
+          converted = isNaN(numValue) || Math.abs(numValue) > Number.MAX_SAFE_INTEGER ? value : numValue;
         }
       }
       row[colName] = converted;
@@ -284,6 +290,8 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
   const getColumnInputType = (colDef: any): string => {
     if (!colDef?.type) return 'text';
     const type = colDef.type.toLowerCase();
+    // bigint 使用 text 输入，避免 HTML number input 的精度丢失
+    if (type.includes('bigint')) return 'text';
     if (type.includes('int') || type.includes('float') || type.includes('double') || type.includes('decimal') || type.includes('numeric')) return 'number';
     if (type === 'date') return 'date';
     if (type === 'datetime' || type.includes('timestamp')) return 'datetime-local';

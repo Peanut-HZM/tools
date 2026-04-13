@@ -9,6 +9,7 @@ from app.models.database_tool_models import DatabaseType
 
 logger = logging.getLogger(__name__)
 
+
 class DBConnectionManager:
     _engines: Dict[str, Engine] = {}
 
@@ -17,7 +18,7 @@ class DBConnectionManager:
         """
         Get or create an SQLAlchemy engine for the given configuration.
         config dict must contain: db_type, host, port, database_name, username, password (encrypted or plain?)
-        We assume 'password' in config is PLAINTEXT if passed here, 
+        We assume 'password' in config is PLAINTEXT if passed here,
         OR if it's from DB, we might need to decrypt it before calling this.
         Better: The caller decrypts the password.
         """
@@ -55,12 +56,29 @@ class DBConnectionManager:
             # If db_name is empty, connect to default 'postgres' database
             target_db = db_name if db_name else "postgres"
             url = f"postgresql://{encoded_user}:{encoded_password}@{host}:{port}/{target_db}"
+            # PostgreSQL 超时配置
+            connect_timeout = config.get("connect_timeout", 10)
+            if connect_timeout:
+                connect_args["connect_timeout"] = connect_timeout
 
         elif db_type == DatabaseType.MYSQL or db_type == DatabaseType.MARIADB:
             # mysql+pymysql://user:password@host:port/dbname?charset=utf8mb4
             # If db_name is empty, connect without selecting a database
             target_db = f"/{db_name}" if db_name else ""
             url = f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}:{port}{target_db}?charset={charset}"
+            # PyMySQL 超时配置（通过 connect_args 传递）
+            connect_timeout = config.get("connect_timeout", 10)
+            if connect_timeout:
+                connect_args["connect_timeout"] = connect_timeout
+            # 读写超时：防止查询执行过程中卡死（默认 30 秒）
+            connect_args["read_timeout"] = config.get("read_timeout", 30)
+            connect_args["write_timeout"] = config.get("write_timeout", 30)
+            logger.info(
+                f"MySQL 连接配置: host={host}, port={port}, db={db_name}, "
+                f"connect_timeout={connect_args.get('connect_timeout')}s, "
+                f"read_timeout={connect_args.get('read_timeout')}s, "
+                f"write_timeout={connect_args.get('write_timeout')}s"
+            )
 
         elif db_type == DatabaseType.SQLITE:
             # sqlite:///path/to/db
@@ -76,22 +94,37 @@ class DBConnectionManager:
         elif db_type == DatabaseType.ORACLE:
             # oracle+cx_oracle://user:password@host:port/?service_name=dbname
             if not db_name:
-                 raise ValueError("Database name (Service Name) is required for Oracle")
+                raise ValueError("Database name (Service Name) is required for Oracle")
             url = f"oracle+cx_oracle://{encoded_user}:{encoded_password}@{host}:{port}/?service_name={db_name}"
 
         else:
             raise ValueError(f"Unsupported database type: {db_type}")
 
         try:
-            # Pool settings
+            # 连接池配置
             pool_size = config.get("max_pool_size", 10)
-            pool_recycle = 3600
+            pool_recycle = 3600  # 1 小时回收连接，配合 pool_pre_ping 防止使用过期连接
+            max_overflow = config.get(
+                "max_overflow", 20
+            )  # 允许超出 pool_size 的最大连接数
+            pool_timeout = config.get(
+                "pool_timeout", 30
+            )  # 从连接池获取连接的等待超时（秒）
+
+            logger.info(
+                f"创建数据库引擎: pool_size={pool_size}, max_overflow={max_overflow}, "
+                f"pool_recycle={pool_recycle}s, pool_timeout={pool_timeout}s, "
+                f"pool_pre_ping=True"
+            )
 
             engine = create_engine(
                 url,
                 pool_size=pool_size,
+                max_overflow=max_overflow,
+                pool_timeout=pool_timeout,
                 pool_recycle=pool_recycle,
-                connect_args=connect_args
+                pool_pre_ping=True,  # 每次从连接池取连接前先 ping 检测，防止 2013 错误
+                connect_args=connect_args,
             )
             return engine
         except Exception as e:
@@ -108,18 +141,20 @@ class DBConnectionManager:
             engine = cls._create_engine(config)
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            
+
             # Dispose engine
             engine.dispose()
             return True
         except Exception as e:
             logger.error(f"Connection test failed: {e}")
-            raise e # Re-raise to let caller handle the error message
+            raise e  # Re-raise to let caller handle the error message
 
     @classmethod
     def close_engine(cls, config_id: str):
         """Close engine(s) for a config"""
-        keys_to_remove = [k for k in cls._engines.keys() if k.startswith(f"{config_id}:")]
+        keys_to_remove = [
+            k for k in cls._engines.keys() if k.startswith(f"{config_id}:")
+        ]
         for key in keys_to_remove:
             if key in cls._engines:
                 try:

@@ -7,11 +7,14 @@ Versions are stored in a separate prefix: versions/{user_id}/{original_path}/{ti
 
 import os
 import io
+import logging
 from datetime import datetime
 from typing import List, Optional, Tuple
 import oss2
 
 from app.services.oss_service import oss_service
+
+logger = logging.getLogger(__name__)
 
 
 class OssVersionService:
@@ -64,7 +67,7 @@ class OssVersionService:
             return True, version_id
 
         except Exception as e:
-            print(f"Error creating version: {e}")
+            logger.error("Error creating version: %s", e)
             return False, ""
 
     def list_versions(
@@ -113,7 +116,7 @@ class OssVersionService:
             return versions[offset : offset + limit]
 
         except Exception as e:
-            print(f"Error listing versions: {e}")
+            logger.error("Error listing versions: %s", e)
             return []
 
     def read_version(
@@ -135,7 +138,7 @@ class OssVersionService:
             return True, content
 
         except Exception as e:
-            print(f"Error reading version: {e}")
+            logger.error("Error reading version: %s", e)
             return False, ""
 
     def rollback_to_version(
@@ -178,7 +181,7 @@ class OssVersionService:
             return success, new_version_id
 
         except Exception as e:
-            print(f"Error rolling back: {e}")
+            logger.error("Error rolling back: %s", e)
             return False, ""
 
     def delete_version(self, user_id: str, file_path: str, version_id: str) -> bool:
@@ -197,7 +200,7 @@ class OssVersionService:
             return True
 
         except Exception as e:
-            print(f"Error deleting version: {e}")
+            logger.error("Error deleting version: %s", e)
             return False
 
     def _cleanup_old_versions(self, user_id: str, file_path: str):
@@ -220,7 +223,7 @@ class OssVersionService:
                         pass
 
         except Exception as e:
-            print(f"Error cleaning up old versions: {e}")
+            logger.error("Error cleaning up old versions: %s", e)
 
     def _format_timestamp(self, timestamp: str) -> str:
         """Format timestamp string to ISO format"""

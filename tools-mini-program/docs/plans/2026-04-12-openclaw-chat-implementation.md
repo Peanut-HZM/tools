@@ -1,41 +1,40 @@
-# OpenClaw 对话工具实施计划
+# OpenClaw 对话工具 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 在工具箱小程序中新增 OpenClaw AI 对话工具，通过后端 WebSocket 代理将 OpenClaw Gateway 的自定义 JSON-RPC 协议转换为小程序友好的 HTTP SSE 流式响应。
+**Goal:** 在工具箱小程序中新增 OpenClaw AI 对话工具，通过后端 WebSocket 代理将 OpenClaw Gateway 的 JSON-RPC 协议转换为 HTTP SSE 流式响应，支持 Markdown 渲染。
 
-**Architecture:** Python FastAPI 后端通过 `websockets` 库长连接 OpenClaw Gateway（ws://127.0.0.1:18081），维护连接池并处理 JSON-RPC 协议握手和消息转发。小程序通过 HTTP POST + SSE 流式接收 AI 回复。
+**Architecture:** Python FastAPI 后端通过 `websockets` 库建立长连接至 OpenClaw Gateway（ws://127.0.0.1:18081），处理 JSON-RPC 握手和消息转发。小程序通过 HTTP POST + SSE 接收流式 AI 回复，使用 `marked` + `rich-text` 渲染 Markdown。
 
-**Tech Stack:** Python FastAPI, websockets, SSE (Server-Sent Events), Taro 小程序, React 18, TypeScript
+**Tech Stack:** Python FastAPI, websockets>=12.0, SSE, Taro 4.1.11, React 18, TypeScript, marked, 微信小程序 rich-text
 
 ---
 
 ### Task 1: 后端配置 — 添加 OpenClaw 环境变量
 
 **Files:**
-- Modify: `/Users/huazhongmin/IdeaProjects/tools/backend/app/config/config.py`
+- Modify: `backend/app/config/config.py`（在 CORS_ORIGINS 之后、ALIYUN_OSS 之前添加）
 
-**Step 1: 添加 OpenClaw 配置项到 Settings 类**
+**Step 1: 添加配置项**
 
-在 `Settings` 类的 `CORS_ORIGINS` 之后、`ALIYUN_OSS` 之前添加：
+在 `Settings` 类第 51 行（CORS_ORIGINS）之后、第 53 行（ALIYUN_OSS）之前插入：
 
 ```python
-# OpenClaw Gateway
-OPENCLAW_GATEWAY_URL: str = "ws://127.0.0.1:18081"
-OPENCLAW_TOKEN: str = ""
+    # OpenClaw Gateway
+    OPENCLAW_GATEWAY_URL: str = "ws://127.0.0.1:18081"
+    OPENCLAW_TOKEN: str = ""
 ```
 
-**Step 2: 验证配置能正常加载**
+**Step 2: 验证配置**
 
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/backend && python -c "from app.config.config import settings; print(settings.OPENCLAW_GATEWAY_URL)"`
+Run: `cd backend && python -c "from app.config.config import settings; print(settings.OPENCLAW_GATEWAY_URL)"`
 Expected: 输出 `ws://127.0.0.1:18081`
 
 **Step 3: 提交**
 
 ```bash
-cd /Users/huazhongmin/IdeaProjects/tools
 git add backend/app/config/config.py
-git commit -m "feat: 添加 OpenClaw Gateway 配置项"
+git commit -m "feat(openclaw): 添加 Gateway 配置项"
 ```
 
 ---
@@ -43,18 +42,9 @@ git commit -m "feat: 添加 OpenClaw Gateway 配置项"
 ### Task 2: 后端服务 — OpenClaw WebSocket 客户端
 
 **Files:**
-- Create: `/Users/huazhongmin/IdeaProjects/tools/backend/app/services/openclaw_service.py`
+- Create: `backend/app/services/openclaw_service.py`
 
-**Step 1: 创建 OpenClawService 类**
-
-这是核心服务类，负责：
-1. 维护与 OpenClaw Gateway 的 WebSocket 长连接
-2. 处理连接握手（challenge → connect → hello_ok）
-3. 发送 `chat.send` 请求
-4. 监听 `chat` 事件并转发给 SSE 生成器
-5. 自动重连
-
-完整实现：
+**Step 1: 创建完整服务文件**
 
 ```python
 """
@@ -69,7 +59,7 @@ import uuid
 from typing import AsyncGenerator, Optional
 
 import websockets
-from websockets.exceptions import ConnectionClosed, WebSocketException
+from websockets.exceptions import ConnectionClosed
 
 from app.config.config import settings
 
@@ -86,8 +76,8 @@ class OpenClawService:
         self._pending_requests: dict[str, asyncio.Queue] = {}
         self._event_listeners: dict[str, list[asyncio.Queue]] = {}
         self._reconnect_delay = 1
-        self._disconnect_event = asyncio.Event()  # 用于通知 _connect_loop 连接已断开
-        self._send_lock = asyncio.Lock()  # 防止并发发送导致帧交错
+        self._disconnect_event = asyncio.Event()
+        self._send_lock = asyncio.Lock()
 
     async def start(self):
         """启动连接（后台任务）"""
@@ -115,8 +105,7 @@ class OpenClawService:
         while self._running:
             try:
                 await self._connect()
-                self._reconnect_delay = 1  # 重置重连延迟
-                # 等待 _event_loop 发出断开信号
+                self._reconnect_delay = 1
                 await self._disconnect_event.wait()
                 self._disconnect_event.clear()
             except asyncio.CancelledError:
@@ -143,7 +132,7 @@ class OpenClawService:
         if not nonce:
             raise ValueError("connect.challenge 缺少 nonce")
 
-        # 发送 connect 请求（协议版本为 3）
+        # 发送 connect 请求（协议版本 3）
         connect_msg = {
             "type": "req",
             "id": str(uuid.uuid4()),
@@ -165,12 +154,11 @@ class OpenClawService:
                 "scopes": ["operator.admin"],
             },
         }
-        # 移除 None 值
         connect_msg["params"] = {k: v for k, v in connect_msg["params"].items() if v is not None}
 
         await self.ws.send(json.dumps(connect_msg))
 
-        # 等待 hello_ok 或错误
+        # 等待 hello_ok
         response_raw = await asyncio.wait_for(self.ws.recv(), timeout=10)
         response = json.loads(response_raw)
 
@@ -180,23 +168,20 @@ class OpenClawService:
             error = response.get("error", {})
             raise ConnectionError(f"OpenClaw 连接失败: {error.get('message', 'unknown')}")
 
-        # 启动事件监听循环
         asyncio.create_task(self._event_loop())
 
     async def _event_loop(self):
-        """持续监听事件并分发给等待中的请求"""
+        """持续监听事件并分发"""
         try:
             async for raw in self.ws:
                 data = json.loads(raw)
                 msg_id = data.get("id")
                 event = data.get("event")
 
-                # 响应消息 → 分发给对应的 pending queue
                 if msg_id and msg_id in self._pending_requests:
                     queue = self._pending_requests[msg_id]
                     await queue.put(data)
 
-                # 事件消息 → 分发给所有事件监听器
                 if event == "chat":
                     for queue in self._event_listeners.get("chat", []):
                         await queue.put(data)
@@ -205,15 +190,13 @@ class OpenClawService:
         except Exception as e:
             logger.error(f"OpenClaw 事件循环异常: {e}")
         finally:
-            # 清理所有 pending 请求（连接断开后不会再有响应）
             for q in self._pending_requests.values():
                 q.put_nowait({"ok": False, "error": {"message": "连接已断开"}})
             self._pending_requests.clear()
-            # 通知 _connect_loop 可以重连了
             self._disconnect_event.set()
 
     async def _send_request(self, method: str, params: dict, timeout: float = 10) -> dict:
-        """发送 RPC 请求并等待响应（线程安全，支持并发）"""
+        """发送 RPC 请求并等待响应（支持并发）"""
         if not self.ws or self.ws.closed:
             raise ConnectionError("OpenClaw 未连接")
 
@@ -245,23 +228,18 @@ class OpenClawService:
         return self.ws is not None and not self.ws.closed
 
     async def send_chat(self, session_key: str, message: str, abort_flag: Optional[asyncio.Event] = None) -> AsyncGenerator[str, None]:
-        """
-        发送聊天消息并流式返回 chunk
-        返回 SSE 格式的字符串流
-        """
+        """发送聊天消息并流式返回 SSE 格式 chunk"""
         if not self.is_connected():
             raise ConnectionError("OpenClaw 服务未连接")
 
         run_id = str(uuid.uuid4())
         event_queue: asyncio.Queue = asyncio.Queue()
 
-        # 注册事件监听器
         if "chat" not in self._event_listeners:
             self._event_listeners["chat"] = []
         self._event_listeners["chat"].append(event_queue)
 
         try:
-            # 发送消息
             ack = await self._send_request("chat.send", {
                 "sessionKey": session_key,
                 "message": message,
@@ -270,14 +248,11 @@ class OpenClawService:
             run_id = ack.get("runId", run_id)
             yield f"data: {json.dumps({'type': 'started', 'runId': run_id}, ensure_ascii=False)}\n\n"
 
-            # 持续监听 chat 事件，直到收到 final 或超时
-            max_wait = 120  # 最大等待 120 秒
+            max_wait = 120
             start_time = asyncio.get_event_loop().time()
 
             while asyncio.get_event_loop().time() - start_time < max_wait:
-                # 检查中止信号
                 if abort_flag and abort_flag.is_set():
-                    # 发送中止请求到 OpenClaw
                     try:
                         await self._send_request("chat.abort", {
                             "sessionKey": session_key,
@@ -292,21 +267,15 @@ class OpenClawService:
                     event = await asyncio.wait_for(event_queue.get(), timeout=5)
                     payload = event.get("payload", {})
 
-                    # OpenClaw chat 事件格式：
-                    # payload.state: "delta" | "final"
-                    # payload.message.content[0].text: 文本内容
-                    # 或 lifecycle 事件：payload.stream == "lifecycle"
                     state = payload.get("state")
                     stream = payload.get("stream")
 
-                    # 处理 lifecycle 事件（表示完成）
                     if stream == "lifecycle":
                         phase = payload.get("data", {}).get("phase")
                         if phase == "end":
                             break
                         continue
 
-                    # 处理 chat 广播事件
                     if state in ("delta", "final"):
                         text = self._extract_text_from_payload(payload)
                         if text:
@@ -321,51 +290,31 @@ class OpenClawService:
             yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
 
         finally:
-            # 移除事件监听器（无论成功/失败/中止都要清理）
             if event_queue in self._event_listeners.get("chat", []):
                 self._event_listeners["chat"].remove(event_queue)
 
     def _extract_text_from_payload(self, payload: dict) -> Optional[str]:
-        """从 chat 事件 payload 中提取文本内容"""
-        # 格式：{"state": "delta", "message": {"content": [{"text": "..."}]}}
+        """从 chat 事件 payload 中提取文本"""
         message = payload.get("message", {})
         content_list = message.get("content", [])
         if isinstance(content_list, list) and len(content_list) > 0:
             text = content_list[0].get("text")
             if text:
                 return text
-        # 兼容格式：直接有 text 字段
         return payload.get("text") or payload.get("content")
 
     async def chat_history(self, session_key: str, limit: int = 50) -> list:
         """获取会话历史"""
-        result = await self._send_request("chat.history", {
-            "sessionKey": session_key,
-            "limit": limit,
-        })
+        result = await self._send_request("chat.history", {"sessionKey": session_key, "limit": limit})
         return result.get("messages", [])
-
-    async def abort_chat(self, session_key: str, run_id: str) -> dict:
-        """中止聊天"""
-        return await self._send_request("chat.abort", {
-            "sessionKey": session_key,
-            "runId": run_id,
-        })
 
     async def reset_session(self, session_key: str) -> dict:
         """重置会话"""
-        return await self._send_request("sessions.reset", {
-            "key": session_key,
-        })
+        return await self._send_request("sessions.reset", {"key": session_key})
 
     async def get_status(self) -> dict:
         """获取网关状态"""
         return await self._send_request("status")
-
-    async def list_models(self) -> list:
-        """获取可用模型列表"""
-        result = await self._send_request("models.list")
-        return result.get("models", [])
 
 
 # 全局单例
@@ -374,15 +323,14 @@ openclaw_service = OpenClawService()
 
 **Step 2: 验证语法**
 
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/backend && python -m py_compile app/services/openclaw_service.py`
-Expected: 无输出（编译成功）
+Run: `cd backend && python -m py_compile app/services/openclaw_service.py`
+Expected: 无输出
 
 **Step 3: 提交**
 
 ```bash
-cd /Users/huazhongmin/IdeaProjects/tools
 git add backend/app/services/openclaw_service.py
-git commit -m "feat: 创建 OpenClaw Gateway WebSocket 客户端服务"
+git commit -m "feat(openclaw): 创建 WebSocket 客户端服务"
 ```
 
 ---
@@ -390,9 +338,10 @@ git commit -m "feat: 创建 OpenClaw Gateway WebSocket 客户端服务"
 ### Task 3: 后端路由 — OpenClaw API 接口
 
 **Files:**
-- Create: `/Users/huazhongmin/IdeaProjects/tools/backend/app/routes/openclaw.py`
+- Create: `backend/app/routes/openclaw.py`
+- Modify: `backend/app/main.py`（末尾 HTTP Client router 之后）
 
-**Step 1: 创建 FastAPI 路由**
+**Step 1: 创建路由文件**
 
 ```python
 """
@@ -403,8 +352,7 @@ OpenClaw AI 对话路由
 import json
 import logging
 import asyncio
-from contextlib import asynccontextmanager
-from typing import Optional, Dict
+from typing import Dict
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -416,43 +364,33 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/openclaw", tags=["openclaw"])
 
-# 存储活跃请求的 abort 信号
 _active_chats: Dict[str, asyncio.Event] = {}
 
 
 class ChatRequest(BaseModel):
-    """对话请求"""
     message: str
     session_key: str = "main"
 
 
 class HistoryRequest(BaseModel):
-    """历史请求"""
     session_key: str = "main"
     limit: int = 50
 
 
 class AbortRequest(BaseModel):
-    """中止请求"""
     session_key: str = "main"
 
 
 @router.post("/chat")
 async def chat_stream(request: ChatRequest):
-    """
-    流式对话接口（SSE）
-    小程序使用 enableChunked: true 接收
-    """
+    """流式对话接口（SSE）"""
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="消息内容不能为空")
-
     if len(request.message) > 4000:
         raise HTTPException(status_code=400, detail="消息内容过长（最大 4000 字符）")
-
     if not openclaw_service.is_connected():
         raise HTTPException(status_code=502, detail="OpenClaw 服务未连接")
 
-    # 创建中止信号
     abort_event = asyncio.Event()
     chat_id = f"{request.session_key}:{id(request)}"
     _active_chats[chat_id] = abort_event
@@ -484,11 +422,10 @@ async def chat_stream(request: ChatRequest):
 
 @router.post("/abort")
 async def abort_chat(request: AbortRequest):
-    """中止生成（通过设置 abort 信号）"""
+    """中止生成"""
     if not openclaw_service.is_connected():
         raise HTTPException(status_code=502, detail="OpenClaw 服务未连接")
 
-    # 查找匹配的活跃请求并设置 abort 信号
     aborted = False
     for chat_id, abort_event in list(_active_chats.items()):
         if chat_id.startswith(f"{request.session_key}:"):
@@ -507,11 +444,9 @@ async def get_history(request: HistoryRequest):
     """获取会话历史"""
     if not openclaw_service.is_connected():
         raise HTTPException(status_code=502, detail="OpenClaw 服务未连接")
-
     try:
         messages = await openclaw_service.chat_history(
-            session_key=request.session_key,
-            limit=request.limit,
+            session_key=request.session_key, limit=request.limit,
         )
         return {"messages": messages}
     except Exception as e:
@@ -521,10 +456,9 @@ async def get_history(request: HistoryRequest):
 
 @router.post("/reset")
 async def reset_session(session_key: str = "main"):
-    """重置会话（新建对话）"""
+    """重置会话"""
     if not openclaw_service.is_connected():
         raise HTTPException(status_code=502, detail="OpenClaw 服务未连接")
-
     try:
         result = await openclaw_service.reset_session(session_key)
         return result
@@ -538,31 +472,16 @@ async def get_status():
     """获取 OpenClaw 状态"""
     if not openclaw_service.is_connected():
         return {"connected": False}
-
     try:
         status = await openclaw_service.get_status()
         return {"connected": True, **status}
     except Exception as e:
         return {"connected": False, "error": str(e)}
-
-
-@router.get("/models")
-async def list_models():
-    """获取可用模型列表"""
-    if not openclaw_service.is_connected():
-        raise HTTPException(status_code=502, detail="OpenClaw 服务未连接")
-
-    try:
-        models = await openclaw_service.list_models()
-        return {"models": models}
-    except Exception as e:
-        logger.error(f"获取模型列表失败: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 ```
 
-**Step 2: 在 main.py 中注册路由**
+**Step 2: 注册路由到 main.py**
 
-在 `backend/app/main.py` 末尾（`# HTTP Client router` 之后）添加：
+在 `backend/app/main.py` 第 206 行（`# HTTP Client router` 之后）添加：
 
 ```python
 # OpenClaw router
@@ -572,33 +491,114 @@ app.include_router(openclaw_router.router, prefix="/api")
 
 **Step 3: 验证语法**
 
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/backend && python -m py_compile app/routes/openclaw.py && python -m py_compile app/main.py`
+Run: `cd backend && python -m py_compile app/routes/openclaw.py && python -m py_compile app/main.py`
 Expected: 无输出
 
 **Step 4: 提交**
 
 ```bash
-cd /Users/huazhongmin/IdeaProjects/tools
 git add backend/app/routes/openclaw.py backend/app/main.py
-git commit -m "feat: 添加 OpenClaw API 路由（SSE 流式对话 + 会话管理）"
+git commit -m "feat(openclaw): 添加 API 路由（SSE 对话 + 中止 + 状态）"
 ```
 
 ---
 
-### Task 4.5: 小程序依赖 — 安装 Markdown 解析库
+### Task 4: 后端依赖 — 安装 websockets
 
 **Files:**
-- Modify: `/Users/huazhongmin/IdeaProjects/tools/tools-mini-program/package.json`
+- Modify: `backend/requirements.txt`
 
-**Step 1: 安装 marked 库**
+**Step 1: 添加依赖**
 
-`marked` 是一个轻量级 Markdown 解析器，能将 Markdown 转为 HTML，配合小程序的 `rich-text` 组件使用。
+在 `requirements.txt` 末尾添加：
 
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program && npm install marked`
+```
+# WebSocket client
+websockets>=12.0
+```
 
-**Step 2: 创建 Markdown 渲染组件**
+**Step 2: 安装**
 
-创建 `src/components/Markdown/index.tsx`，使用 `marked` 解析 Markdown，通过 `rich-text` 组件渲染 HTML。
+Run: `cd backend && pip install websockets`
+Expected: 安装成功
+
+**Step 3: 提交**
+
+```bash
+git add backend/requirements.txt
+git commit -m "chore: 添加 websockets 依赖"
+```
+
+---
+
+### Task 5: 后端生命周期 — 启动/关闭 OpenClaw 连接
+
+**Files:**
+- Modify: `backend/app/main.py`（lifespan 函数）
+
+**Step 1: 修改 lifespan 函数**
+
+将 `backend/app/main.py` 第 81-99 行的 `lifespan` 函数替换为：
+
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    logger.info("Starting application...")
+
+    manager = get_manager()
+    cleanup_task = asyncio.create_task(manager.start_cleanup_task())
+
+    # 启动 OpenClaw 连接
+    try:
+        from app.services.openclaw_service import openclaw_service
+        await openclaw_service.start()
+    except Exception as e:
+        logger.warning(f"OpenClaw 连接启动失败（功能将不可用）: {e}")
+
+    yield
+
+    logger.info("Shutting down application...")
+
+    try:
+        from app.services.openclaw_service import openclaw_service
+        await openclaw_service.stop()
+    except Exception as e:
+        logger.error(f"OpenClaw 关闭异常: {e}")
+
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+```
+
+**Step 2: 验证语法**
+
+Run: `cd backend && python -m py_compile app/main.py`
+Expected: 无输出
+
+**Step 3: 提交**
+
+```bash
+git add backend/app/main.py
+git commit -m "feat(openclaw): 在生命周期中管理连接"
+```
+
+---
+
+### Task 6: 小程序 Markdown 组件
+
+**Files:**
+- Create: `tools-mini-program/src/components/Markdown/index.tsx`
+- Create: `tools-mini-program/src/components/Markdown/index.scss`
+- Modify: `tools-mini-program/package.json`（添加 marked 依赖）
+
+**Step 1: 安装 marked**
+
+Run: `cd tools-mini-program && npm install marked`
+
+**Step 2: 创建组件**
 
 ```typescript
 import { View } from '@tarojs/components'
@@ -611,8 +611,8 @@ interface MarkdownProps {
 
 // 配置 marked
 marked.setOptions({
-  breaks: true,  // GFM 换行
-  gfm: true,     // 启用 GitHub Flavored Markdown
+  breaks: true,
+  gfm: true,
 })
 
 export default function Markdown({ content }: MarkdownProps) {
@@ -628,9 +628,7 @@ export default function Markdown({ content }: MarkdownProps) {
 }
 ```
 
-**Step 3: 创建样式文件**
-
-创建 `src/components/Markdown/index.scss`，为 `rich-text` 中的 HTML 元素提供样式：
+**Step 3: 创建样式**
 
 ```scss
 .markdown-renderer {
@@ -639,17 +637,12 @@ export default function Markdown({ content }: MarkdownProps) {
   color: var(--text-primary);
   word-break: break-word;
 
-  // 段落
-  p {
-    margin-bottom: 12rpx;
-  }
+  p { margin-bottom: 12rpx; }
 
-  // 标题
   h1 { font-size: 36rpx; font-weight: 600; margin: 16rpx 0 8rpx; }
   h2 { font-size: 32rpx; font-weight: 600; margin: 14rpx 0 6rpx; }
   h3 { font-size: 30rpx; font-weight: 600; margin: 12rpx 0 4rpx; }
 
-  // 代码块
   pre {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8rpx;
@@ -664,7 +657,6 @@ export default function Markdown({ content }: MarkdownProps) {
     }
   }
 
-  // 行内代码
   code {
     background: rgba(59, 130, 246, 0.15);
     color: var(--color-primary);
@@ -673,17 +665,9 @@ export default function Markdown({ content }: MarkdownProps) {
     font-size: 26rpx;
   }
 
-  // 列表
-  ul, ol {
-    padding-left: 24rpx;
-    margin-bottom: 12rpx;
-  }
+  ul, ol { padding-left: 24rpx; margin-bottom: 12rpx; }
+  li { margin-bottom: 6rpx; }
 
-  li {
-    margin-bottom: 6rpx;
-  }
-
-  // 引用
   blockquote {
     border-left: 4rpx solid var(--color-primary);
     padding-left: 16rpx;
@@ -691,12 +675,8 @@ export default function Markdown({ content }: MarkdownProps) {
     margin: 12rpx 0;
   }
 
-  // 链接
-  a {
-    color: var(--color-primary);
-  }
+  a { color: var(--color-primary); }
 
-  // 表格
   table {
     border-collapse: collapse;
     width: 100%;
@@ -713,7 +693,6 @@ export default function Markdown({ content }: MarkdownProps) {
     font-weight: 600;
   }
 
-  // 分割线
   hr {
     border: none;
     border-top: 1px solid var(--border-color);
@@ -725,98 +704,8 @@ export default function Markdown({ content }: MarkdownProps) {
 **Step 4: 提交**
 
 ```bash
-cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program
-git add package.json package-lock.json src/components/Markdown/
-git commit -m "feat: 添加 Markdown 渲染组件（marked + rich-text）"
-```
-
----
-
-### Task 5: 后端依赖 — 安装 websockets
-
-**Files:**
-- Modify: `/Users/huazhongmin/IdeaProjects/tools/backend/requirements.txt`
-
-**Step 1: 添加 websockets 依赖**
-
-在 `requirements.txt` 的 `# HTTP client` 部分添加：
-
-```
-# WebSocket client
-websockets>=12.0
-```
-
-**Step 2: 安装依赖**
-
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/backend && pip install websockets`
-Expected: 安装成功，无报错
-
-**Step 3: 提交**
-
-```bash
-cd /Users/huazhongmin/IdeaProjects/tools
-git add backend/requirements.txt
-git commit -m "chore: 添加 websockets 依赖"
-```
-
----
-
-### Task 6: 后端生命周期 — 启动/关闭 OpenClaw 连接
-
-**Files:**
-- Modify: `/Users/huazhongmin/IdeaProjects/tools/backend/app/main.py:81-99`
-
-**Step 1: 在 lifespan 函数中集成 OpenClaw 连接管理**
-
-将 `lifespan` 函数中的启动部分修改为：
-
-```python
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """应用生命周期管理"""
-    logger.info("Starting application...")
-
-    # 启动后台清理任务
-    manager = get_manager()
-    cleanup_task = asyncio.create_task(manager.start_cleanup_task())
-
-    # 启动 OpenClaw 连接
-    try:
-        from app.services.openclaw_service import openclaw_service
-        await openclaw_service.start()
-    except Exception as e:
-        logger.warning(f"OpenClaw 连接启动失败（功能将不可用）: {e}")
-
-    yield
-
-    # 关闭时
-    logger.info("Shutting down application...")
-
-    # 关闭 OpenClaw 连接
-    try:
-        from app.services.openclaw_service import openclaw_service
-        await openclaw_service.stop()
-    except Exception as e:
-        logger.error(f"OpenClaw 关闭异常: {e}")
-
-    cleanup_task.cancel()
-    try:
-        await cleanup_task
-    except asyncio.CancelledError:
-        pass
-```
-
-**Step 2: 验证语法**
-
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/backend && python -m py_compile app/main.py`
-Expected: 无输出
-
-**Step 3: 提交**
-
-```bash
-cd /Users/huazhongmin/IdeaProjects/tools
-git add backend/app/main.py
-git commit -m "feat: 在应用生命周期中管理 OpenClaw 连接"
+git add tools-mini-program/package.json tools-mini-program/package-lock.json tools-mini-program/src/components/Markdown/
+git commit -m "feat(openclaw): 添加 Markdown 渲染组件"
 ```
 
 ---
@@ -824,7 +713,7 @@ git commit -m "feat: 在应用生命周期中管理 OpenClaw 连接"
 ### Task 7: 小程序 API 服务 — OpenClaw 封装
 
 **Files:**
-- Create: `/Users/huazhongmin/IdeaProjects/tools/tools-mini-program/src/services/openclaw.ts`
+- Create: `tools-mini-program/src/services/openclaw.ts`
 
 **Step 1: 创建 API 封装**
 
@@ -837,7 +726,6 @@ const API_BASE_URL = process.env.TARO_APP_API_URL || 'http://localhost:19092/api
 /**
  * OpenClaw 流式对话
  * 使用 enableChunked + onChunkReceived 接收 SSE 流
- * 微信小程序基础库 2.20.2+ 支持分块传输
  */
 export async function chatStream(
   message: string,
@@ -860,10 +748,9 @@ export async function chatStream(
       method: 'POST',
       data: { message, session_key: sessionKey },
       header,
-      timeout: 120000, // 120 秒超时
-      enableChunked: true, // 启用分块传输
+      timeout: 120000,
+      enableChunked: true,
       success: () => {
-        // 处理剩余的 buffer
         parseSSEBuffer(buffer, onChunk)
         onDone?.()
       },
@@ -872,17 +759,13 @@ export async function chatStream(
       }
     })
 
-    // 监听分块数据（微信小程序特有 API）
     requestTask.onChunkReceived?.((res: any) => {
       try {
-        // res.data 可能是 ArrayBuffer 或 string
         const chunk = typeof res.data === 'string'
           ? res.data
           : arrayBufferToString(res.data)
 
         buffer += chunk
-
-        // 按行分割，保留最后一个不完整的行
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
 
@@ -899,7 +782,6 @@ export async function chatStream(
                 onError?.(data.message || '服务端错误')
               }
             } catch {
-              // JSON 不完整，将 data: 行放回 buffer 前面等待后续数据
               buffer = trimmed + '\n' + buffer
             }
           }
@@ -913,17 +795,11 @@ export async function chatStream(
   }
 }
 
-/**
- * ArrayBuffer 转字符串
- */
 function arrayBufferToString(buf: ArrayBuffer): string {
   const decoder = new TextDecoder('utf-8')
   return decoder.decode(buf)
 }
 
-/**
- * 解析缓冲区中剩余的 SSE 数据
- */
 function parseSSEBuffer(buffer: string, onChunk: (chunk: string) => void) {
   const lines = buffer.split('\n')
   for (const line of lines) {
@@ -934,16 +810,12 @@ function parseSSEBuffer(buffer: string, onChunk: (chunk: string) => void) {
         if (data.type === 'chunk' && data.content) {
           onChunk(data.content)
         }
-      } catch {
-        // 忽略不完整的 JSON
-      }
+      } catch { /* 忽略不完整的 JSON */ }
     }
   }
 }
 
-/**
- * 获取会话历史
- */
+/** 获取会话历史 */
 export async function loadHistory(sessionKey: string = 'main', limit: number = 50) {
   const res = await Taro.request({
     url: `${API_BASE_URL}/openclaw/history`,
@@ -955,9 +827,7 @@ export async function loadHistory(sessionKey: string = 'main', limit: number = 5
   return res.data?.messages || []
 }
 
-/**
- * 中止生成
- */
+/** 中止生成 */
 export async function abortChat(sessionKey: string = 'main') {
   const res = await Taro.request({
     url: `${API_BASE_URL}/openclaw/abort`,
@@ -969,9 +839,7 @@ export async function abortChat(sessionKey: string = 'main') {
   return res.data
 }
 
-/**
- * 重置会话（新建对话）
- */
+/** 重置会话 */
 export async function resetSession(sessionKey: string = 'main') {
   const res = await Taro.request({
     url: `${API_BASE_URL}/openclaw/reset?session_key=${sessionKey}`,
@@ -982,9 +850,7 @@ export async function resetSession(sessionKey: string = 'main') {
   return res.data
 }
 
-/**
- * 获取状态
- */
+/** 获取状态 */
 export async function getStatus() {
   const res = await Taro.request({
     url: `${API_BASE_URL}/openclaw/status`,
@@ -995,26 +861,20 @@ export async function getStatus() {
 }
 ```
 
-**Step 2: 验证语法**
-
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program && npx tsc --noEmit src/services/openclaw.ts 2>&1 | head -20`
-Expected: 无错误（或仅有找不到模块的错误，可忽略）
-
-**Step 3: 提交**
+**Step 2: 提交**
 
 ```bash
-cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program
-git add src/services/openclaw.ts
-git commit -m "feat: 创建 OpenClaw API 服务封装"
+git add tools-mini-program/src/services/openclaw.ts
+git commit -m "feat(openclaw): 创建 API 服务封装"
 ```
 
 ---
 
-### Task 8: 小程序页面 — OpenClaw 对话页面
+### Task 8: 小程序对话页面
 
 **Files:**
-- Create: `/Users/huazhongmin/IdeaProjects/tools/tools-mini-program/src/pages/openclaw/index.tsx`
-- Create: `/Users/huazhongmin/IdeaProjects/tools/tools-mini-program/src/pages/openclaw/index.scss`
+- Create: `tools-mini-program/src/pages/openclaw/index.tsx`
+- Create: `tools-mini-program/src/pages/openclaw/index.scss`
 
 **Step 1: 创建页面组件**
 
@@ -1057,7 +917,6 @@ export default function OpenClawPage() {
     }
   })
 
-  // 检查连接状态
   const checkStatus = async () => {
     try {
       const status = await getStatus()
@@ -1067,14 +926,10 @@ export default function OpenClawPage() {
     }
   }
 
-  // 滚动到底部（通过设置 scrollTop 为一个递增的值）
   const scrollToBottom = () => {
-    // 小程序 ScrollView 需要 scrollTop 值变化才会触发滚动
-    // 使用 Date.now() 确保每次值都不同
     setScrollTop(Date.now())
   }
 
-  // 发送消息
   const handleSend = async () => {
     if (!inputValue.trim() || isStreaming) return
 
@@ -1103,7 +958,6 @@ export default function OpenClawPage() {
       await chatStream(
         userMessage.content,
         'main',
-        // onChunk
         (chunk: string) => {
           setMessages(prev => {
             const last = prev[prev.length - 1]
@@ -1114,7 +968,6 @@ export default function OpenClawPage() {
           })
           scrollToBottom()
         },
-        // onDone
         () => {
           setMessages(prev => {
             const last = prev[prev.length - 1]
@@ -1125,7 +978,6 @@ export default function OpenClawPage() {
           })
           setIsStreaming(false)
         },
-        // onError
         (error: string) => {
           setMessages(prev => {
             const last = prev[prev.length - 1]
@@ -1147,7 +999,6 @@ export default function OpenClawPage() {
     }
   }
 
-  // 停止生成（调用后端 abort 接口）
   const handleStop = async () => {
     abortRef.current = true
     try {
@@ -1166,7 +1017,6 @@ export default function OpenClawPage() {
     Taro.showToast({ title: '已停止生成', icon: 'none' })
   }
 
-  // 新建对话
   const handleNewChat = async () => {
     if (isStreaming) {
       Taro.showToast({ title: '请先生成完成', icon: 'none' })
@@ -1270,7 +1120,6 @@ export default function OpenClawPage() {
   background: var(--bg-primary);
 }
 
-/* 顶部工具栏 */
 .toolbar {
   display: flex;
   align-items: center;
@@ -1285,6 +1134,7 @@ export default function OpenClawPage() {
   color: var(--color-primary);
   padding: 8rpx 16rpx;
   border-radius: var(--radius-sm);
+  cursor-pointer;
 
   &:active {
     background: rgba(59, 130, 246, 0.1);
@@ -1299,7 +1149,6 @@ export default function OpenClawPage() {
   border-radius: var(--radius-sm);
 }
 
-/* 空状态 */
 .empty-state {
   flex: 1;
   display: flex;
@@ -1307,11 +1156,6 @@ export default function OpenClawPage() {
   align-items: center;
   justify-content: center;
   padding: 120rpx 48rpx;
-}
-
-.empty-icon {
-  font-size: 96rpx;
-  margin-bottom: 32rpx;
 }
 
 .empty-icon-wrapper {
@@ -1341,7 +1185,6 @@ export default function OpenClawPage() {
   color: var(--text-secondary);
 }
 
-/* 消息列表 */
 .chat-scroll {
   flex: 1;
 }
@@ -1364,7 +1207,7 @@ export default function OpenClawPage() {
 }
 
 .message-bubble {
-  max-width: 80%;
+  max-width: 85%;
   padding: 24rpx 32rpx;
   border-radius: var(--radius-md);
   word-break: break-word;
@@ -1398,7 +1241,6 @@ export default function OpenClawPage() {
   50% { opacity: 0.3; }
 }
 
-/* 输入区域 */
 .input-area {
   display: flex;
   align-items: flex-end;
@@ -1468,114 +1310,76 @@ export default function OpenClawPage() {
 }
 ```
 
-**Step 3: 验证语法**
-
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program && npx tsc --noEmit src/pages/openclaw/index.tsx 2>&1 | head -20`
-Expected: 无错误
-
-**Step 4: 提交**
+**Step 3: 提交**
 
 ```bash
-cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program
-git add src/pages/openclaw/
-git commit -m "feat: 创建 OpenClaw 对话页面"
+git add tools-mini-program/src/pages/openclaw/
+git commit -m "feat(openclaw): 创建对话页面"
 ```
 
 ---
 
-### Task 9: 注册页面 — 配置路由和工具映射
+### Task 9: 注册页面路由和工具映射
 
 **Files:**
-- Modify: `/Users/huazhongmin/IdeaProjects/tools/tools-mini-program/src/app.config.ts`
-- Modify: `/Users/huazhongmin/IdeaProjects/tools/tools-mini-program/src/services/tool.ts`
+- Modify: `tools-mini-program/src/app.config.ts`
+- Modify: `tools-mini-program/src/services/tool.ts`
 
-**Step 1: 在 app.config.ts 中添加页面路由**
+**Step 1: 添加页面路由**
 
-在 `pages` 数组中添加 `'pages/openclaw/index'`：
+在 `app.config.ts` 的 `pages` 数组第 15 行（`'pages/help/index'` 之后）添加：
 
 ```typescript
-export default {
-  pages: [
-    'pages/index/index',
-    'pages/cross-share/message/index',
-    'pages/cross-share/file/index',
-    'pages/profile/index',
-    'pages/login/index',
-    'pages/json-formatter/index',
-    'pages/calendar/index',
-    'pages/key-generator/index',
-    'pages/ocr/index',
-    'pages/http-client/index',
-    'pages/asr/index',
-    'pages/change-password/index',
-    'pages/help/index',
-    'pages/openclaw/index',  // 新增
-  ],
-  // ... rest unchanged
-}
+    'pages/openclaw/index',
 ```
 
-**Step 2: 在 tool.ts 中添加工具路径映射**
+**Step 2: 添加工具路径映射**
 
-在 `TOOL_PATH_MAP` 中添加：
+在 `services/tool.ts` 的 `TOOL_PATH_MAP` 中添加（第 29 行 `'course-platform': null,` 之后）：
 
 ```typescript
-const TOOL_PATH_MAP: Record<string, string | null> = {
-  // ... existing entries ...
   'openclaw': '/pages/openclaw/index',
-}
 ```
 
 **Step 3: 提交**
 
 ```bash
-cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program
-git add src/app.config.ts src/services/tool.ts
-git commit -m "feat: 注册 OpenClaw 页面路由和工具映射"
+git add tools-mini-program/src/app.config.ts tools-mini-program/src/services/tool.ts
+git commit -m "feat(openclaw): 注册页面路由和工具映射"
 ```
 
 ---
 
-### Task 10: 后端测试 — 验证 OpenClaw 连接
+### Task 10: 后端测试
 
-**Files:**
-- Test: 手动验证后端启动和连接
+**Step 1: 启动后端**
 
-**Step 1: 启动后端服务**
-
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/backend && uvicorn app.main:app --reload --port 19092`
-Expected: 启动成功，日志中显示 "OpenClaw Gateway 连接任务已启动" 和 "OpenClaw 连接成功"
+Run: `cd backend && uvicorn app.main:app --reload --port 19092`
+Expected: 启动成功，日志显示 "OpenClaw Gateway 连接任务已启动" 和 "OpenClaw 连接成功"
 
 **Step 2: 测试 SSE 接口**
 
 Run: `curl -X POST http://localhost:19092/api/openclaw/chat -H 'Content-Type: application/json' -d '{"message": "你好"}'`
-Expected: SSE 流式返回，先收到 `{"type": "started", "runId": "..."}`，然后多次收到 `{"type": "chunk", "content": "..."}`，最后收到 `{"type": "done"}`
+Expected: SSE 流式返回，依次收到 `type: "started"` → 多次 `type: "chunk"` → `type: "done"`
 
 **Step 3: 测试状态接口**
 
 Run: `curl http://localhost:19092/api/openclaw/status`
 Expected: 返回 `{"connected": true, ...}`
 
-**Step 4: 提交（如果有修改）**
-
 ---
 
-### Task 11: 小程序测试 — 验证完整流程
+### Task 11: 小程序测试
 
-**Files:**
-- Test: 手动验证小程序
+**Step 1: 启动小程序**
 
-**Step 1: 启动小程序开发服务器**
-
-Run: `cd /Users/huazhongmin/IdeaProjects/tools/tools-mini-program && npm run dev`
+Run: `cd tools-mini-program && npm run dev:weapp`
 Expected: 编译成功，无报错
 
-**Step 2: 在开发者工具中测试**
+**Step 2: 微信开发者工具测试**
 1. 打开首页，找到 OpenClaw 工具卡片
-2. 点击进入 OpenClaw 对话页面
-3. 输入消息并发送
-4. 验证 AI 回复能流式显示
-5. 验证"新对话"功能能清空消息列表
-6. 验证"停止"按钮能中断生成
-
-**Step 3: 提交**
+2. 点击进入对话页面
+3. 输入消息并发送，验证 AI 回复流式显示 + Markdown 渲染
+4. 点击"停止"按钮，验证生成中断
+5. 点击"+ 新对话"，验证消息清空
+6. 验证页面离开时自动中止生成

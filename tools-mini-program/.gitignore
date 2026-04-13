@@ -1,0 +1,29 @@
+# 编译产物
+dist/
+.taro/
+
+# 依赖
+node_modules/
+
+# 环境文件（包含敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 微信开发者工具
+project.private.config.json

@@ -15,20 +15,26 @@
 
 ```bash
 npm install
+# 或
+pnpm install
 ```
 
 ## 开发环境运行
 
 ```bash
 npm run dev
+# 或
+pnpm run dev
 ```
 
-应用将在 http://localhost:3000 启动
+应用将在 http://localhost:5178 启动
 
 ## 生产构建
 
 ```bash
 npm run build
+# 或
+pnpm run build
 ```
 
 构建产物将生成在 `dist` 目录
@@ -37,6 +43,8 @@ npm run build
 
 ```bash
 npm run preview
+# 或
+pnpm run preview
 ```
 
 ## 项目结构

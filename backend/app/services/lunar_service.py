@@ -1,4 +1,5 @@
 import json
+import logging
 import sqlite3
 from pathlib import Path
 from datetime import date, datetime
@@ -7,6 +8,8 @@ from lunardate import LunarDate
 
 # 数据库路径
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "calendar.db"
+
+logger = logging.getLogger(__name__)
 
 # 农历月份名称
 LUNAR_MONTHS = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊']
@@ -152,7 +155,7 @@ def calculate_lunar_data(solar_date: date) -> Dict[str, Any]:
             'solar_festival': solar_festival,
         }
     except Exception as e:
-        print(f"计算农历数据失败 {solar_date}: {e}")
+        logger.warning("计算农历数据失败 %s: %s", solar_date, e)
         return None
 
 

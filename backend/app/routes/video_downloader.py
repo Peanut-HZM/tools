@@ -9,6 +9,9 @@ import re
 import io
 import subprocess
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["video-downloader"])
 
@@ -49,7 +52,7 @@ async def extract_videos(request: VideoExtractRequest):
         videos = []
         index = 0
         
-        print(f"[DEBUG] 开始提取视频，URL: {request.url}")
+        logger.debug("开始提取视频，URL: %s", request.url)
         
         def is_static_image(url: str) -> bool:
             """判断URL是否是静态图片（非视频/GIF）"""
@@ -74,14 +77,14 @@ async def extract_videos(request: VideoExtractRequest):
             
             # 过滤静态图片
             if is_static_image(url):
-                print(f"[DEBUG] 过滤静态图片: {url[:80]}")
+                logger.debug("过滤静态图片: %s", url[:80])
                 return False
             
             return True
         
         # 1. 提取 <video> 标签
         video_tags = soup.find_all('video')
-        print(f"[DEBUG] 找到 {len(video_tags)} 个 <video> 标签")
+        logger.debug("找到 %d 个 <video> 标签", len(video_tags))
         
         for video in video_tags:
             # 从video标签的src属性获取
@@ -89,7 +92,7 @@ async def extract_videos(request: VideoExtractRequest):
             if video_src:
                 absolute_url = urljoin(str(request.url), video_src)
                 if should_include_video(absolute_url):
-                    print(f"[DEBUG] 从video.src找到: {absolute_url}")
+                    logger.debug("从video.src找到: %s", absolute_url)
                     videos.append(VideoInfo(
                         url=absolute_url,
                         type=get_video_type(absolute_url),
@@ -103,7 +106,7 @@ async def extract_videos(request: VideoExtractRequest):
             if data_src:
                 absolute_url = urljoin(str(request.url), data_src)
                 if should_include_video(absolute_url):
-                    print(f"[DEBUG] 从video.data-src找到: {absolute_url}")
+                    logger.debug("从video.data-src找到: %s", absolute_url)
                     videos.append(VideoInfo(
                         url=absolute_url,
                         type=get_video_type(absolute_url),
@@ -120,7 +123,7 @@ async def extract_videos(request: VideoExtractRequest):
                     absolute_url = urljoin(str(request.url), src)
                     if should_include_video(absolute_url):
                         video_type = source.get('type', get_video_type(absolute_url))
-                        print(f"[DEBUG] 从source找到: {absolute_url}")
+                        logger.debug("从source找到: %s", absolute_url)
                         videos.append(VideoInfo(
                             url=absolute_url,
                             type=video_type,
@@ -131,7 +134,7 @@ async def extract_videos(request: VideoExtractRequest):
         
         # 2. 提取 <source> 标签（独立的）
         source_tags = soup.find_all('source')
-        print(f"[DEBUG] 找到 {len(source_tags)} 个 <source> 标签")
+        logger.debug("找到 %d 个 <source> 标签", len(source_tags))
         
         for source in source_tags:
             src = source.get('src') or source.get('data-src')
@@ -139,7 +142,7 @@ async def extract_videos(request: VideoExtractRequest):
                 absolute_url = urljoin(str(request.url), src)
                 if should_include_video(absolute_url):
                     video_type = source.get('type', get_video_type(absolute_url))
-                    print(f"[DEBUG] 从独立source找到: {absolute_url}")
+                    logger.debug("从独立source找到: %s", absolute_url)
                     videos.append(VideoInfo(
                         url=absolute_url,
                         type=video_type,
@@ -150,7 +153,7 @@ async def extract_videos(request: VideoExtractRequest):
         
         # 3. 提取嵌入的iframe视频（YouTube, Vimeo等）
         iframe_tags = soup.find_all('iframe')
-        print(f"[DEBUG] 找到 {len(iframe_tags)} 个 <iframe> 标签")
+        logger.debug("找到 %d 个 <iframe> 标签", len(iframe_tags))
         
         for iframe in iframe_tags:
             src = iframe.get('src') or iframe.get('data-src')
@@ -158,7 +161,7 @@ async def extract_videos(request: VideoExtractRequest):
                 # 检查是否是视频平台
                 if is_video_iframe(src):
                     absolute_url = urljoin(str(request.url), src)
-                    print(f"[DEBUG] 从iframe找到视频平台: {absolute_url}")
+                    logger.debug("从iframe找到视频平台: %s", absolute_url)
                     videos.append(VideoInfo(
                         url=absolute_url,
                         type='iframe',
@@ -169,7 +172,7 @@ async def extract_videos(request: VideoExtractRequest):
         
         # 4. 从页面脚本中提取视频URL（增强版）
         scripts = soup.find_all('script')
-        print(f"[DEBUG] 找到 {len(scripts)} 个 <script> 标签")
+        logger.debug("找到 %d 个 <script> 标签", len(scripts))
         
         script_video_count = 0
         for script in scripts:
@@ -193,7 +196,7 @@ async def extract_videos(request: VideoExtractRequest):
                         video_url = video_url.rstrip('\\",;)}]')
                         # 使用统一的过滤函数
                         if should_include_video(video_url):
-                            print(f"[DEBUG] 从script找到: {video_url}")
+                            logger.debug("从script找到: %s", video_url)
                             videos.append(VideoInfo(
                                 url=video_url,
                                 type=get_video_type(video_url),
@@ -203,7 +206,7 @@ async def extract_videos(request: VideoExtractRequest):
                             index += 1
                             script_video_count += 1
         
-        print(f"[DEBUG] 从script中找到 {script_video_count} 个视频（已过滤静态图片）")
+        logger.debug("从script中找到 %d 个视频（已过滤静态图片）", script_video_count)
         
         # 5. 从HTML内容中直接搜索视频URL（作为备用）
         html_video_count = 0
@@ -235,7 +238,7 @@ async def extract_videos(request: VideoExtractRequest):
                     index += 1
                     html_video_count += 1
         
-        print(f"[DEBUG] 从HTML内容中找到 {html_video_count} 个视频")
+        logger.debug("从HTML内容中找到 %d 个视频", html_video_count)
         
         # 6. 查找所有包含video关键字的属性
         all_tags = soup.find_all(True)
@@ -246,7 +249,7 @@ async def extract_videos(request: VideoExtractRequest):
                 if value and is_video_extension(value):
                     absolute_url = urljoin(str(request.url), value)
                     if should_include_video(absolute_url):
-                        print(f"[DEBUG] 从data属性找到: {absolute_url}")
+                        logger.debug("从data属性找到: %s", absolute_url)
                         videos.append(VideoInfo(
                             url=absolute_url,
                             type=get_video_type(absolute_url),
@@ -256,7 +259,7 @@ async def extract_videos(request: VideoExtractRequest):
                         index += 1
                         data_attr_count += 1
         
-        print(f"[DEBUG] 从data属性中找到 {data_attr_count} 个视频")
+        logger.debug("从data属性中找到 %d 个视频", data_attr_count)
         
         # 7. 专门查找高质量/完整视频（查找包含质量标识的URL）
         quality_patterns = [
@@ -271,7 +274,7 @@ async def extract_videos(request: VideoExtractRequest):
             for video_url in video_urls:
                 video_url = video_url.rstrip('\\",;)}]')
                 if should_include_video(video_url):
-                    print(f"[DEBUG] 从质量标识找到高质量视频: {video_url[:100]}")
+                    logger.debug("从质量标识找到高质量视频: %s", video_url[:100])
                     videos.append(VideoInfo(
                         url=video_url,
                         type=get_video_type(video_url),
@@ -281,7 +284,7 @@ async def extract_videos(request: VideoExtractRequest):
                     index += 1
                     hq_video_count += 1
         
-        print(f"[DEBUG] 找到 {hq_video_count} 个高质量视频")
+        logger.debug("找到 %d 个高质量视频", hq_video_count)
         
         # 去重（基于URL）
         seen_urls = set()
@@ -291,20 +294,20 @@ async def extract_videos(request: VideoExtractRequest):
                 seen_urls.add(video.url)
                 unique_videos.append(video)
         
-        print(f"[DEBUG] 去重后共 {len(unique_videos)} 个唯一视频")
+        logger.debug("去重后共 %d 个唯一视频", len(unique_videos))
         
         # 获取视频时长（仅对非iframe视频）
-        print(f"[DEBUG] 开始获取视频时长...")
+        logger.debug("开始获取视频时长...")
         for video in unique_videos:
             if video.source != 'iframe':
                 duration = get_video_duration(video.url)
                 video.duration = duration
                 if duration > 0:
-                    print(f"[DEBUG] 视频时长: {duration:.1f}秒 - {video.url[:80]}")
+                    logger.debug("视频时长: %.1f秒 - %s", duration, video.url[:80])
         
         # 按时长逆序排序（时长最长的在前面）
         unique_videos.sort(key=lambda v: v.duration, reverse=True)
-        print(f"[DEBUG] 已按时长排序")
+        logger.debug("已按时长排序")
         
         return VideoExtractResponse(
             videos=unique_videos,

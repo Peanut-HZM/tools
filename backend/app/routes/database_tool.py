@@ -1,5 +1,8 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Path as PathParam, Body
 from typing import List, Optional, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 from app.middleware.auth_middleware import get_current_user_id, get_current_user
 from app.models.database_tool_models import (
@@ -251,7 +254,7 @@ async def search_tables(
         return DatabaseToolService.search_tables(user_id, id, keyword)
     except Exception as e:
         # Don't fail search, just log and return empty
-        print(f"Search error: {e}")
+        logger.error("Search error: %s", e)
         return []
 
 

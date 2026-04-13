@@ -144,6 +144,38 @@ class ConversationService:
         )
         return True, conversation, ""
 
+    def delete_conversation(self, conversation_id: str, user_id: str) -> bool:
+        """删除会话及其所有消息"""
+        logger.info(
+            f"Deleting conversation: conversation_id={conversation_id}, user_id={user_id}"
+        )
+
+        conversation = (
+            self.db.query(Conversation)
+            .filter(Conversation.id == conversation_id, Conversation.user_id == user_id)
+            .first()
+        )
+
+        if not conversation:
+            logger.warning(
+                f"Conversation not found for delete: conversation_id={conversation_id}"
+            )
+            return False
+
+        # 先删除关联消息
+        self.db.query(Message).filter(
+            Message.conversation_id == conversation_id
+        ).delete()
+
+        # 再删除会话
+        self.db.delete(conversation)
+        self.db.commit()
+
+        logger.info(
+            f"Conversation deleted successfully: conversation_id={conversation_id}"
+        )
+        return True
+
 
 class MessageService:
     """消息服务"""

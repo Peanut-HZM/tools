@@ -23,7 +23,6 @@ export default function PreferencesSection() {
   ) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
     // TODO: 调用 API 保存偏好设置
-    console.log('Preference updated:', key, value);
   };
 
   return (

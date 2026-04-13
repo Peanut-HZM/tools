@@ -84,3 +84,8 @@ design/
 # Database files
 *.db
 cursor_history.db
+
+# skills files
+.gstack/
+.playwright-mcp
+.opencode

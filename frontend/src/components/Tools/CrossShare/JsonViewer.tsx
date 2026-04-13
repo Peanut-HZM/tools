@@ -1,33 +1,43 @@
 /**
  * JSON 查看器组件
- * 支持语法高亮、折叠/展开
+ * 支持语法高亮、折叠/展开，操作按钮集成在头部（文本、MD、展开/折叠、删除）
  */
 import React, { useState, useMemo } from 'react';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs';
+import MessageActions from './MessageActions';
 
 interface JsonViewerProps {
   content: string;
+  messageId: string;
+  onDelete: (messageId: string) => void;
+  onCopySuccess: () => void;
 }
 
-const JsonViewer: React.FC<JsonViewerProps> = ({ content }) => {
-  const [expanded, setExpanded] = useState(false);
+const JsonViewer: React.FC<JsonViewerProps> = ({
+  content,
+  messageId,
+  onDelete,
+  onCopySuccess,
+}) => {
+  // 内部展开状态（用于控制代码区域的折叠）
+  const [codeExpanded, setCodeExpanded] = useState(false);
 
   const { formattedJson, lineCount, displayContent } = useMemo(() => {
     try {
       const parsed = JSON.parse(content);
       const formatted = JSON.stringify(parsed, null, 2);
       const lines = formatted.split('\n');
-      const lineCount = lines.length;
+      const count = lines.length;
 
-      // 如果未展开且超过 10 行，只显示前 10 行
-      const displayLines = !expanded && lineCount > 10
+      // 代码区域折叠：未展开且超过 10 行，只显示前 10 行
+      const displayLines = !codeExpanded && count > 10
         ? lines.slice(0, 10)
         : lines;
 
       return {
         formattedJson: formatted,
-        lineCount,
+        lineCount: count,
         displayContent: displayLines.join('\n'),
       };
     } catch {
@@ -37,51 +47,37 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ content }) => {
         displayContent: content,
       };
     }
-  }, [content, expanded]);
+  }, [content, codeExpanded]);
 
-  const handleToggle = () => {
-    setExpanded(!expanded);
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(formattedJson);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
+  // 切换代码区域的展开/折叠
+  const handleCodeToggle = () => {
+    setCodeExpanded(!codeExpanded);
   };
 
   return (
-    <div className="relative">
+    <div>
+      {/* 头部：标题 + 操作按钮 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
-          <span className="text-lg">📋</span>
           <span className="text-sm font-medium text-slate-300">JSON</span>
           {lineCount > 10 && (
             <span className="text-xs text-slate-500">
-              {expanded ? `共 ${lineCount} 行` : `前 10 行 / 共 ${lineCount} 行`}
+              {codeExpanded ? `共 ${lineCount} 行` : `前 10 行 / 共 ${lineCount} 行`}
             </span>
           )}
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleCopy}
-            className="px-2 py-1 text-xs bg-slate-600 hover:bg-slate-500 text-slate-200 rounded transition-colors"
-            title="复制 JSON"
-          >
-            📋 复制
-          </button>
-          {lineCount > 10 && (
-            <button
-              onClick={handleToggle}
-              className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-            >
-              {expanded ? '▲ 折叠' : '▼ 展开'}
-            </button>
-          )}
-        </div>
+        <MessageActions
+          content={content}
+          messageId={messageId}
+          onDelete={onDelete}
+          onCopySuccess={onCopySuccess}
+          isExpanded={codeExpanded}
+          needsCollapse={lineCount > 10}
+          onToggleExpand={handleCodeToggle}
+        />
       </div>
-      <div className={`rounded-lg overflow-hidden border border-slate-600 ${!expanded && lineCount > 10 ? 'max-h-64 overflow-hidden' : ''}`}>
+      {/* 代码内容 */}
+      <div className={`rounded-lg overflow-hidden border border-slate-600 ${!codeExpanded && lineCount > 10 ? 'max-h-64 overflow-hidden' : ''}`}>
         <SyntaxHighlighter
           language="json"
           style={vs2015}
@@ -96,10 +92,11 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ content }) => {
           {displayContent}
         </SyntaxHighlighter>
       </div>
-      {!expanded && lineCount > 10 && (
+      {/* 底部展开按钮 - 仅当代码区域折叠时显示 */}
+      {!codeExpanded && lineCount > 10 && (
         <div className="mt-2 text-center">
           <button
-            onClick={handleToggle}
+            onClick={handleCodeToggle}
             className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
           >
             点击展开查看完整内容 ({lineCount} 行)

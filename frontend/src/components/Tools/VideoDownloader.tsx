@@ -150,8 +150,6 @@ export default function VideoDownloader() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      console.log(`正在下载视频 ${index + 1}`);
     } catch (err) {
       console.error('下载失败:', err);
       // 备用方案 - 在新窗口打开
@@ -300,8 +298,6 @@ export default function VideoDownloader() {
           return newMap;
         });
       }, 3000);
-
-      console.log(`视频 ${videoIndex + 1} 下载成功`);
     } catch (err) {
       console.error('下载文件失败:', err);
       alert(`下载文件失败: ${err instanceof Error ? err.message : '未知错误'}`);
