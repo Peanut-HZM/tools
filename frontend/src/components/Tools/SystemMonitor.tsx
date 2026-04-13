@@ -235,16 +235,6 @@ type SortField = typeof SORT_FIELDS[number];
 const SORT_ORDERS = ['asc', 'desc'] as const;
 type SortOrder = typeof SORT_ORDERS[number];
 
-// Info tag component for system info
-function InfoTag({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-1 text-xs">
-      <span className="text-slate-500">{label}</span>
-      <span className={`text-slate-200 ${mono ? 'font-mono' : ''}`}>{value}</span>
-    </span>
-  );
-}
-
 // 服务概览卡片
 function ServiceCard({ type, count, cpuPercent, memoryRss, onClick }: {
   type: string; count: number; cpuPercent: number; memoryRss: number; onClick?: () => void;
@@ -524,25 +514,100 @@ export default function SystemMonitor() {
       )}
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {/* 系统信息 — 紧凑标签行 */}
+        {/* 系统信息 — 网格卡片 */}
         {systemInfo && (
-          <div className="bg-slate-900 rounded-xl p-3 border border-slate-800">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-              <InfoTag label="主机" value={systemInfo.hostname} mono />
-              <span className="text-slate-700">|</span>
-              <InfoTag label="系统" value={`${osShort} ${osVersionShort}`} />
-              <span className="text-slate-700">|</span>
-              <InfoTag label="Python" value={systemInfo.python_version} mono />
-              <span className="text-slate-700">|</span>
-              <InfoTag label="CPU" value={`${systemInfo.cpu.model.split('@')[0].trim()} · ${systemInfo.cpu.physical_cores}C${systemInfo.cpu.logical_cores}T`} />
-              <span className="text-slate-700">|</span>
-              <InfoTag label="内存" value={`${systemInfo.memory.total_gb} GB`} />
-              <span className="text-slate-700">|</span>
-              <InfoTag label="磁盘" value={`${systemInfo.disk.total_gb} GB`} />
-              <span className="text-slate-700">|</span>
-              <InfoTag label="启动" value={systemInfo.boot_time} />
-              <span className="text-slate-700">|</span>
-              <InfoTag label="运行" value={systemInfo.uptime} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {/* 主机 */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-server text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">主机</span>
+              </div>
+              <div className="text-sm text-white font-medium truncate" title={systemInfo.hostname}>
+                {systemInfo.hostname}
+              </div>
+              <div className="text-xs text-slate-600">{systemInfo.platform.split('-')[0]}</div>
+            </div>
+
+            {/* 系统 */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-laptop text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">系统</span>
+              </div>
+              <div className="text-sm text-white font-medium">{osShort}</div>
+              <div className="text-xs text-slate-600 truncate" title={systemInfo.os_version}>
+                {osVersionShort}
+              </div>
+            </div>
+
+            {/* CPU */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-microchip text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">CPU</span>
+              </div>
+              <div className="text-sm text-white font-medium truncate" title={systemInfo.cpu.model}>
+                {systemInfo.cpu.model.split('@')[0].trim()}
+              </div>
+              <div className="text-xs text-slate-600">
+                {systemInfo.cpu.physical_cores}C{systemInfo.cpu.logical_cores}T
+                {systemInfo.cpu.frequency ? ` · ${(systemInfo.cpu.frequency / 1000).toFixed(1)}GHz` : ''}
+              </div>
+            </div>
+
+            {/* 内存 */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-memory text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">内存</span>
+              </div>
+              <div className="text-sm text-white font-medium">{systemInfo.memory.total_gb} GB</div>
+              <div className="text-xs text-slate-600">
+                {resourceUsage ? `已用 ${resourceUsage.memory.used_gb} GB (${resourceUsage.memory.percent}%)` : '加载中...'}
+              </div>
+            </div>
+
+            {/* 磁盘 */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-hdd text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">磁盘</span>
+              </div>
+              <div className="text-sm text-white font-medium">{systemInfo.disk.total_gb} GB</div>
+              <div className="text-xs text-slate-600">
+                {resourceUsage ? `已用 ${resourceUsage.disk.used_gb} GB (${resourceUsage.disk.percent}%)` : '加载中...'}
+              </div>
+            </div>
+
+            {/* 启动时间 */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-calendar text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">启动</span>
+              </div>
+              <div className="text-sm text-white font-medium font-mono">{systemInfo.boot_time.split(' ')[0]}</div>
+              <div className="text-xs text-slate-600">{systemInfo.boot_time.split(' ')[1]}</div>
+            </div>
+
+            {/* 运行时间 */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-clock text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">运行</span>
+              </div>
+              <div className="text-sm text-white font-medium">{systemInfo.uptime}</div>
+              <div className="text-xs text-slate-600">自启动以来</div>
+            </div>
+
+            {/* Python */}
+            <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <i className="fas fa-code text-slate-600 text-xs"></i>
+                <span className="text-xs text-slate-500">Python</span>
+              </div>
+              <div className="text-sm text-white font-medium font-mono">{systemInfo.python_version}</div>
+              <div className="text-xs text-slate-600">后端运行时</div>
             </div>
           </div>
         )}
