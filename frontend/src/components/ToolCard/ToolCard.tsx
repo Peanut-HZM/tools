@@ -7,6 +7,7 @@ export default function ToolCard({
   description,
   rating,
   usageCount,
+  custom_icon_url,
   onClick
 }: ToolCardProps) {
   return (
@@ -15,7 +16,11 @@ export default function ToolCard({
       className="tool-card bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-primary transition-all cursor-pointer"
     >
       <div className={`w-12 h-12 ${iconColor} rounded-lg flex items-center justify-center mb-4`}>
-        <i className={`fas ${icon} text-white text-xl`}></i>
+        {custom_icon_url ? (
+          <img src={custom_icon_url} alt={title} className="w-6 h-6 object-contain" />
+        ) : (
+          <i className={`fas ${icon} text-white text-xl`}></i>
+        )}
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <p className="text-slate-400 text-sm mb-4">{description}</p>

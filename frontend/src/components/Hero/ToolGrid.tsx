@@ -40,6 +40,7 @@ export default function ToolGrid({ tools, onToolClick }: ToolGridProps) {
             description={description}
             rating={tool.rating}
             usageCount={tool.usageCount}
+            custom_icon_url={tool.custom_icon_url}
             onClick={() => handleToolClick(tool)}
           />
         );

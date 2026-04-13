@@ -14,9 +14,12 @@ export async function fetchCategories(): Promise<ToolCategory[]> {
   }
 }
 
-export async function fetchTools(): Promise<Tool[]> {
+export async function fetchTools(platform?: string): Promise<Tool[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/tools`);
+    const url = platform
+      ? `${API_BASE_URL}/tools?platform=${platform}`
+      : `${API_BASE_URL}/tools`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Failed to fetch tools');
     }
@@ -42,9 +45,11 @@ export async function searchTools(query: string): Promise<Tool[]> {
   }
 }
 
-export async function fetchToolsByCategory(category: string): Promise<Tool[]> {
+export async function fetchToolsByCategory(category: string, platform?: string): Promise<Tool[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/tools/category/${encodeURIComponent(category)}`);
+    const params = new URLSearchParams();
+    if (platform) params.append('platform', platform);
+    const response = await fetch(`${API_BASE_URL}/tools/category/${encodeURIComponent(category)}?${params.toString()}`);
     if (!response.ok) {
       throw new Error('Failed to fetch tools by category');
     }
@@ -56,6 +61,6 @@ export async function fetchToolsByCategory(category: string): Promise<Tool[]> {
   }
 }
 
-export async function loadToolsByCategory(category: string): Promise<Tool[]> {
-    return fetchToolsByCategory(category);
+export async function loadToolsByCategory(category: string, platform?: string): Promise<Tool[]> {
+    return fetchToolsByCategory(category, platform);
 }

@@ -99,7 +99,7 @@ function HomePage() {
   const loadTools = async () => {
     try {
       setLoading(true);
-      const data = await fetchTools();
+      const data = await fetchTools('pc');
       setFilteredTools(data);
       setError(null);
     } catch (err) {
@@ -113,7 +113,7 @@ function HomePage() {
   const loadToolsDataByCategory = async (category: string) => {
     try {
         setLoading(true);
-        const data = await loadToolsByCategory(category);
+        const data = await loadToolsByCategory(category, 'pc');
         setFilteredTools(data);
         setError(null);
     } catch (err) {

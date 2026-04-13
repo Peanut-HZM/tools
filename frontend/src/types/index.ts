@@ -30,6 +30,7 @@ export interface ToolCardProps {
   description: string;
   rating: number;
   usageCount: string;
+  custom_icon_url?: string;
   onClick: () => void;
 }
 
