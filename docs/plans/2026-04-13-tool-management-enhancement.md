@@ -355,18 +355,27 @@ git commit -m "feat(tool-mgmt): 更新 Tool 模型，新增 ToolUpdateRequest �
 
 ```python
     def upload_tool_icon(self, tool_id: str, content: bytes, filename: str) -> Optional[str]:
-        """上传工具图标到 OSS，返回 URL"""
+        """上传工具图标到 OSS，上传前先删除旧图标"""
         from app.services.oss_service import oss_service
         from io import BytesIO
 
-        # 验证工具存在
         conn = None
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
-                cur.execute("SELECT id FROM tools WHERE id = %s", (tool_id,))
-                if not cur.fetchone():
+                cur.execute("SELECT id, custom_icon_url FROM tools WHERE id = %s", (tool_id,))
+                row = cur.fetchone()
+                if not row:
                     raise ValueError(f"Tool {tool_id} not found")
+
+                # 删除旧 OSS 图标（如果存在）
+                old_url = row[1]
+                if old_url:
+                    # 从 URL 提取 object_name（格式：https://bucket.endpoint/tools/icons/xxx.png）
+                    old_object_name = old_url.split("/", 3)[-1] if "/" in old_url else None
+                    if old_object_name:
+                        oss_service.delete_file(old_object_name)
+                        logger.info(f"Deleted old icon for {tool_id}: {old_object_name}")
             conn.close()
             conn = None
 
@@ -432,21 +441,25 @@ git commit -m "feat(tool-mgmt): 更新 Tool 模型，新增 ToolUpdateRequest �
 
 ```python
     def get_tools_for_platform(self, platform: str, category: Optional[str] = None) -> List[Tool]:
-        """按平台获取在线工具，支持分类过滤"""
+        """按平台获取在线工具，支持分类过滤（参数化查询防止 SQL 注入）"""
         conn = None
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
-                base_conditions = "status = 'online'"
+                base_sql = "SELECT * FROM tools WHERE status = 'online'"
+                params: list = []
+
                 if platform == "pc":
-                    base_conditions += " AND show_pc = TRUE"
+                    base_sql += " AND show_pc = TRUE"
                 elif platform == "mobile":
-                    base_conditions += " AND show_mobile = TRUE"
+                    base_sql += " AND show_mobile = TRUE"
 
                 if category and category != "全部工具":
-                    base_conditions += f" AND category = '{category}'"
+                    base_sql += " AND category = %s"
+                    params.append(category)
 
-                cur.execute(f"SELECT * FROM tools WHERE {base_conditions} ORDER BY category, title")
+                base_sql += " ORDER BY category, title"
+                cur.execute(base_sql, params)
 
                 rows = cur.fetchall()
                 return [self._row_to_tool(row) for row in rows]
@@ -1439,26 +1452,25 @@ git commit -m "feat(tool-mgmt): 小程序按 platform 过滤 + 支持自定义�
 
 ```python
     def search_tools(self, query: str, platform: Optional[str] = None) -> List[Tool]:
-        """搜索工具，支持 platform 过滤"""
+        """搜索工具，支持 platform 过滤（参数化查询防止 SQL 注入）"""
         conn = None
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
                 search_term = f"%{query}%"
-                conditions = "status = 'online'"
-                if platform == "pc":
-                    conditions += " AND show_pc = TRUE"
-                elif platform == "mobile":
-                    conditions += " AND show_mobile = TRUE"
-
-                cur.execute(
-                    f"""
+                sql = """
                     SELECT * FROM tools 
-                    WHERE {conditions}
+                    WHERE status = 'online'
                     AND (LOWER(title) LIKE LOWER(%s) OR LOWER(description) LIKE LOWER(%s))
-                    """,
-                    (search_term, search_term),
-                )
+                """
+                params: list = [search_term, search_term]
+
+                if platform == "pc":
+                    sql += " AND show_pc = TRUE"
+                elif platform == "mobile":
+                    sql += " AND show_mobile = TRUE"
+
+                cur.execute(sql, params)
 
                 rows = cur.fetchall()
                 return [self._row_to_tool(row) for row in rows]
@@ -1476,24 +1488,26 @@ git commit -m "feat(tool-mgmt): 小程序按 platform 过滤 + 支持自定义�
 
 ```python
     def get_tools_by_category(self, category: str, platform: Optional[str] = None) -> List[Tool]:
-        """按分类获取工具，支持 platform 过滤"""
+        """按分类获取工具，支持 platform 过滤（参数化查询防止 SQL 注入）"""
         conn = None
         try:
             conn = get_db_connection()
             with conn.cursor() as cur:
-                conditions = "status = 'online'"
+                sql = "SELECT * FROM tools WHERE status = 'online'"
+                params: list = []
+
                 if platform == "pc":
-                    conditions += " AND show_pc = TRUE"
+                    sql += " AND show_pc = TRUE"
                 elif platform == "mobile":
-                    conditions += " AND show_mobile = TRUE"
+                    sql += " AND show_mobile = TRUE"
 
                 if category == "全部工具":
-                    cur.execute(f"SELECT * FROM tools WHERE {conditions} ORDER BY title")
+                    sql += " ORDER BY title"
                 else:
-                    cur.execute(
-                        f"SELECT * FROM tools WHERE {conditions} AND category = %s ORDER BY title",
-                        (category,),
-                    )
+                    sql += " AND category = %s ORDER BY title"
+                    params.append(category)
+
+                cur.execute(sql, params)
 
                 rows = cur.fetchall()
                 return [self._row_to_tool(row) for row in rows]
