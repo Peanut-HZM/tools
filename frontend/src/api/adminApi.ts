@@ -107,6 +107,88 @@ export interface Tool {
     usageCount: string;
     rating: number;
     status: string;
+    custom_icon_url?: string;
+    show_pc?: boolean;
+    show_mobile?: boolean;
+}
+
+export interface ToolsPaginatedResponse {
+    tools: Tool[];
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+}
+
+export interface ToolsListParams {
+    page?: number;
+    page_size?: number;
+    search?: string;
+    status?: string;
+    category?: string;
+    sort_by?: string;
+    sort_order?: string;
+    show_pc?: boolean;
+    show_mobile?: boolean;
+}
+
+export async function listToolsPaginated(params?: ToolsListParams): Promise<ToolsPaginatedResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.page_size) searchParams.append('page_size', params.page_size.toString());
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.category) searchParams.append('category', params.category);
+    if (params?.sort_by) searchParams.append('sort_by', params.sort_by);
+    if (params?.sort_order) searchParams.append('sort_order', params.sort_order);
+    if (params?.show_pc !== undefined) searchParams.append('show_pc', String(params.show_pc));
+    if (params?.show_mobile !== undefined) searchParams.append('show_mobile', String(params.show_mobile));
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `${API_BASE_URL}/tools?${queryString}` : `${API_BASE_URL}/tools`;
+
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to list tools');
+    return response.json();
+}
+
+export async function updateTool(toolId: string, data: Partial<Tool>): Promise<Tool> {
+    const response = await fetch(`${API_BASE_URL}/tools/${toolId}`, {
+        method: 'PUT',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update tool');
+    return response.json();
+}
+
+export async function uploadToolIcon(toolId: string, file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/tools/${toolId}/icon`, {
+        method: 'POST',
+        headers: {
+            'Authorization': getAuthHeaders()['Authorization'] || ''
+        },
+        body: formData
+    });
+    if (!response.ok) throw new Error('Failed to upload icon');
+    return response.json();
+}
+
+export async function deleteToolIcon(toolId: string): Promise<boolean> {
+    const response = await fetch(`${API_BASE_URL}/tools/${toolId}/icon`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete icon');
+    return response.json();
 }
 
 export async function listAllTools(): Promise<Tool[]> {

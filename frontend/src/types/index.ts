@@ -17,6 +17,9 @@ export interface Tool {
   rating: number;
   usageCount: string;
   category: string;
+  custom_icon_url?: string;
+  show_pc?: boolean;
+  show_mobile?: boolean;
 }
 
 export interface ToolCardProps {
