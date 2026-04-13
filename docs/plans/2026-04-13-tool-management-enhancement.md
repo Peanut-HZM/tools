@@ -800,6 +800,13 @@ import { listToolsPaginated, updateToolStatus, updateTool, uploadToolIcon, delet
 
   const handleSaveTool = async () => {
     if (!editingTool) return;
+
+    // 表单校验
+    if (!toolForm.title?.trim()) {
+      error('工具名称不能为空');
+      return;
+    }
+
     setSaving(true);
     try {
       // 1. 先保存基本信息
@@ -1196,54 +1203,61 @@ import { useState, useEffect, useCallback } from 'react';
 
 ```tsx
         {/* 分页控件 */}
-        <div className="flex items-center justify-between mt-4 text-sm text-slate-400">
-          <span>共 {toolTotal} 条记录，第 {toolPage}/{toolTotalPages} 页</span>
-          <div className="flex space-x-1">
-            <button
-              onClick={() => setToolPage(1)}
-              disabled={toolPage === 1}
-              className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
-            >
-              首页
-            </button>
-            <button
-              onClick={() => setToolPage(p => Math.max(1, p - 1))}
-              disabled={toolPage === 1}
-              className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
-            >
-              上一页
-            </button>
-            {Array.from({ length: Math.min(5, toolTotalPages) }, (_, i) => {
-              let pageNum = Math.max(1, Math.min(toolPage - 2, toolTotalPages - 4));
-              pageNum = i + pageNum;
-              if (pageNum > toolTotalPages) return null;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setToolPage(pageNum)}
-                  className={`px-3 py-1 rounded ${pageNum === toolPage ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setToolPage(p => Math.min(toolTotalPages, p + 1))}
-              disabled={toolPage >= toolTotalPages}
-              className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
-            >
-              下一页
-            </button>
-            <button
-              onClick={() => setToolPage(toolTotalPages)}
-              disabled={toolPage >= toolTotalPages}
-              className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
-            >
-              末页
-            </button>
+        {toolTotalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 text-sm text-slate-400">
+            <span>共 {toolTotal} 条记录，第 {toolPage}/{toolTotalPages} 页</span>
+            <div className="flex space-x-1">
+              <button
+                onClick={() => setToolPage(1)}
+                disabled={toolPage === 1}
+                className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+              >
+                首页
+              </button>
+              <button
+                onClick={() => setToolPage(p => Math.max(1, p - 1))}
+                disabled={toolPage === 1}
+                className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+              >
+                上一页
+              </button>
+              {Array.from({ length: Math.min(5, toolTotalPages) }, (_, i) => {
+                let pageNum = Math.max(1, Math.min(toolPage - 2, toolTotalPages - 4));
+                pageNum = i + pageNum;
+                if (pageNum > toolTotalPages) return null;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setToolPage(pageNum)}
+                    className={`px-3 py-1 rounded ${pageNum === toolPage ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setToolPage(p => Math.min(toolTotalPages, p + 1))}
+                disabled={toolPage >= toolTotalPages}
+                className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+              >
+                下一页
+              </button>
+              <button
+                onClick={() => setToolPage(toolTotalPages)}
+                disabled={toolPage >= toolTotalPages}
+                className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+              >
+                末页
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+        {toolTotalPages <= 1 && toolTotal > 0 && (
+          <div className="mt-4 text-sm text-slate-400">共 {toolTotal} 条记录</div>
+        )}
 ```
+
+**注意**：当 `toolTotalPages <= 1` 时隐藏所有翻页按钮，只显示统计文本。避免首页/末页/上下页全部 disabled 但还占位的问题。
 
 **Step 5: 提交**
 
