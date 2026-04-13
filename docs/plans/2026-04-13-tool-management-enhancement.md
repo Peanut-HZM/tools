@@ -1040,6 +1040,12 @@ git commit -m "feat(tool-mgmt): 管理后台新增弹窗编辑器、图标上传
 
 **Step 1: 新增分页搜索状态**
 
+在组件文件顶部确保导入 `useCallback`（如果还没有）：
+
+```typescript
+import { useState, useEffect, useCallback } from 'react';
+```
+
 在现有状态变量中新增：
 
 ```typescript
@@ -1061,7 +1067,7 @@ git commit -m "feat(tool-mgmt): 管理后台新增弹窗编辑器、图标上传
 将 `fetchData` 函数替换为：
 
 ```typescript
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const params: ToolsListParams = {
@@ -1090,12 +1096,14 @@ git commit -m "feat(tool-mgmt): 管理后台新增弹窗编辑器、图标上传
     } finally {
       setLoading(false);
     }
-  };
+  }, [toolPage, toolPageSize, toolSearch, toolStatusFilter, toolCategoryFilter, toolSortBy, toolSortOrder, showPcFilter, showMobileFilter]);
 
   useEffect(() => {
     fetchData();
-  }, [toolPage, toolPageSize, toolSearch, toolStatusFilter, toolCategoryFilter, toolSortBy, toolSortOrder, showPcFilter, showMobileFilter]);
+  }, [fetchData]);
 ```
+
+**注意**：使用 `useCallback` 包裹 `fetchData`，将依赖数组移到 `useCallback` 中。`useEffect` 只依赖 `fetchData` 引用，避免 React lint 警告和潜在的不稳定引用问题。这样当任何一个筛选条件变化时，`fetchData` 引用变化 → `useEffect` 重新执行 → 只发一次请求。
 
 **Step 3: 新增搜索栏**
 
