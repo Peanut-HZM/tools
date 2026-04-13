@@ -1,7 +1,7 @@
 """
 Admin Routes - APIs for administrative tasks (User Management, OSS Management)
 """
-from fastapi import APIRouter, HTTPException, Depends, Query, Body, Request
+from fastapi import APIRouter, HTTPException, Depends, Query, Body, Request, UploadFile, File
 from typing import List, Dict, Any, Optional
 
 from app.services.auth_service import get_auth_service, AuthService
@@ -11,7 +11,7 @@ from app.services.tools_service import tools_service
 from app.services.settings_service import settings_service
 from app.models.auth_models import UserResponse, UserRoleUpdate, UserCreate, UserListResponse, UserBatchDeleteRequest, UserBatchUpdateRoleRequest, AdminPasswordReset, AdminPasswordResetResponse
 from app.models.stats_models import DashboardStats, ToolVisitRequest
-from app.models import Tool
+from app.models import Tool, ToolUpdateRequest
 from app.middleware.auth_middleware import get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -156,20 +156,74 @@ async def delete_oss_file(
 
 # ==================== Tool Management ====================
 
-@router.get("/tools", response_model=List[Tool])
-async def list_tools_admin(
-    admin_user: UserResponse = Depends(get_admin_user)
+@router.get("/tools", response_model=dict)
+async def list_tools_paginated(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None, pattern="^(online|offline)$"),
+    category: Optional[str] = Query(None),
+    sort_by: str = Query("title"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),
+    show_pc: Optional[bool] = Query(None),
+    show_mobile: Optional[bool] = Query(None),
+    admin_user: UserResponse = Depends(get_admin_user),
 ):
-    """List all tools (including offline)"""
-    return tools_service.get_all_tools(include_offline=True)
+    """分页查询工具，支持搜索、筛选、排序"""
+    return tools_service.get_tools_paginated(
+        page=page, page_size=page_size, search=search, status=status,
+        category=category, sort_by=sort_by, sort_order=sort_order,
+        show_pc=show_pc, show_mobile=show_mobile,
+    )
+
+@router.put("/tools/{tool_id}", response_model=Tool)
+async def update_tool(
+    tool_id: str,
+    data: ToolUpdateRequest,
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """行编辑：完整更新工具信息"""
+    update_data = data.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="没有提供更新数据")
+    result = tools_service.update_tool(tool_id, update_data)
+    if not result:
+        raise HTTPException(status_code=404, detail="工具不存在")
+    return result
+
+@router.post("/tools/{tool_id}/icon", response_model=dict)
+async def upload_tool_icon(
+    tool_id: str,
+    file: UploadFile = File(...),
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """上传工具自定义图标"""
+    allowed_types = {"image/png", "image/jpeg", "image/gif", "image/svg+xml", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"不支持的文件类型: {file.content_type}")
+
+    content = await file.read()
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="文件大小不能超过 2MB")
+
+    url = tools_service.upload_tool_icon(tool_id, content, file.filename or "icon.png")
+    return {"url": url}
+
+@router.delete("/tools/{tool_id}/icon", response_model=bool)
+async def delete_tool_icon_route(
+    tool_id: str,
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """删除工具自定义图标"""
+    return tools_service.delete_tool_icon(tool_id)
 
 @router.put("/tools/{tool_id}/status", response_model=bool)
 async def update_tool_status(
     tool_id: str,
     status: str = Query(..., regex="^(online|offline)$"),
-    admin_user: UserResponse = Depends(get_admin_user)
+    admin_user: UserResponse = Depends(get_admin_user),
 ):
-    """Update tool status"""
+    """更新工具状态（保留旧接口兼容）"""
     return tools_service.update_tool_status(tool_id, status)
 
 # ==================== System Settings ====================

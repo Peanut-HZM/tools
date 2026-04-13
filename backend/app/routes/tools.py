@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException
-from typing import List
+from typing import List, Optional
 from app.models import ToolsResponse, SearchResponse, CategoryResponse, Category, CategoryCreateRequest
 from app.services.tools_service import tools_service
 
@@ -44,9 +44,12 @@ def delete_category(cat_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/tools", response_model=ToolsResponse)
-def get_tools():
-    """获取所有工具"""
-    tools = tools_service.get_all_tools(include_offline=False)
+def get_tools(
+    platform: Optional[str] = Query(None, description="平台过滤: pc 或 mobile"),
+    category: Optional[str] = Query(None, description="分类过滤")
+):
+    """获取所有工具（支持 platform 和 category 过滤）"""
+    tools = tools_service.get_tools_for_platform(platform, category)
     return ToolsResponse(tools=tools)
 
 @router.get("/tools/search", response_model=SearchResponse)
