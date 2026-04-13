@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { listAllTools, updateToolStatus, Tool, listCategories, createCategory, updateCategory, deleteCategory, ToolCategory } from '../../api/adminApi';
+import { useState, useEffect, useCallback } from 'react';
+import { listToolsPaginated, updateToolStatus, updateTool, uploadToolIcon, deleteToolIcon, Tool, listCategories, createCategory, updateCategory, deleteCategory, ToolCategory, ToolsListParams } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
@@ -7,6 +7,28 @@ export default function ToolManagement() {
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const { success, error  } = useToast();
+
+  // Tool Edit Modal State
+  const [editingTool, setEditingTool] = useState<Tool | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toolForm, setToolForm] = useState<Partial<Tool>>({});
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Pagination & Search State
+  const [toolPage, setToolPage] = useState(1);
+  const [toolPageSize, setToolPageSize] = useState(20);
+  const [toolTotal, setToolTotal] = useState(0);
+  const [toolTotalPages, setToolTotalPages] = useState(0);
+  const [toolSearch, setToolSearch] = useState('');
+  const [toolStatusFilter, setToolStatusFilter] = useState<string>('');
+  const [toolCategoryFilter, setToolCategoryFilter] = useState<string>('');
+  const [toolSortBy, setToolSortBy] = useState('title');
+  const [toolSortOrder, setToolSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showPcFilter, setShowPcFilter] = useState<string>('all');
+  const [showMobileFilter, setShowMobileFilter] = useState<string>('all');
 
   // Category Form State
   const [isEditingCategory, setIsEditingCategory] = useState(false);
@@ -17,25 +39,40 @@ export default function ToolManagement() {
     sort_order: 0
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      const params: ToolsListParams = {
+        page: toolPage,
+        page_size: toolPageSize,
+        search: toolSearch || undefined,
+        status: toolStatusFilter || undefined,
+        category: toolCategoryFilter || undefined,
+        sort_by: toolSortBy,
+        sort_order: toolSortOrder,
+        show_pc: showPcFilter === 'all' ? undefined : showPcFilter === 'true',
+        show_mobile: showMobileFilter === 'all' ? undefined : showMobileFilter === 'true',
+      };
+
       const [toolsData, categoriesData] = await Promise.all([
-        listAllTools(),
+        listToolsPaginated(params),
         listCategories()
       ]);
-      setTools(toolsData);
+
+      setTools(toolsData.tools);
+      setToolTotal(toolsData.total);
+      setToolTotalPages(toolsData.total_pages);
       setCategories(categoriesData);
     } catch (e) {
       error('获取数据失败');
     } finally {
       setLoading(false);
     }
-  };
+  }, [toolPage, toolPageSize, toolSearch, toolStatusFilter, toolCategoryFilter, toolSortBy, toolSortOrder, showPcFilter, showMobileFilter]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleStatusChange = async (toolId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'online' ? 'offline' : 'online';
@@ -45,6 +82,87 @@ export default function ToolManagement() {
       success(`工具已${newStatus === 'online' ? '上线' : '下线'}`);
     } catch (e) {
       error('状态更新失败');
+    }
+  };
+
+  // Tool Edit Modal Handlers
+  const handleEditTool = (tool: Tool) => {
+    setEditingTool(tool);
+    setToolForm({ ...tool });
+    setIconFile(null);
+    setIconPreview(tool.custom_icon_url || null);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingTool(null);
+    setToolForm({});
+    setIconFile(null);
+    setIconPreview(null);
+  };
+
+  const handleIconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      error('图标文件大小不能超过 2MB');
+      return;
+    }
+
+    setIconFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setIconPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveTool = async () => {
+    if (!editingTool) return;
+
+    if (!toolForm.title?.trim()) {
+      error('工具名称不能为空');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updateData: Partial<Tool> = {};
+      const fields: (keyof Tool)[] = ['title', 'description', 'icon', 'iconColor', 'category', 'status', 'show_pc', 'show_mobile'];
+      for (const field of fields) {
+        if (toolForm[field] !== undefined && toolForm[field] !== editingTool[field]) {
+          (updateData as any)[field] = toolForm[field];
+        }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await updateTool(editingTool.id, updateData);
+      }
+
+      if (iconFile) {
+        await uploadToolIcon(editingTool.id, iconFile);
+      }
+
+      success('工具信息已更新');
+      handleCloseModal();
+      await fetchData();
+    } catch (e: any) {
+      error(e.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteIcon = async () => {
+    if (!editingTool) return;
+    try {
+      await deleteToolIcon(editingTool.id);
+      success('图标已删除');
+      setIconPreview(null);
+      setIconFile(null);
+      await fetchData();
+    } catch (e) {
+      error('删除图标失败');
     }
   };
 
@@ -120,7 +238,87 @@ export default function ToolManagement() {
       </div>
       
       {activeTab === 'tools' ? (
-        <div className="overflow-x-auto">
+        <div>
+          {/* 搜索筛选栏 */}
+          <div className="bg-slate-800 p-4 rounded-lg mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+              <input
+                type="text"
+                placeholder="搜索名称/描述..."
+                value={toolSearch}
+                onChange={(e) => { setToolSearch(e.target.value); setToolPage(1); }}
+                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              />
+              <select
+                value={toolStatusFilter}
+                onChange={(e) => { setToolStatusFilter(e.target.value); setToolPage(1); }}
+                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="">全部状态</option>
+                <option value="online">在线</option>
+                <option value="offline">离线</option>
+              </select>
+              <select
+                value={toolCategoryFilter}
+                onChange={(e) => { setToolCategoryFilter(e.target.value); setToolPage(1); }}
+                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="">全部分类</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
+              </select>
+              <select
+                value={`${toolSortBy}-${toolSortOrder}`}
+                onChange={(e) => { const [by, order] = e.target.value.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}
+                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="title-asc">名称 A-Z</option>
+                <option value="title-desc">名称 Z-A</option>
+                <option value="rating-desc">评分 高→低</option>
+                <option value="rating-asc">评分 低→高</option>
+                <option value="usage_count-desc">使用次数 多→少</option>
+                <option value="usage_count-asc">使用次数 少→多</option>
+                <option value="created_at-desc">最新创建</option>
+                <option value="created_at-asc">最早创建</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <select
+                value={showPcFilter}
+                onChange={(e) => { setShowPcFilter(e.target.value); setToolPage(1); }}
+                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="all">PC 展示: 全部</option>
+                <option value="true">仅 PC 展示</option>
+                <option value="false">仅 PC 不展示</option>
+              </select>
+              <select
+                value={showMobileFilter}
+                onChange={(e) => { setShowMobileFilter(e.target.value); setToolPage(1); }}
+                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="all">移动展示: 全部</option>
+                <option value="true">仅移动展示</option>
+                <option value="false">仅移动不展示</option>
+              </select>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-slate-400">每页</span>
+                <select
+                  value={toolPageSize}
+                  onChange={(e) => { setToolPageSize(Number(e.target.value)); setToolPage(1); }}
+                  className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-sm text-slate-400">条</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-slate-300">
             <thead className="bg-slate-700 text-slate-100 uppercase text-xs">
               <tr>
@@ -134,7 +332,11 @@ export default function ToolManagement() {
               {tools.map((tool) => (
                 <tr key={tool.id} className="hover:bg-slate-700/50">
                   <td className="px-6 py-4 flex items-center">
-                    <i className={`fa-solid ${tool.icon} w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-white mr-3`}></i>
+                    {tool.custom_icon_url ? (
+                      <img src={tool.custom_icon_url} alt={tool.title} className="w-8 h-8 rounded object-contain mr-3 bg-slate-600" />
+                    ) : (
+                      <i className={`fa-solid ${tool.icon} w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-white mr-3`}></i>
+                    )}
                     <div>
                       <div className="font-medium text-white">{tool.title}</div>
                       <div className="text-xs text-slate-500">{tool.id}</div>
@@ -143,14 +345,23 @@ export default function ToolManagement() {
                   <td className="px-6 py-4">{tool.category}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      tool.status === 'online' 
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                      tool.status === 'online'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                         : 'bg-slate-600 text-slate-400 border border-slate-500'
                     }`}>
                       {tool.status === 'online' ? '已上线' : '已下线'}
                     </span>
+                    <div className="mt-1 text-xs text-slate-500">
+                      PC: {tool.show_pc !== false ? '✅' : '❌'} | 移动: {tool.show_mobile !== false ? '✅' : '❌'}
+                    </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 flex space-x-3">
+                    <button
+                      onClick={() => handleEditTool(tool)}
+                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                    >
+                      编辑
+                    </button>
                     <button
                       onClick={() => handleStatusChange(tool.id, tool.status)}
                       className={`text-sm font-medium transition-colors ${
@@ -166,6 +377,209 @@ export default function ToolManagement() {
               ))}
             </tbody>
           </table>
+          </div>
+          {/* 分页控件 */}
+          {toolTotalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 text-sm text-slate-400">
+              <span>共 {toolTotal} 条记录，第 {toolPage}/{toolTotalPages} 页</span>
+              <div className="flex space-x-1">
+                <button
+                  onClick={() => setToolPage(1)}
+                  disabled={toolPage === 1}
+                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                >
+                  首页
+                </button>
+                <button
+                  onClick={() => setToolPage(p => Math.max(1, p - 1))}
+                  disabled={toolPage === 1}
+                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                >
+                  上一页
+                </button>
+                {Array.from({ length: Math.min(5, toolTotalPages) }, (_, i) => {
+                  let pageNum = Math.max(1, Math.min(toolPage - 2, toolTotalPages - 4));
+                  pageNum = i + pageNum;
+                  if (pageNum > toolTotalPages) return null;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setToolPage(pageNum)}
+                      className={`px-3 py-1 rounded ${pageNum === toolPage ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setToolPage(p => Math.min(toolTotalPages, p + 1))}
+                  disabled={toolPage >= toolTotalPages}
+                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                >
+                  下一页
+                </button>
+                <button
+                  onClick={() => setToolPage(toolTotalPages)}
+                  disabled={toolPage >= toolTotalPages}
+                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                >
+                  末页
+                </button>
+              </div>
+            </div>
+          )}
+          {toolTotalPages <= 1 && toolTotal > 0 && (
+            <div className="mt-4 text-sm text-slate-400">共 {toolTotal} 条记录</div>
+          )}
+
+        {/* 编辑工具弹窗 */}
+        {isModalOpen && editingTool && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={handleCloseModal}>
+            <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-white mb-6">编辑工具：{editingTool.title}</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-slate-400 mb-1">工具名称</label>
+                    <input
+                      type="text"
+                      value={toolForm.title || ''}
+                      onChange={(e) => setToolForm({...toolForm, title: e.target.value})}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-slate-400 mb-1">描述</label>
+                    <textarea
+                      value={toolForm.description || ''}
+                      onChange={(e) => setToolForm({...toolForm, description: e.target.value})}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">分类</label>
+                    <select
+                      value={toolForm.category || ''}
+                      onChange={(e) => setToolForm({...toolForm, category: e.target.value})}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">图标颜色</label>
+                    <input
+                      type="text"
+                      value={toolForm.iconColor || ''}
+                      onChange={(e) => setToolForm({...toolForm, iconColor: e.target.value})}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* 图标上传区域 */}
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-slate-400 mb-1">自定义图标</label>
+                    <div className="bg-slate-700 border border-slate-600 rounded p-4">
+                      {iconPreview ? (
+                        <div className="flex items-center space-x-4">
+                          <img src={iconPreview} alt="图标预览" className="w-16 h-16 rounded object-contain bg-slate-600" />
+                          <div className="flex-1">
+                            <p className="text-sm text-slate-300">已上传自定义图标</p>
+                            <button
+                              onClick={handleDeleteIcon}
+                              className="text-xs text-red-400 hover:text-red-300 mt-1"
+                            >
+                              删除自定义图标（恢复默认）
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-400 mb-2">当前使用默认 FontAwesome 图标</p>
+                      )}
+                      <div className="mt-3">
+                        <label className="inline-block px-4 py-2 bg-blue-600 text-white text-sm rounded cursor-pointer hover:bg-blue-700">
+                          选择文件
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
+                            onChange={handleIconFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-xs text-slate-500 ml-2">JPG/PNG/SVG，≤2MB</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggle 开关 */}
+                  <div className="col-span-2 grid grid-cols-3 gap-4">
+                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
+                      <span className="text-sm text-slate-300">PC 端展示</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={toolForm.show_pc ?? true}
+                          onChange={(e) => setToolForm({...toolForm, show_pc: e.target.checked})}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
+                      <span className="text-sm text-slate-300">移动端展示</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={toolForm.show_mobile ?? true}
+                          onChange={(e) => setToolForm({...toolForm, show_mobile: e.target.checked})}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
+                      <span className="text-sm text-slate-300">上线状态</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={toolForm.status === 'online'}
+                          onChange={(e) => setToolForm({...toolForm, status: e.target.checked ? 'online' : 'offline'})}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-700">
+                  <button
+                    onClick={handleCloseModal}
+                    className="px-6 py-2 bg-slate-600 text-white rounded hover:bg-slate-500 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSaveTool}
+                    disabled={saving}
+                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {saving ? '保存中...' : '保存'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       ) : (
         <div>
