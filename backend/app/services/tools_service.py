@@ -299,6 +299,257 @@ class ToolsService:
             if conn:
                 conn.close()
 
+    def update_tool(self, tool_id: str, data: dict) -> Optional[Tool]:
+        """完整更新工具信息（行编辑）"""
+        conn = None
+        try:
+            # 校验分类是否存在（如果提供了新分类）
+            if "category" in data and data["category"]:
+                cat_conn = get_db_connection()
+                try:
+                    with cat_conn.cursor() as cur:
+                        cur.execute("SELECT id FROM tool_categories WHERE name = %s AND deleted = FALSE", (data["category"],))
+                        if not cur.fetchone():
+                            raise ValueError(f"分类不存在: {data['category']}")
+                finally:
+                    cat_conn.close()
+
+            # 构建动态 UPDATE 语句
+            updates = []
+            params = []
+            for field in ["title", "description", "icon", "icon_color", "category", "status", "sort_order"]:
+                if field in data:
+                    updates.append(f"{field} = %s")
+                    params.append(data[field])
+
+            # Boolean 字段特殊处理
+            if "show_pc" in data:
+                updates.append("show_pc = %s")
+                params.append(data["show_pc"])
+            if "show_mobile" in data:
+                updates.append("show_mobile = %s")
+                params.append(data["show_mobile"])
+            if "custom_icon_url" in data:
+                updates.append("custom_icon_url = %s")
+                params.append(data["custom_icon_url"])
+
+            if not updates:
+                return None
+
+            params.append(tool_id)
+
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"UPDATE tools SET {', '.join(updates)} WHERE id = %s RETURNING *",
+                    params
+                )
+                row = cur.fetchone()
+                conn.commit()
+                if row:
+                    return self._row_to_tool(row)
+                return None
+        except Exception as e:
+            logger.error(f"Error updating tool {tool_id}: {e}")
+            if conn:
+                conn.rollback()
+            raise e
+        finally:
+            if conn:
+                conn.close()
+
+    def get_tools_paginated(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        search: Optional[str] = None,
+        status: Optional[str] = None,
+        category: Optional[str] = None,
+        sort_by: str = "title",
+        sort_order: str = "asc",
+        show_pc: Optional[bool] = None,
+        show_mobile: Optional[bool] = None,
+    ) -> dict:
+        """分页查询工具，支持搜索、筛选、排序"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                # 构建 WHERE 条件
+                conditions = []
+                params = []
+
+                if search:
+                    conditions.append("(LOWER(title) LIKE LOWER(%s) OR LOWER(description) LIKE LOWER(%s))")
+                    params.extend([f"%{search}%", f"%{search}%"])
+
+                if status:
+                    conditions.append("status = %s")
+                    params.append(status)
+
+                if category:
+                    conditions.append("category = %s")
+                    params.append(category)
+
+                if show_pc is not None:
+                    conditions.append("show_pc = %s")
+                    params.append(show_pc)
+
+                if show_mobile is not None:
+                    conditions.append("show_mobile = %s")
+                    params.append(show_mobile)
+
+                where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+                # 排序字段白名单
+                sort_column = {
+                    "title": "title",
+                    "rating": "rating",
+                    "usage_count": "usage_count",
+                    "created_at": "created_at",
+                }.get(sort_by, "title")
+                sort_dir = "ASC" if sort_order == "asc" else "DESC"
+
+                # 总数
+                cur.execute(f"SELECT COUNT(*) FROM tools WHERE {where_clause}", params)
+                total = cur.fetchone()["count"]
+
+                total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+                # 分页数据
+                offset = (page - 1) * page_size
+                cur.execute(
+                    f"SELECT * FROM tools WHERE {where_clause} ORDER BY {sort_column} {sort_dir} LIMIT %s OFFSET %s",
+                    params + [page_size, offset]
+                )
+                rows = cur.fetchall()
+                tools = [self._row_to_tool(row) for row in rows]
+
+                return {
+                    "tools": tools,
+                    "total": total,
+                    "page": page,
+                    "page_size": page_size,
+                    "total_pages": total_pages,
+                }
+        except Exception as e:
+            logger.error(f"Error paginating tools: {e}")
+            return {"tools": [], "total": 0, "page": 1, "page_size": 20, "total_pages": 0}
+        finally:
+            if conn:
+                conn.close()
+
+    def upload_tool_icon(self, tool_id: str, content: bytes, filename: str) -> Optional[str]:
+        """上传工具图标到 OSS，上传前先删除旧图标"""
+        from app.services.oss_service import oss_service
+        from io import BytesIO
+
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("SELECT id, custom_icon_url FROM tools WHERE id = %s", (tool_id,))
+                row = cur.fetchone()
+                if not row:
+                    raise ValueError(f"Tool {tool_id} not found")
+
+                # 删除旧 OSS 图标（如果存在）
+                old_url = row[1]
+                if old_url:
+                    old_object_name = old_url.split("/", 3)[-1] if "/" in old_url else None
+                    if old_object_name:
+                        oss_service.delete_file(old_object_name)
+                        logger.info(f"Deleted old icon for {tool_id}: {old_object_name}")
+            conn.close()
+            conn = None
+
+            # 确定文件扩展名
+            ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "png"
+            if ext not in ("png", "jpg", "jpeg", "gif", "svg", "webp"):
+                raise ValueError(f"不支持的文件类型: {ext}")
+
+            object_name = f"tools/icons/{tool_id}.{ext}"
+
+            # 上传到 OSS
+            url = oss_service.upload_file(
+                object_name=object_name,
+                data=BytesIO(content),
+                size=len(content),
+                content_type=f"image/{ext}",
+                uploaded_by="admin"
+            )
+
+            if not url:
+                raise ValueError("OSS 上传失败")
+
+            # 更新数据库
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE tools SET custom_icon_url = %s WHERE id = %s",
+                    (url, tool_id)
+                )
+                conn.commit()
+
+            return url
+        except Exception as e:
+            logger.error(f"Error uploading tool icon for {tool_id}: {e}")
+            raise e
+        finally:
+            if conn:
+                conn.close()
+
+    def delete_tool_icon(self, tool_id: str) -> bool:
+        """删除工具自定义图标"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE tools SET custom_icon_url = NULL WHERE id = %s",
+                    (tool_id,)
+                )
+                conn.commit()
+                return cur.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting tool icon for {tool_id}: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    def get_tools_for_platform(self, platform: str, category: Optional[str] = None) -> List[Tool]:
+        """按平台获取在线工具，支持分类过滤（参数化查询防止 SQL 注入）"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cur:
+                base_sql = "SELECT * FROM tools WHERE status = 'online'"
+                params: list = []
+
+                if platform == "pc":
+                    base_sql += " AND show_pc = TRUE"
+                elif platform == "mobile":
+                    base_sql += " AND show_mobile = TRUE"
+
+                if category and category != "全部工具":
+                    base_sql += " AND category = %s"
+                    params.append(category)
+
+                base_sql += " ORDER BY category, title"
+                cur.execute(base_sql, params)
+
+                rows = cur.fetchall()
+                return [self._row_to_tool(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error fetching tools for platform {platform}: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+
     def get_all_categories(self) -> List[Category]:
         conn = None
         try:
