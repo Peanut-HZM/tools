@@ -1372,24 +1372,11 @@ git commit -m "feat(tool-mgmt): PC 端首页按 platform 过滤 + 支持自定�
     // ... 剩余逻辑不变
 ```
 
-**注意**：需要在后端 `tools.py` 的 `/tools` 接口中也支持 `category` 查询参数（目前只支持 `platform`）。
+**注意**：后端 `/tools` 接口已在 Task 4 中支持 `platform` 和 `category` 联合过滤。
 
-**Step 3: 修改后端 `/tools` 接口支持 category 过滤**
+**Step 3: ~~修改后端 `/tools` 接口支持 category 过滤~~（已在 Task 4 完成）**
 
-在 `tools.py` 的 `get_tools` 函数中新增可选 `category` 参数：
-
-```python
-@router.get("/tools", response_model=ToolsResponse)
-def get_tools(
-    platform: Optional[str] = Query(None, description="平台过滤: pc 或 mobile"),
-    category: Optional[str] = Query(None, description="分类过滤")
-):
-    """获取所有工具（支持 platform 和 category 过滤）"""
-    tools = tools_service.get_tools_for_platform(platform)
-    if category and category != "全部工具":
-        tools = [t for t in tools if t.category == category]
-    return ToolsResponse(tools=tools)
-```
+（Task 4 已实现 `get_tools(platform, category)` 方法，此处跳过）
 
 **Step 4: 修改小程序 ToolCard 图标渲染**
 
