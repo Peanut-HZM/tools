@@ -414,8 +414,10 @@ export default function ToolManagement() {
               <tr>
                 <th className="px-6 py-3">工具名称</th>
                 <th className="px-6 py-3">分类</th>
-                <th className="px-6 py-3">状态</th>
-                <th className="px-6 py-3">操作</th>
+                <th className="px-6 py-3 text-center w-[100px]">上线状态</th>
+                <th className="px-6 py-3 text-center w-[100px]">PC 展示</th>
+                <th className="px-6 py-3 text-center w-[100px]">移动展示</th>
+                <th className="px-6 py-3 w-[80px]">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
