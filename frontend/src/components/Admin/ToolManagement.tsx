@@ -85,6 +85,26 @@ export default function ToolManagement() {
     }
   };
 
+  const handlePcToggle = async (toolId: string, currentValue: boolean) => {
+    try {
+      await updateTool(toolId, { show_pc: !currentValue });
+      setTools(tools.map(t => t.id === toolId ? { ...t, show_pc: !currentValue } : t));
+      success(`PC 展示已${!currentValue ? '开启' : '关闭'}`);
+    } catch (e) {
+      error('更新失败');
+    }
+  };
+
+  const handleMobileToggle = async (toolId: string, currentValue: boolean) => {
+    try {
+      await updateTool(toolId, { show_mobile: !currentValue });
+      setTools(tools.map(t => t.id === toolId ? { ...t, show_mobile: !currentValue } : t));
+      success(`移动展示已${!currentValue ? '开启' : '关闭'}`);
+    } catch (e) {
+      error('更新失败');
+    }
+  };
+
   // Tool Edit Modal Handlers
   const handleEditTool = (tool: Tool) => {
     setEditingTool(tool);
