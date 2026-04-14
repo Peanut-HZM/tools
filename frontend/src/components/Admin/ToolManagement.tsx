@@ -435,34 +435,52 @@ export default function ToolManagement() {
                     </div>
                   </td>
                   <td className="px-6 py-4">{tool.category}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      tool.status === 'online'
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                        : 'bg-slate-600 text-slate-400 border border-slate-500'
-                    }`}>
-                      {tool.status === 'online' ? '已上线' : '已下线'}
-                    </span>
-                    <div className="mt-1 text-xs text-slate-500">
-                      PC: {tool.show_pc !== false ? '✅' : '❌'} | 移动: {tool.show_mobile !== false ? '✅' : '❌'}
-                    </div>
+                  {/* 上线状态 */}
+                  <td className="px-6 py-4 text-center">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tool.status === 'online'}
+                        onChange={() => handleStatusChange(tool.id, tool.status)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
                   </td>
-                  <td className="px-6 py-4 flex space-x-3">
+
+                  {/* PC 展示 */}
+                  <td className="px-6 py-4 text-center">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tool.show_pc !== false}
+                        onChange={() => handlePcToggle(tool.id, tool.show_pc !== false)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                  </td>
+
+                  {/* 移动展示 */}
+                  <td className="px-6 py-4 text-center">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tool.show_mobile !== false}
+                        onChange={() => handleMobileToggle(tool.id, tool.show_mobile !== false)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                    </label>
+                  </td>
+
+                  {/* 操作 */}
+                  <td className="px-6 py-4">
                     <button
                       onClick={() => handleEditTool(tool)}
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                      className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
                     >
                       编辑
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(tool.id, tool.status)}
-                      className={`text-sm font-medium transition-colors ${
-                        tool.status === 'online'
-                          ? 'text-red-400 hover:text-red-300'
-                          : 'text-green-400 hover:text-green-300'
-                      }`}
-                    >
-                      {tool.status === 'online' ? '下线' : '上线'}
                     </button>
                   </td>
                 </tr>
