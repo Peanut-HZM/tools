@@ -77,6 +77,14 @@ interface ProcessListResponse {
   total_pages: number;
 }
 
+interface TypeSummary {
+  type: string;
+  count: number;
+  cpu_percent: number;
+  memory_percent: number;
+  memory_rss: number;
+}
+
 const KNOWN_PROJECT_TYPES = [
   'Python', 'FastAPI', 'Django', 'Flask', 'Celery', 'Gunicorn',
   'Java', 'Spring Boot', 'Tomcat', 'Jetty',
@@ -269,6 +277,7 @@ export default function SystemMonitor() {
   const [processPage, setProcessPage] = useState(1);
   const [processPageSize, setProcessPageSize] = useState(50);
   const [processTotalPages, setProcessTotalPages] = useState(0);
+  const [typeSummary, setTypeSummary] = useState<TypeSummary[]>([]);
   const [sortBy, setSortBy] = useState<SortField>('cpu_percent');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -355,10 +364,11 @@ export default function SystemMonitor() {
       if (selectedProjectType && selectedProjectType !== 'all') params.append('project_type', selectedProjectType);
       const res = await fetch(`${API_BASE_URL}/system-monitor/processes?${params}`);
       if (!res.ok) throw new Error('获取进程列表失败');
-      const data: ProcessListResponse = await res.json();
+      const data: ProcessListResponse & { type_summary?: TypeSummary[] } = await res.json();
       setProcesses(data.processes);
       setProcessTotal(data.total);
       setProcessTotalPages(data.total_pages);
+      setTypeSummary(data.type_summary || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -438,7 +448,7 @@ export default function SystemMonitor() {
     return <span className="text-blue-400 ml-0.5 text-xs">{sortOrder === 'desc' ? '↓' : '↑'}</span>;
   };
 
-  const availableProjectTypes = KNOWN_PROJECT_TYPES.filter(type => processes.some(p => p.project_type === type));
+  const availableProjectTypes = typeSummary.map(s => s.type);
 
   if (loading) {
     return (
@@ -749,6 +759,31 @@ export default function SystemMonitor() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* 服务概览 */}
+        {typeSummary.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <i className="fas fa-cubes text-violet-400/60 text-xs"></i>
+              <span className="text-xs text-slate-500">服务概览 ({typeSummary.length} 种类型)</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              {typeSummary.map((svc) => (
+                <ServiceCard
+                  key={svc.type}
+                  type={svc.type}
+                  count={svc.count}
+                  cpuPercent={svc.cpu_percent}
+                  memoryRss={svc.memory_rss}
+                  onClick={() => {
+                    setSelectedProjectType(svc.type);
+                    setProcessPage(1);
+                  }}
+                />
+              ))}
+            </div>
           </div>
         )}
 
