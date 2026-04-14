@@ -207,6 +207,22 @@ export default function ToolManagement() {
     setIsEditingCategory(false);
   };
 
+  // 重置所有筛选条件
+  const handleResetFilters = () => {
+    setToolSearch('');
+    setToolStatusFilter('');
+    setToolCategoryFilter('');
+    setToolSortBy('title');
+    setToolSortOrder('asc');
+    setShowPcFilter('all');
+    setShowMobileFilter('all');
+    setToolPage(1);
+  };
+
+  // 检查是否有激活的筛选条件
+  const hasActiveFilters = toolSearch || toolStatusFilter || toolCategoryFilter ||
+    showPcFilter !== 'all' || showMobileFilter !== 'all';
+
   if (loading) return <div className="text-white">加载中...</div>;
 
   return (
@@ -239,81 +255,135 @@ export default function ToolManagement() {
       
       {activeTab === 'tools' ? (
         <div>
-          {/* 搜索筛选栏 */}
-          <div className="bg-slate-800 p-4 rounded-lg mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-              <input
-                type="text"
-                placeholder="搜索名称/描述..."
-                value={toolSearch}
-                onChange={(e) => { setToolSearch(e.target.value); setToolPage(1); }}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-              />
-              <select
-                value={toolStatusFilter}
-                onChange={(e) => { setToolStatusFilter(e.target.value); setToolPage(1); }}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+          {/* 激活筛选提示 */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <span className="text-xs text-slate-500">已筛选:</span>
+              {toolSearch && (
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                  搜索: {toolSearch}
+                </span>
+              )}
+              {toolStatusFilter && (
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                  状态: {toolStatusFilter === 'online' ? '在线' : '离线'}
+                </span>
+              )}
+              {toolCategoryFilter && (
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                  分类: {toolCategoryFilter}
+                </span>
+              )}
+              {showPcFilter !== 'all' && (
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                  PC: {showPcFilter === 'true' ? '展示' : '隐藏'}
+                </span>
+              )}
+              {showMobileFilter !== 'all' && (
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                  移动: {showMobileFilter === 'true' ? '展示' : '隐藏'}
+                </span>
+              )}
+              <button
+                onClick={handleResetFilters}
+                className="text-xs text-red-400 hover:text-red-300 ml-2 transition-colors cursor-pointer"
               >
-                <option value="">全部状态</option>
-                <option value="online">在线</option>
-                <option value="offline">离线</option>
-              </select>
-              <select
-                value={toolCategoryFilter}
-                onChange={(e) => { setToolCategoryFilter(e.target.value); setToolPage(1); }}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-              >
-                <option value="">全部分类</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
-                ))}
-              </select>
-              <select
-                value={`${toolSortBy}-${toolSortOrder}`}
-                onChange={(e) => { const [by, order] = e.target.value.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-              >
-                <option value="title-asc">名称 A-Z</option>
-                <option value="title-desc">名称 Z-A</option>
-                <option value="rating-desc">评分 高→低</option>
-                <option value="rating-asc">评分 低→高</option>
-                <option value="usage_count-desc">使用次数 多→少</option>
-                <option value="usage_count-asc">使用次数 少→多</option>
-                <option value="created_at-desc">最新创建</option>
-                <option value="created_at-asc">最早创建</option>
-              </select>
+                <i className="fas fa-times-circle mr-1"></i>重置
+              </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <select
-                value={showPcFilter}
-                onChange={(e) => { setShowPcFilter(e.target.value); setToolPage(1); }}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-              >
-                <option value="all">PC 展示: 全部</option>
-                <option value="true">仅 PC 展示</option>
-                <option value="false">仅 PC 不展示</option>
-              </select>
-              <select
-                value={showMobileFilter}
-                onChange={(e) => { setShowMobileFilter(e.target.value); setToolPage(1); }}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-              >
-                <option value="all">移动展示: 全部</option>
-                <option value="true">仅移动展示</option>
-                <option value="false">仅移动不展示</option>
-              </select>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-slate-400">每页</span>
+          )}
+
+          {/* 筛选工具栏 */}
+          <div className="bg-slate-800/50 p-3 rounded-xl mb-4 border border-slate-700/50">
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* 搜索框 */}
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 min-w-[200px] flex-1 max-w-[320px] transition-colors duration-200 ${toolSearch ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+                <i className="fas fa-search text-slate-500 text-xs"></i>
+                <input
+                  type="text"
+                  placeholder="搜索名称/描述..."
+                  value={toolSearch}
+                  onChange={(e) => { setToolSearch(e.target.value); setToolPage(1); }}
+                  className="bg-transparent text-white text-sm outline-none w-full placeholder-slate-500"
+                />
+              </div>
+
+              {/* 状态筛选 */}
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolStatusFilter ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+                <i className="fas fa-circle-dot text-slate-500 text-xs"></i>
                 <select
-                  value={toolPageSize}
-                  onChange={(e) => { setToolPageSize(Number(e.target.value)); setToolPage(1); }}
-                  className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                  value={toolStatusFilter}
+                  onChange={(e) => { setToolStatusFilter(e.target.value); setToolPage(1); }}
+                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer"
                 >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
+                  <option value="" className="bg-slate-800">全部状态</option>
+                  <option value="online" className="bg-slate-800">在线</option>
+                  <option value="offline" className="bg-slate-800">离线</option>
                 </select>
-                <span className="text-sm text-slate-400">条</span>
+              </div>
+
+              {/* 分类筛选 */}
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolCategoryFilter ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+                <i className="fas fa-folder text-slate-500 text-xs"></i>
+                <select
+                  value={toolCategoryFilter}
+                  onChange={(e) => { setToolCategoryFilter(e.target.value); setToolPage(1); }}
+                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer"
+                >
+                  <option value="" className="bg-slate-800">全部分类</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name} className="bg-slate-800">{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 排序 */}
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'title' || toolSortOrder !== 'asc') ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+                <i className="fas fa-arrow-down-a-z text-slate-500 text-xs"></i>
+                <select
+                  value={`${toolSortBy}-${toolSortOrder}`}
+                  onChange={(e) => { const [by, order] = e.target.value.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}
+                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer"
+                >
+                  <option value="title-asc" className="bg-slate-800">名称 A-Z</option>
+                  <option value="title-desc" className="bg-slate-800">名称 Z-A</option>
+                  <option value="rating-desc" className="bg-slate-800">评分 高→低</option>
+                  <option value="rating-asc" className="bg-slate-800">评分 低→高</option>
+                  <option value="usage_count-desc" className="bg-slate-800">使用次数 多→少</option>
+                  <option value="usage_count-asc" className="bg-slate-800">使用次数 少→多</option>
+                  <option value="created_at-desc" className="bg-slate-800">最新创建</option>
+                  <option value="created_at-asc" className="bg-slate-800">最早创建</option>
+                </select>
+              </div>
+
+              {/* PC 展示筛选 */}
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showPcFilter !== 'all' ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+                <i className="fas fa-desktop text-slate-500 text-xs"></i>
+                <span className="text-xs text-slate-400">PC</span>
+                <select
+                  value={showPcFilter}
+                  onChange={(e) => { setShowPcFilter(e.target.value); setToolPage(1); }}
+                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
+                >
+                  <option value="all" className="bg-slate-800">全部</option>
+                  <option value="true" className="bg-slate-800">展示</option>
+                  <option value="false" className="bg-slate-800">隐藏</option>
+                </select>
+              </div>
+
+              {/* 移动端展示筛选 */}
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showMobileFilter !== 'all' ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+                <i className="fas fa-mobile text-slate-500 text-xs"></i>
+                <span className="text-xs text-slate-400">移动</span>
+                <select
+                  value={showMobileFilter}
+                  onChange={(e) => { setShowMobileFilter(e.target.value); setToolPage(1); }}
+                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
+                >
+                  <option value="all" className="bg-slate-800">全部</option>
+                  <option value="true" className="bg-slate-800">展示</option>
+                  <option value="false" className="bg-slate-800">隐藏</option>
+                </select>
               </div>
             </div>
           </div>
@@ -381,7 +451,21 @@ export default function ToolManagement() {
           {/* 分页控件 */}
           {toolTotalPages > 1 && (
             <div className="flex items-center justify-between mt-4 text-sm text-slate-400">
-              <span>共 {toolTotal} 条记录，第 {toolPage}/{toolTotalPages} 页</span>
+              <div className="flex items-center gap-3">
+                <span>共 {toolTotal} 条记录，第 {toolPage}/{toolTotalPages} 页</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs">每页</span>
+                  <select
+                    value={toolPageSize}
+                    onChange={(e) => { setToolPageSize(Number(e.target.value)); setToolPage(1); }}
+                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
               <div className="flex space-x-1">
                 <button
                   onClick={() => setToolPage(1)}
