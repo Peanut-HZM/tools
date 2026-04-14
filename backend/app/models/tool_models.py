@@ -24,6 +24,7 @@ class Tool(BaseModel):
     custom_icon_url: Optional[str] = None
     show_pc: bool = True
     show_mobile: bool = True
+    require_login: bool = False
     created_at: Optional[str] = None
 
 class ToolCreateRequest(BaseModel):
@@ -63,6 +64,7 @@ class ToolUpdateRequest(BaseModel):
     sort_order: Optional[int] = None
     show_pc: Optional[bool] = None
     show_mobile: Optional[bool] = None
+    require_login: Optional[bool] = None
 
 class ToolsPaginatedResponse(BaseModel):
     tools: List[Tool]

@@ -167,13 +167,14 @@ async def list_tools_paginated(
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     show_pc: Optional[bool] = Query(None),
     show_mobile: Optional[bool] = Query(None),
+    require_login: Optional[bool] = Query(None),
     admin_user: UserResponse = Depends(get_admin_user),
 ):
     """分页查询工具，支持搜索、筛选、排序"""
     return tools_service.get_tools_paginated(
         page=page, page_size=page_size, search=search, status=status,
         category=category, sort_by=sort_by, sort_order=sort_order,
-        show_pc=show_pc, show_mobile=show_mobile,
+        show_pc=show_pc, show_mobile=show_mobile, require_login=require_login,
     )
 
 @router.put("/tools/{tool_id}", response_model=Tool)

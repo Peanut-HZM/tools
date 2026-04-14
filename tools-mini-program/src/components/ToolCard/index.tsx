@@ -50,6 +50,11 @@ export default function ToolCard({ tool, onClick }: ToolCardProps) {
 
   return (
     <View className='tool-card' onClick={onClick}>
+      {tool.require_login && (
+        <View className='tool-card-login-badge'>
+          <Text className='tool-card-login-badge-text'>需登录</Text>
+        </View>
+      )}
       <View className='tool-card-icon'>
         {hasCustomIcon ? (
           <Image

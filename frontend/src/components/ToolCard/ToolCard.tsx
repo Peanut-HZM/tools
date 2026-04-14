@@ -8,13 +8,20 @@ export default function ToolCard({
   rating,
   usageCount,
   custom_icon_url,
+  require_login,
   onClick
 }: ToolCardProps) {
   return (
     <div
       onClick={onClick}
-      className="tool-card bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-primary transition-all cursor-pointer"
+      className="tool-card bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-primary transition-all cursor-pointer relative"
     >
+      {/* 需登录标签 */}
+      {require_login && (
+        <span className="absolute top-3 right-3 bg-orange-500/20 text-orange-400 text-[10px] px-1.5 py-0.5 rounded border border-orange-500/30">
+          需登录
+        </span>
+      )}
       <div className={`w-12 h-12 ${iconColor} rounded-lg flex items-center justify-center mb-4`}>
         {custom_icon_url ? (
           <img src={custom_icon_url} alt={title} className="w-6 h-6 object-contain" />

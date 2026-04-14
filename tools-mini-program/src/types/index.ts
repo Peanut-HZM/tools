@@ -37,6 +37,7 @@ export interface Tool {
   custom_icon_url?: string;
   show_pc?: boolean;
   show_mobile?: boolean;
+  require_login?: boolean;
   // 小程序端补充字段
   path?: string;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
 import Hero from './components/Hero/Hero';
@@ -34,19 +34,22 @@ import OpenSpecCourse from './components/Tools/OpenSpecCourse';
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
 import CursorHistory from './components/Tools/CursorHistory/CursorHistory';
 import HttpApiClient from './components/Tools/HttpApiClient/HttpApiClient';
+import SystemMonitor from './components/Tools/SystemMonitor';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import TechContentsPage from './pages/TechContentsPage';
 import TechContentDetailPage from './pages/TechContentDetailPage';
 import AccountSettings from './pages/AccountSettings';
-import { AuthProvider } from './stores/authStore';
+import { AuthProvider, AuthContext, useAuth } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
 import { Tool } from './types';
 import { useI18n, interpolate } from './i18n';
 import { I18nProvider } from './i18n/I18nProvider';
 import { ToastProvider } from './contexts/ToastContext';
+import LoginForm from './components/Auth/LoginForm';
+import RegisterForm from './components/Auth/RegisterForm';
 
 interface LayoutContext {
   searchValue: string;
@@ -57,6 +60,39 @@ interface LayoutContext {
 
 import { recordToolVisit } from './api/adminApi';
 
+function LoginPage() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useContext(AuthContext);
+  const { t } = useI18n();
+  const [showRegister, setShowRegister] = useState(false);
+
+  // 已登录直接回首页
+  if (isAuthenticated) {
+    navigate('/');
+    return null;
+  }
+
+  const handleSuccess = () => {
+    navigate('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      {showRegister ? (
+        <RegisterForm
+          onSuccess={handleSuccess}
+          onSwitchToLogin={() => setShowRegister(false)}
+        />
+      ) : (
+        <LoginForm
+          onSuccess={handleSuccess}
+          onSwitchToRegister={() => setShowRegister(true)}
+        />
+      )}
+    </div>
+  );
+}
+
 function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,6 +101,7 @@ function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>(["全部工具"]);
   const { t } = useI18n();
+  const { isAuthenticated } = useContext(AuthContext);
 
   const { activeCategory, handleCategoryChange } = useCategory();
   const { debouncedValue, handleSearchChange } = useOutletContext<LayoutContext>();
@@ -170,6 +207,15 @@ function HomePage() {
       console.error("Failed to record tool visit", e);
     }
 
+    // 登录拦截
+    const tool = filteredTools.find(t => t.id === toolId);
+    if (tool?.require_login && !isAuthenticated) {
+      if (window.confirm('该工具需要登录后才能使用，是否前往登录？')) {
+        navigate('/login');
+      }
+      return;
+    }
+
     const toolRoutes: Record<string, string> = {
       'image-downloader': '/tools/image-downloader',
       'video-downloader': '/tools/video-downloader',
@@ -190,6 +236,7 @@ function HomePage() {
       'course-platform': '/courses',
       'cursor-history': '/tools/cursor-history',
       'http-api-client': '/tools/http-api-client',
+      'system-monitor': '/tools/system-monitor',
     };
 
     const route = toolRoutes[toolId];
@@ -234,6 +281,7 @@ function App() {
         <ToastProvider>
           <BrowserRouter>
           <Routes>
+            <Route path="/login" element={<LoginPage />} />
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/account-settings" element={<AccountSettings />} />
@@ -263,6 +311,7 @@ function App() {
               <Route path="/tools/cross-share" element={<CrossShareMain />} />
               <Route path="/tools/cursor-history" element={<CursorHistory />} />
               <Route path="/tools/http-api-client" element={<HttpApiClient />} />
+              <Route path="/tools/system-monitor" element={<SystemMonitor />} />
             </Route>
 
             {/* Admin Routes */}

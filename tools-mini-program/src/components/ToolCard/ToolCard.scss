@@ -78,3 +78,18 @@
   border-radius: var(--radius-full);
   line-height: 1.4;
 }
+
+.tool-card-login-badge {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  background: rgba(249, 115, 22, 0.2);
+  border: 1rpx solid rgba(249, 115, 22, 0.3);
+  border-radius: 4rpx;
+  padding: 2rpx 8rpx;
+
+  .tool-card-login-badge-text {
+    font-size: 18rpx;
+    color: #f97316;
+  }
+}

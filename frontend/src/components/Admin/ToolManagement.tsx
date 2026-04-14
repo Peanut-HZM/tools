@@ -29,6 +29,7 @@ export default function ToolManagement() {
   const [toolSortOrder, setToolSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showPcFilter, setShowPcFilter] = useState<string>('all');
   const [showMobileFilter, setShowMobileFilter] = useState<string>('all');
+  const [requireLoginFilter, setRequireLoginFilter] = useState<string>('all');
 
   // Category Form State
   const [isEditingCategory, setIsEditingCategory] = useState(false);
@@ -52,6 +53,7 @@ export default function ToolManagement() {
         sort_order: toolSortOrder,
         show_pc: showPcFilter === 'all' ? undefined : showPcFilter === 'true',
         show_mobile: showMobileFilter === 'all' ? undefined : showMobileFilter === 'true',
+        require_login: requireLoginFilter === 'all' ? undefined : requireLoginFilter === 'true',
       };
 
       const [toolsData, categoriesData] = await Promise.all([
@@ -68,7 +70,7 @@ export default function ToolManagement() {
     } finally {
       setLoading(false);
     }
-  }, [toolPage, toolPageSize, toolSearch, toolStatusFilter, toolCategoryFilter, toolSortBy, toolSortOrder, showPcFilter, showMobileFilter]);
+  }, [toolPage, toolPageSize, toolSearch, toolStatusFilter, toolCategoryFilter, toolSortBy, toolSortOrder, showPcFilter, showMobileFilter, requireLoginFilter]);
 
   useEffect(() => {
     fetchData();
@@ -100,6 +102,16 @@ export default function ToolManagement() {
       await updateTool(toolId, { show_mobile: !currentValue });
       setTools(tools.map(t => t.id === toolId ? { ...t, show_mobile: !currentValue } : t));
       success(`移动展示已${!currentValue ? '开启' : '关闭'}`);
+    } catch (e) {
+      error('更新失败');
+    }
+  };
+
+  const handleLoginToggle = async (toolId: string, currentValue: boolean) => {
+    try {
+      await updateTool(toolId, { require_login: !currentValue });
+      setTools(tools.map(t => t.id === toolId ? { ...t, require_login: !currentValue } : t));
+      success(`登录要求已${!currentValue ? '开启' : '关闭'}`);
     } catch (e) {
       error('更新失败');
     }
@@ -236,12 +248,13 @@ export default function ToolManagement() {
     setToolSortOrder('asc');
     setShowPcFilter('all');
     setShowMobileFilter('all');
+    setRequireLoginFilter('all');
     setToolPage(1);
   };
 
   // 检查是否有激活的筛选条件
   const hasActiveFilters = toolSearch || toolStatusFilter || toolCategoryFilter ||
-    showPcFilter !== 'all' || showMobileFilter !== 'all';
+    showPcFilter !== 'all' || showMobileFilter !== 'all' || requireLoginFilter !== 'all';
 
   if (loading) return <div className="text-white">加载中...</div>;
 
@@ -302,6 +315,11 @@ export default function ToolManagement() {
               {showMobileFilter !== 'all' && (
                 <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
                   移动: {showMobileFilter === 'true' ? '展示' : '隐藏'}
+                </span>
+              )}
+              {requireLoginFilter !== 'all' && (
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                  登录: {requireLoginFilter === 'true' ? '需登录' : '免登录'}
                 </span>
               )}
               <button
@@ -405,6 +423,21 @@ export default function ToolManagement() {
                   <option value="false" className="bg-slate-800">隐藏</option>
                 </select>
               </div>
+
+              {/* 登录要求筛选 */}
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${requireLoginFilter !== 'all' ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+                <i className="fas fa-lock text-slate-500 text-xs"></i>
+                <span className="text-xs text-slate-400">登录</span>
+                <select
+                  value={requireLoginFilter}
+                  onChange={(e) => { setRequireLoginFilter(e.target.value); setToolPage(1); }}
+                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
+                >
+                  <option value="all" className="bg-slate-800">全部</option>
+                  <option value="true" className="bg-slate-800">需登录</option>
+                  <option value="false" className="bg-slate-800">免登录</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -417,6 +450,7 @@ export default function ToolManagement() {
                 <th className="px-6 py-3 text-center w-[100px]">上线状态</th>
                 <th className="px-6 py-3 text-center w-[100px]">PC 展示</th>
                 <th className="px-6 py-3 text-center w-[100px]">移动展示</th>
+                <th className="px-6 py-3 text-center w-[100px]">登录要求</th>
                 <th className="px-6 py-3 w-[80px]">操作</th>
               </tr>
             </thead>
@@ -471,6 +505,19 @@ export default function ToolManagement() {
                         className="sr-only peer"
                       />
                       <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                    </label>
+                  </td>
+
+                  {/* 登录要求 */}
+                  <td className="px-6 py-4 text-center">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tool.require_login ?? false}
+                        onChange={() => handleLoginToggle(tool.id, tool.require_login ?? false)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
                     </label>
                   </td>
 
@@ -643,7 +690,7 @@ export default function ToolManagement() {
                   </div>
 
                   {/* Toggle 开关 */}
-                  <div className="col-span-2 grid grid-cols-3 gap-4">
+                  <div className="col-span-2 grid grid-cols-4 gap-3">
                     <div className="flex items-center justify-between bg-slate-700 rounded p-3">
                       <span className="text-sm text-slate-300">PC 端展示</span>
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -680,6 +727,19 @@ export default function ToolManagement() {
                           className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
+                      <span className="text-sm text-slate-300">需要登录</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={toolForm.require_login ?? false}
+                          onChange={(e) => setToolForm({...toolForm, require_login: e.target.checked})}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
                       </label>
                     </div>
                   </div>

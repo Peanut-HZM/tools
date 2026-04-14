@@ -57,6 +57,7 @@ class ToolsService:
                         custom_icon_url VARCHAR(500) DEFAULT NULL,
                         show_pc BOOLEAN DEFAULT TRUE,
                         show_mobile BOOLEAN DEFAULT TRUE,
+                        require_login BOOLEAN DEFAULT FALSE,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
@@ -73,6 +74,10 @@ class ToolsService:
                 cur.execute("""
                     ALTER TABLE tools
                     ADD COLUMN IF NOT EXISTS show_mobile BOOLEAN DEFAULT TRUE
+                """)
+                cur.execute("""
+                    ALTER TABLE tools
+                    ADD COLUMN IF NOT EXISTS require_login BOOLEAN DEFAULT FALSE
                 """)
 
                 # Create tool_visits table for detailed tracking
@@ -332,6 +337,9 @@ class ToolsService:
             if "custom_icon_url" in data:
                 updates.append("custom_icon_url = %s")
                 params.append(data["custom_icon_url"])
+            if "require_login" in data:
+                updates.append("require_login = %s")
+                params.append(data["require_login"])
 
             if not updates:
                 return None
@@ -369,6 +377,7 @@ class ToolsService:
         sort_order: str = "asc",
         show_pc: Optional[bool] = None,
         show_mobile: Optional[bool] = None,
+        require_login: Optional[bool] = None,
     ) -> dict:
         """分页查询工具，支持搜索、筛选、排序"""
         conn = None
@@ -398,6 +407,10 @@ class ToolsService:
                 if show_mobile is not None:
                     conditions.append("show_mobile = %s")
                     params.append(show_mobile)
+
+                if require_login is not None:
+                    conditions.append("require_login = %s")
+                    params.append(require_login)
 
                 where_clause = " AND ".join(conditions) if conditions else "1=1"
 
@@ -726,6 +739,7 @@ class ToolsService:
             custom_icon_url=row.get("custom_icon_url"),
             show_pc=row.get("show_pc", True),
             show_mobile=row.get("show_mobile", True),
+            require_login=row.get("require_login", False),
         )
 
 

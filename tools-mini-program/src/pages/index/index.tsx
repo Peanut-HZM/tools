@@ -56,6 +56,16 @@ export default function Index() {
     // 记录访问
     toolApi.trackVisit(tool.id).catch(() => {})
 
+    // 登录拦截
+    const token = Taro.getStorageSync('auth_token')
+    if (tool.require_login && !token) {
+      Taro.showToast({ title: '请先登录', icon: 'none' })
+      setTimeout(() => {
+        Taro.redirectTo({ url: '/pages/login/index?redirect=/pages/index/index' })
+      }, 1500)
+      return
+    }
+
     if (tool.path) {
       Taro.navigateTo({ url: tool.path }).catch(() => {
         // 页面栈满时降级为 redirectTo

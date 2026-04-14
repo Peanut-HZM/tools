@@ -20,6 +20,7 @@ export interface Tool {
   custom_icon_url?: string;
   show_pc?: boolean;
   show_mobile?: boolean;
+  require_login?: boolean;
 }
 
 export interface ToolCardProps {
@@ -31,6 +32,7 @@ export interface ToolCardProps {
   rating: number;
   usageCount: string;
   custom_icon_url?: string;
+  require_login?: boolean;
   onClick: () => void;
 }
 

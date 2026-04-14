@@ -110,6 +110,7 @@ export interface Tool {
     custom_icon_url?: string;
     show_pc?: boolean;
     show_mobile?: boolean;
+    require_login?: boolean;
 }
 
 export interface ToolsPaginatedResponse {
@@ -130,6 +131,7 @@ export interface ToolsListParams {
     sort_order?: string;
     show_pc?: boolean;
     show_mobile?: boolean;
+    require_login?: boolean;
 }
 
 export async function listToolsPaginated(params?: ToolsListParams): Promise<ToolsPaginatedResponse> {
@@ -143,6 +145,7 @@ export async function listToolsPaginated(params?: ToolsListParams): Promise<Tool
     if (params?.sort_order) searchParams.append('sort_order', params.sort_order);
     if (params?.show_pc !== undefined) searchParams.append('show_pc', String(params.show_pc));
     if (params?.show_mobile !== undefined) searchParams.append('show_mobile', String(params.show_mobile));
+    if (params?.require_login !== undefined) searchParams.append('require_login', String(params.require_login));
 
     const queryString = searchParams.toString();
     const url = queryString ? `${API_BASE_URL}/tools?${queryString}` : `${API_BASE_URL}/tools`;
