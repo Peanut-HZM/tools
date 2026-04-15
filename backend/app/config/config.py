@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     ENV: str = "dev"
     DEBUG: bool = True
     USERS_DATA_PATH: str = "./data/users"
+    BACKEND_PORT: Optional[int] = 19092
     
     # Database
     DATABASE_URL: str

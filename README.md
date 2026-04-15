@@ -40,10 +40,14 @@
 **简要步骤：**
 
 1. **启动后端**
+
+> **注意**: Windows 环境下如遇 `uvicorn: command not found` 错误，请使用 `python -m uvicorn` 代替 `uvicorn`。
+
 ```bash
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 19092
+# Windows 备选方案: python -m uvicorn app.main:app --reload --port 19092
 ```
 
 2. **启动前端**

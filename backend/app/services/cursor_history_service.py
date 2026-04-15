@@ -7,7 +7,7 @@ Cursor 对话历史服务
 import json
 import logging
 import os
-import pwd
+import platform
 import sqlite3
 from pathlib import Path
 from typing import List, Optional
@@ -24,7 +24,12 @@ logger = logging.getLogger(__name__)
 
 # 获取真实的用户主目录（避免 HOME 环境变量被其他模块覆盖的问题）
 # config.py 中为了 PaddleOCR 缓存重写了 HOME，导致 expanduser("~") 返回错误路径
-_REAL_HOME = pwd.getpwuid(os.getuid()).pw_dir
+# Windows 使用 os.environ 获取 USERPROFILE，Unix 使用 pwd 模块
+if platform.system() == "Windows":
+    _REAL_HOME = os.environ.get("USERPROFILE", "")
+else:
+    import pwd
+    _REAL_HOME = pwd.getpwuid(os.getuid()).pw_dir
 
 # Cursor 数据存储默认基础路径
 DEFAULT_CURSOR_BASE_PATH = os.path.join(
