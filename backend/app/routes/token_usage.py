@@ -333,3 +333,10 @@ async def get_token_usage(req: UsageRequest):
 async def health_check():
     """检查所有 CLI 工具是否可用"""
     return UsageFetcher.health_check()
+
+
+@router.post("/refresh")
+async def refresh_cache():
+    """手动刷新所有 Token Usage 缓存"""
+    invalidate_cache()
+    return {"message": "缓存已清除，下次访问将重新获取数据"}
