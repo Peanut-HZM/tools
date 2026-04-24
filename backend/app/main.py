@@ -12,7 +12,16 @@ from app.routes import (
     oss,
     admin,
 )
-from app.routes import ocr_routes, asr_routes, database_tool, redis_tool, ssh_tool, json_tool, resource_management
+from app.routes import (
+    ocr_routes,
+    asr_routes,
+    database_tool,
+    redis_tool,
+    ssh_tool,
+    json_tool,
+    resource_management,
+    token_usage,
+)
 from app.routes import auth, contact_message
 from app.routes import markdown_editor
 from app.routes import cross_share
@@ -23,6 +32,7 @@ from app.routes import tech_contents
 from app.routes import cursor_history
 from app.api.routes import llm_config, conversations, prd, messages, health
 from app.services.download_manager import get_manager
+from datetime import datetime, timedelta
 import asyncio
 import logging
 import os
@@ -30,6 +40,9 @@ from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
 from app.config.config import settings
+from app.utils.usage_fetcher import UsageFetcher
+from app.routes.token_usage import normalize_entries, apply_aggregation, compute_summary
+from app.services.token_usage_cache import set_cached_data
 
 # 配置日志目录为项目根目录下的 logs 文件夹
 PROJECT_ROOT = Path(__file__).parent.parent  # backend/app/main.py -> backend
@@ -91,9 +104,13 @@ async def lifespan(app: FastAPI):
     # 启动 OpenClaw 连接
     try:
         from app.services.openclaw_service import openclaw_service
+
         await openclaw_service.start()
     except Exception as e:
         logger.warning(f"OpenClaw 连接启动失败（功能将不可用）: {e}")
+
+    # 启动 Token Usage 缓存刷新任务
+    cache_refresh_task = asyncio.create_task(refresh_token_usage_cache_periodically())
 
     yield
 
@@ -102,13 +119,19 @@ async def lifespan(app: FastAPI):
 
     try:
         from app.services.openclaw_service import openclaw_service
+
         await openclaw_service.stop()
     except Exception as e:
         logger.error(f"OpenClaw 关闭异常: {e}")
 
     cleanup_task.cancel()
+    cache_refresh_task.cancel()
     try:
         await cleanup_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await cache_refresh_task
     except asyncio.CancelledError:
         pass
 
@@ -165,6 +188,9 @@ app.include_router(ssh_tool.router, prefix="/api")
 
 # JSON Tool router
 app.include_router(json_tool.router, prefix="/api")
+
+# Token Usage router
+app.include_router(token_usage.router, prefix="/api")
 
 # Resource Management router
 app.include_router(resource_management.router, prefix="/api")
@@ -224,6 +250,77 @@ app.include_router(http_client.router, prefix="/api")
 
 # OpenClaw router (SSE streaming)
 app.include_router(openclaw_router.router, prefix="/api")
+
+
+async def refresh_token_usage_cache_periodically():
+    """每小时刷新 Token Usage 缓存"""
+    REFRESH_INTERVAL = 3600
+
+    queries = [
+        {"source": "claude", "report_type": "daily", "days": 7},
+        {"source": "claude", "report_type": "daily", "days": 30},
+        {"source": "claude", "report_type": "daily", "days": 90},
+        {"source": "claude", "report_type": "monthly", "days": 90},
+        {"source": "claude", "report_type": "monthly", "days": 180},
+        {"source": "claude", "report_type": "monthly", "days": 365},
+        {"source": "opencode", "report_type": "daily", "days": 30},
+    ]
+
+    while True:
+        try:
+            logger.info("开始刷新 Token Usage 缓存...")
+            for q in queries:
+                await _refresh_single_cache(q["source"], q["report_type"], q["days"])
+            logger.info(f"Token Usage 缓存刷新完成，下次刷新在 {REFRESH_INTERVAL} 秒后")
+        except Exception as e:
+            logger.error(f"Token Usage 缓存刷新失败: {e}")
+
+        await asyncio.sleep(REFRESH_INTERVAL)
+
+
+async def _refresh_single_cache(source: str, report_type: str, days: int):
+    """刷新单个查询的缓存，使用线程池执行 CLI 调用"""
+    loop = asyncio.get_event_loop()
+    raw = await loop.run_in_executor(
+        None, lambda: _fetch_raw_data(source, report_type, days)
+    )
+
+    if "error" in raw:
+        logger.warning(f"缓存刷新失败 {source}/{report_type}/{days}天: {raw['error']}")
+        return
+
+    items = normalize_entries(raw, report_type)
+    items = apply_aggregation(items, report_type)
+    summary = compute_summary(items)
+
+    cache_data = {
+        "items": [item.model_dump() for item in items],
+        "summary": summary.model_dump(),
+        "cache_time": datetime.now().isoformat(),
+    }
+
+    set_cached_data(
+        source=source,
+        report_type=report_type,
+        days=days,
+        data=cache_data,
+    )
+    logger.info(f"缓存已刷新: {source}/{report_type}/{days}天")
+
+
+def _fetch_raw_data(source: str, report_type: str, days: int) -> dict:
+    """同步获取原始数据（在线程池中执行）"""
+    if source == "claude":
+        since_date = datetime.now() - timedelta(days=days)
+        since = since_date.strftime("%Y%m%d")
+        raw = UsageFetcher.fetch_claude(
+            report_type="daily",
+            since=since,
+            breakdown=False,
+        )
+    else:
+        raw = UsageFetcher.fetch_opencode(days=days)
+    return raw
 
 
 @app.get("/")
