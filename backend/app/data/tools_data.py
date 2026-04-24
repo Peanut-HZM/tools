@@ -182,6 +182,37 @@ TOOLS_DATA = [
         usageCount="New",
         category="开发工具",
     ),
+    Tool(
+        id="system-monitor",
+        icon="fa-gauge-high",
+        iconColor="bg-emerald-500",
+        title="系统性能监控",
+        description="实时查看系统硬件信息、资源占用情况和运行进程列表",
+        rating=4.9,
+        usageCount="New",
+        category="开发工具",
+    ),
+    Tool(
+        id="token-usage",
+        icon="fa-chart-line",
+        iconColor="bg-blue-500",
+        title="Token 消耗统计",
+        description="查看本机 Claude Code 和 OpenCode 的 Token 消耗，支持按天/周/月统计",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具",
+    ),
+    Tool(
+        id="openclaw",
+        icon="fa-comments",
+        iconColor="bg-violet-500",
+        title="OpenClaw AI 对话",
+        description="连接 OpenClaw Gateway 的 AI 智能对话助手",
+        rating=4.9,
+        usageCount="New",
+        category="AI 工具",
+        require_login=True,
+    ),
 ]
 
 
