@@ -18,7 +18,10 @@ export default function OpenClawManagement() {
   // 表单状态
   const [gatewayUrl, setGatewayUrl] = useState('');
   const [token, setToken] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [enabled, setEnabled] = useState('true');
+  const [showPassword, setShowPassword] = useState(false);
 
   const loadData = async () => {
     try {
@@ -28,6 +31,8 @@ export default function OpenClawManagement() {
       setConfig(data);
       setGatewayUrl(data.gateway_url || '');
       setToken(''); // Token 不回显
+      setUsername(data.username || '');
+      setPassword(''); // 密码不回显密文
       setEnabled(data.enabled || 'true');
     } catch (err: any) {
       setError(err.message || '加载配置失败');
@@ -46,6 +51,8 @@ export default function OpenClawManagement() {
     try {
       const data: any = { enabled };
       if (gatewayUrl) data.gateway_url = gatewayUrl;
+      if (username) data.username = username;
+      if (password) data.password = password;
       if (token) data.token = token;
 
       const result = await updateOpenClawConfig(data);
@@ -127,6 +134,10 @@ export default function OpenClawManagement() {
             <p className="text-white font-mono text-sm mt-1">{config?.gateway_url || '-'}</p>
           </div>
           <div>
+            <p className="text-slate-400 text-sm">用户名</p>
+            <p className="text-white font-mono text-sm mt-1">{config?.username || '-'}</p>
+          </div>
+          <div>
             <p className="text-slate-400 text-sm">Token</p>
             <p className="text-white font-mono text-sm mt-1">{config?.token || '(未设置)'}</p>
           </div>
@@ -164,6 +175,36 @@ export default function OpenClawManagement() {
               placeholder="ws://127.0.0.1:18081"
               className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
             />
+          </div>
+          <div>
+            <label className="block text-slate-300 text-sm mb-1">用户名</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="留空表示不修改"
+              className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-300 text-sm mb-1">密码</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="留空表示不修改"
+                className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-cyan-500 font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+              >
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
+            <p className="text-slate-500 text-xs mt-1">输入新密码将覆盖当前密码，留空不修改</p>
           </div>
           <div>
             <label className="block text-slate-300 text-sm mb-1">Token</label>
