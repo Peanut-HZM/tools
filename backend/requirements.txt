@@ -1,6 +1,8 @@
 # FastAPI and server
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+starlette>=0.27.0,<0.28.0
+anyio>=3.7.1,<4.0.0
 
 # Data validation
 pydantic==2.5.0
@@ -80,3 +82,6 @@ alembic>=1.12.0
 
 # WebSocket client
 websockets>=12.0
+
+# System monitoring
+psutil>=5.9.0

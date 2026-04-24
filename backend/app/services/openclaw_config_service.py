@@ -5,16 +5,57 @@ OpenClaw 配置管理服务
 import json
 import logging
 import uuid
+import os
+import base64
+import hashlib
 from typing import Dict, Any, Optional
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from cryptography.fernet import Fernet
 from app.config.database import get_db_connection
 
 logger = logging.getLogger(__name__)
 
+# 加密密钥（从环境变量读取或使用固定密钥）
+def _get_encryption_key() -> bytes:
+    """获取加密密钥，至少 32 字节"""
+    key = os.environ.get("OPENCLAW_ENCRYPTION_KEY", "openclaw-default-key-32bytes!!")
+    # 确保密钥长度为 32 字节（Fernet 要求）
+    key_bytes = key.encode("utf-8")
+    if len(key_bytes) < 32:
+        key_bytes = key_bytes.ljust(32, b"\0")
+    elif len(key_bytes) > 32:
+        key_bytes = key_bytes[:32]
+    return base64.urlsafe_b64encode(key_bytes)
+
+_cipher = Fernet(_get_encryption_key())
+
+ENCRYPTED_KEYS = {"password"}  # 需要加密的字段
+
+
+def encrypt_value(value: str) -> str:
+    """加密值"""
+    if not value:
+        return value
+    return _cipher.encrypt(value.encode("utf-8")).decode("utf-8")
+
+
+def decrypt_value(value: str) -> str:
+    """解密值"""
+    if not value:
+        return value
+    try:
+        return _cipher.decrypt(value.encode("utf-8")).decode("utf-8")
+    except Exception:
+        # 可能是未加密的旧数据，直接返回
+        return value
+
+
 DEFAULT_CONFIGS = {
     "gateway_url": "ws://127.0.0.1:18081",
+    "username": "",
+    "password": "",
     "token": "",
     "enabled": "true",
 }
@@ -69,7 +110,15 @@ class OpenClawConfigService:
             with conn.cursor() as cur:
                 cur.execute("SELECT config_key, config_value FROM openclaw_configs")
                 rows = cur.fetchall()
-                return {row["config_key"]: row["config_value"] for row in rows}
+                config = {}
+                for row in rows:
+                    key = row["config_key"]
+                    value = row["config_value"]
+                    # 解密敏感字段
+                    if key in ENCRYPTED_KEYS:
+                        value = decrypt_value(value)
+                    config[key] = value
+                return config
         except Exception as e:
             logger.error(f"Failed to load OpenClaw config: {e}")
             return DEFAULT_CONFIGS.copy()
@@ -85,13 +134,15 @@ class OpenClawConfigService:
             with conn.cursor() as cur:
                 for key, value in data.items():
                     if key in DEFAULT_CONFIGS:
+                        # 加密敏感字段
+                        store_value = encrypt_value(value) if key in ENCRYPTED_KEYS else value
                         cur.execute(
                             """
                             UPDATE openclaw_configs
                             SET config_value = %s, updated_at = CURRENT_TIMESTAMP
                             WHERE config_key = %s
                             """,
-                            (value, key),
+                            (store_value, key),
                         )
                 conn.commit()
             logger.info(f"OpenClaw config updated: {list(data.keys())}")
@@ -109,6 +160,17 @@ class OpenClawConfigService:
         """检查功能是否启用"""
         config = self.get_config()
         return config.get("enabled", "true").lower() == "true"
+
+
+def is_encrypted(value: str) -> bool:
+    """检查值是否已加密"""
+    if not value:
+        return False
+    try:
+        decrypted = decrypt_value(value)
+        return decrypted != value
+    except Exception:
+        return False
 
 
 # 全局单例
