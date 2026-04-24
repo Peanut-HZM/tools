@@ -40,6 +40,7 @@ export default function AdminLayout() {
     { path: '/admin/oss', label: 'OSS 文件管理', icon: 'fa-cloud-upload-alt' },
     { path: '/admin/llm-configs', label: '大模型配置', icon: 'fa-brain' },
     { path: '/admin/course', label: '课程管理', icon: 'fa-graduation-cap' },
+    { path: '/admin/openclaw', label: 'OpenClaw 管理', icon: 'fa-comments' },
   ];
 
   return (
