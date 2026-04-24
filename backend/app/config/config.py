@@ -1,6 +1,7 @@
 """
 Application Configuration
 """
+
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -32,6 +33,7 @@ os.environ["MODELSCOPE_CACHE"] = str(CACHE_DIR / "modelscope")
 os.environ["XDG_CACHE_HOME"] = str(CACHE_DIR / "xdg")
 # ------------------------------------------------------------------------------
 
+
 class Settings(BaseSettings):
     # App
     APP_NAME: str = "Tool Aggregation API"
@@ -39,15 +41,17 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     USERS_DATA_PATH: str = "./data/users"
     BACKEND_PORT: Optional[int] = 19092
-    
+
     # Database
     DATABASE_URL: str
     # Security
     JWT_SECRET_KEY: str = "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4="
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 10080  # 7 天
-    DB_ENCRYPTION_KEY: str = "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4=" # Default key for dev
-    
+    DB_ENCRYPTION_KEY: str = (
+        "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4="  # Default key for dev
+    )
+
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5179,http://localhost:5180,http://localhost:5181,http://localhost:5182,http://localhost:5183,http://localhost:5184,http://localhost:5185,http://localhost:5186,http://localhost:5187,http://localhost:5188,http://localhost:5189,http://localhost:5190,http://localhost:3000,https://tools.peanuthzm.com.cn"
 
@@ -61,14 +65,23 @@ class Settings(BaseSettings):
     ALIYUN_OSS_ENDPOINT: str = "oss-cn-beijing.aliyuncs.com"
     ALIYUN_OSS_BUCKET_NAME: str = "oss-peanut"
     ALIYUN_OSS_CALLBACK_URL: str = ""
-    
+
+    # Redis Cache for Token Usage
+    CACHE_REDIS_HOST: str = "39.107.229.30"
+    CACHE_REDIS_PORT: int = 6379
+    CACHE_REDIS_DB: int = 0
+    CACHE_REDIS_PASSWORD: str = ""
+    CACHE_REDIS_TOKEN_USAGE_TTL: int = 3600  # 1 小时
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
 
+
 @lru_cache()
 def get_settings():
     return Settings()
+
 
 settings = get_settings()
