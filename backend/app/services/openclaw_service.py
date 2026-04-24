@@ -7,12 +7,13 @@ import asyncio
 import json
 import logging
 import uuid
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Dict, Optional
 
 import websockets
 from websockets.exceptions import ConnectionClosed
 
 from app.config.config import settings
+from app.services.openclaw_config_service import openclaw_config_service
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,9 @@ class OpenClawService:
         """启动连接（后台任务）"""
         if self._running:
             return
+        if not openclaw_config_service.is_enabled():
+            logger.info("OpenClaw 功能未启用，跳过连接")
+            return
         self._running = True
         self._connect_task = asyncio.create_task(self._connect_loop())
         logger.info("OpenClaw Gateway 连接任务已启动")
@@ -50,6 +54,26 @@ class OpenClawService:
         if self.ws:
             await self.ws.close()
         logger.info("OpenClaw Gateway 连接已关闭")
+
+    async def reload_config(self, new_config: Dict[str, str]):
+        """热加载配置并重新连接"""
+        logger.info("OpenClaw 配置热加载中...")
+        await self.stop()
+        self._running = True
+        self._connect_task = asyncio.create_task(self._connect_loop())
+        logger.info("OpenClaw 配置热加载完成")
+
+    def get_connection_info(self) -> dict:
+        """获取当前连接信息（Token 脱敏）"""
+        config = openclaw_config_service.get_config()
+        token = config.get("token", "")
+        masked_token = token[:6] + "****" + token[-4:] if len(token) > 10 else "****" if token else ""
+        return {
+            "gateway_url": config.get("gateway_url", ""),
+            "token": masked_token,
+            "enabled": config.get("enabled", "true"),
+            "connected": self.is_connected(),
+        }
 
     async def _connect_loop(self):
         """重连循环"""
@@ -68,8 +92,9 @@ class OpenClawService:
 
     async def _connect(self):
         """建立 WebSocket 连接并完成握手"""
-        url = settings.OPENCLAW_GATEWAY_URL
-        token = settings.OPENCLAW_TOKEN
+        config = openclaw_config_service.get_config()
+        url = config.get("gateway_url", settings.OPENCLAW_GATEWAY_URL)
+        token = config.get("token", settings.OPENCLAW_TOKEN)
 
         logger.info(f"正在连接 OpenClaw Gateway: {url}")
         self.ws = await websockets.connect(url, ping_interval=30, ping_timeout=10)
