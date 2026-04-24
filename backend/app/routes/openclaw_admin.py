@@ -28,15 +28,20 @@ def get_admin_user(current_user: UserResponse = Depends(get_current_user)):
 
 class ConfigUpdateRequest(BaseModel):
     gateway_url: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
     token: Optional[str] = None
     enabled: Optional[str] = None
 
 
 @router.get("/config")
 async def get_config(admin_user: UserResponse = Depends(get_admin_user)):
-    """获取当前配置（Token 脱敏）"""
+    """获取当前配置（密码和 Token 脱敏）"""
     config = openclaw_config_service.get_config()
     connection_info = openclaw_service.get_connection_info()
+    # 密码脱敏
+    password = config.get("password", "")
+    config["password"] = "****" + password[-4:] if len(password) > 4 else ("****" if password else "")
     return {**config, **connection_info}
 
 
