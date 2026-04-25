@@ -136,6 +136,9 @@ class OpenClawService:
                     "id": "operator",
                     "displayName": "OpenClaw Admin",
                     "version": "1.0.0",
+                    "platform": "linux",
+                    "mode": "backend",
+                    "instanceId": str(uuid.uuid4()),
                 },
                 "caps": [],
                 "auth": {"token": token} if token else None,
@@ -214,7 +217,12 @@ class OpenClawService:
 
     def is_connected(self) -> bool:
         """检查是否已连接"""
-        return self.ws is not None and not self.ws.closed
+        if self.ws is None:
+            return False
+        # 兼容 websockets 14+ 和旧版本
+        if hasattr(self.ws, 'state'):
+            return self.ws.state.name != "CLOSED"
+        return not self.ws.closed
 
     async def send_chat(self, session_key: str, message: str, abort_flag: Optional[asyncio.Event] = None) -> AsyncGenerator[str, None]:
         """发送聊天消息并流式返回 SSE 格式 chunk"""
