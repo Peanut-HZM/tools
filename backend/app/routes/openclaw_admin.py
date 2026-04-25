@@ -119,3 +119,91 @@ async def disconnect(admin_user: UserResponse = Depends(get_admin_user)):
     except Exception as e:
         logger.error(f"OpenClaw 断开连接失败: {e}")
         raise HTTPException(status_code=500, detail=f"断开连接失败: {str(e)}")
+
+
+class TestConnectionRequest(BaseModel):
+    gateway_url: str
+    auth_mode: str = "token"
+    username: Optional[str] = None
+    password: Optional[str] = None
+    token: Optional[str] = None
+
+
+@router.post("/test-connection")
+async def test_connection(
+    request: TestConnectionRequest,
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """测试连接（不保存配置，仅验证当前输入能否连通）"""
+    import asyncio
+    import json
+    import uuid
+    import time
+    from websockets import connect as ws_connect
+
+    url = request.gateway_url
+    # 根据认证模式决定是否嵌入用户名密码
+    if request.auth_mode == "token_with_password" and request.username and request.password:
+        if url.startswith("ws://"):
+            url = url.replace("ws://", f"ws://{request.username}:{request.password}@", 1)
+        elif url.startswith("wss://"):
+            url = url.replace("wss://", f"wss://{request.username}:{request.password}@", 1)
+
+    start_time = time.monotonic()
+    try:
+        async with ws_connect(url, ping_interval=30, ping_timeout=10) as ws:
+            # 等待 connect.challenge
+            challenge_raw = await asyncio.wait_for(ws.recv(), timeout=10)
+            challenge = json.loads(challenge_raw)
+            if challenge.get("event") != "connect.challenge":
+                return {"ok": False, "message": f"预期 connect.challenge，收到: {challenge.get('event', 'unknown')}"}
+            nonce = challenge.get("payload", {}).get("nonce", "")
+            if not nonce:
+                return {"ok": False, "message": "connect.challenge 缺少 nonce"}
+
+            # 发送 connect 请求
+            connect_msg = {
+                "type": "req",
+                "id": str(uuid.uuid4()),
+                "method": "connect",
+                "params": {
+                    "minProtocol": 3,
+                    "maxProtocol": 3,
+                    "client": {
+                        "id": "tools-mini-program",
+                        "displayName": "Tools Mini Program",
+                        "version": "1.0.0",
+                        "platform": "linux",
+                        "mode": "backend",
+                        "instanceId": str(uuid.uuid4()),
+                    },
+                    "caps": [],
+                    "auth": {"token": request.token} if request.token else None,
+                    "role": "operator",
+                    "scopes": ["operator.admin"],
+                },
+            }
+            connect_msg["params"] = {k: v for k, v in connect_msg["params"].items() if v is not None}
+
+            await ws.send(json.dumps(connect_msg))
+
+            # 等待 hello_ok
+            response_raw = await asyncio.wait_for(ws.recv(), timeout=10)
+            response = json.loads(response_raw)
+
+            elapsed_ms = int((time.monotonic() - start_time) * 1000)
+
+            if response.get("ok"):
+                return {"ok": True, "message": f"连接成功（耗时 {elapsed_ms}ms）"}
+            else:
+                error = response.get("error", {})
+                return {"ok": False, "message": f"鉴权失败: {error.get('message', 'unknown')}"}
+    except asyncio.TimeoutError:
+        return {"ok": False, "message": "连接超时，请检查 Gateway 地址和网络"}
+    except ConnectionRefusedError:
+        return {"ok": False, "message": "连接被拒绝，Gateway 可能未启动"}
+    except Exception as e:
+        error_msg = str(e)
+        if "connect" in error_msg.lower() or "refused" in error_msg.lower():
+            return {"ok": False, "message": f"连接失败: {error_msg}"}
+        return {"ok": False, "message": f"连接失败: {error_msg}"}
