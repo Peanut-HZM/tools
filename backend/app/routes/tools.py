@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query, HTTPException
 from typing import List, Optional
 from app.models import ToolsResponse, SearchResponse, CategoryResponse, Category, CategoryCreateRequest
 from app.services.tools_service import tools_service
+from app.services.system_monitor_service import get_system_info, get_resource_usage, get_process_list, kill_process
 
 router = APIRouter(tags=["tools"])
 
@@ -63,3 +64,60 @@ def get_tools_by_category_endpoint(category: str):
     """按分类获取工具"""
     tools = tools_service.get_tools_by_category(category)
     return CategoryResponse(tools=tools, category=category)
+
+
+# ==================== 系统性能监控 ====================
+
+@router.get("/system-monitor/info")
+def get_system_info_endpoint():
+    """获取系统基本信息"""
+    try:
+        return get_system_info()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取系统信息失败: {str(e)}")
+
+
+@router.get("/system-monitor/usage")
+def get_resource_usage_endpoint():
+    """获取实时资源占用"""
+    try:
+        return get_resource_usage()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取资源占用失败: {str(e)}")
+
+
+@router.get("/system-monitor/processes")
+def get_process_list_endpoint(
+    sort_by: str = Query("cpu_percent", description="排序字段: cpu_percent, memory_percent, pid, memory_rss, num_threads, name"),
+    sort_order: str = Query("desc", description="排序方向: asc 或 desc"),
+    search: Optional[str] = Query(None, description="搜索进程名"),
+    project_type: Optional[str] = Query(None, description="项目类型过滤"),
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(50, ge=10, le=200, description="每页数量"),
+):
+    """获取进程列表（支持排序、搜索、项目类型过滤、分页）"""
+    try:
+        return get_process_list(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            search=search,
+            project_type=project_type,
+            page=page,
+            page_size=page_size,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取进程列表失败: {str(e)}")
+
+
+@router.post("/system-monitor/processes/{pid}/kill")
+def kill_process_endpoint(pid: int):
+    """终止指定进程"""
+    try:
+        success = kill_process(pid)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"进程 {pid} 不存在或无法终止")
+        return {"success": True, "pid": pid}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"终止进程失败: {str(e)}")

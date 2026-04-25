@@ -113,7 +113,19 @@ class OpenClawService:
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
-        self.ws = await websockets.connect(url, ping_interval=30, ping_timeout=10, ssl=ssl_context)
+        # 模拟浏览器 Origin 头，绕过 Control UI origin 限制
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        browser_origin = f"{parsed.scheme.replace('ws', 'https')}://{parsed.hostname}"
+        if parsed.port:
+            browser_origin += f":{parsed.port}"
+        self.ws = await websockets.connect(
+            url,
+            ping_interval=30,
+            ping_timeout=10,
+            ssl=ssl_context,
+            origin=browser_origin,
+        )
 
         # 等待 connect.challenge
         challenge_raw = await asyncio.wait_for(self.ws.recv(), timeout=10)
@@ -133,11 +145,11 @@ class OpenClawService:
                 "minProtocol": 3,
                 "maxProtocol": 3,
                 "client": {
-                    "id": "gateway-client",
+                    "id": "webchat-ui",
                     "displayName": "OpenClaw Admin",
-                    "version": "1.0.0",
-                    "platform": "linux",
-                    "mode": "backend",
+                    "version": "2026.4.22",
+                    "platform": "MacIntel",
+                    "mode": "webchat",
                     "instanceId": str(uuid.uuid4()),
                 },
                 "caps": [],
@@ -243,6 +255,7 @@ class OpenClawService:
             ack = await self._send_request("chat.send", {
                 "sessionKey": session_key,
                 "message": message,
+                "idempotencyKey": str(uuid.uuid4()),
             }, timeout=30)
 
             run_id = ack.get("runId", run_id)
@@ -294,19 +307,51 @@ class OpenClawService:
                 self._event_listeners["chat"].remove(event_queue)
 
     def _extract_text_from_payload(self, payload: dict) -> Optional[str]:
-        """从 chat 事件 payload 中提取文本"""
+        """从 chat 事件 payload 中提取用户可见文本，过滤 thinking 和系统提示"""
+        import re
         message = payload.get("message", {})
         content_list = message.get("content", [])
         if isinstance(content_list, list) and len(content_list) > 0:
-            text = content_list[0].get("text")
-            if text:
-                return text
+            texts = []
+            for item in content_list:
+                if not isinstance(item, dict):
+                    continue
+                item_type = item.get("type")
+                # 跳过 thinking 类型
+                if item_type == "thinking":
+                    continue
+                # 只要有 text 字段就提取（兼容不同 type 值）
+                text = item.get("text", "").strip() if isinstance(item.get("text"), str) else ""
+                if not text:
+                    continue
+                # 过滤 thinking 内容
+                if text.startswith("[思考]"):
+                    continue
+                # 去掉 bootstrap 提示：找到第一个时间戳，去掉它之前的所有内容
+                if text.startswith("[Bootstrap"):
+                    ts_match = re.search(r'\[[A-Z][a-z]{2}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT[+-]\d+\]', text)
+                    if ts_match:
+                        text = text[ts_match.end():].strip()
+                    else:
+                        continue
+                # 过滤时间戳前缀如 [Sat 2026-04-25 13:53 GMT+8]
+                ts_pattern = r'^\[[A-Z][a-z]{2}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT[+-]\d+\]\s*'
+                text = re.sub(ts_pattern, '', text)
+                if text:
+                    texts.append(text)
+            if texts:
+                return "\n".join(texts)
+        # 降级：尝试直接从 payload 取文本
         return payload.get("text") or payload.get("content")
 
     async def chat_history(self, session_key: str, limit: int = 50) -> list:
         """获取会话历史"""
         result = await self._send_request("chat.history", {"sessionKey": session_key, "limit": limit})
-        return result.get("messages", [])
+        messages = result.get("messages", [])
+        logger.info(f"OpenClaw history returned {len(messages)} messages")
+        for m in messages:
+            logger.info(f"  history msg: role={m.get('role')}, content_type={type(m.get('content')).__name__}, content_preview={str(m.get('content'))[:200]}")
+        return messages
 
     async def reset_session(self, session_key: str) -> dict:
         """重置会话"""

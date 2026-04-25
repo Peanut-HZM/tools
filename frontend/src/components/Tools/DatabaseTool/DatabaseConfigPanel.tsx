@@ -18,6 +18,8 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [decryptedPassword, setDecryptedPassword] = useState<string>('');
   
   const [formData, setFormData] = useState<CreateDatabaseRequest>({
     alias: '',
@@ -90,9 +92,11 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
     setLoading(true);
     try {
       if (editConfigId) {
-        // Update
+        // Update - only send password if actually changed (not masked placeholder)
         const updateData: UpdateDatabaseRequest = { ...formData };
-        if (!updateData.password) delete updateData.password; // Don't send empty password
+        if (!updateData.password || updateData.password === '••••••••') {
+          delete updateData.password;
+        }
         
         await api.updateDatabase(editConfigId, updateData);
         toast.success(t.common.success);
@@ -233,15 +237,38 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
             </div>
             <div className="sm:col-span-3">
               <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.password}</label>
-              <input
-                type={user?.role === 'admin' ? 'text' : 'password'}
-                name="password"
-                placeholder={editConfigId ? t.common.leaveBlankToKeep : ""}
-                required={!editConfigId}
-                value={formData.password}
-                onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder={editConfigId ? (showPassword ? decryptedPassword : '••••••••') : ""}
+                  required={!editConfigId}
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                />
+                {editConfigId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!showPassword) {
+                        api.decryptPassword(editConfigId).then((pw) => {
+                          setDecryptedPassword(pw);
+                          setShowPassword(true);
+                        }).catch(() => {
+                          toast.error(t.common.error);
+                        });
+                      } else {
+                        setShowPassword(false);
+                      }
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                )}
+              </div>
             </div>
 
           </div>

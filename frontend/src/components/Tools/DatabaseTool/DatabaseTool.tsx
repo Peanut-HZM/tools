@@ -4,6 +4,7 @@ import ConnectionList from './components/ConnectionList';
 import SQLExecutor from './SQLExecutor';
 import DatabaseConfigPanel from './DatabaseConfigPanel';
 import TableDataViewer from './TableDataViewer';
+import ResizablePanel from '../CursorHistory/ResizablePanel';
 
 interface Tab {
   id: string;
@@ -102,12 +103,19 @@ const DatabaseToolContent: React.FC = () => {
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-900 text-slate-100">
-      <ConnectionList 
-        onAddConfig={handleAddConfig} 
-        onEditConfig={handleEditConfig} 
-        onSelectTable={handleSelectTable}
-        onOpenSqlConsole={handleOpenSqlConsole}
-      />
+      <ResizablePanel
+        defaultWidth={280}
+        minWidth={200}
+        maxWidth={500}
+        storageKey="dbTool.leftPanelWidth"
+      >
+        <ConnectionList
+          onAddConfig={handleAddConfig}
+          onEditConfig={handleEditConfig}
+          onSelectTable={handleSelectTable}
+          onOpenSqlConsole={handleOpenSqlConsole}
+        />
+      </ResizablePanel>
       
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-slate-900">
         {/* Tab Bar */}

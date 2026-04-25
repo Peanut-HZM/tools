@@ -200,6 +200,10 @@ export const enUS = {
       title: 'Learning & Sharing Platform',
       description: 'Interactive knowledge sharing and technical demonstration tool',
     },
+    'token-usage': {
+      title: 'Token Usage Stats',
+      description: 'View local Claude Code and OpenCode token consumption with daily/weekly/monthly breakdowns',
+    },
   },
 
   // Editor (Existing)

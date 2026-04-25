@@ -44,9 +44,8 @@ class SQLExecutor:
                         continue
 
                     # Escape percent signs to prevent SQLAlchemy from interpreting %(xxx)s as bind parameters
-                    # This is necessary for SQL containing JSON with boolean values like "visible":true
-                    # or LIKE patterns with percent signs
                     escaped_stmt = stmt_str.replace("%", "%%")
+
                     stmt = text(escaped_stmt)
 
                     # Execute

@@ -137,6 +137,26 @@ async def test_connection(
     return DatabaseToolService.test_connection(request)
 
 
+@router.post("/databases/{id}/decrypt-password", response_model=Dict[str, str])
+async def decrypt_password(
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Decrypt and return the password for a database config (owner only)"""
+    from app.utils.encryption import EncryptionUtils
+
+    config_row = DatabaseToolService._get_config_with_password(id, user_id)
+    if not config_row:
+        raise HTTPException(status_code=404, detail="Configuration not found")
+
+    try:
+        plaintext = EncryptionUtils.decrypt(config_row["password_encrypted"])
+        return {"password": plaintext}
+    except Exception as e:
+        logger.error("Failed to decrypt password for config %s: %s", id, str(e))
+        raise HTTPException(status_code=500, detail="Failed to decrypt password")
+
+
 @router.post("/databases/{id}/test", response_model=ConnectionTestResult)
 async def test_connection_by_id(
     id: str = PathParam(..., description="Configuration ID"),

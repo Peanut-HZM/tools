@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import Taro, { useDidShow, useDidHide } from '@tarojs/taro'
 import { View, Text, ScrollView, Textarea } from '@tarojs/components'
-import { chatStream, resetSession, getStatus, abortChat } from '../../services/openclaw'
+import { chatStream, resetSession, getStatus, abortChat, loadHistory } from '../../services/openclaw'
 import Markdown from '../../components/Markdown'
 import { useAuthGuard } from '../../hooks'
 import './index.scss'
@@ -14,6 +14,55 @@ interface ChatMessage {
   isStreaming?: boolean
 }
 
+// 从 OpenClaw 消息内容数组中提取用户可见文本
+// 过滤 thinking、系统提示、时间戳等非内容文本
+const extractText = (content: unknown): string => {
+  const cleanText = (raw: string): string | null => {
+    let text = raw.trim()
+    if (!text) return null
+    // 过滤 thinking 内容
+    if (text.startsWith('[思考]')) return null
+    // 去掉 bootstrap 提示：找到第一个时间戳，去掉它之前的所有内容
+    if (text.startsWith('[Bootstrap')) {
+      const tsPattern = /\[[A-Z][a-z]{2}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT[+-]\d+\]/
+      const match = text.match(tsPattern)
+      if (match && match.index !== undefined) {
+        text = text.slice(match.index + match[0].length).trim()
+      } else {
+        return null
+      }
+    }
+    // 过滤时间戳前缀如 [Sat 2026-04-25 13:53 GMT+8]
+    const tsPattern = /^\[[A-Z][a-z]{2}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT[+-]\d+\]\s*/
+    text = text.replace(tsPattern, '')
+    return text || null
+  }
+
+  if (typeof content === 'string') {
+    return cleanText(content) || ''
+  }
+  if (content === null || content === undefined) return ''
+  if (typeof content === 'object' && !Array.isArray(content)) {
+    const c = content as Record<string, unknown>
+    if (c.type === 'thinking') return ''
+    if (typeof c.text === 'string') {
+      return cleanText(c.text) || ''
+    }
+    return ''
+  }
+  if (!Array.isArray(content)) return ''
+  const parts: string[] = []
+  for (const item of content) {
+    if (typeof item !== 'object' || item === null) continue
+    const c = item as Record<string, unknown>
+    if (c.type === 'thinking') continue
+    if (typeof c.text !== 'string') continue
+    const cleaned = cleanText(c.text)
+    if (cleaned) parts.push(cleaned)
+  }
+  return parts.join('\n')
+}
+
 export default function OpenClawPage() {
   useAuthGuard()
 
@@ -21,11 +70,13 @@ export default function OpenClawPage() {
   const [inputValue, setInputValue] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [connected, setConnected] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [scrollTop, setScrollTop] = useState(0)
   const abortRef = useRef(false)
 
   useDidShow(() => {
     checkStatus()
+    loadMessages()
   })
 
   // 页面隐藏时中止生成
@@ -42,6 +93,30 @@ export default function OpenClawPage() {
       setConnected(status.connected !== false)
     } catch {
       setConnected(false)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 加载历史消息
+  const loadMessages = async () => {
+    try {
+      const history = await loadHistory('main')
+      const formatted: ChatMessage[] = []
+      for (const [idx, msg] of history.entries()) {
+        if (msg.role === 'toolResult') continue
+        const text = extractText(msg.content)
+        if (!text) continue
+        formatted.push({
+          id: `hist-${idx}`,
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: text,
+          timestamp: msg.timestamp || Date.now(),
+        })
+      }
+      setMessages(formatted)
+    } catch {
+      // 忽略历史加载错误
     }
   }
 
@@ -81,7 +156,7 @@ export default function OpenClawPage() {
           setMessages(prev => {
             const last = prev[prev.length - 1]
             if (last && last.role === 'assistant') {
-              return [...prev.slice(0, -1), { ...last, content: last.content + chunk }]
+              return [...prev.slice(0, -1), { ...last, content: chunk }]
             }
             return prev
           })
@@ -150,6 +225,17 @@ export default function OpenClawPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <View className='openclaw-page'>
+        <View className='loading-container'>
+          <View className='loading-spinner' />
+          <Text className='loading-text'>加载中...</Text>
+        </View>
+      </View>
+    )
+  }
+
   return (
     <View className='openclaw-page'>
       {/* 顶部工具栏 */}
@@ -158,9 +244,14 @@ export default function OpenClawPage() {
           + 新对话
         </Text>
         {!connected && (
-          <Text className='disconnected-badge'>连接断开</Text>
+          <Text className='disconnected-badge'>未连接</Text>
         )}
       </View>
+      {!connected && (
+        <View className='connect-guide'>
+          <Text className='connect-guide-text'>服务未连接，请前往管理面板配置 OpenClaw 连接信息</Text>
+        </View>
+      )}
 
       {/* 消息列表 */}
       {messages.length === 0 ? (
@@ -181,13 +272,18 @@ export default function OpenClawPage() {
           <View className='messages-list'>
             {messages.map((msg) => (
               <View key={msg.id} className={`message-row ${msg.role === 'user' ? 'message-row-user' : 'message-row-assistant'}`}>
-                <View className={`message-bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-assistant'}`}>
-                  {msg.role === 'user' ? (
-                    <Text className='message-text' selectable>{msg.content}</Text>
-                  ) : (
-                    <Markdown content={msg.content} />
-                  )}
-                  {msg.isStreaming && <Text className='streaming-indicator'>...</Text>}
+                <View className='message-wrapper'>
+                  <View className={`message-bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-assistant'}`}>
+                    {msg.role === 'user' ? (
+                      <Text className='message-text' selectable>{msg.content}</Text>
+                    ) : (
+                      <Markdown content={msg.content} />
+                    )}
+                    {msg.isStreaming && <Text className='streaming-indicator'>...</Text>}
+                  </View>
+                  <Text className={`message-time ${msg.role === 'user' ? 'time-right' : 'time-left'}`}>
+                    {new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -205,7 +301,7 @@ export default function OpenClawPage() {
             placeholder='输入消息...'
             maxlength={4000}
             autoHeight
-            disabled={isStreaming}
+            disabled={isStreaming || !connected}
             confirmType='send'
             onConfirm={handleSend}
           />
@@ -217,7 +313,7 @@ export default function OpenClawPage() {
         ) : (
           <button
             className={`send-btn ${!inputValue.trim() ? 'disabled' : ''}`}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || !connected}
             onClick={handleSend}
           >
             发送

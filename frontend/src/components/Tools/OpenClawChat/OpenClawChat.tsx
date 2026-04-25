@@ -47,19 +47,78 @@ export default function OpenClawChat() {
     }
   }, []);
 
+  // 从 OpenClaw 消息内容数组中提取用户可见文本
+  // 过滤 thinking、系统提示、时间戳等非内容文本
+  const extractText = (content: unknown): string => {
+    const cleanText = (raw: string): string | null => {
+      let text = raw.trim();
+      if (!text) return null;
+      // 过滤 thinking 内容
+      if (text.startsWith('[思考]')) return null;
+      // 去掉 bootstrap 提示：找到第一个时间戳，去掉它之前的所有内容
+      if (text.startsWith('[Bootstrap')) {
+        const tsPattern = /\[[A-Z][a-z]{2}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT[+-]\d+\]/;
+        const match = text.match(tsPattern);
+        if (match && match.index !== undefined) {
+          text = text.slice(match.index + match[0].length).trim();
+        } else {
+          return null; // 没有时间戳，整条都是 bootstrap
+        }
+      }
+      // 过滤时间戳前缀如 [Sat 2026-04-25 13:53 GMT+8]
+      const tsPattern = /^\[[A-Z][a-z]{2}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT[+-]\d+\]\s*/;
+      text = text.replace(tsPattern, '');
+      return text || null;
+    };
+
+    if (typeof content === 'string') {
+      return cleanText(content) || '';
+    }
+    if (content === null || content === undefined) return '';
+    // content 可能是对象如 {type: 'text', text: '...'}
+    if (typeof content === 'object' && !Array.isArray(content)) {
+      const c = content as Record<string, unknown>;
+      if (c.type === 'thinking') return '';
+      if (typeof c.text === 'string') {
+        return cleanText(c.text) || '';
+      }
+      return '';
+    }
+    if (!Array.isArray(content)) return '';
+    const parts: string[] = [];
+    for (const item of content) {
+      if (typeof item !== 'object' || item === null) continue;
+      const c = item as Record<string, unknown>;
+      // 跳过 thinking 类型，其他类型只要有 text 字段就提取
+      if (c.type === 'thinking') continue;
+      if (typeof c.text !== 'string') continue;
+      const cleaned = cleanText(c.text);
+      if (cleaned) parts.push(cleaned);
+    }
+    return parts.join('\n');
+  };
+
   // 加载历史消息
   const loadMessages = useCallback(async () => {
     try {
       const history = await loadHistory(sessionKey);
-      const formatted: Message[] = history.map((msg: any, idx: number) => ({
-        id: `hist-${idx}`,
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content || '',
-        timestamp: Date.now(),
-      }));
+      console.log('[OpenClaw] history loaded:', history.length, 'messages');
+      const formatted: Message[] = [];
+      for (const [idx, msg] of history.entries()) {
+        // 跳过工具结果消息，避免页面杂乱
+        if (msg.role === 'toolResult') continue;
+        const text = extractText(msg.content);
+        if (!text) continue;
+        formatted.push({
+          id: `hist-${idx}`,
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: text,
+          timestamp: msg.timestamp || Date.now(),
+        });
+      }
       setMessages(formatted);
-    } catch {
-      // 忽略历史加载错误
+    } catch (err) {
+      console.error('[OpenClaw] load history error:', err);
     }
   }, [sessionKey]);
 
@@ -109,7 +168,7 @@ export default function OpenClawChat() {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId
-              ? { ...msg, content: msg.content + chunk }
+              ? { ...msg, content: chunk }
               : msg
           )
         );
@@ -201,6 +260,21 @@ export default function OpenClawChat() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-slate-900 rounded-xl border border-slate-700/50 overflow-hidden">
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(100, 116, 139, 0.4);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(100, 116, 139, 0.6);
+        }
+      `}</style>
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 bg-slate-800/50">
         <div className="flex items-center gap-3">
@@ -240,7 +314,13 @@ export default function OpenClawChat() {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div
+        className="flex-1 overflow-y-auto px-6 py-4 space-y-4 custom-scrollbar"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(100, 116, 139, 0.4) transparent',
+        }}
+      >
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-slate-500">
             <div className="text-center">
@@ -256,17 +336,22 @@ export default function OpenClawChat() {
               key={msg.id}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  msg.role === 'user'
-                    ? 'bg-violet-600 text-white rounded-br-md'
-                    : 'bg-slate-800 text-slate-200 rounded-bl-md'
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words">{msg.content || (msg.isStreaming ? 'Thinking...' : '')}</p>
-                {msg.isStreaming && (
-                  <span className="inline-block w-1.5 h-4 bg-violet-400 animate-pulse ml-1"></span>
-                )}
+              <div className="max-w-[80%]">
+                <div
+                  className={`rounded-2xl px-4 py-3 ${
+                    msg.role === 'user'
+                      ? 'bg-violet-600 text-white rounded-br-md'
+                      : 'bg-slate-800 text-slate-200 rounded-bl-md'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap break-words">{msg.content || (msg.isStreaming ? 'Thinking...' : '')}</p>
+                  {msg.isStreaming && (
+                    <span className="inline-block w-1.5 h-4 bg-violet-400 animate-pulse ml-1"></span>
+                  )}
+                </div>
+                <div className={`text-xs text-slate-500 mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                  {new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                </div>
               </div>
             </div>
           ))

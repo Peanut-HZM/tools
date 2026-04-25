@@ -241,6 +241,7 @@ function HomePage() {
       'http-api-client': '/tools/http-api-client',
       'system-monitor': '/tools/system-monitor',
       'token-usage': '/tools/token-usage',
+      'openclaw': '/tools/openclaw',
     };
 
     const route = toolRoutes[toolId];

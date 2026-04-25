@@ -201,6 +201,10 @@ export const zhCN = {
       title: '学习分享演示平台',
       description: '互动式知识分享与技术演示工具，支持多种内容形式',
     },
+    'token-usage': {
+      title: 'Token 消耗统计',
+      description: '查看本机 Claude Code 和 OpenCode 的 Token 消耗，支持按天/周/月统计',
+    },
   },
 
   // Editor (Existing)

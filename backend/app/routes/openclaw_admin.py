@@ -157,10 +157,22 @@ async def test_connection(
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
+    # 模拟浏览器 Origin 头
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    browser_origin = f"{parsed.scheme.replace('ws', 'https')}://{parsed.hostname}"
+    if parsed.port:
+        browser_origin += f":{parsed.port}"
 
     start_time = time.monotonic()
     try:
-        async with ws_connect(url, ping_interval=30, ping_timeout=10, ssl=ssl_context) as ws:
+        async with ws_connect(
+            url,
+            ping_interval=30,
+            ping_timeout=10,
+            ssl=ssl_context,
+            origin=browser_origin,
+        ) as ws:
             # 等待 connect.challenge
             challenge_raw = await asyncio.wait_for(ws.recv(), timeout=10)
             challenge = json.loads(challenge_raw)
@@ -179,11 +191,11 @@ async def test_connection(
                     "minProtocol": 3,
                     "maxProtocol": 3,
                     "client": {
-                        "id": "gateway-client",
+                        "id": "webchat-ui",
                         "displayName": "OpenClaw Admin",
-                        "version": "1.0.0",
-                        "platform": "linux",
-                        "mode": "backend",
+                        "version": "2026.4.22",
+                        "platform": "MacIntel",
+                        "mode": "webchat",
                         "instanceId": str(uuid.uuid4()),
                     },
                     "caps": [],

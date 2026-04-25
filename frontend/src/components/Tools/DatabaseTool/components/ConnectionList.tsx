@@ -43,7 +43,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-800 border-r border-slate-700 w-64">
+    <div className="flex flex-col h-full bg-slate-800 border-r border-slate-700">
       <div className="p-4 border-b border-slate-700 flex flex-col gap-2 bg-slate-800">
         <div className="flex justify-between items-center">
             <h2 className="font-semibold text-slate-100">{t.database.connections}</h2>

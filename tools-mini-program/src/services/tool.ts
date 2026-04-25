@@ -28,6 +28,7 @@ const TOOL_PATH_MAP: Record<string, string | null> = {
   'learning-share': null,
   'course-platform': null,
   'openclaw': '/pages/openclaw/index',
+  'system-monitor': null,  // 系统监控不适合移动端
 }
 
 export const toolApi = {

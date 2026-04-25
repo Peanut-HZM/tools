@@ -77,6 +77,7 @@ const SQLExecutor: React.FC = () => {
     }
 
     setLoading(true);
+    setResult(null); // 先清空旧结果，避免混淆
     try {
       const res = await api.executeSQL({
         db_config_id: currentConfig.id,

@@ -54,6 +54,15 @@ export async function getDatabase(id: string, includePassword = false): Promise<
   return handleResponse<DatabaseConfig>(response);
 }
 
+export async function decryptPassword(id: string): Promise<string> {
+  const response = await fetch(`${BASE_URL}/databases/${id}/decrypt-password`, {
+    method: 'POST',
+    headers: getAuthHeaders()
+  });
+  const result = await handleResponse<{ password: string }>(response);
+  return result.password;
+}
+
 export async function updateDatabase(id: string, data: UpdateDatabaseRequest): Promise<DatabaseConfig> {
   const response = await fetch(`${BASE_URL}/databases/${id}`, {
     method: 'PUT',
