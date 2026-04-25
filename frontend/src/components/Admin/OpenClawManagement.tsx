@@ -5,6 +5,7 @@ import {
   getOpenClawStatus,
   reconnectOpenClaw,
   disconnectOpenClaw,
+  testOpenClawConnection,
   type OpenClawConfig,
 } from '../../api/openclawApi';
 
@@ -23,6 +24,9 @@ export default function OpenClawManagement() {
   const [enabled, setEnabled] = useState('true');
   const [authMode, setAuthMode] = useState('token');
   const [showPassword, setShowPassword] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -50,6 +54,7 @@ export default function OpenClawManagement() {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    setSaveSuccess(null);
     try {
       const data: any = { enabled, auth_mode: authMode };
       if (gatewayUrl) data.gateway_url = gatewayUrl;
@@ -60,6 +65,8 @@ export default function OpenClawManagement() {
       const result = await updateOpenClawConfig(data);
       if (result.ok === false) {
         setError(result.message || '配置已保存，但重连失败');
+      } else {
+        setSaveSuccess('配置已保存，连接成功');
       }
       await loadData();
     } catch (err: any) {
@@ -95,6 +102,26 @@ export default function OpenClawManagement() {
     }
   };
 
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    setError(null);
+    try {
+      const result = await testOpenClawConnection({
+        gateway_url: gatewayUrl || 'ws://127.0.0.1:18081',
+        auth_mode: authMode,
+        username: authMode === 'token_with_password' ? username : undefined,
+        password: authMode === 'token_with_password' ? password : undefined,
+        token: token || undefined,
+      });
+      setTestResult({ ok: result.ok, message: result.message });
+    } catch (err: any) {
+      setTestResult({ ok: false, message: err.message || '测试失败' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -113,6 +140,12 @@ export default function OpenClawManagement() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
           {error}
+        </div>
+      )}
+
+      {saveSuccess && (
+        <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg">
+          {saveSuccess}
         </div>
       )}
 
@@ -238,7 +271,7 @@ export default function OpenClawManagement() {
               placeholder="留空表示不修改"
               className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
             />
-            <p className="text-slate-500 text-xs mt-1">输入新 Token 将覆盖当前配置，留空不修改</p>
+            <p className="text-amber-400/70 text-xs mt-1">💡 保存配置后将自动尝试连接，如果连接失败会在页面顶部显示错误信息。建议先点击"测试连接"验证配置</p>
           </div>
           <div>
             <label className="block text-slate-300 text-sm mb-1">功能开关</label>
@@ -259,14 +292,39 @@ export default function OpenClawManagement() {
             </div>
           </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="mt-6 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all disabled:opacity-50"
-        >
-          <i className="fas fa-save mr-1"></i>
-          {saving ? '保存中...' : '保存配置'}
-        </button>
+        <div className="flex gap-3 items-start mt-6">
+          <button
+            onClick={handleSave}
+            disabled={saving || testing}
+            className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all disabled:opacity-50"
+          >
+            <i className="fas fa-save mr-1"></i>
+            {saving ? '保存中...' : '保存配置'}
+          </button>
+          <button
+            onClick={handleTestConnection}
+            disabled={testing || saving}
+            className="px-6 py-2.5 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-all disabled:opacity-50"
+          >
+            {testing ? (
+              <>
+                <span className="inline-block animate-spin mr-1">⟳</span>
+                测试中...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-plug mr-1"></i>
+                测试连接
+              </>
+            )}
+          </button>
+        </div>
+        {testResult && (
+          <div className={`mt-3 text-sm ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+            <i className={`fas ${testResult.ok ? 'fa-check-circle' : 'fa-times-circle'} mr-1`}></i>
+            {testResult.message}
+          </div>
+        )}
       </div>
     </div>
   );
