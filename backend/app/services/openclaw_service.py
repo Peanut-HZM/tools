@@ -94,18 +94,20 @@ class OpenClawService:
         """建立 WebSocket 连接并完成握手"""
         config = openclaw_config_service.get_config()
         url = config.get("gateway_url", settings.OPENCLAW_GATEWAY_URL)
+        auth_mode = config.get("auth_mode", "token")
         username = config.get("username", "")
         password = config.get("password", "")
         token = config.get("token", settings.OPENCLAW_TOKEN)
 
-        # 如果有用户名密码，嵌入到 URL 中 (ws://user:pass@domain.com)
-        if username and password:
+        # 根据认证模式决定是否嵌入用户名密码到 URL
+        if auth_mode == "token_with_password" and username and password:
             if url.startswith("ws://"):
                 url = url.replace("ws://", f"ws://{username}:{password}@", 1)
             elif url.startswith("wss://"):
                 url = url.replace("wss://", f"wss://{username}:{password}@", 1)
-
-        logger.info(f"正在连接 OpenClaw Gateway: {url}")
+            logger.info(f"正在连接 OpenClaw Gateway (双重认证): {url}")
+        else:
+            logger.info(f"正在连接 OpenClaw Gateway (Token 认证): {url}")
         self.ws = await websockets.connect(url, ping_interval=30, ping_timeout=10)
 
         # 等待 connect.challenge
