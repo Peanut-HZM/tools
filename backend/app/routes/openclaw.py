@@ -124,10 +124,5 @@ async def reset_session(session_key: str = "main"):
 @router.get("/status")
 async def get_status():
     """获取 OpenClaw 状态"""
-    if not openclaw_service.is_connected():
-        return {"connected": False}
-    try:
-        status = await openclaw_service.get_status()
-        return {"connected": True, **status}
-    except Exception as e:
-        return {"connected": False, "error": str(e)}
+    connected = openclaw_service.is_connected()
+    return {"connected": connected}

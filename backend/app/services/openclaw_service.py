@@ -187,10 +187,13 @@ class OpenClawService:
             self._pending_requests.clear()
             self._disconnect_event.set()
 
-    async def _send_request(self, method: str, params: dict, timeout: float = 10) -> dict:
+    async def _send_request(self, method: str, params: dict = None, timeout: float = 10) -> dict:
         """发送 RPC 请求并等待响应（支持并发）"""
-        if not self.ws or self.ws.closed:
+        if self.ws is None:
             raise ConnectionError("OpenClaw 未连接")
+        # 兼容 websockets 14+ 和旧版本
+        if hasattr(self.ws, 'state') and self.ws.state.name == "CLOSED":
+            raise ConnectionError("OpenClaw 连接已关闭")
 
         msg_id = str(uuid.uuid4())
         frame = {
@@ -311,7 +314,7 @@ class OpenClawService:
 
     async def get_status(self) -> dict:
         """获取网关状态"""
-        return await self._send_request("status")
+        return await self._send_request("status", {})
 
 
 # 全局单例
