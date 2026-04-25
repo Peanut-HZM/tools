@@ -24,6 +24,7 @@ export default function OpenClawManagement() {
   const [enabled, setEnabled] = useState('true');
   const [authMode, setAuthMode] = useState('token');
   const [showPassword, setShowPassword] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -35,7 +36,7 @@ export default function OpenClawManagement() {
       const data = await getOpenClawConfig();
       setConfig(data);
       setGatewayUrl(data.gateway_url || '');
-      setToken(''); // Token 不回显
+      setToken(data.token || ''); // Token 回显
       setUsername(data.username || '');
       setPassword(''); // 密码不回显密文
       setEnabled(data.enabled || 'true');
@@ -264,13 +265,22 @@ export default function OpenClawManagement() {
           )}
           <div>
             <label className="block text-slate-300 text-sm mb-1">Token</label>
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="留空表示不修改"
-              className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
-            />
+            <div className="relative">
+              <input
+                type={showToken ? 'text' : 'password'}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="留空表示不修改"
+                className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-cyan-500 font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowToken(!showToken)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+              >
+                <i className={`fas ${showToken ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
             <p className="text-amber-400/70 text-xs mt-1">💡 保存配置后将自动尝试连接，如果连接失败会在页面顶部显示错误信息。建议先点击"测试连接"验证配置</p>
           </div>
           <div>
