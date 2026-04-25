@@ -209,9 +209,14 @@ export default function OpenClawChat() {
           </div>
           <div>
             <h2 className="text-white font-semibold">OpenClaw AI 对话</h2>
-            <div className="flex items-center gap-2 text-sm">
-              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
-              <span className="text-slate-400">{isConnected ? '已连接' : '未连接'}</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-sm">
+                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span className="text-slate-400">{isConnected ? '已连接' : '未连接'}</span>
+              </div>
+              {!isConnected && (
+                <span className="text-xs text-amber-400/80">服务未连接，请前往管理面板配置 OpenClaw 连接信息</span>
+              )}
             </div>
           </div>
         </div>
