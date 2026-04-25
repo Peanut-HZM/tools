@@ -25,6 +25,7 @@ export default function OpenClawManagement() {
   const [authMode, setAuthMode] = useState('token');
   const [showPassword, setShowPassword] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [statusTestResult, setStatusTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -123,6 +124,25 @@ export default function OpenClawManagement() {
     }
   };
 
+  const handleTestSavedConfig = async () => {
+    setActionLoading('test');
+    setStatusTestResult(null);
+    try {
+      const result = await testOpenClawConnection({
+        gateway_url: config?.gateway_url || 'ws://127.0.0.1:18081',
+        auth_mode: config?.auth_mode || 'token',
+        username: config?.auth_mode === 'token_with_password' ? config?.username : undefined,
+        password: undefined,
+        token: config?.token || undefined,
+      });
+      setStatusTestResult({ ok: result.ok, message: result.message });
+    } catch (err: any) {
+      setStatusTestResult({ ok: false, message: err.message || '测试失败' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -185,7 +205,7 @@ export default function OpenClawManagement() {
         <div className="flex gap-3 mt-6">
           <button
             onClick={handleReconnect}
-            disabled={actionLoading !== null}
+            disabled={actionLoading !== null && actionLoading !== 'test'}
             className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50"
           >
             <i className="fas fa-rotate mr-1"></i>
@@ -193,13 +213,36 @@ export default function OpenClawManagement() {
           </button>
           <button
             onClick={handleDisconnect}
-            disabled={actionLoading !== null || !config?.connected}
+            disabled={(actionLoading !== null && actionLoading !== 'test') || !config?.connected}
             className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
           >
             <i className="fas fa-plug-circle-xmark mr-1"></i>
             断开连接
           </button>
+          <button
+            onClick={handleTestSavedConfig}
+            disabled={actionLoading !== null}
+            className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-500 transition-colors disabled:opacity-50"
+          >
+            {actionLoading === 'test' ? (
+              <>
+                <span className="inline-block animate-spin mr-1">⟳</span>
+                测试中...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-plug mr-1"></i>
+                测试连接
+              </>
+            )}
+          </button>
         </div>
+        {statusTestResult && (
+          <div className={`mt-3 text-sm ${statusTestResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+            <i className={`fas ${statusTestResult.ok ? 'fa-check-circle' : 'fa-times-circle'} mr-1`}></i>
+            {statusTestResult.message}
+          </div>
+        )}
       </div>
 
       {/* 配置表单 */}
