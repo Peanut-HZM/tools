@@ -133,7 +133,7 @@ class OpenClawService:
                 "minProtocol": 3,
                 "maxProtocol": 3,
                 "client": {
-                    "id": "operator",
+                    "id": "gateway-client",
                     "displayName": "OpenClaw Admin",
                     "version": "1.0.0",
                     "platform": "linux",
