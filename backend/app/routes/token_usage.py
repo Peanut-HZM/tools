@@ -82,9 +82,13 @@ def _safe_float(d: dict, *keys: str) -> float:
 
 def normalize_entries(raw: dict, report_type: str) -> list[UsageItem]:
     """统一规范化三种数据源的输出"""
+    # opencode-usage 返回 {period, total, rows: [...]}
     entries = raw.get(
         report_type, raw.get("data", raw.get("daily", raw.get("rows", [])))
     )
+    # 兼容 opencode-usage: 没有 daily/data 时用 rows
+    if not entries and raw.get("rows"):
+        entries = raw.get("rows")
     if isinstance(entries, dict):
         entries = [entries]
     elif not isinstance(entries, list):

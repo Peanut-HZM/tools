@@ -140,7 +140,9 @@ export default function TokenUsage() {
     URL.revokeObjectURL(url);
   };
 
-  const chartData = items.map(item => ({
+  const sortedItems = [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const chartData = sortedItems.map(item => ({
     date: item.date,
     inputTokens: item.input_tokens,
     outputTokens: item.output_tokens,
@@ -150,30 +152,42 @@ export default function TokenUsage() {
   }));
 
   const modelData: { name: string; value: number }[] = [];
-  items.forEach(item => {
+  sortedItems.forEach(item => {
     if (item.model_breakdowns?.length > 0) {
       item.model_breakdowns.forEach((m: any) => {
         const name = m.modelName || m.model || 'unknown';
-        const cost = m.cost || m.costUSD || 0;
-        const existing = modelData.find(d => d.name === name);
-        if (existing) {
-          existing.value += cost;
-        } else {
-          modelData.push({ name, value: cost });
+        const cost = m.cost ?? m.costUSD ?? 0;
+        const fallbackValue = (m.totalTokens ?? 0) || ((m.inputTokens ?? 0) + (m.outputTokens ?? 0));
+        const value = cost !== 0 ? cost : fallbackValue;
+        if (value > 0) {
+          const existing = modelData.find(d => d.name === name);
+          if (existing) {
+            existing.value += value;
+          } else {
+            modelData.push({ name, value });
+          }
         }
       });
-    } else {
+    } else if (item.models_used?.length > 0) {
       item.models_used.forEach(model => {
-        const existing = modelData.find(d => d.name === model);
-        if (!existing) {
-          modelData.push({ name: model, value: item.total_cost / (item.models_used.length || 1) });
+        const value = item.total_tokens;
+        if (value > 0) {
+          const existing = modelData.find(d => d.name === model);
+          if (existing) {
+            existing.value += value;
+          } else {
+            modelData.push({ name: model, value });
+          }
         }
       });
     }
   });
 
-  const totalPages = Math.ceil(items.length / pageSize);
-  const paginatedItems = items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  // 过滤掉 value 为 0 或 NaN 的数据，防止饼图显示重叠
+  const filteredModelData = modelData.filter(d => d.value > 0 && !isNaN(d.value));
+
+  const totalPages = Math.ceil(sortedItems.length / pageSize);
+  const paginatedItems = sortedItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="min-h-0 bg-slate-900 text-slate-100 p-6 overflow-y-auto">
@@ -346,11 +360,11 @@ export default function TokenUsage() {
 
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
             <h3 className="text-lg font-medium text-slate-200 mb-4">模型成本占比</h3>
-            {modelData.length > 0 ? (
+            {filteredModelData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={modelData}
+                    data={filteredModelData}
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
@@ -359,7 +373,7 @@ export default function TokenUsage() {
                     nameKey="name"
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
-                    {modelData.map((_, index) => (
+                    {filteredModelData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
