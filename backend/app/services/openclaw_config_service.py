@@ -54,6 +54,7 @@ def decrypt_value(value: str) -> str:
 
 DEFAULT_CONFIGS = {
     "gateway_url": "ws://127.0.0.1:18081",
+    "auth_mode": "token",
     "username": "",
     "password": "",
     "token": "",
