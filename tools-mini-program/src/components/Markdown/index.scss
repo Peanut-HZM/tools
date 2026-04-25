@@ -6,6 +6,11 @@
 
   p { margin-bottom: 12rpx; }
 
+  .markdown-placeholder {
+    color: var(--text-tertiary);
+    font-size: 24rpx;
+  }
+
   h1 { font-size: 36rpx; font-weight: 600; margin: 16rpx 0 8rpx; }
   h2 { font-size: 32rpx; font-weight: 600; margin: 14rpx 0 6rpx; }
   h3 { font-size: 30rpx; font-weight: 600; margin: 12rpx 0 4rpx; }

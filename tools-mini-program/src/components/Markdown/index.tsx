@@ -1,4 +1,4 @@
-import { View } from '@tarojs/components'
+import { View, Text, RichText } from '@tarojs/components'
 import { marked } from 'marked'
 import './index.scss'
 
@@ -13,13 +13,31 @@ marked.setOptions({
 })
 
 export default function Markdown({ content }: MarkdownProps) {
-  if (!content) return null
+  console.log('[Markdown] 渲染，content 长度:', content ? content.length : 0, '内容预览:', content ? content.substring(0, 50) : '空')
 
-  const html = marked(content)
+  if (!content) {
+    return (
+      <View className='markdown-renderer'>
+        <Text className='markdown-placeholder'>正在输入...</Text>
+      </View>
+    )
+  }
 
-  return (
-    <View className='markdown-renderer'>
-      <rich-text nodes={html} />
-    </View>
-  )
+  try {
+    const html = marked(content)
+    console.log('[Markdown] HTML 生成成功，长度:', html.length)
+
+    return (
+      <View className='markdown-renderer'>
+        <RichText nodes={html} />
+      </View>
+    )
+  } catch (e) {
+    console.error('[Markdown] 渲染失败:', e)
+    return (
+      <View className='markdown-renderer'>
+        <Text className='message-text'>{content}</Text>
+      </View>
+    )
+  }
 }

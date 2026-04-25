@@ -66,6 +66,12 @@ def get_tools_by_category_endpoint(category: str):
     return CategoryResponse(tools=tools, category=category)
 
 
+@router.post("/tools/{tool_id}/visit")
+def track_tool_visit(tool_id: str):
+    """记录工具访问（空操作，仅为兼容小程序端调用）"""
+    return {"ok": True}
+
+
 # ==================== 系统性能监控 ====================
 
 @router.get("/system-monitor/info")

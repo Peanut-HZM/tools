@@ -251,6 +251,10 @@ app.include_router(http_client.router, prefix="/api")
 # OpenClaw router (SSE streaming)
 app.include_router(openclaw_router.router, prefix="/api")
 
+# OpenClaw WebSocket router (mini-program)
+from app.routes import openclaw_ws as openclaw_ws_router
+app.include_router(openclaw_ws_router.router, prefix="/api")
+
 # OpenClaw Admin router
 from app.routes import openclaw_admin as openclaw_admin_router
 

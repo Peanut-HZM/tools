@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import Taro, { useDidShow, useDidHide } from '@tarojs/taro'
 import { View, Text, ScrollView, Textarea } from '@tarojs/components'
-import { chatStream, resetSession, getStatus, abortChat, loadHistory } from '../../services/openclaw'
+import { chatWebSocket, resetSession, getStatus, loadHistory } from '../../services/openclaw'
 import Markdown from '../../components/Markdown'
 import { useAuthGuard } from '../../hooks'
 import './index.scss'
@@ -13,6 +13,10 @@ interface ChatMessage {
   timestamp: number
   isStreaming?: boolean
 }
+
+// 默认头像图标（简单的 SVG 转 base64）
+const DEFAULT_USER_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIyMCIgZmlsbD0iIzNCODJGNiIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTYiIHI9IjgiIGZpbGw9IndoaXRlIi8+PHBhdGggZD0iTTggMzZjMC04IDUuNS0xMiAxMi0xMnMxMiA0IDEyIDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
+const DEFAULT_AI_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIyMCIgZmlsbD0iIzhCNTY0MiIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjgiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iMTAiIHk9IjI0IiB3aWR0aD0iMjAiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IndoaXRlIi8+PC9zdmc+'
 
 // 从 OpenClaw 消息内容数组中提取用户可见文本
 // 过滤 thinking、系统提示、时间戳等非内容文本
@@ -72,7 +76,7 @@ export default function OpenClawPage() {
   const [connected, setConnected] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [scrollTop, setScrollTop] = useState(0)
-  const abortRef = useRef(false)
+  const wsAbortRef = useRef<{ abort: () => void } | null>(null)
 
   useDidShow(() => {
     checkStatus()
@@ -82,7 +86,10 @@ export default function OpenClawPage() {
   // 页面隐藏时中止生成
   useDidHide(() => {
     if (isStreaming) {
-      abortChat('main').catch(() => {})
+      if (wsAbortRef.current) {
+        wsAbortRef.current.abort()
+        wsAbortRef.current = null
+      }
       setIsStreaming(false)
     }
   })
@@ -102,11 +109,16 @@ export default function OpenClawPage() {
   const loadMessages = async () => {
     try {
       const history = await loadHistory('main')
+      console.log('[loadMessages] 历史消息数量:', history.length)
       const formatted: ChatMessage[] = []
       for (const [idx, msg] of history.entries()) {
         if (msg.role === 'toolResult') continue
         const text = extractText(msg.content)
-        if (!text) continue
+        if (!text) {
+          console.log('[loadMessages] 跳过空消息, idx:', idx, 'role:', msg.role)
+          continue
+        }
+        console.log('[loadMessages] 添加消息, idx:', idx, 'role:', msg.role, 'text:', text.substring(0, 50))
         formatted.push({
           id: `hist-${idx}`,
           role: msg.role === 'user' ? 'user' : 'assistant',
@@ -114,9 +126,14 @@ export default function OpenClawPage() {
           timestamp: msg.timestamp || Date.now(),
         })
       }
+      console.log('[loadMessages] 最终消息数量:', formatted.length)
       setMessages(formatted)
-    } catch {
-      // 忽略历史加载错误
+      if (formatted.length > 0) {
+        // 延迟滚动到底部，确保 DOM 已渲染
+        setTimeout(() => scrollToBottom(), 300)
+      }
+    } catch (err) {
+      console.error('[loadMessages] 加载失败:', err)
     }
   }
 
@@ -125,7 +142,12 @@ export default function OpenClawPage() {
   }
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isStreaming) return
+    Taro.showToast({ title: 'handleSend 被调用', icon: 'none', duration: 1000 })
+    console.log('[handleSend] 被调用，inputValue:', inputValue, 'isStreaming:', isStreaming)
+    if (!inputValue.trim() || isStreaming) {
+      console.log('[handleSend] 提前返回，原因:', !inputValue.trim() ? '内容为空' : '正在流式生成')
+      return
+    }
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -134,8 +156,9 @@ export default function OpenClawPage() {
       timestamp: Date.now()
     }
 
+    const assistantMsgId = `assistant-${Date.now()}`
     const assistantMessage: ChatMessage = {
-      id: `assistant-${Date.now()}`,
+      id: assistantMsgId,
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
@@ -145,60 +168,61 @@ export default function OpenClawPage() {
     setMessages(prev => [...prev, userMessage, assistantMessage])
     setInputValue('')
     setIsStreaming(true)
-    abortRef.current = false
+    wsAbortRef.current = null
     scrollToBottom()
 
     try {
-      await chatStream(
+      const wsResult = chatWebSocket(
         userMessage.content,
         'main',
+        // onChunk - 通过 ID 精确匹配，与 Web 端一致
         (chunk: string) => {
-          setMessages(prev => {
-            const last = prev[prev.length - 1]
-            if (last && last.role === 'assistant') {
-              return [...prev.slice(0, -1), { ...last, content: chunk }]
-            }
-            return prev
-          })
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMsgId
+                ? { ...msg, content: chunk }
+                : msg
+            )
+          )
           scrollToBottom()
         },
+        // onDone
         () => {
-          setMessages(prev => {
-            const last = prev[prev.length - 1]
-            if (last && last.role === 'assistant') {
-              return [...prev.slice(0, -1), { ...last, isStreaming: false }]
-            }
-            return prev
-          })
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMsgId
+                ? { ...msg, isStreaming: false }
+                : msg
+            )
+          )
           setIsStreaming(false)
+          wsAbortRef.current = null
         },
+        // onError
         (error: string) => {
-          setMessages(prev => {
-            const last = prev[prev.length - 1]
-            if (last && last.role === 'assistant') {
-              return [...prev.slice(0, -1), {
-                ...last,
-                content: last.content ? `${last.content}\n\n[生成失败] ${error}` : `[生成失败] ${error}`,
-                isStreaming: false
-              }]
-            }
-            return prev
-          })
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMsgId
+                ? { ...msg, content: msg.content || `[生成失败] ${error}`, isStreaming: false }
+                : msg
+            )
+          )
           setIsStreaming(false)
+          wsAbortRef.current = null
         }
       )
+      wsAbortRef.current = wsResult
     } catch (err: any) {
       setIsStreaming(false)
+      wsAbortRef.current = null
       Taro.showToast({ title: err.message || '发送失败', icon: 'none' })
     }
   }
 
-  const handleStop = async () => {
-    abortRef.current = true
-    try {
-      await abortChat('main')
-    } catch (err) {
-      console.error('中止请求失败:', err)
+  const handleStop = () => {
+    if (wsAbortRef.current) {
+      wsAbortRef.current.abort()
+      wsAbortRef.current = null
     }
     setIsStreaming(false)
     setMessages(prev => {
@@ -272,10 +296,19 @@ export default function OpenClawPage() {
           <View className='messages-list'>
             {messages.map((msg) => (
               <View key={msg.id} className={`message-row ${msg.role === 'user' ? 'message-row-user' : 'message-row-assistant'}`}>
-                <View className='message-wrapper'>
+                {/* 头像 */}
+                <View className={`message-avatar ${msg.role === 'user' ? 'avatar-user' : 'avatar-assistant'}`}>
+                  <image
+                    className='avatar-image'
+                    src={msg.role === 'user' ? DEFAULT_USER_AVATAR : DEFAULT_AI_AVATAR}
+                    mode='aspectFit'
+                  />
+                </View>
+                {/* 消息内容 */}
+                <View className='message-content'>
                   <View className={`message-bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-assistant'}`}>
                     {msg.role === 'user' ? (
-                      <Text className='message-text' selectable>{msg.content}</Text>
+                      <Text className='message-text' userSelect>{msg.content}</Text>
                     ) : (
                       <Markdown content={msg.content} />
                     )}
@@ -301,9 +334,11 @@ export default function OpenClawPage() {
             placeholder='输入消息...'
             maxlength={4000}
             autoHeight
+            maxHeight={200}
             disabled={isStreaming || !connected}
             confirmType='send'
             onConfirm={handleSend}
+            adjustPosition={false}
           />
         </View>
         {isStreaming ? (
