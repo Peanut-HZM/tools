@@ -31,7 +31,7 @@ export default defineConfig(async (merge) => {
       }
     },
     cache: {
-      enable: false
+      enable: true
     },
     mini: {
       postcss: {

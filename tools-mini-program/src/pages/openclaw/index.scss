@@ -19,7 +19,7 @@
   color: var(--color-primary);
   padding: 8rpx 16rpx;
   border-radius: var(--radius-sm);
-  cursor-pointer;
+  cursor: pointer;
 
   &:active {
     background: rgba(59, 130, 246, 0.1);
