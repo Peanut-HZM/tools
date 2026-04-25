@@ -191,6 +191,29 @@ export async function reconnectOpenClaw() {
   return response.json();
 }
 
+/** 测试连接 */
+export async function testOpenClawConnection(data: {
+  gateway_url: string;
+  auth_mode: string;
+  username?: string;
+  password?: string;
+  token?: string;
+}) {
+  const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/test-connection`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: '测试失败' }));
+    throw new Error(error.detail || '测试失败');
+  }
+  return response.json();
+}
+
 /** 断开连接 */
 export async function disconnectOpenClaw() {
   const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/disconnect`, {
