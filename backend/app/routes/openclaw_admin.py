@@ -28,6 +28,7 @@ def get_admin_user(current_user: UserResponse = Depends(get_current_user)):
 
 class ConfigUpdateRequest(BaseModel):
     gateway_url: Optional[str] = None
+    auth_mode: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
     token: Optional[str] = None
@@ -63,6 +64,11 @@ async def update_config(
     if "enabled" in data:
         if data["enabled"] not in ("true", "false"):
             raise HTTPException(status_code=400, detail="enabled 值必须为 true 或 false")
+
+    # 验证 auth_mode 值
+    if "auth_mode" in data:
+        if data["auth_mode"] not in ("token", "token_with_password"):
+            raise HTTPException(status_code=400, detail="auth_mode 必须为 token 或 token_with_password")
 
     # 更新数据库
     updated_config = openclaw_config_service.update_config(data)
