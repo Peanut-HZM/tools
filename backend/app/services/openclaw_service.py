@@ -6,6 +6,7 @@ OpenClaw Gateway WebSocket 客户端
 import asyncio
 import json
 import logging
+import ssl
 import uuid
 from typing import AsyncGenerator, Dict, Optional
 
@@ -108,7 +109,11 @@ class OpenClawService:
             logger.info(f"正在连接 OpenClaw Gateway (双重认证): {url}")
         else:
             logger.info(f"正在连接 OpenClaw Gateway (Token 认证): {url}")
-        self.ws = await websockets.connect(url, ping_interval=30, ping_timeout=10)
+        # 禁用 SSL 证书验证（支持自签名证书）
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        self.ws = await websockets.connect(url, ping_interval=30, ping_timeout=10, ssl=ssl_context)
 
         # 等待 connect.challenge
         challenge_raw = await asyncio.wait_for(self.ws.recv(), timeout=10)

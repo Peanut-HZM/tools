@@ -4,6 +4,7 @@ OpenClaw 管理路由
 """
 import logging
 import re
+import ssl
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -43,7 +44,10 @@ async def get_config(admin_user: UserResponse = Depends(get_admin_user)):
     # 密码脱敏
     password = config.get("password", "")
     config["password"] = "****" + password[-4:] if len(password) > 4 else ("****" if password else "")
-    return {**config, **connection_info}
+    # 保存完整 token 用于表单回显，脱敏值用于状态卡片展示
+    real_token = config.get("token", "")
+    masked_token = connection_info.get("token", "")
+    return {**config, **connection_info, "token": real_token, "token_masked": masked_token}
 
 
 @router.put("/config")
@@ -149,9 +153,14 @@ async def test_connection(
         elif url.startswith("wss://"):
             url = url.replace("wss://", f"wss://{request.username}:{request.password}@", 1)
 
+    # 禁用 SSL 证书验证（支持自签名证书）
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
     start_time = time.monotonic()
     try:
-        async with ws_connect(url, ping_interval=30, ping_timeout=10) as ws:
+        async with ws_connect(url, ping_interval=30, ping_timeout=10, ssl=ssl_context) as ws:
             # 等待 connect.challenge
             challenge_raw = await asyncio.wait_for(ws.recv(), timeout=10)
             challenge = json.loads(challenge_raw)

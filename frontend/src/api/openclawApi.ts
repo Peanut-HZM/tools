@@ -139,6 +139,7 @@ export interface OpenClawConfig {
   username: string;
   password: string;
   token: string;
+  token_masked: string;
   enabled: string;
   connected: boolean;
 }

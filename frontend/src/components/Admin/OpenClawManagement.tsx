@@ -179,7 +179,7 @@ export default function OpenClawManagement() {
           </div>
           <div>
             <p className="text-slate-400 text-sm">Token</p>
-            <p className="text-white font-mono text-sm mt-1">{config?.token || '(未设置)'}</p>
+            <p className="text-white font-mono text-sm mt-1">{config?.token_masked || '(未设置)'}</p>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
