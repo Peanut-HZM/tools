@@ -143,7 +143,7 @@ class OpenClawService:
                 "caps": [],
                 "auth": {"token": token} if token else None,
                 "role": "operator",
-                "scopes": ["operator.admin"],
+                "scopes": ["operator.admin", "operator.read", "operator.write"],
             },
         }
         connect_msg["params"] = {k: v for k, v in connect_msg["params"].items() if v is not None}

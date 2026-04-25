@@ -189,7 +189,7 @@ async def test_connection(
                     "caps": [],
                     "auth": {"token": request.token} if request.token else None,
                     "role": "operator",
-                    "scopes": ["operator.admin"],
+                    "scopes": ["operator.admin", "operator.read", "operator.write"],
                 },
             }
             connect_msg["params"] = {k: v for k, v in connect_msg["params"].items() if v is not None}
