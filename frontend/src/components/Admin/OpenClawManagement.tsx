@@ -21,6 +21,7 @@ export default function OpenClawManagement() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [enabled, setEnabled] = useState('true');
+  const [authMode, setAuthMode] = useState('token');
   const [showPassword, setShowPassword] = useState(false);
 
   const loadData = async () => {
@@ -34,6 +35,7 @@ export default function OpenClawManagement() {
       setUsername(data.username || '');
       setPassword(''); // 密码不回显密文
       setEnabled(data.enabled || 'true');
+      setAuthMode(data.auth_mode || 'token');
     } catch (err: any) {
       setError(err.message || '加载配置失败');
     } finally {
@@ -49,7 +51,7 @@ export default function OpenClawManagement() {
     setSaving(true);
     setError(null);
     try {
-      const data: any = { enabled };
+      const data: any = { enabled, auth_mode: authMode };
       if (gatewayUrl) data.gateway_url = gatewayUrl;
       if (username) data.username = username;
       if (password) data.password = password;
@@ -130,6 +132,10 @@ export default function OpenClawManagement() {
             <p className="text-white font-medium mt-1">{enabled === 'true' ? '已启用' : '已禁用'}</p>
           </div>
           <div>
+            <p className="text-slate-400 text-sm">认证方式</p>
+            <p className="text-white font-medium mt-1">{config?.auth_mode === 'token_with_password' ? '双重认证' : 'Token 认证'}</p>
+          </div>
+          <div>
             <p className="text-slate-400 text-sm">Gateway 地址</p>
             <p className="text-white font-mono text-sm mt-1">{config?.gateway_url || '-'}</p>
           </div>
@@ -177,35 +183,52 @@ export default function OpenClawManagement() {
             />
           </div>
           <div>
-            <label className="block text-slate-300 text-sm mb-1">用户名</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="留空表示不修改"
-              className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
-            />
+            <label className="block text-slate-300 text-sm mb-1">认证方式</label>
+            <select
+              value={authMode}
+              onChange={(e) => setAuthMode(e.target.value)}
+              className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="token">仅 Token 鉴权</option>
+              <option value="token_with_password">Token + 用户名密码双重认证</option>
+            </select>
           </div>
-          <div>
-            <label className="block text-slate-300 text-sm mb-1">密码</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="留空表示不修改"
-                className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-cyan-500 font-mono"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
-              >
-                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-              </button>
-            </div>
-            <p className="text-slate-500 text-xs mt-1">输入新密码将覆盖当前密码，留空不修改</p>
-          </div>
+          {authMode === 'token_with_password' && (
+            <>
+              {/* 用户名 */}
+              <div>
+                <label className="block text-slate-300 text-sm mb-1">用户名</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="留空表示不修改"
+                  className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
+              {/* 密码 */}
+              <div>
+                <label className="block text-slate-300 text-sm mb-1">密码</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="留空表示不修改"
+                    className="w-full bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-cyan-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
+                <p className="text-slate-500 text-xs mt-1">输入新密码将覆盖当前密码，留空不修改</p>
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-slate-300 text-sm mb-1">Token</label>
             <input

@@ -135,6 +135,7 @@ const ADMIN_API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '/admin');
 
 export interface OpenClawConfig {
   gateway_url: string;
+  auth_mode: string;
   username: string;
   password: string;
   token: string;
