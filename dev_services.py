@@ -364,8 +364,12 @@ def kill_process(pid: int, graceful: bool = True):
             proc.wait(timeout=3)
             log(f"{proc_name} (PID {pid}) 已停止", "SUCCESS")
         except psutil.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=2)
+            try:
+                proc.kill()
+                proc.wait(timeout=2)
+            except (psutil.TimeoutExpired, psutil.NoSuchProcess, OSError):
+                # kill 后仍然超时或进程已消失，视为已终止
+                pass
             log(f"{proc_name} (PID {pid}) 已强制终止", "WARN")
     else:
         proc.kill()
