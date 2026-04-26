@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"agent-browser open http://localhost:5178 && agent-browser wait --load networkidle && agent-browser click @e6 && agent-browser wait --load networkidle && agent-browser wait 2000 && agent-br...",
-  "error": "Exit code 1\n✓ 工具箱 - 聚合类工具网站\n  http://localhost:5178/\n✓ Done\n✗ Unknown ref: e6",
-  "timestamp": "2026-04-26T04:30:18.324Z",
-  "retry_count": 1
-}

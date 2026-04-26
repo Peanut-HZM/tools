@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd g:/IdeaProjects/tools/backend && venv/Scripts/python.exe -c \\\"\\nimport uvicorn\\nimport threading\\nimport time\\n\\ndef run_server():\\n    uvicorn.run('app.main:app', host='127.0.0.1', por...",
-  "error": "Exit code 1\nG:\\IdeaProjects\\tools\\backend\\app\\routes\\admin.py:224: FastAPIDeprecationWarning: `regex` has been deprecated, please use `pattern` instead\r\n  status: str = Query(..., regex=\"^(online|offline)$\"),\r\n2026-04-26 12:15:12,859 - app.services.openclaw_config_service - [INFO] - OpenClaw configs table initialized\r\n2026-04-26 12:15:12,859 - app.services.openclaw_config_service - INFO - OpenClaw configs table initialized\r\nINFO:     Started server process [41580]\r\nINFO:     Waiting for applicat...",
-  "timestamp": "2026-04-26T04:15:16.907Z",
-  "retry_count": 4
-}

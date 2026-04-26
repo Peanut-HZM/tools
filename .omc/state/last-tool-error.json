@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python -c \\\"\\nfrom pathlib import Path\\np = Path('$USERPROFILE/.claude/dev-services.py').expanduser()\\ncontent = p.read_text(encoding='utf-8')\\n\\n# Find the main() function argparse sectio...",
-  "error": "Exit code 1\n  File \"<string>\", line 3\r\n    p = Path('C:\\Users\\peanu/.claude/dev-services.py').expanduser()\r\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nSyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 2-3: truncated \\UXXXXXXXX escape",
-  "timestamp": "2026-04-26T05:52:25.045Z",
-  "retry_count": 2
-}

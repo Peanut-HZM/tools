@@ -1,6 +1,0 @@
-{
-  "conventions": "所有对话回复必须使用中文。代码注释必须使用中文。除代码外的任何场景（错误提示、日志描述、文档、提交信息等）都必须使用中文。",
-  "version": "1.0.0",
-  "lastScanned": 1777181194950,
-  "projectRoot": "G:/IdeaProjects/tools"
-}
