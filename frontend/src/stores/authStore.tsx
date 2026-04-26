@@ -4,6 +4,7 @@
  */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as authApi from '../api/authApi';
+import { syncTokenUsage as apiSyncTokenUsage } from '../api/tokenUsageApi';
 
 export interface User {
   user_id: string;
@@ -49,6 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // 登录/已认证后触发 Token 数据同步（静默，不影响主流程）
+  const triggerTokenSync = async () => {
+    try {
+      await apiSyncTokenUsage();
+    } catch {
+      // 同步失败不影响认证流程，用户可手动点击"同步数据"
+    }
+  };
+
   const checkAuth = async () => {
     setIsLoading(true);
     try {
@@ -62,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: userData.role || 'user'
         });
         setIsAuthenticated(true);
+        triggerTokenSync();
       } else {
         setUser(null);
         setIsAuthenticated(false);
@@ -88,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: response.role || 'user'
       });
       setIsAuthenticated(true);
+      triggerTokenSync();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed');
       throw e;

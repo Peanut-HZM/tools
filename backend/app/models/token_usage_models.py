@@ -66,7 +66,8 @@ class DeviceRegistry(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(String(64), nullable=False, index=True)
     device_id = Column(String(128), nullable=False)
-    display_name = Column(String(128), nullable=True)
+    display_name = Column(String(128), nullable=True)  # 用户自定义名称
+    default_display_name = Column(String(128), nullable=True)  # 注册时捕获的原始设备名
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (UniqueConstraint("user_id", "device_id"),)

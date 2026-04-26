@@ -7,7 +7,7 @@ from typing import Optional
 from app.models.base import SessionLocal
 from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog, DeviceRegistry
 from app.utils.usage_fetcher import UsageFetcher
-from app.utils.device_id import get_device_id
+from app.utils.device_id import get_device_id, get_device_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +76,16 @@ def _fetch_opencode_daily(days: int) -> list[dict]:
     return entries
 
 
+def _calc_total_tokens(
+    input_tokens: int,
+    output_tokens: int,
+    cache_creation_tokens: int,
+    cache_read_tokens: int,
+) -> int:
+    """当 total_tokens 为 0 时，回退计算各组件之和"""
+    return input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens
+
+
 def _parse_claude_entries(entries: list[dict]) -> list[dict]:
     """
     解析 Claude CLI 输出为结构化数据。
@@ -93,28 +103,42 @@ def _parse_claude_entries(entries: list[dict]) -> list[dict]:
         if not breakdowns:
             # 没有 breakdown，使用总体数据，模型名用汇总标识
             tokens = entry.get("tokens", {})
+            input_tokens = _safe_int(tokens, "input") or _safe_int(entry, "inputTokens", "input_tokens")
+            output_tokens = _safe_int(tokens, "output") or _safe_int(entry, "outputTokens", "output_tokens")
+            cache_creation_tokens = _safe_int(tokens, "cache_write") or _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens")
+            cache_read_tokens = _safe_int(tokens, "cache_read") or _safe_int(entry, "cacheReadTokens", "cache_read_tokens")
+            total_tokens = _safe_int(tokens, "total") or _safe_int(entry, "totalTokens", "total_tokens")
+            if total_tokens == 0:
+                total_tokens = _calc_total_tokens(input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens)
             results.append({
                 "record_date": record_date,
                 "model": entry.get("model") or "_total",
-                "input_tokens": _safe_int(tokens, "input") or _safe_int(entry, "inputTokens", "input_tokens"),
-                "output_tokens": _safe_int(tokens, "output") or _safe_int(entry, "outputTokens", "output_tokens"),
-                "cache_creation_tokens": _safe_int(tokens, "cache_write") or _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens"),
-                "cache_read_tokens": _safe_int(tokens, "cache_read") or _safe_int(entry, "cacheReadTokens", "cache_read_tokens"),
-                "total_tokens": _safe_int(tokens, "total") or _safe_int(entry, "totalTokens", "total_tokens"),
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cache_creation_tokens": cache_creation_tokens,
+                "cache_read_tokens": cache_read_tokens,
+                "total_tokens": total_tokens,
                 "total_cost": _safe_float(entry, "cost") or _safe_float(entry, "totalCost", "costUSD"),
             })
         else:
             for bk in breakdowns:
                 model_name = bk.get("model") or bk.get("name") or "unknown"
                 tokens = bk.get("tokens", bk)
+                input_tokens = _safe_int(tokens, "input") or _safe_int(bk, "inputTokens", "input_tokens")
+                output_tokens = _safe_int(tokens, "output") or _safe_int(bk, "outputTokens", "output_tokens")
+                cache_creation_tokens = _safe_int(tokens, "cache_write") or _safe_int(bk, "cacheCreationTokens", "cache_creation_tokens")
+                cache_read_tokens = _safe_int(tokens, "cache_read") or _safe_int(bk, "cacheReadTokens", "cache_read_tokens")
+                total_tokens = _safe_int(tokens, "total") or _safe_int(bk, "totalTokens", "total_tokens")
+                if total_tokens == 0:
+                    total_tokens = _calc_total_tokens(input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens)
                 results.append({
                     "record_date": record_date,
                     "model": model_name,
-                    "input_tokens": _safe_int(tokens, "input") or _safe_int(bk, "inputTokens", "input_tokens"),
-                    "output_tokens": _safe_int(tokens, "output") or _safe_int(bk, "outputTokens", "output_tokens"),
-                    "cache_creation_tokens": _safe_int(tokens, "cache_write") or _safe_int(bk, "cacheCreationTokens", "cache_creation_tokens"),
-                    "cache_read_tokens": _safe_int(tokens, "cache_read") or _safe_int(bk, "cacheReadTokens", "cache_read_tokens"),
-                    "total_tokens": _safe_int(tokens, "total") or _safe_int(bk, "totalTokens", "total_tokens"),
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "cache_creation_tokens": cache_creation_tokens,
+                    "cache_read_tokens": cache_read_tokens,
+                    "total_tokens": total_tokens,
                     "total_cost": _safe_float(bk, "cost") or _safe_float(bk, "totalCost", "costUSD"),
                 })
     return results
@@ -133,27 +157,41 @@ def _parse_opencode_entries(entries: list[dict]) -> list[dict]:
         models = entry.get("models", [])
         if not models:
             # 没有模型明细，使用总体数据
+            input_tokens = _safe_int(entry, "inputTokens", "input_tokens")
+            output_tokens = _safe_int(entry, "outputTokens", "output_tokens")
+            cache_creation_tokens = _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens")
+            cache_read_tokens = _safe_int(entry, "cacheReadTokens", "cache_read_tokens")
+            total_tokens = _safe_int(entry, "totalTokens", "total_tokens")
+            if total_tokens == 0:
+                total_tokens = _calc_total_tokens(input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens)
             results.append({
                 "record_date": record_date,
                 "model": entry.get("model") or "_total",
-                "input_tokens": _safe_int(entry, "inputTokens", "input_tokens"),
-                "output_tokens": _safe_int(entry, "outputTokens", "output_tokens"),
-                "cache_creation_tokens": _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens"),
-                "cache_read_tokens": _safe_int(entry, "cacheReadTokens", "cache_read_tokens"),
-                "total_tokens": _safe_int(entry, "totalTokens", "total_tokens"),
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cache_creation_tokens": cache_creation_tokens,
+                "cache_read_tokens": cache_read_tokens,
+                "total_tokens": total_tokens,
                 "total_cost": _safe_float(entry, "totalCost", "costUSD", "cost"),
             })
         else:
             for mod in models:
                 model_name = mod.get("model") or mod.get("name") or "unknown"
+                input_tokens = _safe_int(mod, "inputTokens", "input_tokens")
+                output_tokens = _safe_int(mod, "outputTokens", "output_tokens")
+                cache_creation_tokens = _safe_int(mod, "cacheCreationTokens", "cache_creation_tokens")
+                cache_read_tokens = _safe_int(mod, "cacheReadTokens", "cache_read_tokens")
+                total_tokens = _safe_int(mod, "totalTokens", "total_tokens")
+                if total_tokens == 0:
+                    total_tokens = _calc_total_tokens(input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens)
                 results.append({
                     "record_date": record_date,
                     "model": model_name,
-                    "input_tokens": _safe_int(mod, "inputTokens", "input_tokens"),
-                    "output_tokens": _safe_int(mod, "outputTokens", "output_tokens"),
-                    "cache_creation_tokens": _safe_int(mod, "cacheCreationTokens", "cache_creation_tokens"),
-                    "cache_read_tokens": _safe_int(mod, "cacheReadTokens", "cache_read_tokens"),
-                    "total_tokens": _safe_int(mod, "totalTokens", "total_tokens"),
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "cache_creation_tokens": cache_creation_tokens,
+                    "cache_read_tokens": cache_read_tokens,
+                    "total_tokens": total_tokens,
                     "total_cost": _safe_float(mod, "totalCost", "costUSD", "cost"),
                 })
     return results
@@ -184,7 +222,12 @@ def sync_token_usage(user_id: str, days: int = 90) -> dict:
                 user_id=user_id,
                 device_id=device_id,
                 display_name=None,
+                default_display_name=get_device_display_name(),
             ))
+            db.commit()
+        elif not existing.default_display_name:
+            # 旧设备没有 default_display_name，补填
+            existing.default_display_name = get_device_display_name()
             db.commit()
     except Exception as e:
         logger.warning(f"设备注册失败: {e}")

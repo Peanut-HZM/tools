@@ -221,8 +221,6 @@ class UsageFetcher:
             cmd.append("--by=model")
 
         result = _run_cmd(cmd)
-
-        result = _run_cmd(cmd)
         if "error" not in result:
             _set_cache(cache_key, result)
         return result

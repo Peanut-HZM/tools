@@ -20,7 +20,7 @@ from app.models.base import SessionLocal
 from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog, DeviceRegistry
 from app.services.token_usage_sync_service import sync_token_usage
 from app.routes.auth import get_current_user_id
-from app.utils.device_id import get_device_id, get_device_display_name
+from app.utils.device_id import get_device_id
 
 logger = logging.getLogger(__name__)
 
@@ -576,10 +576,7 @@ async def db_query_token_usage(
         if regs:
             devices = []
             for reg in regs:
-                if reg.display_name:
-                    name = reg.display_name
-                else:
-                    name = get_device_display_name()
+                name = reg.display_name or reg.default_display_name or reg.device_id
                 devices.append({"id": reg.device_id, "name": name})
         else:
             # 兼容：旧数据没有 device_registry 记录，回退到 token_usage_records
