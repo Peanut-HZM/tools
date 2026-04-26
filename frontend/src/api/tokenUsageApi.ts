@@ -119,6 +119,11 @@ export async function refreshTokenUsage(): Promise<{ message: string }> {
   return response.json();
 }
 
+export interface DeviceInfo {
+  id: string;
+  name: string;
+}
+
 // ========== 数据库查询相关 API ==========
 
 export interface DbQueryParams {
@@ -136,7 +141,7 @@ export interface DbUsageItem extends UsageItem {
 export interface DbUsageResponse {
   items: DbUsageItem[];
   summary: UsageSummary;
-  devices: string[];
+  devices: DeviceInfo[];
   cached?: boolean;
 }
 
@@ -172,6 +177,25 @@ export async function syncTokenUsage(): Promise<{ sources_synced: string[]; tota
   });
   if (!response.ok) {
     throw new Error('同步失败');
+  }
+  return response.json();
+}
+
+export async function renameDevice(
+  deviceId: string,
+  name: string
+): Promise<{ device_id: string; display_name: string | null }> {
+  const response = await fetch(`${BASE_URL}/devices/${deviceId}/rename`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(error.detail || '重命名设备失败');
   }
   return response.json();
 }
