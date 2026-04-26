@@ -89,3 +89,6 @@ cursor_history.db
 .gstack/
 .playwright-mcp
 .opencode
+
+# AI Agent metadata
+.omc/
