@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, date
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Body
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 
@@ -17,10 +17,10 @@ from app.services.token_usage_cache import (
     invalidate_cache,
 )
 from app.models.base import SessionLocal
-from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog
+from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog, DeviceRegistry
 from app.services.token_usage_sync_service import sync_token_usage
 from app.routes.auth import get_current_user_id
-from app.utils.device_id import get_device_id
+from app.utils.device_id import get_device_id, get_device_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -532,10 +532,15 @@ class DbUsageItem(BaseModel):
     group_key: Optional[str] = Field(default=None, description="设备名或模型名（分组时）")
 
 
+class DeviceInfo(BaseModel):
+    id: str
+    name: str
+
+
 class DbUsageResponse(BaseModel):
     items: list[DbUsageItem]
     summary: UsageSummary
-    devices: list[str]  # 该用户有数据的设备列表
+    devices: list[DeviceInfo] = Field(default_factory=list)
     cached: bool = False
 
 
@@ -563,13 +568,35 @@ async def db_query_token_usage(
             # 降级到 CLI 直查模式
             return await _fallback_to_cli(req)
 
-        # 获取设备列表
-        device_query = db.query(TokenUsageRecord.device_id).filter(
-            TokenUsageRecord.user_id == user_id
-        ).distinct()
+        # 获取设备列表（从 device_registry）
+        regs = db.query(DeviceRegistry).filter(
+            DeviceRegistry.user_id == user_id
+        ).all()
+
+        if regs:
+            devices = []
+            for reg in regs:
+                if reg.display_name:
+                    name = reg.display_name
+                else:
+                    name = get_device_display_name()
+                devices.append({"id": reg.device_id, "name": name})
+        else:
+            # 兼容：旧数据没有 device_registry 记录，回退到 token_usage_records
+            device_ids = db.query(TokenUsageRecord.device_id).filter(
+                TokenUsageRecord.user_id == user_id
+            ).distinct().all()
+            devices = [{"id": row[0], "name": row[0]} for row in device_ids]
+
+        # 如果有 source 过滤，只显示该 source 下有数据的设备
         if req.source != "all":
-            device_query = device_query.filter(TokenUsageRecord.source == req.source)
-        devices = [row[0] for row in device_query.all()]
+            active_ids = set(
+                row[0] for row in db.query(TokenUsageRecord.device_id).filter(
+                    TokenUsageRecord.user_id == user_id,
+                    TokenUsageRecord.source == req.source,
+                ).distinct().all()
+            )
+            devices = [d for d in devices if d["id"] in active_ids]
 
         # 执行查询
         since_date = datetime.now() - timedelta(days=req.days)
@@ -601,6 +628,36 @@ async def sync_token_usage_endpoint(
 
     result = sync_token_usage(user_id=user_id, days=90)
     return result
+
+
+@router.put("/devices/{device_id}/rename")
+async def rename_device(
+    device_id: str,
+    name: str = Body(..., embed=True, description="设备显示名称，空字符串表示重置为默认"),
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """重命名设备（display_name 为空时回退到 username@hostname）"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    db = SessionLocal()
+    try:
+        reg = db.query(DeviceRegistry).filter_by(
+            user_id=user_id, device_id=device_id
+        ).first()
+        if not reg:
+            raise HTTPException(status_code=404, detail="设备不存在")
+
+        reg.display_name = name.strip()[:128] if name.strip() else None
+        db.commit()
+
+        return {"device_id": device_id, "display_name": reg.display_name}
+    finally:
+        db.close()
 
 
 async def _fallback_to_cli(req: DbQueryRequest) -> DbUsageResponse:
