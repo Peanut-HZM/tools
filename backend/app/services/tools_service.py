@@ -120,13 +120,12 @@ class ToolsService:
                 for tool in TOOLS_DATA:
                     # usage_count is initialized to 0 for new tools, but preserved for existing ones via ON CONFLICT
                     # rating is updated from static data
+                    # IMPORTANT: ON CONFLICT does NOT update title/description to preserve admin edits
                     cur.execute(
                         """
                         INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating, custom_icon_url, show_pc, show_mobile)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, TRUE, TRUE)
                         ON CONFLICT (id) DO UPDATE SET
-                            title = EXCLUDED.title,
-                            description = EXCLUDED.description,
                             icon = EXCLUDED.icon,
                             icon_color = EXCLUDED.icon_color,
                             category = EXCLUDED.category,

@@ -11,6 +11,7 @@ from app.routes import (
     converter,
     oss,
     admin,
+    deploy,
 )
 from app.routes import (
     ocr_routes,
@@ -207,6 +208,9 @@ app.include_router(oss.router)
 
 # Admin router
 app.include_router(admin.router)
+
+# Deploy info router
+app.include_router(deploy.router, prefix="/api")
 
 # OCR & ASR routers
 app.include_router(ocr_routes.router, prefix="/api")

@@ -1,6 +1,7 @@
 import { Category, Tool } from '../../types';
 import CategoryTabs from './CategoryTabs';
 import ToolGrid from './ToolGrid';
+import DeployTimeIndicator from './DeployTimeIndicator';
 import { useI18n } from '../../i18n';
 
 interface HeroProps {
@@ -16,11 +17,14 @@ export default function Hero({ activeCategory, onCategoryChange, tools, onToolCl
 
   return (
     <section className="mb-16">
-      <CategoryTabs
-        categories={categories}
-        activeCategory={activeCategory}
-        onCategoryChange={onCategoryChange}
-      />
+      <div className="flex items-center justify-center mb-8">
+        <CategoryTabs
+          categories={categories}
+          activeCategory={activeCategory}
+          onCategoryChange={onCategoryChange}
+        />
+        <DeployTimeIndicator />
+      </div>
 
       <ToolGrid tools={tools} onToolClick={onToolClick} />
     </section>
