@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getTokenUsage, getAggregatedTokenUsage, checkTokenUsageHealth, refreshTokenUsage, getDbTokenUsage, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
-import type { DbUsageItem, DbUsageResponse } from '../../api/tokenUsageApi';
+import { getTokenUsage, getAggregatedTokenUsage, checkTokenUsageHealth, refreshTokenUsage, getDbTokenUsage, syncTokenUsage, renameDevice, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
+import type { DbUsageItem, DbUsageResponse, DeviceInfo } from '../../api/tokenUsageApi';
 import { useI18n } from '../../i18n';
 import { API_BASE_URL } from '../../config/api';
 import { getAuthHeaders } from '../../api/authApi';
@@ -133,6 +133,23 @@ export default function TokenUsage() {
       setRefreshing(false);
     }
   };
+
+  const handleRenameDevice = useCallback(async (deviceId: string) => {
+    const currentDevice = dbData?.devices?.find((d: DeviceInfo) => d.id === deviceId);
+    const currentName = currentDevice?.name || deviceId;
+    const newName = prompt('请输入设备名称（留空恢复默认）:', currentName);
+    if (newName === null) return; // 用户取消
+
+    try {
+      setLoading(true);
+      await renameDevice(deviceId, newName);
+      await fetchData();
+    } catch (e: any) {
+      alert(e.message || '重命名失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [dbData, fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -374,10 +391,21 @@ export default function TokenUsage() {
               className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100"
             >
               <option value="">全部设备</option>
-              {(dbData.devices || []).map(d => (
-                <option key={d} value={d}>{d}</option>
+              {(dbData.devices || []).map((d: DeviceInfo) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
+            {selectedDevice && (
+              <button
+                onClick={() => handleRenameDevice(selectedDevice)}
+                className="p-1.5 text-slate-400 hover:text-slate-200 rounded transition-colors"
+                title="重命名设备"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
           </div>
         )}
 
