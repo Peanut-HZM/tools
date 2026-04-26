@@ -10,10 +10,11 @@ purpose: Database tool performance optimization design spec
 
 当前 `http://localhost:5178/tools/database-tool` 页面存在以下性能问题：
 
-1. **每次 API 请求都新建数据库连接** — 后端 `DatabaseToolService` 中每次调用（`getDatabasesList`、`getDatabaseStructure`、`executeSQL` 等）都调用 `create_connection()` 建立新 MySQL 连接，操作完关闭。TCP 握手 + 认证开销导致单次请求额外耗时 200-500ms
-2. **串行请求链** — 页面加载时 `refreshConfigs()` 和 `refreshHistory()` 串行执行；SQL Console 切换连接时先请求数据库列表、再请求表结构用于自动补全，形成依赖链
-3. **无缓存机制** — 左侧连接树展开/折叠时每次都重新请求数据库列表和表结构
-4. **无加载状态反馈** — 用户等待时无视觉反馈，感觉更慢
+1. **后端引擎永久缓存无清理** — `DBConnectionManager` 已使用 SQLAlchemy 连接池（`pool_size=10, pool_recycle=3600, pool_pre_ping=True`），引擎按 `config_id:database_name` 缓存。**但引擎一旦创建永远不会被清理**（除非显式调用 `close_engine`）。当用户修改连接配置或删除连接后，旧引擎仍然占用内存和连接数。多个数据库配置 × 多个数据库名 → 大量空闲引擎长期存活
+2. **前端无缓存机制** — 左侧连接树展开/折叠时每次都重新请求数据库列表和表结构（`getDatabasesList`、`getDatabaseStructure`），即使数据未变化也走完整网络请求 + 数据库查询链路
+3. **串行请求链** — 页面加载时 `refreshConfigs()` 和 `refreshHistory()` 串行执行（`useEffect` 中先调 `refreshConfigs()` 再调 `refreshHistory()`）；SQL Console 切换连接时先请求数据库列表、再请求表结构用于自动补全，形成依赖链
+4. **历史记录预加载但未使用** — `refreshHistory()` 每次页面加载都请求最近 50 条执行历史，但首页并未展示这些数据，白白消耗资源
+5. **无加载状态反馈** — 用户等待时无视觉反馈，感知等待时间更长
 
 ## 2. 优化目标
 
@@ -24,91 +25,128 @@ purpose: Database tool performance optimization design spec
 
 ## 3. 架构设计
 
-### 3.1 后端连接池层
+### 3.1 后端连接池优化
 
-#### 3.1.1 连接池管理器
+#### 3.1.1 现状分析
 
-新增文件：`backend/app/services/db_pool_manager.py`
+`DBConnectionManager`（`backend/app/utils/db_connection_manager.py`）已经实现了 SQLAlchemy 连接池：
+- `pool_size=10` — 每个配置最多 10 个连接
+- `pool_recycle=3600` — 1 小时回收连接
+- `pool_pre_ping=True` — 取连接前先 ping，防止 2013 错误
+- 支持 MySQL、PostgreSQL、SQLite、SQLServer、Oracle 多种数据库类型
+
+**问题所在**：
+1. **引擎永久缓存** — `_engines` 字典一旦写入就从不清理，引擎和连接池永久占用资源
+2. **无配置变更检测** — 用户修改连接地址/密码后，仍使用旧的 Engine 实例
+3. **无内存泄漏保护** — 大量连接配置 × 多个数据库名 = 大量空闲 Engine 存活
+
+#### 3.1.2 优化方案
+
+修改文件：`backend/app/utils/db_connection_manager.py`
+
+**1. 添加引擎健康检查与惰性清理**
 
 ```python
-class ConnectionPoolManager:
-    """单例连接池管理器，维护所有数据库配置的连接池"""
+class DBConnectionManager:
+    _engines: Dict[str, Engine] = {}
+    _engine_last_used: Dict[str, float] = {}  # 新增：记录最后使用时间
     
-    _instance = None
-    _pools: Dict[str, Dict] = {}  # config_id -> pool_info
-    _pool_lock = threading.Lock()
+    @classmethod
+    def get_engine(cls, config_id: str, config: Dict[str, Any]) -> Engine:
+        db_name = config.get("database_name", "")
+        engine_key = f"{config_id}:{db_name}"
+
+        if engine_key in cls._engines:
+            engine = cls._engines[engine_key]
+            # 更新使用时间
+            cls._engine_last_used[engine_key] = time.time()
+            return engine
+
+        engine = cls._create_engine(config)
+        cls._engines[engine_key] = engine
+        cls._engine_last_used[engine_key] = time.time()
+        return engine
     
-    def get_connection(self, config: dict) -> pymysql.Connection:
-        """根据数据库配置获取连接（自动创建/复用/扩容池）"""
-        config_id = config["id"]
-        if config_id not in self._pools:
-            self._create_pool(config)
-        pool_info = self._pools[config_id]
-        pool_info["last_used"] = time.time()
-        return pool_info["pool"].connection()
-    
-    def _create_pool(self, config: dict):
-        """创建新连接池（使用 pymysql 的 PooledDB 或 DBUtils）"""
-        pool = PooledDB(
-            creator=pymysql,
-            maxconnections=5,     # 每个配置最多 5 个连接
-            mincached=1,          # 初始化时至少 1 个
-            blocking=True,
-            maxusage=None,        # 无使用次数限制
-            **self._build_connect_params(config)
-        )
-        self._pools[config["id"]] = {
-            "pool": pool,
-            "config_hash": hash(frozenset(config.items())),
-            "last_used": time.time(),
-            "config": config
-        }
-    
-    def cleanup_idle_pools(self, idle_timeout=900):
-        """清理空闲超过 15 分钟的连接池，释放资源"""
+    @classmethod
+    def cleanup_idle_engines(cls, idle_timeout: int = 900) -> int:
+        """清理空闲超过指定时间的引擎，返回清理数量"""
+        import time
         now = time.time()
-        to_remove = []
-        for cid, info in self._pools.items():
-            if now - info["last_used"] > idle_timeout:
-                to_remove.append(cid)
-        for cid in to_remove:
-            pool_info = self._pools.pop(cid)
+        keys_to_remove = [
+            k for k, last_used in cls._engine_last_used.items()
+            if now - last_used > idle_timeout
+        ]
+        for key in keys_to_remove:
+            if key in cls._engines:
+                try:
+                    cls._engines[key].dispose()
+                except Exception as e:
+                    logger.warning(f"清理引擎 {key} 失败: {e}")
+                del cls._engines[key]
+            cls._engine_last_used.pop(key, None)
+        if keys_to_remove:
+            logger.info(f"清理空闲引擎: {len(keys_to_remove)} 个 ({', '.join(keys_to_remove)})")
+        return len(keys_to_remove)
+    
+    @classmethod
+    def invalidate_engine(cls, engine_key: str):
+        """使指定引擎失效，下次 get_engine 时重新创建（用于配置变更后）"""
+        if engine_key in cls._engines:
             try:
-                pool_info["pool"].close()
+                cls._engines[engine_key].dispose()
             except: pass
-            logger.info(f"清理空闲连接池: {cid}")
+            del cls._engines[engine_key]
+            cls._engine_last_used.pop(engine_key, None)
+            logger.info(f"引擎失效: {engine_key}")
 ```
 
-#### 3.1.2 定时清理任务
+**2. 定时清理任务**
 
-新增文件：`backend/app/services/pool_cleanup.py`
+修改文件：`backend/app/main.py`
+
+在 `lifespan` 上下文中注册后台清理任务（如已有 lifespan 则追加）：
 
 ```python
-# 在 main.py 启动时注册定时任务
-# 每 5 分钟清理一次空闲连接池
+from app.utils.db_connection_manager import DBConnectionManager
 
-async def pool_cleanup_task():
-    while True:
-        await asyncio.sleep(300)
-        ConnectionPoolManager.get_instance().cleanup_idle_pools()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动清理任务
+    async def cleanup_loop():
+        while True:
+            await asyncio.sleep(300)  # 每 5 分钟
+            DBConnectionManager.cleanup_idle_engines(idle_timeout=900)
+    
+    task = asyncio.create_task(cleanup_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
 ```
 
-#### 3.1.3 现有服务层改造
+**3. 配置变更时主动失效**
 
 修改文件：`backend/app/services/database_tool_service.py`
 
-将 `DatabaseToolService.get_connection(config)` 替换为 `ConnectionPoolManager.get_connection(config)`。具体变更：
-- 删除 `create_connection()` 方法中的直连逻辑
-- 改用连接池获取连接
-- 保持 `finally: conn.close()` 不变（`PooledDB` 的 `close()` 是归还到池中，不是真正关闭）
+在 `create_config`、`update_config`、`delete_config` 方法中主动调用 `DBConnectionManager.invalidate_engine()` 使旧引擎失效：
 
-#### 3.1.4 依赖
+```python
+# delete_config 中
+DBConnectionManager.close_engine(id)  # 已有，保持不变
 
-需要添加：
-- `DBUtils>=3.0.0`（Python 连接池库，轻量、稳定）
-- 或直接用 `pymysql.connections` 手动实现（无新依赖）
+# update_config 中
+# 配置变更后清理该配置下的所有引擎
+for key in list(DBConnectionManager._engines.keys()):
+    if key.startswith(f"{config_id}:"):
+        DBConnectionManager.invalidate_engine(key)
+```
 
-**推荐**：使用 DBUtils，`PooledDB` 提供线程安全的连接池，代码量极少。
+#### 3.1.3 优势
+
+- **零新依赖** — 不引入 DBUtils，使用 SQLAlchemy 原生能力
+- **通用** — 适用于 MySQL/PostgreSQL/SQLite/SQLServer/Oracle 所有数据库类型
+- **最小改动** — 只需在 `DBConnectionManager` 中添加 2 个方法和 `_engine_last_used` 字典
+- **连接池已有** — `pool_size`、`pool_recycle`、`pool_pre_ping` 都已配置，无需额外优化
 
 ### 3.2 前端 IndexedDB 缓存层
 
@@ -335,11 +373,10 @@ const handleToggle = async (e: React.MouseEvent) => {
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
-| DBUtils 引入新依赖 | 低 | DBUtils 是成熟库，PyPI 周下载量 500K+，零依赖 |
 | IndexedDB 数据过期导致展示陈旧数据 | 中 | 设置合理 TTL，提供手动刷新按钮，DDL 操作后主动失效 |
-| 连接池泄漏（未归还连接） | 中 | PooledDB 的 `close()` 自动归还，增加 `maxusage` 限制 |
 | 缓存键冲突 | 低 | 缓存键包含 config_id + database_name，唯一性强 |
 | 并发写入 IndexedDB | 低 | IndexedDB 原生支持事务，同一 store 写入自动排队 |
+| `Promise.all` 竞态导致 `isLoading` 状态不一致 | 低 | 使用独立的 loading state 或 `Promise.allSettled` |
 
 ## 6. 验证方案
 
@@ -351,6 +388,8 @@ const handleToggle = async (e: React.MouseEvent) => {
 | 展开连接树（缓存命中） | ~800ms | < 50ms | 浏览器 Network 面板 |
 | 展开连接树（缓存未命中） | ~800ms | ~300ms | 浏览器 Network 面板 |
 | SQL Console 打开 | ~1200ms | < 400ms | 浏览器 Network 面板 |
+| 后端空闲引擎自动清理 | 无 | 15 分钟空闲自动释放 | 后端日志 |
+| 配置变更后旧引擎失效 | 无 | 编辑/删除连接后立即清理 | 后端日志 |
 
 ### 6.2 功能验证
 
@@ -360,14 +399,16 @@ const handleToggle = async (e: React.MouseEvent) => {
 - [ ] SQL Console 自动补全正常
 - [ ] 手动刷新后缓存更新
 - [ ] 离线状态下缓存数据仍可浏览
-- [ ] 后端连接池正常创建和回收
+- [ ] 后端空闲引擎定时清理生效
+- [ ] 配置变更后旧引擎主动失效
+- [ ] 页面加载时不再请求历史记录（懒加载）
 
 ## 7. 实施顺序
 
-1. **Phase 1: 后端连接池** — 新建 `db_pool_manager.py`，修改 `database_tool_service.py`，验证后端正常
-2. **Phase 2: 前端 IndexedDB 缓存** — 新建 `dbCache.ts`，修改 `databaseToolApi.ts` 加入缓存逻辑
-3. **Phase 3: 请求并行化 + 懒加载** — 修改 `DatabaseToolContext.tsx`、`SQLExecutor.tsx`
-4. **Phase 4: 骨架屏 + 体验优化** — 修改 `ConnectionList.tsx`，添加加载状态
+1. **Phase 1: 后端引擎清理** — 修改 `db_connection_manager.py` 添加 `cleanup_idle_engines` + `invalidate_engine`，修改 `main.py` 注册清理任务，修改 `database_tool_service.py` 在配置变更时主动失效。验证后端正常
+2. **Phase 2: 前端 IndexedDB 缓存** — 新建 `dbCache.ts`，修改 `databaseToolApi.ts` 加入缓存读写逻辑
+3. **Phase 3: 请求并行化 + 懒加载** — 修改 `DatabaseToolContext.tsx`（并行请求 + 历史记录懒加载）、`SQLExecutor.tsx`（并行请求）
+4. **Phase 4: 骨架屏 + 体验优化** — 修改 `ConnectionList.tsx`，添加骨架屏和预取
 
 每个 Phase 独立验证，确认无回归后再进入下一阶段。
 
@@ -375,13 +416,11 @@ const handleToggle = async (e: React.MouseEvent) => {
 
 | 操作 | 文件路径 | 说明 |
 |------|----------|------|
-| 新增 | `backend/app/services/db_pool_manager.py` | 连接池管理器 |
-| 新增 | `backend/app/services/pool_cleanup.py` | 连接池定时清理 |
-| 修改 | `backend/app/services/database_tool_service.py` | 替换直连为连接池 |
-| 修改 | `backend/requirements.txt` | 添加 DBUtils 依赖 |
-| 修改 | `backend/app/main.py` | 注册连接池清理任务 |
+| 修改 | `backend/app/utils/db_connection_manager.py` | 添加引擎清理 + 失效 + 使用时间追踪 |
+| 修改 | `backend/app/main.py` | 注册连接池定时清理任务 |
+| 修改 | `backend/app/services/database_tool_service.py` | 配置变更时主动使引擎失效 |
 | 新增 | `frontend/src/utils/dbCache.ts` | IndexedDB 缓存工具 |
 | 修改 | `frontend/src/api/databaseToolApi.ts` | 集成缓存读写 |
-| 修改 | `frontend/src/contexts/DatabaseToolContext.tsx` | 并行请求 + 懒加载 |
+| 修改 | `frontend/src/contexts/DatabaseToolContext.tsx` | 并行请求 + 历史记录懒加载 |
 | 修改 | `frontend/src/components/Tools/DatabaseTool/SQLExecutor.tsx` | 并行请求优化 |
 | 修改 | `frontend/src/components/Tools/DatabaseTool/components/ConnectionList.tsx` | 骨架屏 + 预取 |
