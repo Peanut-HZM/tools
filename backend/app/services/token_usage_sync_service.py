@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date
 from typing import Optional
 
 from app.models.base import SessionLocal
-from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog
+from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog, DeviceRegistry
 from app.utils.usage_fetcher import UsageFetcher
 from app.utils.device_id import get_device_id
 
@@ -173,6 +173,21 @@ def sync_token_usage(user_id: str, days: int = 90) -> dict:
     device_id = get_device_id()
     db = SessionLocal()
     result = {"sources_synced": [], "total_records": 0, "errors": []}
+
+    # 确保设备已注册到 device_registry
+    try:
+        existing = db.query(DeviceRegistry).filter_by(
+            user_id=user_id, device_id=device_id
+        ).first()
+        if not existing:
+            db.add(DeviceRegistry(
+                user_id=user_id,
+                device_id=device_id,
+                display_name=None,
+            ))
+            db.commit()
+    except Exception as e:
+        logger.warning(f"设备注册失败: {e}")
 
     try:
         sources = [
