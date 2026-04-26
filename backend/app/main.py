@@ -41,8 +41,10 @@ from logging.handlers import RotatingFileHandler
 
 from app.config.config import settings
 from app.utils.usage_fetcher import UsageFetcher
-from app.routes.token_usage import normalize_entries, apply_aggregation, compute_summary
+from app.routes.token_usage import normalize_entries, apply_aggregation, compute_summary, merge_items
 from app.services.token_usage_cache import set_cached_data
+from app.models.base import Base, SessionLocal, engine
+from app.services.token_usage_sync_service import sync_token_usage
 
 # 配置日志目录为项目根目录下的 logs 文件夹
 PROJECT_ROOT = Path(__file__).parent.parent  # backend/app/main.py -> backend
@@ -97,6 +99,14 @@ async def lifespan(app: FastAPI):
     # 启动时
     logger.info("Starting application...")
 
+    # 自动创建数据库表（Token Usage 相关模型）
+    try:
+        from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog  # noqa: F401
+        Base.metadata.create_all(bind=engine)
+        logger.info("Token Usage 数据库表创建成功")
+    except Exception as e:
+        logger.warning(f"Token Usage 数据库表创建失败: {e}")
+
     # 启动后台清理任务
     manager = get_manager()
     cleanup_task = asyncio.create_task(manager.start_cleanup_task())
@@ -109,7 +119,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"OpenClaw 连接启动失败（功能将不可用）: {e}")
 
-    # 启动 Token Usage 缓存刷新任务
+    # 启动 Token Usage 缓存刷新任务（包含 DB 同步 + Redis 缓存刷新）
     cache_refresh_task = asyncio.create_task(refresh_token_usage_cache_periodically())
 
     yield
@@ -262,7 +272,7 @@ app.include_router(openclaw_admin_router.router)
 
 
 async def refresh_token_usage_cache_periodically():
-    """每小时刷新 Token Usage 缓存"""
+    """每小时刷新 Token Usage 缓存（含 DB 同步）"""
     REFRESH_INTERVAL = 3600
 
     queries = [
@@ -277,10 +287,30 @@ async def refresh_token_usage_cache_periodically():
 
     while True:
         try:
+            logger.info("开始 Token Usage 数据同步...")
+            # 1. 同步 CLI 数据到数据库（增量）
+            try:
+                sync_token_usage(user_id="system", days=90)
+                logger.info("DB 同步完成")
+            except Exception as e:
+                logger.warning(f"DB 同步失败（将在下次重试）: {e}")
+
+            # 2. 刷新 Redis 缓存
             logger.info("开始刷新 Token Usage 缓存...")
             for q in queries:
                 await _refresh_single_cache(q["source"], q["report_type"], q["days"])
-            logger.info(f"Token Usage 缓存刷新完成，下次刷新在 {REFRESH_INTERVAL} 秒后")
+            # 刷新聚合缓存
+            aggregate_queries = [
+                {"report_type": "daily", "days": 7},
+                {"report_type": "daily", "days": 14},
+                {"report_type": "daily", "days": 30},
+                {"report_type": "daily", "days": 90},
+                {"report_type": "weekly", "days": 56},
+                {"report_type": "monthly", "days": 180},
+            ]
+            for q in aggregate_queries:
+                await _refresh_aggregate_cache(q["report_type"], q["days"])
+            logger.info(f"Token Usage DB 同步 + 缓存刷新完成，下次刷新在 {REFRESH_INTERVAL} 秒后")
         except Exception as e:
             logger.error(f"Token Usage 缓存刷新失败: {e}")
 
@@ -330,6 +360,62 @@ def _fetch_raw_data(source: str, report_type: str, days: int) -> dict:
     else:
         raw = UsageFetcher.fetch_opencode(days=days)
     return raw
+
+
+async def _refresh_aggregate_cache(report_type: str, days: int):
+    """刷新聚合缓存：并发获取两个数据源，合并后写入 Redis"""
+    loop = asyncio.get_event_loop()
+    since_date = datetime.now() - timedelta(days=days)
+    since = since_date.strftime("%Y%m%d")
+
+    claude_raw, opencode_raw = await asyncio.gather(
+        loop.run_in_executor(None, lambda: UsageFetcher.fetch_claude(
+            report_type="daily", since=since, breakdown=False
+        )),
+        loop.run_in_executor(None, lambda: UsageFetcher.fetch_opencode(days=days)),
+        return_exceptions=True,
+    )
+
+    if isinstance(claude_raw, Exception):
+        logger.warning(f"聚合缓存: claude 异常: {claude_raw}")
+        claude_raw = {"error": str(claude_raw)}
+    if isinstance(opencode_raw, Exception):
+        logger.warning(f"聚合缓存: opencode 异常: {opencode_raw}")
+        opencode_raw = {"error": str(opencode_raw)}
+
+    # 两个都失败则跳过
+    if "error" in claude_raw and "error" in opencode_raw:
+        logger.error(
+            f"聚合缓存刷新失败 {report_type}/{days}天: "
+            f"claude={claude_raw.get('error')}, opencode={opencode_raw.get('error')}"
+        )
+        return
+
+    # 分别规范化 + 聚合 + 合并
+    items_a = (
+        normalize_entries(claude_raw, report_type) if "error" not in claude_raw else []
+    )
+    items_b = (
+        normalize_entries(opencode_raw, report_type) if "error" not in opencode_raw else []
+    )
+    items_a = apply_aggregation(items_a, report_type)
+    items_b = apply_aggregation(items_b, report_type)
+    merged = merge_items(items_a, items_b)
+    summary = compute_summary(merged)
+
+    cache_data = {
+        "items": [item.model_dump() for item in merged],
+        "summary": summary.model_dump(),
+        "cache_time": datetime.now().isoformat(),
+    }
+
+    set_cached_data(
+        source="aggregate",
+        report_type=report_type,
+        days=days,
+        data=cache_data,
+    )
+    logger.info(f"聚合缓存已刷新: {report_type}/{days}天")
 
 
 @app.get("/")

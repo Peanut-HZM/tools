@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getTokenUsage, checkTokenUsageHealth, refreshTokenUsage, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
+import { getTokenUsage, getAggregatedTokenUsage, checkTokenUsageHealth, refreshTokenUsage, getDbTokenUsage, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
+import type { DbUsageItem, DbUsageResponse } from '../../api/tokenUsageApi';
 import { useI18n } from '../../i18n';
+import { API_BASE_URL } from '../../config/api';
+import { getAuthHeaders } from '../../api/authApi';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell,
@@ -24,7 +27,7 @@ export default function TokenUsage() {
   const [items, setItems] = useState<UsageItem[]>([]);
   const [summary, setSummary] = useState<UsageSummary | null>(null);
 
-  const [source, setSource] = useState<'claude' | 'opencode'>('claude');
+  const [source, setSource] = useState<'claude' | 'opencode' | 'all'>('claude');
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [days, setDays] = useState(30);
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
@@ -33,6 +36,13 @@ export default function TokenUsage() {
   const [cacheTime, setCacheTime] = useState<string | null>(null);
   const [isCached, setIsCached] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // DB query 相关状态
+  const [dbData, setDbData] = useState<DbUsageResponse | null>(null);
+  const [useDbQuery, setUseDbQuery] = useState(true);
+  const [groupBy, setGroupBy] = useState<'none' | 'device' | 'model'>('none');
+  const [selectedDevice, setSelectedDevice] = useState<string>('');
+  const [syncing, setSyncing] = useState(false);
 
   const [health, setHealth] = useState<{ ccusage_installed: boolean; opencode_usage_installed: boolean; ccusage_opencode_installed: boolean } | null>(null);
 
@@ -80,22 +90,37 @@ export default function TokenUsage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await getTokenUsage({
-        source,
-        type: reportType,
-        days,
-      });
-      setItems(result.items);
-      setSummary(result.summary);
-      setIsCached(result.cached || false);
-      setCacheTime(result.cache_time || null);
-      setCurrentPage(1);
+      if (useDbQuery) {
+        const result = await getDbTokenUsage({
+          type: reportType,
+          days,
+          group_by: groupBy,
+          source,
+          device_id: selectedDevice || undefined,
+        });
+        setDbData(result);
+        setItems(result.items as UsageItem[]);
+        setSummary(result.summary);
+        setIsCached(result.cached || false);
+        setCacheTime(null);
+        setCurrentPage(1);
+      } else {
+        setDbData(null);
+        const result = source === 'all'
+          ? await getAggregatedTokenUsage({ type: reportType, days })
+          : await getTokenUsage({ source, type: reportType, days });
+        setItems(result.items);
+        setSummary(result.summary);
+        setIsCached(result.cached || false);
+        setCacheTime(result.cache_time || null);
+        setCurrentPage(1);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [source, reportType, days]);
+  }, [source, reportType, days, useDbQuery, groupBy, selectedDevice]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -135,12 +160,35 @@ export default function TokenUsage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `token-usage-${source}-${reportType}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `token-usage-${source === 'all' ? 'all' : source}-${reportType}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const sortedItems = [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // 分组数据构建（按设备/模型）
+  const groupedData = useMemo(() => {
+    if (!useDbQuery || groupBy === 'none') return [];
+    const grouped: Record<string, Record<string, number>> = {};
+    const allDates = new Set<string>();
+
+    (items as DbUsageItem[]).forEach(item => {
+      const key = (item as DbUsageItem).group_key || 'unknown';
+      allDates.add(item.date);
+      if (!grouped[key]) grouped[key] = {};
+      grouped[key][item.date] = (grouped[key][item.date] || 0) + item.total_tokens;
+    });
+
+    const sortedDates = [...allDates].sort();
+    return sortedDates.map(date => {
+      const row: Record<string, string | number> = { date };
+      Object.entries(grouped).forEach(([key, dates]) => {
+        row[key] = dates[date] || 0;
+      });
+      return row;
+    });
+  }, [useDbQuery, groupBy, items]);
 
   const chartData = sortedItems.map(item => ({
     date: item.date,
@@ -195,7 +243,7 @@ export default function TokenUsage() {
         <h1 className="text-3xl font-bold text-slate-100">Token 消耗统计</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-slate-400">
-            数据来源: {source === 'claude' ? 'ccusage' : 'opencode-usage'}
+            数据来源: {source === 'all' ? '工具合计' : source === 'claude' ? 'ccusage' : 'opencode-usage'}
           </span>
           {cacheTime && (
             <span className="text-xs text-slate-500">
@@ -229,14 +277,59 @@ export default function TokenUsage() {
 
       <div className="bg-slate-800 rounded-lg p-4 mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
+          <label className="text-sm text-slate-400">模式:</label>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setUseDbQuery(false)}
+              className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                !useDbQuery ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              CLI 直查
+            </button>
+            <button
+              onClick={() => setUseDbQuery(true)}
+              className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                useDbQuery ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              数据库查询
+            </button>
+            {useDbQuery && (
+              <button
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    await fetch(`${API_BASE_URL}/token-usage/sync`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    });
+                    await fetchData();
+                  } catch (e: any) {
+                    setError(e.message);
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+                className="px-3 py-1.5 rounded text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                {syncing ? '同步中...' : '同步数据'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
           <label className="text-sm text-slate-400">工具:</label>
           <select
             value={source}
-            onChange={e => setSource(e.target.value as 'claude' | 'opencode')}
+            onChange={e => setSource(e.target.value as 'claude' | 'opencode' | 'all')}
             className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100"
           >
             <option value="claude">Claude Code</option>
             <option value="opencode">OpenCode</option>
+            <option value="all">工具合计</option>
           </select>
         </div>
 
@@ -271,6 +364,47 @@ export default function TokenUsage() {
             ))}
           </select>
         </div>
+
+        {useDbQuery && dbData && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-400">设备:</label>
+            <select
+              value={selectedDevice}
+              onChange={e => setSelectedDevice(e.target.value)}
+              className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100"
+            >
+              <option value="">全部设备</option>
+              {(dbData.devices || []).map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {useDbQuery && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-400">分组:</label>
+            <div className="flex gap-1">
+              {[
+                { value: 'none' as const, label: '按日期汇总' },
+                { value: 'device' as const, label: '按设备对比' },
+                { value: 'model' as const, label: '按模型分析' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setGroupBy(opt.value)}
+                  className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                    groupBy === opt.value
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <label className="text-sm text-slate-400">图表类型:</label>
@@ -326,65 +460,99 @@ export default function TokenUsage() {
         </div>
       )}
 
-      {!loading && chartData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <h3 className="text-lg font-medium text-slate-200 mb-4">Token 消耗趋势 & 成本</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={formatNumber} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => `$${v}`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#1e293b', border: "1px solid #334155", color: '#e2e8f0' }}
-                />
-                <Legend />
-                {chartType === 'bar' ? (
-                  <>
-                    <Bar yAxisId="left" dataKey="inputTokens" stackId="a" fill="#3b82f6" name="输入" />
-                    <Bar yAxisId="left" dataKey="outputTokens" stackId="a" fill="#10b981" name="输出" />
-                    <Bar yAxisId="left" dataKey="cacheTokens" stackId="a" fill="#f59e0b" name="缓存" />
-                  </>
-                ) : (
-                  <>
-                    <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="#3b82f6" strokeWidth={2} name="输入" dot={{ r: 3 }} />
-                    <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="#10b981" strokeWidth={2} name="输出" dot={{ r: 3 }} />
-                    <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="#f59e0b" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
-                  </>
-                )}
-                <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#ef4444" strokeWidth={2} name="成本 ($)" dot={{ r: 3 }} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <h3 className="text-lg font-medium text-slate-200 mb-4">模型成本占比</h3>
-            {filteredModelData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={filteredModelData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {filteredModelData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+      {!loading && (
+        <>
+          {/* 分组模式图表 */}
+          {useDbQuery && groupBy !== 'none' && groupedData.length > 0 && (
+            <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 mb-6">
+              <h3 className="text-lg font-medium text-slate-200 mb-4">
+                {groupBy === 'device' ? '各设备 Token 消耗对比' : '各模型 Token 消耗分析'}
+              </h3>
+              <ResponsiveContainer width="100%" height={350}>
+                <ComposedChart data={groupedData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={formatNumber} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1e293b', border: "1px solid #334155", color: '#e2e8f0' }}
+                  />
+                  <Legend />
+                  {Object.keys(groupedData[0] || {})
+                    .filter(k => k !== 'date')
+                    .map((key, idx) => (
+                      chartType === 'bar' ? (
+                        <Bar key={key} dataKey={key} fill={COLORS[idx % COLORS.length]} name={key} />
+                      ) : (
+                        <Line key={key} type="monotone" dataKey={key} stroke={COLORS[idx % COLORS.length]} strokeWidth={2} name={key} dot={{ r: 3 }} />
+                      )
                     ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                </PieChart>
+                </ComposedChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-slate-500">暂无模型数据</div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+
+          {/* 常规模式图表 */}
+          {(!useDbQuery || groupBy === 'none') && chartData.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h3 className="text-lg font-medium text-slate-200 mb-4">Token 消耗趋势 & 成本</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ComposedChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={formatNumber} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', border: "1px solid #334155", color: '#e2e8f0' }}
+                    />
+                    <Legend />
+                    {chartType === 'bar' ? (
+                      <>
+                        <Bar yAxisId="left" dataKey="inputTokens" stackId="a" fill="#3b82f6" name="输入" />
+                        <Bar yAxisId="left" dataKey="outputTokens" stackId="a" fill="#10b981" name="输出" />
+                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="a" fill="#f59e0b" name="缓存" />
+                      </>
+                    ) : (
+                      <>
+                        <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="#3b82f6" strokeWidth={2} name="输入" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="#10b981" strokeWidth={2} name="输出" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="#f59e0b" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
+                      </>
+                    )}
+                    <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#ef4444" strokeWidth={2} name="成本 ($)" dot={{ r: 3 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h3 className="text-lg font-medium text-slate-200 mb-4">模型成本占比</h3>
+                {filteredModelData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={filteredModelData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {filteredModelData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-slate-500">暂无模型数据</div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">

@@ -34,6 +34,7 @@
     "react-virtualized-auto-sizer": "^2.0.3",
     "react-window": "^2.2.7",
     "react18-json-view": "^0.2.10",
+    "recharts": "^3.8.1",
     "rehype-highlight": "^7.0.2",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",

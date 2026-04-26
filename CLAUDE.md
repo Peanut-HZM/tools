@@ -4,7 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 快速开始
 
-### 启动服务
+### 使用 dev_services.py 管理服务（推荐）
+
+```bash
+# 启动前后端服务
+python dev_services.py
+
+# 其他子命令
+python dev_services.py status      # 查看服务状态
+python dev_services.py restart     # 重启前后端服务
+python dev_services.py stop        # 停止前后端服务
+python dev_services.py kill all    # 强制终止所有服务
+python dev_services.py logs backend  # 查看后端实时日志
+python dev_services.py logs frontend # 查看前端实时日志
+```
+
+访问 http://localhost:5178
+
+### 手动启动（仅调试时）
 
 ```bash
 # 后端 (端口 19092)
@@ -17,8 +34,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-访问 http://localhost:5178
 
 ## 技术栈
 

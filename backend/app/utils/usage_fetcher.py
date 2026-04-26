@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import platform
 import shutil
 import subprocess
 import time
@@ -11,7 +12,9 @@ from typing import Optional
 
 # CLI 工具从用户主目录查找数据
 _home_raw = os.path.expanduser("~")
-if "IdeaProjects" in _home_raw:
+# macOS 上从 JetBrains 项目子目录运行时，expanduser 可能返回项目路径
+# 而非真实用户主目录，此时需要修正。Windows 无此问题，故跳过。
+if platform.system() != "Windows" and "IdeaProjects" in _home_raw:
     _home_raw = f"/Users/{os.getlogin()}"
 USER_HOME = _home_raw
 
@@ -42,6 +45,8 @@ def _run_cmd(cmd: list[str], timeout: int = 60) -> dict:
     try:
         env = os.environ.copy()
         env["HOME"] = USER_HOME
+
+        # Windows 下已使用完整路径，不需要 shell=True
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -52,6 +57,10 @@ def _run_cmd(cmd: list[str], timeout: int = 60) -> dict:
         )
         if result.returncode != 0:
             err = result.stderr.strip()[:500] or "CLI 执行失败"
+            # 忽略 bun 协议错误（opencode-usage 使用 bun 运行时）
+            if "bun:" in err or "ERR_UNSUPPORTED_ESM_URL_SCHEME" in err:
+                logger.warning("opencode-usage 需要 bun 运行时，当前环境不支持: %s", err[:200])
+                return {"error": "opencode-usage 需要 bun 运行时，当前环境不支持"}
             logger.error("CLI failed: %s -> %s", " ".join(cmd), err)
             return {"error": err}
 
@@ -105,7 +114,15 @@ class UsageFetcher:
         if cached:
             return cached
 
-        cmd = ["ccusage", report_type, "--json", "--offline"]
+        # Windows 下使用完整路径运行 node + index.js
+        if platform.system() == "Windows":
+            node_exe = shutil.which("node.exe") or shutil.which("node") or "node"
+            ccusage_path = os.path.expanduser(
+                "~/AppData/Roaming/npm/node_modules/ccusage/dist/index.js"
+            )
+            cmd = [node_exe, ccusage_path, report_type, "--json", "--offline"]
+        else:
+            cmd = ["ccusage", report_type, "--json", "--offline"]
         if since:
             cmd += ["--since", since]
         if until:
@@ -144,10 +161,16 @@ class UsageFetcher:
         legacy_result = UsageFetcher._fetch_opencode_legacy(days)
 
         if "error" in current_result and "error" in legacy_result:
-            return {"error": f"opencode-usage: {current_result['error']}; ccusage-opencode: {legacy_result['error']}"}
+            return {
+                "error": f"opencode-usage: {current_result['error']}; ccusage-opencode: {legacy_result['error']}"
+            }
 
-        current_entries = current_result.get("rows", []) if "error" not in current_result else []
-        legacy_entries = legacy_result.get("daily", []) if "error" not in legacy_result else []
+        current_entries = (
+            current_result.get("rows", []) if "error" not in current_result else []
+        )
+        legacy_entries = (
+            legacy_result.get("daily", []) if "error" not in legacy_result else []
+        )
 
         def _get_date(entry: dict) -> str:
             return entry.get("date") or entry.get("label") or ""
@@ -183,7 +206,15 @@ class UsageFetcher:
         if cached:
             return cached
 
-        cmd = ["opencode-usage", "run", "--json", f"--days={days}"]
+        # Windows 下使用完整路径运行 node + index.js
+        if platform.system() == "Windows":
+            node_exe = shutil.which("node.exe") or shutil.which("node") or "node"
+            opencode_usage_path = os.path.expanduser(
+                "~/AppData/Roaming/npm/node_modules/opencode-usage/dist/index.js"
+            )
+            cmd = [node_exe, opencode_usage_path, "run", "--json", f"--days={days}"]
+        else:
+            cmd = ["opencode-usage", "run", "--json", f"--days={days}"]
         if by:
             cmd.append(f"--by={by}")
         else:
@@ -209,7 +240,15 @@ class UsageFetcher:
         if cached:
             return cached
 
-        cmd = ["ccusage-opencode", "daily", "--json"]
+        # Windows 下使用完整路径运行 node + index.js
+        if platform.system() == "Windows":
+            node_exe = shutil.which("node.exe") or shutil.which("node") or "node"
+            ccusage_opencode_path = os.path.expanduser(
+                "~/AppData/Roaming/npm/node_modules/@ccusage/opencode/dist/index.js"
+            )
+            cmd = [node_exe, ccusage_opencode_path, "daily", "--json"]
+        else:
+            cmd = ["ccusage-opencode", "daily", "--json"]
         result = _run_cmd(cmd)
         if "error" not in result:
             _set_cache(cache_key, result)

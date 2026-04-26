@@ -1,16 +1,18 @@
 /**
  * API配置
  * 支持通过环境变量配置API地址
+ * 开发环境：.env.development
+ * 生产环境：.env.production
  */
 
-// 从环境变量获取API地址，生产环境使用相对路径，开发环境使用localhost
+// 从环境变量获取API地址
 const getApiBaseUrl = (): string => {
-  // Vite环境变量
+  // 优先使用环境变量中的配置
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
   
-  // 生产环境使用相对路径
+  // 生产构建且无环境变量时使用相对路径
   if (import.meta.env.PROD) {
     return '/api';
   }

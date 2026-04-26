@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"python /g/IdeaProjects/tools/dev_services.py start\",\"timeout\":120000,\"description\":\"Start services with forward slash path\"}",
+  "error": "Exit code 1\n\r\n\u001b[2m============================================================\u001b[0m\r\n\r\n\u001b[37m[00:13:41] [INFO]\u001b[0m 工具箱服务管理器\r\n\r\n\u001b[2m============================================================\u001b[0m\r\n\r\n\r\n\u001b[1m  启动后端服务\u001b[0m\r\n\u001b[2m--------------------------------------------------\u001b[0m\r\n\u001b[33m[00:13:41] [WARN]\u001b[0m 端口 19092 已被占用 (PID 26332)，先停止...\r\n\u001b[37m[00:13:41] [INFO]\u001b[0m 停止 后端 服务 (端口 19092)...\r\n\u001b[37m[00:13:41] [INFO]\u001b[0m 进程 33380 已不存在\r\n\u001b[37m[00:13:41] [INFO]\u001b[0m 进程 34724 已不存在\r\n\u001b[37m[00:13:41] [INFO]\u001b[0m ...",
+  "timestamp": "2026-04-25T16:14:24.071Z",
+  "retry_count": 4
+}

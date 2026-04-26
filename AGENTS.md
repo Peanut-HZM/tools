@@ -59,9 +59,34 @@ Python 3.10+ (后端), TypeScript/React 18 (前端): 遵循标准规范
 
 ### 2. 热重载规范
 
-**核心原则：优先使用热重载功能，非必要不重启服务。**
+**核心原则：优先使用 `dev_services.py` 管理服务，脚本已内置热重载支持。**
 
-#### 2.1 前端热重载
+#### 2.1 服务管理脚本
+
+项目根目录提供 `dev_services.py` 脚本，**所有服务启停操作必须使用该脚本**：
+
+```bash
+python dev_services.py                  # 启动前后端服务（默认）
+python dev_services.py status           # 查看服务状态
+python dev_services.py restart          # 重启前后端服务
+python dev_services.py stop             # 停止前后端服务
+python dev_services.py kill backend     # 强制终止后端
+python dev_services.py kill all         # 强制终止所有服务
+python dev_services.py logs backend     # 查看后端实时日志
+python dev_services.py logs frontend    # 查看前端实时日志
+python dev_services.py start -f         # 前台模式启动（调试用）
+python dev_services.py start --backend-only  # 只启动后端
+python dev_services.py start --frontend-only # 只启动前端
+```
+
+**脚本特性：**
+- 彩色日志输出，便于区分日志级别
+- 自动检测端口占用并清理残留进程
+- 双阶段健康检查（日志关键字 + HTTP 探测）
+- 后端自动使用 Python venv 虚拟环境
+- 日志文件位于 `logs/backend.log` 和 `logs/frontend.log`
+
+#### 2.2 前端热重载
 - **优先使用 Vite HMR**：前端基于 Vite，支持模块热替换（HMR）
 - **非必要不重启**：在开发过程中，应优先使用热重载功能，避免手动重启开发服务器
 - 不需要重启的情况：
@@ -76,7 +101,7 @@ Python 3.10+ (后端), TypeScript/React 18 (前端): 遵循标准规范
   - 添加/删除依赖包
   - 修改 TypeScript 配置文件（tsconfig.json）
 
-#### 2.2 后端热重载
+#### 2.3 后端热重载
 - **使用 Uvicorn --reload**：支持代码变更自动重载
 - **非必要不重启**：在开发过程中，应优先使用热重载功能，避免手动重启服务
 - 不需要重启的情况：
@@ -90,47 +115,12 @@ Python 3.10+ (后端), TypeScript/React 18 (前端): 遵循标准规范
   - 添加/删除 Python 包
   - 修改环境变量
 
-#### 2.3 判断流程
+#### 2.4 判断流程
 ```
 用户请求修改代码
     ↓
 判断：是否影响运行时配置？
-    ├─ 是 → 询问用户是否重启
-    └─ 否 → 使用热重载，通知用户无需重启
-```
-
-#### 2.1 前端热重载
-- **优先使用 Vite HMR**：前端基于 Vite，支持模块热替换（HMR）
-- 非必要不重启：以下情况禁止重启开发服务器：
-  - 修改 React 组件
-  - 修改样式文件（CSS/Tailwind）
-  - 修改工具函数
-  - 修改类型定义
-- 必须重启的情况：
-  - 修改 Vite 配置文件（vite.config.ts）
-  - 修改环境变量文件（.env）
-  - 添加/删除依赖包
-  - 修改 TypeScript 配置文件（tsconfig.json）
-
-#### 2.2 后端热重载
-- **使用 Uvicorn --reload**：支持代码变更自动重载
-- 非必要不重启：以下情况无需手动重启：
-  - 修改路由处理函数
-  - 修改业务逻辑代码
-  - 修改数据模型（Pydantic）
-  - 修改工具函数
-- 必须重启的情况：
-  - 修改依赖注入配置
-  - 修改数据库连接配置
-  - 添加/删除 Python 包
-  - 修改环境变量
-
-#### 2.3 判断流程
-```
-用户请求修改代码
-    ↓
-判断：是否影响运行时配置？
-    ├─ 是 → 询问用户是否重启
+    ├─ 是 → 使用 dev_services.py restart 重启
     └─ 否 → 使用热重载，通知用户无需重启
 ```
 

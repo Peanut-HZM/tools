@@ -1,0 +1,7 @@
+{
+  "tool_name": "PowerShell",
+  "tool_input_preview": "{\"command\":\"Get-Process -Name python,uvicorn -ErrorAction SilentlyContinue | Where-Object { $_.Modules | Where-Object { $_.FileName -like \\\"*tools*\\\" } } | ForEach-Object { Stop-Process -Id $_.Id -For...",
+  "error": "Exit code 1",
+  "timestamp": "2026-04-26T01:13:52.368Z",
+  "retry_count": 1
+}

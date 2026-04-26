@@ -35,9 +35,27 @@
 
 ### 一键启动
 
-查看 [QUICKSTART.md](QUICKSTART.md) 获取详细的快速启动指南。
+**推荐使用 dev_services.py 管理服务（最简单）：**
 
-**简要步骤：**
+```bash
+# 启动前后端服务
+python dev_services.py
+
+# 查看服务状态
+python dev_services.py status
+
+# 重启服务
+python dev_services.py restart
+
+# 停止服务
+python dev_services.py stop
+
+# 查看实时日志
+python dev_services.py logs backend
+python dev_services.py logs frontend
+```
+
+**传统方式（手动启动）：**
 
 1. **启动后端**
 
