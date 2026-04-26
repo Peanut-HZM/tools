@@ -23,16 +23,33 @@ const SQLExecutor: React.FC = () => {
 
   // Fetch databases when config changes
   useEffect(() => {
-    const fetchDatabases = async () => {
+    const fetchAll = async () => {
       if (!currentConfig) {
         setDatabases([]);
         return;
       }
-      
+
       setDbLoading(true);
       try {
-        const dbs = await api.getDatabasesList(currentConfig.id);
-        setDatabases(dbs);
+        // 并行请求：数据库列表 + 表结构（如果有默认数据库）
+        const targetDb = currentDatabase || currentConfig.database_name;
+        const [dbs, structure] = await Promise.allSettled([
+          api.getDatabasesList(currentConfig.id),
+          targetDb ? api.getDatabaseStructure(currentConfig.id, targetDb) : Promise.resolve(null)
+        ]);
+
+        if (dbs.status === 'fulfilled') {
+          setDatabases(dbs.value);
+        } else {
+          setDatabases([]);
+        }
+
+        if (structure.status === 'fulfilled' && structure.value) {
+          setTables([
+            ...structure.value.tables.map(t => t.name),
+            ...structure.value.views.map(v => v.name)
+          ]);
+        }
       } catch (err) {
         console.error("Failed to load databases", err);
         setDatabases([]);
@@ -41,32 +58,11 @@ const SQLExecutor: React.FC = () => {
       }
     };
 
-    fetchDatabases();
-  }, [currentConfig?.id]);
-
-  // Fetch tables for autocomplete when database changes
-  useEffect(() => {
-    const fetchTables = async () => {
-      // Use currentDatabase or fall back to default database if available
-      const targetDb = currentDatabase || currentConfig?.database_name;
-      
-      if (!currentConfig || !targetDb) {
-        setTables([]);
-        return;
-      }
-      
-      try {
-        const structure = await api.getDatabaseStructure(currentConfig.id, targetDb);
-        if (structure) {
-          setTables([...structure.tables.map(t => t.name), ...structure.views.map(v => v.name)]);
-        }
-      } catch (err) {
-        console.error("Failed to fetch tables for autocomplete", err);
-      }
-    };
-    
-    fetchTables();
+    fetchAll();
   }, [currentConfig?.id, currentDatabase]);
+
+  // Tables for autocomplete are already set by the useEffect above
+  // No separate useEffect needed to avoid duplicate structure requests
 
   const handleExecute = async (pageOverride?: number) => {
     if (!currentConfig || !sql.trim()) return;

@@ -4,6 +4,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from urllib.parse import quote_plus
 import logging
+import time
 from app.utils.encryption import EncryptionUtils
 from app.models.database_tool_models import DatabaseType
 
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class DBConnectionManager:
     _engines: Dict[str, Engine] = {}
+    _engine_last_used: Dict[str, float] = {}  # 记录每个引擎的最后使用时间（时间戳）
 
     @classmethod
     def get_engine(cls, config_id: str, config: Dict[str, Any]) -> Engine:
@@ -27,11 +29,14 @@ class DBConnectionManager:
         engine_key = f"{config_id}:{db_name}"
 
         if engine_key in cls._engines:
+            # 更新最后使用时间
+            cls._engine_last_used[engine_key] = time.time()
             # Check if engine is still valid (optional)
             return cls._engines[engine_key]
 
         engine = cls._create_engine(config)
         cls._engines[engine_key] = engine
+        cls._engine_last_used[engine_key] = time.time()
         return engine
 
     @classmethod
@@ -148,6 +153,74 @@ class DBConnectionManager:
         except Exception as e:
             logger.error(f"Connection test failed: {e}")
             raise e  # Re-raise to let caller handle the error message
+
+    @classmethod
+    def invalidate_engine(cls, config_id: str, database_name: str = ""):
+        """
+        使指定配置的引擎失效，下次 get_engine 时重新创建。
+        用于配置变更（编辑/删除）后清理旧引擎。
+        """
+        db_name = database_name or ""
+        engine_key = f"{config_id}:{db_name}"
+        if engine_key in cls._engines:
+            try:
+                cls._engines[engine_key].dispose()
+            except Exception as e:
+                logger.warning(f"Dispose engine {engine_key} failed: {e}")
+            del cls._engines[engine_key]
+            cls._engine_last_used.pop(engine_key, None)
+            logger.info(f"引擎已失效: {engine_key}")
+
+        # 如果未指定数据库名，也清理不带数据库名的 key
+        if not database_name:
+            generic_key = f"{config_id}:"
+            if generic_key in cls._engines:
+                try:
+                    cls._engines[generic_key].dispose()
+                except:
+                    pass
+                del cls._engines[generic_key]
+                cls._engine_last_used.pop(generic_key, None)
+
+    @classmethod
+    def invalidate_all_engines(cls, config_id: str):
+        """
+        使指定配置下的所有引擎失效（删除/大幅修改配置时使用）。
+        """
+        keys_to_remove = [k for k in cls._engines if k.startswith(f"{config_id}:")]
+        for key in keys_to_remove:
+            try:
+                cls._engines[key].dispose()
+            except Exception as e:
+                logger.warning(f"Dispose engine {key} failed: {e}")
+            del cls._engines[key]
+            cls._engine_last_used.pop(key, None)
+        if keys_to_remove:
+            logger.info(f"已清理配置 {config_id} 下的 {len(keys_to_remove)} 个引擎")
+
+    @classmethod
+    def cleanup_idle_engines(cls, idle_timeout: int = 900) -> int:
+        """
+        清理空闲超过指定时间的引擎，释放资源。
+        默认 900 秒（15 分钟）。
+        返回清理数量。
+        """
+        now = time.time()
+        keys_to_remove = [
+            k for k, last_used in cls._engine_last_used.items()
+            if now - last_used > idle_timeout
+        ]
+        for key in keys_to_remove:
+            if key in cls._engines:
+                try:
+                    cls._engines[key].dispose()
+                except Exception as e:
+                    logger.warning(f"清理引擎 {key} 失败: {e}")
+                del cls._engines[key]
+            cls._engine_last_used.pop(key, None)
+        if keys_to_remove:
+            logger.info(f"清理空闲引擎: {len(keys_to_remove)} 个 ({', '.join(keys_to_remove)})")
+        return len(keys_to_remove)
 
     @classmethod
     def close_engine(cls, config_id: str):

@@ -181,3 +181,87 @@ export interface RowOperationResult {
   execution_time_ms: number;
   error_message?: string;
 }
+
+// ============ 表详情类型 ============
+
+export interface ColumnDetail {
+  name: string;
+  type: string;
+  length?: string;
+  nullable: boolean;
+  default_value?: string;
+  comment?: string;
+  primary_key: boolean;
+  auto_increment: boolean;
+  ordinal_position: number;
+}
+
+export interface IndexDetail {
+  name: string;
+  unique: boolean;
+  primary: boolean;
+  columns: string[];
+}
+
+export interface ForeignKeyDetail {
+  name: string;
+  constrained_columns: string[];
+  referred_table: string;
+  referred_columns: string[];
+}
+
+export interface TableDetailResponse {
+  table_name: string;
+  comment?: string;
+  columns: ColumnDetail[];
+  indexes: IndexDetail[];
+  foreign_keys: ForeignKeyDetail[];
+  row_count?: number;
+}
+
+// ============ 备份类型 ============
+
+export type BackupMode = 'structure_and_data' | 'structure_only' | 'data_only';
+
+export interface BackupRequest {
+  database_name: string;
+  backup_format?: string;
+  backup_mode: BackupMode;
+  tables?: string[];
+  include_drop?: boolean;
+  include_if_not_exists?: boolean;
+}
+
+export interface BackupResponse {
+  backup_id: string;
+  file_name: string;
+  file_size: number;
+  download_url: string;
+  created_at: string;
+  tables_count: number;
+  backup_mode: string;
+  status: string;
+}
+
+export interface BackupRecord {
+  id: string;
+  config_id: string;
+  database_name: string;
+  file_name: string;
+  file_size: number;
+  backup_mode: string;
+  tables_count: number;
+  tables_list?: string[];
+  status: string;
+  error_message?: string;
+  created_at: string;
+  downloaded_count: number;
+}
+
+export interface BackupListResponse {
+  records: BackupRecord[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

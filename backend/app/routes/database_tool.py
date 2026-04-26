@@ -30,15 +30,19 @@ from app.models.database_tool_models import (
     AutoCompleteResponse,
     BackupDatabaseRequest,
     BackupDatabaseResponse,
+    BackupRecordResponse,
     RestoreDatabaseRequest,
     RestoreDatabaseResponse,
+    TableDetailResponse,
     BatchDeleteRequest,
     BatchDeleteResult,
     InsertRowRequest,
     UpdateRowRequest,
     RowOperationResult,
 )
-from app.services.database_tool_service import DatabaseToolService
+from fastapi.responses import FileResponse
+from pathlib import Path
+from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE
 
 router = APIRouter(prefix="/database-tool", tags=["database-tool"])
 
@@ -107,6 +111,8 @@ async def update_database(
         config = DatabaseToolService.update_config(id, user_id, request)
         if not config:
             raise HTTPException(status_code=404, detail="Configuration not found")
+        # 清除该配置下所有数据库的结构缓存（连接信息可能已变更）
+        _STRUCTURE_CACHE.invalidate_prefix(f"{id}:")
         return config
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -124,6 +130,8 @@ async def delete_database(
         success = DatabaseToolService.delete_config(id, user_id)
         if not success:
             raise HTTPException(status_code=404, detail="Configuration not found")
+        # 删除配置时清除该配置下所有数据库的结构缓存
+        _STRUCTURE_CACHE.invalidate_prefix(f"{id}:")
         return {"message": "Configuration deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -213,7 +221,10 @@ async def modify_table_structure(
 ):
     """Modify table structure"""
     try:
-        return DatabaseToolService.modify_table_structure(user_id, id, request)
+        result = DatabaseToolService.modify_table_structure(user_id, id, request)
+        if result:
+            _STRUCTURE_CACHE.invalidate(f"{id}:{request.database_name}")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -226,7 +237,10 @@ async def delete_all_tables(
 ):
     """Delete all tables in a database"""
     try:
-        return DatabaseToolService.delete_all_tables(user_id, id, database_name)
+        result = DatabaseToolService.delete_all_tables(user_id, id, database_name)
+        if result:
+            _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -242,7 +256,10 @@ async def truncate_all_tables(
         database_name = request.get("database_name")
         if not database_name:
             raise HTTPException(status_code=400, detail="database_name is required")
-        return DatabaseToolService.truncate_all_tables(user_id, id, database_name)
+        result = DatabaseToolService.truncate_all_tables(user_id, id, database_name)
+        if result:
+            _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -295,7 +312,10 @@ async def create_database_instance(
         charset = request.get("charset", "utf8mb4")
         if not name:
             raise HTTPException(status_code=400, detail="name is required")
-        return DatabaseToolService.create_database_instance(user_id, id, name, charset)
+        result = DatabaseToolService.create_database_instance(user_id, id, name, charset)
+        if result:
+            _STRUCTURE_CACHE.invalidate(f"{id}:{name}")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -308,7 +328,10 @@ async def drop_database_instance(
 ):
     """Drop a database on the server"""
     try:
-        return DatabaseToolService.drop_database_instance(user_id, id, name)
+        result = DatabaseToolService.drop_database_instance(user_id, id, name)
+        if result:
+            _STRUCTURE_CACHE.invalidate(f"{id}:{name}")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -322,9 +345,12 @@ async def drop_table_instance(
 ):
     """Drop a table"""
     try:
-        return DatabaseToolService.drop_table_instance(
+        result = DatabaseToolService.drop_table_instance(
             user_id, id, database_name, table
         )
+        if result:
+            _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -341,9 +367,12 @@ async def truncate_table_instance(
         database_name = request.get("database_name")
         if not database_name:
             raise HTTPException(status_code=400, detail="database_name is required")
-        return DatabaseToolService.truncate_table_instance(
+        result = DatabaseToolService.truncate_table_instance(
             user_id, id, database_name, table
         )
+        if result:
+            _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -607,3 +636,102 @@ async def update_table_row(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============ 表详情 API ============
+
+
+@router.get("/databases/{id}/tables/{table}/detail", response_model=TableDetailResponse)
+async def get_table_detail(
+    id: str = PathParam(..., description="Configuration ID"),
+    table: str = PathParam(..., description="Table Name"),
+    database_name: str = Query(..., description="Database Name"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """获取表详细结构（字段、索引、外键）"""
+    try:
+        return DatabaseToolService.get_table_detail(user_id, id, table, database_name)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/databases/{id}/tables/{table}/row-count")
+async def get_table_row_count(
+    id: str = PathParam(..., description="Configuration ID"),
+    table: str = PathParam(..., description="Table Name"),
+    database_name: str = Query(..., description="Database Name"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """获取表行数"""
+    try:
+        count = DatabaseToolService.get_table_row_count(user_id, id, table, database_name)
+        return {"table_name": table, "row_count": count}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============ 备份文件下载 API ============
+
+
+@router.get("/backups/{backup_id}/download")
+async def download_backup(
+    backup_id: str = PathParam(..., description="Backup ID"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """下载备份文件"""
+    file_path = DatabaseToolService.get_backup_file_path(user_id, backup_id)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="Backup not found")
+
+    path = Path(file_path)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Backup file not found")
+
+    # 增加下载计数
+    DatabaseToolService.increment_download_count(user_id, backup_id)
+
+    return FileResponse(
+        path=file_path,
+        media_type="application/sql",
+        filename=path.name,
+    )
+
+
+# ============ 备份历史管理 API ============
+
+
+@router.get("/configs/{id}/backups")
+async def list_backups(
+    id: str = PathParam(..., description="Configuration ID"),
+    database_name: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user_id: str = Depends(get_current_user_id),
+):
+    """获取备份历史列表"""
+    try:
+        return DatabaseToolService.list_backups(
+            user_id=user_id,
+            config_id=id,
+            database_name=database_name,
+            page=page,
+            page_size=page_size,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/backups/{backup_id}")
+async def delete_backup(
+    backup_id: str = PathParam(..., description="Backup ID"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """删除备份"""
+    success = DatabaseToolService.delete_backup(user_id, backup_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Backup not found")
+    return {"message": "Backup deleted successfully"}

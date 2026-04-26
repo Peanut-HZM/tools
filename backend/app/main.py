@@ -111,6 +111,25 @@ async def lifespan(app: FastAPI):
     manager = get_manager()
     cleanup_task = asyncio.create_task(manager.start_cleanup_task())
 
+    # 启动数据库工具连接池空闲清理任务（每 5 分钟清理 15 分钟未使用的引擎）
+    try:
+        from app.utils.db_connection_manager import DBConnectionManager
+
+        async def db_pool_cleanup_loop():
+            while True:
+                await asyncio.sleep(300)
+                try:
+                    cleaned = DBConnectionManager.cleanup_idle_engines(idle_timeout=900)
+                    if cleaned:
+                        logger.info(f"数据库连接池空闲清理: 已清理 {cleaned} 个引擎")
+                except Exception as e:
+                    logger.warning(f"数据库连接池清理失败: {e}")
+
+        db_pool_cleanup_task = asyncio.create_task(db_pool_cleanup_loop())
+    except Exception as e:
+        logger.warning(f"数据库连接池清理任务启动失败: {e}")
+        db_pool_cleanup_task = None
+
     # 启动 OpenClaw 连接
     try:
         from app.services.openclaw_service import openclaw_service
@@ -144,6 +163,12 @@ async def lifespan(app: FastAPI):
         await cache_refresh_task
     except asyncio.CancelledError:
         pass
+    if 'db_pool_cleanup_task' in locals() and db_pool_cleanup_task is not None:
+        db_pool_cleanup_task.cancel()
+        try:
+            await db_pool_cleanup_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="Tool Aggregation API", lifespan=lifespan)

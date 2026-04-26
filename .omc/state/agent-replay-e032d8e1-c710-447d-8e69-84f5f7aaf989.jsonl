@@ -1,0 +1,7 @@
+{"t":0,"agent":"afb7e12","agent_type":"general-purpose","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"afb7e12","agent_type":"general-purpose","event":"agent_stop","success":true,"duration_ms":122404}
+{"t":0,"agent":"a9df6f1","agent_type":"general-purpose","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a9df6f1","agent_type":"general-purpose","event":"agent_stop","success":true,"duration_ms":62471}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"oh-my-claudecode:ralplan"}
+{"t":0,"agent":"a855cb2","agent_type":"Plan","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a855cb2","agent_type":"Plan","event":"agent_stop","success":true,"duration_ms":279005}

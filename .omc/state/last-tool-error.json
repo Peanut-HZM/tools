@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"Set-Location g:\\\\IdeaProjects\\\\tools; python \\\"$env:USERPROFILE/.claude/dev-services.py\\\" discover 2>&1\",\"description\":\"Test global script discover command\"}",
+  "error": "Exit code 2\n/usr/bin/bash: line 1: Set-Location: command not found\nG:\\IdeaProjects\\tools\\venv\\Scripts\\python.exe: can't open file 'G:\\\\IdeaProjects\\\\tools\\\\:USERPROFILE\\\\.claude\\\\dev-services.py': [Errno 22] Invalid argument",
+  "timestamp": "2026-04-26T05:12:08.944Z",
+  "retry_count": 1
+}

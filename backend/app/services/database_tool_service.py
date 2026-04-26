@@ -2,6 +2,7 @@ import uuid
 import json
 import logging
 import time
+import threading
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -36,15 +37,67 @@ from app.models.database_tool_models import (
     AutoCompleteItem,
     BackupDatabaseRequest,
     BackupDatabaseResponse,
+    BackupRecordResponse,
     RestoreDatabaseRequest,
     RestoreDatabaseResponse,
+    TableDetailResponse,
+    ColumnDetail,
+    IndexDetail,
+    ForeignKeyDetail,
 )
+from app.services.backup_generators import get_generator
+from app.services.backup_storage import backup_storage
 from app.utils.encryption import EncryptionUtils
 from app.utils.db_connection_manager import DBConnectionManager
 from app.utils.sql_executor import SQLExecutor
 from sqlalchemy import inspect, text
 
 logger = logging.getLogger(__name__)
+
+
+class StructureCache:
+    """线程安全的 TTL 缓存，无需外部依赖"""
+    def __init__(self, ttl: int = 600, maxsize: int = 100):
+        self._cache: Dict[str, Any] = {}
+        self._timestamps: Dict[str, float] = {}
+        self._ttl = ttl
+        self._maxsize = maxsize
+        self._lock = threading.Lock()
+
+    def get(self, key: str) -> Optional[Any]:
+        with self._lock:
+            if key in self._cache:
+                if time.time() - self._timestamps[key] < self._ttl:
+                    return self._cache[key]
+                else:
+                    del self._cache[key]
+                    del self._timestamps[key]
+            return None
+
+    def set(self, key: str, value: Any) -> None:
+        with self._lock:
+            if len(self._cache) >= self._maxsize and key not in self._cache:
+                oldest_key = min(self._timestamps, key=self._timestamps.get)
+                del self._cache[oldest_key]
+                del self._timestamps[oldest_key]
+            self._cache[key] = value
+            self._timestamps[key] = time.time()
+
+    def invalidate(self, key: str) -> None:
+        with self._lock:
+            self._cache.pop(key, None)
+            self._timestamps.pop(key, None)
+
+    def invalidate_prefix(self, prefix: str) -> None:
+        with self._lock:
+            keys_to_remove = [k for k in list(self._cache.keys()) if k.startswith(prefix)]
+            for k in keys_to_remove:
+                del self._cache[k]
+                del self._timestamps[k]
+
+
+# 全局实例：10 分钟 TTL，最多 100 条
+_STRUCTURE_CACHE = StructureCache(ttl=600, maxsize=100)
 
 
 class DatabaseToolService:
@@ -1025,6 +1078,13 @@ class DatabaseToolService:
     def get_database_structure(
         user_id: str, config_id: str, database_name: str
     ) -> Dict[str, List[Dict[str, Any]]]:
+        cache_key = f"{config_id}:{database_name}"
+
+        # 1. 查后端缓存
+        cached = _STRUCTURE_CACHE.get(cache_key)
+        if cached:
+            return cached
+
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
         if not config_row:
             raise ValueError("Configuration not found")
@@ -1055,28 +1115,26 @@ class DatabaseToolService:
             tables_data = []
             views_data = []
 
-            # Optimized fetching for MySQL/MariaDB
+            # Optimized fetching for MySQL/MariaDB: UNION ALL 合并 tables + views 查询
             if db_type == DatabaseType.MYSQL or db_type == DatabaseType.MARIADB:
                 with engine.connect() as conn:
-                    # Fetch Tables
-                    sql_tables = text("""
-                        SELECT TABLE_NAME, TABLE_COMMENT 
-                        FROM information_schema.TABLES 
+                    sql = text("""
+                        SELECT TABLE_NAME, TABLE_COMMENT, 'table' AS obj_type
+                        FROM information_schema.TABLES
                         WHERE TABLE_SCHEMA = :schema AND TABLE_TYPE = 'BASE TABLE'
-                    """)
-                    result_tables = conn.execute(sql_tables, {"schema": database_name})
-                    for row in result_tables:
-                        tables_data.append({"name": row[0], "comment": row[1]})
-
-                    # Fetch Views
-                    sql_views = text("""
-                        SELECT TABLE_NAME 
-                        FROM information_schema.VIEWS 
+                        UNION ALL
+                        SELECT TABLE_NAME, NULL, 'view' AS obj_type
+                        FROM information_schema.VIEWS
                         WHERE TABLE_SCHEMA = :schema
+                        ORDER BY TABLE_NAME
                     """)
-                    result_views = conn.execute(sql_views, {"schema": database_name})
-                    for row in result_views:
-                        views_data.append({"name": row[0], "comment": None})
+                    result = conn.execute(sql, {"schema": database_name})
+                    for row in result:
+                        entry = {"name": row[0], "comment": row[1]}
+                        if row[2] == 'table':
+                            tables_data.append(entry)
+                        else:
+                            views_data.append(entry)
             else:
                 # Fallback for other DBs (N+1 for comments or just names)
                 # For now, just names to avoid performance hit, unless we implement specific queries
@@ -1090,14 +1148,9 @@ class DatabaseToolService:
                 for name in inspector.get_view_names():
                     views_data.append({"name": name, "comment": None})
 
-            # Sort by name
-            tables_data.sort(key=lambda x: x["name"])
-            views_data.sort(key=lambda x: x["name"])
-
-            return {
-                "tables": tables_data,
-                "views": views_data,
-            }
+            result = {"tables": tables_data, "views": views_data}
+            _STRUCTURE_CACHE.set(cache_key, result)
+            return result
         except Exception as e:
             logger.error(f"Failed to get database structure: {e}")
             raise e
@@ -2291,7 +2344,7 @@ class DatabaseToolService:
     def backup_database(
         user_id: str, config_id: str, request: BackupDatabaseRequest
     ) -> BackupDatabaseResponse:
-        """备份数据库"""
+        """备份数据库 — 支持全数据库类型和多种备份模式"""
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
         if not config_row:
             raise ValueError("Configuration not found")
@@ -2315,12 +2368,7 @@ class DatabaseToolService:
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
         db_type = config_row["db_type"]
 
-        backup_id = str(uuid.uuid4())
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"backup_{request.database_name}_{timestamp}.sql"
-
-        sql_statements = []
-        tables_count = 0
+        generator = get_generator(db_type)
 
         try:
             with engine.connect() as conn:
@@ -2328,45 +2376,47 @@ class DatabaseToolService:
                 tables = (
                     request.tables if request.tables else inspector.get_table_names()
                 )
-                tables_count = len(tables)
+
+                sql_statements = []
+                mode = request.backup_mode.value if hasattr(request.backup_mode, 'value') else str(request.backup_mode)
 
                 for table in tables:
-                    # 获取建表语句（MySQL）
-                    if db_type in [DatabaseType.MYSQL, DatabaseType.MARIADB]:
-                        result = conn.execute(text(f"SHOW CREATE TABLE `{table}`"))
-                        row = result.fetchone()
-                        if row:
-                            sql_statements.append(row[1] + ";")
+                    if request.include_drop:
+                        sql_statements.append(f"DROP TABLE IF EXISTS `{table}`;")
 
-                        # 获取数据
-                        result = conn.execute(text(f"SELECT * FROM `{table}`"))
-                        rows = result.fetchall()
-                        columns = result.keys()
+                    # 结构
+                    if mode in ("structure_and_data", "structure_only"):
+                        ddl = generator.get_create_table_ddl(conn, table, request.database_name)
+                        if request.include_if_not_exists and "CREATE TABLE" in ddl:
+                            ddl = ddl.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS", 1)
+                        sql_statements.append(ddl + ";")
 
-                        for row in rows:
-                            values = []
-                            for val in row:
-                                if val is None:
-                                    values.append("NULL")
-                                elif isinstance(val, str):
-                                    values.append(
-                                        f"'{str(val).replace(chr(39), chr(39) + chr(39))}'"
-                                    )
-                                else:
-                                    values.append(str(val))
-                            sql_statements.append(
-                                f"INSERT INTO `{table}` ({', '.join([f'`{c}`' for c in columns])}) VALUES ({', '.join(values)})"
-                            )
+                    # 数据
+                    if mode in ("structure_and_data", "data_only"):
+                        inserts = generator.get_insert_statements(conn, table, request.database_name)
+                        sql_statements.extend(inserts)
 
-                content = "\\n\\n".join(sql_statements)
+                content = "\n\n".join(sql_statements)
+
+                # 保存到服务端存储
+                record = backup_storage.save_backup(
+                    user_id=user_id,
+                    config_id=config_id,
+                    database_name=request.database_name,
+                    backup_mode=mode,
+                    tables=tables,
+                    sql_content=content,
+                )
 
                 return BackupDatabaseResponse(
-                    backup_id=backup_id,
-                    file_name=file_name,
-                    file_size=len(content.encode("utf-8")),
-                    download_url=f"/api/database-tool/backups/{backup_id}/download",
-                    created_at=datetime.now(),
-                    tables_count=tables_count,
+                    backup_id=record.id,
+                    file_name=record.file_name,
+                    file_size=record.file_size,
+                    download_url=f"/api/database-tool/backups/{record.id}/download",
+                    created_at=datetime.fromisoformat(record.created_at),
+                    tables_count=record.tables_count,
+                    backup_mode=record.backup_mode,
+                    status="success",
                 )
 
         except Exception as e:
@@ -2777,3 +2827,188 @@ class DatabaseToolService:
                 error_message=str(e),
                 execution_time_ms=elapsed,
             )
+
+    # ============ 表详情与备份管理 ============
+
+    @staticmethod
+    def get_table_detail(
+        user_id: str,
+        config_id: str,
+        table_name: str,
+        database_name: Optional[str] = None,
+    ) -> TableDetailResponse:
+        """获取表详细结构（字段、索引、外键）"""
+        config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
+        if not config_row:
+            raise ValueError("Configuration not found")
+
+        try:
+            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+        except Exception:
+            raise ValueError("Failed to decrypt password")
+
+        target_db = database_name if database_name else config_row["database_name"]
+        config_dict = {
+            "db_type": config_row["db_type"],
+            "host": config_row["host"],
+            "port": config_row["port"],
+            "database_name": target_db,
+            "username": config_row["username"],
+            "password": password,
+            "charset": config_row["charset"],
+        }
+
+        engine_key = f"{config_id}:{target_db}" if database_name else config_id
+        engine = DBConnectionManager.get_engine(engine_key, config_dict)
+        inspector = inspect(engine)
+
+        # 表注释
+        table_comment = None
+        try:
+            table_comment = inspector.get_table_comment(table_name).get("text")
+        except Exception:
+            pass
+
+        # 字段
+        columns = []
+        pk_constraint = inspector.get_pk_constraint(table_name)
+        pk_columns = set(pk_constraint.get("constrained_columns", [])) if pk_constraint else set()
+
+        for idx, col in enumerate(inspector.get_columns(table_name)):
+            col_type = str(col["type"])
+            length = None
+            if "(" in col_type:
+                import re
+                match = re.search(r"\(([^)]+)\)", col_type)
+                if match:
+                    length = match.group(1)
+                    col_type = col_type.split("(")[0]
+
+            columns.append(
+                ColumnDetail(
+                    name=col["name"],
+                    type=col_type,
+                    length=length,
+                    nullable=col.get("nullable", True),
+                    default_value=str(col["default"]) if col.get("default") is not None else None,
+                    comment=col.get("comment"),
+                    primary_key=col["name"] in pk_columns,
+                    auto_increment=col.get("autoincrement", False),
+                    ordinal_position=idx + 1,
+                )
+            )
+
+        # 索引
+        indexes = []
+        for idx in inspector.get_indexes(table_name):
+            indexes.append(
+                IndexDetail(
+                    name=idx["name"],
+                    unique=idx.get("unique", False),
+                    primary=idx["name"] == pk_constraint.get("name") if pk_constraint else False,
+                    columns=idx.get("column_names", []),
+                )
+            )
+
+        # 外键
+        foreign_keys = []
+        for fk in inspector.get_foreign_keys(table_name):
+            foreign_keys.append(
+                ForeignKeyDetail(
+                    name=fk.get("name", ""),
+                    constrained_columns=fk.get("constrained_columns", []),
+                    referred_table=fk.get("referred_table", ""),
+                    referred_columns=fk.get("referred_columns", []),
+                )
+            )
+
+        # 行数
+        row_count = None
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text(f"SELECT COUNT(*) FROM \"{table_name}\""))
+                row_count = result.scalar()
+        except Exception:
+            pass
+
+        return TableDetailResponse(
+            table_name=table_name,
+            comment=table_comment,
+            columns=columns,
+            indexes=indexes,
+            foreign_keys=foreign_keys,
+            row_count=row_count,
+        )
+
+    @staticmethod
+    def get_table_row_count(
+        user_id: str,
+        config_id: str,
+        table_name: str,
+        database_name: str,
+    ) -> int:
+        """获取表行数"""
+        config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
+        if not config_row:
+            raise ValueError("Configuration not found")
+
+        try:
+            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+        except Exception:
+            raise ValueError("Failed to decrypt password")
+
+        config_dict = {
+            "db_type": config_row["db_type"],
+            "host": config_row["host"],
+            "port": config_row["port"],
+            "database_name": database_name,
+            "username": config_row["username"],
+            "password": password,
+            "charset": config_row["charset"],
+        }
+
+        engine_key = f"{config_id}:{database_name}"
+        engine = DBConnectionManager.get_engine(engine_key, config_dict)
+
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text(f"SELECT COUNT(*) FROM \"{table_name}\""))
+                return result.scalar() or 0
+        except Exception as e:
+            logger.warning(f"Failed to get row count for {table_name}: {e}")
+            return 0
+
+    @staticmethod
+    def list_backups(
+        user_id: str,
+        config_id: Optional[str] = None,
+        database_name: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Dict[str, Any]:
+        """获取备份历史列表"""
+        return backup_storage.list_records(
+            user_id=user_id,
+            config_id=config_id,
+            database_name=database_name,
+            page=page,
+            page_size=page_size,
+        )
+
+    @staticmethod
+    def delete_backup(user_id: str, backup_id: str) -> bool:
+        """删除备份"""
+        return backup_storage.delete_record(backup_id, user_id)
+
+    @staticmethod
+    def get_backup_file_path(user_id: str, backup_id: str) -> Optional[str]:
+        """获取备份文件路径（用于下载）"""
+        record = backup_storage.get_record(backup_id, user_id)
+        if record and record.file_path:
+            return record.file_path
+        return None
+
+    @staticmethod
+    def increment_download_count(user_id: str, backup_id: str) -> bool:
+        """增加备份下载计数"""
+        return backup_storage.increment_download_count(backup_id, user_id)

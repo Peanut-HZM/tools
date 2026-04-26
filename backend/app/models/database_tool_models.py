@@ -277,10 +277,19 @@ class AutoCompleteResponse(BaseModel):
 # ============ 备份恢复模型 ============
 
 
+class BackupMode(str, Enum):
+    STRUCTURE_AND_DATA = "structure_and_data"
+    STRUCTURE_ONLY = "structure_only"
+    DATA_ONLY = "data_only"
+
+
 class BackupDatabaseRequest(BaseModel):
     database_name: str
-    backup_format: str = Field("sql", description="备份格式：sql, csv")
+    backup_format: str = Field("sql", description="备份格式：sql")
+    backup_mode: BackupMode = Field(BackupMode.STRUCTURE_AND_DATA, description="备份模式")
     tables: Optional[List[str]] = None  # 指定表，为空则备份所有表
+    include_drop: bool = Field(False, description="是否包含 DROP TABLE 语句")
+    include_if_not_exists: bool = Field(True, description="是否包含 IF NOT EXISTS")
 
 
 class BackupDatabaseResponse(BaseModel):
@@ -290,6 +299,24 @@ class BackupDatabaseResponse(BaseModel):
     download_url: str
     created_at: datetime
     tables_count: int
+    backup_mode: str
+    status: str = Field("success", description="备份状态: success | partial | failed")
+
+
+class BackupRecordResponse(BaseModel):
+    """备份记录响应"""
+    id: str
+    config_id: str
+    database_name: str
+    file_name: str
+    file_size: int
+    backup_mode: str
+    tables_count: int
+    tables_list: Optional[List[str]] = None
+    status: str
+    error_message: Optional[str] = None
+    created_at: str
+    downloaded_count: int = 0
 
 
 class RestoreDatabaseRequest(BaseModel):
@@ -304,6 +331,44 @@ class RestoreDatabaseResponse(BaseModel):
     total_rows: int
     execution_time_ms: float
     errors: List[str] = []
+
+
+# ============ 表详情模型 ============
+
+
+class ColumnDetail(BaseModel):
+    name: str
+    type: str
+    length: Optional[str] = None
+    nullable: bool = True
+    default_value: Optional[str] = None
+    comment: Optional[str] = None
+    primary_key: bool = False
+    auto_increment: bool = False
+    ordinal_position: int = 0
+
+
+class IndexDetail(BaseModel):
+    name: str
+    unique: bool = False
+    primary: bool = False
+    columns: List[str] = []
+
+
+class ForeignKeyDetail(BaseModel):
+    name: str
+    constrained_columns: List[str] = []
+    referred_table: str
+    referred_columns: List[str] = []
+
+
+class TableDetailResponse(BaseModel):
+    table_name: str
+    comment: Optional[str] = None
+    columns: List[ColumnDetail] = []
+    indexes: List[IndexDetail] = []
+    foreign_keys: List[ForeignKeyDetail] = []
+    row_count: Optional[int] = None
 
 
 # ============ 批量删除模型 ============

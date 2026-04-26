@@ -74,8 +74,8 @@ export const DatabaseToolProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   useEffect(() => {
     if (isAuthenticated) {
-      refreshConfigs();
-      refreshHistory();
+      // 并行请求：连接列表和历史记录同时发起，不再串行等待
+      Promise.all([refreshConfigs(), refreshHistory()]).catch(console.error);
     } else {
       setConfigs([]);
       setHistory([]);

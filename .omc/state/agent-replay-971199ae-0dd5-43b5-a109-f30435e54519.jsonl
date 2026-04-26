@@ -1,0 +1,9 @@
+{"t":0,"agent":"a9f12ff","agent_type":"general-purpose","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a9f12ff","agent_type":"general-purpose","event":"agent_stop","success":true,"duration_ms":18078}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"oh-my-claudecode:plan"}
+{"t":0,"agent":"a0f674f","agent_type":"general-purpose","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a0f674f","agent_type":"general-purpose","event":"agent_stop","success":true,"duration_ms":58634}
+{"t":0,"agent":"adbe3e9","agent_type":"general-purpose","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"adbe3e9","agent_type":"general-purpose","event":"agent_stop","success":true,"duration_ms":73045}
+{"t":0,"agent":"a083c0e","agent_type":"general-purpose","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a083c0e","agent_type":"general-purpose","event":"agent_stop","success":true,"duration_ms":85332}

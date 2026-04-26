@@ -299,6 +299,27 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
     return 'text';
   };
 
+  /**
+   * 格式化日期时间值。对于日期/时间类型的列，将 ISO 格式字符串转为可读的本地化格式。
+   */
+  const formatDateTimeValue = (value: any, colDef: any): string => {
+    if (value === null || value === undefined) return '';
+    const strValue = String(value);
+    // 仅对日期/时间类型的列进行格式化
+    if (colDef?.type) {
+      const type = colDef.type.toLowerCase();
+      const isDateTime = type === 'date' || type === 'datetime' || type.includes('timestamp');
+      if (isDateTime) {
+        // 尝试解析为 Date 对象，如果解析失败则返回原始值
+        const date = new Date(strValue);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleString('zh-CN');
+        }
+      }
+    }
+    return strValue;
+  };
+
   const totalChanges = cellEdits.size + newRows.length;
 
   if (!result) {
@@ -397,7 +418,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         {displayValue === null ? (
           <span className="text-slate-600 italic">NULL</span>
         ) : (
-          <TruncatedText text={String(displayValue)} />
+          <TruncatedText text={formatDateTimeValue(displayValue, colDef)} />
         )}
       </span>
     );

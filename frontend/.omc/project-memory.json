@@ -186,6 +186,103 @@
       ]
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "src\\components\\Tools\\DatabaseTool\\components\\ConnectionList.tsx",
+      "accessCount": 21,
+      "lastAccessed": 1777180404027,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 7,
+      "lastAccessed": 1777180189816,
+      "type": "directory"
+    },
+    {
+      "path": "src\\components\\Tools\\DatabaseTool\\components\\BackupDialog.tsx",
+      "accessCount": 6,
+      "lastAccessed": 1777180439173,
+      "type": "directory"
+    },
+    {
+      "path": "src\\components\\Tools\\DatabaseTool\\components\\BackupHistoryDialog.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1777180215906,
+      "type": "directory"
+    },
+    {
+      "path": "src\\api\\databaseToolApi.ts",
+      "accessCount": 5,
+      "lastAccessed": 1777180277760,
+      "type": "directory"
+    },
+    {
+      "path": "src\\i18n\\locales\\zh-CN.ts",
+      "accessCount": 4,
+      "lastAccessed": 1777180345866,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\Tools\\DatabaseTool\\components\\ResultViewer.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1777171296783,
+      "type": "file"
+    },
+    {
+      "path": "src\\i18n\\locales\\en-US.ts",
+      "accessCount": 2,
+      "lastAccessed": 1777180352126,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\Tools\\DatabaseTool",
+      "accessCount": 1,
+      "lastAccessed": 1777171292108,
+      "type": "directory"
+    },
+    {
+      "path": "src\\contexts\\DatabaseToolContext.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1777172934969,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\Tools\\DatabaseTool\\SQLExecutor.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1777172947762,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\peanu\\AppData\\Local\\Temp\\db-tool-full.png",
+      "accessCount": 1,
+      "lastAccessed": 1777177893768,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\peanu\\AppData\\Local\\Temp\\db-tool.png",
+      "accessCount": 1,
+      "lastAccessed": 1777177893829,
+      "type": "file"
+    },
+    {
+      "path": "src\\i18n\\I18nProvider.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1777180198305,
+      "type": "file"
+    },
+    {
+      "path": "src\\i18n\\index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777180203527,
+      "type": "file"
+    },
+    {
+      "path": "src\\types\\databaseTool.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777180245548,
+      "type": "directory"
+    }
+  ],
   "userDirectives": []
 }

@@ -1,0 +1,71 @@
+{
+  "agents": [
+    {
+      "agent_id": "a9f12ff45fd556430",
+      "agent_type": "general-purpose",
+      "started_at": "2026-04-25T14:38:18.155Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-25T14:38:36.233Z",
+      "duration_ms": 18078
+    },
+    {
+      "agent_id": "afb7e126d88e26339",
+      "agent_type": "general-purpose",
+      "started_at": "2026-04-25T16:02:24.784Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-25T16:04:27.188Z",
+      "duration_ms": 122404
+    },
+    {
+      "agent_id": "a9df6f140b2cd7283",
+      "agent_type": "general-purpose",
+      "started_at": "2026-04-25T16:05:53.141Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-25T16:06:55.612Z",
+      "duration_ms": 62471
+    },
+    {
+      "agent_id": "a855cb2a41a8f0934",
+      "agent_type": "Plan",
+      "started_at": "2026-04-25T16:07:54.454Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-25T16:12:33.459Z",
+      "duration_ms": 279005
+    },
+    {
+      "agent_id": "a0f674f1064da7e21",
+      "agent_type": "general-purpose",
+      "started_at": "2026-04-26T02:54:42.066Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-26T02:55:40.700Z",
+      "duration_ms": 58634
+    },
+    {
+      "agent_id": "adbe3e9fc2ec5522e",
+      "agent_type": "general-purpose",
+      "started_at": "2026-04-26T03:24:00.858Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-26T03:25:13.903Z",
+      "duration_ms": 73045
+    },
+    {
+      "agent_id": "a083c0eb48c2f9919",
+      "agent_type": "general-purpose",
+      "started_at": "2026-04-26T03:27:27.888Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-26T03:28:53.220Z",
+      "duration_ms": 85332
+    }
+  ],
+  "total_spawned": 7,
+  "total_completed": 7,
+  "total_failed": 0,
+  "last_updated": "2026-04-26T03:28:53.324Z"
+}
