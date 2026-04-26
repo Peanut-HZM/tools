@@ -57,3 +57,16 @@ class TokenUsageSyncLog(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "device_id", "source", "sync_date"),
     )
+
+
+class DeviceRegistry(Base):
+    """设备注册表 — 管理设备 ID 与显示名称的映射"""
+    __tablename__ = "device_registry"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(64), nullable=False, index=True)
+    device_id = Column(String(128), nullable=False)
+    display_name = Column(String(128), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "device_id"),)
