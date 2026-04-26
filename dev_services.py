@@ -12,12 +12,27 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 try:
     import psutil
 except ImportError:
-    print("错误: 需要 psutil 库，请运行 pip install psutil")
-    sys.exit(1)
+    # 自动切换到后端虚拟环境重试
+    venv_python = None
+    script_dir = Path(__file__).parent.resolve()
+    if sys.platform == "win32":
+        venv_python = script_dir / "backend" / "venv" / "Scripts" / "python.exe"
+    else:
+        venv_python = script_dir / "backend" / "venv" / "bin" / "python"
+
+    if venv_python.exists():
+        os.execv(str(venv_python), [str(venv_python)] + sys.argv)
+    else:
+        print("错误: 需要 psutil 库")
+        print("  macOS/Linux: pip3 install psutil  或  python3 -m pip install psutil")
+        print("  Windows:     pip install psutil")
+        print("  或先启动后端虚拟环境: cd backend && source venv/bin/activate")
+        sys.exit(1)
 
 try:
     import requests as _requests
@@ -202,13 +217,39 @@ def check_backend_dependencies() -> list[str]:
     return missing
 
 
+def _get_pids_by_port_fallback(port: int) -> list:
+    """macOS/Linux 兼容：通过 lsof 获取占用指定端口的 PID"""
+    pids = []
+    try:
+        result = subprocess.run(
+            ["lsof", "-ti", f":{port}"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            for line in result.stdout.strip().splitlines():
+                try:
+                    pids.append(int(line.strip()))
+                except ValueError:
+                    continue
+    except Exception:
+        pass
+    return pids
+
+
 def check_port(port: int) -> tuple:
     """检查端口是否被占用，返回 (是否占用, 占用进程的PID列表)"""
     pids = []
-    for conn in psutil.net_connections(kind='inet'):
-        if conn.laddr and conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
-            if conn.pid:
-                pids.append(conn.pid)
+    try:
+        for conn in psutil.net_connections(kind='inet'):
+            if conn.laddr and conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
+                if conn.pid:
+                    pids.append(conn.pid)
+    except psutil.AccessDenied:
+        # macOS 非 root 用户禁止 net_connections，使用 lsof fallback
+        pids = _get_pids_by_port_fallback(port)
+    except Exception:
+        pids = _get_pids_by_port_fallback(port)
+
     if pids:
         return True, pids
     return False, []
@@ -242,12 +283,30 @@ def get_active_pid_on_port(port: int) -> Optional[int]:
 def find_process_by_port(port: int) -> list:
     """查找占用指定端口的存活进程 PID（过滤僵尸进程）"""
     pids = set()
-    for conn in psutil.net_connections(kind='inet'):
-        if conn.laddr and conn.laddr.port == port:
-            if conn.pid and conn.pid != os.getpid():
+    try:
+        for conn in psutil.net_connections(kind='inet'):
+            if conn.laddr and conn.laddr.port == port:
+                if conn.pid and conn.pid != os.getpid():
+                    try:
+                        psutil.Process(conn.pid)
+                        pids.add(conn.pid)
+                    except psutil.NoSuchProcess:
+                        continue
+    except psutil.AccessDenied:
+        # macOS fallback
+        for pid in _get_pids_by_port_fallback(port):
+            if pid != os.getpid():
                 try:
-                    psutil.Process(conn.pid)
-                    pids.add(conn.pid)
+                    psutil.Process(pid)
+                    pids.add(pid)
+                except psutil.NoSuchProcess:
+                    continue
+    except Exception:
+        for pid in _get_pids_by_port_fallback(port):
+            if pid != os.getpid():
+                try:
+                    psutil.Process(pid)
+                    pids.add(pid)
                 except psutil.NoSuchProcess:
                     continue
     return sorted(pids)
@@ -637,13 +696,15 @@ def status():
                 mem = proc.memory_info().rss / 1024 / 1024
                 status_icon = "运行中"
                 color = COLORS["SUCCESS"]
-            except psutil.NoSuchProcess:
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 cpu = mem = 0
                 status_icon = "异常"
                 color = COLORS["ERROR"]
 
             reset = COLORS["RESET"]
-            print(f"  {color}[{name}]{reset}  端口: {port}  状态: {status_icon}  PID: {pid}  CPU: {cpu:.1f}%  内存: {mem:.1f}MB")
+            cpu_str = f"{cpu:.1f}%" if cpu else "-"
+            mem_str = f"{mem:.1f}MB" if mem else "-"
+            print(f"  {color}[{name}]{reset}  端口: {port}  状态: {status_icon}  PID: {pid}  CPU: {cpu_str}  内存: {mem_str}")
         else:
             print(f"  {COLORS['INFO']}[{name}]{COLORS['RESET']}  端口: {port}  状态: 未运行")
 
