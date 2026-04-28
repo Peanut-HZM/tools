@@ -54,6 +54,7 @@ class HttpRequestBase(BaseModel):
     body: Optional[str] = Field(None, description="请求体")
     auth_type: str = Field(default="none", description="认证类型：bearer/basic/apikey/none")
     auth_config: Dict[str, Any] = Field(default_factory=dict, description="认证配置")
+    description: str = Field(default="", max_length=5000, description="请求描述（Markdown）")
     sort_order: int = Field(default=0, description="排序")
 
 
@@ -73,6 +74,7 @@ class HttpRequestUpdate(BaseModel):
     body: Optional[str] = None
     auth_type: Optional[str] = None
     auth_config: Optional[Dict[str, Any]] = None
+    description: Optional[str] = Field(None, max_length=5000)
     sort_order: Optional[int] = None
 
 
@@ -158,6 +160,7 @@ class SendRequestRequest(BaseModel):
     body: Optional[str] = Field(None, description="请求体")
     timeout: int = Field(default=30000, description="超时时间（毫秒）")
     follow_redirects: bool = Field(default=True, description="是否跟随重定向")
+    workspace_id: str = Field(default="default", description="工作区 ID")
 
 
 class SendRequestResponse(BaseModel):
@@ -177,6 +180,13 @@ class ImportResult(BaseModel):
     imported_count: int
     failed_count: int
     errors: List[str] = Field(default_factory=list)
+
+
+class CurlImportRequest(BaseModel):
+    """cURL 导入请求体"""
+    curl_command: str = Field(..., min_length=1, description="cURL 命令")
+    collection_id: str = Field(..., description="目标集合 ID")
+    name: str = Field(default="Imported Request", max_length=100, description="请求名称")
 
 
 class ExportData(BaseModel):

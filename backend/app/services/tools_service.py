@@ -207,11 +207,11 @@ class ToolsService:
             with conn.cursor() as cur:
                 if category == "全部工具":
                     cur.execute(
-                        "SELECT * FROM tools WHERE status = 'online' ORDER BY title"
+                        "SELECT * FROM tools WHERE status = 'online' ORDER BY usage_count DESC, title ASC"
                     )
                 else:
                     cur.execute(
-                        "SELECT * FROM tools WHERE status = 'online' AND category = %s ORDER BY title",
+                        "SELECT * FROM tools WHERE status = 'online' AND category = %s ORDER BY usage_count DESC, title ASC",
                         (category,),
                     )
 
@@ -550,7 +550,7 @@ class ToolsService:
                     base_sql += " AND category = %s"
                     params.append(category)
 
-                base_sql += " ORDER BY category, title"
+                base_sql += " ORDER BY usage_count DESC, title ASC"
                 cur.execute(base_sql, params)
 
                 rows = cur.fetchall()

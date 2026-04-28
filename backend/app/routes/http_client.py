@@ -20,6 +20,7 @@ from app.models.http_client_models import (
     SendRequestResponse,
     RequestHistory,
     ImportResult,
+    CurlImportRequest,
     SyncStatusResponse,
 )
 from app.services.http_client_service import http_client_service, is_safe_url
@@ -237,6 +238,36 @@ def import_requests(
     except Exception as e:
         logger.error(f"Import failed: {e}")
         return ImportResult(success=False, imported_count=0, failed_count=1, errors=[str(e)])
+
+
+@router.post("/import/curl", response_model=HttpRequest)
+def import_curl(request_data: CurlImportRequest):
+    """从 cURL 命令导入请求"""
+    try:
+        parsed = http_client_service.parse_curl_command(request_data.curl_command)
+        created = http_client_service.create_request(HttpRequestCreate(
+            collection_id=request_data.collection_id,
+            name=request_data.name,
+            method=parsed['method'],
+            url=parsed['url'],
+            headers=parsed['headers'],
+            params={},
+            body_type=parsed['body_type'],
+            body=parsed['body'],
+            auth_type="none",
+            auth_config={},
+            sort_order=0,
+        ))
+        if not created:
+            raise HTTPException(status_code=500, detail="创建请求失败")
+        return created
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"cURL 解析失败：{str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"cURL import failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/export/{collection_id}")

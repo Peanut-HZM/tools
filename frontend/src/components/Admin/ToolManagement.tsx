@@ -25,8 +25,8 @@ export default function ToolManagement() {
   const [toolSearch, setToolSearch] = useState('');
   const [toolStatusFilter, setToolStatusFilter] = useState<string>('');
   const [toolCategoryFilter, setToolCategoryFilter] = useState<string>('');
-  const [toolSortBy, setToolSortBy] = useState('title');
-  const [toolSortOrder, setToolSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [toolSortBy, setToolSortBy] = useState('usage_count');
+  const [toolSortOrder, setToolSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showPcFilter, setShowPcFilter] = useState<string>('all');
   const [showMobileFilter, setShowMobileFilter] = useState<string>('all');
   const [requireLoginFilter, setRequireLoginFilter] = useState<string>('all');
@@ -244,8 +244,8 @@ export default function ToolManagement() {
     setToolSearch('');
     setToolStatusFilter('');
     setToolCategoryFilter('');
-    setToolSortBy('title');
-    setToolSortOrder('asc');
+    setToolSortBy('usage_count');
+    setToolSortOrder('desc');
     setShowPcFilter('all');
     setShowMobileFilter('all');
     setRequireLoginFilter('all');
@@ -376,7 +376,7 @@ export default function ToolManagement() {
               </div>
 
               {/* 排序 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'title' || toolSortOrder !== 'asc') ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
+              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'usage_count' || toolSortOrder !== 'desc') ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
                 <i className="fas fa-arrow-down-a-z text-slate-500 text-xs"></i>
                 <select
                   value={`${toolSortBy}-${toolSortOrder}`}
@@ -447,6 +447,7 @@ export default function ToolManagement() {
               <tr>
                 <th className="px-6 py-3">工具名称</th>
                 <th className="px-6 py-3">分类</th>
+                <th className="px-6 py-3 text-center w-[100px]">使用次数</th>
                 <th className="px-6 py-3 text-center w-[100px]">上线状态</th>
                 <th className="px-6 py-3 text-center w-[100px]">PC 展示</th>
                 <th className="px-6 py-3 text-center w-[100px]">移动展示</th>
@@ -469,6 +470,20 @@ export default function ToolManagement() {
                     </div>
                   </td>
                   <td className="px-6 py-4">{tool.category}</td>
+                  {/* 使用次数 */}
+                  <td className="px-6 py-4 text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      parseInt(tool.usageCount) >= 1000
+                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                        : parseInt(tool.usageCount) >= 100
+                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                          : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                    }`}>
+                      {parseInt(tool.usageCount) >= 1000
+                        ? (parseInt(tool.usageCount) / 1000).toFixed(1) + 'K'
+                        : tool.usageCount}
+                    </span>
+                  </td>
                   {/* 上线状态 */}
                   <td className="px-6 py-4 text-center">
                     <label className="relative inline-flex items-center cursor-pointer">

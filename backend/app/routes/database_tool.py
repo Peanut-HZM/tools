@@ -39,6 +39,8 @@ from app.models.database_tool_models import (
     InsertRowRequest,
     UpdateRowRequest,
     RowOperationResult,
+    DisplayPreference,
+    DisplayPreferenceResponse,
 )
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -735,3 +737,30 @@ async def delete_backup(
     if not success:
         raise HTTPException(status_code=404, detail="Backup not found")
     return {"message": "Backup deleted successfully"}
+
+
+# --------------------------------------------------------------------------
+# Display Preferences
+# --------------------------------------------------------------------------
+
+
+@router.get("/preferences", response_model=DisplayPreferenceResponse)
+async def get_display_preferences(
+    user_id: str = Depends(get_current_user_id),
+):
+    """获取当前用户的显示偏好"""
+    return DatabaseToolService.get_display_preferences(user_id)
+
+
+@router.put("/preferences", response_model=DisplayPreferenceResponse)
+async def save_display_preferences(
+    preferences: DisplayPreference,
+    user_id: str = Depends(get_current_user_id),
+):
+    """保存当前用户的显示偏好"""
+    try:
+        return DatabaseToolService.save_display_preferences(
+            user_id, preferences.model_dump()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

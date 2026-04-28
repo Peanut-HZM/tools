@@ -415,3 +415,19 @@ class RowOperationResult(BaseModel):
     affected_rows: int = Field(default=0, description="影响行数")
     execution_time_ms: float = Field(default=0, description="执行耗时（毫秒）")
     error_message: Optional[str] = Field(None, description="错误信息")
+
+
+# ============ 显示偏好模型 ============
+
+
+class DisplayPreference(BaseModel):
+    visible_connections: Optional[List[str]] = Field(
+        None, description="null=全部显示, 数组=仅显示这些连接"
+    )
+    visible_databases: Optional[Dict[str, List[str]]] = Field(
+        None, description='{"config_id": ["db1"]} 每个连接可见的数据库'
+    )
+
+
+class DisplayPreferenceResponse(DisplayPreference):
+    updated_at: Optional[datetime] = None

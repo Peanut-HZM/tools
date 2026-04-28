@@ -44,6 +44,8 @@ from app.models.database_tool_models import (
     ColumnDetail,
     IndexDetail,
     ForeignKeyDetail,
+    DisplayPreference,
+    DisplayPreferenceResponse,
 )
 from app.services.backup_generators import get_generator
 from app.services.backup_storage import backup_storage
@@ -3012,3 +3014,65 @@ class DatabaseToolService:
     def increment_download_count(user_id: str, backup_id: str) -> bool:
         """增加备份下载计数"""
         return backup_storage.increment_download_count(backup_id, user_id)
+
+    @staticmethod
+    def get_display_preferences(user_id: str) -> DisplayPreferenceResponse:
+        """获取用户的显示偏好"""
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT visible_connections, visible_databases, updated_at "
+                    "FROM user_display_preferences WHERE user_id = %s",
+                    (user_id,),
+                )
+                row = cur.fetchone()
+                if row:
+                    return DisplayPreferenceResponse(
+                        visible_connections=row["visible_connections"],
+                        visible_databases=row["visible_databases"],
+                        updated_at=row["updated_at"],
+                    )
+                return DisplayPreferenceResponse()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def save_display_preferences(
+        user_id: str, preferences: dict
+    ) -> DisplayPreferenceResponse:
+        """保存用户的显示偏好"""
+        import json as json_mod
+
+        conn = get_db_connection()
+        try:
+            visible_conn = preferences.get("visible_connections")
+            visible_db = preferences.get("visible_databases")
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO user_display_preferences "
+                    "(user_id, visible_connections, visible_databases) "
+                    "VALUES (%s, %s, %s) "
+                    "ON CONFLICT (user_id) DO UPDATE SET "
+                    "visible_connections = EXCLUDED.visible_connections, "
+                    "visible_databases = EXCLUDED.visible_databases, "
+                    "updated_at = CURRENT_TIMESTAMP "
+                    "RETURNING visible_connections, visible_databases, updated_at",
+                    (
+                        user_id,
+                        json_mod.dumps(visible_conn) if visible_conn is not None else None,
+                        json_mod.dumps(visible_db) if visible_db else None,
+                    ),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return DisplayPreferenceResponse(
+                    visible_connections=row["visible_connections"],
+                    visible_databases=row["visible_databases"],
+                    updated_at=row["updated_at"],
+                )
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()

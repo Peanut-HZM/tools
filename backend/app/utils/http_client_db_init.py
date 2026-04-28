@@ -134,6 +134,13 @@ def init_http_client_tables():
 
             logger.info("Inserted default environments")
 
+            # 6. 添加 description 列（如果不存在）
+            cur.execute("""
+                ALTER TABLE http_requests
+                ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
+            """)
+            logger.info("Added description column to http_requests")
+
             conn.commit()
             logger.info("HTTP Client tables initialized successfully")
 

@@ -20,6 +20,7 @@ import {
   BackupResponse,
   BackupListResponse,
   BackupRecord,
+  DisplayPreferences,
 } from '../types/databaseTool';
 import { DBCache } from '../utils/dbCache';
 
@@ -465,4 +466,27 @@ export async function deleteBackup(backupId: string): Promise<{ message: string 
 
 export function getBackupDownloadUrl(backupId: string): string {
   return `${BASE_URL}/backups/${backupId}/download`;
+}
+
+// ============ 显示偏好 API ============
+
+export async function getDisplayPreferences(): Promise<DisplayPreferences> {
+  const response = await fetch(`${BASE_URL}/preferences`, {
+    headers: getAuthHeaders()
+  });
+  return handleResponse<DisplayPreferences>(response);
+}
+
+export async function saveDisplayPreferences(
+  prefs: DisplayPreferences
+): Promise<DisplayPreferences> {
+  const response = await fetch(`${BASE_URL}/preferences`, {
+    method: 'PUT',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      visible_connections: prefs.visible_connections,
+      visible_databases: prefs.visible_databases,
+    })
+  });
+  return handleResponse<DisplayPreferences>(response);
 }

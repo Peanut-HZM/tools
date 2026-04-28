@@ -1,3 +1,4 @@
+import re
 from typing import Dict, Any, List, Optional
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
@@ -45,6 +46,18 @@ class SQLExecutor:
 
                     # Escape percent signs to prevent SQLAlchemy from interpreting %(xxx)s as bind parameters
                     escaped_stmt = stmt_str.replace("%", "%%")
+
+                    # When no params provided, escape colon-based bind parameters to prevent
+                    # SQLAlchemy from treating JSON like {"visible":true} as :true bind param.
+                    # \: is SQLAlchemy's escape syntax for literal colons.
+                    # Only escape when params is empty/None, since users may intentionally use
+                    # :param binding when providing params. Preserve :: (PostgreSQL type casts).
+                    if not params:
+                        escaped_stmt = re.sub(
+                            r'(?<!:)(?<!\\):([a-zA-Z_]\w*)',
+                            r'\\:\1',
+                            escaped_stmt,
+                        )
 
                     stmt = text(escaped_stmt)
 

@@ -46,6 +46,7 @@ export interface HttpRequest {
   body?: string;
   auth_type: 'bearer' | 'basic' | 'apikey' | 'none';
   auth_config: Record<string, any>;
+  description?: string;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -83,6 +84,7 @@ export interface SendRequestPayload {
   body?: string;
   timeout?: number;
   follow_redirects?: boolean;
+  workspace_id?: string;
 }
 
 export interface SendRequestResponse {
@@ -207,4 +209,47 @@ export const fetchHistory = async (limit = 50): Promise<RequestHistory[]> => {
 
 export const clearHistory = async (): Promise<void> => {
   await httpClient.post('/history/clear');
+};
+
+// ============= Import/Export APIs =============
+
+export const importCurl = async (curlCommand: string, collectionId: string, name: string): Promise<HttpRequest> => {
+  const response = await httpClient.post('/import/curl', {
+    curl_command: curlCommand,
+    collection_id: collectionId,
+    name,
+  });
+  return response.data;
+};
+
+export const exportCollection = async (collectionId: string): Promise<any> => {
+  const response = await httpClient.get(`/export/${collectionId}`);
+  return response.data;
+};
+
+// ============= Request duplicate/delete =============
+
+export const duplicateRequest = async (
+  request: HttpRequest,
+  targetCollectionId: string,
+): Promise<HttpRequest> => {
+  const response = await httpClient.post('/requests', {
+    collection_id: targetCollectionId,
+    name: `${request.name} (副本)`,
+    method: request.method,
+    url: request.url,
+    headers: request.headers,
+    params: request.params,
+    body_type: request.body_type,
+    body: request.body,
+    auth_type: request.auth_type,
+    auth_config: request.auth_config,
+    description: request.description || '',
+    sort_order: 0,
+  });
+  return response.data;
+};
+
+export const deleteRequestById = async (id: string): Promise<void> => {
+  await httpClient.delete(`/requests/${id}`);
 };

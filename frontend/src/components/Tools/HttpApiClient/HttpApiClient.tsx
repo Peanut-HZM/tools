@@ -1,16 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHttpClientStore } from '../../../stores/httpClientStore';
 import { Collection, HttpRequest, Environment, createRequest, createCollection } from '../../../services/httpClientApi';
+import { useToast } from '../../../contexts/ToastContext';
 import CollectionTree from './components/CollectionTree';
 import RequestTabs from './components/RequestTabs';
 import RequestEditor from './components/RequestEditor/RequestEditor';
 import ResponseViewer from './components/ResponseViewer/ResponseViewer';
 import EnvironmentSelector from './components/EnvironmentSelector';
 import ImportExportModal from './components/ImportExportModal';
+import HistoryPanel from './components/HistoryPanel';
+import RequestContextMenu from './components/RequestContextMenu';
 
 export default function HttpApiClient() {
   const navigate = useNavigate();
+  const toast = useToast();
   const {
     collections,
     loadingCollections,
@@ -29,6 +33,12 @@ export default function HttpApiClient() {
     sendingRequest,
     sendRequest,
     clearResponse,
+    loadHistory,
+    clearHistory,
+    replayFromHistory,
+    duplicateRequest,
+    deleteRequest,
+    history,
   } = useHttpClientStore();
 
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
@@ -36,6 +46,13 @@ export default function HttpApiClient() {
   const [responseHeight, setResponseHeight] = useState(300);
   const [isImportExportModalOpen, setIsImportExportModalOpen] = useState(false);
   const [showNewRequestForm, setShowNewRequestForm] = useState(false);
+  const [newRequestCollectionId, setNewRequestCollectionId] = useState<string>('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number; y: number; request: HttpRequest;
+  } | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // 新建请求表单状态
   const [newCollectionName, setNewCollectionName] = useState('');
@@ -67,11 +84,22 @@ export default function HttpApiClient() {
 
   // 处理新建请求
   const handleCreateRequest = async () => {
-    if (!newRequestName.trim() || !selectedCollectionId) return;
+    if (!newRequestName.trim()) {
+      toast.warning('请输入请求名称');
+      return;
+    }
+    if (!newRequestUrl.trim()) {
+      toast.warning('请输入请求 URL');
+      return;
+    }
+    if (!newRequestCollectionId) {
+      toast.warning('请选择目标集合');
+      return;
+    }
 
     try {
       const newRequest = await createRequest({
-        collection_id: selectedCollectionId,
+        collection_id: newRequestCollectionId,
         name: newRequestName,
         method: newRequestMethod,
         url: newRequestUrl,
@@ -84,15 +112,17 @@ export default function HttpApiClient() {
         sort_order: 0,
       });
 
+      toast.success('请求创建成功');
       setNewRequestName('');
       setNewRequestUrl('');
+      setNewRequestCollectionId('');
       setShowNewRequestForm(false);
 
-      // 打开新标签页
-      // TODO: 需要调用 openTab
-      loadRequests(selectedCollectionId);
-    } catch (error) {
-      console.error('Failed to create request:', error);
+      // 刷新集合树
+      setRefreshTrigger(prev => prev + 1);
+      loadRequests(newRequestCollectionId);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || error?.message || '创建请求失败');
     }
   };
 
@@ -119,11 +149,62 @@ export default function HttpApiClient() {
         timeout: 30000,
         follow_redirects: true,
       });
-      return response;
-    } catch (error) {
-      throw error;
+      toast.success(`请求成功 ${response.status_code} · ${response.response_time}ms`);
+    } catch (error: any) {
+      const message = error?.response?.data?.detail || error?.message || '请求失败';
+      toast.error(message);
     }
   };
+
+  // 处理历史面板
+  const handleToggleHistory = useCallback(async () => {
+    if (!showHistoryPanel) {
+      setHistoryLoading(true);
+      await loadHistory();
+      setHistoryLoading(false);
+    }
+    setShowHistoryPanel(prev => !prev);
+  }, [showHistoryPanel, loadHistory]);
+
+  const handleHistoryReplay = useCallback((item: any) => {
+    replayFromHistory(item);
+    setShowHistoryPanel(false);
+  }, [replayFromHistory]);
+
+  const handleHistoryClear = useCallback(async () => {
+    await clearHistory();
+    toast.success('历史已清空');
+  }, [clearHistory, toast]);
+
+  // 处理右键菜单
+  const handleContextMenu = useCallback((e: React.MouseEvent, request: HttpRequest) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, request });
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleDuplicateRequest = useCallback(async (request: HttpRequest, targetCollectionId: string) => {
+    try {
+      await duplicateRequest(request, targetCollectionId);
+      toast.success('请求已复制');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast.error(error?.message || '复制失败');
+    }
+  }, [duplicateRequest, toast]);
+
+  const handleDeleteRequest = useCallback(async (requestId: string) => {
+    try {
+      await deleteRequest(requestId, '');
+      toast.success('请求已删除');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast.error(error?.message || '删除失败');
+    }
+  }, [deleteRequest, toast]);
 
   // 拖拽调整侧边栏宽度
   const handleSidebarResize = (e: React.MouseEvent) => {
@@ -202,6 +283,16 @@ export default function HttpApiClient() {
             导入/导出
           </button>
 
+          {/* 历史按钮 */}
+          <button
+            className="text-slate-400 hover:text-white transition-colors text-sm"
+            title="请求历史"
+            onClick={handleToggleHistory}
+          >
+            <i className="fas fa-clock-rotate-left mr-1"></i>
+            历史
+          </button>
+
           {/* 新建请求按钮 */}
           <button
             className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
@@ -255,6 +346,8 @@ export default function HttpApiClient() {
                 selectedCollectionId={selectedCollectionId}
                 onCollectionSelect={handleCollectionSelect}
                 onRequestOpen={handleRequestOpen}
+                onRequestContextMenu={handleContextMenu}
+                refreshTrigger={refreshTrigger}
               />
             )}
           </div>
@@ -312,7 +405,11 @@ export default function HttpApiClient() {
             className="border-t border-slate-700 flex flex-col overflow-hidden flex-shrink-0"
             style={{ height: responseHeight }}
           >
-            <ResponseViewer response={currentResponse} />
+            <ResponseViewer
+              response={currentResponse}
+              request={activeTab?.request}
+              envVariables={activeEnvironment?.variables}
+            />
           </div>
         </>
       )}
@@ -325,6 +422,41 @@ export default function HttpApiClient() {
           loadCollections();
         }}
       />
+
+      {/* 历史面板弹窗 */}
+      {showHistoryPanel && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-lg w-full max-w-2xl max-h-[70vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+              <h2 className="text-lg font-semibold">请求历史</h2>
+              <button onClick={() => setShowHistoryPanel(false)} className="text-slate-400 hover:text-white">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <HistoryPanel
+                history={history}
+                loading={historyLoading}
+                onReplay={handleHistoryReplay}
+                onClear={handleHistoryClear}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 右键菜单 */}
+      {contextMenu && (
+        <RequestContextMenu
+          request={contextMenu.request}
+          collections={collections}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onDuplicate={handleDuplicateRequest}
+          onDelete={handleDeleteRequest}
+          onClose={handleCloseContextMenu}
+        />
+      )}
 
       {/* 新建集合弹窗 */}
       {showNewRequestForm && (
@@ -341,6 +473,26 @@ export default function HttpApiClient() {
                   placeholder="My Request"
                   className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
                 />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">目标集合</label>
+                {collections.length === 0 ? (
+                  <div className="text-sm text-orange-400 bg-orange-500/10 px-3 py-2 rounded border border-orange-500/30">
+                    <i className="fas fa-exclamation-triangle mr-2"></i>
+                    暂无集合，请先创建集合
+                  </div>
+                ) : (
+                  <select
+                    value={newRequestCollectionId}
+                    onChange={(e) => setNewRequestCollectionId(e.target.value)}
+                    className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
+                  >
+                    <option value="">请选择集合</option>
+                    {collections.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">方法</label>
@@ -378,10 +530,10 @@ export default function HttpApiClient() {
               </button>
               <button
                 onClick={handleCreateRequest}
-                disabled={!newRequestName.trim()}
+                disabled={!newRequestName.trim() || !newRequestUrl.trim() || !newRequestCollectionId}
                 className={`
                   px-6 py-2 rounded-lg font-medium
-                  ${!newRequestName.trim()
+                  ${!newRequestName.trim() || !newRequestUrl.trim() || !newRequestCollectionId
                     ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
                     : 'bg-purple-500 hover:bg-purple-600 text-white'
                   }

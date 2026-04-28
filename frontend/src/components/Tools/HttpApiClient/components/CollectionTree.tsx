@@ -6,6 +6,8 @@ interface CollectionTreeProps {
   selectedCollectionId: string | null;
   onCollectionSelect: (collection: Collection | null) => void;
   onRequestOpen: (request: HttpRequest) => void;
+  onRequestContextMenu?: (e: React.MouseEvent, request: HttpRequest) => void;
+  refreshTrigger?: number;
 }
 
 export default function CollectionTree({
@@ -13,10 +15,36 @@ export default function CollectionTree({
   selectedCollectionId,
   onCollectionSelect,
   onRequestOpen,
+  onRequestContextMenu,
+  refreshTrigger = 0,
 }: CollectionTreeProps) {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [collectionRequests, setCollectionRequests] = useState<Record<string, HttpRequest[]>>({});
   const [loadingRequests, setLoadingRequests] = useState<Set<string>>(new Set());
+
+  // 当 refreshTrigger 变化时，清除已展开集合的缓存并重新加载
+  useEffect(() => {
+    if (refreshTrigger === 0) return;
+    const expandedArray = Array.from(expandedCollections);
+    if (expandedArray.length === 0) return;
+
+    // 清除缓存并重新加载
+    setCollectionRequests(prev => {
+      const next = { ...prev };
+      expandedArray.forEach(id => delete next[id]);
+      return next;
+    });
+
+    // 重新加载每个展开集合的请求
+    expandedArray.forEach(async (collectionId) => {
+      try {
+        const requests = await fetchRequests(collectionId);
+        setCollectionRequests(prev => ({ ...prev, [collectionId]: requests }));
+      } catch (error) {
+        console.error('Failed to reload requests:', error);
+      }
+    });
+  }, [refreshTrigger]);
 
   const toggleExpand = async (collectionId: string) => {
     const newExpanded = new Set(expandedCollections);
@@ -130,6 +158,11 @@ export default function CollectionTree({
                     className="flex items-center gap-2 px-3 py-1.5 cursor-pointer
                                hover:bg-slate-700/50 rounded text-xs text-slate-400"
                     onClick={() => handleRequestClick(request)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onRequestContextMenu?.(e, request);
+                    }}
                   >
                     <span className={`
                       font-mono font-bold w-12

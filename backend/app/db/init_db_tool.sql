@@ -128,3 +128,14 @@ CREATE TABLE IF NOT EXISTS ssh_configs (
 
 CREATE INDEX IF NOT EXISTS idx_ssh_configs_user_id ON ssh_configs(user_id);
 CREATE INDEX IF NOT EXISTS idx_ssh_configs_user_alias ON ssh_configs(user_id, alias);
+
+-- 用户显示偏好表
+CREATE TABLE IF NOT EXISTS user_display_preferences (
+    user_id VARCHAR(64) PRIMARY KEY,
+    visible_connections JSON,                        -- null=全部显示, ["id1","id2"]=仅显示这些
+    visible_databases JSON,                          -- {"config_id": ["db1", "db2"]} 每个连接可见的数据库
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_display_prefs_user_id ON user_display_preferences(user_id);

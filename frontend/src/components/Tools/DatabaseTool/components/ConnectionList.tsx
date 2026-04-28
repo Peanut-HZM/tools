@@ -10,6 +10,8 @@ import ModifyTableDialog from './ModifyTableDialog';
 import DDLDialog from './DDLDialog';
 import BackupDialog from './BackupDialog';
 import BackupHistoryDialog from './BackupHistoryDialog';
+import DisplaySettingsDialog from './DisplaySettingsDialog';
+import { DisplayPreferences } from '../../../../types/databaseTool';
 
 interface ConnectionListProps {
   onAddConfig: () => void;
@@ -33,6 +35,22 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
   const [backupHistoryOpen, setBackupHistoryOpen] = useState(false);
   const [backupHistoryConfigId, setBackupHistoryConfigId] = useState<string>('');
   const [backupHistoryDbName, setBackupHistoryDbName] = useState<string | undefined>(undefined);
+
+  // 显示偏好
+  const [displayPreferences, setDisplayPreferences] = useState<DisplayPreferences | null>(null);
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+
+  // 加载显示偏好
+  useEffect(() => {
+    api.getDisplayPreferences()
+      .then(setDisplayPreferences)
+      .catch(() => setDisplayPreferences(null));
+  }, []);
+
+  // 根据偏好过滤连接
+  const filteredConfigs = displayPreferences?.visible_connections
+    ? configs.filter(c => displayPreferences.visible_connections!.includes(c.id))
+    : configs;
 
   const toggleExpand = (nodeId: string) => {
     setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
@@ -73,6 +91,14 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
         <div className="flex justify-between items-center">
             <h2 className="font-semibold text-slate-100">{t.database.connections}</h2>
             <div className="flex space-x-1">
+            <button
+                onClick={() => setShowDisplaySettings(true)}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                title="显示设置"
+                aria-label="显示设置"
+            >
+                <i className="fas fa-cog"></i>
+            </button>
             {onOpenSqlConsole && (
                 <button
                 onClick={() => onOpenSqlConsole()}
@@ -119,7 +145,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
           </div>
         )}
 
-        {configs.map(config => (
+        {filteredConfigs.map(config => (
           <ConnectionNode
             key={config.id}
             config={config}
@@ -136,6 +162,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             onOpenBackup={handleOpenBackup}
             onOpenBackupHistory={handleOpenBackupHistory}
             searchTerm={searchTerm}
+            displayPreferences={displayPreferences}
           />
         ))}
 
@@ -164,6 +191,18 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
         configId={backupHistoryConfigId}
         databaseName={backupHistoryDbName}
       />
+
+      {/* 显示设置弹窗 */}
+      <DisplaySettingsDialog
+        isOpen={showDisplaySettings}
+        onClose={() => setShowDisplaySettings(false)}
+        configs={configs}
+        currentPreferences={displayPreferences}
+        onSave={async (prefs) => {
+          await api.saveDisplayPreferences(prefs);
+          setDisplayPreferences(prefs);
+        }}
+      />
     </div>
   );
 };
@@ -183,10 +222,11 @@ interface ConnectionNodeProps {
   onOpenBackup: (configId: string, dbName: string, tables?: string[]) => void;
   onOpenBackupHistory: (configId: string, dbName?: string) => void;
   searchTerm: string;
+  displayPreferences?: DisplayPreferences | null;
 }
 
 const ConnectionNode: React.FC<ConnectionNodeProps> = ({
-  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm
+  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences
 }) => {
   const { t } = useI18n();
   const [databases, setDatabases] = useState<string[]>([]);
@@ -393,9 +433,16 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       await fetchDatabases();
   };
 
-  const databasesToShow = visibleDatabases
+  // 先应用本地 filter（DatabaseFilterDialog）
+  const locallyFiltered = visibleDatabases
     ? databases.filter(db => visibleDatabases.includes(db))
     : databases;
+
+  // 再应用显示偏好过滤
+  const prefDbs = displayPreferences?.visible_databases?.[config.id];
+  const databasesToShow = prefDbs
+    ? locallyFiltered.filter(db => prefDbs.includes(db))
+    : locallyFiltered;
 
   const filteredDatabases = searchTerm
       ? databases.filter(db => {

@@ -265,3 +265,11 @@ export interface BackupListResponse {
   page_size: number;
   total_pages: number;
 }
+
+// ============ 显示偏好类型 ============
+
+export interface DisplayPreferences {
+  visible_connections: string[] | null;
+  visible_databases: Record<string, string[]>;
+  updated_at?: string;
+}

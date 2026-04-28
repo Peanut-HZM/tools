@@ -18,7 +18,7 @@ export default function RequestEditor({
   onSend,
   sending,
 }: RequestEditorProps) {
-  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth'>('params');
+  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'docs'>('params');
 
   const handleMethodChange = (method: string) => {
     onUpdate({ method });
@@ -46,6 +46,30 @@ export default function RequestEditor({
 
   const handleBodyChange = (body: string) => {
     onUpdate({ body });
+  };
+
+  const handleAddParam = () => {
+    const key = `param_${Date.now()}`;
+    const newParams = { ...request.params, [key]: '' };
+    onUpdate({ params: newParams });
+  };
+
+  const handleRemoveParam = (key: string) => {
+    const newParams = { ...request.params };
+    delete newParams[key];
+    onUpdate({ params: newParams });
+  };
+
+  const handleAddHeader = () => {
+    const key = `header_${Date.now()}`;
+    const newHeaders = { ...request.headers, [key]: '' };
+    onUpdate({ headers: newHeaders });
+  };
+
+  const handleRemoveHeader = (key: string) => {
+    const newHeaders = { ...request.headers };
+    delete newHeaders[key];
+    onUpdate({ headers: newHeaders });
   };
 
   const getMethodColor = (method: string) => {
@@ -172,21 +196,44 @@ export default function RequestEditor({
           <i className="fas fa-lock mr-2"></i>
           Auth
         </button>
+        <button
+          onClick={() => setActiveTab('docs')}
+          className={`
+            px-4 py-2 text-sm transition-colors border-b-2
+            ${activeTab === 'docs'
+              ? 'text-purple-400 border-purple-500'
+              : 'text-slate-400 border-transparent hover:text-slate-300'
+            }
+          `}
+        >
+          <i className="fas fa-book mr-2"></i>
+          Docs
+        </button>
       </div>
 
       {/* 内容区域 */}
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === 'params' && (
-          <ParamsPanel params={request.params} onChange={handleParamChange} />
+          <ParamsPanel
+            params={request.params}
+            onChange={handleParamChange}
+            onAdd={handleAddParam}
+            onRemove={handleRemoveParam}
+          />
         )}
         {activeTab === 'headers' && (
-          <HeadersPanel headers={request.headers} onChange={handleHeaderChange} />
+          <HeadersPanel
+            headers={request.headers}
+            onChange={handleHeaderChange}
+            onAdd={handleAddHeader}
+            onRemove={handleRemoveHeader}
+          />
         )}
         {activeTab === 'body' && (
           <BodyPanel
             bodyType={request.body_type}
             body={request.body}
-            onBodyTypeChange={(bodyType) => onUpdate({ body_type: bodyType })}
+            onBodyTypeChange={(bodyType) => onUpdate({ body_type: bodyType as any })}
             onBodyChange={handleBodyChange}
           />
         )}
@@ -194,8 +241,14 @@ export default function RequestEditor({
           <AuthPanel
             authType={request.auth_type}
             authConfig={request.auth_config}
-            onAuthTypeChange={(authType) => onUpdate({ auth_type: authType })}
+            onAuthTypeChange={(authType) => onUpdate({ auth_type: authType as any })}
             onAuthConfigChange={(authConfig) => onUpdate({ auth_config: authConfig })}
+          />
+        )}
+        {activeTab === 'docs' && (
+          <DocsPanel
+            description={request.description || ''}
+            onChange={(description) => onUpdate({ description })}
           />
         )}
       </div>
@@ -208,9 +261,11 @@ export default function RequestEditor({
 interface ParamsPanelProps {
   params: Record<string, string>;
   onChange: (key: string, value: string, index: number) => void;
+  onAdd: () => void;
+  onRemove: (key: string) => void;
 }
 
-function ParamsPanel({ params, onChange }: ParamsPanelProps) {
+function ParamsPanel({ params, onChange, onAdd, onRemove }: ParamsPanelProps) {
   const entries = Object.entries(params);
 
   return (
@@ -236,13 +291,19 @@ function ParamsPanel({ params, onChange }: ParamsPanelProps) {
               placeholder="参数值"
               className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
             />
-            <button className="text-slate-500 hover:text-red-400 transition-colors">
+            <button
+              onClick={() => onRemove(key)}
+              className="text-slate-500 hover:text-red-400 transition-colors"
+            >
               <i className="fas fa-times"></i>
             </button>
           </div>
         ))
       )}
-      <button className="text-purple-400 hover:text-purple-300 transition-colors text-sm">
+      <button
+        onClick={onAdd}
+        className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
+      >
         <i className="fas fa-plus mr-2"></i>
         添加参数
       </button>
@@ -253,9 +314,11 @@ function ParamsPanel({ params, onChange }: ParamsPanelProps) {
 interface HeadersPanelProps {
   headers: Record<string, string>;
   onChange: (key: string, value: string, index: number) => void;
+  onAdd: () => void;
+  onRemove: (key: string) => void;
 }
 
-function HeadersPanel({ headers, onChange }: HeadersPanelProps) {
+function HeadersPanel({ headers, onChange, onAdd, onRemove }: HeadersPanelProps) {
   const entries = Object.entries(headers);
 
   return (
@@ -281,13 +344,19 @@ function HeadersPanel({ headers, onChange }: HeadersPanelProps) {
               placeholder="Header 值"
               className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
             />
-            <button className="text-slate-500 hover:text-red-400 transition-colors">
+            <button
+              onClick={() => onRemove(key)}
+              className="text-slate-500 hover:text-red-400 transition-colors"
+            >
               <i className="fas fa-times"></i>
             </button>
           </div>
         ))
       )}
-      <button className="text-purple-400 hover:text-purple-300 transition-colors text-sm">
+      <button
+        onClick={onAdd}
+        className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
+      >
         <i className="fas fa-plus mr-2"></i>
         添加 Header
       </button>
@@ -481,6 +550,72 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
           <i className="fas fa-unlock text-4xl mb-3 opacity-30"></i>
           <p>此请求不需要认证</p>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ============= Docs Panel =============
+
+interface DocsPanelProps {
+  description: string;
+  onChange: (description: string) => void;
+}
+
+function DocsPanel({ description, onChange }: DocsPanelProps) {
+  const [preview, setPreview] = useState(false);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-slate-400">请求描述（支持 Markdown）</span>
+        <button
+          onClick={() => setPreview(!preview)}
+          className="px-3 py-1 rounded text-xs font-medium transition-colors
+                     bg-slate-700 text-slate-300 hover:bg-slate-600"
+        >
+          {preview ? '编辑' : '预览'}
+        </button>
+      </div>
+      {preview ? (
+        <div className="bg-slate-900 border border-slate-600 rounded-lg p-4 text-sm text-slate-300 min-h-[256px]">
+          {description ? (
+            <div className="prose prose-invert max-w-none">
+              {description.split('\n').map((line, i) => {
+                // 简易 Markdown 渲染
+                if (line.startsWith('### ')) {
+                  return <h3 key={i} className="text-lg font-bold text-white mt-4 mb-2">{line.slice(4)}</h3>;
+                }
+                if (line.startsWith('## ')) {
+                  return <h2 key={i} className="text-xl font-bold text-white mt-4 mb-2">{line.slice(3)}</h2>;
+                }
+                if (line.startsWith('# ')) {
+                  return <h1 key={i} className="text-2xl font-bold text-white mt-4 mb-2">{line.slice(2)}</h1>;
+                }
+                if (line.startsWith('- ') || line.startsWith('* ')) {
+                  return <li key={i} className="ml-4">{line.slice(2)}</li>;
+                }
+                if (line.startsWith('```')) {
+                  return <hr key={i} className="my-2 border-slate-600" />;
+                }
+                if (line.trim() === '') {
+                  return <br key={i} />;
+                }
+                return <p key={i} className="mb-1">{line}</p>;
+              })}
+            </div>
+          ) : (
+            <span className="text-slate-600 italic">暂无描述</span>
+          )}
+        </div>
+      ) : (
+        <textarea
+          value={description}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="输入请求描述，支持 Markdown 语法..."
+          className="w-full h-64 bg-slate-900 text-white px-4 py-3 rounded-lg
+                     border border-slate-600 text-sm resize-none focus:border-purple-500 focus:outline-none"
+        />
       )}
     </div>
   );

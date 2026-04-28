@@ -13,6 +13,10 @@ import {
   fetchEnvironments,
   fetchActiveEnvironment,
   sendHttpRequest,
+  fetchHistory,
+  clearHistory,
+  duplicateRequest as apiDuplicateRequest,
+  deleteRequestById as apiDeleteRequest,
   SendRequestPayload,
   SendRequestResponse,
 } from '../services/httpClientApi';
@@ -59,6 +63,11 @@ interface HttpClientState {
   updateTabRequest: (requestId: string, request: Partial<HttpRequest>) => void;
   sendRequest: (payload: SendRequestPayload) => Promise<SendRequestResponse>;
   clearResponse: () => void;
+  loadHistory: () => Promise<void>;
+  clearHistory: () => Promise<void>;
+  replayFromHistory: (historyItem: RequestHistory) => void;
+  duplicateRequest: (request: HttpRequest, targetCollectionId: string) => Promise<void>;
+  deleteRequest: (requestId: string, collectionId: string) => Promise<void>;
 }
 
 export const useHttpClientStore = create<HttpClientState>((set, get) => ({
@@ -161,9 +170,32 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
       const response = await sendHttpRequest(payload);
       set({ currentResponse: response, sendingRequest: false });
       return response;
-    } catch (error) {
-      console.error('Failed to send request:', error);
+    } catch (error: any) {
       set({ sendingRequest: false });
+      // 设置错误响应对象，让 UI 可以显示错误信息
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        set({
+          currentResponse: {
+            status_code: error.response.status,
+            headers: error.response.headers || {},
+            body: typeof errorData === 'string' ? errorData : JSON.stringify(errorData, null, 2),
+            response_time: 0,
+            content_type: 'application/json',
+          }
+        });
+      } else if (error.message) {
+        // 网络错误等无 response 的情况
+        set({
+          currentResponse: {
+            status_code: 0,
+            headers: {},
+            body: `请求失败：${error.message}`,
+            response_time: 0,
+            content_type: 'text/plain',
+          }
+        });
+      }
       throw error;
     }
   },
@@ -171,5 +203,70 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
   // Clear response
   clearResponse: () => {
     set({ currentResponse: null });
+  },
+
+  // Load history
+  loadHistory: async () => {
+    try {
+      const history = await fetchHistory(100);
+      set({ history });
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    }
+  },
+
+  // Clear history
+  clearHistory: async () => {
+    try {
+      await clearHistory();
+      set({ history: [] });
+    } catch (error) {
+      console.error('Failed to clear history:', error);
+    }
+  },
+
+  // Replay from history
+  replayFromHistory: (historyItem: RequestHistory) => {
+    const { openTab } = get();
+    const reqData = historyItem.request_data || {};
+    const request: HttpRequest = {
+      id: `history_${Date.now()}`,
+      collection_id: '',
+      name: `${historyItem.method} ${historyItem.url}`,
+      method: historyItem.method,
+      url: historyItem.url,
+      headers: reqData.headers || {},
+      params: reqData.params || {},
+      body_type: reqData.body_type || 'none',
+      body: reqData.body || '',
+      auth_type: 'none',
+      auth_config: {},
+      sort_order: 0,
+      created_at: historyItem.timestamp,
+      updated_at: historyItem.timestamp,
+    };
+    openTab(request);
+  },
+
+  // Duplicate request
+  duplicateRequest: async (request: HttpRequest, targetCollectionId: string) => {
+    try {
+      await apiDuplicateRequest(request, targetCollectionId);
+    } catch (error) {
+      console.error('Failed to duplicate request:', error);
+      throw error;
+    }
+  },
+
+  // Delete request
+  deleteRequest: async (requestId: string, collectionId: string) => {
+    try {
+      await apiDeleteRequest(requestId);
+      const { loadRequests } = get();
+      loadRequests(collectionId);
+    } catch (error) {
+      console.error('Failed to delete request:', error);
+      throw error;
+    }
   },
 }));

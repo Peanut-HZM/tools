@@ -6,6 +6,9 @@ import logging
 import uuid
 import json
 import time
+import re
+import random
+import shlex
 import ipaddress
 import socket
 from typing import List, Optional, Dict, Any
@@ -251,8 +254,8 @@ class HttpClientService:
                 cur.execute("""
                     INSERT INTO http_requests
                     (id, collection_id, name, method, url, headers, params,
-                     body_type, body, auth_type, auth_config, sort_order)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     body_type, body, auth_type, auth_config, description, sort_order)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING *
                 """, (
                     request_id,
@@ -266,6 +269,7 @@ class HttpClientService:
                     request.body,
                     request.auth_type,
                     json.dumps(request.auth_config),
+                    request.description,
                     request.sort_order,
                 ))
                 conn.commit()
@@ -314,6 +318,9 @@ class HttpClientService:
             if request.auth_config is not None:
                 updates.append("auth_config = %s")
                 values.append(json.dumps(request.auth_config))
+            if request.description is not None:
+                updates.append("description = %s")
+                values.append(request.description)
             if request.sort_order is not None:
                 updates.append("sort_order = %s")
                 values.append(request.sort_order)
@@ -569,36 +576,139 @@ class HttpClientService:
 
     # ============= Send Request Method =============
 
+    def resolve_variables(self, text: str, variables: Dict[str, str]) -> str:
+        """将 {{variableName}} 替换为环境变量值，支持内置变量"""
+        if not text:
+            return text
+
+        builtins = {
+            '$timestamp': str(int(time.time() * 1000)),
+            '$uuid': str(uuid.uuid4()),
+            '$randomInt': str(random.randint(0, 10000)),
+        }
+        all_vars = {**builtins, **variables}
+
+        def replacer(match):
+            var_name = match.group(1).strip()
+            return all_vars.get(var_name, match.group(0))
+
+        return re.sub(r'\{\{(.+?)\}\}', replacer, text)
+
+    def parse_curl_command(self, curl_command: str) -> Dict[str, Any]:
+        """解析 cURL 命令为请求参数"""
+        # 清理命令（移除行续符、多余空白）
+        cmd = curl_command.strip()
+        cmd = cmd.replace('\\\n', ' ').replace('\\\r\n', ' ')
+
+        # 移除开头的 curl
+        if cmd.startswith('curl '):
+            cmd = cmd[5:]
+
+        try:
+            parts = shlex.split(cmd)
+        except ValueError:
+            # 如果 shlex 解析失败，用空格分割
+            parts = cmd.split()
+
+        method = 'GET'
+        url = ''
+        headers = {}
+        body = None
+        body_type = 'none'
+
+        i = 0
+        while i < len(parts):
+            part = parts[i]
+            if part in ('-X', '--request') and i + 1 < len(parts):
+                method = parts[i + 1].upper()
+                i += 2
+            elif part in ('-H', '--header') and i + 1 < len(parts):
+                header_val = parts[i + 1]
+                if ':' in header_val:
+                    k, v = header_val.split(':', 1)
+                    headers[k.strip()] = v.strip()
+                i += 2
+            elif part in ('-d', '--data', '--data-raw', '--data-binary') and i + 1 < len(parts):
+                body = parts[i + 1]
+                body_type = 'json' if body.strip().startswith('{') or body.strip().startswith('[') else 'raw'
+                if not method or method == 'GET':
+                    method = 'POST'
+                i += 2
+            elif part in ('-u', '--user') and i + 1 < len(parts):
+                # Basic auth
+                headers['Authorization'] = f'Basic {parts[i + 1]}'
+                i += 2
+            elif part.startswith('-') and not part.startswith('--url'):
+                # 跳过其他不认识的选项
+                i += 1
+                if i < len(parts) and not parts[i].startswith('-'):
+                    i += 1
+            else:
+                # 假设是 URL
+                if not url:
+                    url = part
+                i += 1
+
+        # 根据 Content-Type 判断 body_type
+        content_type = headers.get('Content-Type', headers.get('content-type', ''))
+        if body:
+            if 'json' in content_type.lower():
+                body_type = 'json'
+            elif 'form' in content_type.lower() and 'multipart' not in content_type.lower():
+                body_type = 'form'
+            else:
+                body_type = 'raw'
+
+        return {
+            'method': method,
+            'url': url,
+            'headers': headers,
+            'body': body,
+            'body_type': body_type,
+        }
+
     async def send_request(self, request: SendRequestRequest, user_id: str = "anonymous") -> Dict:
         """发送 HTTP 请求（代理转发）"""
         start_time = time.time()
 
-        # SSRF 防护检查
-        if not is_safe_url(request.url):
-            raise ValueError(f"URL 不安全：{request.url} - 禁止访问内网地址")
+        # 获取环境变量
+        env = self.get_active_environment(request.workspace_id or "default")
+        variables = env.get("variables", {}) if env else {}
+
+        # 变量替换：URL
+        url = self.resolve_variables(request.url, variables)
+
+        # SSRF 防护检查（变量替换后）
+        if not is_safe_url(url):
+            raise ValueError(f"URL 不安全：{url} - 禁止访问内网地址")
 
         # 准备请求参数
         method = request.method.upper()
-        url = request.url
-        headers = request.headers or {}
-        params = request.params or {}
+        headers = {
+            self.resolve_variables(k, variables): self.resolve_variables(v, variables)
+            for k, v in (request.headers or {}).items()
+        }
+        params = {
+            self.resolve_variables(k, variables): self.resolve_variables(v, variables)
+            for k, v in (request.params or {}).items()
+        }
 
         # 处理请求体
         body = None
         if request.body and request.body_type != "none":
+            resolved_body = self.resolve_variables(request.body, variables)
             if request.body_type == "json":
                 headers["Content-Type"] = "application/json"
-                body = request.body
+                body = resolved_body
             elif request.body_type == "form":
-                # form 格式需要解析
                 try:
-                    form_data = json.loads(request.body)
+                    form_data = json.loads(resolved_body)
                     headers["Content-Type"] = "application/x-www-form-urlencoded"
-                    params = form_data  # httpx 会自动处理
+                    params = {**params, **form_data}
                 except json.JSONDecodeError:
-                    body = request.body
+                    body = resolved_body
             else:  # raw
-                body = request.body
+                body = resolved_body
 
         try:
             async with httpx.AsyncClient(
