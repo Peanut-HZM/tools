@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Header, Body
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func, delete
 
 from app.utils.usage_fetcher import UsageFetcher
 from app.services.token_usage_cache import (
@@ -121,19 +121,20 @@ def normalize_entries(raw: dict, report_type: str) -> list[UsageItem]:
             date_val = str(entry["week"])
 
         tokens = entry.get("tokens", {})
+        input_tok = _safe_int(tokens, "input") or _safe_int(entry, "inputTokens", "input_tokens")
+        output_tok = _safe_int(tokens, "output") or _safe_int(entry, "outputTokens", "output_tokens")
+        cache_create_tok = _safe_int(tokens, "cache_write") or _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens")
+        cache_read_tok = _safe_int(tokens, "cache_read") or _safe_int(entry, "cacheReadTokens", "cache_read_tokens")
+        # total_tokens 始终从四项之和计算，确保数值一致性
+        total_tok = input_tok + output_tok + cache_create_tok + cache_read_tok
         items.append(
             UsageItem(
                 date=date_val,
-                input_tokens=_safe_int(tokens, "input")
-                or _safe_int(entry, "inputTokens", "input_tokens"),
-                output_tokens=_safe_int(tokens, "output")
-                or _safe_int(entry, "outputTokens", "output_tokens"),
-                cache_creation_tokens=_safe_int(tokens, "cache_write")
-                or _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens"),
-                cache_read_tokens=_safe_int(tokens, "cache_read")
-                or _safe_int(entry, "cacheReadTokens", "cache_read_tokens"),
-                total_tokens=_safe_int(tokens, "total")
-                or _safe_int(entry, "totalTokens", "total_tokens"),
+                input_tokens=input_tok,
+                output_tokens=output_tok,
+                cache_creation_tokens=cache_create_tok,
+                cache_read_tokens=cache_read_tok,
+                total_tokens=total_tok,
                 total_cost=_safe_float(entry, "cost")
                 or _safe_float(entry, "totalCost", "costUSD"),
                 models_used=entry.get("modelsUsed", entry.get("models_used", [])),
@@ -151,7 +152,6 @@ def aggregate_by_week(items: list[UsageItem]) -> list[UsageItem]:
         lambda: {
             "inputTokens": 0,
             "outputTokens": 0,
-            "totalTokens": 0,
             "totalCost": 0,
             "cacheCreationTokens": 0,
             "cacheReadTokens": 0,
@@ -170,7 +170,6 @@ def aggregate_by_week(items: list[UsageItem]) -> list[UsageItem]:
         w = weekly[iso_week]
         w["inputTokens"] += item.input_tokens
         w["outputTokens"] += item.output_tokens
-        w["totalTokens"] += item.total_tokens
         w["totalCost"] += item.total_cost
         w["cacheCreationTokens"] += item.cache_creation_tokens
         w["cacheReadTokens"] += item.cache_read_tokens
@@ -184,7 +183,7 @@ def aggregate_by_week(items: list[UsageItem]) -> list[UsageItem]:
             output_tokens=v["outputTokens"],
             cache_creation_tokens=v["cacheCreationTokens"],
             cache_read_tokens=v["cacheReadTokens"],
-            total_tokens=v["totalTokens"],
+            total_tokens=v["inputTokens"] + v["outputTokens"] + v["cacheCreationTokens"] + v["cacheReadTokens"],
             total_cost=round(v["totalCost"], 4),
             models_used=list(v["modelsUsed"]),
         )
@@ -198,7 +197,6 @@ def aggregate_by_month(items: list[UsageItem]) -> list[UsageItem]:
         lambda: {
             "inputTokens": 0,
             "outputTokens": 0,
-            "totalTokens": 0,
             "totalCost": 0,
             "cacheCreationTokens": 0,
             "cacheReadTokens": 0,
@@ -212,7 +210,6 @@ def aggregate_by_month(items: list[UsageItem]) -> list[UsageItem]:
         m = monthly[month_str]
         m["inputTokens"] += item.input_tokens
         m["outputTokens"] += item.output_tokens
-        m["totalTokens"] += item.total_tokens
         m["totalCost"] += item.total_cost
         m["cacheCreationTokens"] += item.cache_creation_tokens
         m["cacheReadTokens"] += item.cache_read_tokens
@@ -226,7 +223,7 @@ def aggregate_by_month(items: list[UsageItem]) -> list[UsageItem]:
             output_tokens=v["outputTokens"],
             cache_creation_tokens=v["cacheCreationTokens"],
             cache_read_tokens=v["cacheReadTokens"],
-            total_tokens=v["totalTokens"],
+            total_tokens=v["inputTokens"] + v["outputTokens"] + v["cacheCreationTokens"] + v["cacheReadTokens"],
             total_cost=round(v["totalCost"], 4),
             models_used=list(v["modelsUsed"]),
         )
@@ -235,12 +232,24 @@ def aggregate_by_month(items: list[UsageItem]) -> list[UsageItem]:
 
 
 def compute_summary(items: list[UsageItem]) -> UsageSummary:
-    """计算汇总统计"""
+    """计算汇总统计
+
+    total_tokens 始终从四项组件之和计算，确保数值一致性：
+    total_tokens = total_input_tokens + total_output_tokens
+                 + total_cache_creation_tokens + total_cache_read_tokens
+    不直接信任存储的 total_tokens 字段，因为历史数据可能存在 total_tokens=0 的错误记录。
+    """
     count = max(len(items), 1)
+    total_input = sum(i.input_tokens for i in items)
+    total_output = sum(i.output_tokens for i in items)
+    total_cache_creation = sum(i.cache_creation_tokens for i in items)
+    total_cache_read = sum(i.cache_read_tokens for i in items)
+    # 强制从四项组件计算，保证 total >= input
+    total_tokens = total_input + total_output + total_cache_creation + total_cache_read
     return UsageSummary(
-        total_input_tokens=sum(i.input_tokens for i in items),
-        total_output_tokens=sum(i.output_tokens for i in items),
-        total_tokens=sum(i.total_tokens for i in items),
+        total_input_tokens=total_input,
+        total_output_tokens=total_output,
+        total_tokens=total_tokens,
         total_cost=round(sum(i.total_cost for i in items), 4),
         days_count=len(items),
         avg_daily_cost=round(sum(i.total_cost for i in items) / count, 4),
@@ -264,7 +273,6 @@ def merge_items(items_a: list[UsageItem], items_b: list[UsageItem]) -> list[Usag
             "output_tokens": 0,
             "cache_creation_tokens": 0,
             "cache_read_tokens": 0,
-            "total_tokens": 0,
             "total_cost": 0.0,
             "models_used": set(),
             "model_breakdowns": [],
@@ -279,7 +287,6 @@ def merge_items(items_a: list[UsageItem], items_b: list[UsageItem]) -> list[Usag
             m["output_tokens"] += item.output_tokens
             m["cache_creation_tokens"] += item.cache_creation_tokens
             m["cache_read_tokens"] += item.cache_read_tokens
-            m["total_tokens"] += item.total_tokens
             m["total_cost"] += item.total_cost
             for mod in item.models_used:
                 m["models_used"].add(mod)
@@ -292,7 +299,7 @@ def merge_items(items_a: list[UsageItem], items_b: list[UsageItem]) -> list[Usag
             output_tokens=v["output_tokens"],
             cache_creation_tokens=v["cache_creation_tokens"],
             cache_read_tokens=v["cache_read_tokens"],
-            total_tokens=v["total_tokens"],
+            total_tokens=v["input_tokens"] + v["output_tokens"] + v["cache_creation_tokens"] + v["cache_read_tokens"],
             total_cost=round(v["total_cost"], 4),
             models_used=list(v["models_used"]),
             model_breakdowns=v["model_breakdowns"],
@@ -508,6 +515,40 @@ async def refresh_cache():
     return {"message": "缓存已清除，下次访问将重新获取数据"}
 
 
+@router.get("/devices")
+async def get_user_devices(
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """获取当前用户的设备列表"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    db = SessionLocal()
+    try:
+        regs = db.query(DeviceRegistry).filter(
+            DeviceRegistry.user_id == user_id
+        ).all()
+
+        if regs:
+            devices = [
+                {"id": reg.device_id, "name": reg.display_name or reg.default_display_name or reg.device_id}
+                for reg in regs
+            ]
+        else:
+            device_ids = db.query(TokenUsageRecord.device_id).filter(
+                TokenUsageRecord.user_id == user_id
+            ).distinct().all()
+            devices = [{"id": row[0], "name": row[0]} for row in device_ids]
+
+        return {"devices": devices}
+    finally:
+        db.close()
+
+
 # ========== 数据库查询与同步端点 ==========
 
 
@@ -542,6 +583,8 @@ class DbUsageResponse(BaseModel):
     summary: UsageSummary
     devices: list[DeviceInfo] = Field(default_factory=list)
     cached: bool = False
+    actual_days: Optional[int] = Field(default=None, description="实际查询的天数（当自动扩大时间范围时与请求天数不同）")
+    auto_expanded: bool = Field(default=False, description="是否自动扩大了时间范围以获取数据")
 
 
 @router.post("/db-query", response_model=DbUsageResponse)
@@ -599,6 +642,24 @@ async def db_query_token_usage(
         since_date = datetime.now() - timedelta(days=req.days)
         items = _execute_db_query(db, user_id, req, since_date)
 
+        # 如果指定时间范围无数据，自动扩大到365天查询
+        auto_expanded = False
+        actual_days = req.days
+        if not items and req.days < 365:
+            # 检查该用户在该 source 下是否有任何数据
+            source_filter = [TokenUsageRecord.user_id == user_id]
+            if req.source != "all":
+                source_filter.append(TokenUsageRecord.source == req.source)
+            if req.device_id:
+                source_filter.append(TokenUsageRecord.device_id == req.device_id)
+            has_any_data = db.query(TokenUsageRecord).filter(*source_filter).first() is not None
+            if has_any_data:
+                # 有数据但不在当前时间范围，自动扩大到365天
+                since_date = datetime.now() - timedelta(days=365)
+                items = _execute_db_query(db, user_id, req, since_date)
+                auto_expanded = True
+                actual_days = 365
+
         # 计算汇总
         summary = compute_summary(items)
 
@@ -606,6 +667,8 @@ async def db_query_token_usage(
             items=items,
             summary=summary,
             devices=devices,
+            actual_days=actual_days,
+            auto_expanded=auto_expanded,
         )
     finally:
         db.close()
@@ -653,6 +716,111 @@ async def rename_device(
         db.commit()
 
         return {"device_id": device_id, "display_name": reg.display_name}
+    finally:
+        db.close()
+
+
+class CleanupRequest(BaseModel):
+    scope: str = Field(description="清理范围: device, source, all")
+    device_id: Optional[str] = Field(default=None, description="设备 ID，scope=device 时必填")
+    source: Optional[str] = Field(default=None, description="数据源: claude, opencode，scope=source 时必填")
+    resync: bool = Field(default=True, description="清除后是否自动重新同步")
+
+
+class CleanupResponse(BaseModel):
+    deleted_records: int
+    deleted_logs: int
+    cache_cleared: bool
+    resync_started: bool
+    message: str
+
+
+@router.post("/cleanup", response_model=CleanupResponse)
+async def cleanup_token_usage(
+    req: CleanupRequest,
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """清理 Token Usage 数据库记录和缓存，可按设备/数据源/全量清除，清除后可选重新同步"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    db = SessionLocal()
+    deleted_records = 0
+    deleted_logs = 0
+
+    try:
+        # 构建 TokenUsageRecord 删除条件
+        record_filters = [TokenUsageRecord.user_id == user_id]
+        log_filters = [TokenUsageSyncLog.user_id == user_id]
+
+        if req.scope == "device":
+            if not req.device_id:
+                raise HTTPException(status_code=400, detail="scope=device 时 device_id 不能为空")
+            record_filters.append(TokenUsageRecord.device_id == req.device_id)
+            log_filters.append(TokenUsageSyncLog.device_id == req.device_id)
+        elif req.scope == "source":
+            if not req.source:
+                raise HTTPException(status_code=400, detail="scope=source 时 source 不能为空")
+            if req.source not in ("claude", "opencode"):
+                raise HTTPException(status_code=400, detail="source 必须是 claude 或 opencode")
+            record_filters.append(TokenUsageRecord.source == req.source)
+            log_filters.append(TokenUsageSyncLog.source == req.source)
+        elif req.scope == "all":
+            pass  # 只按 user_id 删除
+        else:
+            raise HTTPException(status_code=400, detail=f"不支持的 scope: {req.scope}，可选: device, source, all")
+
+        # 删除 TokenUsageRecord
+        deleted_records = db.query(TokenUsageRecord).filter(*record_filters).delete(synchronize_session=False)
+        logger.info(f"[cleanup] 用户 {user_id} scope={req.scope} 删除 {deleted_records} 条 TokenUsageRecord")
+
+        # 删除对应的同步日志
+        deleted_logs = db.query(TokenUsageSyncLog).filter(*log_filters).delete(synchronize_session=False)
+        logger.info(f"[cleanup] 用户 {user_id} scope={req.scope} 删除 {deleted_logs} 条 TokenUsageSyncLog")
+
+        db.commit()
+
+        # 清除 Redis 缓存
+        from app.services.token_usage_cache import invalidate_cache
+        cache_cleared = invalidate_cache()
+        if not cache_cleared:
+            logger.warning(f"[cleanup] 用户 {user_id} Redis 缓存清除失败或无缓存")
+
+        # 可选：触发重新同步
+        resync_started = False
+        if req.resync and deleted_records > 0:
+            try:
+                sync_result = sync_token_usage(user_id=user_id, days=90)
+                resync_started = True
+                logger.info(f"[cleanup] 用户 {user_id} 重新同步完成: {sync_result}")
+            except Exception as e:
+                logger.error(f"[cleanup] 用户 {user_id} 重新同步失败: {e}")
+
+        scope_desc = {
+            "device": f"设备 {req.device_id}",
+            "source": f"数据源 {req.source}",
+            "all": "全部数据",
+        }.get(req.scope, req.scope)
+
+        return CleanupResponse(
+            deleted_records=deleted_records,
+            deleted_logs=deleted_logs,
+            cache_cleared=cache_cleared,
+            resync_started=resync_started,
+            message=f"已清除 {scope_desc}: {deleted_records} 条记录, {deleted_logs} 条同步日志"
+            + (", 已触发重新同步" if resync_started else ", 未触发重新同步"),
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[cleanup] 清理失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"清理失败: {str(e)}")
     finally:
         db.close()
 
@@ -708,8 +876,15 @@ def _execute_db_query(db, user_id: str, req: DbQueryRequest, since_date: datetim
     if req.device_id:
         base_filter.append(TokenUsageRecord.device_id == req.device_id)
 
+    # total_tokens 始终从四项之和计算，不直接 SUM 存储字段
+    total_expr = (
+        func.sum(TokenUsageRecord.input_tokens)
+        + func.sum(TokenUsageRecord.output_tokens)
+        + func.sum(TokenUsageRecord.cache_creation_tokens)
+        + func.sum(TokenUsageRecord.cache_read_tokens)
+    )
+
     if req.group_by == "device":
-        # 按设备分组，返回每个设备的每日聚合
         results = db.query(
             TokenUsageRecord.record_date.label("date"),
             TokenUsageRecord.device_id.label("group_key"),
@@ -717,13 +892,12 @@ def _execute_db_query(db, user_id: str, req: DbQueryRequest, since_date: datetim
             func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
             func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
             func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            total_expr.label("total_tokens"),
             func.sum(TokenUsageRecord.total_cost).label("total_cost"),
         ).filter(*base_filter).group_by(
             TokenUsageRecord.record_date, TokenUsageRecord.device_id
         ).order_by(TokenUsageRecord.record_date).all()
     elif req.group_by == "model":
-        # 按模型分组
         results = db.query(
             TokenUsageRecord.record_date.label("date"),
             TokenUsageRecord.model.label("group_key"),
@@ -731,28 +905,62 @@ def _execute_db_query(db, user_id: str, req: DbQueryRequest, since_date: datetim
             func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
             func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
             func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            total_expr.label("total_tokens"),
             func.sum(TokenUsageRecord.total_cost).label("total_cost"),
         ).filter(*base_filter).group_by(
             TokenUsageRecord.record_date, TokenUsageRecord.model
         ).order_by(TokenUsageRecord.record_date).all()
     else:
-        # 不分组，按日期聚合
         results = db.query(
             TokenUsageRecord.record_date.label("date"),
             func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
             func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
             func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
             func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            total_expr.label("total_tokens"),
             func.sum(TokenUsageRecord.total_cost).label("total_cost"),
         ).filter(*base_filter).group_by(
             TokenUsageRecord.record_date
         ).order_by(TokenUsageRecord.record_date).all()
 
+    # 模型明细：所有分组模式都需要
+    model_total_expr = (
+        func.sum(TokenUsageRecord.input_tokens)
+        + func.sum(TokenUsageRecord.output_tokens)
+        + func.sum(TokenUsageRecord.cache_creation_tokens)
+        + func.sum(TokenUsageRecord.cache_read_tokens)
+    )
+    model_results = db.query(
+        TokenUsageRecord.record_date.label("date"),
+        TokenUsageRecord.model,
+        func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
+        func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
+        model_total_expr.label("total_tokens"),
+        func.sum(TokenUsageRecord.total_cost).label("total_cost"),
+    ).filter(*base_filter).group_by(
+        TokenUsageRecord.record_date, TokenUsageRecord.model
+    ).order_by(TokenUsageRecord.record_date).all()
+
+    model_map: dict[str, list] = {}
+    for row in model_results:
+        date_str = row.date.isoformat() if isinstance(row.date, date) else str(row.date)
+        if date_str not in model_map:
+            model_map[date_str] = []
+        model_map[date_str].append({
+            "model": row.model,
+            "inputTokens": row.input_tokens or 0,
+            "outputTokens": row.output_tokens or 0,
+            "totalTokens": row.total_tokens or 0,
+            "cost": float(row.total_cost or 0),
+        })
+
     items = []
     for row in results:
         date_str = row.date.isoformat() if isinstance(row.date, date) else str(row.date)
+        # 获取该日期的模型明细
+        breakdowns = model_map.get(date_str, [])
+        models_list = [m["model"] for m in breakdowns] if breakdowns else []
+
         item = DbUsageItem(
             date=date_str,
             input_tokens=row.input_tokens or 0,
@@ -761,6 +969,8 @@ def _execute_db_query(db, user_id: str, req: DbQueryRequest, since_date: datetim
             cache_read_tokens=row.cache_read_tokens or 0,
             total_tokens=row.total_tokens or 0,
             total_cost=float(row.total_cost or 0),
+            models_used=models_list,
+            model_breakdowns=breakdowns,
         )
         if req.group_by != "none":
             item.group_key = row.group_key
