@@ -143,10 +143,12 @@ export interface DbUsageResponse {
   summary: UsageSummary;
   devices: DeviceInfo[];
   cached?: boolean;
+  actual_days?: number;
+  auto_expanded?: boolean;
 }
 
 export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageResponse> {
-  const response = await fetch(`${BASE_URL}/db-query`, {
+  const response = await fetch(`${BASE_URL}/query`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -193,9 +195,15 @@ export async function renameDevice(
     },
     body: JSON.stringify({ name }),
   });
+  return response.json();
+}
+
+export async function getUserDevices(): Promise<{ devices: DeviceInfo[] }> {
+  const response = await fetch(`${BASE_URL}/devices`, {
+    headers: getAuthHeaders(),
+  });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || '重命名设备失败');
+    throw new Error('获取设备列表失败');
   }
   return response.json();
 }

@@ -164,3 +164,80 @@ def invalidate_single_cache(
     except Exception as e:
         logger.warning(f"Redis 单 Key 清除失败: {e}")
         return False
+
+
+# ========== 用户/设备维度查询缓存 ==========
+
+def _build_query_cache_key(
+    source: str,
+    report_type: str,
+    days: int,
+    group_by: str,
+    user_id: str,
+    device_id: str = None,
+) -> str:
+    """构建用户维度的查询缓存 Key"""
+    parts = [
+        "token_usage:query",
+        source,
+        report_type,
+        str(days),
+        group_by,
+        user_id,
+        device_id or "",
+    ]
+    return ":".join(parts)
+
+
+def get_query_cached_data(
+    source: str,
+    report_type: str,
+    days: int,
+    group_by: str,
+    user_id: str,
+    device_id: str = None,
+) -> Optional[dict]:
+    """从 Redis 获取用户维度的查询缓存"""
+    client = get_redis_client()
+    if not client:
+        return None
+
+    key = _build_query_cache_key(source, report_type, days, group_by, user_id, device_id)
+    try:
+        data = client.get(key)
+        if data:
+            logger.info(f"查询缓存命中: {key}")
+            return json.loads(data)
+        logger.info(f"查询缓存未命中: {key}")
+        return None
+    except Exception as e:
+        logger.warning(f"Redis 查询缓存读取失败: {e}")
+        return None
+
+
+def set_query_cached_data(
+    source: str,
+    report_type: str,
+    days: int,
+    group_by: str,
+    user_id: str,
+    device_id: str = None,
+    data: dict = None,
+) -> bool:
+    """将用户维度的查询数据写入 Redis 缓存"""
+    client = get_redis_client()
+    if not client:
+        return False
+
+    key = _build_query_cache_key(source, report_type, days, group_by, user_id, device_id)
+    try:
+        client.setex(
+            key,
+            settings.CACHE_REDIS_TOKEN_USAGE_TTL,
+            json.dumps(data, ensure_ascii=False),
+        )
+        logger.info(f"查询缓存已写入: {key}, TTL={settings.CACHE_REDIS_TOKEN_USAGE_TTL}s")
+        return True
+    except Exception as e:
+        logger.warning(f"Redis 查询缓存写入失败: {e}")
+        return False
