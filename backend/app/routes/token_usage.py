@@ -15,6 +15,8 @@ from app.services.token_usage_cache import (
     get_cached_data,
     set_cached_data,
     invalidate_cache,
+    get_query_cached_data,
+    set_query_cached_data,
 )
 from app.models.base import SessionLocal
 from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog, DeviceRegistry
@@ -301,200 +303,6 @@ def merge_items(items_a: list[UsageItem], items_b: list[UsageItem]) -> list[Usag
     ]
 
 
-@router.post("", response_model=UsageResponse)
-async def get_token_usage(req: UsageRequest):
-    """获取 Token 消耗统计数据（优先从缓存读取）"""
-    if req.source not in ("claude", "opencode"):
-        raise HTTPException(
-            400,
-            detail="source 必须是 'claude' 或 'opencode'",
-        )
-    if req.type not in ("daily", "weekly", "monthly"):
-        raise HTTPException(
-            400,
-            detail="type 必须是 'daily', 'weekly' 或 'monthly'",
-        )
-
-    # 1. 尝试从缓存读取
-    cached = get_cached_data(
-        source=req.source,
-        report_type=req.type,
-        days=req.days,
-        since=req.since,
-        until=req.until,
-        breakdown=req.breakdown,
-        by=req.by,
-    )
-
-    if cached:
-        logger.info("返回缓存数据")
-        return UsageResponse(
-            items=[UsageItem(**item) for item in cached["items"]],
-            summary=UsageSummary(**cached["summary"]),
-            cached=True,
-            cache_time=cached.get("cache_time"),
-        )
-
-    # 2. 缓存未命中，执行 CLI 调用
-    if req.source == "claude":
-        since = req.since
-        until = req.until
-        if not since and req.days:
-            since_date = datetime.now() - timedelta(days=req.days)
-            since = since_date.strftime("%Y%m%d")
-        # ccusage monthly/weekly 不支持 --since，统一取 daily 后由后端聚合
-        raw = UsageFetcher.fetch_claude(
-            report_type="daily",
-            since=since,
-            until=until,
-            breakdown=req.breakdown,
-        )
-    else:
-        raw = UsageFetcher.fetch_opencode(
-            days=req.days,
-            by=req.by,
-        )
-
-    if "error" in raw:
-        tool_name = "ccusage" if req.source == "claude" else "opencode-usage"
-        raise HTTPException(
-            500,
-            detail=f"{tool_name} 数据获取失败: {raw['error']}",
-        )
-
-    items = normalize_entries(raw, req.type)
-    items = apply_aggregation(items, req.type)
-    summary = compute_summary(items)
-
-    # 3. 写入缓存
-    cache_time = datetime.now().isoformat()
-    cache_data = {
-        "items": [item.model_dump() for item in items],
-        "summary": summary.model_dump(),
-        "cache_time": cache_time,
-    }
-    set_cached_data(
-        source=req.source,
-        report_type=req.type,
-        days=req.days,
-        data=cache_data,
-        since=req.since,
-        until=req.until,
-        breakdown=req.breakdown,
-        by=req.by,
-    )
-
-    return UsageResponse(
-        items=items,
-        summary=summary,
-        cached=False,
-        cache_time=cache_time,
-    )
-
-
-@router.post("/aggregate", response_model=UsageResponse)
-async def get_aggregated_token_usage(req: AggregateUsageRequest):
-    """获取所有工具的聚合 Token 消耗统计（优先从缓存读取）"""
-    if req.type not in ("daily", "weekly", "monthly"):
-        raise HTTPException(
-            400,
-            detail="type 必须是 'daily', 'weekly' 或 'monthly'",
-        )
-
-    # 1. 尝试从缓存读取
-    cached = get_cached_data(
-        source="aggregate",
-        report_type=req.type,
-        days=req.days,
-        since=None,
-        until=None,
-        breakdown=req.breakdown,
-        by=req.by,
-    )
-    if cached:
-        logger.info("聚合数据: 返回缓存")
-        return UsageResponse(
-            items=[UsageItem(**item) for item in cached["items"]],
-            summary=UsageSummary(**cached["summary"]),
-            cached=True,
-            cache_time=cached.get("cache_time"),
-        )
-
-    # 2. 缓存未命中，并发获取两个数据源
-    loop = asyncio.get_event_loop()
-    since_date = datetime.now() - timedelta(days=req.days)
-    since = since_date.strftime("%Y%m%d")
-
-    claude_raw, opencode_raw = await asyncio.gather(
-        loop.run_in_executor(None, lambda: UsageFetcher.fetch_claude(
-            report_type="daily", since=since, until=None, breakdown=req.breakdown
-        )),
-        loop.run_in_executor(None, lambda: UsageFetcher.fetch_opencode(
-            days=req.days, by=req.by
-        )),
-        return_exceptions=True,
-    )
-
-    # 处理异常
-    if isinstance(claude_raw, Exception):
-        logger.warning(f"聚合: claude 获取异常: {claude_raw}")
-        claude_raw = {"error": str(claude_raw)}
-    if isinstance(opencode_raw, Exception):
-        logger.warning(f"聚合: opencode 获取异常: {opencode_raw}")
-        opencode_raw = {"error": str(opencode_raw)}
-
-    # 两个都失败，返回 500
-    if "error" in claude_raw and "error" in opencode_raw:
-        raise HTTPException(
-            500,
-            detail=f"两个数据源均获取失败: claude={claude_raw['error']}; opencode={opencode_raw['error']}",
-        )
-
-    # 3. 分别规范化 + 聚合
-    items_a = (
-        normalize_entries(claude_raw, req.type) if "error" not in claude_raw else []
-    )
-    items_b = (
-        normalize_entries(opencode_raw, req.type) if "error" not in opencode_raw else []
-    )
-    items_a = apply_aggregation(items_a, req.type)
-    items_b = apply_aggregation(items_b, req.type)
-
-    # 4. 合并
-    merged = merge_items(items_a, items_b)
-    summary = compute_summary(merged)
-
-    if "error" in claude_raw:
-        logger.warning("聚合: 仅使用 opencode 数据（claude 失败）")
-    if "error" in opencode_raw:
-        logger.warning("聚合: 仅使用 claude 数据（opencode 失败）")
-
-    # 5. 写入缓存
-    cache_time = datetime.now().isoformat()
-    cache_data = {
-        "items": [item.model_dump() for item in merged],
-        "summary": summary.model_dump(),
-        "cache_time": cache_time,
-    }
-    set_cached_data(
-        source="aggregate",
-        report_type=req.type,
-        days=req.days,
-        data=cache_data,
-        since=None,
-        until=None,
-        breakdown=req.breakdown,
-        by=req.by,
-    )
-
-    return UsageResponse(
-        items=merged,
-        summary=summary,
-        cached=False,
-        cache_time=cache_time,
-    )
-
-
 @router.get("/health")
 async def health_check():
     """检查所有 CLI 工具是否可用"""
@@ -506,6 +314,40 @@ async def refresh_cache():
     """手动刷新所有 Token Usage 缓存"""
     invalidate_cache()
     return {"message": "缓存已清除，下次访问将重新获取数据"}
+
+
+@router.get("/devices")
+async def get_user_devices(
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """获取当前用户的设备列表"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    db = SessionLocal()
+    try:
+        regs = db.query(DeviceRegistry).filter(
+            DeviceRegistry.user_id == user_id
+        ).all()
+
+        if regs:
+            devices = [
+                {"id": reg.device_id, "name": reg.display_name or reg.default_display_name or reg.device_id}
+                for reg in regs
+            ]
+        else:
+            device_ids = db.query(TokenUsageRecord.device_id).filter(
+                TokenUsageRecord.user_id == user_id
+            ).distinct().all()
+            devices = [{"id": row[0], "name": row[0]} for row in device_ids]
+
+        return {"devices": devices}
+    finally:
+        db.close()
 
 
 # ========== 数据库查询与同步端点 ==========
@@ -540,8 +382,10 @@ class DeviceInfo(BaseModel):
 class DbUsageResponse(BaseModel):
     items: list[DbUsageItem]
     summary: UsageSummary
-    devices: list[DeviceInfo] = Field(default_factory=list)
+    devices: list[dict] = Field(default_factory=list)
     cached: bool = False
+    actual_days: Optional[int] = Field(default=None)
+    auto_expanded: bool = False
 
 
 @router.post("/db-query", response_model=DbUsageResponse)
@@ -695,6 +539,160 @@ async def _fallback_to_cli(req: DbQueryRequest) -> DbUsageResponse:
         db_items = [DbUsageItem(**item.model_dump()) for item in items]
 
     return DbUsageResponse(items=db_items, summary=summary, devices=[])
+
+
+def compute_db_summary(items: list[DbUsageItem]) -> UsageSummary:
+    """从 DB 查询结果计算汇总统计"""
+    total_input = sum(i.input_tokens for i in items)
+    total_output = sum(i.output_tokens for i in items)
+    total_cache_creation = sum(i.cache_creation_tokens for i in items)
+    total_cache_read = sum(i.cache_read_tokens for i in items)
+    total_tokens = total_input + total_output + total_cache_creation + total_cache_read
+    total_cost = sum(i.total_cost for i in items)
+    days_count = len(items) if items else 1
+    return UsageSummary(
+        total_input_tokens=total_input,
+        total_output_tokens=total_output,
+        total_tokens=total_tokens,
+        total_cost=round(total_cost, 4),
+        days_count=days_count,
+        avg_daily_cost=round(total_cost / days_count, 4) if days_count else 0,
+    )
+
+
+async def _fallback_to_cli_for_query(req: DbQueryRequest) -> DbUsageResponse:
+    """DB 无数据时的最后降级（仅 claude source）"""
+    loop = asyncio.get_event_loop()
+    since = (datetime.now() - timedelta(days=req.days)).strftime("%Y%m%d")
+
+    raw = await loop.run_in_executor(None, lambda: UsageFetcher.fetch_claude(
+        report_type="daily", since=since, breakdown=False
+    ))
+
+    if "error" in raw:
+        return DbUsageResponse(items=[], summary=UsageSummary(
+            total_input_tokens=0, total_output_tokens=0, total_tokens=0,
+            total_cost=0, days_count=0, avg_daily_cost=0
+        ), devices=[])
+
+    items = normalize_entries(raw, req.type)
+    items = apply_aggregation(items, req.type)
+    summary = compute_summary(items)
+
+    return DbUsageResponse(
+        items=[DbUsageItem(**i.model_dump()) for i in items],
+        summary=summary,
+        devices=[],
+        cached=False,
+    )
+
+
+@router.post("/query", response_model=DbUsageResponse)
+async def query_token_usage(
+    req: DbQueryRequest,
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """统一查询端点：优先 Redis 缓存 → 降级 DB"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    # 1. 优先查 Redis 缓存
+    cached = get_query_cached_data(
+        source=req.source,
+        report_type=req.type,
+        days=req.days,
+        group_by=req.group_by,
+        user_id=user_id,
+        device_id=req.device_id or "",
+    )
+    if cached:
+        logger.info(f"查询: Redis 缓存命中 /{req.source}/{req.type}/{req.days}天")
+        return DbUsageResponse(
+            items=[DbUsageItem(**item) for item in cached["items"]],
+            summary=UsageSummary(**cached["summary"]),
+            devices=cached.get("devices", []),
+            cached=True,
+        )
+
+    # 2. Redis 未命中，查 DB
+    db = SessionLocal()
+    try:
+        regs = db.query(DeviceRegistry).filter(
+            DeviceRegistry.user_id == user_id
+        ).all()
+        if regs:
+            devices = [
+                {"id": reg.device_id, "name": reg.display_name or reg.default_display_name or reg.device_id}
+                for reg in regs
+            ]
+        else:
+            device_ids = db.query(TokenUsageRecord.device_id).filter(
+                TokenUsageRecord.user_id == user_id
+            ).distinct().all()
+            devices = [{"id": row[0], "name": row[0]} for row in device_ids]
+
+        if req.source != "all":
+            active_ids = set(
+                row[0] for row in db.query(TokenUsageRecord.device_id).filter(
+                    TokenUsageRecord.user_id == user_id,
+                    TokenUsageRecord.source == req.source,
+                ).distinct().all()
+            )
+            devices = [d for d in devices if d["id"] in active_ids]
+
+        since_date = datetime.now() - timedelta(days=req.days)
+        items = _execute_db_query(db, user_id, req, since_date)
+
+        auto_expanded = False
+        actual_days = req.days
+        if not items and req.days < 365:
+            source_filter = [TokenUsageRecord.user_id == user_id]
+            if req.source != "all":
+                source_filter.append(TokenUsageRecord.source == req.source)
+            if req.device_id:
+                source_filter.append(TokenUsageRecord.device_id == req.device_id)
+            has_any_data = db.query(TokenUsageRecord).filter(*source_filter).first() is not None
+            if has_any_data:
+                since_date = datetime.now() - timedelta(days=365)
+                items = _execute_db_query(db, user_id, req, since_date)
+                auto_expanded = True
+                actual_days = 365
+
+        summary = compute_db_summary(items)
+
+        if not items and req.source == "claude":
+            return await _fallback_to_cli_for_query(req)
+
+        # 3. 写入 Redis 缓存
+        cache_payload = {
+            "items": [item.model_dump() for item in items],
+            "summary": summary.model_dump(),
+            "devices": devices,
+        }
+        set_query_cached_data(
+            source=req.source,
+            report_type=req.type,
+            days=req.days,
+            group_by=req.group_by,
+            user_id=user_id,
+            device_id=req.device_id or "",
+            data=cache_payload,
+        )
+
+        return DbUsageResponse(
+            items=items,
+            summary=summary,
+            devices=devices,
+            cached=False,
+            actual_days=actual_days if auto_expanded else None,
+            auto_expanded=auto_expanded,
+        )
+    finally:
+        db.close()
 
 
 def _execute_db_query(db, user_id: str, req: DbQueryRequest, since_date: datetime) -> list[DbUsageItem]:

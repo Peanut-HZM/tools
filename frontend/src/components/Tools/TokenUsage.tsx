@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getTokenUsage, getAggregatedTokenUsage, checkTokenUsageHealth, refreshTokenUsage, getDbTokenUsage, syncTokenUsage, renameDevice, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
-import type { DbUsageItem, DbUsageResponse, DeviceInfo } from '../../api/tokenUsageApi';
+import { checkTokenUsageHealth, refreshTokenUsage, getDbTokenUsage, renameDevice, getUserDevices, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
+import type { DbUsageItem, DeviceInfo } from '../../api/tokenUsageApi';
 import { useI18n } from '../../i18n';
-import { API_BASE_URL } from '../../config/api';
-import { getAuthHeaders } from '../../api/authApi';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell,
@@ -37,12 +35,14 @@ export default function TokenUsage() {
   const [isCached, setIsCached] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // DB query 相关状态
-  const [dbData, setDbData] = useState<DbUsageResponse | null>(null);
-  const [useDbQuery, setUseDbQuery] = useState(true);
   const [groupBy, setGroupBy] = useState<'none' | 'device' | 'model'>('none');
   const [selectedDevice, setSelectedDevice] = useState<string>('');
   const [syncing, setSyncing] = useState(false);
+  const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([]);
+
+  useEffect(() => {
+    getUserDevices().then(res => setAvailableDevices(res.devices)).catch(console.error);
+  }, []);
 
   const [health, setHealth] = useState<{ ccusage_installed: boolean; opencode_usage_installed: boolean; ccusage_opencode_installed: boolean } | null>(null);
 
@@ -90,37 +90,24 @@ export default function TokenUsage() {
     setLoading(true);
     setError(null);
     try {
-      if (useDbQuery) {
-        const result = await getDbTokenUsage({
-          type: reportType,
-          days,
-          group_by: groupBy,
-          source,
-          device_id: selectedDevice || undefined,
-        });
-        setDbData(result);
-        setItems(result.items as UsageItem[]);
-        setSummary(result.summary);
-        setIsCached(result.cached || false);
-        setCacheTime(null);
-        setCurrentPage(1);
-      } else {
-        setDbData(null);
-        const result = source === 'all'
-          ? await getAggregatedTokenUsage({ type: reportType, days })
-          : await getTokenUsage({ source, type: reportType, days });
-        setItems(result.items);
-        setSummary(result.summary);
-        setIsCached(result.cached || false);
-        setCacheTime(result.cache_time || null);
-        setCurrentPage(1);
-      }
+      const result = await getDbTokenUsage({
+        type: reportType,
+        days,
+        group_by: groupBy,
+        source,
+        device_id: selectedDevice || undefined,
+      });
+      setItems(result.items as UsageItem[]);
+      setSummary(result.summary);
+      setIsCached(result.cached || false);
+      setCacheTime(null);
+      setCurrentPage(1);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [source, reportType, days, useDbQuery, groupBy, selectedDevice]);
+  }, [source, reportType, days, groupBy, selectedDevice]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -135,7 +122,7 @@ export default function TokenUsage() {
   };
 
   const handleRenameDevice = useCallback(async (deviceId: string) => {
-    const currentDevice = dbData?.devices?.find((d: DeviceInfo) => d.id === deviceId);
+    const currentDevice = availableDevices.find((d: DeviceInfo) => d.id === deviceId);
     const currentName = currentDevice?.name || deviceId;
     const newName = prompt('请输入设备名称（留空恢复默认）:', currentName);
     if (newName === null) return; // 用户取消
@@ -149,7 +136,7 @@ export default function TokenUsage() {
     } finally {
       setLoading(false);
     }
-  }, [dbData, fetchData]);
+  }, [availableDevices, fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -186,7 +173,7 @@ export default function TokenUsage() {
 
   // 分组数据构建（按设备/模型）
   const groupedData = useMemo(() => {
-    if (!useDbQuery || groupBy === 'none') return [];
+    if (groupBy === 'none') return [];
     const grouped: Record<string, Record<string, number>> = {};
     const allDates = new Set<string>();
 
@@ -205,7 +192,7 @@ export default function TokenUsage() {
       });
       return row;
     });
-  }, [useDbQuery, groupBy, items]);
+  }, [groupBy, items]);
 
   const chartData = sortedItems.map(item => ({
     date: item.date,
@@ -294,50 +281,6 @@ export default function TokenUsage() {
 
       <div className="bg-slate-800 rounded-lg p-4 mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
-          <label className="text-sm text-slate-400">模式:</label>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setUseDbQuery(false)}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                !useDbQuery ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              CLI 直查
-            </button>
-            <button
-              onClick={() => setUseDbQuery(true)}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${
-                useDbQuery ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              数据库查询
-            </button>
-            {useDbQuery && (
-              <button
-                onClick={async () => {
-                  setSyncing(true);
-                  try {
-                    await fetch(`${API_BASE_URL}/token-usage/sync`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                    });
-                    await fetchData();
-                  } catch (e: any) {
-                    setError(e.message);
-                  } finally {
-                    setSyncing(false);
-                  }
-                }}
-                disabled={syncing}
-                className="px-3 py-1.5 rounded text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
-                {syncing ? '同步中...' : '同步数据'}
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
           <label className="text-sm text-slate-400">工具:</label>
           <select
             value={source}
@@ -382,42 +325,39 @@ export default function TokenUsage() {
           </select>
         </div>
 
-        {useDbQuery && dbData && (
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-400">设备:</label>
-            <select
-              value={selectedDevice}
-              onChange={e => setSelectedDevice(e.target.value)}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100"
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-slate-400">设备:</label>
+          <select
+            value={selectedDevice}
+            onChange={e => setSelectedDevice(e.target.value)}
+            className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100"
+          >
+            <option value="">全部设备</option>
+            {availableDevices.map((d: DeviceInfo) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+          {selectedDevice && (
+            <button
+              onClick={() => handleRenameDevice(selectedDevice)}
+              className="p-1.5 text-slate-400 hover:text-slate-200 rounded transition-colors"
+              title="重命名设备"
             >
-              <option value="">全部设备</option>
-              {(dbData.devices || []).map((d: DeviceInfo) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-            {selectedDevice && (
-              <button
-                onClick={() => handleRenameDevice(selectedDevice)}
-                className="p-1.5 text-slate-400 hover:text-slate-200 rounded transition-colors"
-                title="重命名设备"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          )}
+        </div>
 
-        {useDbQuery && (
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-400">分组:</label>
-            <div className="flex gap-1">
-              {[
-                { value: 'none' as const, label: '按日期汇总' },
-                { value: 'device' as const, label: '按设备对比' },
-                { value: 'model' as const, label: '按模型分析' },
-              ].map(opt => (
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-slate-400">分组:</label>
+          <div className="flex gap-1">
+            {[
+              { value: 'none' as const, label: '按日期汇总' },
+              { value: 'device' as const, label: '按设备对比' },
+              { value: 'model' as const, label: '按模型分析' },
+            ].map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => setGroupBy(opt.value)}
@@ -432,7 +372,6 @@ export default function TokenUsage() {
               ))}
             </div>
           </div>
-        )}
 
         <div className="flex items-center gap-2">
           <label className="text-sm text-slate-400">图表类型:</label>
@@ -491,7 +430,7 @@ export default function TokenUsage() {
       {!loading && (
         <>
           {/* 分组模式图表 */}
-          {useDbQuery && groupBy !== 'none' && groupedData.length > 0 && (
+          {groupBy !== 'none' && groupedData.length > 0 && (
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 mb-6">
               <h3 className="text-lg font-medium text-slate-200 mb-4">
                 {groupBy === 'device' ? '各设备 Token 消耗对比' : '各模型 Token 消耗分析'}
@@ -520,7 +459,7 @@ export default function TokenUsage() {
           )}
 
           {/* 常规模式图表 */}
-          {(!useDbQuery || groupBy === 'none') && chartData.length > 0 && (
+          {groupBy === 'none' && chartData.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <h3 className="text-lg font-medium text-slate-200 mb-4">Token 消耗趋势 & 成本</h3>
