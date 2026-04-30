@@ -123,25 +123,31 @@ def normalize_entries(raw: dict, report_type: str) -> list[UsageItem]:
             date_val = str(entry["week"])
 
         tokens = entry.get("tokens", {})
+        input_tokens = _safe_int(tokens, "input") or _safe_int(entry, "inputTokens", "input_tokens")
+        output_tokens = _safe_int(tokens, "output") or _safe_int(entry, "outputTokens", "output_tokens")
+        cache_creation = _safe_int(tokens, "cache_write") or _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens")
+        cache_read = _safe_int(tokens, "cache_read") or _safe_int(entry, "cacheReadTokens", "cache_read_tokens")
+        
+        # 提取 breakdowns，支持多种字段名：modelBreakdowns, model_breakdowns, models
+        breakdowns = entry.get("modelBreakdowns") or entry.get("model_breakdowns") or entry.get("models") or []
+        
+        # 提取 models_used，支持多种字段名并自动解析
+        models_used = entry.get("modelsUsed") or entry.get("models_used") or []
+        if not models_used and breakdowns:
+            models_used = [m.get("model") or m.get("name") or m.get("modelName") or "unknown" for m in breakdowns]
+
         items.append(
             UsageItem(
                 date=date_val,
-                input_tokens=_safe_int(tokens, "input")
-                or _safe_int(entry, "inputTokens", "input_tokens"),
-                output_tokens=_safe_int(tokens, "output")
-                or _safe_int(entry, "outputTokens", "output_tokens"),
-                cache_creation_tokens=_safe_int(tokens, "cache_write")
-                or _safe_int(entry, "cacheCreationTokens", "cache_creation_tokens"),
-                cache_read_tokens=_safe_int(tokens, "cache_read")
-                or _safe_int(entry, "cacheReadTokens", "cache_read_tokens"),
-                total_tokens=_safe_int(tokens, "total")
-                or _safe_int(entry, "totalTokens", "total_tokens"),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cache_creation_tokens=cache_creation,
+                cache_read_tokens=cache_read,
+                total_tokens=input_tokens + output_tokens + cache_creation + cache_read,
                 total_cost=_safe_float(entry, "cost")
                 or _safe_float(entry, "totalCost", "costUSD"),
-                models_used=entry.get("modelsUsed", entry.get("models_used", [])),
-                model_breakdowns=entry.get(
-                    "modelBreakdowns", entry.get("model_breakdowns", [])
-                ),
+                models_used=models_used,
+                model_breakdowns=breakdowns,
             )
         )
     return items
@@ -238,14 +244,20 @@ def aggregate_by_month(items: list[UsageItem]) -> list[UsageItem]:
 
 def compute_summary(items: list[UsageItem]) -> UsageSummary:
     """计算汇总统计"""
-    count = max(len(items), 1)
+    # 强制从四项组件之和计算 total_tokens，防止 CLI 返回的 total=0 污染统计
+    total_input = sum(i.input_tokens for i in items)
+    total_output = sum(i.output_tokens for i in items)
+    total_cache_creation = sum(i.cache_creation_tokens for i in items)
+    total_cache_read = sum(i.cache_read_tokens for i in items)
+    total_tokens = total_input + total_output + total_cache_creation + total_cache_read
+    
     return UsageSummary(
-        total_input_tokens=sum(i.input_tokens for i in items),
-        total_output_tokens=sum(i.output_tokens for i in items),
-        total_tokens=sum(i.total_tokens for i in items),
+        total_input_tokens=total_input,
+        total_output_tokens=total_output,
+        total_tokens=total_tokens,
         total_cost=round(sum(i.total_cost for i in items), 4),
         days_count=len(items),
-        avg_daily_cost=round(sum(i.total_cost for i in items) / count, 4),
+        avg_daily_cost=round(sum(i.total_cost for i in items) / max(len(items), 1), 4),
     )
 
 
