@@ -27,6 +27,12 @@ except ImportError:
     sys.exit(1)
 
 try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
+try:
     import requests as _requests
     HAS_REQUESTS = True
 except ImportError:
@@ -178,7 +184,21 @@ def _scan_directory(current: Path, root: Path, max_depth: int, services: list):
 def _detect_service(directory: Path) -> Optional[Service]:
     """检测目录是否是项目根目录，返回 Service 或 None"""
 
-    # 1. Vite 前端
+    # 1. Java Spring Boot 优先于 Python 检测，避免辅助脚本导致误判
+    pom = directory / "pom.xml"
+    if pom.exists():
+        svc = _build_spring_boot_maven_service(directory, pom)
+        if svc:
+            return svc
+
+    gradle = directory / "build.gradle"
+    gradle_kts = directory / "build.gradle.kts"
+    if gradle.exists() or gradle_kts.exists():
+        svc = _build_spring_boot_gradle_service(directory, gradle if gradle.exists() else gradle_kts)
+        if svc:
+            return svc
+
+    # 2. Vite 前端
     pkg = directory / "package.json"
     if pkg.exists():
         try:
@@ -198,36 +218,21 @@ def _detect_service(directory: Path) -> Optional[Service]:
         except (json.JSONDecodeError, Exception):
             pass
 
-    # 2. Python 后端
+    # 3. Python 后端
     req_file = directory / "requirements.txt"
     pyproject = directory / "pyproject.toml"
     has_python_deps = req_file.exists() or pyproject.exists()
 
-    # 检查是否有 main.py 或 manage.py 或 app 目录
+    # 只把明确的 Python Web 项目入口当作 Python 服务，普通 src 目录不代表 Python
     has_python_entry = (
         (directory / "main.py").exists()
         or (directory / "manage.py").exists()
+        or (directory / "app.py").exists()
         or (directory / "app").is_dir()
-        or (directory / "src").is_dir()
     )
 
     if has_python_deps or has_python_entry:
         svc = _build_python_service(directory)
-        if svc:
-            return svc
-
-    # 3. Spring Boot (Maven)
-    pom = directory / "pom.xml"
-    if pom.exists():
-        svc = _build_spring_boot_maven_service(directory, pom)
-        if svc:
-            return svc
-
-    # 4. Spring Boot (Gradle)
-    gradle = directory / "build.gradle"
-    gradle_kts = directory / "build.gradle.kts"
-    if gradle.exists() or gradle_kts.exists():
-        svc = _build_spring_boot_gradle_service(directory, gradle or gradle_kts)
         if svc:
             return svc
 
@@ -305,6 +310,202 @@ def _extract_port_from_pom(pom_path: Path) -> Optional[int]:
         match = re.search(r'<properties>.*?<port>\s*(\d+)\s*</port>.*?</properties>', content, re.DOTALL)
         if match:
             return int(match.group(1))
+    except Exception:
+        pass
+    return None
+
+
+def _extract_port_from_spring_boot_yaml(directory: Path) -> Optional[int]:
+    """从 Spring Boot application*.yml 提取 server.port
+
+    1. 优先检查目录根下的 application.yml
+    2. 检查直接子目录中的 src/main/resources/application*.yml（多模块 Maven 项目）
+    3. 最后递归搜索其他子目录（跳过构建产物）
+    """
+    if not HAS_YAML:
+        return None
+
+    # 1. 检查目录根
+    for name in ["application.yml", "application.yaml"]:
+        port = _extract_port_from_single_yaml(directory / name)
+        if port is not None:
+            return port
+
+    # 2. 优先检查直接子目录中的 src/main/resources（多模块 Maven 项目常见布局）
+    try:
+        for subdir in sorted(directory.iterdir()):
+            if subdir.is_dir():
+                resources_dir = subdir / "src" / "main" / "resources"
+                if resources_dir.exists():
+                    for name in [
+                        "application.yml", "application.yaml",
+                        "application-local.yml", "application-local.yaml",
+                        "application-dev.yml", "application-dev.yaml",
+                        "application-prod.yml", "application-prod.yaml",
+                        "application-test.yml", "application-test.yaml",
+                    ]:
+                        port = _extract_port_from_single_yaml(resources_dir / name)
+                        if port is not None:
+                            return port
+    except Exception:
+        pass
+
+    # 3. 递归搜索其他子目录（跳过构建产物）
+    try:
+        for child in directory.rglob("application*.yml"):
+            parts = set(child.parts)
+            if parts & {"target", "build", "dist", "node_modules"}:
+                continue
+            depth = len(child.relative_to(directory).parts)
+            if depth > 10:
+                continue
+            port = _extract_port_from_single_yaml(child)
+            if port is not None:
+                return port
+        for child in directory.rglob("application*.yaml"):
+            parts = set(child.parts)
+            if parts & {"target", "build", "dist", "node_modules"}:
+                continue
+            depth = len(child.relative_to(directory).parts)
+            if depth > 10:
+                continue
+            port = _extract_port_from_single_yaml(child)
+            if port is not None:
+                return port
+    except Exception:
+        pass
+
+    return None
+
+
+def _extract_spring_boot_context_path(directory: Path) -> str:
+    """从 Spring Boot application*.yml 提取 servlet context-path"""
+    value = _extract_spring_boot_yaml_value(directory, ("server", "servlet", "context-path"))
+    return _normalize_url_path(value) if value else ""
+
+
+def _extract_spring_boot_management_base_path(directory: Path) -> str:
+    """从 Spring Boot application*.yml 提取 actuator base-path"""
+    value = _extract_spring_boot_yaml_value(directory, ("management", "endpoints", "web", "base-path"))
+    return _normalize_url_path(value) if value else "/actuator"
+
+
+def _build_spring_boot_health_url(port: int, directory: Path) -> str:
+    """根据 Spring Boot 上下文路径构建健康检查 URL"""
+    context_path = _extract_spring_boot_context_path(directory)
+    actuator_base_path = _extract_spring_boot_management_base_path(directory)
+    health_path = _join_url_paths(context_path, actuator_base_path, "health")
+    return f"http://localhost:{port}{health_path}"
+
+
+def _extract_spring_boot_yaml_value(directory: Path, keys: tuple[str, ...]) -> Optional[str]:
+    """按优先级从 Spring Boot application*.yml/yaml 中读取嵌套配置值"""
+    if not HAS_YAML:
+        return None
+
+    for yml_path in _iter_spring_boot_yaml_files(directory):
+        value = _extract_value_from_single_yaml(yml_path, keys)
+        if value is not None:
+            return str(value)
+    return None
+
+
+def _iter_spring_boot_yaml_files(directory: Path) -> list[Path]:
+    """按稳定优先级列出 Spring Boot YAML 配置文件"""
+    candidates = []
+
+    for name in ["application.yml", "application.yaml"]:
+        candidates.append(directory / name)
+
+    try:
+        for subdir in sorted(directory.iterdir()):
+            if subdir.is_dir():
+                resources_dir = subdir / "src" / "main" / "resources"
+                if resources_dir.exists():
+                    for name in [
+                        "application.yml", "application.yaml",
+                        "application-local.yml", "application-local.yaml",
+                        "application-dev.yml", "application-dev.yaml",
+                        "application-prod.yml", "application-prod.yaml",
+                        "application-test.yml", "application-test.yaml",
+                    ]:
+                        candidates.append(resources_dir / name)
+    except Exception:
+        pass
+
+    try:
+        for pattern in ["application*.yml", "application*.yaml"]:
+            for child in directory.rglob(pattern):
+                parts = set(child.parts)
+                if parts & {"target", "build", "dist", "node_modules"}:
+                    continue
+                depth = len(child.relative_to(directory).parts)
+                if depth <= 10:
+                    candidates.append(child)
+    except Exception:
+        pass
+
+    seen = set()
+    result = []
+    for path in candidates:
+        if path in seen or not path.exists():
+            continue
+        seen.add(path)
+        result.append(path)
+    return result
+
+
+def _extract_value_from_single_yaml(yml_path: Path, keys: tuple[str, ...]) -> Optional[object]:
+    """从单个 YAML 文件中读取嵌套配置值"""
+    if not HAS_YAML:
+        return None
+    try:
+        content = yml_path.read_text(encoding="utf-8")
+        content = re.sub(r'@\w[\w.\-]*@', '""', content)
+        for doc in yaml.safe_load_all(content):
+            current = doc
+            for key in keys:
+                if not isinstance(current, dict) or key not in current:
+                    current = None
+                    break
+                current = current[key]
+            if current is not None:
+                return current
+    except Exception:
+        pass
+    return None
+
+
+def _normalize_url_path(value: str) -> str:
+    """规范化 URL 路径片段"""
+    path = str(value).strip()
+    if not path or path == "/":
+        return ""
+    return "/" + path.strip("/")
+
+
+def _join_url_paths(*parts: str) -> str:
+    """拼接 URL 路径，避免重复斜杠"""
+    cleaned = [str(part).strip("/") for part in parts if str(part).strip("/")]
+    return "/" + "/".join(cleaned)
+
+
+def _extract_port_from_single_yaml(yml_path: Path) -> Optional[int]:
+    """从单个 YAML 文件提取 server.port
+
+    自动处理 Maven @placeholder@ 占位符（替换为空字符串）。
+    """
+    if not HAS_YAML:
+        return None
+    try:
+        content = yml_path.read_text(encoding="utf-8")
+        # 移除 Maven 占位符: @xxx@ -> ""
+        content = re.sub(r'@\w[\w.\-]*@', '""', content)
+        for doc in yaml.safe_load_all(content):
+            if isinstance(doc, dict):
+                server = doc.get("server", {})
+                if isinstance(server, dict) and "port" in server:
+                    return int(server["port"])
     except Exception:
         pass
     return None
@@ -517,12 +718,9 @@ def _build_python_service(directory: Path) -> Optional[Service]:
             except Exception:
                 pass
 
-        # 如果还是没有，但有 Python 文件，按 FastAPI 处理
+        # 如果没有明确框架，避免把辅助脚本误判成 FastAPI 服务
         if not (has_fastapi or has_flask or has_django):
-            py_files = list(directory.glob("*.py"))
-            if not py_files:
-                return None
-            has_fastapi = True  # 默认按 FastAPI 处理
+            return None
 
     port = _extract_port_from_env(directory) or DEFAULT_PORTS["python"]
     dir_name = directory.name
@@ -590,7 +788,12 @@ def _build_spring_boot_maven_service(directory: Path, pom_path: Path) -> Optiona
     if not _has_spring_boot(pom_path):
         return None
 
-    port = _extract_port_from_pom(pom_path) or _extract_port_from_env(directory) or DEFAULT_PORTS["spring-boot"]
+    port = (
+        _extract_port_from_pom(pom_path)
+        or _extract_port_from_spring_boot_yaml(directory)
+        or _extract_port_from_env(directory)
+        or DEFAULT_PORTS["spring-boot"]
+    )
     dir_name = directory.name
 
     # 尝试提取 artifactId 作为名称
@@ -617,7 +820,7 @@ def _build_spring_boot_maven_service(directory: Path, pom_path: Path) -> Optiona
         port=port,
         start_cmd=[mvn_cmd, "spring-boot:run", f"-Dspring-boot.run.arguments=--server.port={port}"],
         health_keyword="Started ",
-        health_url=f"http://localhost:{port}/actuator/health",
+        health_url=_build_spring_boot_health_url(port, directory),
         health_timeout=60,
         keyword_timeout=120,
     )
@@ -900,16 +1103,14 @@ def start_service(svc: Service) -> bool:
 
     try:
         with open(svc.log_path, "w", encoding="utf-8") as f:
-            creationflags = 0
-            if sys.platform == "win32":
-                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+            popen_kwargs = _background_process_options()
             proc = subprocess.Popen(
                 cmd,
                 cwd=str(svc.project_dir),
                 stdout=f,
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.DEVNULL,
-                creationflags=creationflags,
+                **popen_kwargs,
             )
         log(f"{svc.name} 进程已启动 (PID: {proc.pid})", "INFO")
     except FileNotFoundError as e:
@@ -927,6 +1128,25 @@ def start_service(svc: Service) -> bool:
     else:
         log(f"{svc.name} 启动失败", "ERROR")
         return False
+
+
+def _background_process_options() -> dict:
+    """获取跨平台后台启动参数"""
+    if sys.platform == "win32":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+        if hasattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB"):
+            creationflags |= subprocess.CREATE_BREAKAWAY_FROM_JOB
+        return {
+            "creationflags": creationflags,
+            "startupinfo": startupinfo,
+        }
+
+    return {
+        "start_new_session": True,
+    }
 
 
 def _suggest_runtime_install(svc: Service):
@@ -1141,11 +1361,12 @@ def main():
 使用示例:
   dev-services                      发现并启动所有服务
   dev-services discover             仅列出发现的服务
+  dev-services discover server      只列出 server 目录下的服务
+  dev-services start frontend       只启动前端服务
+  dev-services restart server       只重启后端服务
   dev-services status               查看所有服务状态
+  dev-services status web           只查看大屏服务状态
   dev-services stop                 停止所有服务
-  dev-services restart              重启所有服务
-  dev-services start --type vite    只启动 Vite 前端
-  dev-services start --type python  只启动 Python 后端
   dev-services kill all             强制终止所有服务
   dev-services logs all             实时查看所有日志
 
@@ -1160,7 +1381,8 @@ def main():
 端口提取:
   1. 优先从 .env / .env.development 提取
   2. 从 vite.config.ts / pom.xml / build.gradle 提取
-  3. 使用框架默认值
+  3. 从 application*.yml 提取 server.port（Spring Boot）
+  4. 使用框架默认值
 
 安装方式:
   脚本位于 ~/.claude/dev-services.py
@@ -1179,7 +1401,7 @@ def main():
         "target",
         nargs="?",
         default=None,
-        help="目标服务 (kill 和 logs 子命令使用)",
+        help="目标服务 (kill/logs) 或指定服务目录 (其他命令)",
     )
     parser.add_argument("--type", dest="svc_type", default=None, help="服务类型过滤: vite|python|spring-boot|node-backend")
     parser.add_argument("--port", dest="port", type=int, default=None, help="端口号过滤")
@@ -1187,12 +1409,24 @@ def main():
 
     args = parser.parse_args()
 
+    # 解析 target：如果是存在的目录，作为服务发现的根目录；否则作为 kill/logs 的目标
+    root_dir = None
+    if args.target and args.action not in ("kill", "logs"):
+        target_path = Path(args.target)
+        if not target_path.is_absolute():
+            target_path = CWD / target_path
+        if target_path.is_dir():
+            root_dir = target_path
+        else:
+            log(f"目标路径不存在: {args.target}", "ERROR")
+            return
+
     # 发现服务
-    services = discover_services()
+    services = discover_services(root_dir=root_dir)
     services = filter_services(services, args.svc_type, args.port)
 
     if args.action == "discover":
-        log_section(f"发现的服务 (目录: {CWD})")
+        log_section(f"发现的服务 (目录: {root_dir or CWD})")
         if not services:
             log("未发现任何服务", "WARN")
             log("支持的类型: Vite 前端, Next.js, Node.js 后端, Python (FastAPI/Flask/Django), Spring Boot (Maven/Gradle)", "INFO")
