@@ -329,6 +329,55 @@ async def refresh_cache():
     return {"message": "缓存已清除，下次访问将重新获取数据"}
 
 
+@router.post("/clear-data")
+async def clear_usage_data(
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """一键清理当前用户的 Token 使用数据（数据库记录 + Redis 缓存）"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    db = SessionLocal()
+    try:
+        # 1. 统计将删除的记录数
+        records_count = db.query(TokenUsageRecord).filter(
+            TokenUsageRecord.user_id == user_id
+        ).count()
+        sync_logs_count = db.query(TokenUsageSyncLog).filter(
+            TokenUsageSyncLog.user_id == user_id
+        ).count()
+
+        # 2. 删除数据库记录
+        db.query(TokenUsageRecord).filter(
+            TokenUsageRecord.user_id == user_id
+        ).delete()
+        db.query(TokenUsageSyncLog).filter(
+            TokenUsageSyncLog.user_id == user_id
+        ).delete()
+        db.commit()
+
+        # 3. 清除 Redis 缓存
+        invalidate_cache()
+
+        logger.info(f"用户 {user_id} 已清理数据: {records_count} 条使用记录, {sync_logs_count} 条同步日志")
+
+        return {
+            "message": f"数据已清理完成，共删除 {records_count} 条使用记录和 {sync_logs_count} 条同步日志",
+            "records_deleted": records_count,
+            "sync_logs_deleted": sync_logs_count,
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"清理数据失败: {e}")
+        raise HTTPException(status_code=500, detail=f"清理数据失败: {str(e)}")
+    finally:
+        db.close()
+
+
 @router.get("/devices")
 async def get_user_devices(
     authorization: Optional[str] = Header(None, description="Bearer token"),

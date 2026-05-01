@@ -119,6 +119,21 @@ export async function refreshTokenUsage(): Promise<{ message: string }> {
   return response.json();
 }
 
+export async function clearTokenUsageData(): Promise<{ message: string; records_deleted: number; sync_logs_deleted: number }> {
+  const response = await fetch(`${BASE_URL}/clear-data`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(error.detail || '清理数据失败');
+  }
+  return response.json();
+}
+
 export interface DeviceInfo {
   id: string;
   name: string;

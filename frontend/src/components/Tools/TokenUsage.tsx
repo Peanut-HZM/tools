@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { checkTokenUsageHealth, refreshTokenUsage, getDbTokenUsage, renameDevice, getUserDevices, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
+import { checkTokenUsageHealth, refreshTokenUsage, clearTokenUsageData, getDbTokenUsage, renameDevice, getUserDevices, UsageItem, UsageSummary } from '../../api/tokenUsageApi';
 import type { DbUsageItem, DeviceInfo } from '../../api/tokenUsageApi';
 import { useI18n } from '../../i18n';
 import {
@@ -34,6 +34,7 @@ export default function TokenUsage() {
   const [cacheTime, setCacheTime] = useState<string | null>(null);
   const [isCached, setIsCached] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const [groupBy, setGroupBy] = useState<'none' | 'device' | 'model'>('none');
   const [selectedDevice, setSelectedDevice] = useState<string>('');
@@ -118,6 +119,21 @@ export default function TokenUsage() {
       setError(err.message);
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleClearData = async () => {
+    if (!confirm('确认清理所有 Token 使用数据？\n\n此操作将清除数据库中的所有使用记录和同步日志，以及 Redis 缓存。')) return;
+    
+    setClearing(true);
+    try {
+      const result = await clearTokenUsageData();
+      alert(`✅ ${result.message}`);
+      await fetchData();
+    } catch (err: any) {
+      alert(`❌ ${err.message}`);
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -261,6 +277,13 @@ export default function TokenUsage() {
             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded text-sm font-medium transition-colors"
           >
             {refreshing ? '刷新中...' : '刷新'}
+          </button>
+          <button
+            onClick={handleClearData}
+            disabled={loading || clearing}
+            className="bg-red-700 hover:bg-red-800 disabled:opacity-50 px-4 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+          >
+            {clearing ? '清理中...' : '🗑️ 清理数据'}
           </button>
         </div>
       </div>
