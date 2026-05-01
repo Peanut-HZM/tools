@@ -109,7 +109,7 @@ class UsageFetcher:
         if shutil.which("ccusage") is None:
             return {"error": "CLI 未安装: ccusage"}
 
-        cache_key = f"claude:{report_type}:{since}:{until}"
+        cache_key = f"claude:{report_type}:{since}:{until}:{breakdown}"
         cached = _get_from_cache(cache_key)
         if cached:
             return cached

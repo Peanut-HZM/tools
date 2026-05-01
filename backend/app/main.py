@@ -384,7 +384,7 @@ def _fetch_raw_data(source: str, report_type: str, days: int) -> dict:
         raw = UsageFetcher.fetch_claude(
             report_type="daily",
             since=since,
-            breakdown=False,
+            breakdown=True,
         )
     else:
         raw = UsageFetcher.fetch_opencode(days=days)
@@ -399,7 +399,7 @@ async def _refresh_aggregate_cache(report_type: str, days: int):
 
     claude_raw, opencode_raw = await asyncio.gather(
         loop.run_in_executor(None, lambda: UsageFetcher.fetch_claude(
-            report_type="daily", since=since, breakdown=False
+            report_type="daily", since=since, breakdown=True
         )),
         loop.run_in_executor(None, lambda: UsageFetcher.fetch_opencode(days=days)),
         return_exceptions=True,

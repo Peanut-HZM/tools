@@ -522,7 +522,6 @@ export default function TokenUsage() {
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            </div>
           )}
         </>
       )}

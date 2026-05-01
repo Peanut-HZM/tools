@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, date
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Header, Body
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import func
 
 from app.utils.usage_fetcher import UsageFetcher
@@ -47,6 +47,7 @@ class AggregateUsageRequest(BaseModel):
 
 
 class UsageItem(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     date: str
     input_tokens: int
     output_tokens: int
@@ -374,6 +375,7 @@ class DbQueryRequest(BaseModel):
 
 
 class DbUsageItem(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     date: str
     input_tokens: int
     output_tokens: int
@@ -676,8 +678,8 @@ async def query_token_usage(
 
         summary = compute_db_summary(items)
 
-        if not items and req.source == "claude":
-            return await _fallback_to_cli_for_query(req)
+        if not items:
+            return await _fallback_to_cli(req)
 
         # 3. 写入 Redis 缓存
         cache_payload = {
