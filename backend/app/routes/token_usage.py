@@ -464,7 +464,25 @@ async def db_query_token_usage(
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
 
-    # 检查数据库中是否有该用户的数据
+    # 1. 优先查 Redis 缓存
+    cached = get_query_cached_data(
+        source=req.source,
+        report_type=req.type,
+        days=req.days,
+        group_by=req.group_by,
+        user_id=user_id,
+        device_id=req.device_id or "",
+    )
+    if cached:
+        logger.info(f"查询: Redis 缓存命中 /{req.source}/{req.type}/{req.days}天")
+        return DbUsageResponse(
+            items=[DbUsageItem(**item) for item in cached["items"]],
+            summary=UsageSummary(**cached["summary"]),
+            devices=cached.get("devices", []),
+            cached=True,
+        )
+
+    # 2. Redis 未命中，查数据库
     db = SessionLocal()
     try:
         has_data = db.query(TokenUsageRecord).filter(
