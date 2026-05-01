@@ -412,51 +412,79 @@ export default function TokenUsage() {
 
       {summary && !loading && (
         <div className="flex gap-4 mb-6">
-          {/* 左侧 60%：5 个指标卡片 */}
-          <div className="flex-1">
-            <div className="grid grid-cols-5 gap-3">
+          {/* 左侧：指标卡片分两行 */}
+          <div className="flex-1 flex flex-col gap-3">
+            {/* 第一行：3 个卡片 */}
+            <div className="grid grid-cols-3 gap-3">
               {[
                 { label: '💵 总成本', value: formatCurrency(summary.total_cost), color: 'from-blue-900/50 to-blue-800/30', border: 'border-blue-500/30', hover: 'hover:shadow-blue-500/20' },
                 { label: '📈 日均成本', value: formatCurrency(summary.avg_daily_cost), color: 'from-emerald-900/50 to-emerald-800/30', border: 'border-emerald-500/30', hover: 'hover:shadow-emerald-500/20' },
                 { label: '🔢 总 Token', value: formatNumber(summary.total_tokens), color: 'from-violet-900/50 to-violet-800/30', border: 'border-violet-500/30', hover: 'hover:shadow-violet-500/20' },
-                { label: '📥 输入 Token', value: formatNumber(summary.total_input_tokens), color: 'from-sky-900/50 to-sky-800/30', border: 'border-sky-500/30', hover: 'hover:shadow-sky-500/20' },
-                { label: '📤 输出 Token', value: formatNumber(summary.total_output_tokens), color: 'from-amber-900/50 to-amber-800/30', border: 'border-amber-500/30', hover: 'hover:shadow-amber-500/20' },
               ].map((card, i) => (
-                <div key={i} className={`bg-gradient-to-br ${card.color} rounded-lg p-3 border ${card.border} ${card.hover} shadow-lg transition-all duration-200 hover:scale-[1.02]`}>
+                <div key={i} className={`bg-gradient-to-br ${card.color} rounded-lg p-4 border ${card.border} ${card.hover} shadow-lg transition-all duration-200 hover:scale-[1.02]`}>
                   <div className="text-xs text-slate-400 mb-1.5">{card.label}</div>
-                  <div className="text-lg font-bold text-slate-100">{card.value}</div>
+                  <div className="text-xl font-bold text-slate-100">{card.value}</div>
                 </div>
               ))}
             </div>
+            {/* 第二行：2 个卡片（居中） */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: '📥 输入 Token', value: formatNumber(summary.total_input_tokens), color: 'from-sky-900/50 to-sky-800/30', border: 'border-sky-500/30', hover: 'hover:shadow-sky-500/20' },
+                { label: '📤 输出 Token', value: formatNumber(summary.total_output_tokens), color: 'from-amber-900/50 to-amber-800/30', border: 'border-amber-500/30', hover: 'hover:shadow-amber-500/20' },
+              ].map((card, i) => (
+                <div key={i + 3} className={`bg-gradient-to-br ${card.color} rounded-lg p-4 border ${card.border} ${card.hover} shadow-lg transition-all duration-200 hover:scale-[1.02]`}>
+                  <div className="text-xs text-slate-400 mb-1.5">{card.label}</div>
+                  <div className="text-xl font-bold text-slate-100">{card.value}</div>
+                </div>
+              ))}
+              <div className="hidden sm:block" />
+            </div>
           </div>
 
-          {/* 右侧 40%：模型占比饼图 */}
+          {/* 右侧：模型占比饼图 + 图例 */}
           <div className="w-[40%] flex-shrink-0">
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-700/50 rounded-lg p-3 border border-slate-600/30 shadow-lg h-full flex flex-col">
-              <div className="text-xs text-slate-400 mb-1 text-center">模型占比</div>
+            <div className="bg-gradient-to-br from-slate-800/80 to-slate-700/50 rounded-lg p-4 border border-slate-600/30 shadow-lg h-full flex flex-col">
+              <div className="text-sm font-medium text-slate-200 mb-3 text-center">模型占比</div>
               {filteredModelData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={filteredModelData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      innerRadius={50}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="name"
-                      paddingAngle={2}
-                    >
-                      {filteredModelData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <>
+                  <div className="flex-1 min-h-[160px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={filteredModelData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="80%"
+                          innerRadius="50%"
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                          paddingAngle={3}
+                        >
+                          {filteredModelData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => [formatCurrency(value), '成本']} contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', color: '#e2e8f0' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* 模型图例 */}
+                  <div className="mt-3 pt-3 border-t border-slate-600/50">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                      {filteredModelData.map((model, index) => (
+                        <div key={model.name} className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                          <span className="text-xs text-slate-300">{model.name}</span>
+                          <span className="text-xs text-slate-500">{formatCurrency(model.value)}</span>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => [formatCurrency(value), '成本']} contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', color: '#e2e8f0' }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                    </div>
+                  </div>
+                </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-slate-500 text-xs">暂无数据</div>
+                <div className="flex-1 min-h-[160px] flex items-center justify-center text-slate-500 text-xs">暂无模型数据</div>
               )}
             </div>
           </div>
