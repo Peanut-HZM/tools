@@ -411,52 +411,55 @@ export default function TokenUsage() {
       )}
 
       {summary && !loading && (
-        <div className="grid grid-cols-6 gap-3 mb-6">
-          {[
-            { label: '💵 总成本', value: formatCurrency(summary.total_cost), color: 'from-blue-900/50 to-blue-800/30', border: 'border-blue-500/30', hover: 'hover:shadow-blue-500/20' },
-            { label: '📈 日均成本', value: formatCurrency(summary.avg_daily_cost), color: 'from-emerald-900/50 to-emerald-800/30', border: 'border-emerald-500/30', hover: 'hover:shadow-emerald-500/20' },
-            { label: '🔢 总 Token', value: formatNumber(summary.total_tokens), color: 'from-violet-900/50 to-violet-800/30', border: 'border-violet-500/30', hover: 'hover:shadow-violet-500/20' },
-            { label: '📥 输入 Token', value: formatNumber(summary.total_input_tokens), color: 'from-sky-900/50 to-sky-800/30', border: 'border-sky-500/30', hover: 'hover:shadow-sky-500/20' },
-            { label: '📤 输出 Token', value: formatNumber(summary.total_output_tokens), color: 'from-amber-900/50 to-amber-800/30', border: 'border-amber-500/30', hover: 'hover:shadow-amber-500/20' },
-            null, // Placeholder for Pie Chart
-          ].map((card, i) => (
-            card ? (
-              <div key={i} className={`bg-gradient-to-br ${card.color} rounded-lg p-3 border ${card.border} ${card.hover} shadow-lg transition-all duration-200 hover:scale-[1.02]`}>
-                <div className="text-xs text-slate-400 mb-1.5">{card.label}</div>
-                <div className="text-lg font-bold text-slate-100">{card.value}</div>
-              </div>
-            ) : (
-              <div key="pie" className="bg-gradient-to-br from-slate-800/80 to-slate-700/50 rounded-lg p-3 border border-slate-600/30 hover:shadow-slate-500/20 shadow-lg transition-all duration-200 hover:scale-[1.02] flex items-center justify-center">
-                <div className="w-full">
-                  <div className="text-xs text-slate-400 mb-1 text-center">模型占比</div>
-                  {filteredModelData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={100}>
-                      <PieChart>
-                        <Pie
-                          data={filteredModelData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={45}
-                          innerRadius={30}
-                          fill="#8884d8"
-                          dataKey="value"
-                          nameKey="name"
-                          paddingAngle={2}
-                        >
-                          {filteredModelData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => [formatCurrency(value), '成本']} contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', color: '#e2e8f0' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[100px] flex items-center justify-center text-slate-500 text-xs">暂无数据</div>
-                  )}
+        <div className="flex gap-4 mb-6">
+          {/* 左侧 60%：5 个指标卡片 */}
+          <div className="flex-1">
+            <div className="grid grid-cols-5 gap-3">
+              {[
+                { label: '💵 总成本', value: formatCurrency(summary.total_cost), color: 'from-blue-900/50 to-blue-800/30', border: 'border-blue-500/30', hover: 'hover:shadow-blue-500/20' },
+                { label: '📈 日均成本', value: formatCurrency(summary.avg_daily_cost), color: 'from-emerald-900/50 to-emerald-800/30', border: 'border-emerald-500/30', hover: 'hover:shadow-emerald-500/20' },
+                { label: '🔢 总 Token', value: formatNumber(summary.total_tokens), color: 'from-violet-900/50 to-violet-800/30', border: 'border-violet-500/30', hover: 'hover:shadow-violet-500/20' },
+                { label: '📥 输入 Token', value: formatNumber(summary.total_input_tokens), color: 'from-sky-900/50 to-sky-800/30', border: 'border-sky-500/30', hover: 'hover:shadow-sky-500/20' },
+                { label: '📤 输出 Token', value: formatNumber(summary.total_output_tokens), color: 'from-amber-900/50 to-amber-800/30', border: 'border-amber-500/30', hover: 'hover:shadow-amber-500/20' },
+              ].map((card, i) => (
+                <div key={i} className={`bg-gradient-to-br ${card.color} rounded-lg p-3 border ${card.border} ${card.hover} shadow-lg transition-all duration-200 hover:scale-[1.02]`}>
+                  <div className="text-xs text-slate-400 mb-1.5">{card.label}</div>
+                  <div className="text-lg font-bold text-slate-100">{card.value}</div>
                 </div>
-              </div>
-            )
-          ))}
+              ))}
+            </div>
+          </div>
+
+          {/* 右侧 40%：模型占比饼图 */}
+          <div className="w-[40%] flex-shrink-0">
+            <div className="bg-gradient-to-br from-slate-800/80 to-slate-700/50 rounded-lg p-3 border border-slate-600/30 shadow-lg h-full flex flex-col">
+              <div className="text-xs text-slate-400 mb-1 text-center">模型占比</div>
+              {filteredModelData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={filteredModelData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      innerRadius={50}
+                      fill="#8884d8"
+                      dataKey="value"
+                      nameKey="name"
+                      paddingAngle={2}
+                    >
+                      {filteredModelData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => [formatCurrency(value), '成本']} contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', color: '#e2e8f0' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-slate-500 text-xs">暂无数据</div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
