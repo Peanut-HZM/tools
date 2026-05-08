@@ -84,6 +84,15 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             >
               {language === 'zh-CN' ? 'EN' : '中'}
             </button>
+            <button
+              onClick={toggleCollapse}
+              className="px-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm transition-colors cursor-pointer"
+              title="折叠导航"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="18 15 12 9 6 15" />
+              </svg>
+            </button>
             <LoginButton />
           </div>
         </div>
