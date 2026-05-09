@@ -9,7 +9,7 @@ import sys
 from typing import Tuple
 
 
-def run_command(command: str) -> Tuple[int, str, str]:
+def run_command(command: str, timeout: int = 30) -> Tuple[int, str, str]:
     """执行命令并返回结果"""
     try:
         result = subprocess.run(
@@ -17,9 +17,28 @@ def run_command(command: str) -> Tuple[int, str, str]:
             shell=True,
             capture_output=True,
             text=True,
-            encoding='utf-8'
+            encoding='gbk',  # Windows 中文系统使用 GBK 编码
+            timeout=timeout
         )
         return result.returncode, result.stdout, result.stderr
+    except UnicodeDecodeError:
+        # 非中文系统 fallback 到 UTF-8
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                timeout=timeout
+            )
+            return result.returncode, result.stdout, result.stderr
+        except subprocess.TimeoutExpired:
+            return 1, "", f"命令超时 ({timeout}s): {command}"
+        except Exception as e:
+            return 1, "", str(e)
+    except subprocess.TimeoutExpired:
+        return 1, "", f"命令超时 ({timeout}s): {command}"
     except Exception as e:
         return 1, "", str(e)
 
