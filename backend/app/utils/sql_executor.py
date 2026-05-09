@@ -54,7 +54,7 @@ class SQLExecutor:
                     # :param binding when providing params. Preserve :: (PostgreSQL type casts).
                     if not params:
                         escaped_stmt = re.sub(
-                            r'(?<!:)(?<!\\):([a-zA-Z_]\w*)',
+                            r'(?<!:)(?<!\\):([a-zA-Z_]\w*|\d+)',
                             r'\\:\1',
                             escaped_stmt,
                         )
