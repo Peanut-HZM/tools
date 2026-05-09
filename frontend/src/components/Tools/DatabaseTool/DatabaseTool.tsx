@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
-import { DatabaseToolProvider } from '../../../contexts/DatabaseToolContext';
+import React, { useState, useCallback } from 'react';
+import { DatabaseToolProvider, useDatabaseTool } from '../../../contexts/DatabaseToolContext';
 import ConnectionList from './components/ConnectionList';
 import SQLExecutor from './SQLExecutor';
 import DatabaseConfigPanel from './DatabaseConfigPanel';
 import TableDataViewer from './TableDataViewer';
 import ResizablePanel from '../CursorHistory/ResizablePanel';
+
+interface SqlTabState {
+  configId: string;
+  databaseName: string;
+  sql: string;
+}
 
 interface Tab {
   id: string;
@@ -15,13 +21,24 @@ interface Tab {
     databaseName?: string;
     tableName: string;
   };
+  sqlState?: SqlTabState;
 }
 
+const deriveTabTitle = (configId: string, databaseName: string, configs: { id: string; alias: string }[]): string => {
+  if (!configId) return 'SQL Console';
+  const config = configs.find(c => c.id === configId);
+  if (!config) return 'SQL Console';
+  const title = databaseName 
+    ? `${config.alias}.${databaseName}` 
+    : config.alias;
+  return title.length > 25 ? title.substring(0, 22) + '...' : title;
+};
+
 const DatabaseToolContent: React.FC = () => {
+  const { configs } = useDatabaseTool();
   const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [editConfigId, setEditConfigId] = useState<string | null>(null);
   
-  // Tab Management State
   const [tabs, setTabs] = useState<Tab[]>([
     { id: 'sql-console', type: 'sql', title: 'SQL Console' }
   ]);
@@ -45,7 +62,6 @@ const DatabaseToolContent: React.FC = () => {
   const handleSelectTable = (configId: string, databaseName: string | undefined, tableName: string) => {
     const tabId = `table-${configId}-${databaseName || ''}-${tableName}`;
     
-    // Check if tab exists
     const existingTab = tabs.find(t => t.id === tabId);
     if (existingTab) {
       setActiveTabId(tabId);
@@ -64,20 +80,13 @@ const DatabaseToolContent: React.FC = () => {
   const handleCloseTab = (e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
     
-    // Don't close the last tab if it's SQL Console? 
-    // Or allow closing everything and show a placeholder?
-    // User request implies persistence, so maybe keep SQL Console always open or easy to reopen.
-    // Let's allow closing, but if all closed, maybe show SQL Console or empty state.
-    
     const newTabs = tabs.filter(t => t.id !== tabId);
     setTabs(newTabs);
     
     if (activeTabId === tabId) {
-      // If we closed the active tab, switch to the last available tab
       if (newTabs.length > 0) {
         setActiveTabId(newTabs[newTabs.length - 1].id);
       } else {
-        // If no tabs left, open SQL Console by default
         const defaultTab: Tab = { id: 'sql-console', type: 'sql', title: 'SQL Console' };
         setTabs([defaultTab]);
         setActiveTabId(defaultTab.id);
@@ -89,17 +98,68 @@ const DatabaseToolContent: React.FC = () => {
     setActiveTabId(tabId);
   };
   
-  const handleOpenSqlConsole = () => {
-      const tabId = 'sql-console';
-      const existingTab = tabs.find(t => t.id === tabId);
-      if (existingTab) {
-          setActiveTabId(tabId);
-      } else {
-          const newTab: Tab = { id: tabId, type: 'sql', title: 'SQL Console' };
-          setTabs(prev => [...prev, newTab]);
-          setActiveTabId(tabId);
-      }
+  const handleOpenSqlConsole = (initialSql?: string, databaseName?: string, configId?: string) => {
+    const tabId = `sql-${Date.now()}`;
+    
+    const title = deriveTabTitle(configId || '', databaseName || '', configs);
+
+    const sqlState: SqlTabState | undefined = configId ? {
+      configId,
+      databaseName: databaseName || '',
+      sql: initialSql || '',
+    } : undefined;
+
+    const newTab: Tab = { 
+      id: tabId, 
+      type: 'sql', 
+      title,
+      sqlState,
+    };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(tabId);
   };
+
+  // 左→右联动：左侧点击连接/数据库时更新活跃Tab
+  const handleConnectionSelect = useCallback((configId: string, databaseName?: string) => {
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (activeTab?.type === 'sql') {
+      const db = databaseName || configs.find(c => c.id === configId)?.database_name || '';
+      const currentSql = activeTab.sqlState?.sql || '';
+      setTabs(prev => prev.map(t => 
+        t.id === activeTabId 
+          ? { 
+              ...t, 
+              sqlState: { configId, databaseName: db, sql: currentSql },
+              title: deriveTabTitle(configId, db, configs)
+            }
+          : t
+      ));
+    } else {
+      handleOpenSqlConsole('', databaseName, configId);
+    }
+  }, [tabs, activeTabId, configs]);
+
+  // 右→左联动：SQLExecutor内状态变更时更新Tab
+  const handleSqlStateChange = useCallback((tabId: string, state: { configId: string; database: string; sql: string }) => {
+    setTabs(prev => prev.map(t => 
+      t.id === tabId 
+        ? { 
+            ...t, 
+            sqlState: { configId: state.configId, databaseName: state.database, sql: state.sql },
+            title: deriveTabTitle(state.configId, state.database, configs)
+          }
+        : t
+    ));
+  }, [configs]);
+
+  // 从活跃Tab派生左侧高亮状态
+  const activeTab = tabs.find(t => t.id === activeTabId);
+  const activeConfigId = activeTab?.type === 'sql' 
+    ? activeTab.sqlState?.configId 
+    : activeTab?.data?.configId;
+  const activeDatabaseName = activeTab?.type === 'sql' 
+    ? activeTab.sqlState?.databaseName 
+    : activeTab?.data?.databaseName;
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-900 text-slate-100">
@@ -114,6 +174,9 @@ const DatabaseToolContent: React.FC = () => {
           onEditConfig={handleEditConfig}
           onSelectTable={handleSelectTable}
           onOpenSqlConsole={handleOpenSqlConsole}
+          activeConfigId={activeConfigId}
+          activeDatabaseName={activeDatabaseName}
+          onConnectionSelect={handleConnectionSelect}
         />
       </ResizablePanel>
       
@@ -139,16 +202,13 @@ const DatabaseToolContent: React.FC = () => {
               </button>
             </div>
           ))}
-          {/* Add SQL Console Button if not present? Or just rely on ConnectionList */}
-          {!tabs.find(t => t.id === 'sql-console') && (
-              <button 
-                onClick={handleOpenSqlConsole}
-                className="px-3 py-2 text-slate-500 hover:text-slate-300 transition-colors"
-                title="Open SQL Console"
+          <button 
+                onClick={() => handleOpenSqlConsole()}
+                className="px-3 py-2 text-slate-500 hover:text-blue-400 transition-colors"
+                title="New SQL Console"
               >
-                  <i className="fas fa-plus"></i>
+                <i className="fas fa-plus text-xs"></i>
               </button>
-          )}
         </div>
 
         {/* Tab Content Area */}
@@ -159,11 +219,16 @@ const DatabaseToolContent: React.FC = () => {
               className="absolute inset-0 w-full h-full bg-slate-900"
               style={{ 
                 display: activeTabId === tab.id ? 'block' : 'none',
-                visibility: activeTabId === tab.id ? 'visible' : 'hidden' // Double ensure
+                visibility: activeTabId === tab.id ? 'visible' : 'hidden'
               }}
             >
               {tab.type === 'sql' ? (
-                <SQLExecutor />
+                <SQLExecutor
+                  configId={tab.sqlState?.configId || ''}
+                  database={tab.sqlState?.databaseName || ''}
+                  sql={tab.sqlState?.sql || ''}
+                  onStateChange={(state) => handleSqlStateChange(tab.id, state)}
+                />
               ) : (
                 tab.data && (
                   <TableDataViewer 
@@ -181,7 +246,7 @@ const DatabaseToolContent: React.FC = () => {
                 <i className="fas fa-database text-4xl mb-4 opacity-30"></i>
                 <p>Select a table or open SQL Console</p>
                 <button 
-                    onClick={handleOpenSqlConsole}
+                    onClick={() => handleOpenSqlConsole()}
                     className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded text-blue-400"
                 >
                     Open SQL Console

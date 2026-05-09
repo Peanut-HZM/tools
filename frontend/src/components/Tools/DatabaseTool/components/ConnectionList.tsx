@@ -17,14 +17,24 @@ interface ConnectionListProps {
   onAddConfig: () => void;
   onEditConfig: (id: string) => void;
   onSelectTable: (configId: string, databaseName: string | undefined, tableName: string) => void;
-  onOpenSqlConsole?: (initialSql?: string, databaseName?: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
+  activeConfigId?: string;
+  activeDatabaseName?: string;
+  onConnectionSelect?: (configId: string, databaseName?: string) => void;
 }
 
-const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConfig, onSelectTable, onOpenSqlConsole }) => {
+const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConfig, onSelectTable, onOpenSqlConsole, activeConfigId, activeDatabaseName, onConnectionSelect }) => {
   const { configs, currentConfig, selectConfigById, setCurrentDatabase, refreshConfigs, isLoading } = useDatabaseTool();
   const { t } = useI18n();
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
+
+  // 右→左联动：活跃Tab连接变化时自动展开
+  useEffect(() => {
+    if (activeConfigId && !expandedNodes[activeConfigId]) {
+      setExpandedNodes(prev => ({ ...prev, [activeConfigId]: true }));
+    }
+  }, [activeConfigId]);
 
   // Backup dialog states
   const [backupDialogOpen, setBackupDialogOpen] = useState(false);
@@ -57,10 +67,14 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
   };
 
   const handleSelectDatabase = (configId: string, dbName: string) => {
-    if (currentConfig?.id !== configId) {
-      selectConfigById(configId);
+    if (onConnectionSelect) {
+      onConnectionSelect(configId, dbName);
+    } else {
+      if (currentConfig?.id !== configId) {
+        selectConfigById(configId);
+      }
+      setCurrentDatabase(dbName);
     }
-    setCurrentDatabase(dbName);
   };
 
   const getEnvColor = (env?: Environment) => {
@@ -151,8 +165,8 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             config={config}
             isExpanded={!!expandedNodes[config.id]}
             onToggleExpand={() => toggleExpand(config.id)}
-            isSelected={currentConfig?.id === config.id}
-            onSelect={() => selectConfigById(config.id)}
+            isSelected={activeConfigId === config.id || currentConfig?.id === config.id}
+            onSelect={() => onConnectionSelect ? onConnectionSelect(config.id) : selectConfigById(config.id)}
             onEdit={() => onEditConfig(config.id)}
             onSelectTable={onSelectTable}
             onSelectDatabase={handleSelectDatabase}
@@ -163,6 +177,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             onOpenBackupHistory={handleOpenBackupHistory}
             searchTerm={searchTerm}
             displayPreferences={displayPreferences}
+            activeDatabaseName={activeDatabaseName}
           />
         ))}
 
@@ -218,15 +233,16 @@ interface ConnectionNodeProps {
   onSelectDatabase: (configId: string, dbName: string) => void;
   getEnvColor: (env?: Environment) => string;
   onRefreshConfigs: () => Promise<void>;
-  onOpenSqlConsole?: (initialSql?: string, databaseName?: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
   onOpenBackup: (configId: string, dbName: string, tables?: string[]) => void;
   onOpenBackupHistory: (configId: string, dbName?: string) => void;
   searchTerm: string;
   displayPreferences?: DisplayPreferences | null;
+  activeDatabaseName?: string;
 }
 
 const ConnectionNode: React.FC<ConnectionNodeProps> = ({
-  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences
+  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences, activeDatabaseName
 }) => {
   const { t } = useI18n();
   const [databases, setDatabases] = useState<string[]>([]);
@@ -370,6 +386,15 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
 
     const items: MenuItem[] = [
       {
+        label: t.database.contextMenu.newSqlConsole || 'New SQL Console',
+        icon: 'fa-terminal',
+        action: () => {
+          if (onOpenSqlConsole) {
+            onOpenSqlConsole('', undefined, config.id);
+          }
+        }
+      },
+      {
         label: t.database.contextMenu.editConnection,
         icon: 'fa-edit',
         action: onEdit
@@ -380,6 +405,14 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
         action: async () => {
             const result = await api.testConnectionById(config.id);
             alert(`${result.success ? t.common.success : t.common.error}: ${result.message}`);
+        }
+      },
+      {
+        label: t.database.contextMenu.refreshConnection,
+        icon: 'fa-sync',
+        action: async () => {
+            await fetchDatabases();
+            await onRefreshConfigs();
         }
       },
       {
@@ -529,6 +562,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
                 onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
                 onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
                 searchTerm={searchTerm}
+                activeDatabaseName={activeDatabaseName}
             />
           ) : (
             <>
@@ -544,6 +578,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
                     onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
                     onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
                     searchTerm={searchTerm}
+                    activeDatabaseName={activeDatabaseName}
                 />
               ))}
               {databases.length === 0 && !loading && (
@@ -597,13 +632,14 @@ interface DatabaseStructureNodeProps {
   onSelectTable: (tableName: string) => void;
   onSelectDatabase: () => void;
   onRefreshDatabases?: () => Promise<string[]>;
-  onOpenSqlConsole?: (initialSql?: string, databaseName?: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
   onOpenBackup: (dbName: string, tables?: string[]) => void;
   onOpenBackupHistory: (dbName: string) => void;
   searchTerm: string;
+  activeDatabaseName?: string;
 }
 
-const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId, dbName, onSelectTable, onSelectDatabase, onRefreshDatabases, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm }) => {
+const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId, dbName, onSelectTable, onSelectDatabase, onRefreshDatabases, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, activeDatabaseName }) => {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
   const [structure, setStructure] = useState<DatabaseStructure | null>(null);
@@ -657,6 +693,15 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
 
     const items: MenuItem[] = [
       {
+        label: t.database.contextMenu.newSqlConsole || 'New SQL Console',
+        icon: 'fa-terminal',
+        action: () => {
+          if (onOpenSqlConsole) {
+            onOpenSqlConsole('', dbName, configId);
+          }
+        }
+      },
+      {
         label: t.database.contextMenu.newTable,
         icon: 'fa-plus',
         action: () => {
@@ -666,7 +711,7 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`;
-                  onOpenSqlConsole(template, dbName);
+                  onOpenSqlConsole(template, dbName, configId);
              }
         }
       },
@@ -723,18 +768,27 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
       e.preventDefault();
       e.stopPropagation();
 
-      const items: MenuItem[] = [
-          {
-            label: t.database.contextMenu.newTable,
-            icon: 'fa-plus',
-            action: () => {
-                 if (onOpenSqlConsole) {
-                     const template = `CREATE TABLE new_table (
+const items: MenuItem[] = [
+           {
+             label: t.database.contextMenu.newSqlConsole || 'New SQL Console',
+             icon: 'fa-terminal',
+             action: () => {
+                  if (onOpenSqlConsole) {
+                      onOpenSqlConsole('', dbName, configId);
+                  }
+             }
+           },
+           {
+             label: t.database.contextMenu.newTable,
+             icon: 'fa-plus',
+             action: () => {
+                  if (onOpenSqlConsole) {
+                      const template = `CREATE TABLE new_table (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`;
-                      onOpenSqlConsole(template, dbName);
+                      onOpenSqlConsole(template, dbName, configId);
                  }
             }
           },
@@ -810,7 +864,9 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
   return (
     <div className="text-sm">
       <div
-        className="flex items-center space-x-2 py-1 px-2 hover:bg-slate-700/50 rounded cursor-pointer text-slate-300"
+        className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
+          activeDatabaseName === dbName ? 'bg-blue-600/20 text-blue-300' : 'text-slate-300 hover:bg-slate-700/50'
+        }`}
         onClick={handleToggle}
         onContextMenu={handleContextMenu}
       >
@@ -924,7 +980,7 @@ interface FolderNodeProps {
   configId: string;
   dbName: string;
   onRefresh: () => void;
-  onOpenSqlConsole?: (initialSql?: string, databaseName?: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
   onSelectTable?: (tableName: string) => void;
   onOpenBackup?: (tableName: string) => void;
   searchTerm: string;
@@ -989,6 +1045,15 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
 
       const menuItems: MenuItem[] = [
           {
+              label: t.database.contextMenu.newQuery || 'New Query',
+              icon: 'fa-search',
+              action: () => {
+                  if (onOpenSqlConsole) {
+                      onOpenSqlConsole(`SELECT * FROM ${item.name} LIMIT 100;`, dbName, configId);
+                  }
+              }
+          },
+          {
               label: t.database.contextMenu.viewData,
               icon: 'fa-table',
               action: () => onItemClick(item.name)
@@ -1045,22 +1110,34 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
                   }
               }
           },
-          {
-              label: t.database.contextMenu.deleteTable,
-              icon: 'fa-trash',
-              danger: true,
-              action: async () => {
-                  if (window.confirm(t.database.contextMenu.confirmDeleteTable.replace('{name}', item.name))) {
-                      try {
-                          await api.dropTableInstance(configId, item.name, dbName);
-                          onRefresh();
-                      } catch (e: any) {
-                          alert(`${t.errors.deleteFailed}: ${e.message}`);
-                      }
-                  }
-              }
-          }
-      ];
+{
+               label: t.database.contextMenu.deleteTable,
+               icon: 'fa-trash',
+               danger: true,
+               action: async () => {
+                   if (window.confirm(t.database.contextMenu.confirmDeleteTable.replace('{name}', item.name))) {
+                       try {
+                           await api.dropTableInstance(configId, item.name, dbName);
+                           onRefresh();
+                       } catch (e: any) {
+                           alert(`${t.errors.deleteFailed}: ${e.message}`);
+                       }
+                   }
+               }
+           },
+           {
+               separator: true,
+               label: '',
+               action: () => {}
+           },
+           {
+               label: t.database.contextMenu.refreshTableStructure,
+               icon: 'fa-sync',
+               action: async () => {
+                   await onRefresh();
+               }
+           }
+       ];
 
       setContextMenu({ x: e.clientX, y: e.clientY, items: menuItems });
   };

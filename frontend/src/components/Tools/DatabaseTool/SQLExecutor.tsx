@@ -1,18 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useDatabaseTool } from '../../../contexts/DatabaseToolContext';
 import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
-import { SQLExecutionResult, DatabaseType } from '../../../types/databaseTool';
+import { SQLExecutionResult } from '../../../types/databaseTool';
 import SQLEditor from './components/SQLEditor';
 import ResultViewer from './components/ResultViewer';
 import { useI18n } from '../../../i18n';
 
-const SQLExecutor: React.FC = () => {
-  const { configs, currentConfig, currentDatabase, selectConfigById, setCurrentDatabase, refreshHistory } = useDatabaseTool();
+interface SQLExecutorProps {
+  configId: string;
+  database: string;
+  sql: string;
+  onStateChange: (state: { configId: string; database: string; sql: string }) => void;
+}
+
+const SQLExecutor: React.FC<SQLExecutorProps> = ({ 
+  configId, 
+  database,
+  sql,
+  onStateChange
+}) => {
+  const { configs, refreshHistory } = useDatabaseTool();
   const toast = useToast();
   const { t } = useI18n();
   
-  const [sql, setSql] = useState('');
+  // 受控组件：连接/数据库/SQL状态由父组件管理，通过onStateChange回调上报变更
+  const currentConfig = useMemo(
+    () => configs.find(c => c.id === configId) || null,
+    [configs, configId]
+  );
+  const currentDatabase = database || currentConfig?.database_name || '';
+  
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SQLExecutionResult | null>(null);
   const [databases, setDatabases] = useState<string[]>([]);
@@ -21,17 +39,16 @@ const SQLExecutor: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Fetch databases when config changes
   useEffect(() => {
     const fetchAll = async () => {
       if (!currentConfig) {
         setDatabases([]);
+        setTables([]);
         return;
       }
 
       setDbLoading(true);
       try {
-        // 并行请求：数据库列表 + 表结构（如果有默认数据库）
         const targetDb = currentDatabase || currentConfig.database_name;
         const [dbs, structure] = await Promise.allSettled([
           api.getDatabasesList(currentConfig.id),
@@ -61,11 +78,12 @@ const SQLExecutor: React.FC = () => {
     fetchAll();
   }, [currentConfig?.id, currentDatabase]);
 
-  // Tables for autocomplete are already set by the useEffect above
-  // No separate useEffect needed to avoid duplicate structure requests
+  useEffect(() => {
+    setResult(null);
+  }, [configId]);
 
   const handleExecute = async (pageOverride?: number) => {
-    if (!currentConfig || !sql.trim()) return;
+    if (!configId || !sql.trim()) return;
 
     const targetPage = typeof pageOverride === 'number' ? pageOverride : 1;
     if (typeof pageOverride !== 'number') {
@@ -73,10 +91,10 @@ const SQLExecutor: React.FC = () => {
     }
 
     setLoading(true);
-    setResult(null); // 先清空旧结果，避免混淆
+    setResult(null);
     try {
       const res = await api.executeSQL({
-        db_config_id: currentConfig.id,
+        db_config_id: configId,
         sql: sql,
         database_name: currentDatabase || undefined,
         page: targetPage,
@@ -96,21 +114,40 @@ const SQLExecutor: React.FC = () => {
     handleExecute(newPage);
   };
 
-  useEffect(() => {
-    // Clear result when switching configs, but keep SQL for convenience
-    setResult(null);
-  }, [currentConfig?.id]);
+  const handleConfigChange = useCallback((newConfigId: string) => {
+    const newConfig = configs.find(c => c.id === newConfigId);
+    onStateChange({
+      configId: newConfigId,
+      database: newConfig?.database_name || '',
+      sql
+    });
+  }, [configs, sql, onStateChange]);
+
+  const handleDatabaseChange = useCallback((newDatabase: string) => {
+    onStateChange({
+      configId,
+      database: newDatabase,
+      sql
+    });
+  }, [configId, sql, onStateChange]);
+
+  const handleSqlChange = useCallback((newSql: string) => {
+    onStateChange({
+      configId,
+      database,
+      sql: newSql
+    });
+  }, [configId, database, onStateChange]);
 
   return (
     <div className="flex flex-col h-full gap-4 p-4 bg-slate-900">
-      {/* Toolbar */}
-      <div className="flex items-center space-x-4 bg-slate-800 p-2 rounded-md border border-slate-700">
+        <div className="flex items-center space-x-4 bg-slate-800 p-2 rounded-md border border-slate-700">
         <div className="flex items-center space-x-2">
           <label className="text-sm text-slate-400">Connection:</label>
           <select 
             className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-blue-500 min-w-[150px]"
-            value={currentConfig?.id || ''}
-            onChange={(e) => selectConfigById(e.target.value)}
+            value={configId || ''}
+            onChange={(e) => handleConfigChange(e.target.value)}
           >
             <option value="" disabled>Select Connection</option>
             {configs.map(c => (
@@ -125,8 +162,8 @@ const SQLExecutor: React.FC = () => {
             <div className="relative">
               <select 
                 className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-blue-500 min-w-[150px] appearance-none pr-8"
-                value={currentDatabase || ''}
-                onChange={(e) => setCurrentDatabase(e.target.value || null)}
+                value={database || ''}
+                onChange={(e) => handleDatabaseChange(e.target.value)}
                 disabled={dbLoading}
               >
                 <option value="">Default ({currentConfig.database_name || 'None'})</option>
@@ -144,7 +181,7 @@ const SQLExecutor: React.FC = () => {
         )}
       </div>
 
-      {!currentConfig ? (
+      {!configId ? (
         <div className="flex-1 flex items-center justify-center text-slate-500 bg-slate-900 flex-col gap-4">
            <i className="fas fa-database text-4xl opacity-50"></i>
            <p>{t.database.status.disconnected}</p>
@@ -154,7 +191,7 @@ const SQLExecutor: React.FC = () => {
           <div className="h-1/3 min-h-[200px]">
             <SQLEditor 
               value={sql} 
-              onChange={setSql} 
+              onChange={handleSqlChange} 
               onExecute={handleExecute} 
               loading={loading}
               tables={tables}
