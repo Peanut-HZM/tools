@@ -128,7 +128,7 @@ def main():
     # 显示最终状态
     show_final_status()
     
-    print_status("\n✓ 仓库更新完成!", "SUCCESS")
+    print_status("\n[OK] 仓库更新完成!", "SUCCESS")
     print_status("如需推送到远程，请运行: python push_repo.py", "INFO")
 
 
