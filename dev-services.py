@@ -49,11 +49,17 @@ LOG_DIR.mkdir(exist_ok=True)
 SCRIPT_LOG = LOG_DIR / "dev-services.log"
 
 MAX_SCAN_DEPTH = 3
-SKIP_DIRS = {"node_modules", "__pycache__", ".git", "venv", ".venv", "target", "build", "dist", ".omc", ".next", ".nuxt", "coverage", "e2e"}
+SKIP_DIRS = {
+    "node_modules", "__pycache__", ".git", "venv", ".venv", "target", "build",
+    "dist", ".omc", ".next", ".nuxt", "coverage", "e2e",
+}
+AUXILIARY_DIRS = {"tools", "scripts", "script", "bin", ".superpowers", ".gstack"}
 
 # 框架默认端口
 DEFAULT_PORTS = {
     "vite": 5173,
+    "uniapp": 5173,
+    "taro": 5173,
     "next": 3000,
     "node-backend": 3000,
     "python": 8000,
@@ -134,6 +140,8 @@ class Service:
     def type_label(self) -> str:
         labels = {
             "vite": "Vite 前端",
+            "uniapp": "UniApp H5",
+            "taro": "Taro H5",
             "next": "Next.js",
             "node-backend": "Node.js 后端",
             "python": "Python 后端",
@@ -162,7 +170,7 @@ def _scan_directory(current: Path, root: Path, max_depth: int, services: list):
         return
 
     # 跳过黑名单
-    if current.name in SKIP_DIRS:
+    if current != root and (current.name in SKIP_DIRS or current.name in AUXILIARY_DIRS):
         return
 
     # 尝试发现服务
@@ -206,6 +214,10 @@ def _detect_service(directory: Path) -> Optional[Service]:
             deps = {**pkg_data.get("dependencies", {}), **pkg_data.get("devDependencies", {})}
             scripts = pkg_data.get("scripts", {})
 
+            if _is_uniapp_project(deps, scripts):
+                return _build_uniapp_service(directory, pkg_data)
+            if _is_taro_project(deps, scripts):
+                return _build_taro_service(directory, pkg_data)
             # Vite
             if "vite" in deps:
                 return _build_vite_service(directory, pkg_data)
@@ -263,7 +275,7 @@ def _read_env_file(directory: Path) -> dict:
 def _extract_port_from_env(directory: Path) -> Optional[int]:
     """从 .env 文件中提取端口号"""
     env_data = _read_env_file(directory)
-    for key in ["VITE_PORT", "PORT", "SERVER_PORT", "APP_PORT", "BACKEND_PORT"]:
+    for key in ["VITE_PORT", "VITE_APP_PORT", "PORT", "SERVER_PORT", "APP_PORT", "BACKEND_PORT"]:
         if key in env_data:
             try:
                 return int(env_data[key])
@@ -291,11 +303,59 @@ def _extract_port_from_vite_config(directory: Path) -> Optional[int]:
 def _extract_port_from_scripts(pkg_data: dict) -> Optional[int]:
     """从 package.json scripts 中提取 --port 参数"""
     scripts = pkg_data.get("scripts", {})
-    dev_script = scripts.get("dev", "") or scripts.get("start", "")
-    match = re.search(r'--port\s+(\d+)', dev_script)
-    if match:
-        return int(match.group(1))
+    for script_name in ["dev:h5", "h5", "dev", "start"]:
+        script = scripts.get(script_name, "")
+        match = re.search(r'--port(?:=|\s+)(\d+)', script)
+        if match:
+            return int(match.group(1))
     return None
+
+
+def _service_has_explicit_port(svc: Service) -> bool:
+    if _extract_port_from_env(svc.project_dir) is not None:
+        return True
+    if svc.project_type in {"vite", "uniapp", "taro", "next"}:
+        return _extract_port_from_vite_config(svc.project_dir) is not None
+    return False
+
+
+def _update_service_port(svc: Service, port: int):
+    old_port = svc.port
+    if old_port == port:
+        return
+
+    svc.port = port
+    svc.health_url = re.sub(r":\d+", f":{port}", svc.health_url, count=1)
+    updated = []
+    skip_next = False
+    for index, part in enumerate(svc.start_cmd):
+        if skip_next:
+            skip_next = False
+            continue
+        if part == "--port" and index + 1 < len(svc.start_cmd):
+            updated.extend([part, str(port)])
+            skip_next = True
+        elif part.startswith("--port="):
+            updated.append(f"--port={port}")
+        elif f"--server.port={old_port}" in part:
+            updated.append(part.replace(f"--server.port={old_port}", f"--server.port={port}"))
+        else:
+            updated.append(part)
+    svc.start_cmd = updated
+
+
+def assign_unique_ports(services: list[Service]) -> list[Service]:
+    reserved = {svc.port for svc in services if _service_has_explicit_port(svc)}
+    used = set()
+    for svc in services:
+        port = svc.port
+        if port in used or (port in reserved and not _service_has_explicit_port(svc)):
+            while port in used or port in reserved:
+                port += 1
+            log(f"{svc.name} 端口 {svc.port} 与其他服务冲突，自动调整为 {port}", "WARN")
+            _update_service_port(svc, port)
+        used.add(svc.port)
+    return services
 
 
 def _extract_port_from_pom(pom_path: Path) -> Optional[int]:
@@ -558,6 +618,38 @@ def _find_python_entry(directory: Path) -> Optional[Path]:
 # 服务构建
 # ============================================================
 
+def _is_uniapp_project(deps: dict, scripts: dict) -> bool:
+    dep_names = set(deps.keys())
+    return (
+        any(name.startswith("@dcloudio/") for name in dep_names)
+        or "uni-app" in dep_names
+        or any("uni " in value or value.startswith("uni") for value in scripts.values())
+    )
+
+
+def _is_taro_project(deps: dict, scripts: dict) -> bool:
+    dep_names = set(deps.keys())
+    return (
+        any(name.startswith("@tarojs/") for name in dep_names)
+        or any("taro " in value or value.startswith("taro") for value in scripts.values())
+    )
+
+
+def _get_package_manager(directory: Path) -> str:
+    if (directory / "pnpm-lock.yaml").exists():
+        return shutil.which("pnpm") or "pnpm"
+    if (directory / "yarn.lock").exists():
+        return shutil.which("yarn") or "yarn"
+    return shutil.which("npm") or "npm"
+
+
+def _choose_h5_script(scripts: dict) -> str:
+    for name in ["dev:h5", "h5", "dev"]:
+        if name in scripts:
+            return name
+    return "dev"
+
+
 def _get_npm_cmd(directory: Path) -> list:
     """获取可用的包管理器命令，返回 [cmd, args...] 列表"""
     # 优先通过 node 直接执行 vite.js（避免 .cmd 的 shell 问题）
@@ -581,6 +673,56 @@ def _get_npm_cmd(directory: Path) -> list:
         if found:
             return [found]
     return ["npx"]
+
+
+def _build_uniapp_service(directory: Path, pkg_data: dict) -> Service:
+    name = pkg_data.get("name", "uniapp")
+    if "/" in name:
+        name = name.split("/")[-1]
+    scripts = pkg_data.get("scripts", {})
+    port = (_extract_port_from_env(directory)
+            or _extract_port_from_scripts(pkg_data)
+            or _extract_port_from_vite_config(directory)
+            or DEFAULT_PORTS["uniapp"])
+    script = _choose_h5_script(scripts)
+    cmd = [_get_package_manager(directory), "run", script, "--", "--host", "127.0.0.1", "--port", str(port)]
+
+    return Service(
+        name=f"{name.capitalize()} 前端",
+        project_type="uniapp",
+        project_dir=directory,
+        port=port,
+        start_cmd=cmd,
+        health_keyword="",
+        health_url=f"http://localhost:{port}",
+        health_timeout=120,
+        keyword_timeout=0,
+    )
+
+
+def _build_taro_service(directory: Path, pkg_data: dict) -> Service:
+    name = pkg_data.get("name", "taro")
+    if "/" in name:
+        name = name.split("/")[-1]
+    scripts = pkg_data.get("scripts", {})
+    port = (_extract_port_from_env(directory)
+            or _extract_port_from_scripts(pkg_data)
+            or _extract_port_from_vite_config(directory)
+            or DEFAULT_PORTS["taro"])
+    script = _choose_h5_script(scripts)
+    cmd = [_get_package_manager(directory), "run", script, "--", "--host", "127.0.0.1", "--port", str(port)]
+
+    return Service(
+        name=f"{name.capitalize()} 前端",
+        project_type="taro",
+        project_dir=directory,
+        port=port,
+        start_cmd=cmd,
+        health_keyword="",
+        health_url=f"http://localhost:{port}",
+        health_timeout=120,
+        keyword_timeout=0,
+    )
 
 
 def _build_vite_service(directory: Path, pkg_data: dict) -> Service:
@@ -1044,15 +1186,20 @@ def check_service_health(svc: Service) -> bool:
     log(f"健康检查开始: {svc.name}", "INFO")
     log_file = svc.log_path
 
-    if wait_for_log_keyword(log_file, svc.health_keyword, svc.keyword_timeout):
+    if not svc.health_keyword:
+        log(f"[1/2] Log keyword skipped: {svc.name}", "INFO")
+    elif wait_for_log_keyword(log_file, svc.health_keyword, svc.keyword_timeout):
         log(f"[1/2] 日志就绪: {svc.name}", "SUCCESS")
     else:
-        log(f"[1/2] 日志关键字超时: {svc.name}", "ERROR")
+        log(f"[1/2] 日志关键字超时: {svc.name}", "WARN")
+        if http_health_check(svc.health_url, svc.health_timeout):
+            log(f"[2/2] HTTP ready: {svc.name} ({svc.health_url})", "SUCCESS")
+            return True
         _print_log_tail(svc.name, log_file)
         return False
 
     if http_health_check(svc.health_url, svc.health_timeout):
-        log(f"[2/2] HTTP 就绪: {svc.name} ({svc.health_url})", "SUCCESS")
+        log(f"[2/2] HTTP ready: {svc.name} ({svc.health_url})", "SUCCESS")
         return True
     else:
         log(f"[2/2] HTTP 健康检查失败: {svc.name}", "ERROR")
@@ -1424,6 +1571,7 @@ def main():
     # 发现服务
     services = discover_services(root_dir=root_dir)
     services = filter_services(services, args.svc_type, args.port)
+    services = assign_unique_ports(services)
 
     if args.action == "discover":
         log_section(f"发现的服务 (目录: {root_dir or CWD})")
