@@ -139,8 +139,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"OpenClaw 连接启动失败（功能将不可用）: {e}")
 
-    # 启动 Token Usage 缓存刷新任务（包含 DB 同步 + Redis 缓存刷新）
-    cache_refresh_task = asyncio.create_task(refresh_token_usage_cache_periodically())
+    # 启动 Token Usage 缓存刷新任务（首次刷新延后到后台执行，不阻塞启动）
+    cache_refresh_task = asyncio.create_task(
+        _delayed_token_usage_cache_refresh()
+    )
+
+    # 打印启动完成信号（dev_services.py 检测此关键字）
+    logger.info("Application startup complete")
 
     yield
 
@@ -298,6 +303,12 @@ app.include_router(openclaw_ws_router.router, prefix="/api")
 from app.routes import openclaw_admin as openclaw_admin_router
 
 app.include_router(openclaw_admin_router.router)
+
+
+async def _delayed_token_usage_cache_refresh():
+    """首次刷新延迟 30 秒，避免阻塞应用启动"""
+    await asyncio.sleep(30)
+    await refresh_token_usage_cache_periodically()
 
 
 async def refresh_token_usage_cache_periodically():
