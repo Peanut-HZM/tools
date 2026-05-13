@@ -1,7 +1,7 @@
 """
 Authentication API Router - Handles user authentication endpoints
 """
-from fastapi import APIRouter, HTTPException, Depends, Header, Body
+from fastapi import APIRouter, HTTPException, Depends, Header, Body, Request
 from typing import Optional
 
 from app.models.auth_models import (
@@ -89,19 +89,21 @@ async def register(user_data: UserCreate):
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(login_data: UserLogin):
+async def login(login_data: UserLogin, request: Request):
     """
     Authenticate a user and return a JWT token.
-    
+
     Args:
         login_data: User login credentials (username, password)
-        
+
     Returns:
         AuthResponse with user info and JWT token
     """
     try:
         auth_service = get_auth_service()
-        return auth_service.login(login_data)
+        ip_address = request.headers.get("X-Forwarded-For", request.headers.get("X-Real-IP", request.client.host if request.client else None))
+        device_info = request.headers.get("User-Agent", "")
+        return auth_service.login(login_data, ip_address=ip_address, device_info=device_info)
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
@@ -186,7 +188,8 @@ async def verify_token(authorization: Optional[str] = Header(None)):
 @router.put("/password", response_model=UserPasswordChangeResponse)
 async def change_password(
     password_change: UserPasswordChange,
-    authorization: Optional[str] = Header(None)
+    authorization: Optional[str] = Header(None),
+    request: Request = None
 ):
     """
     User change their own password.
@@ -213,10 +216,14 @@ async def change_password(
         user_id = token_data.user_id
 
         # Change password
+        ip_address = request.headers.get("X-Forwarded-For", request.headers.get("X-Real-IP", request.client.host if request.client else None)) if request else None
+        device_info = request.headers.get("User-Agent", "") if request else ""
         success, message = auth_service.change_password(
             user_id=user_id,
             old_password=password_change.old_password,
-            new_password=password_change.new_password
+            new_password=password_change.new_password,
+            ip_address=ip_address,
+            device_info=device_info
         )
 
         if not success:

@@ -50,5 +50,5 @@ from app.models.contact_message import (
     ContactMessageListResponse,
 )
 
-# Password Reset Log 密码重置日志模型
-from app.models.password_log_models import PasswordResetLog
+# Password Audit Log 密码审计日志模型
+from app.models.password_log_models import PasswordAuditLog

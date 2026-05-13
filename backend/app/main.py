@@ -144,6 +144,12 @@ async def lifespan(app: FastAPI):
         _delayed_token_usage_cache_refresh()
     )
 
+    # 密钥安全校验
+    try:
+        _check_security_settings()
+    except Exception as e:
+        logger.warning(f"安全校验未通过: {e}")
+
     # 打印启动完成信号（dev_services.py 检测此关键字）
     logger.info("Application startup complete")
 
@@ -175,6 +181,31 @@ async def lifespan(app: FastAPI):
             await db_pool_cleanup_task
         except asyncio.CancelledError:
             pass
+
+
+def _check_security_settings():
+    """检查安全密钥配置是否合规"""
+    from app.config.config import settings
+
+    # 已知的硬编码默认值（需要替换）
+    DEFAULT_KEYS = [
+        "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4=",
+    ]
+
+    if settings.JWT_SECRET_KEY in DEFAULT_KEYS:
+        logger.warning("JWT_SECRET_KEY 使用了默认硬编码值，生产环境请务必更换！运行: python scripts/generate_keys.py")
+
+    if settings.DB_ENCRYPTION_KEY in DEFAULT_KEYS:
+        logger.warning("DB_ENCRYPTION_KEY 使用了默认硬编码值，生产环境请务必更换！")
+
+    if settings.JWT_SECRET_KEY == settings.DB_ENCRYPTION_KEY:
+        logger.warning("JWT_SECRET_KEY 和 DB_ENCRYPTION_KEY 相同，建议配置为不同的密钥")
+
+    if len(settings.JWT_SECRET_KEY) < 32:
+        logger.warning("JWT_SECRET_KEY 长度不足 32 字符，建议更换为更长的随机密钥")
+
+    if len(settings.DB_ENCRYPTION_KEY) < 32:
+        logger.warning("DB_ENCRYPTION_KEY 长度不足 32 字符，建议更换为更长的随机密钥")
 
 
 app = FastAPI(title="Tool Aggregation API", lifespan=lifespan)

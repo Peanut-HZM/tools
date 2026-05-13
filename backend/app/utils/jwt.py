@@ -4,16 +4,11 @@ JWT 工具函数
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
-
 from app.config.config import settings
 
 # JWT 配置
 ALGORITHM = settings.JWT_ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
-
-# 密码加密上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -74,29 +69,3 @@ def get_user_from_token(token: str) -> Optional[str]:
     user_id: str = payload.get("sub")
     return user_id
 
-
-def hash_password(password: str) -> str:
-    """
-    对密码进行哈希处理
-
-    Args:
-        password: 明文密码
-
-    Returns:
-        哈希后的密码
-    """
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    验证密码
-
-    Args:
-        plain_password: 明文密码
-        hashed_password: 哈希后的密码
-
-    Returns:
-        密码是否匹配
-    """
-    return pwd_context.verify(plain_password, hashed_password)

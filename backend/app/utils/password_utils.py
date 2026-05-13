@@ -5,6 +5,9 @@ import re
 import string
 import random
 from typing import Tuple
+from passlib.context import CryptContext
+
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def validate_password_strength(password: str) -> Tuple[bool, str]:
@@ -68,3 +71,32 @@ def generate_random_password(length: int = 12) -> str:
     random.shuffle(password)
 
     return ''.join(password)
+
+
+def hash_password(password: str) -> str:
+    """
+    对密码进行 bcrypt 哈希（截断至72字节以符合 bcrypt 限制）
+
+    Args:
+        password: 明文密码
+
+    Returns:
+        哈希后的密码
+    """
+    truncated = password[:72]
+    return _pwd_context.hash(truncated)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    验证密码是否匹配 bcrypt 哈希
+
+    Args:
+        plain_password: 明文密码
+        hashed_password: 哈希后的密码
+
+    Returns:
+        密码是否匹配
+    """
+    truncated = plain_password[:72]
+    return _pwd_context.verify(truncated, hashed_password)

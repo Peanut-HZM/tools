@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Optional, List
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.models.auth_models import (
     UserCreate, UserLogin, UserInDB, TokenData, AuthResponse, UserResponse,
@@ -19,7 +18,7 @@ from app.models.auth_models import (
 )
 from app.config.database import get_db_connection
 from app.config.config import settings
-from app.utils.password_utils import validate_password_strength, generate_random_password
+from app.utils.password_utils import validate_password_strength, generate_random_password, hash_password, verify_password
 from fastapi import Request
 
 logger = logging.getLogger(__name__)
@@ -28,9 +27,6 @@ logger = logging.getLogger(__name__)
 SECRET_KEY = settings.JWT_SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # User data storage path
 USERS_DATA_PATH = settings.USERS_DATA_PATH
@@ -52,7 +48,29 @@ class AuthService:
         """Ensure the data directory exists (for markdown files)"""
         # We still need the directory for markdown files even if users are in DB
         Path(USERS_DATA_PATH).mkdir(parents=True, exist_ok=True)
-    
+
+    def _log_audit(self, user_id: str, action_type: str, success: bool,
+                   error_message: Optional[str] = None,
+                   ip_address: Optional[str] = None,
+                   device_info: Optional[str] = None,
+                   actor_user_id: Optional[str] = None) -> None:
+        """记录密码审计日志"""
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO password_audit_logs
+                       (id, user_id, action_type, success, error_message, ip_address, device_info, actor_user_id, created_at)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (str(uuid.uuid4()), user_id, action_type, success,
+                     error_message, ip_address, device_info, actor_user_id, datetime.utcnow())
+                )
+                conn.commit()
+        except Exception as e:
+            logger.error(f"记录审计日志失败: {e}")
+        finally:
+            conn.close()
+
     def _get_user_by_username(self, username: str) -> Optional[UserInDB]:
         """Get user by username"""
         conn = get_db_connection()
@@ -237,15 +255,11 @@ class AuthService:
     
     def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash"""
-        # Truncate password to 72 bytes (bcrypt limit)
-        truncated_password = plain_password[:72]
-        return pwd_context.verify(truncated_password, hashed_password)
-    
+        return verify_password(plain_password, hashed_password)
+
     def _hash_password(self, password: str) -> str:
         """Hash a password"""
-        # Truncate password to 72 bytes (bcrypt limit)
-        truncated_password = password[:72]
-        return pwd_context.hash(truncated_password)
+        return hash_password(password)
     
     def _create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
         """Create a JWT access token"""
@@ -259,10 +273,10 @@ class AuthService:
         return encoded_jwt
 
     def hash_password(self, password: str) -> str:
-        return self._hash_password(password)
+        return hash_password(password)
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        return self._verify_password(plain_password, hashed_password)
+        return verify_password(plain_password, hashed_password)
 
     def create_token(self, user_id: str, username: str) -> str:
         return self._create_access_token(data={"sub": user_id, "username": username, "role": "user"})
@@ -284,7 +298,8 @@ class AuthService:
             return False
         return len(password) >= 6
 
-    def login(self, login_data: UserLogin) -> AuthResponse:
+    def login(self, login_data: UserLogin, ip_address: Optional[str] = None,
+              device_info: Optional[str] = None) -> AuthResponse:
         """
         Authenticate a user and return a token.
         
@@ -298,18 +313,32 @@ class AuthService:
             ValueError: If credentials are invalid
         """
         user = self._get_user_by_username(login_data.username)
-        
+
         if not user:
+            self._log_audit(
+                user_id="", action_type="login", success=False,
+                error_message="用户不存在", ip_address=ip_address, device_info=device_info
+            )
             raise ValueError("Invalid username or password")
-        
+
         if not self._verify_password(login_data.password, user.hashed_password):
+            self._log_audit(
+                user_id=user.user_id, action_type="login", success=False,
+                error_message="密码不正确", ip_address=ip_address, device_info=device_info
+            )
             raise ValueError("Invalid username or password")
-        
+
+        # 登录成功
+        self._log_audit(
+            user_id=user.user_id, action_type="login", success=True,
+            ip_address=ip_address, device_info=device_info
+        )
+
         # Generate token
         token = self._create_access_token(
             data={"sub": user.user_id, "username": user.username, "role": user.role}
         )
-        
+
         return AuthResponse(
             user_id=user.user_id,
             username=user.username,
@@ -573,11 +602,10 @@ class AuthService:
                     (hashed_password, user_id)
                 )
 
-                # 记录日志
-                cursor.execute(
-                    """INSERT INTO password_reset_logs (id, user_id, reset_by_user_id, ip_address)
-                       VALUES (%s, %s, %s, %s)""",
-                    (str(uuid.uuid4()), user_id, reset_by_user_id, ip_address)
+                # 记录审计日志
+                self._log_audit(
+                    user_id=user_id, action_type="admin_reset", success=True,
+                    ip_address=ip_address, actor_user_id=reset_by_user_id
                 )
 
                 conn.commit()
@@ -590,7 +618,9 @@ class AuthService:
         finally:
             conn.close()
 
-    def change_password(self, user_id: str, old_password: str, new_password: str) -> tuple[bool, str]:
+    def change_password(self, user_id: str, old_password: str, new_password: str,
+                        ip_address: Optional[str] = None,
+                        device_info: Optional[str] = None) -> tuple[bool, str]:
         """
         用户修改密码
 
@@ -621,10 +651,18 @@ class AuthService:
 
                 # 验证旧密码
                 if not self._verify_password(old_password, row['password_hash']):
+                    self._log_audit(
+                        user_id=user_id, action_type="change_password", success=False,
+                        error_message="当前密码不正确", ip_address=ip_address, device_info=device_info
+                    )
                     return False, "当前密码不正确"
 
                 # 检查新旧密码是否相同
                 if self._verify_password(new_password, row['password_hash']):
+                    self._log_audit(
+                        user_id=user_id, action_type="change_password", success=False,
+                        error_message="新密码与当前密码相同", ip_address=ip_address, device_info=device_info
+                    )
                     return False, "新密码不能与当前密码相同"
 
                 # 更新密码
@@ -635,6 +673,11 @@ class AuthService:
                 )
 
                 conn.commit()
+
+                self._log_audit(
+                    user_id=user_id, action_type="change_password", success=True,
+                    ip_address=ip_address, device_info=device_info
+                )
                 return True, "密码修改成功"
 
         except Exception as e:

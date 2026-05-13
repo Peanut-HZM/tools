@@ -51,7 +51,7 @@ SCRIPT_LOG = LOG_DIR / "dev-services.log"
 MAX_SCAN_DEPTH = 3
 SKIP_DIRS = {
     "node_modules", "__pycache__", ".git", "venv", ".venv", "target", "build",
-    "dist", ".omc", ".next", ".nuxt", "coverage", "e2e",
+    "dist", ".omc", ".next", ".nuxt", "coverage", "e2e", ".worktrees",
 }
 AUXILIARY_DIRS = {"tools", "scripts", "script", "bin", ".superpowers", ".gstack"}
 

@@ -134,6 +134,119 @@ async def admin_reset_password(
         message=message
     )
 
+
+@router.get("/auth/diagnosis")
+async def auth_diagnosis(admin_user: UserResponse = Depends(get_admin_user)):
+    """
+    密码系统诊断接口（管理员专用）
+
+    返回:
+        - 数据库连接状态
+        - bcrypt 验证测试
+        - 密钥配置状态
+    """
+    from app.config.config import settings
+    from app.config.database import test_connection
+    from app.utils.password_utils import hash_password, verify_password
+
+    result = {
+        "database_connected": False,
+        "bcrypt_test": False,
+        "jwt_key_status": "unknown",
+        "db_key_status": "unknown",
+        "warnings": []
+    }
+
+    # 测试数据库连接
+    try:
+        result["database_connected"] = test_connection()
+    except Exception as e:
+        result["warnings"].append(f"数据库连接测试失败: {e}")
+
+    # 测试 bcrypt 验证
+    try:
+        test_pwd = "test_password_123"
+        hashed = hash_password(test_pwd)
+        result["bcrypt_test"] = verify_password(test_pwd, hashed)
+    except Exception as e:
+        result["warnings"].append(f"bcrypt 测试失败: {e}")
+
+    # 密钥状态
+    DEFAULT_KEYS = [
+        "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4=",
+    ]
+
+    if settings.JWT_SECRET_KEY in DEFAULT_KEYS:
+        result["jwt_key_status"] = "default_hardcoded"
+        result["warnings"].append("JWT_SECRET_KEY 使用了默认硬编码值")
+    elif len(settings.JWT_SECRET_KEY) < 32:
+        result["jwt_key_status"] = "too_short"
+        result["warnings"].append("JWT_SECRET_KEY 长度不足")
+    else:
+        result["jwt_key_status"] = "ok"
+
+    if settings.DB_ENCRYPTION_KEY in DEFAULT_KEYS:
+        result["db_key_status"] = "default_hardcoded"
+        result["warnings"].append("DB_ENCRYPTION_KEY 使用了默认硬编码值")
+    elif len(settings.DB_ENCRYPTION_KEY) < 32:
+        result["db_key_status"] = "too_short"
+        result["warnings"].append("DB_ENCRYPTION_KEY 长度不足")
+    else:
+        result["db_key_status"] = "ok"
+
+    if settings.JWT_SECRET_KEY == settings.DB_ENCRYPTION_KEY:
+        result["warnings"].append("JWT_SECRET_KEY 和 DB_ENCRYPTION_KEY 相同")
+
+    return result
+
+
+@router.get("/users/{user_id}/login-history")
+async def user_login_history(
+    user_id: str,
+    limit: int = 50,
+    admin_user: UserResponse = Depends(get_admin_user)
+):
+    """
+    查询用户登录/密码操作历史（管理员专用）
+
+    Args:
+        user_id: 用户 ID
+        limit: 返回记录数量（默认50条）
+    """
+    from app.config.database import get_db_connection
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """SELECT action_type, success, error_message, ip_address,
+                          device_info, created_at
+                   FROM password_audit_logs
+                   WHERE user_id = %s
+                   ORDER BY created_at DESC
+                   LIMIT %s""",
+                (user_id, limit)
+            )
+            rows = cursor.fetchall()
+            return {
+                "user_id": user_id,
+                "total": len(rows),
+                "records": [
+                    {
+                        "action_type": r["action_type"],
+                        "success": r["success"],
+                        "error_message": r["error_message"],
+                        "ip_address": str(r["ip_address"]) if r["ip_address"] else None,
+                        "device_info": r["device_info"],
+                        "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                    }
+                    for r in rows
+                ]
+            }
+    finally:
+        conn.close()
+
+
 # ==================== OSS Management ====================
 
 @router.get("/oss/files", response_model=List[dict])
