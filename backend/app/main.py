@@ -43,7 +43,7 @@ from logging.handlers import RotatingFileHandler
 from app.config.config import settings
 from app.utils.usage_fetcher import UsageFetcher
 from app.routes.token_usage import normalize_entries, apply_aggregation, compute_summary, merge_items
-from app.services.token_usage_cache import set_cached_data
+from app.services.token_usage_cache import set_cached_data, invalidate_user_query_cache
 from app.models.base import Base, SessionLocal, engine
 from app.services.token_usage_sync_service import sync_token_usage
 
@@ -336,6 +336,30 @@ from app.routes import openclaw_admin as openclaw_admin_router
 app.include_router(openclaw_admin_router.router)
 
 
+def _get_token_usage_sync_user_ids() -> list[str]:
+    """获取需要参与 Token Usage 定时同步的用户。"""
+    from app.models.token_usage_models import DeviceRegistry, TokenUsageRecord
+
+    db = SessionLocal()
+    try:
+        user_ids = {
+            row[0]
+            for row in db.query(DeviceRegistry.user_id).distinct().all()
+            if row[0]
+        }
+        user_ids.update(
+            row[0]
+            for row in db.query(TokenUsageRecord.user_id).distinct().all()
+            if row[0] and row[0] != "system"
+        )
+        return sorted(user_ids)
+    except Exception as e:
+        logger.warning(f"获取 Token Usage 定时同步用户失败: {e}")
+        return []
+    finally:
+        db.close()
+
+
 async def _delayed_token_usage_cache_refresh():
     """首次刷新延迟 30 秒，避免阻塞应用启动"""
     await asyncio.sleep(30)
@@ -361,7 +385,9 @@ async def refresh_token_usage_cache_periodically():
             logger.info("开始 Token Usage 数据同步...")
             # 1. 同步 CLI 数据到数据库（增量）
             try:
-                sync_token_usage(user_id="system", days=90)
+                for user_id in _get_token_usage_sync_user_ids():
+                    sync_token_usage(user_id=user_id, days=90)
+                    invalidate_user_query_cache(user_id)
                 logger.info("DB 同步完成")
             except Exception as e:
                 logger.warning(f"DB 同步失败（将在下次重试）: {e}")

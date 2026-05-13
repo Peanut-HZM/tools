@@ -3,6 +3,10 @@ import { getAuthHeaders } from './authApi';
 
 const BASE_URL = `${API_BASE_URL}/token-usage`;
 
+export type TokenUsageSource = 'claude' | 'opencode' | 'all';
+export type TokenUsageReportType = 'daily' | 'weekly' | 'monthly';
+export type TokenUsageGroupBy = 'none' | 'device' | 'model';
+
 export interface UsageItem {
   date: string;
   input_tokens: number;
@@ -37,115 +41,16 @@ export interface UsageHealthCheck {
   ccusage_opencode_installed: boolean;
 }
 
-export async function getTokenUsage(params: {
-  source: 'claude' | 'opencode';
-  type: 'daily' | 'weekly' | 'monthly';
-  days?: number;
-  since?: string;
-  until?: string;
-  by?: string;
-  breakdown?: boolean;
-}): Promise<UsageResponse> {
-  const response = await fetch(`${BASE_URL}`, {
-    method: 'POST',
-    headers: {
-      ...getAuthHeaders(),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      source: params.source,
-      type: params.type,
-      days: params.days || 30,
-      since: params.since,
-      until: params.until,
-      by: params.by,
-      breakdown: params.breakdown || false,
-    }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || '获取 Token 消耗数据失败');
-  }
-  return response.json();
-}
-
-export async function getAggregatedTokenUsage(params: {
-  type: 'daily' | 'weekly' | 'monthly';
-  days?: number;
-  by?: string;
-  breakdown?: boolean;
-}): Promise<UsageResponse> {
-  const response = await fetch(`${BASE_URL}/aggregate`, {
-    method: 'POST',
-    headers: {
-      ...getAuthHeaders(),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      type: params.type,
-      days: params.days || 30,
-      by: params.by,
-      breakdown: params.breakdown || false,
-    }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || '获取聚合 Token 消耗数据失败');
-  }
-  return response.json();
-}
-
-export async function checkTokenUsageHealth(): Promise<UsageHealthCheck> {
-  const response = await fetch(`${BASE_URL}/health`, {
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    throw new Error('健康检查失败');
-  }
-  return response.json();
-}
-
-export async function refreshTokenUsage(): Promise<{ message: string }> {
-  const response = await fetch(`${BASE_URL}/refresh`, {
-    method: 'POST',
-    headers: {
-      ...getAuthHeaders(),
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    throw new Error('刷新缓存失败');
-  }
-  return response.json();
-}
-
-export async function clearTokenUsageData(): Promise<{ message: string; records_deleted: number; sync_logs_deleted: number }> {
-  const response = await fetch(`${BASE_URL}/clear-data`, {
-    method: 'POST',
-    headers: {
-      ...getAuthHeaders(),
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || '清理数据失败');
-  }
-  return response.json();
-}
-
 export interface DeviceInfo {
   id: string;
   name: string;
 }
 
-// ========== 数据库查询相关 API ==========
-
 export interface DbQueryParams {
-  type: 'daily' | 'weekly' | 'monthly';
+  type: TokenUsageReportType;
   days?: number;
-  group_by?: 'none' | 'device' | 'model';
-  source?: 'claude' | 'opencode' | 'all';
+  group_by?: TokenUsageGroupBy;
+  source?: TokenUsageSource;
   device_id?: string;
 }
 
@@ -160,6 +65,28 @@ export interface DbUsageResponse {
   cached?: boolean;
   actual_days?: number;
   auto_expanded?: boolean;
+}
+
+export interface SyncTokenUsageResponse {
+  message?: string;
+  sources_synced: string[];
+  total_records: number;
+  errors: string[];
+}
+
+async function readError(response: Response, fallback: string): Promise<Error> {
+  const error = await response.json().catch(() => ({ detail: response.statusText }));
+  return new Error(error.detail || fallback);
+}
+
+export async function checkTokenUsageHealth(): Promise<UsageHealthCheck> {
+  const response = await fetch(`${BASE_URL}/health`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw await readError(response, '健康检查失败');
+  }
+  return response.json();
 }
 
 export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageResponse> {
@@ -178,13 +105,12 @@ export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageRes
     }),
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || '数据库查询失败');
+    throw await readError(response, '数据库查询失败');
   }
   return response.json();
 }
 
-export async function syncTokenUsage(): Promise<{ sources_synced: string[]; total_records: number; errors: string[] }> {
+export async function syncTokenUsage(): Promise<SyncTokenUsageResponse> {
   const response = await fetch(`${BASE_URL}/sync`, {
     method: 'POST',
     headers: {
@@ -193,7 +119,39 @@ export async function syncTokenUsage(): Promise<{ sources_synced: string[]; tota
     },
   });
   if (!response.ok) {
-    throw new Error('同步失败');
+    throw await readError(response, '同步失败');
+  }
+  return response.json();
+}
+
+export async function refreshTokenUsage(): Promise<SyncTokenUsageResponse> {
+  const response = await fetch(`${BASE_URL}/refresh`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw await readError(response, '刷新失败');
+  }
+  return response.json();
+}
+
+export async function clearTokenUsageData(): Promise<{
+  message: string;
+  records_deleted: number;
+  sync_logs_deleted: number;
+}> {
+  const response = await fetch(`${BASE_URL}/clear-data`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw await readError(response, '清理数据失败');
   }
   return response.json();
 }
@@ -210,6 +168,9 @@ export async function renameDevice(
     },
     body: JSON.stringify({ name }),
   });
+  if (!response.ok) {
+    throw await readError(response, '重命名设备失败');
+  }
   return response.json();
 }
 
@@ -218,7 +179,7 @@ export async function getUserDevices(): Promise<{ devices: DeviceInfo[] }> {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
-    throw new Error('获取设备列表失败');
+    throw await readError(response, '获取设备列表失败');
   }
   return response.json();
 }

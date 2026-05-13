@@ -143,6 +143,29 @@ def invalidate_cache() -> bool:
         return False
 
 
+def invalidate_user_query_cache(user_id: str) -> bool:
+    """清除指定用户的 Token Usage 查询缓存。"""
+    client = get_redis_client()
+    if not client:
+        return False
+
+    try:
+        patterns = [
+            f"token_usage:query:*:{user_id}:*",
+            f"token_usage:query:*:{user_id}",
+        ]
+        deleted = 0
+        for pattern in patterns:
+            keys = client.keys(pattern)
+            if keys:
+                deleted += client.delete(*keys)
+        logger.info(f"已清除用户 {user_id} 的 Token Usage 查询缓存 {deleted} 个")
+        return True
+    except Exception as e:
+        logger.warning(f"清除用户 Token Usage 查询缓存失败: {e}")
+        return False
+
+
 def invalidate_single_cache(
     source: str,
     report_type: str,

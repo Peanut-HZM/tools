@@ -15,6 +15,7 @@ from app.services.token_usage_cache import (
     get_cached_data,
     set_cached_data,
     invalidate_cache,
+    invalidate_user_query_cache,
     get_query_cached_data,
     set_query_cached_data,
 )
@@ -323,10 +324,23 @@ async def health_check():
 
 
 @router.post("/refresh")
-async def refresh_cache():
-    """手动刷新所有 Token Usage 缓存"""
-    invalidate_cache()
-    return {"message": "缓存已清除，下次访问将重新获取数据"}
+async def refresh_cache(
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """手动同步当前用户数据，并刷新该用户的 Token Usage 缓存。"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    logger.info(f"用户 {user_id} 手动刷新 Token Usage 数据")
+    invalidate_user_query_cache(user_id)
+    result = sync_token_usage(user_id=user_id, days=90)
+    invalidate_user_query_cache(user_id)
+    result["message"] = "同步完成，缓存已刷新"
+    return result
 
 
 @router.post("/clear-data")
@@ -548,7 +562,9 @@ async def sync_token_usage_endpoint(
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
 
+    invalidate_user_query_cache(user_id)
     result = sync_token_usage(user_id=user_id, days=90)
+    invalidate_user_query_cache(user_id)
     return result
 
 
@@ -746,7 +762,15 @@ async def query_token_usage(
         summary = compute_db_summary(items)
 
         if not items:
-            return await _fallback_to_cli(req)
+            logger.info(f"用户 {user_id} 的 Token Usage 数据为空，返回空结果")
+            return DbUsageResponse(
+                items=[],
+                summary=summary,
+                devices=devices,
+                cached=False,
+                actual_days=actual_days if auto_expanded else None,
+                auto_expanded=auto_expanded,
+            )
 
         # 3. 写入 Redis 缓存
         cache_payload = {
