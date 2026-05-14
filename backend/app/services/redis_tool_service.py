@@ -593,6 +593,58 @@ class RedisToolService:
             raise e
 
     @staticmethod
+    def get_monitor_info(config_id: str, user_id: str) -> dict:
+        """获取 Redis 监控信息"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            info = r.info()
+            hits = info.get("keyspace_hits", 0)
+            misses = info.get("keyspace_misses", 0)
+            hit_rate = hits / (hits + misses) * 100 if (hits + misses) > 0 else 0
+            db_keyspace = {}
+            for key, val in info.items():
+                if key.startswith("db") and isinstance(val, dict):
+                    db_keyspace[key] = {
+                        "keys": val.get("keys", 0),
+                        "expires": val.get("expires", 0)
+                    }
+            return {
+                "used_memory": info.get("used_memory", 0),
+                "used_memory_human": info.get("used_memory_human", "0B"),
+                "used_memory_rss": info.get("used_memory_rss", 0),
+                "used_memory_peak": info.get("used_memory_peak", 0),
+                "connected_clients": info.get("connected_clients", 0),
+                "maxclients": info.get("maxclients", 0),
+                "keyspace_hits": hits,
+                "keyspace_misses": misses,
+                "hit_rate": round(hit_rate, 2),
+                "ops_per_sec": info.get("instantaneous_ops_per_sec", 0),
+                "db_keyspace": db_keyspace
+            }
+        except Exception as e:
+            logger.error(f"Failed to get monitor info: {e}")
+            raise e
+
+    @staticmethod
+    def get_slowlog(config_id: str, user_id: str, count: int = 50) -> List[dict]:
+        """获取慢查询日志"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            entries = r.slowlog_get(count)
+            result = []
+            for entry in entries:
+                result.append({
+                    "id": entry.get("id"),
+                    "timestamp": entry.get("time"),
+                    "duration_ms": entry.get("duration"),
+                    "command": " ".join(str(x) for x in entry.get("command", []))
+                })
+            return result
+        except Exception as e:
+            logger.error(f"Failed to get slowlog: {e}")
+            raise e
+
+    @staticmethod
     def scan_keys(config_id: str, user_id: str, request: KeysScanRequest) -> KeysScanResponse:
         """分页扫描 Keys，支持类型过滤"""
         try:
