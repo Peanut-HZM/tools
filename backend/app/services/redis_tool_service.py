@@ -990,3 +990,283 @@ class RedisToolService:
                 error=str(e),
                 execution_time_ms=0
             )
+
+    @staticmethod
+    def get_stream_info(config_id: str, user_id: str, key: str) -> dict:
+        """获取 Stream 信息"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            length = r.xlen(key)
+            groups = []
+            try:
+                group_info = r.xinfo_groups(key)
+                for g in group_info:
+                    groups.append({
+                        "name": g.get("name", g.get("group")),
+                        "consumers": g.get("consumers", 0),
+                        "pending": g.get("pending", 0),
+                        "last_delivered_id": g.get("last-delivered-id", "")
+                    })
+            except Exception:
+                pass
+            entries_raw = r.xrange(key, min="-", max="+", count=100)
+            entries = []
+            for entry_id, fields in entries_raw:
+                entries.append({"id": entry_id, "fields": dict(fields)})
+            return {"length": length, "entries": entries, "groups": groups}
+        except Exception as e:
+            logger.error(f"Failed to get stream info: {e}")
+            raise e
+
+    @staticmethod
+    def operate_stream(config_id: str, user_id: str, key: str, action: str, **kwargs) -> dict:
+        """执行 Stream 操作"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            if action == "add":
+                entry_id = r.xadd(key, kwargs.get("fields", {}), id=kwargs.get("entry_id", "*"))
+                return {"success": True, "entry_id": entry_id}
+            elif action == "delete":
+                count = r.xdel(key, kwargs.get("entry_id"))
+                return {"success": True, "deleted": count}
+            elif action == "trim":
+                count = r.xtrim(key, maxlen=kwargs.get("trim_count", 1000))
+                return {"success": True, "trimmed": count}
+            elif action == "create_group":
+                r.xgroup_create(key, kwargs.get("group_name"), id="0", mkstream=True)
+                return {"success": True}
+            elif action == "destroy_group":
+                r.xgroup_destroy(key, kwargs.get("group_name"))
+                return {"success": True}
+            return {"success": False, "error": "Unknown action"}
+        except Exception as e:
+            logger.error(f"Failed to operate stream: {e}")
+            raise e
+
+    @staticmethod
+    def get_bitmap_info(config_id: str, user_id: str, key: str) -> dict:
+        """获取 Bitmap 信息"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            bit_count = r.bitcount(key)
+            size = r.memory_usage(key) or 0
+            str_len = r.strlen(key) or 0
+            return {"bit_count": bit_count, "size_in_bytes": size, "bit_length": str_len * 8}
+        except Exception as e:
+            logger.error(f"Failed to get bitmap info: {e}")
+            raise e
+
+    @staticmethod
+    def operate_bitmap(config_id: str, user_id: str, key: str, action: str, **kwargs) -> dict:
+        """执行 Bitmap 操作"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            if action == "getbit":
+                bit = r.getbit(key, kwargs.get("offset", 0))
+                return {"bit": bit}
+            elif action == "setbit":
+                old_bit = r.setbit(key, kwargs.get("offset", 0), kwargs.get("value", 0))
+                return {"old_bit": old_bit}
+            elif action == "bitcount":
+                count = r.bitcount(key, start=kwargs.get("start"), end=kwargs.get("end"))
+                return {"count": count}
+            elif action == "bitpos":
+                pos = r.bitpos(key, kwargs.get("value", 1))
+                return {"position": pos}
+            return {"error": "Unknown action"}
+        except Exception as e:
+            logger.error(f"Failed to operate bitmap: {e}")
+            raise e
+
+    @staticmethod
+    def get_hyperloglog_info(config_id: str, user_id: str, key: str) -> dict:
+        """获取 HyperLogLog 信息"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            cardinality = r.pfcount(key)
+            return {"cardinality": cardinality}
+        except Exception as e:
+            logger.error(f"Failed to get hyperloglog info: {e}")
+            raise e
+
+    @staticmethod
+    def operate_hyperloglog(config_id: str, user_id: str, key: str, action: str, **kwargs) -> dict:
+        """执行 HyperLogLog 操作"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            if action == "add":
+                elements = kwargs.get("elements", [])
+                if elements:
+                    updated = r.pfadd(key, *elements)
+                    return {"updated": updated}
+                return {"updated": 0}
+            elif action == "count":
+                count = r.pfcount(key)
+                return {"cardinality": count}
+            elif action == "merge":
+                source_keys = kwargs.get("source_keys", [])
+                if source_keys:
+                    r.pfmerge(key, *source_keys)
+                    return {"success": True}
+                return {"success": False, "error": "No source keys"}
+            return {"error": "Unknown action"}
+        except Exception as e:
+            logger.error(f"Failed to operate hyperloglog: {e}")
+            raise e
+
+    @staticmethod
+    def get_geo_info(config_id: str, user_id: str, key: str) -> dict:
+        """获取 Geo 信息"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            members = r.zrange(key, 0, -1)
+            result = []
+            if members:
+                positions = r.geopos(key, *members)
+                for member, pos in zip(members, positions):
+                    result.append({
+                        "member": member,
+                        "longitude": pos[0] if pos else None,
+                        "latitude": pos[1] if pos else None
+                    })
+            return {"members": result}
+        except Exception as e:
+            logger.error(f"Failed to get geo info: {e}")
+            raise e
+
+    @staticmethod
+    def operate_geo(config_id: str, user_id: str, key: str, action: str, **kwargs) -> dict:
+        """执行 Geo 操作"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            if action == "add":
+                r.geoadd(key, (kwargs["longitude"], kwargs["latitude"], kwargs["member"]))
+                return {"success": True}
+            elif action == "dist":
+                dist = r.geodist(key, kwargs["member"], kwargs["member2"], unit=kwargs.get("unit", "km"))
+                return {"distance": dist}
+            elif action == "radius":
+                results = r.georadius(key, kwargs["longitude"], kwargs["latitude"], kwargs["radius"], unit=kwargs.get("unit", "km"), withdist=True, withcoord=True)
+                members = []
+                for item in results:
+                    members.append({"member": item[0], "distance": item[1], "longitude": item[2][0], "latitude": item[2][1]})
+                return {"members": members}
+            elif action == "pos":
+                positions = r.geopos(key, kwargs["member"])
+                pos = positions[0] if positions else None
+                return {"longitude": pos[0] if pos else None, "latitude": pos[1] if pos else None}
+            return {"error": "Unknown action"}
+        except Exception as e:
+            logger.error(f"Failed to operate geo: {e}")
+            raise e
+
+    @staticmethod
+    def get_redis_config(config_id: str, user_id: str) -> List[dict]:
+        """获取 Redis 配置参数"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            config = r.config_get("*")
+            dangerous_keys = {"requirepass", "masterauth", "bind"}
+            return [{"key": k, "value": str(v), "editable": True, "dangerous": k in dangerous_keys} for k, v in config.items()]
+        except Exception as e:
+            logger.error(f"Failed to get redis config: {e}")
+            raise e
+
+    @staticmethod
+    def update_redis_config(config_id: str, user_id: str, key: str, value: str) -> bool:
+        """更新 Redis 配置参数"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            r.config_set(key, value)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update redis config: {e}")
+            raise e
+
+    @staticmethod
+    def get_replication_info(config_id: str, user_id: str) -> dict:
+        """获取复制信息"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            info = r.info("replication")
+            slave_info = []
+            for key, val in info.items():
+                if key.startswith("slave") and isinstance(val, dict):
+                    slave_info.append(val)
+            return {"role": info.get("role", "unknown"), "connected_slaves": info.get("connected_slaves", 0), "master_replid": info.get("master_replid"), "master_repl_offset": info.get("master_repl_offset"), "slave_info": slave_info}
+        except Exception as e:
+            logger.error(f"Failed to get replication info: {e}")
+            raise e
+
+    @staticmethod
+    def flush_db(config_id: str, user_id: str, mode: str, db: Optional[int] = None) -> dict:
+        """清空数据库"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            if mode == "all":
+                r.flushall()
+                return {"message": "All databases flushed"}
+            else:
+                if db is not None:
+                    r.execute_command("SELECT", db)
+                r.flushdb()
+                return {"message": f"Database {db if db is not None else 'current'} flushed"}
+        except Exception as e:
+            logger.error(f"Failed to flush db: {e}")
+            raise e
+
+    @staticmethod
+    def migrate_data(config_id: str, user_id: str, source_config_id: str, target_config_id: str, pattern: str, replace: bool = False) -> dict:
+        """数据迁移"""
+        try:
+            source_r = RedisToolService._get_client_by_id(source_config_id, user_id)
+            target_r = RedisToolService._get_client_by_id(target_config_id, user_id)
+            migrated = 0
+            failed = 0
+            errors = []
+            cursor = 0
+            while True:
+                cursor, keys = source_r.scan(cursor=cursor, match=pattern, count=100)
+                for key in keys:
+                    try:
+                        ttl = source_r.ttl(key)
+                        ttl = ttl if ttl > 0 else 0
+                        data = source_r.dump(key)
+                        target_r.restore(key, ttl, data, replace=replace)
+                        migrated += 1
+                    except Exception as e:
+                        failed += 1
+                        errors.append(f"{key}: {str(e)}")
+                if cursor == 0:
+                    break
+            return {"migrated_count": migrated, "failed_count": failed, "errors": errors}
+        except Exception as e:
+            logger.error(f"Failed to migrate data: {e}")
+            raise e
+
+    @staticmethod
+    def scan_big_keys(config_id: str, user_id: str, count: int = 50) -> List[dict]:
+        """扫描大 Key"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            big_keys = []
+            cursor = 0
+            scanned = 0
+            while scanned < 5000:
+                cursor, keys = r.scan(cursor=cursor, count=100)
+                for key in keys:
+                    try:
+                        usage = r.memory_usage(key) or 0
+                        key_type = r.type(key)
+                        ttl = r.ttl(key)
+                        big_keys.append({"key": key, "type": key_type, "memory_usage": usage, "ttl": ttl if ttl > 0 else -1})
+                    except Exception:
+                        pass
+                scanned += len(keys)
+                if cursor == 0:
+                    break
+            big_keys.sort(key=lambda x: x["memory_usage"], reverse=True)
+            return big_keys[:count]
+        except Exception as e:
+            logger.error(f"Failed to scan big keys: {e}")
+            raise e
