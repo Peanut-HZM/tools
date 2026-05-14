@@ -202,7 +202,7 @@ export const getRedisConfig = (id: string) => {
   return request<any[]>(`${REDIS_API_URL}/configs/${id}/config`);
 };
 
-export const updateRedisConfig = (id: string, key: string, value: string) => {
+export const updateRedisServerConfig = (id: string, key: string, value: string) => {
   return request<{ message: string }>(`${REDIS_API_URL}/configs/${id}/config`, {
     method: 'POST',
     body: JSON.stringify({ key, value }),

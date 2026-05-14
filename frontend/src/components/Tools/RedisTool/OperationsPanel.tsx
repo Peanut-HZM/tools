@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getRedisConfig, updateRedisConfig, getReplicationInfo, flushDB, getBigKeys } from '../../../api/redisToolApi';
+import { getRedisConfig, updateRedisServerConfig, getReplicationInfo, flushDB, getBigKeys } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { MigrateWizard } from './MigrateWizard';
 
@@ -34,7 +34,7 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
 
   const handleConfigUpdate = async (key: string, value: string) => {
     try {
-      await updateRedisConfig(configId, key, value);
+      await updateRedisServerConfig(configId, key, value);
       addToast('Config updated', 'success');
       load();
     } catch (e) {
