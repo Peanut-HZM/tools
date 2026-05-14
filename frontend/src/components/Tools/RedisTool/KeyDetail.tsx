@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getRedisKeyContent, setRedisKey, RedisKeyContent } from '../../../api/redisToolApi';
+import { StreamEditor } from './StreamEditor';
+import { BitmapEditor } from './BitmapEditor';
+import { HyperLogLogEditor } from './HyperLogLogEditor';
+import { GeoEditor } from './GeoEditor';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 
@@ -165,9 +169,23 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
           </div>
         ) : (
           <div className="flex-1 bg-slate-800 rounded-md border border-slate-700 p-4 overflow-auto">
-            <pre className="font-mono text-sm text-slate-300 whitespace-pre-wrap break-all">
-              {formatValue(content.value)}
-            </pre>
+            {content.type === 'stream' && (
+              <StreamEditor configId={configId} keyName={keyName} />
+            )}
+            {content.type === 'bitmap' && (
+              <BitmapEditor configId={configId} keyName={keyName} />
+            )}
+            {content.type === 'hyperloglog' && (
+              <HyperLogLogEditor configId={configId} keyName={keyName} />
+            )}
+            {content.type === 'geo' && (
+              <GeoEditor configId={configId} keyName={keyName} />
+            )}
+            {['string', 'list', 'set', 'zset', 'hash'].includes(content.type) && (
+              <pre className="font-mono text-sm text-slate-300 whitespace-pre-wrap break-all">
+                {formatValue(content.value)}
+              </pre>
+            )}
           </div>
         )}
       </div>

@@ -1,0 +1,145 @@
+import React, { useState, useEffect } from 'react';
+import { getRedisConfig, updateRedisConfig, getReplicationInfo, flushDB, getBigKeys } from '../../../api/redisToolApi';
+import { useToast } from '../../../hooks/useToast';
+import { MigrateWizard } from './MigrateWizard';
+
+interface Props {
+  configId: string;
+}
+
+export const OperationsPanel: React.FC<Props> = ({ configId }) => {
+  const { addToast } = useToast();
+  const [configs, setConfigs] = useState<any[]>([]);
+  const [replication, setReplication] = useState<any>(null);
+  const [bigKeys, setBigKeys] = useState<any[]>([]);
+  const [showMigrate, setShowMigrate] = useState(false);
+  const [filter, setFilter] = useState('');
+
+  const load = async () => {
+    try {
+      const [c, r, b] = await Promise.all([
+        getRedisConfig(configId),
+        getReplicationInfo(configId),
+        getBigKeys(configId, 50)
+      ]);
+      setConfigs(c);
+      setReplication(r);
+      setBigKeys(b.keys || []);
+    } catch (e) {
+      addToast('Failed to load operations data', 'error');
+    }
+  };
+
+  useEffect(() => { load(); }, [configId]);
+
+  const handleConfigUpdate = async (key: string, value: string) => {
+    try {
+      await updateRedisConfig(configId, key, value);
+      addToast('Config updated', 'success');
+      load();
+    } catch (e) {
+      addToast('Failed to update config', 'error');
+    }
+  };
+
+  const handleFlush = async (mode: string) => {
+    const msg = mode === 'all' ? '确定要清空所有数据库吗？此操作不可撤销！' : '确定要清空当前数据库吗？此操作不可撤销！';
+    if (!confirm(msg)) return;
+    try {
+      const result = await flushDB(configId, mode);
+      addToast(result.message, 'success');
+    } catch (e) {
+      addToast('Flush failed', 'error');
+    }
+  };
+
+  const filteredConfigs = configs.filter(c => c.key.toLowerCase().includes(filter.toLowerCase()));
+
+  return (
+    <div className="h-full overflow-y-auto p-4 space-y-6">
+      <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+        <div className="text-sm font-medium text-red-400 mb-3">危险操作</div>
+        <div className="flex space-x-2">
+          <button onClick={() => handleFlush('db')} className="px-3 py-1.5 bg-red-700 text-white text-xs rounded hover:bg-red-600">FLUSHDB</button>
+          <button onClick={() => handleFlush('all')} className="px-3 py-1.5 bg-red-700 text-white text-xs rounded hover:bg-red-600">FLUSHALL</button>
+        </div>
+      </div>
+
+      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <div className="flex justify-between items-center mb-3">
+          <div className="text-sm font-medium text-slate-300">数据迁移</div>
+          <button onClick={() => setShowMigrate(!showMigrate)} className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+            {showMigrate ? '关闭' : '开始迁移'}
+          </button>
+        </div>
+        {showMigrate && <MigrateWizard configId={configId} onClose={() => setShowMigrate(false)} />}
+      </div>
+
+      {replication && (
+        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+          <div className="text-sm font-medium text-slate-300 mb-3">复制信息</div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="text-slate-400">Role:</div><div className="text-white">{replication.role}</div>
+            <div className="text-slate-400">Connected Slaves:</div><div className="text-white">{replication.connected_slaves}</div>
+            {replication.master_replid && <><div className="text-slate-400">Repl ID:</div><div className="text-white font-mono text-xs">{replication.master_replid}</div></>}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+          <div className="text-sm font-medium text-slate-300">配置参数</div>
+          <input
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            placeholder="搜索配置项..."
+            className="w-48 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+          />
+        </div>
+        <div className="max-h-96 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-900 text-slate-400 sticky top-0">
+              <tr><th className="px-4 py-2 text-left">Key</th><th className="px-4 py-2 text-left">Value</th></tr>
+            </thead>
+            <tbody>
+              {filteredConfigs.map((c) => (
+                <tr key={c.key} className="border-t border-slate-700 hover:bg-slate-800/50">
+                  <td className="px-4 py-2 font-mono text-xs text-slate-400">{c.key}</td>
+                  <td className="px-4 py-2">
+                    {c.editable ? (
+                      <input
+                        defaultValue={c.value}
+                        onBlur={e => handleConfigUpdate(c.key, e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                      />
+                    ) : (
+                      <span className="text-slate-300">{c.value}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-700 text-sm font-medium text-slate-300">大 Key Top 50</div>
+        <table className="w-full text-sm">
+          <thead className="bg-slate-900 text-slate-400">
+            <tr><th className="px-4 py-2 text-left">Key</th><th className="px-4 py-2 text-left">Type</th><th className="px-4 py-2 text-right">Memory</th></tr>
+          </thead>
+          <tbody>
+            {bigKeys.map((k) => (
+              <tr key={k.key} className="border-t border-slate-700 hover:bg-slate-800/50">
+                <td className="px-4 py-2 font-mono text-xs text-slate-300">{k.key}</td>
+                <td className="px-4 py-2"><span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-300">{k.type}</span></td>
+                <td className="px-4 py-2 text-right text-slate-300">{(k.memory_usage / 1024).toFixed(2)} KB</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};

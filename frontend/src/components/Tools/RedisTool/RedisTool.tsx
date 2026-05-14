@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ConnectionList } from './ConnectionList';
 import { KeyExplorer } from './KeyExplorer';
+import { MonitorPanel } from './MonitorPanel';
+import { OperationsPanel } from './OperationsPanel';
 import { ConnectionModal } from './ConnectionModal';
 import { RedisConfig, getRedisConfigs, createRedisConfig, updateRedisConfig, deleteRedisConfig, CreateRedisRequest } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
@@ -13,6 +15,7 @@ const RedisTool: React.FC = () => {
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [editingConfig, setEditingConfig] = useState<RedisConfig | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<'keys' | 'monitor' | 'ops'>('keys');
 
   const loadConfigs = async () => {
     try {
@@ -73,9 +76,41 @@ const RedisTool: React.FC = () => {
         onEdit={handleEditConfig}
         onDelete={handleDeleteConfig}
       />
-      <div className="flex-1 overflow-hidden bg-slate-900">
+      <div className="flex-1 overflow-hidden bg-slate-900 flex flex-col">
         {selectedConfigId ? (
-          <KeyExplorer configId={selectedConfigId} />
+          <>
+            <div className="flex border-b border-slate-700 bg-slate-800">
+              <button
+                onClick={() => setActiveTab('keys')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === 'keys' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <i className="fas fa-key mr-1"></i> 键值浏览
+              </button>
+              <button
+                onClick={() => setActiveTab('monitor')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === 'monitor' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <i className="fas fa-chart-line mr-1"></i> 监控
+              </button>
+              <button
+                onClick={() => setActiveTab('ops')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === 'ops' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <i className="fas fa-tools mr-1"></i> 运维
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {activeTab === 'keys' && <KeyExplorer configId={selectedConfigId} />}
+              {activeTab === 'monitor' && <MonitorPanel configId={selectedConfigId} />}
+              {activeTab === 'ops' && <OperationsPanel configId={selectedConfigId} />}
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <i className="fas fa-server text-6xl mb-4 opacity-20"></i>

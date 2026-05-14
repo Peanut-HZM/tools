@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { RedisKeyInfo, getRedisKeys, deleteRedisKeys } from '../../../api/redisToolApi';
+import { batchUpdateTTL, batchRename } from '../../../api/redisToolApi';
 import { KeyDetail } from './KeyDetail';
 import { AddKeyModal } from './AddKeyModal';
+import { BatchToolbar } from './BatchToolbar';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n, interpolate } from '../../../i18n';
 
@@ -18,6 +20,8 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
   const [pattern, setPattern] = useState('*');
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
   const loadKeys = async (searchPattern?: string) => {
     // If it's an auto-refresh (no loading spinner for better UX)
@@ -118,6 +122,20 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                 />
             </div>
             <button
+              onClick={() => {
+                setBatchMode(!batchMode);
+                setSelectedKeys(new Set());
+              }}
+              className={`px-3 py-2 border rounded-md text-sm transition-colors ${
+                batchMode
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:bg-slate-700'
+              }`}
+              title={batchMode ? '退出批量' : '批量模式'}
+            >
+              <i className="fas fa-check-square"></i>
+            </button>
+            <button
               onClick={handleRefresh}
               className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
               title={t.redis.refresh}
@@ -142,6 +160,32 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
+          {batchMode && (
+            <BatchToolbar
+              selectedCount={selectedKeys.size}
+              configId={configId}
+              selectedKeys={Array.from(selectedKeys)}
+              onBatchDelete={async (keys) => {
+                await deleteRedisKeys(configId, keys);
+                addToast(t.redis.deleteSuccess, 'success');
+                setSelectedKeys(new Set());
+                loadKeys();
+              }}
+              onBatchTTL={async (keys, ttl) => {
+                await batchUpdateTTL(configId, keys, ttl);
+                addToast('TTL updated', 'success');
+                setSelectedKeys(new Set());
+                loadKeys();
+              }}
+              onBatchRename={async (keys, pattern, replacement) => {
+                await batchRename(configId, keys, pattern, replacement);
+                addToast('Keys renamed', 'success');
+                setSelectedKeys(new Set());
+                loadKeys();
+              }}
+              onClear={() => setSelectedKeys(new Set())}
+            />
+          )}
           {loading ? (
             <div className="flex justify-center items-center h-32 text-slate-500">
                 <i className="fas fa-spinner fa-spin mr-2"></i> {t.common.loading}
@@ -151,13 +195,38 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
               {keys.map((k) => (
                 <div
                   key={k.key}
-                  className={`p-2 rounded cursor-pointer flex justify-between items-center group ${
-                    selectedKey === k.key 
-                        ? 'bg-blue-600 text-white' 
+                  className={`p-2 rounded cursor-pointer flex items-center group ${
+                    selectedKey === k.key && !batchMode
+                        ? 'bg-blue-600 text-white'
+                        : selectedKeys.has(k.key) && batchMode
+                        ? 'bg-blue-900/40 text-white'
                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
-                  onClick={() => setSelectedKey(k.key)}
+                  onClick={() => {
+                    if (batchMode) {
+                      const newSet = new Set(selectedKeys);
+                      if (newSet.has(k.key)) newSet.delete(k.key);
+                      else newSet.add(k.key);
+                      setSelectedKeys(newSet);
+                    } else {
+                      setSelectedKey(k.key);
+                    }
+                  }}
                 >
+                  {batchMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedKeys.has(k.key)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const newSet = new Set(selectedKeys);
+                        if (e.target.checked) newSet.add(k.key);
+                        else newSet.delete(k.key);
+                        setSelectedKeys(newSet);
+                      }}
+                      className="mr-2 w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500"
+                    />
+                  )}
                   <div className="truncate flex-1 mr-2">
                     <div className="font-medium text-sm truncate" title={k.key}>
                       {k.key}
@@ -171,15 +240,17 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                       {k.ttl > 0 && <span>TTL: {k.ttl}s</span>}
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteKey(k.key); }}
-                    className={`p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                        selectedKey === k.key ? 'hover:bg-blue-500 text-blue-100' : 'hover:bg-slate-700 text-slate-400 hover:text-red-400'
-                    }`}
-                    title={t.redis.deleteKey}
-                  >
-                    <i className="fas fa-trash text-xs"></i>
-                  </button>
+                  {!batchMode && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteKey(k.key); }}
+                      className={`p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                          selectedKey === k.key ? 'hover:bg-blue-500 text-blue-100' : 'hover:bg-slate-700 text-slate-400 hover:text-red-400'
+                      }`}
+                      title={t.redis.deleteKey}
+                    >
+                      <i className="fas fa-trash text-xs"></i>
+                    </button>
+                  )}
                 </div>
               ))}
               {keys.length === 0 && (
