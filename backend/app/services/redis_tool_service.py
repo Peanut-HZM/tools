@@ -517,6 +517,57 @@ class RedisToolService:
             raise e
 
     @staticmethod
+    def batch_update_ttl(config_id: str, user_id: str, keys: List[str], ttl: int) -> int:
+        """批量更新 key 的 TTL"""
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            updated = 0
+            for key in keys:
+                if ttl == -1:
+                    if r.persist(key):
+                        updated += 1
+                else:
+                    if r.expire(key, ttl):
+                        updated += 1
+            return updated
+        except Exception as e:
+            logger.error(f"Failed to batch update TTL: {e}")
+            raise e
+
+    @staticmethod
+    def batch_rename(config_id: str, user_id: str, keys: List[str], pattern: str, replacement: str) -> int:
+        """批量重命名 key，pattern 支持 * 通配符"""
+        import fnmatch
+        try:
+            r = RedisToolService._get_client_by_id(config_id, user_id)
+            renamed = 0
+            for key in keys:
+                if fnmatch.fnmatch(key, pattern):
+                    # 简单替换：将 pattern 匹配的部分替换为 replacement
+                    # pattern 如 "user:*"，key 如 "user:123"，replacement 如 "member:*"
+                    if "*" in pattern:
+                        parts = pattern.split("*")
+                        if len(parts) == 2:
+                            prefix, suffix = parts[0], parts[1]
+                            if key.startswith(prefix) and (not suffix or key.endswith(suffix)):
+                                middle = key[len(prefix):]
+                                if suffix:
+                                    middle = middle[:-len(suffix)]
+                                new_key = replacement.replace("*", middle)
+                            else:
+                                continue
+                        else:
+                            new_key = replacement
+                    else:
+                        new_key = key.replace(pattern, replacement, 1)
+                    if r.rename(key, new_key):
+                        renamed += 1
+            return renamed
+        except Exception as e:
+            logger.error(f"Failed to batch rename: {e}")
+            raise e
+
+    @staticmethod
     def update_key_ttl(config_id: str, user_id: str, request: KeyTTLRequest) -> bool:
         """更新 Key 的 TTL"""
         try:
