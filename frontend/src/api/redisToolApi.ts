@@ -131,3 +131,102 @@ export const deleteRedisKeys = (id: string, keys: string[]) => {
     body: JSON.stringify({ keys }),
   });
 };
+
+export const batchUpdateTTL = (id: string, keys: string[], ttl: number) => {
+  return request<{ message: string; count: number }>(`${REDIS_API_URL}/configs/${id}/keys/batch-ttl`, {
+    method: 'POST',
+    body: JSON.stringify({ keys, ttl }),
+  });
+};
+
+export const batchRename = (id: string, keys: string[], pattern: string, replacement: string) => {
+  return request<{ message: string; count: number }>(`${REDIS_API_URL}/configs/${id}/keys/batch-rename`, {
+    method: 'POST',
+    body: JSON.stringify({ keys, pattern, replacement }),
+  });
+};
+
+export const getMonitorInfo = (id: string) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/monitor`);
+};
+
+export const getSlowLog = (id: string, count: number = 50) => {
+  return request<{ entries: any[] }>(`${REDIS_API_URL}/configs/${id}/monitor/slowlog?count=${count}`);
+};
+
+export const getStreamInfo = (id: string, key: string) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/stream`);
+};
+
+export const operateStream = (id: string, key: string, data: any) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/stream`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getBitmapInfo = (id: string, key: string) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/bitmap`);
+};
+
+export const operateBitmap = (id: string, key: string, data: any) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/bitmap`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getHyperLogLogInfo = (id: string, key: string) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/hyperloglog`);
+};
+
+export const operateHyperLogLog = (id: string, key: string, data: any) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/hyperloglog`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getGeoInfo = (id: string, key: string) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/geo`);
+};
+
+export const operateGeo = (id: string, key: string, data: any) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/keys/${encodeURIComponent(key)}/geo`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getRedisConfig = (id: string) => {
+  return request<any[]>(`${REDIS_API_URL}/configs/${id}/config`);
+};
+
+export const updateRedisConfig = (id: string, key: string, value: string) => {
+  return request<{ message: string }>(`${REDIS_API_URL}/configs/${id}/config`, {
+    method: 'POST',
+    body: JSON.stringify({ key, value }),
+  });
+};
+
+export const getReplicationInfo = (id: string) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/replication`);
+};
+
+export const flushDB = (id: string, mode: string, db?: number) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/flush`, {
+    method: 'POST',
+    body: JSON.stringify({ mode, db }),
+  });
+};
+
+export const migrateData = (id: string, data: any) => {
+  return request<any>(`${REDIS_API_URL}/configs/${id}/migrate`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getBigKeys = (id: string, count: number = 50) => {
+  return request<{ keys: any[] }>(`${REDIS_API_URL}/configs/${id}/bigkeys?count=${count}`);
+};
