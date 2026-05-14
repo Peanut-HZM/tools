@@ -145,3 +145,39 @@ class CLICommandResponse(BaseModel):
     result: Any
     error: Optional[str] = None
     execution_time_ms: float
+
+
+class BatchTTLRequest(BaseModel):
+    keys: List[str]
+    ttl: int = Field(..., ge=-1, description="TTL 秒数，-1 表示永久")
+
+
+class BatchRenameRequest(BaseModel):
+    keys: List[str]
+    pattern: str = Field(..., description="匹配模式，支持 * 通配符")
+    replacement: str = Field(..., description="替换字符串")
+
+
+class MonitorInfo(BaseModel):
+    used_memory: int
+    used_memory_human: str
+    used_memory_rss: int
+    used_memory_peak: int
+    connected_clients: int
+    maxclients: int
+    keyspace_hits: int
+    keyspace_misses: int
+    hit_rate: float
+    ops_per_sec: int
+    db_keyspace: Dict[str, Dict[str, int]]
+
+
+class SlowLogEntry(BaseModel):
+    id: int
+    timestamp: int
+    duration_ms: int
+    command: str
+
+
+class SlowLogResponse(BaseModel):
+    entries: List[SlowLogEntry]
