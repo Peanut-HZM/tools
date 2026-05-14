@@ -181,3 +181,66 @@ class SlowLogEntry(BaseModel):
 
 class SlowLogResponse(BaseModel):
     entries: List[SlowLogEntry]
+
+
+class StreamEntry(BaseModel):
+    id: str
+    fields: Dict[str, str]
+
+
+class StreamInfo(BaseModel):
+    length: int
+    entries: List[StreamEntry]
+    groups: List[Dict[str, Any]]
+
+
+class StreamOperationRequest(BaseModel):
+    action: str = Field(..., description="add|delete|trim|create_group|destroy_group")
+    entry_id: Optional[str] = None
+    fields: Optional[Dict[str, str]] = None
+    group_name: Optional[str] = None
+    trim_count: Optional[int] = None
+
+
+class BitmapInfo(BaseModel):
+    bit_count: int
+    size_in_bytes: int
+    bit_length: int
+
+
+class BitmapOperationRequest(BaseModel):
+    action: str = Field(..., description="getbit|setbit|bitcount|bitpos")
+    offset: Optional[int] = None
+    value: Optional[int] = Field(None, ge=0, le=1)
+    start: Optional[int] = None
+    end: Optional[int] = None
+
+
+class HyperLogLogInfo(BaseModel):
+    cardinality: int
+
+
+class HyperLogLogOperationRequest(BaseModel):
+    action: str = Field(..., description="add|count|merge")
+    elements: Optional[List[str]] = None
+    source_keys: Optional[List[str]] = None
+
+
+class GeoPoint(BaseModel):
+    member: str
+    longitude: float
+    latitude: float
+
+
+class GeoInfo(BaseModel):
+    members: List[GeoPoint]
+
+
+class GeoOperationRequest(BaseModel):
+    action: str = Field(..., description="add|dist|radius|pos")
+    member: Optional[str] = None
+    member2: Optional[str] = None
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
+    radius: Optional[float] = None
+    unit: Optional[str] = Field("km", description="m|km|mi|ft")
