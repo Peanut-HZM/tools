@@ -244,3 +244,51 @@ class GeoOperationRequest(BaseModel):
     latitude: Optional[float] = None
     radius: Optional[float] = None
     unit: Optional[str] = Field("km", description="m|km|mi|ft")
+
+
+class RedisConfigItem(BaseModel):
+    key: str
+    value: str
+    editable: bool = False
+
+
+class RedisConfigUpdateRequest(BaseModel):
+    key: str
+    value: str
+
+
+class ReplicationInfo(BaseModel):
+    role: str
+    connected_slaves: int
+    master_replid: Optional[str] = None
+    master_repl_offset: Optional[int] = None
+    slave_info: List[Dict[str, Any]] = []
+
+
+class FlushRequest(BaseModel):
+    mode: str = Field(..., description="db|all")
+    db: Optional[int] = None
+
+
+class MigrateRequest(BaseModel):
+    source_config_id: str
+    target_config_id: str
+    pattern: str = "*"
+    replace: bool = False
+
+
+class MigrateResponse(BaseModel):
+    migrated_count: int
+    failed_count: int
+    errors: List[str] = []
+
+
+class BigKeyInfo(BaseModel):
+    key: str
+    type: str
+    memory_usage: int
+    ttl: int
+
+
+class BigKeysResponse(BaseModel):
+    keys: List[BigKeyInfo]
