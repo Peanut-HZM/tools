@@ -9,7 +9,15 @@ from app.models.redis_tool_models import (
     KeyExportResponse, KeyImportRequest, KeyImportResponse, LuaScriptRequest,
     LuaScriptResponse, ScriptTemplate, CreateScriptTemplateRequest,
     UpdateScriptTemplateRequest, CLICommandRequest, CLICommandResponse,
-    KeyPersistRequest
+    KeyPersistRequest,
+    BatchTTLRequest, BatchRenameRequest,
+    StreamOperationRequest,
+    BitmapOperationRequest,
+    HyperLogLogOperationRequest,
+    GeoOperationRequest,
+    RedisConfigUpdateRequest,
+    FlushRequest,
+    MigrateRequest
 )
 from app.services.redis_tool_service import RedisToolService
 
@@ -263,6 +271,270 @@ async def execute_cli_command(
     """Execute Redis CLI command"""
     try:
         return RedisToolService.execute_cli_command(id, user_id, request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/keys/batch-ttl")
+async def batch_update_ttl(
+    request: BatchTTLRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """批量更新 key TTL"""
+    try:
+        count = RedisToolService.batch_update_ttl(id, user_id, request.keys, request.ttl)
+        return {"message": f"Updated TTL for {count} keys", "count": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/keys/batch-rename")
+async def batch_rename(
+    request: BatchRenameRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """批量重命名 key"""
+    try:
+        count = RedisToolService.batch_rename(id, user_id, request.keys, request.pattern, request.replacement)
+        return {"message": f"Renamed {count} keys", "count": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/monitor")
+async def get_monitor(
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取 Redis 监控信息"""
+    try:
+        return RedisToolService.get_monitor_info(id, user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/monitor/slowlog")
+async def get_slowlog(
+    id: str = PathParam(..., description="Configuration ID"),
+    count: int = Query(50, ge=1, le=100),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取慢查询日志"""
+    try:
+        entries = RedisToolService.get_slowlog(id, user_id, count)
+        return {"entries": entries}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/keys/{key}/stream")
+async def get_stream(
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取 Stream 信息"""
+    try:
+        return RedisToolService.get_stream_info(id, user_id, key)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/keys/{key}/stream")
+async def operate_stream(
+    request: StreamOperationRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """执行 Stream 操作"""
+    try:
+        return RedisToolService.operate_stream(
+            id, user_id, key, request.action,
+            entry_id=request.entry_id,
+            fields=request.fields,
+            group_name=request.group_name,
+            trim_count=request.trim_count
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/keys/{key}/bitmap")
+async def get_bitmap(
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取 Bitmap 信息"""
+    try:
+        return RedisToolService.get_bitmap_info(id, user_id, key)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/keys/{key}/bitmap")
+async def operate_bitmap(
+    request: BitmapOperationRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """执行 Bitmap 操作"""
+    try:
+        return RedisToolService.operate_bitmap(
+            id, user_id, key, request.action,
+            offset=request.offset, value=request.value,
+            start=request.start, end=request.end
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/keys/{key}/hyperloglog")
+async def get_hyperloglog(
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取 HyperLogLog 信息"""
+    try:
+        return RedisToolService.get_hyperloglog_info(id, user_id, key)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/keys/{key}/hyperloglog")
+async def operate_hyperloglog(
+    request: HyperLogLogOperationRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """执行 HyperLogLog 操作"""
+    try:
+        return RedisToolService.operate_hyperloglog(
+            id, user_id, key, request.action,
+            elements=request.elements,
+            source_keys=request.source_keys
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/keys/{key}/geo")
+async def get_geo(
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取 Geo 信息"""
+    try:
+        return RedisToolService.get_geo_info(id, user_id, key)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/keys/{key}/geo")
+async def operate_geo(
+    request: GeoOperationRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    key: str = PathParam(..., description="Key name"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """执行 Geo 操作"""
+    try:
+        return RedisToolService.operate_geo(
+            id, user_id, key, request.action,
+            member=request.member, member2=request.member2,
+            longitude=request.longitude, latitude=request.latitude,
+            radius=request.radius, unit=request.unit
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/config")
+async def get_redis_config(
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取 Redis 配置参数"""
+    try:
+        return RedisToolService.get_redis_config(id, user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/config")
+async def update_redis_config(
+    request: RedisConfigUpdateRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """更新 Redis 配置参数"""
+    try:
+        RedisToolService.update_redis_config(id, user_id, request.key, request.value)
+        return {"message": "Configuration updated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/replication")
+async def get_replication(
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """获取复制信息"""
+    try:
+        return RedisToolService.get_replication_info(id, user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/flush")
+async def flush_db(
+    request: FlushRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """清空数据库"""
+    try:
+        return RedisToolService.flush_db(id, user_id, request.mode, request.db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/configs/{id}/migrate")
+async def migrate_data(
+    request: MigrateRequest,
+    id: str = PathParam(..., description="Configuration ID"),
+    user_id: str = Depends(get_current_user_id)
+):
+    """数据迁移"""
+    try:
+        result = RedisToolService.migrate_data(
+            id, user_id,
+            request.source_config_id, request.target_config_id,
+            request.pattern, request.replace
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/configs/{id}/bigkeys")
+async def get_big_keys(
+    id: str = PathParam(..., description="Configuration ID"),
+    count: int = Query(50, ge=1, le=100),
+    user_id: str = Depends(get_current_user_id)
+):
+    """扫描大 Key"""
+    try:
+        keys = RedisToolService.scan_big_keys(id, user_id, count)
+        return {"keys": keys}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
