@@ -7,11 +7,24 @@ from urllib.parse import urljoin, urlparse
 from typing import List
 import re
 import io
+import os
+import shutil
 import subprocess
 import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+# 桌面模式检测
+_DESKTOP_MODE = os.environ.get("DESKTOP_MODE") == "1"
+
+def _check_ffmpeg() -> None:
+    """检查 ffmpeg 是否可用，桌面模式下缺失时抛出友好错误。"""
+    if _DESKTOP_MODE and not shutil.which("ffmpeg"):
+        raise HTTPException(
+            status_code=503,
+            detail="视频处理需要 ffmpeg，请先安装 ffmpeg 到系统 PATH"
+        )
 
 router = APIRouter(tags=["video-downloader"])
 

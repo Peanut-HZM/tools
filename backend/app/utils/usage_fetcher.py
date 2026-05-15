@@ -10,6 +10,9 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+# 桌面模式检测
+_DESKTOP_MODE = os.environ.get("DESKTOP_MODE") == "1"
+
 # CLI 工具从用户主目录查找数据
 _home_raw = os.path.expanduser("~")
 # macOS 上从 JetBrains 项目子目录运行时，expanduser 可能返回项目路径
@@ -106,6 +109,9 @@ class UsageFetcher:
         breakdown: bool = False,
     ) -> dict:
         """调用 ccusage 获取 Claude Code token 统计"""
+        if _DESKTOP_MODE:
+            return {"error": "Token Usage CLI 功能在桌面模式下不可用"}
+
         if shutil.which("ccusage") is None:
             return {"error": "CLI 未安装: ccusage"}
 
@@ -198,6 +204,9 @@ class UsageFetcher:
     @staticmethod
     def _fetch_opencode_current(days: int, by: Optional[str] = None) -> dict:
         """调用 opencode-usage 获取 3 月后数据"""
+        if _DESKTOP_MODE:
+            return {"error": "Token Usage CLI 功能在桌面模式下不可用"}
+
         if shutil.which("opencode-usage") is None:
             return {"error": "CLI 未安装: opencode-usage"}
 
@@ -228,6 +237,9 @@ class UsageFetcher:
     @staticmethod
     def _fetch_opencode_legacy(days: int) -> dict:
         """调用 ccusage-opencode 获取 3 月前数据"""
+        if _DESKTOP_MODE:
+            return {"error": "Token Usage CLI 功能在桌面模式下不可用"}
+
         if shutil.which("ccusage-opencode") is None:
             return {
                 "error": "CLI 未安装: ccusage-opencode（请先 npm i -g @ccusage/opencode）"
@@ -255,6 +267,14 @@ class UsageFetcher:
     @staticmethod
     def health_check() -> dict:
         """检查所有 CLI 工具是否可用"""
+        if _DESKTOP_MODE:
+            return {
+                "desktop_mode": True,
+                "message": "桌面模式下 CLI 工具不可用",
+                "ccusage_installed": False,
+                "opencode_usage_installed": False,
+                "ccusage_opencode_installed": False,
+            }
         return {
             "ccusage_installed": shutil.which("ccusage") is not None,
             "opencode_usage_installed": shutil.which("opencode-usage") is not None,

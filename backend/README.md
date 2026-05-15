@@ -131,5 +131,43 @@ backend/
 │   └── data/                # 静态数据
 ├── tests/                   # 测试文件
 ├── requirements.txt         # Python 依赖
+├── desktop_app.py           # 桌面应用入口
+├── desktop_config.py        # 桌面模式配置
+├── desktop.spec             # PyInstaller 打包规格
+├── build_desktop.py         # 一键构建脚本
+├── requirements-desktop.txt # 桌面打包额外依赖
+├── assets/                  # 应用图标等资源
 └── README.md               # 本文件
 ```
+
+## 桌面应用
+
+本项目可以打包为 Windows 和 macOS 桌面应用。
+
+### 开发模式
+
+```bash
+# 1. 启动前端（另一个终端）
+cd ../frontend && npm run dev
+
+# 2. 启动桌面应用（开发模式，前端连接 Vite 热重载服务器）
+DESKTOP_DEV=1 python desktop_app.py
+```
+
+桌面窗口会使用 pywebview 内嵌浏览器展示前端，开发模式下支持 F12 打开开发者工具。
+
+### 构建桌面应用
+
+```bash
+python build_desktop.py [--dev] [--clean] [--skip-frontend]
+```
+
+产物输出到 `dist/ToolBox.app`（macOS）或 `dist/ToolBox/ToolBox.exe`（Windows）。
+
+### 外部依赖
+
+桌面应用需要以下外部服务配置（通过 `.env` 文件）：
+- PostgreSQL 数据库（或默认 SQLite）
+- Redis（Token Usage 缓存）
+- 阿里云 OSS（文件存储）
+- LLM API Key（OpenAI/Anthropic）

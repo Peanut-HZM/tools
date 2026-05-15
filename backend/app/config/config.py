@@ -9,24 +9,30 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env file explicitly
-env_path = Path(__file__).parent.parent.parent / ".env"
-load_dotenv(env_path)
+import sys
 
-# ------------------------------------------------------------------------------
-# Environment Setup for AI Models (PaddleOCR, FunASR)
-# ------------------------------------------------------------------------------
-# Set cache directories to local project folder to avoid permission issues in sandbox
-# and ensure portability.
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-CACHE_DIR = PROJECT_ROOT / "data" / "cache"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+# 检测桌面模式（由 desktop_app.py 或 desktop_config.py 设置）
+_is_desktop = os.environ.get("DESKTOP_MODE") == "1"
 
-# Hack: PaddleOCR/PaddleX often hardcodes ~/.paddleocr or ~/.paddlex
-# We redirect HOME to our cache dir to capture these writes.
-os.environ["HOME"] = str(CACHE_DIR)
+if _is_desktop:
+    # 桌面模式：使用独立配置，不覆盖 HOME
+    env_path = Path(os.environ.get("DESKTOP_ENV_PATH", ""))
+    if env_path.exists():
+        load_dotenv(env_path)
+    PROJECT_ROOT = Path(os.environ.get("DESKTOP_PROJECT_ROOT", "."))
+    CACHE_DIR = PROJECT_ROOT / "data" / "cache"
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    # 桌面模式下不覆盖 HOME 环境变量
+else:
+    # 开发/服务器模式：保持原有行为
+    env_path = Path(__file__).parent.parent.parent / ".env"
+    load_dotenv(env_path)
+    PROJECT_ROOT = Path(__file__).parent.parent.parent
+    CACHE_DIR = PROJECT_ROOT / "data" / "cache"
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    os.environ["HOME"] = str(CACHE_DIR)  # 仅在非桌面模式下覆盖
 
-# Set standard cache environment variables
+# 设置标准缓存环境变量（两种模式共用）
 os.environ["PADDLE_HOME"] = str(CACHE_DIR / "paddle")
 os.environ["HF_HOME"] = str(CACHE_DIR / "huggingface")
 os.environ["MODELSCOPE_CACHE"] = str(CACHE_DIR / "modelscope")
@@ -43,7 +49,7 @@ class Settings(BaseSettings):
     BACKEND_PORT: Optional[int] = 19092
 
     # Database
-    DATABASE_URL: str
+    DATABASE_URL: str = "sqlite:///./data/tools.db"
     # Security
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

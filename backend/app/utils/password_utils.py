@@ -7,7 +7,11 @@ import random
 from typing import Tuple
 from passlib.context import CryptContext
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=12,
+)
 
 
 def validate_password_strength(password: str) -> Tuple[bool, str]:
