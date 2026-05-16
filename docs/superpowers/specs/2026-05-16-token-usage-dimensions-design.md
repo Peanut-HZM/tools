@@ -230,8 +230,185 @@ dimension_summaries: {
 6. 前端页面：新增筛选、维度卡、明细列、排序交互。
 7. 测试与验证：后端单测、前端构建、接口实测。
 
-## 待确认事项
+## 已决事项
 
-1. Codex 数据采集器是否在本次实现，还是只预留字段。
-2. 是否需要做一次旧数据后台回填，或先完全依赖查询 fallback。
-3. 模型筛选列表是否只展示当前筛选范围内出现过的模型。
+1. Codex 数据采集器本次不实现，只预留字段和统计路径。
+2. 旧数据先完全依赖查询 fallback，不把批量回填作为上线前置条件。
+3. 模型筛选列表展示当前时间范围和其他筛选条件下出现过的真实模型。
+
+## 第二轮审查补充
+
+### 审查结论
+
+第一版方案方向正确，但还需要把几个容易在实现阶段造成返工的边界提前固定：
+
+1. `source` 与 `tool_id` 的职责必须分清，否则后续 Codex、OpenClaw、API 数据接入会再次混乱。
+2. 表字段可以增加，但迁移必须先 nullable、后回填，不能因为旧数据缺字段导致线上查询失败。
+3. 前端筛选项不能靠硬编码，至少应从查询响应或轻量选项接口中获得真实可用值。
+4. 排序必须先在后端确定全量顺序，再分页或前端展示，否则分页后排序会产生错觉。
+5. 维度汇总与明细表要共享同一套筛选条件，但筛选选项本身需要能解释“为什么某项消失”。
+6. Codex 本次只预留结构，不接入伪数据；没有真实可解析 usage 样例前，不进入统计总额。
+
+### 字段职责修订
+
+`source` 保持为“采集来源”字段，负责兼容现有逻辑和同步日志，例如 `claude`、`opencode`。`tool_id` 是“产品统计维度”字段，负责页面筛选、图表和长期扩展，例如 `claude-code`、`opencode`、`codex`。
+
+映射关系第一阶段如下：
+
+| source | tool_id | tool_name |
+| --- | --- | --- |
+| `claude` | `claude-code` | `Claude Code` |
+| `opencode` | `opencode` | `OpenCode` |
+| `codex` | `codex` | `Codex` |
+| 其他未知值 | `source` 原值 | 原值或 `Unknown Tool` |
+
+`source_raw` 只在采集器返回了比 `source` 更细的原始来源时写入。若当前采集器没有这个信息，字段可以为空，不强行构造。
+
+### 迁移策略
+
+表结构变更分两步走：
+
+1. 新增字段全部允许为空：
+   - `tool_id`
+   - `tool_name`
+   - `device_name`
+   - `model_display_name`
+   - `source_raw`
+2. 查询层立即提供 fallback：
+   - `tool_id = tool_id or map_source_to_tool(source).tool_id`
+   - `tool_name = tool_name or map_source_to_tool(source).tool_name`
+   - `device_name = device_name or device_registry.display_name or device_registry.default_display_name or device_id`
+   - `model_display_name = model_display_name or display_model(model, tool_name)`
+
+旧数据回填不作为首屏依赖。实现完成后可以追加批量回填脚本，但页面必须在未回填时也正常工作。
+
+索引策略：
+
+1. 初始新增普通组合索引：`user_id, record_date, tool_id, device_id, model`。
+2. 如果使用 PostgreSQL 且数据量较大，生产迁移应优先使用非阻塞方式创建索引；本地开发可以普通创建。
+3. 不修改现有唯一约束，仍使用 `user_id + device_id + record_date + source + model` 去重。`tool_id` 由 `source` 派生时没有必要进入唯一键，避免旧数据迁移风险。
+
+### 统计口径修订
+
+所有统计以 `token_usage_records` 为事实来源，不从前端 `models_used` 反推。
+
+维度汇总的分母规则：
+
+1. `summary` 是当前筛选条件下的总量。
+2. `dimension_summaries.devices/tools/models` 的占比都以同一个 `summary` 为分母。
+3. 当 `summary.total_cost > 0` 时，默认强调成本占比。
+4. 当 `summary.total_cost == 0` 时，默认强调 Token 占比，但仍返回 `cost_share=0`。
+5. `records_count` 是事实表行数，用于解释数据密度；不要显示成“天数”。
+
+模型维度必须包含 `tool_id/source + model`，不能只按 `model` 聚合。不同工具下同名模型需要分开显示。
+
+### API 契约补充
+
+`POST /api/token-usage/query` 响应除 `dimension_summaries` 外，建议同时返回筛选选项：
+
+```ts
+filter_options: {
+  tools: Array<{ tool_id: string; tool_name: string; records_count: number }>;
+  devices: Array<{ device_id: string; device_name: string; records_count: number }>;
+  models: Array<{
+    tool_id: string;
+    source: string;
+    model: string;
+    model_display_name: string;
+    records_count: number;
+  }>;
+}
+```
+
+筛选选项口径：
+
+1. 受时间范围影响。
+2. 受用户权限影响。
+3. 不受当前同维度筛选影响，避免用户选中某个模型后模型下拉只剩自己。
+4. 受其他维度筛选影响，例如选择某个工具后，模型列表只显示该工具下的模型。
+
+请求参数进一步明确：
+
+```ts
+{
+  type: 'daily' | 'weekly' | 'monthly';
+  days: number;
+  source?: 'claude' | 'opencode' | 'all';
+  tool_id?: string;
+  device_id?: string;
+  model?: string;
+  group_by: 'none' | 'device' | 'tool' | 'model';
+  sort_by: 'date' | 'total_tokens' | 'total_cost' | 'input_tokens' | 'output_tokens' | 'cache_tokens';
+  sort_order: 'asc' | 'desc';
+}
+```
+
+兼容规则：当 `source` 与 `tool_id` 同时传入时，后端取交集；如果交集为空，返回空结果而不是报错。
+
+### 排序与分页
+
+第一阶段继续沿用前端分页，但排序必须由后端对完整结果执行。原因是当前数据量不大，前端分页足够简单；但如果只对当前页排序，用户会误以为全量已排序。
+
+实现规则：
+
+1. 后端按 `sort_by/sort_order` 排好 `items`。
+2. 前端只对后端返回顺序分页，不再二次改变全局顺序。
+3. 明细表表头点击时更新 `sort_by/sort_order` 并重新请求。
+4. 若后续 `items` 数量过大，再扩展 `page/page_size/total_count` 做服务端分页。
+
+### 前端交互补充
+
+筛选区建议拆成两层：
+
+1. 主筛选：时间、工具、设备、模型。
+2. 视图控制：分组、排序、图表类型。
+
+维度卡点击行为：
+
+1. 点击设备卡项：设置 `device_id`。
+2. 点击工具卡项：设置 `tool_id`，并清空不属于该工具的 `model`。
+3. 点击模型卡项：设置 `tool_id + model`，保证同名模型不会跨工具误筛。
+4. 再次点击已选项：取消该筛选。
+
+明细表字段展示规则：
+
+1. `group_by=none`：每行展示日期级聚合，设备/工具/模型列显示“多项”或用 chips 展示 Top 3。
+2. `group_by=device`：设备列显示具体设备，工具/模型列显示该设备下汇总的 Top 值。
+3. `group_by=tool`：工具列显示具体工具，设备/模型列显示 Top 值。
+4. `group_by=model`：模型列显示具体模型，工具列必须显示对应工具。
+
+### 性能与缓存补充
+
+维度汇总可能带来三组聚合查询。后端实现时优先复用同一套基础过滤条件，分别执行轻量 group by；不建议为了“少一次查询”写过度复杂 SQL。
+
+缓存 payload 应包含：
+
+1. `items`
+2. `summary`
+3. `devices`
+4. `model_summary`
+5. `dimension_summaries`
+6. `filter_options`
+7. `cache_written_at`
+
+缓存 key 必须覆盖所有会影响结果的参数。排序会影响 `items` 顺序，也必须进入 key。若后续维度卡不受排序影响，也仍可以整体缓存，先保持实现简单。
+
+### 实施决策
+
+本轮设计固定以下决策，减少后续反复确认：
+
+1. Codex 本次不实现采集器，只预留 `tool_id/tool_name/source` 结构。
+2. 旧数据先依赖查询 fallback，不把批量回填作为页面上线前置条件。
+3. 模型筛选列表展示当前时间范围和其他筛选条件下出现过的真实模型。
+4. `source` 继续保留，`tool_id` 成为新的主要页面统计维度。
+5. 排序在后端完成，分页第一阶段仍在前端完成。
+
+### 增补验收标准
+
+1. 页面能同时看到设备排行、工具排行、模型排行，且三者总量与 summary 对齐。
+2. 选择工具后，设备和模型统计同步收敛到该工具范围。
+3. 选择模型后，不会把其他工具下同名模型混入结果。
+4. 旧记录即使 `tool_id/device_name/model_display_name` 为空，也能展示正确工具、设备、模型名称。
+5. 缓存命中时，筛选选项和维度汇总不会丢失。
+6. 表头排序改变后，第一页展示的是全量排序后的第一页，不是当前页局部排序。
+7. 没有真实 Codex 数据时，页面不把 Codex 计入总 Token 或总成本。
