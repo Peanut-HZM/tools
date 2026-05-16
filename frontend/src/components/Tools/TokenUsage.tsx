@@ -449,11 +449,13 @@ export default function TokenUsage() {
     <div className="min-h-0 overflow-y-auto bg-slate-950 p-6 text-slate-100">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-sm text-slate-400">
-            <Database className="h-4 w-4" />
-            <span>按登录用户、设备和工具维度统计</span>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-normal text-white">Token 消耗统计</h1>
+          <h1 className="text-2xl font-semibold tracking-normal text-white">
+            Token 消耗统计
+            <span className="ml-3 inline-flex items-center gap-1 text-sm font-normal text-slate-400">
+              <Database className="h-3.5 w-3.5" />
+              按登录用户、设备和工具维度统计
+            </span>
+          </h1>
         </div>
 
         <div className="flex flex-nowrap items-center gap-2">
