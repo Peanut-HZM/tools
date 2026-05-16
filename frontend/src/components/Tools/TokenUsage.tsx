@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
+  AlertTriangle,
   BarChart3,
   CheckCircle2,
+  Clock,
   Database,
   Download,
   Edit3,
@@ -34,6 +36,8 @@ import {
   renameDevice,
   type DbUsageItem,
   type DeviceInfo,
+  type ModelSummaryItem,
+  type SyncMeta,
   type TokenUsageGroupBy,
   type TokenUsageReportType,
   type TokenUsageSource,
@@ -75,6 +79,74 @@ function healthLabel(ok: boolean): string {
   return ok ? '可用' : '不可用';
 }
 
+function formatRelativeTime(value?: string | null): string {
+  if (!value) return '尚未同步';
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return '时间未知';
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (diffSeconds < 60) return '刚刚更新';
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} 分钟前`;
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} 小时前`;
+  return `${Math.floor(diffSeconds / 86400)} 天前`;
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return '暂无记录';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '时间未知';
+  return date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function DataFreshnessBadge({
+  syncMeta,
+  cached,
+  refreshing,
+  refreshError,
+  onRefresh,
+}: {
+  syncMeta: SyncMeta | null;
+  cached: boolean;
+  refreshing: boolean;
+  refreshError: string | null;
+  onRefresh: () => void;
+}) {
+  const stale = Boolean(syncMeta?.is_stale);
+  const locked = Boolean(syncMeta?.refresh_lock?.locked);
+  const ttl = syncMeta?.cache_ttl_seconds ?? 0;
+
+  const buildTooltip = () => {
+    const lines: string[] = [];
+    lines.push(`状态：${refreshing ? '后台更新中' : refreshError ? '刷新失败' : locked ? '其他窗口正在更新' : stale ? '数据已过期' : cached ? '缓存有效' : '数据库聚合'}`);
+    lines.push(`最后同步：${formatDateTime(syncMeta?.last_success_at)}`);
+    if (ttl > 0) lines.push(`缓存有效期：剩余 ${Math.ceil(ttl / 60)} 分钟`);
+    else lines.push('缓存有效期：未命中缓存');
+    if (syncMeta?.stale_reason) lines.push(syncMeta.stale_reason);
+    if (refreshError) lines.push(refreshError);
+    return lines.join('\n');
+  };
+
+  const textClass = refreshing || locked
+    ? 'text-sky-300'
+    : refreshError || stale
+      ? 'text-amber-300'
+      : 'text-emerald-300';
+
+  return (
+    <span className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-xs" title={buildTooltip()}>
+      {refreshing ? (
+        <Loader2 className={`h-3.5 w-3.5 flex-shrink-0 animate-spin ${textClass}`} />
+      ) : refreshError || stale ? (
+        <AlertTriangle className={`h-3.5 w-3.5 flex-shrink-0 ${textClass}`} />
+      ) : (
+        <Clock className={`h-3.5 w-3.5 flex-shrink-0 ${textClass}`} />
+      )}
+      <span className={`truncate ${textClass}`}>
+        {refreshing ? '后台更新中' : refreshError ? '刷新失败' : `最后同步 ${formatRelativeTime(syncMeta?.last_success_at)}`}
+      </span>
+    </span>
+  );
+}
+
 export default function TokenUsage() {
   const [items, setItems] = useState<DbUsageItem[]>([]);
   const [summary, setSummary] = useState<UsageSummary>(emptySummary);
@@ -95,6 +167,11 @@ export default function TokenUsage() {
   const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
   const [autoExpanded, setAutoExpanded] = useState(false);
   const [actualDays, setActualDays] = useState<number | null>(null);
+  const [modelSummary, setModelSummary] = useState<ModelSummaryItem[]>([]);
+  const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const lastAutoRefreshRef = useRef<Record<string, number>>({});
 
   const timeRangeOptions = useMemo(() => {
     if (reportType === 'daily') {
@@ -150,6 +227,8 @@ export default function TokenUsage() {
       setCached(Boolean(result.cached));
       setAutoExpanded(Boolean(result.auto_expanded));
       setActualDays(result.actual_days || null);
+      setModelSummary(result.model_summary || []);
+      setSyncMeta(result.sync_meta || null);
       setCurrentPage(1);
       if (result.devices?.length) {
         setDevices(result.devices);
@@ -170,14 +249,57 @@ export default function TokenUsage() {
     fetchData();
   }, [fetchData]);
 
+  const queryKey = `${source}:${reportType}:${days}:${groupBy}:${selectedDevice || 'all'}`;
+
+  useEffect(() => {
+    if (!syncMeta?.is_stale || backgroundRefreshing || refreshing) return;
+    const lastAt = lastAutoRefreshRef.current[queryKey] || 0;
+    if (Date.now() - lastAt < 60_000) return;
+
+    let cancelled = false;
+    lastAutoRefreshRef.current[queryKey] = Date.now();
+
+    async function refreshStaleData() {
+      setBackgroundRefreshing(true);
+      setRefreshError(null);
+      try {
+        const result = await refreshTokenUsage({ days: Math.max(days, 90), background: true, reason: 'stale' });
+        if (result.locked) {
+          if (!cancelled) setRefreshError('其他窗口正在更新数据');
+          return;
+        }
+        if (!cancelled) {
+          await loadDevices();
+          await fetchData();
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setRefreshError(err.message || '后台刷新失败，已保留当前数据');
+        }
+      } finally {
+        if (!cancelled) setBackgroundRefreshing(false);
+      }
+    }
+
+    refreshStaleData();
+    return () => {
+      cancelled = true;
+    };
+  }, [backgroundRefreshing, days, fetchData, loadDevices, queryKey, refreshing, syncMeta?.is_stale]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     setError(null);
     setLastSyncMessage(null);
     try {
-      const result = await refreshTokenUsage();
+      const result = await refreshTokenUsage({ days: Math.max(days, 90), background: false, reason: 'manual' });
+      if (result.locked) {
+        setRefreshError('已有刷新任务进行中，请稍后重试');
+        return;
+      }
       const errors = result.errors?.length ? `，${result.errors.length} 个来源有告警` : '';
       setLastSyncMessage(`已同步 ${result.total_records} 条记录${errors}`);
+      setRefreshError(null);
       await loadDevices();
       await fetchData();
     } catch (err: any) {
@@ -198,6 +320,9 @@ export default function TokenUsage() {
       setLastSyncMessage(result.message);
       setItems([]);
       setSummary(emptySummary);
+      setModelSummary([]);
+      setSyncMeta(null);
+      setRefreshError(null);
       await loadDevices();
       await fetchData();
     } catch (err: any) {
@@ -267,24 +392,22 @@ export default function TokenUsage() {
   }, [deviceNameMap, groupBy, items]);
 
   const modelData = useMemo(() => {
-    const totals = new Map<string, number>();
-    items.forEach(item => {
-      if (item.group_key && groupBy === 'model') {
-        totals.set(item.group_key, (totals.get(item.group_key) || 0) + item.total_cost);
-        return;
-      }
-      if (item.models_used?.length) {
-        item.models_used.forEach(model => {
-          totals.set(model, (totals.get(model) || 0) + item.total_cost / item.models_used.length);
-        });
-      }
-    });
-    return [...totals.entries()]
-      .map(([name, value]) => ({ name, value }))
-      .filter(item => item.value > 0)
-      .sort((a, b) => b.value - a.value)
+    const sourceName = (sourceValue: string) => {
+      if (sourceValue === 'claude') return 'Claude';
+      if (sourceValue === 'opencode') return 'OpenCode';
+      return sourceValue;
+    };
+
+    return modelSummary
+      .map(item => ({
+        name: `${sourceName(item.source)} · ${item.display_model || item.model || '未知模型'}`,
+        value: item.total_cost,
+        tokens: item.total_tokens,
+      }))
+      .filter(item => item.value > 0 || item.tokens > 0)
+      .sort((a, b) => b.value - a.value || b.tokens - a.tokens)
       .slice(0, 8);
-  }, [groupBy, items]);
+  }, [modelSummary]);
 
   const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
   const paginatedItems = sortedItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -333,49 +456,54 @@ export default function TokenUsage() {
           <h1 className="text-2xl font-semibold tracking-normal text-white">Token 消耗统计</h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded border px-2.5 py-1 text-xs ${cached ? 'border-emerald-500/40 text-emerald-300' : 'border-sky-500/40 text-sky-300'}`}>
-            {cached ? 'Redis 缓存命中' : '数据库实时查询'}
-          </span>
+        <div className="flex flex-nowrap items-center gap-2">
+          <DataFreshnessBadge
+            syncMeta={syncMeta}
+            cached={cached}
+            refreshing={refreshing || backgroundRefreshing}
+            refreshError={refreshError}
+            onRefresh={handleRefresh}
+          />
           <button
             onClick={handleRefresh}
             disabled={loading || refreshing}
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            title="刷新"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            同步并刷新
           </button>
           <button
             onClick={exportCSV}
             disabled={!items.length || loading}
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            title="导出"
           >
             <Download className="h-4 w-4" />
-            导出
           </button>
           <button
             onClick={handleClearData}
             disabled={loading || clearing}
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            title="清理"
           >
             {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            清理
           </button>
         </div>
       </div>
 
       {health && (
-        <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <div className="mb-4 grid gap-3 md:grid-cols-4">
           {[
-            ['ccusage', health.ccusage_installed],
-            ['opencode-usage', health.opencode_usage_installed],
-            ['ccusage-opencode', health.ccusage_opencode_installed],
-          ].map(([name, ok]) => (
-            <div key={String(name)} className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-900 px-3 py-2">
-              <span className="text-sm text-slate-300">{name}</span>
-              <span className={`inline-flex items-center gap-1 text-xs ${ok ? 'text-emerald-300' : 'text-red-300'}`}>
+            { name: 'ccusage', ok: health.ccusage_installed, detail: 'Claude Code' },
+            { name: 'opencode-usage', ok: health.opencode_usage_installed, detail: 'OpenCode' },
+            { name: 'ccusage-opencode', ok: health.ccusage_opencode_installed, detail: 'OpenCode 历史数据' },
+            { name: 'Codex/OpenClaw', ok: null, detail: '待接入真实 usage 数据' },
+          ].map(({ name, ok, detail }) => (
+            <div key={name} className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-900 px-3 py-2">
+              <span className="text-sm text-slate-300" title={detail}>{name}</span>
+              <span className={`inline-flex items-center gap-1 text-xs ${ok === true ? 'text-emerald-300' : ok === false ? 'text-red-300' : 'text-slate-500'}`}>
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                {healthLabel(Boolean(ok))}
+                {ok === null ? '待接入' : healthLabel(Boolean(ok))}
               </span>
             </div>
           ))}
@@ -577,7 +705,7 @@ export default function TokenUsage() {
             <tbody>
               {!paginatedItems.length && !loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 8 : 9}>暂无数据。可以点击“同步并刷新”采集当前用户和设备的数据。</td>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 8 : 9}>暂无数据。可以点击“刷新”采集当前用户和设备的数据。</td>
                 </tr>
               ) : paginatedItems.map((item, index) => (
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/60">
