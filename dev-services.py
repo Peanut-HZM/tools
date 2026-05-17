@@ -1134,11 +1134,19 @@ def wait_for_log_keyword(log_file: Path, keyword: str, timeout: int = 30) -> boo
     start_time = time.time()
 
     while time.time() - start_time < timeout:
-        if log_file.exists():
-            break
-        time.sleep(0.5)
+        try:
+            if log_file.exists():
+                break
+            time.sleep(0.5)
+        except KeyboardInterrupt:
+            log("用户中断等待", "WARN")
+            return False
 
-    time.sleep(2)  # 等待进程开始写日志
+    try:
+        time.sleep(2)  # 等待进程开始写日志
+    except KeyboardInterrupt:
+        log("用户中断等待", "WARN")
+        return False
 
     while time.time() - start_time < timeout:
         try:
@@ -1146,9 +1154,16 @@ def wait_for_log_keyword(log_file: Path, keyword: str, timeout: int = 30) -> boo
                 content = f.read()
                 if keyword in content:
                     return True
+        except KeyboardInterrupt:
+            log("用户中断等待", "WARN")
+            return False
         except Exception:
             pass
-        time.sleep(1)
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            log("用户中断等待", "WARN")
+            return False
 
     return False
 

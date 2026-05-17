@@ -25,7 +25,12 @@ class TokenUsageRecord(Base):
     device_id = Column(String(128), nullable=False, index=True)
     record_date = Column(Date, nullable=False, index=True)
     source = Column(String(32), nullable=False)  # 'claude' | 'opencode'
+    source_raw = Column(String(128), nullable=True)
+    tool_id = Column(String(64), nullable=True, index=True)
+    tool_name = Column(String(128), nullable=True)
     model = Column(String(128), nullable=False)
+    model_display_name = Column(String(128), nullable=True)
+    device_name = Column(String(128), nullable=True)
     input_tokens = Column(BigInteger, nullable=False, default=0)
     output_tokens = Column(BigInteger, nullable=False, default=0)
     cache_creation_tokens = Column(BigInteger, nullable=False, default=0)
@@ -38,6 +43,14 @@ class TokenUsageRecord(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "device_id", "record_date", "source", "model"),
         Index("idx_token_usage_query", "user_id", "record_date", "source", "device_id"),
+        Index(
+            "idx_token_usage_dimensions",
+            "user_id",
+            "record_date",
+            "tool_id",
+            "device_id",
+            "model",
+        ),
     )
 
 

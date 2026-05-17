@@ -6,7 +6,7 @@ export default function DeployTimeIndicator() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/deploy/timestamp`)
+    fetch(`${API_BASE_URL}/deploy/timestamp`)
       .then((res) => {
         if (!res.ok) throw new Error('Not found');
         return res.json();

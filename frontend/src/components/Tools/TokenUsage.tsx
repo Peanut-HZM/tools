@@ -36,10 +36,15 @@ import {
   renameDevice,
   type DbUsageItem,
   type DeviceInfo,
+  type DimensionSummaries,
+  type DimensionSummaryItem,
+  type FilterOptions,
   type ModelSummaryItem,
   type SyncMeta,
   type TokenUsageGroupBy,
   type TokenUsageReportType,
+  type TokenUsageSortBy,
+  type TokenUsageSortOrder,
   type TokenUsageSource,
   type UsageHealthCheck,
   type UsageSummary,
@@ -57,6 +62,18 @@ const emptySummary: UsageSummary = {
   avg_daily_cost: 0,
 };
 
+const emptyDimensionSummaries: DimensionSummaries = {
+  devices: [],
+  tools: [],
+  models: [],
+};
+
+const emptyFilterOptions: FilterOptions = {
+  devices: [],
+  tools: [],
+  models: [],
+};
+
 function formatToken(num: number): string {
   if (num >= 100_000_000) return `${(num / 100_000_000).toFixed(1)}亿`;
   if (num >= 10_000_000) return `${(num / 10_000_000).toFixed(1)}千万`;
@@ -72,6 +89,7 @@ function formatCurrency(num: number): string {
 function sourceLabel(source: TokenUsageSource): string {
   if (source === 'claude') return 'Claude Code';
   if (source === 'opencode') return 'OpenCode';
+  if (source === 'codex') return 'Codex';
   return '全部工具';
 }
 
@@ -157,6 +175,10 @@ export default function TokenUsage() {
   const [days, setDays] = useState(30);
   const [groupBy, setGroupBy] = useState<TokenUsageGroupBy>('none');
   const [selectedDevice, setSelectedDevice] = useState('');
+  const [selectedTool, setSelectedTool] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [sortBy, setSortBy] = useState<TokenUsageSortBy>('date');
+  const [sortOrder, setSortOrder] = useState<TokenUsageSortOrder>('desc');
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -168,6 +190,8 @@ export default function TokenUsage() {
   const [autoExpanded, setAutoExpanded] = useState(false);
   const [actualDays, setActualDays] = useState<number | null>(null);
   const [modelSummary, setModelSummary] = useState<ModelSummaryItem[]>([]);
+  const [dimensionSummaries, setDimensionSummaries] = useState<DimensionSummaries>(emptyDimensionSummaries);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>(emptyFilterOptions);
   const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -201,6 +225,66 @@ export default function TokenUsage() {
     return new Map(devices.map(device => [device.id, device.name]));
   }, [devices]);
 
+  const toolNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    filterOptions.tools.forEach(tool => map.set(tool.tool_id, tool.tool_name));
+    dimensionSummaries.tools.forEach(tool => {
+      if (tool.tool_id) map.set(tool.tool_id, tool.label);
+      map.set(tool.key, tool.label);
+    });
+    return map;
+  }, [dimensionSummaries.tools, filterOptions.tools]);
+
+  const modelNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    filterOptions.models.forEach(model => map.set(model.model, model.model_display_name));
+    dimensionSummaries.models.forEach(model => {
+      if (model.model) map.set(model.model, model.label);
+      map.set(model.key, model.label);
+    });
+    return map;
+  }, [dimensionSummaries.models, filterOptions.models]);
+
+  const toolOptions = useMemo(() => {
+    if (filterOptions.tools.length) {
+      return filterOptions.tools.map(tool => ({
+        value: tool.tool_id,
+        label: tool.tool_name,
+        count: tool.records_count,
+      }));
+    }
+    return dimensionSummaries.tools.map(tool => ({
+      value: tool.tool_id || tool.key,
+      label: tool.label,
+      count: tool.records_count,
+    }));
+  }, [dimensionSummaries.tools, filterOptions.tools]);
+
+  const modelOptions = useMemo(() => {
+    const options = filterOptions.models.length
+      ? filterOptions.models
+          .filter(model => !selectedTool || model.tool_id === selectedTool)
+          .map(model => ({
+            value: model.model,
+            label: model.model_display_name,
+            count: model.records_count,
+          }))
+      : dimensionSummaries.models
+          .filter(model => !selectedTool || model.tool_id === selectedTool)
+          .map(model => ({
+            value: model.model || model.key,
+            label: model.label,
+            count: model.records_count,
+          }));
+
+    const unique = new Map<string, { value: string; label: string; count: number }>();
+    options.forEach(option => {
+      if (!option.value || unique.has(option.value)) return;
+      unique.set(option.value, option);
+    });
+    return [...unique.values()];
+  }, [dimensionSummaries.models, filterOptions.models, selectedTool]);
+
   useEffect(() => {
     setDays(reportType === 'daily' ? 30 : reportType === 'weekly' ? 56 : 180);
     setCurrentPage(1);
@@ -221,6 +305,10 @@ export default function TokenUsage() {
         days,
         group_by: groupBy,
         device_id: selectedDevice || undefined,
+        tool_id: selectedTool || undefined,
+        model: selectedModel || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       });
       setItems(result.items || []);
       setSummary(result.summary || emptySummary);
@@ -228,6 +316,8 @@ export default function TokenUsage() {
       setAutoExpanded(Boolean(result.auto_expanded));
       setActualDays(result.actual_days || null);
       setModelSummary(result.model_summary || []);
+      setDimensionSummaries(result.dimension_summaries || emptyDimensionSummaries);
+      setFilterOptions(result.filter_options || emptyFilterOptions);
       setSyncMeta(result.sync_meta || null);
       setCurrentPage(1);
       if (result.devices?.length) {
@@ -238,7 +328,7 @@ export default function TokenUsage() {
     } finally {
       setLoading(false);
     }
-  }, [days, groupBy, reportType, selectedDevice, source]);
+  }, [days, groupBy, reportType, selectedDevice, selectedModel, selectedTool, sortBy, sortOrder, source]);
 
   useEffect(() => {
     checkTokenUsageHealth().then(setHealth).catch(() => setHealth(null));
@@ -249,7 +339,7 @@ export default function TokenUsage() {
     fetchData();
   }, [fetchData]);
 
-  const queryKey = `${source}:${reportType}:${days}:${groupBy}:${selectedDevice || 'all'}`;
+  const queryKey = `${source}:${reportType}:${days}:${groupBy}:${selectedDevice || 'all'}:${selectedTool || 'all-tools'}:${selectedModel || 'all-models'}:${sortBy}:${sortOrder}`;
 
   useEffect(() => {
     if (!syncMeta?.is_stale || backgroundRefreshing || refreshing) return;
@@ -321,6 +411,8 @@ export default function TokenUsage() {
       setItems([]);
       setSummary(emptySummary);
       setModelSummary([]);
+      setDimensionSummaries(emptyDimensionSummaries);
+      setFilterOptions(emptyFilterOptions);
       setSyncMeta(null);
       setRefreshError(null);
       await loadDevices();
@@ -351,10 +443,22 @@ export default function TokenUsage() {
     }
   };
 
-  const sortedItems = useMemo(
-    () => [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    [items]
-  );
+  const sortedItems = useMemo(() => [...items], [items]);
+
+  const getToolLabel = useCallback((value?: string | null) => {
+    if (!value) return '-';
+    return toolNameMap.get(value) || value;
+  }, [toolNameMap]);
+
+  const getModelLabel = useCallback((value?: string | null) => {
+    if (!value) return '-';
+    return modelNameMap.get(value) || value;
+  }, [modelNameMap]);
+
+  const formatModelsUsed = useCallback((models: string[]) => {
+    if (!models.length) return '-';
+    return models.map(model => getModelLabel(model)).join(', ');
+  }, [getModelLabel]);
 
   const chartData = useMemo(
     () => [...items].sort((a, b) => a.date.localeCompare(b.date)).map(item => ({
@@ -374,9 +478,15 @@ export default function TokenUsage() {
     const dates = new Set<string>();
 
     items.forEach(item => {
-      const key = groupBy === 'device' && item.group_key
-        ? deviceNameMap.get(item.group_key) || item.group_key
-        : item.group_key || '未识别';
+      const key = item.group_key
+        ? groupBy === 'device'
+          ? deviceNameMap.get(item.group_key) || item.group_key
+          : groupBy === 'tool'
+            ? getToolLabel(item.group_key)
+            : groupBy === 'model'
+              ? getModelLabel(item.group_key)
+              : item.group_key
+        : '未识别';
       dates.add(item.date);
       grouped[key] = grouped[key] || {};
       grouped[key][item.date] = (grouped[key][item.date] || 0) + item.total_tokens;
@@ -389,7 +499,7 @@ export default function TokenUsage() {
       });
       return row;
     });
-  }, [deviceNameMap, groupBy, items]);
+  }, [deviceNameMap, getModelLabel, getToolLabel, groupBy, items]);
 
   const modelData = useMemo(() => {
     const sourceName = (sourceValue: string) => {
@@ -400,14 +510,16 @@ export default function TokenUsage() {
 
     return modelSummary
       .map(item => ({
-        name: `${sourceName(item.source)} · ${item.display_model || item.model || '未知模型'}`,
-        value: item.total_cost,
+        name: `${sourceName(item.source)} · ${item.display_model || getModelLabel(item.model) || '未知模型'}`,
+        value: item.total_cost > 0 ? item.total_cost : item.total_tokens,
+        cost: item.total_cost,
         tokens: item.total_tokens,
+        metric: item.total_cost > 0 ? 'cost' : 'tokens',
       }))
       .filter(item => item.value > 0 || item.tokens > 0)
       .sort((a, b) => b.value - a.value || b.tokens - a.tokens)
       .slice(0, 8);
-  }, [modelSummary]);
+  }, [getModelLabel, modelSummary]);
 
   const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
   const paginatedItems = sortedItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -416,22 +528,36 @@ export default function TokenUsage() {
     if (groupBy === 'device' && item.group_key) {
       return deviceNameMap.get(item.group_key) || item.group_key;
     }
+    if (groupBy === 'tool' && item.group_key) {
+      return getToolLabel(item.group_key);
+    }
+    if (groupBy === 'model' && item.group_key) {
+      return getModelLabel(item.group_key);
+    }
     return item.group_key || '-';
+  };
+
+  const getRowToolLabel = (item: DbUsageItem) => {
+    if (groupBy === 'tool' && item.group_key) return getToolLabel(item.group_key);
+    if (selectedTool) return getToolLabel(selectedTool);
+    if (source !== 'all') return sourceLabel(source);
+    return '-';
   };
 
   const exportCSV = () => {
     if (!items.length) return;
-    const headers = ['日期', '分组', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD', '模型'];
+    const headers = ['日期', '分组', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD'];
     const rows = sortedItems.map(item => [
       item.date,
-      item.group_key || '',
+      getGroupLabel(item),
+      getRowToolLabel(item),
+      formatModelsUsed(item.models_used),
       item.input_tokens,
       item.output_tokens,
       item.cache_creation_tokens,
       item.cache_read_tokens,
       item.total_tokens,
       item.total_cost,
-      item.models_used.join('; '),
     ]);
     const csv = [headers, ...rows]
       .map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(','))
@@ -444,6 +570,50 @@ export default function TokenUsage() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const dimensionSections: Array<{
+    key: string;
+    title: string;
+    items: DimensionSummaryItem[];
+    activeValue: string;
+    onSelect: (item: DimensionSummaryItem) => void;
+  }> = [
+    {
+      key: 'devices',
+      title: '设备',
+      items: dimensionSummaries.devices,
+      activeValue: selectedDevice,
+      onSelect: item => setSelectedDevice(item.device_id || item.key),
+    },
+    {
+      key: 'tools',
+      title: '工具',
+      items: dimensionSummaries.tools,
+      activeValue: selectedTool,
+      onSelect: item => {
+        setSelectedTool(item.tool_id || item.key);
+        setSelectedModel('');
+      },
+    },
+    {
+      key: 'models',
+      title: '模型',
+      items: dimensionSummaries.models,
+      activeValue: selectedModel,
+      onSelect: item => {
+        setSelectedModel(item.model || item.key);
+        if (item.tool_id) setSelectedTool(item.tool_id);
+      },
+    },
+  ];
+
+  const chartTitle = groupBy === 'none'
+    ? `${sourceLabel(source)} 趋势`
+    : groupBy === 'device'
+      ? '设备消耗对比'
+      : groupBy === 'tool'
+        ? '工具消耗对比'
+        : '模型消耗分析';
 
   return (
     <div className="min-h-0 overflow-y-auto bg-slate-950 p-6 text-slate-100">
@@ -512,13 +682,40 @@ export default function TokenUsage() {
         </div>
       )}
 
-      <div className="mb-5 grid gap-3 rounded-md border border-slate-800 bg-slate-900 p-4 lg:grid-cols-6">
+      <div className="mb-5 grid gap-3 rounded-md border border-slate-800 bg-slate-900 p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">工具</span>
+          <span className="text-xs text-slate-400">来源</span>
           <select value={source} onChange={event => setSource(event.target.value as TokenUsageSource)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
             <option value="all">全部工具</option>
             <option value="claude">Claude Code</option>
             <option value="opencode">OpenCode</option>
+          </select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="text-xs text-slate-400">工具</span>
+          <select
+            value={selectedTool}
+            onChange={event => {
+              setSelectedTool(event.target.value);
+              setSelectedModel('');
+            }}
+            className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm"
+          >
+            <option value="">全部工具</option>
+            {toolOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="text-xs text-slate-400">模型</span>
+          <select value={selectedModel} onChange={event => setSelectedModel(event.target.value)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+            <option value="">全部模型</option>
+            {modelOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </label>
 
@@ -565,7 +762,28 @@ export default function TokenUsage() {
           <select value={groupBy} onChange={event => setGroupBy(event.target.value as TokenUsageGroupBy)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
             <option value="none">按日期汇总</option>
             <option value="device">按设备对比</option>
+            <option value="tool">按工具对比</option>
             <option value="model">按模型分析</option>
+          </select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="text-xs text-slate-400">排序</span>
+          <select value={sortBy} onChange={event => setSortBy(event.target.value as TokenUsageSortBy)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+            <option value="date">日期</option>
+            <option value="total_tokens">总 Token</option>
+            <option value="total_cost">成本</option>
+            <option value="input_tokens">输入</option>
+            <option value="output_tokens">输出</option>
+            <option value="cache_tokens">缓存</option>
+          </select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="text-xs text-slate-400">方向</span>
+          <select value={sortOrder} onChange={event => setSortOrder(event.target.value as TokenUsageSortOrder)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+            <option value="desc">降序</option>
+            <option value="asc">升序</option>
           </select>
         </label>
 
@@ -604,10 +822,48 @@ export default function TokenUsage() {
         ))}
       </div>
 
+      <div className="mb-5 grid gap-3 xl:grid-cols-3">
+        {dimensionSections.map(section => (
+          <div key={section.key} className="rounded-md border border-slate-800 bg-slate-900 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-medium text-white">{section.title}</h2>
+              <span className="text-xs text-slate-500">Top {Math.min(section.items.length, 5)}</span>
+            </div>
+            <div className="space-y-1.5">
+              {section.items.slice(0, 5).map(item => {
+                const value = item.dimension === 'device'
+                  ? item.device_id || item.key
+                  : item.dimension === 'tool'
+                    ? item.tool_id || item.key
+                    : item.model || item.key;
+                const active = Boolean(value && section.activeValue === value);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => section.onSelect(item)}
+                    className={`grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 rounded-md px-2 py-1.5 text-left text-xs hover:bg-slate-800 ${active ? 'bg-slate-800 text-white' : 'text-slate-300'}`}
+                    title={item.label}
+                  >
+                    <span className="truncate">{item.label}</span>
+                    <span className="font-mono text-slate-400">{item.cost_share.toFixed(1)}% / {item.token_share.toFixed(1)}%</span>
+                    <span className="font-mono text-slate-500">{formatToken(item.total_tokens)} Token</span>
+                    <span className="font-mono text-emerald-300">{formatCurrency(item.total_cost)}</span>
+                  </button>
+                );
+              })}
+              {!section.items.length && (
+                <div className="px-2 py-4 text-center text-xs text-slate-500">暂无数据</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="rounded-md border border-slate-800 bg-slate-900 p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-medium text-white">{groupBy === 'none' ? `${sourceLabel(source)} 趋势` : groupBy === 'device' ? '设备消耗对比' : '模型消耗分析'}</h2>
+            <h2 className="text-base font-medium text-white">{chartTitle}</h2>
             {loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
           </div>
           <div className="h-80">
@@ -663,7 +919,13 @@ export default function TokenUsage() {
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [formatCurrency(value), '成本']} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
+                  <Tooltip
+                    formatter={(_, __, payload: any) => [
+                      `${formatCurrency(payload?.payload?.cost || 0)} / ${formatToken(payload?.payload?.tokens || 0)} Token`,
+                      payload?.payload?.metric === 'cost' ? '成本占比' : 'Token 占比',
+                    ]}
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -677,7 +939,9 @@ export default function TokenUsage() {
                   <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                   <span className="truncate">{model.name}</span>
                 </span>
-                <span className="font-mono text-slate-400">{formatCurrency(model.value)}</span>
+                <span className="font-mono text-slate-400">
+                  {model.metric === 'cost' ? formatCurrency(model.cost) : `${formatToken(model.tokens)} Token`}
+                </span>
               </div>
             ))}
           </div>
@@ -690,11 +954,12 @@ export default function TokenUsage() {
           <span className="text-xs text-slate-400">共 {items.length} 条</span>
         </div>
         <div className="overflow-auto">
-          <table className="w-full min-w-[920px] text-sm">
+          <table className="w-full min-w-[1040px] text-sm">
             <thead className="bg-slate-950 text-xs text-slate-400">
               <tr>
                 <th className="px-4 py-3 text-left">日期</th>
                 {groupBy !== 'none' && <th className="px-4 py-3 text-left">分组</th>}
+                <th className="px-4 py-3 text-left">工具</th>
                 <th className="px-4 py-3 text-right">输入</th>
                 <th className="px-4 py-3 text-right">输出</th>
                 <th className="px-4 py-3 text-right">缓存创建</th>
@@ -707,19 +972,22 @@ export default function TokenUsage() {
             <tbody>
               {!paginatedItems.length && !loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 8 : 9}>暂无数据。可以点击“刷新”采集当前用户和设备的数据。</td>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 9 : 10}>暂无数据。可以点击“刷新”采集当前用户和设备的数据。</td>
                 </tr>
               ) : paginatedItems.map((item, index) => (
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/60">
                   <td className="px-4 py-3 text-slate-200">{item.date}</td>
                   {groupBy !== 'none' && <td className="max-w-[180px] truncate px-4 py-3 text-slate-300" title={getGroupLabel(item)}>{getGroupLabel(item)}</td>}
+                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-400" title={getRowToolLabel(item)}>
+                    {getRowToolLabel(item)}
+                  </td>
                   <td className="px-4 py-3 text-right font-mono text-slate-300">{formatToken(item.input_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-slate-300">{formatToken(item.output_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-slate-400">{formatToken(item.cache_creation_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-slate-400">{formatToken(item.cache_read_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono font-medium text-white">{formatToken(item.total_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(item.total_cost)}</td>
-                  <td className="max-w-[240px] truncate px-4 py-3 text-slate-400" title={item.models_used.join(', ')}>{item.models_used.join(', ') || '-'}</td>
+                  <td className="max-w-[240px] truncate px-4 py-3 text-slate-400" title={formatModelsUsed(item.models_used)}>{formatModelsUsed(item.models_used)}</td>
                 </tr>
               ))}
             </tbody>

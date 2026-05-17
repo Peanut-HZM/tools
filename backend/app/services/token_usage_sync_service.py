@@ -86,6 +86,38 @@ def _calc_total_tokens(
     return input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens
 
 
+def _map_source_to_tool(source: str) -> dict:
+    source_value = source or "unknown"
+    mapping = {
+        "claude": {"tool_id": "claude-code", "tool_name": "Claude Code"},
+        "opencode": {"tool_id": "opencode", "tool_name": "OpenCode"},
+        "codex": {"tool_id": "codex", "tool_name": "Codex"},
+    }
+    return mapping.get(
+        source_value,
+        {"tool_id": source_value, "tool_name": source_value},
+    )
+
+
+def _display_model_name(model: str, tool_name: str = "Unknown Tool") -> str:
+    if model == "_total":
+        return f"{tool_name} total"
+    if not model:
+        return "未知模型"
+    return model
+
+
+def _build_dimension_fields(source: str, device_name: str, model: str) -> dict:
+    tool = _map_source_to_tool(source)
+    return {
+        "source_raw": source,
+        "tool_id": tool["tool_id"],
+        "tool_name": tool["tool_name"],
+        "device_name": device_name,
+        "model_display_name": _display_model_name(model, tool["tool_name"]),
+    }
+
+
 def _parse_claude_entries(entries: list[dict]) -> list[dict]:
     """
     解析 Claude CLI 输出为结构化数据。
@@ -122,7 +154,7 @@ def _parse_claude_entries(entries: list[dict]) -> list[dict]:
             })
         else:
             for bk in breakdowns:
-                model_name = bk.get("model") or bk.get("name") or "unknown"
+                model_name = bk.get("modelName") or bk.get("model") or bk.get("name") or "unknown"
                 tokens = bk.get("tokens", bk)
                 input_tokens = _safe_int(tokens, "input") or _safe_int(bk, "inputTokens", "input_tokens")
                 output_tokens = _safe_int(tokens, "output") or _safe_int(bk, "outputTokens", "output_tokens")
@@ -176,7 +208,7 @@ def _parse_opencode_entries(entries: list[dict]) -> list[dict]:
             })
         else:
             for mod in models:
-                model_name = mod.get("model") or mod.get("name") or "unknown"
+                model_name = mod.get("modelName") or mod.get("model") or mod.get("name") or "unknown"
                 input_tokens = _safe_int(mod, "inputTokens", "input_tokens")
                 output_tokens = _safe_int(mod, "outputTokens", "output_tokens")
                 cache_creation_tokens = _safe_int(mod, "cacheCreationTokens", "cache_creation_tokens")
@@ -209,6 +241,7 @@ def sync_token_usage(user_id: str, days: int = 90) -> dict:
         {sources_synced: [...], total_records: int, errors: [...]}
     """
     device_id = get_device_id()
+    device_name = get_device_display_name()
     db = SessionLocal()
     result = {"sources_synced": [], "total_records": 0, "errors": []}
 
@@ -222,12 +255,12 @@ def sync_token_usage(user_id: str, days: int = 90) -> dict:
                 user_id=user_id,
                 device_id=device_id,
                 display_name=None,
-                default_display_name=get_device_display_name(),
+                default_display_name=device_name,
             ))
             db.commit()
         elif not existing.default_display_name:
             # 旧设备没有 default_display_name，补填
-            existing.default_display_name = get_device_display_name()
+            existing.default_display_name = device_name
             db.commit()
     except Exception as e:
         logger.warning(f"设备注册失败: {e}")
@@ -252,7 +285,14 @@ def sync_token_usage(user_id: str, days: int = 90) -> dict:
                     key = (rec["record_date"], rec["model"])
                     deduped[key] = rec  # 后面的覆盖前面的
                 parsed = list(deduped.values())
-                count = _upsert_records(db, user_id, device_id, source_name, parsed)
+                count = _upsert_records(
+                    db,
+                    user_id,
+                    device_id,
+                    source_name,
+                    parsed,
+                    device_name,
+                )
                 result["sources_synced"].append(source_name)
                 result["total_records"] += count
 
@@ -281,10 +321,22 @@ def sync_token_usage(user_id: str, days: int = 90) -> dict:
     return result
 
 
-def _upsert_records(db, user_id: str, device_id: str, source: str, records: list[dict]) -> int:
+def _upsert_records(
+    db,
+    user_id: str,
+    device_id: str,
+    source: str,
+    records: list[dict],
+    device_name: str,
+) -> int:
     """批量 INSERT 或 UPDATE，返回实际写入的记录数"""
     count = 0
     for rec in records:
+        dimension_fields = _build_dimension_fields(
+            source=source,
+            device_name=device_name,
+            model=rec["model"],
+        )
         existing = db.query(TokenUsageRecord).filter_by(
             user_id=user_id,
             device_id=device_id,
@@ -299,7 +351,12 @@ def _upsert_records(db, user_id: str, device_id: str, source: str, records: list
                 device_id=device_id,
                 record_date=rec["record_date"],
                 source=source,
+                source_raw=dimension_fields["source_raw"],
+                tool_id=dimension_fields["tool_id"],
+                tool_name=dimension_fields["tool_name"],
                 model=rec["model"],
+                model_display_name=dimension_fields["model_display_name"],
+                device_name=dimension_fields["device_name"],
                 input_tokens=rec["input_tokens"],
                 output_tokens=rec["output_tokens"],
                 cache_creation_tokens=rec["cache_creation_tokens"],
@@ -309,18 +366,31 @@ def _upsert_records(db, user_id: str, device_id: str, source: str, records: list
             ))
             count += 1
         else:
-            if (existing.input_tokens != rec["input_tokens"] or
-                    existing.output_tokens != rec["output_tokens"] or
-                    existing.cache_creation_tokens != rec["cache_creation_tokens"] or
-                    existing.cache_read_tokens != rec["cache_read_tokens"] or
-                    existing.total_tokens != rec["total_tokens"] or
-                    float(existing.total_cost or 0) != rec["total_cost"]):
+            changed = (
+                existing.input_tokens != rec["input_tokens"] or
+                existing.output_tokens != rec["output_tokens"] or
+                existing.cache_creation_tokens != rec["cache_creation_tokens"] or
+                existing.cache_read_tokens != rec["cache_read_tokens"] or
+                existing.total_tokens != rec["total_tokens"] or
+                float(existing.total_cost or 0) != rec["total_cost"] or
+                existing.source_raw != dimension_fields["source_raw"] or
+                existing.tool_id != dimension_fields["tool_id"] or
+                existing.tool_name != dimension_fields["tool_name"] or
+                existing.device_name != dimension_fields["device_name"] or
+                existing.model_display_name != dimension_fields["model_display_name"]
+            )
+            if changed:
                 existing.input_tokens = rec["input_tokens"]
                 existing.output_tokens = rec["output_tokens"]
                 existing.cache_creation_tokens = rec["cache_creation_tokens"]
                 existing.cache_read_tokens = rec["cache_read_tokens"]
                 existing.total_tokens = rec["total_tokens"]
                 existing.total_cost = rec["total_cost"]
+                existing.source_raw = dimension_fields["source_raw"]
+                existing.tool_id = dimension_fields["tool_id"]
+                existing.tool_name = dimension_fields["tool_name"]
+                existing.device_name = dimension_fields["device_name"]
+                existing.model_display_name = dimension_fields["model_display_name"]
                 count += 1
 
     return count

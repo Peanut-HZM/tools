@@ -298,13 +298,6 @@ app.include_router(messages.router, prefix="/api/v1")
 
 # Health check router
 app.include_router(health.router, prefix="/api/v1")
-app.include_router(llm_config.router, prefix="/api/v1")
-app.include_router(conversations.router, prefix="/api/v1")
-app.include_router(prd.router, prefix="/api/v1")
-app.include_router(messages.router, prefix="/api/v1")
-app.include_router(llm_config.router, prefix="/api/v1")
-app.include_router(conversations.router, prefix="/api/v1")
-app.include_router(prd.router, prefix="/api/v1")
 
 # Chat stream router (SSE)
 from app.api.routes import chat_stream, admin_conversations
@@ -345,21 +338,26 @@ app.include_router(openclaw_admin_router.router)
 
 
 def _get_token_usage_sync_user_ids() -> list[str]:
-    """获取需要参与 Token Usage 定时同步的用户。"""
-    from app.models.token_usage_models import DeviceRegistry, TokenUsageRecord
+    """获取需要参与 Token Usage 定时同步的用户。
 
+    CLI 工具（ccusage / opencode-usage）只能读取**当前机器**上的本地数据。
+    定时同步必须只针对绑定到本机 device_id 的 user_id，避免把同一份本机数据
+    复制写入到 DeviceRegistry 中所有其他用户（system / admin / 其他主机的用户）。
+    """
+    from app.models.token_usage_models import DeviceRegistry
+    from app.utils.device_id import get_device_id
+
+    current_device_id = get_device_id()
     db = SessionLocal()
     try:
         user_ids = {
             row[0]
-            for row in db.query(DeviceRegistry.user_id).distinct().all()
-            if row[0]
-        }
-        user_ids.update(
-            row[0]
-            for row in db.query(TokenUsageRecord.user_id).distinct().all()
+            for row in db.query(DeviceRegistry.user_id)
+            .filter(DeviceRegistry.device_id == current_device_id)
+            .distinct()
+            .all()
             if row[0] and row[0] != "system"
-        )
+        }
         return sorted(user_ids)
     except Exception as e:
         logger.warning(f"获取 Token Usage 定时同步用户失败: {e}")

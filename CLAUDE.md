@@ -120,3 +120,10 @@ tools/
 启动后端后访问：
 - Swagger UI: http://localhost:19092/docs
 - ReDoc: http://localhost:19092/redoc
+
+## 测试账号（仅供本地浏览器验证使用）
+
+- **用户名**: `peanut`
+- **密码**: `Peanut2817*#`
+- **用途**: Claude 在本地通过 `agent-browser` 自动化验证需要登录态的页面（如 Token Usage、个人中心等）时使用
+- **注意**: 仅限本地开发环境验证，不得用于生产或外部分享

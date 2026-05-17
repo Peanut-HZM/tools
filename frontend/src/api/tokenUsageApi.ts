@@ -3,9 +3,11 @@ import { getAuthHeaders } from './authApi';
 
 const BASE_URL = `${API_BASE_URL}/token-usage`;
 
-export type TokenUsageSource = 'claude' | 'opencode' | 'all';
+export type TokenUsageSource = 'claude' | 'opencode' | 'codex' | 'all';
 export type TokenUsageReportType = 'daily' | 'weekly' | 'monthly';
-export type TokenUsageGroupBy = 'none' | 'device' | 'model';
+export type TokenUsageGroupBy = 'none' | 'device' | 'tool' | 'model';
+export type TokenUsageSortBy = 'date' | 'total_tokens' | 'total_cost' | 'input_tokens' | 'output_tokens' | 'cache_tokens';
+export type TokenUsageSortOrder = 'asc' | 'desc';
 
 export interface UsageItem {
   date: string;
@@ -41,9 +43,96 @@ export interface UsageHealthCheck {
   ccusage_opencode_installed: boolean;
 }
 
+export interface ModelSummaryItem {
+  source: string;
+  model: string;
+  display_model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_tokens: number;
+  cache_read_tokens: number;
+  total_tokens: number;
+  total_cost: number;
+}
+
+export interface SyncMeta {
+  last_synced_at?: string | null;
+  last_success_at?: string | null;
+  cache_written_at?: string | null;
+  cache_ttl_seconds: number;
+  cache_expires_at?: string | null;
+  data_age_seconds?: number | null;
+  is_stale: boolean;
+  stale_reason?: string | null;
+  refresh_lock: {
+    locked: boolean;
+    owner?: string | null;
+    ttl_seconds: number;
+  };
+  sources_status: Array<{
+    source: string;
+    status: string;
+    records_count: number;
+    synced_at?: string | null;
+    error_message?: string | null;
+  }>;
+}
+
 export interface DeviceInfo {
   id: string;
   name: string;
+}
+
+export interface DimensionSummaryItem {
+  dimension: 'device' | 'tool' | 'model';
+  key: string;
+  label: string;
+  device_id?: string | null;
+  tool_id?: string | null;
+  source?: string | null;
+  model?: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_tokens: number;
+  cache_read_tokens: number;
+  total_tokens: number;
+  total_cost: number;
+  token_share: number;
+  cost_share: number;
+  records_count: number;
+  last_used_at?: string | null;
+}
+
+export interface DimensionSummaries {
+  devices: DimensionSummaryItem[];
+  tools: DimensionSummaryItem[];
+  models: DimensionSummaryItem[];
+}
+
+export interface ToolFilterOption {
+  tool_id: string;
+  tool_name: string;
+  records_count: number;
+}
+
+export interface DeviceFilterOption {
+  device_id: string;
+  device_name: string;
+  records_count: number;
+}
+
+export interface ModelFilterOption {
+  tool_id: string;
+  source: string;
+  model: string;
+  model_display_name: string;
+  records_count: number;
+}
+
+export interface FilterOptions {
+  tools: ToolFilterOption[];
+  devices: DeviceFilterOption[];
+  models: ModelFilterOption[];
 }
 
 export interface DbQueryParams {
@@ -52,6 +141,10 @@ export interface DbQueryParams {
   group_by?: TokenUsageGroupBy;
   source?: TokenUsageSource;
   device_id?: string;
+  tool_id?: string;
+  model?: string;
+  sort_by?: TokenUsageSortBy;
+  sort_order?: TokenUsageSortOrder;
 }
 
 export interface DbUsageItem extends UsageItem {
@@ -65,6 +158,10 @@ export interface DbUsageResponse {
   cached?: boolean;
   actual_days?: number;
   auto_expanded?: boolean;
+  model_summary: ModelSummaryItem[];
+  dimension_summaries: DimensionSummaries;
+  filter_options: FilterOptions;
+  sync_meta: SyncMeta;
 }
 
 export interface SyncTokenUsageResponse {
@@ -72,6 +169,8 @@ export interface SyncTokenUsageResponse {
   sources_synced: string[];
   total_records: number;
   errors: string[];
+  locked?: boolean;
+  lock_ttl_seconds?: number;
 }
 
 async function readError(response: Response, fallback: string): Promise<Error> {
@@ -102,6 +201,10 @@ export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageRes
       group_by: params.group_by || 'none',
       source: params.source || 'all',
       device_id: params.device_id,
+      tool_id: params.tool_id,
+      model: params.model,
+      sort_by: params.sort_by || 'date',
+      sort_order: params.sort_order || 'desc',
     }),
   });
   if (!response.ok) {
@@ -124,13 +227,22 @@ export async function syncTokenUsage(): Promise<SyncTokenUsageResponse> {
   return response.json();
 }
 
-export async function refreshTokenUsage(): Promise<SyncTokenUsageResponse> {
+export async function refreshTokenUsage(params?: {
+  days?: number;
+  background?: boolean;
+  reason?: 'manual' | 'stale';
+}): Promise<SyncTokenUsageResponse> {
   const response = await fetch(`${BASE_URL}/refresh`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      days: params?.days ?? 90,
+      background: params?.background ?? false,
+      reason: params?.reason ?? 'manual',
+    }),
   });
   if (!response.ok) {
     throw await readError(response, '刷新失败');

@@ -20,14 +20,12 @@ async def get_deploy_timestamp():
     """获取上次部署时间"""
     try:
         if not DEPLOY_TIMESTAMP_FILE.exists():
-            raise HTTPException(status_code=404, detail="部署时间戳不存在，可能尚未部署")
-        
+            return {"timestamp": None, "success": False, "message": "部署时间戳不存在（本地开发模式）"}
+
         with open(DEPLOY_TIMESTAMP_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         return {"timestamp": data["timestamp"], "success": True}
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"读取部署时间戳失败: {e}")
-        raise HTTPException(status_code=500, detail=f"读取部署时间戳失败: {str(e)}")
+        return {"timestamp": None, "success": False, "error": str(e)}
