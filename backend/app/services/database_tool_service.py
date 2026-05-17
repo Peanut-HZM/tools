@@ -6,7 +6,7 @@ import threading
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 from app.models.database_tool_models import (
     DatabaseConfigBase,
     CreateDatabaseRequest,
@@ -445,7 +445,7 @@ class DatabaseToolService:
     def get_all_configs(
         user_id: str, include_password: bool = False
     ) -> List[DatabaseConfigResponse]:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -497,13 +497,13 @@ class DatabaseToolService:
                     configs.append(config)
                 return configs
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def get_config(
         config_id: str, user_id: str, include_password: bool = False
     ) -> Optional[DatabaseConfigResponse]:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -547,14 +547,14 @@ class DatabaseToolService:
                     password=password,
                 )
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def _get_config_with_password(
         config_id: str, user_id: str
     ) -> Optional[Dict[str, Any]]:
         """Internal helper to get config including encrypted password"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -566,13 +566,13 @@ class DatabaseToolService:
                     return None
                 return dict(row)
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def create_config(
         user_id: str, request: CreateDatabaseRequest
     ) -> DatabaseConfigResponse:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             # Encrypt password
             encrypted_password = EncryptionUtils.encrypt(request.password)
@@ -635,13 +635,13 @@ class DatabaseToolService:
             conn.rollback()
             raise e
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def update_config(
         config_id: str, user_id: str, request: UpdateDatabaseRequest
     ) -> Optional[DatabaseConfigResponse]:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 # Check existence
@@ -731,11 +731,11 @@ class DatabaseToolService:
             conn.rollback()
             raise e
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def delete_config(config_id: str, user_id: str) -> bool:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 # Soft delete
@@ -754,7 +754,7 @@ class DatabaseToolService:
             conn.rollback()
             raise e
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def test_connection(request: TestConnectionRequest) -> ConnectionTestResult:
@@ -816,7 +816,7 @@ class DatabaseToolService:
             elapsed = (datetime.now() - start_time).total_seconds() * 1000
 
             # Update last_connected_at
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             try:
                 with conn.cursor() as cursor:
                     cursor.execute(
@@ -827,7 +827,7 @@ class DatabaseToolService:
             except:
                 pass  # Ignore update failure
             finally:
-                conn.close()
+                release_db_connection(conn)
 
             return ConnectionTestResult(
                 success=True, message="Connection successful", elapsed_ms=elapsed
@@ -941,7 +941,7 @@ class DatabaseToolService:
     def _save_history(
         user_id: str, request: SQLExecutionRequest, result: SQLExecutionResult
     ):
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 history_id = str(uuid.uuid4())
@@ -978,13 +978,13 @@ class DatabaseToolService:
         except Exception as e:
             logger.error(f"Failed to save execution history: {e}")
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def get_history(
         user_id: str, limit: int = 50, offset: int = 0
     ) -> List[ExecutionHistory]:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -1019,7 +1019,7 @@ class DatabaseToolService:
                     )
                 return history
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     # --------------------------------------------------------------------------
     # Schema Browsing
@@ -3018,7 +3018,7 @@ class DatabaseToolService:
     @staticmethod
     def get_display_preferences(user_id: str) -> DisplayPreferenceResponse:
         """获取用户的显示偏好"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cur:
                 cur.execute(
@@ -3035,7 +3035,7 @@ class DatabaseToolService:
                     )
                 return DisplayPreferenceResponse()
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def save_display_preferences(
@@ -3044,7 +3044,7 @@ class DatabaseToolService:
         """保存用户的显示偏好"""
         import json as json_mod
 
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             visible_conn = preferences.get("visible_connections")
             visible_db = preferences.get("visible_databases")
@@ -3075,4 +3075,4 @@ class DatabaseToolService:
             conn.rollback()
             raise
         finally:
-            conn.close()
+            release_db_connection(conn)
