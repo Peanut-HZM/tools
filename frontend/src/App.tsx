@@ -199,19 +199,14 @@ function HomePage() {
   }, [debouncedValue]);
 
   // 处理工具点击 - 使用路由导航
-  const handleToolClick = async (toolId: string) => {
-    // Record tool visit
-    try {
-      const tool = filteredTools.find(t => t.id === toolId);
-      if (tool) {
-        await recordToolVisit(toolId, tool.title);
-      }
-    } catch (e) {
-      console.error("Failed to record tool visit", e);
+  const handleToolClick = (toolId: string) => {
+    // Record tool visit (fire-and-forget，不阻塞页面跳转)
+    const tool = filteredTools.find(t => t.id === toolId);
+    if (tool) {
+      recordToolVisit(toolId, tool.title).catch(() => {});
     }
 
     // 登录拦截
-    const tool = filteredTools.find(t => t.id === toolId);
     if (tool?.require_login && !isAuthenticated) {
       if (window.confirm('该工具需要登录后才能使用，是否前往登录？')) {
         navigate('/login');
