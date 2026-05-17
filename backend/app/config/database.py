@@ -4,6 +4,7 @@
 import os
 from typing import Optional
 import psycopg2
+import psycopg2.pool
 from psycopg2.extras import RealDictCursor
 import logging
 from urllib.parse import unquote
@@ -97,3 +98,41 @@ def test_connection() -> bool:
     except Exception as e:
         logger.error(f"数据库连接测试失败: {e}")
         return False
+
+
+# ============================================================
+# 连接池支持
+# ============================================================
+
+_pool = None
+
+
+def get_connection_pool(min_conn: int = 2, max_conn: int = 10):
+    """获取或创建连接池（单例懒加载）"""
+    global _pool
+    if _pool is None:
+        config = get_db_config()
+        _pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=min_conn,
+            maxconn=max_conn,
+            host=config["host"],
+            port=config["port"],
+            database=config["database"],
+            user=config["user"],
+            password=config["password"],
+            cursor_factory=RealDictCursor,
+        )
+        logger.info(f"数据库连接池初始化完成 (min={min_conn}, max={max_conn})")
+    return _pool
+
+
+def get_pooled_db_connection():
+    """从连接池获取连接"""
+    pool = get_connection_pool()
+    return pool.getconn()
+
+
+def release_db_connection(conn):
+    """释放连接回池"""
+    pool = get_connection_pool()
+    pool.putconn(conn)

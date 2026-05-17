@@ -8,7 +8,7 @@ from typing import List, Optional, Dict
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 from app.data.tools_data import TOOLS_DATA
 from app.models import Tool, Category, ToolCreateRequest, CategoryCreateRequest
 
@@ -25,7 +25,7 @@ class ToolsService:
         """Initialize database tables"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 # Create tool_categories table
                 cur.execute("""
@@ -150,13 +150,13 @@ class ToolsService:
                 conn.rollback()
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_all_tools(self, include_offline: bool = False) -> List[Tool]:
         """Get all tools from database"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 if include_offline:
                     cur.execute("SELECT * FROM tools ORDER BY category, title")
@@ -197,13 +197,13 @@ class ToolsService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_tools_by_category(self, category: str) -> List[Tool]:
         """Get tools by category"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 if category == "全部工具":
                     cur.execute(
@@ -222,13 +222,13 @@ class ToolsService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def search_tools(self, query: str) -> List[Tool]:
         """Search tools"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 search_term = f"%{query}%"
                 cur.execute(
@@ -247,13 +247,13 @@ class ToolsService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def update_tool_status(self, tool_id: str, status: str) -> bool:
         """Update tool status (online/offline)"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE tools SET status = %s WHERE id = %s", (status, tool_id)
@@ -267,13 +267,13 @@ class ToolsService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def record_visit(self, tool_id: str, user_id: Optional[str] = None) -> bool:
         """Record tool visit"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 # 1. 先检查工具是否存在（避免外键约束错误）
                 cur.execute("SELECT id FROM tools WHERE id = %s", (tool_id,))
@@ -301,7 +301,7 @@ class ToolsService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def update_tool(self, tool_id: str, data: dict) -> Optional[Tool]:
         """完整更新工具信息（行编辑）"""
@@ -309,14 +309,14 @@ class ToolsService:
         try:
             # 校验分类是否存在（如果提供了新分类）
             if "category" in data and data["category"]:
-                cat_conn = get_db_connection()
+                cat_conn = get_pooled_db_connection()
                 try:
                     with cat_conn.cursor() as cur:
                         cur.execute("SELECT id FROM tool_categories WHERE name = %s AND deleted = FALSE", (data["category"],))
                         if not cur.fetchone():
                             raise ValueError(f"分类不存在: {data['category']}")
                 finally:
-                    cat_conn.close()
+                    cat_release_db_connection(conn)
 
             # 构建动态 UPDATE 语句
             updates = []
@@ -345,7 +345,7 @@ class ToolsService:
 
             params.append(tool_id)
 
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     f"UPDATE tools SET {', '.join(updates)} WHERE id = %s RETURNING *",
@@ -363,7 +363,7 @@ class ToolsService:
             raise e
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_tools_paginated(
         self,
@@ -381,7 +381,7 @@ class ToolsService:
         """分页查询工具，支持搜索、筛选、排序"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 # 构建 WHERE 条件
                 conditions = []
@@ -449,7 +449,7 @@ class ToolsService:
             return {"tools": [], "total": 0, "page": 1, "page_size": 20, "total_pages": 0}
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def upload_tool_icon(self, tool_id: str, content: bytes, filename: str) -> Optional[str]:
         """上传工具图标到 OSS，上传前先删除旧图标"""
@@ -458,7 +458,7 @@ class ToolsService:
 
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("SELECT id, custom_icon_url FROM tools WHERE id = %s", (tool_id,))
                 row = cur.fetchone()
@@ -472,7 +472,7 @@ class ToolsService:
                     if old_object_name:
                         oss_service.delete_file(old_object_name)
                         logger.info(f"Deleted old icon for {tool_id}: {old_object_name}")
-            conn.close()
+            release_db_connection(conn)
             conn = None
 
             # 确定文件扩展名
@@ -495,7 +495,7 @@ class ToolsService:
                 raise ValueError("OSS 上传失败")
 
             # 更新数据库
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE tools SET custom_icon_url = %s WHERE id = %s",
@@ -509,13 +509,13 @@ class ToolsService:
             raise e
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def delete_tool_icon(self, tool_id: str) -> bool:
         """删除工具自定义图标"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE tools SET custom_icon_url = NULL WHERE id = %s",
@@ -530,13 +530,13 @@ class ToolsService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_tools_for_platform(self, platform: str, category: Optional[str] = None) -> List[Tool]:
         """按平台获取在线工具，支持分类过滤（参数化查询防止 SQL 注入）"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 base_sql = "SELECT * FROM tools WHERE status = 'online'"
                 params: list = []
@@ -560,12 +560,12 @@ class ToolsService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_all_categories(self) -> List[Category]:
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     "SELECT * FROM tool_categories WHERE deleted = FALSE ORDER BY sort_order"
@@ -577,12 +577,12 @@ class ToolsService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def create_category(self, request: CategoryCreateRequest) -> Optional[Category]:
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cat_id = str(uuid.uuid4())
                 cur.execute(
@@ -611,14 +611,14 @@ class ToolsService:
             raise e
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def update_category(
         self, cat_id: str, request: CategoryCreateRequest
     ) -> Optional[Category]:
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     """
@@ -647,12 +647,12 @@ class ToolsService:
             raise e
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def delete_category(self, cat_id: str) -> bool:
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 # Logical delete
                 cur.execute(
@@ -667,13 +667,13 @@ class ToolsService:
             raise e
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_tool_stats(self) -> Dict:
         """Get tool statistics for dashboard"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 # Total tools
                 cur.execute("SELECT COUNT(*) FROM tools")
@@ -717,7 +717,7 @@ class ToolsService:
             return {"total_tools": 0, "total_visits": 0, "popular_tools": []}
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def _row_to_tool(self, row) -> Tool:
         """Helper to convert DB row to Tool object"""
