@@ -150,6 +150,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"安全校验未通过: {e}")
 
+    # 预初始化数据库连接池
+    try:
+        from app.config.database import get_connection_pool
+        get_connection_pool()
+        logger.info("数据库连接池初始化完成")
+    except Exception as e:
+        logger.warning(f"数据库连接池初始化失败（将按需懒加载）: {e}")
+
     # 打印启动完成信号（dev_services.py 检测此关键字）
     logger.info("Application startup complete")
 
