@@ -143,6 +143,20 @@ export async function getDatabasesList(id: string): Promise<string[]> {
   return data;
 }
 
+export async function getSchemasList(id: string, databaseName: string): Promise<string[]> {
+  const cacheKey = `schemas:${id}:${databaseName}`;
+  const cached = await DBCache.get<string[]>(cacheKey);
+  if (cached) return cached;
+
+  const response = await fetch(
+    `${BASE_URL}/databases/${id}/schemas?database_name=${encodeURIComponent(databaseName)}`,
+    { headers: getAuthHeaders() }
+  );
+  const data = await handleResponse<string[]>(response);
+  await DBCache.set(cacheKey, data, 'schemas');
+  return data;
+}
+
 // Database Administration (DDL)
 
 export async function createDatabaseInstance(id: string, name: string, charset?: string): Promise<boolean> {

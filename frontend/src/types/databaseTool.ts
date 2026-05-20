@@ -97,6 +97,7 @@ export interface SQLExecutionRequest {
   sql: string;
   params?: Record<string, any>;
   database_name?: string;
+  schema_name?: string;  // PostgreSQL schema override
   page?: number;
   page_size?: number;
 }
