@@ -402,10 +402,12 @@ export async function updateRow(
 export async function getTableDetail(
   id: string,
   table: string,
-  databaseName: string
+  databaseName: string,
+  schemaName?: string
 ): Promise<TableDetailResponse> {
+  const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
   const response = await fetch(
-    `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/detail?database_name=${encodeURIComponent(databaseName)}`,
+    `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/detail?database_name=${encodeURIComponent(databaseName)}${schemaParam}`,
     { headers: getAuthHeaders() }
   );
   return handleResponse<TableDetailResponse>(response);
