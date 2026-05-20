@@ -20,6 +20,7 @@ interface Tab {
     configId: string;
     databaseName?: string;
     tableName: string;
+    schemaName?: string;
   };
   sqlState?: SqlTabState;
 }
@@ -59,9 +60,9 @@ const DatabaseToolContent: React.FC = () => {
     setEditConfigId(null);
   };
 
-  const handleSelectTable = (configId: string, databaseName: string | undefined, tableName: string) => {
-    const tabId = `table-${configId}-${databaseName || ''}-${tableName}`;
-    
+  const handleSelectTable = (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => {
+    const tabId = `table-${configId}-${databaseName || ''}-${schemaName || ''}-${tableName}`;
+
     const existingTab = tabs.find(t => t.id === tabId);
     if (existingTab) {
       setActiveTabId(tabId);
@@ -70,7 +71,7 @@ const DatabaseToolContent: React.FC = () => {
         id: tabId,
         type: 'table',
         title: tableName,
-        data: { configId, databaseName, tableName }
+        data: { configId, databaseName, tableName, schemaName }
       };
       setTabs(prev => [...prev, newTab]);
       setActiveTabId(tabId);
@@ -231,10 +232,11 @@ const DatabaseToolContent: React.FC = () => {
                 />
               ) : (
                 tab.data && (
-                  <TableDataViewer 
+                  <TableDataViewer
                     configId={tab.data.configId}
                     databaseName={tab.data.databaseName}
                     tableName={tab.data.tableName}
+                    schemaName={tab.data.schemaName}
                   />
                 )
               )}

@@ -10,6 +10,7 @@ interface ModifyTableDialogProps {
   configId: string;
   databaseName: string;
   tableName: string;
+  schemaName?: string;
   onSuccess?: () => void;
 }
 
@@ -18,8 +19,8 @@ const COMMON_TYPES = [
   'BIGINT', 'DECIMAL', 'FLOAT', 'DOUBLE', 'BOOLEAN', 'BLOB'
 ];
 
-const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({ 
-  isOpen, onClose, configId, databaseName, tableName, onSuccess 
+const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
+  isOpen, onClose, configId, databaseName, tableName, schemaName, onSuccess
 }) => {
   const { t } = useI18n();
   const toast = useToast();
@@ -111,6 +112,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
     try {
       const request: TableModificationRequest = {
         database_name: databaseName,
+        schema_name: schemaName,
         table_name: tableName,
         columns: columns,
         comment: tableComment

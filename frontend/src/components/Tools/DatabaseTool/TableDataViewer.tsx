@@ -9,9 +9,10 @@ interface TableDataViewerProps {
   configId: string;
   databaseName?: string;
   tableName: string;
+  schemaName?: string;
 }
 
-const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseName, tableName }) => {
+const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseName, tableName, schemaName }) => {
   const toast = useToast();
   
   // State for query params
@@ -27,7 +28,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
 
   const fetchSchema = useCallback(async () => {
     try {
-      const s = await api.getTableSchema(configId, tableName, databaseName);
+      const s = await api.getTableSchema(configId, tableName, databaseName, schemaName);
       setSchema(s);
     } catch (error) {
       console.error("Failed to fetch table schema", error);
@@ -39,6 +40,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     try {
       const data = await api.queryTableData(configId, tableName, {
         database_name: databaseName,
+        schema_name: schemaName,
         where: whereClause,
         order_by: orderByClause,
         page: pageNum,
@@ -56,7 +58,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     } finally {
       setLoading(false);
     }
-  }, [configId, tableName, databaseName, whereClause, orderByClause, pageSize, toast]);
+  }, [configId, tableName, databaseName, schemaName, whereClause, orderByClause, pageSize, toast]);
 
   // Reset page when table changes
   useEffect(() => {
@@ -67,7 +69,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     setSchema(null);
     fetchSchema();
     fetchData(1);
-  }, [configId, databaseName, tableName]);
+  }, [configId, databaseName, tableName, schemaName]);
 
   const handleExecute = () => {
     setPage(1);
@@ -90,7 +92,8 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
            <div className="flex items-center space-x-2 text-slate-100">
               <i className="fas fa-table text-blue-400"></i>
               <span className="font-semibold">{tableName}</span>
-              {databaseName && <span className="text-slate-500 text-sm">({databaseName})</span>}
+              {schemaName && <span className="text-slate-500 text-sm">({schemaName}{databaseName ? `.${databaseName}` : ''})</span>}
+              {!schemaName && databaseName && <span className="text-slate-500 text-sm">({databaseName})</span>}
            </div>
            
            <div className="flex items-center space-x-2">
@@ -153,13 +156,14 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
               Loading...
            </div>
         ) : (
-           <ResultViewer 
-             result={result} 
+           <ResultViewer
+             result={result}
              tableName={tableName}
              schema={schema}
              enableSelection={true}
              configId={configId}
              databaseName={databaseName}
+             schemaName={schemaName}
              onDeleted={() => fetchData(page)}
            />
         )}

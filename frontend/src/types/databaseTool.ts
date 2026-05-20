@@ -147,6 +147,7 @@ export interface ColumnDefinition {
 
 export interface TableModificationRequest {
     database_name: string;
+    schema_name?: string;
     table_name: string;
     new_table_name?: string;
     columns: ColumnDefinition[];
@@ -165,11 +166,13 @@ export interface DatabaseStructure {
 
 export interface InsertRowRequest {
   database_name?: string;
+  schema_name?: string;
   columns: Record<string, any>;
 }
 
 export interface UpdateRowRequest {
   database_name?: string;
+  schema_name?: string;
   primary_keys: string[];
   key_values: Record<string, any>;
   columns: Record<string, any>;

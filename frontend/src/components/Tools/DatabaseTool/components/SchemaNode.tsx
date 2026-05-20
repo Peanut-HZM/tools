@@ -5,6 +5,7 @@ import * as api from '../../../../api/databaseToolApi';
 import { ContextMenu, MenuItem } from '../../../Common/ContextMenu';
 import DDLDialog from './DDLDialog';
 import BackupDialog from './BackupDialog';
+import ModifyTableDialog from './ModifyTableDialog';
 
 interface SchemaNodeProps {
   configId: string;
@@ -29,6 +30,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
   const [loading, setLoading] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const [ddlTable, setDdlTable] = useState<string | null>(null);
+  const [modifyTable, setModifyTable] = useState<string | null>(null);
 
   // Table detail expansion state
   const [expandedDetails, setExpandedDetails] = useState<Record<string, any | null>>({});
@@ -146,6 +148,13 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         action: () => handleTableClick(item.name)
       },
       {
+        label: t.database.contextMenu.viewStructure,
+        icon: 'fa-code',
+        action: () => {
+          handleTableClick(item.name);
+        }
+      },
+      {
         separator: true,
         label: '',
         action: () => {}
@@ -154,6 +163,48 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         label: t.database.contextMenu.generateDDL,
         icon: 'fa-file-code',
         action: () => setDdlTable(item.name)
+      },
+      {
+        label: t.database.contextMenu.modifyStructure,
+        icon: 'fa-edit',
+        action: () => setModifyTable(item.name)
+      },
+      {
+        separator: true,
+        label: '',
+        action: () => {}
+      },
+      {
+        label: t.database.contextMenu.emptyData,
+        icon: 'fa-eraser',
+        danger: true,
+        action: async () => {
+          if (window.confirm(t.database.contextMenu.confirmTruncateTable.replace('{name}', item.name))) {
+            try {
+              await api.truncateTableInstance(configId, item.name, dbName, schemaName);
+              setStructure(null);
+              await fetchStructure();
+            } catch (e: any) {
+              alert(`${t.errors.executionFailed}: ${e.message}`);
+            }
+          }
+        }
+      },
+      {
+        label: t.database.contextMenu.deleteTable,
+        icon: 'fa-trash',
+        danger: true,
+        action: async () => {
+          if (window.confirm(t.database.contextMenu.confirmDeleteTable.replace('{name}', item.name))) {
+            try {
+              await api.dropTableInstance(configId, item.name, dbName, schemaName);
+              setStructure(null);
+              await fetchStructure();
+            } catch (e: any) {
+              alert(`${t.errors.deleteFailed}: ${e.message}`);
+            }
+          }
+        }
       }
     ];
 
@@ -409,6 +460,22 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
           configId={configId}
           databaseName={dbName}
           tableName={ddlTable}
+          schemaName={schemaName}
+        />
+      )}
+
+      {modifyTable && (
+        <ModifyTableDialog
+          isOpen={true}
+          onClose={() => setModifyTable(null)}
+          configId={configId}
+          databaseName={dbName}
+          tableName={modifyTable}
+          schemaName={schemaName}
+          onSuccess={async () => {
+            setStructure(null);
+            await fetchStructure();
+          }}
         />
       )}
     </div>

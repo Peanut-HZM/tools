@@ -167,24 +167,25 @@ export async function dropDatabaseInstance(id: string, name: string): Promise<bo
   return result;
 }
 
-export async function dropTableInstance(id: string, table: string, databaseName: string): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}?database_name=${encodeURIComponent(databaseName)}`, {
+export async function dropTableInstance(id: string, table: string, databaseName: string, schemaName?: string): Promise<boolean> {
+  const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
+  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
   const result = await handleResponse<boolean>(response);
-  await DBCache.invalidate(`structure:${id}:${databaseName}`);
+  await DBCache.invalidate(`structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`);
   return result;
 }
 
-export async function truncateTableInstance(id: string, table: string, databaseName: string): Promise<boolean> {
+export async function truncateTableInstance(id: string, table: string, databaseName: string, schemaName?: string): Promise<boolean> {
   const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/truncate`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ database_name: databaseName })
+    body: JSON.stringify({ database_name: databaseName, schema_name: schemaName })
   });
   const result = await handleResponse<boolean>(response);
-  await DBCache.invalidate(`structure:${id}:${databaseName}`);
+  await DBCache.invalidate(`structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`);
   return result;
 }
 
@@ -222,8 +223,9 @@ export async function getDatabaseStructure(id: string, databaseName: string, sch
   return requestPromise;
 }
 
-export async function getTableDDL(id: string, table: string, databaseName: string): Promise<string> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/ddl?database_name=${encodeURIComponent(databaseName)}`, {
+export async function getTableDDL(id: string, table: string, databaseName: string, schemaName?: string): Promise<string> {
+  const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
+  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/ddl?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
     headers: getAuthHeaders()
   });
   return handleResponse<string>(response);
@@ -270,14 +272,15 @@ export async function getDatabaseDDL(id: string, databaseName: string): Promise<
 }
 
 export async function queryTableData(
-  id: string, 
-  table: string, 
-  params: { 
+  id: string,
+  table: string,
+  params: {
     database_name?: string;
-    where?: string; 
-    order_by?: string; 
-    page?: number; 
-    page_size?: number 
+    schema_name?: string;
+    where?: string;
+    order_by?: string;
+    page?: number;
+    page_size?: number
   }
 ): Promise<SQLExecutionResult> {
   const response = await fetch(`${BASE_URL}/databases/${id}/tables/${table}/data`, {
@@ -288,11 +291,12 @@ export async function queryTableData(
   return handleResponse<SQLExecutionResult>(response);
 }
 
-export async function getTableSchema(id: string, table: string, databaseName?: string): Promise<TableSchema> {
-  let url = `${BASE_URL}/databases/${id}/tables/${table}/schema`;
-  if (databaseName) {
-    url += `?database_name=${encodeURIComponent(databaseName)}`;
-  }
+export async function getTableSchema(id: string, table: string, databaseName?: string, schemaName?: string): Promise<TableSchema> {
+  const params = new URLSearchParams();
+  if (databaseName) params.set('database_name', databaseName);
+  if (schemaName) params.set('schema_name', schemaName);
+  const qs = params.toString();
+  const url = `${BASE_URL}/databases/${id}/tables/${table}/schema${qs ? '?' + qs : ''}`;
   const response = await fetch(url, {
     headers: getAuthHeaders()
   });
@@ -328,6 +332,7 @@ export async function getTables(id: string): Promise<string[]> {
 
 export interface BatchDeleteRequest {
   database_name?: string;
+  schema_name?: string;
   primary_keys: string[];
   key_values: Record<string, any>[];
 }
@@ -416,10 +421,12 @@ export async function getTableDetail(
 export async function getTableRowCount(
   id: string,
   table: string,
-  databaseName: string
+  databaseName: string,
+  schemaName?: string
 ): Promise<{ table_name: string; row_count: number }> {
+  const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
   const response = await fetch(
-    `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/row-count?database_name=${encodeURIComponent(databaseName)}`,
+    `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/row-count?database_name=${encodeURIComponent(databaseName)}${schemaParam}`,
     { headers: getAuthHeaders() }
   );
   return handleResponse<{ table_name: string; row_count: number }>(response);

@@ -17,7 +17,7 @@ import { DisplayPreferences } from '../../../../types/databaseTool';
 interface ConnectionListProps {
   onAddConfig: () => void;
   onEditConfig: (id: string) => void;
-  onSelectTable: (configId: string, databaseName: string | undefined, tableName: string) => void;
+  onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
   onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
   activeConfigId?: string;
   activeDatabaseName?: string;
@@ -230,7 +230,7 @@ interface ConnectionNodeProps {
   isSelected: boolean;
   onSelect: () => void;
   onEdit: () => void;
-  onSelectTable: (configId: string, databaseName: string | undefined, tableName: string) => void;
+  onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
   onSelectDatabase: (configId: string, dbName: string) => void;
   getEnvColor: (env?: Environment) => string;
   onRefreshConfigs: () => Promise<void>;
@@ -564,7 +564,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
                     configId={config.id}
                     dbName={config.database_name}
                     schemaName={schema}
-                    onSelectTable={(table) => onSelectTable(config.id, config.database_name, table)}
+                    onSelectTable={(table) => onSelectTable(config.id, config.database_name, table, schema)}
                     onSelectSchema={() => onSelectDatabase(config.id, config.database_name!)}
                     onOpenSqlConsole={onOpenSqlConsole}
                     onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
@@ -586,7 +586,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
                       configId={config.id}
                       dbName={pgDbName}
                       schemaName={schemaName}
-                      onSelectTable={(table) => onSelectTable(config.id, pgDbName, table)}
+                      onSelectTable={(table) => onSelectTable(config.id, pgDbName, table, schemaName)}
                       onSelectSchema={() => onSelectDatabase(config.id, pgDbName)}
                       onOpenSqlConsole={onOpenSqlConsole}
                       onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}

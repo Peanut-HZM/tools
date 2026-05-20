@@ -15,17 +15,19 @@ interface ResultViewerProps {
   onSelectionChange?: (selectedIndices: number[]) => void;
   configId?: string;
   databaseName?: string;
+  schemaName?: string;
   onDeleted?: () => void;
 }
 
-const ResultViewer: React.FC<ResultViewerProps> = ({ 
-  result, 
-  tableName, 
-  schema, 
+const ResultViewer: React.FC<ResultViewerProps> = ({
+  result,
+  tableName,
+  schema,
   enableSelection = false,
   onSelectionChange,
   configId,
   databaseName,
+  schemaName,
   onDeleted
 }) => {
   const { t } = useI18n();
@@ -113,6 +115,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
       
       const deleteResult = await api.batchDeleteRows(configId, tableName, {
         database_name: databaseName,
+        schema_name: schemaName,
         primary_keys: primaryKey,
         key_values: keyValues
       });
@@ -245,6 +248,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
       for (const newRow of newRows) {
         const insertResult = await api.insertRow(configId, tableName, {
           database_name: databaseName,
+          schema_name: schemaName,
           columns: newRow
         });
         if (!insertResult.success) {
@@ -264,6 +268,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         
         const updateResult = await api.updateRow(configId, tableName, {
           database_name: databaseName,
+          schema_name: schemaName,
           primary_keys: primaryKey,
           key_values: keyValues,
           columns: { [colName]: newValue }

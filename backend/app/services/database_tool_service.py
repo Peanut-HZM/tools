@@ -105,7 +105,7 @@ _STRUCTURE_CACHE = StructureCache(ttl=600, maxsize=100)
 class DatabaseToolService:
     @staticmethod
     def generate_ddl(
-        user_id: str, config_id: str, table_name: str, database_name: str
+        user_id: str, config_id: str, table_name: str, database_name: str, schema_name: str = None
     ) -> str:
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
         if not config_row:
@@ -133,7 +133,7 @@ class DatabaseToolService:
         try:
             if db_type == DatabaseType.MYSQL or db_type == DatabaseType.MARIADB:
                 with engine.connect() as conn:
-                    result = conn.execute(text(f"SHOW CREATE TABLE {table_name}"))
+                    result = conn.execute(text(f"SHOW CREATE TABLE `{table_name}`"))
                     row = result.fetchone()
                     if row and len(row) > 1:
                         return row[1]
@@ -147,15 +147,49 @@ class DatabaseToolService:
                     row = result.fetchone()
                     if row:
                         return row[0]
+            elif db_type == DatabaseType.POSTGRESQL:
+                with engine.connect() as conn:
+                    schema_filter = f"AND n.nspname = '{schema_name}'" if schema_name else ""
+                    result = conn.execute(text(f"""
+                        SELECT pg_catalog.pg_get_tabledef(c.oid)
+                        FROM pg_class c
+                        LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+                        WHERE c.relname = '{table_name}' {schema_filter}
+                        AND c.relkind IN ('r', 'p')
+                        LIMIT 1
+                    """))
+                    row = result.fetchone()
+                    if row and row[0]:
+                        return row[0]
+                    # Fallback: get DDL from information_schema
+                    result = conn.execute(text(f"""
+                        SELECT column_name, data_type, is_nullable, column_default
+                        FROM information_schema.columns
+                        WHERE table_name = '{table_name}' {schema_filter}
+                        ORDER BY ordinal_position
+                    """))
+                    rows = result.fetchall()
+                    if rows:
+                        cols = []
+                        for r in rows:
+                            col_def = f"    {r[0]} {r[1]}"
+                            if r[2] == 'NO':
+                                col_def += " NOT NULL"
+                            if r[3]:
+                                col_def += f" DEFAULT {r[3]}"
+                            cols.append(col_def)
+                        schema_part = f'"{schema_name}".' if schema_name else ''
+                        return f'CREATE TABLE {schema_part}"{table_name}" (\n{",\n".join(cols)}\n);'
 
-            # Fallback for others (PostgreSQL, SQLServer, Oracle) using SQLAlchemy
-            # Note: This might not be perfect as it reconstructs from metadata
+            # Fallback for others using SQLAlchemy
             from sqlalchemy.schema import CreateTable
             from sqlalchemy import MetaData, Table
 
             metadata = MetaData()
-            # We need to reflect the table first
-            table = Table(table_name, metadata, autoload_with=engine)
+            if db_type == DatabaseType.POSTGRESQL and schema_name:
+                table = Table(table_name, metadata, autoload_with=engine, schema=schema_name)
+            else:
+                table = Table(table_name, metadata, autoload_with=engine)
             return str(CreateTable(table).compile(engine))
 
         except Exception as e:
@@ -189,15 +223,21 @@ class DatabaseToolService:
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
         db_type = config_row["db_type"]
 
-        # Current support mainly for MySQL
-        if db_type not in [DatabaseType.MYSQL, DatabaseType.MARIADB]:
-            # TODO: Implement for other DBs
-            # For now, we only support MySQL/MariaDB for structure modification as it requires specific DDL
-            pass
+        # Schema-qualified table name for PostgreSQL
+        if db_type == DatabaseType.POSTGRESQL and request.schema_name:
+            qualified_table = f'"{request.schema_name}"."{request.table_name}"'
+        elif db_type in (DatabaseType.MYSQL, DatabaseType.MARIADB):
+            qualified_table = f"`{request.table_name}`"
+        else:
+            qualified_table = f"`{request.table_name}`"
 
         try:
             inspector = inspect(engine)
-            existing_columns = inspector.get_columns(request.table_name)
+            # For PostgreSQL with schema, use schema-qualified name
+            if db_type == DatabaseType.POSTGRESQL and request.schema_name:
+                existing_columns = inspector.get_columns(qualified_table, schema=request.schema_name)
+            else:
+                existing_columns = inspector.get_columns(request.table_name)
             existing_col_map = {col["name"]: col for col in existing_columns}
 
             statements = []
@@ -239,36 +279,31 @@ class DatabaseToolService:
                 if col.name not in existing_col_map:
                     # ADD
                     statements.append(
-                        f"ALTER TABLE `{request.table_name}` ADD COLUMN {format_col_def(col)}"
+                        f"ALTER TABLE {qualified_table} ADD COLUMN {format_col_def(col)}"
                     )
                 else:
                     # MODIFY
-                    # We should check if it actually changed, but for now we can just MODIFY to be safe/lazy
-                    # or compare fields.
-                    # Comparing is safer to avoid unnecessary ops, but type conversion might make it tricky (e.g. VARCHAR(255) vs VARCHAR(255))
-                    # Let's assume we modify if it exists.
-                    # Note: In MySQL, MODIFY COLUMN needs full definition.
                     statements.append(
-                        f"ALTER TABLE `{request.table_name}` MODIFY COLUMN {format_col_def(col)}"
+                        f"ALTER TABLE {qualified_table} MODIFY COLUMN {format_col_def(col)}"
                     )
 
             # DROP columns
             for existing_name in existing_col_map:
                 if existing_name not in new_col_names:
                     statements.append(
-                        f"ALTER TABLE `{request.table_name}` DROP COLUMN `{existing_name}`"
+                        f"ALTER TABLE {qualified_table} DROP COLUMN `{existing_name}`"
                     )
 
             # 2. Handle Table Comment
             if request.comment is not None:
                 statements.append(
-                    f"ALTER TABLE `{request.table_name}` COMMENT = '{request.comment}'"
+                    f"ALTER TABLE {qualified_table} COMMENT = '{request.comment}'"
                 )
 
             # 3. Handle Table Rename
             if request.new_table_name and request.new_table_name != request.table_name:
                 statements.append(
-                    f"ALTER TABLE `{request.table_name}` RENAME TO `{request.new_table_name}`"
+                    f"ALTER TABLE {qualified_table} RENAME TO `{request.new_table_name}`"
                 )
 
             # Execute all statements
@@ -2615,6 +2650,8 @@ class DatabaseToolService:
             else config_row["database_name"]
         )
 
+        target_schema = getattr(request, 'schema_name', None)
+
         config_dict = {
             "db_type": config_row["db_type"],
             "host": config_row["host"],
@@ -2650,7 +2687,10 @@ class DatabaseToolService:
             escaped = str(val).replace("'", "''")
             return f"'{escaped}'"
 
-        table_quoted = quote_ident(table_name)
+        if target_schema and db_type == DatabaseType.POSTGRESQL:
+            table_quoted = f'{quote_ident(target_schema)}.{quote_ident(table_name)}'
+        else:
+            table_quoted = quote_ident(table_name)
 
         if len(request.primary_keys) == 1:
             pk_col = quote_ident(request.primary_keys[0])
@@ -2730,6 +2770,8 @@ class DatabaseToolService:
             else config_row["database_name"]
         )
 
+        target_schema = getattr(request, 'schema_name', None)
+
         config_dict = {
             "db_type": config_row["db_type"],
             "host": config_row["host"],
@@ -2763,7 +2805,10 @@ class DatabaseToolService:
             escaped = str(val).replace("'", "''")
             return f"'{escaped}'"
 
-        table_quoted = quote_ident(table_name)
+        if target_schema and db_type == DatabaseType.POSTGRESQL:
+            table_quoted = f'{quote_ident(target_schema)}.{quote_ident(table_name)}'
+        else:
+            table_quoted = quote_ident(table_name)
         col_names = ", ".join(quote_ident(k) for k in request.columns.keys())
         col_values = ", ".join(escape_value(v) for v in request.columns.values())
 
@@ -2835,6 +2880,8 @@ class DatabaseToolService:
             else config_row["database_name"]
         )
 
+        target_schema = getattr(request, 'schema_name', None)
+
         config_dict = {
             "db_type": config_row["db_type"],
             "host": config_row["host"],
@@ -2868,7 +2915,10 @@ class DatabaseToolService:
             escaped = str(val).replace("'", "''")
             return f"'{escaped}'"
 
-        table_quoted = quote_ident(table_name)
+        if target_schema and db_type == DatabaseType.POSTGRESQL:
+            table_quoted = f'{quote_ident(target_schema)}.{quote_ident(table_name)}'
+        else:
+            table_quoted = quote_ident(table_name)
 
         set_parts = []
         for col_name, col_value in request.columns.items():

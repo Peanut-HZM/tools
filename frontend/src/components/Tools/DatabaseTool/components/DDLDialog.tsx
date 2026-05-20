@@ -9,9 +9,10 @@ interface DDLDialogProps {
   configId: string;
   databaseName: string;
   tableName: string;
+  schemaName?: string;
 }
 
-const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databaseName, tableName }) => {
+const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databaseName, tableName, schemaName }) => {
   const { t } = useI18n();
   const toast = useToast();
   const [ddl, setDdl] = useState<string>('');
@@ -21,12 +22,12 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
     if (isOpen) {
       fetchDDL();
     }
-  }, [isOpen, configId, databaseName, tableName]);
+  }, [isOpen, configId, databaseName, tableName, schemaName]);
 
   const fetchDDL = async () => {
     setLoading(true);
     try {
-      const sql = await api.getTableDDL(configId, tableName, databaseName);
+      const sql = await api.getTableDDL(configId, tableName, databaseName, schemaName);
       setDdl(sql);
     } catch (error) {
       console.error(error);

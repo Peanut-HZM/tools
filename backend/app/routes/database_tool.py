@@ -207,11 +207,12 @@ async def get_table_ddl(
     id: str = PathParam(..., description="Configuration ID"),
     table: str = PathParam(..., description="Table Name"),
     database_name: str = Query(..., description="Database Name"),
+    schema_name: Optional[str] = Query(None, description="Schema Name (PostgreSQL)"),
     user_id: str = Depends(get_current_user_id),
 ):
     """Get DDL for a table"""
     try:
-        return DatabaseToolService.generate_ddl(user_id, id, table, database_name)
+        return DatabaseToolService.generate_ddl(user_id, id, table, database_name, schema_name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -226,7 +227,8 @@ async def modify_table_structure(
     try:
         result = DatabaseToolService.modify_table_structure(user_id, id, request)
         if result:
-            _STRUCTURE_CACHE.invalidate(f"{id}:{request.database_name}")
+            schema_suffix = f":{request.schema_name}" if request.schema_name else ""
+            _STRUCTURE_CACHE.invalidate(f"{id}:{request.database_name}{schema_suffix}")
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

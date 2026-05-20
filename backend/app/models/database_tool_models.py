@@ -143,6 +143,7 @@ class ColumnDefinition(BaseModel):
 
 class TableModificationRequest(BaseModel):
     database_name: str
+    schema_name: Optional[str] = None
     table_name: str
     new_table_name: Optional[str] = None
     columns: List[ColumnDefinition]
@@ -380,6 +381,9 @@ class BatchDeleteRequest(BaseModel):
     database_name: Optional[str] = Field(
         None, description="数据库名称（多数据库连接时使用）"
     )
+    schema_name: Optional[str] = Field(
+        None, description="Schema名称（PostgreSQL多schema时使用）"
+    )
     primary_keys: List[str] = Field(..., min_length=1, description="主键列名列表")
     key_values: List[Dict[str, Any]] = Field(
         ..., min_length=1, description="每行的主键值"
@@ -398,6 +402,7 @@ class InsertRowRequest(BaseModel):
     """插入单行数据请求"""
 
     database_name: Optional[str] = Field(None, description="数据库名称")
+    schema_name: Optional[str] = Field(None, description="Schema名称（PostgreSQL多schema时使用）")
     columns: Dict[str, Any] = Field(..., description="列名与值的映射")
 
 
@@ -405,6 +410,7 @@ class UpdateRowRequest(BaseModel):
     """更新单行数据请求（基于主键）"""
 
     database_name: Optional[str] = Field(None, description="数据库名称")
+    schema_name: Optional[str] = Field(None, description="Schema名称（PostgreSQL多schema时使用）")
     primary_keys: List[str] = Field(..., description="主键列名列表")
     key_values: Dict[str, Any] = Field(..., description="主键列的值")
     columns: Dict[str, Any] = Field(..., description="需要更新的列名与值映射")
