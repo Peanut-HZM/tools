@@ -75,7 +75,13 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
         ]);
 
         if (dbs.status === 'fulfilled') {
-          setDatabases(dbs.value);
+          // PostgreSQL: 如果返回的是 "database:schema" 格式，提取唯一的数据库名
+          if (isPostgres && dbs.value.length > 0 && dbs.value.some(d => d.includes(':'))) {
+            const uniqueDbs = [...new Set(dbs.value.map(d => d.split(':')[0]))];
+            setDatabases(uniqueDbs);
+          } else {
+            setDatabases(dbs.value);
+          }
         } else {
           setDatabases([]);
         }
