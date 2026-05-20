@@ -1160,6 +1160,52 @@ class DatabaseToolService:
         return sorted(databases)
 
     @staticmethod
+    def get_schemas_list(user_id: str, config_id: str, database_name: Optional[str] = None) -> List[str]:
+        """获取指定数据库下的 schema 列表（PostgreSQL）"""
+        config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
+        if not config_row:
+            raise ValueError("Configuration not found")
+
+        db_type = config_row["db_type"]
+        if db_type != DatabaseType.POSTGRESQL:
+            # 其他数据库不支持 schema 列表，返回空
+            return []
+
+        try:
+            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+        except Exception:
+            raise ValueError("Failed to decrypt password")
+
+        # 确定目标数据库名：优先使用参数，其次使用配置中的 database_name
+        target_db = database_name or config_row.get("database_name")
+        if not target_db:
+            raise ValueError("database_name is required for PostgreSQL schema listing")
+
+        config_dict = {
+            "db_type": config_row["db_type"],
+            "host": config_row["host"],
+            "port": config_row["port"],
+            "database_name": target_db,
+            "username": config_row["username"],
+            "password": password,
+            "charset": config_row["charset"],
+            "max_pool_size": config_row["max_pool_size"],
+        }
+
+        temp_key = f"{config_id}:_temp_schemas_{target_db}"
+        engine = DBConnectionManager.get_engine(temp_key, config_dict)
+
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(
+                    text("SELECT schema_name FROM information_schema.schemata ORDER BY schema_name")
+                )
+                schemas = [row[0] for row in result]
+            return schemas
+        finally:
+            engine.dispose()
+
+    @staticmethod
     def get_database_structure(
         user_id: str, config_id: str, database_name: str, schema_name: Optional[str] = None
     ) -> Dict[str, List[Dict[str, Any]]]:

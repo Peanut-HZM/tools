@@ -188,6 +188,21 @@ async def get_databases_list(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/databases/{id}/schemas", response_model=List[str])
+async def get_schemas_list(
+    id: str = PathParam(..., description="Configuration ID"),
+    database_name: Optional[str] = Query(None, description="Database Name (PostgreSQL)"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """List schemas for a specific database (PostgreSQL)"""
+    try:
+        return DatabaseToolService.get_schemas_list(user_id, id, database_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/databases/{id}/structure", response_model=Dict[str, List[Dict[str, Any]]])
 async def get_database_structure(
     id: str = PathParam(..., description="Configuration ID"),
