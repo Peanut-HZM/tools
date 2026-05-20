@@ -1115,9 +1115,17 @@ class DatabaseToolService:
 
     @staticmethod
     def get_database_structure(
-        user_id: str, config_id: str, database_name: str
+        user_id: str, config_id: str, database_name: str, schema_name: Optional[str] = None
     ) -> Dict[str, List[Dict[str, Any]]]:
-        cache_key = f"{config_id}:{database_name}"
+        # 如果 database_name 包含 "database:schema" 格式，解析它
+        actual_db_name = database_name
+        actual_schema_name = schema_name
+        if ":" in database_name:
+            parts = database_name.split(":", 1)
+            actual_db_name = parts[0]
+            actual_schema_name = parts[1]
+
+        cache_key = f"{config_id}:{actual_db_name}:{actual_schema_name}"
 
         # 1. 查后端缓存
         cached = _STRUCTURE_CACHE.get(cache_key)
@@ -1137,24 +1145,22 @@ class DatabaseToolService:
             "db_type": config_row["db_type"],
             "host": config_row["host"],
             "port": config_row["port"],
-            "database_name": database_name,
+            "database_name": actual_db_name,
             "username": config_row["username"],
             "password": password,
             "charset": config_row["charset"],
         }
 
         # Use a temporary config_id to avoid caching/conflict with main connection
-        temp_config_id = f"{config_id}:{database_name}"
+        temp_config_id = f"{config_id}:{actual_db_name}"
 
         try:
             engine = DBConnectionManager.get_engine(temp_config_id, config_dict)
-            inspector = inspect(engine)
             db_type = config_row["db_type"]
 
             tables_data = []
             views_data = []
 
-            # Optimized fetching for MySQL/MariaDB: UNION ALL 合并 tables + views 查询
             if db_type == DatabaseType.MYSQL or db_type == DatabaseType.MARIADB:
                 with engine.connect() as conn:
                     sql = text("""
@@ -1167,16 +1173,47 @@ class DatabaseToolService:
                         WHERE TABLE_SCHEMA = :schema
                         ORDER BY TABLE_NAME
                     """)
-                    result = conn.execute(sql, {"schema": database_name})
+                    result = conn.execute(sql, {"schema": actual_db_name})
                     for row in result:
                         entry = {"name": row[0], "comment": row[1]}
                         if row[2] == 'table':
                             tables_data.append(entry)
                         else:
                             views_data.append(entry)
+
+            elif db_type == DatabaseType.POSTGRESQL:
+                pg_schema = actual_schema_name or "public"
+                with engine.connect() as conn:
+                    # 查询表（包含注释）
+                    sql_tables = text("""
+                        SELECT c.relname AS table_name,
+                               obj_description(c.oid, 'pg_class') AS table_comment
+                        FROM pg_class c
+                        JOIN pg_namespace n ON n.oid = c.relnamespace
+                        WHERE c.relkind = 'r'  -- regular table
+                        AND n.nspname = :schema
+                        ORDER BY c.relname
+                    """)
+                    result = conn.execute(sql_tables, {"schema": pg_schema})
+                    for row in result:
+                        tables_data.append({"name": row[0], "comment": row[1]})
+
+                    # 查询视图
+                    sql_views = text("""
+                        SELECT c.relname AS view_name
+                        FROM pg_class c
+                        JOIN pg_namespace n ON n.oid = c.relnamespace
+                        WHERE c.relkind = 'v'  -- view
+                        AND n.nspname = :schema
+                        ORDER BY c.relname
+                    """)
+                    result = conn.execute(sql_views, {"schema": pg_schema})
+                    for row in result:
+                        views_data.append({"name": row[0], "comment": None})
+
             else:
-                # Fallback for other DBs (N+1 for comments or just names)
-                # For now, just names to avoid performance hit, unless we implement specific queries
+                # 其他数据库类型保持原有逻辑
+                inspector = inspect(engine)
                 for name in inspector.get_table_names():
                     try:
                         comment = inspector.get_table_comment(name).get("text")

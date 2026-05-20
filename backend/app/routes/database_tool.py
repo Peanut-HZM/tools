@@ -192,11 +192,12 @@ async def get_databases_list(
 async def get_database_structure(
     id: str = PathParam(..., description="Configuration ID"),
     database_name: str = Query(..., description="Database Name"),
+    schema_name: Optional[str] = Query(None, description="Schema Name (PostgreSQL only)"),
     user_id: str = Depends(get_current_user_id),
 ):
-    """Get structure (tables, views) for a specific database"""
+    """Get structure (tables, views) for a specific database/schema"""
     try:
-        return DatabaseToolService.get_database_structure(user_id, id, database_name)
+        return DatabaseToolService.get_database_structure(user_id, id, database_name, schema_name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
