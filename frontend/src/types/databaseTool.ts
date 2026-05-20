@@ -271,5 +271,6 @@ export interface BackupListResponse {
 export interface DisplayPreferences {
   visible_connections: string[] | null;
   visible_databases: Record<string, string[]>;
+  visible_schemas?: Record<string, string[]>; // configId -> schema[] 过滤（PostgreSQL）
   updated_at?: string;
 }

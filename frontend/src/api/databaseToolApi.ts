@@ -191,8 +191,9 @@ export async function truncateTableInstance(id: string, table: string, databaseN
 // In-flight 请求去重：相同 (id, databaseName) 的并发请求共享同一个 Promise
 const pendingStructureRequests = new Map<string, Promise<DatabaseStructure>>();
 
-export async function getDatabaseStructure(id: string, databaseName: string): Promise<DatabaseStructure> {
-  const cacheKey = `structure:${id}:${databaseName}`;
+export async function getDatabaseStructure(id: string, databaseName: string, schemaName?: string): Promise<DatabaseStructure> {
+  const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
+  const cacheKey = `structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`;
 
   // 1. 查 IndexedDB 缓存
   const cached = await DBCache.get<DatabaseStructure>(cacheKey);
@@ -206,7 +207,7 @@ export async function getDatabaseStructure(id: string, databaseName: string): Pr
   // 3. 发起请求并注册到 in-flight 追踪
   const requestPromise = (async () => {
     try {
-      const response = await fetch(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}`, {
+      const response = await fetch(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
         headers: getAuthHeaders()
       });
       const data = await handleResponse<DatabaseStructure>(response);
