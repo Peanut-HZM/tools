@@ -1057,12 +1057,49 @@ class DatabaseToolService:
                     result = conn.execute(text("SHOW DATABASES"))
                     databases = [row[0] for row in result]
                 elif db_type == DatabaseType.POSTGRESQL:
-                    result = conn.execute(
-                        text(
-                            "SELECT datname FROM pg_database WHERE datistemplate = false"
+                    # 如果配置中指定了 database_name，则返回该数据库下的 schema 列表
+                    # 否则返回所有数据库的所有 schema（格式: "database:schema"）
+                    target_db = config_row.get("database_name")
+                    if target_db:
+                        # 连接指定数据库，查询所有 schema
+                        result = conn.execute(
+                            text(
+                                "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"
+                            )
                         )
-                    )
-                    databases = [row[0] for row in result]
+                        databases = [row[0] for row in result]
+                    else:
+                        # 查询所有非模板数据库
+                        db_result = conn.execute(
+                            text(
+                                "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
+                            )
+                        )
+                        db_names = [row[0] for row in db_result]
+                        # 对每个数据库查询其 schema
+                        for db_name in db_names:
+                            try:
+                                schema_config = config_dict.copy()
+                                schema_config["database_name"] = db_name
+                                temp_key = f"{config_id}:_temp_{db_name}"
+                                temp_engine = DBConnectionManager.get_engine(
+                                    temp_key, schema_config
+                                )
+                                with temp_engine.connect() as db_conn:
+                                    schema_result = db_conn.execute(
+                                        text(
+                                            "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"
+                                        )
+                                    )
+                                    for schema_row in schema_result:
+                                        databases.append(
+                                            f"{db_name}:{schema_row[0]}"
+                                        )
+                                temp_engine.dispose()
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to get schemas for {db_name}: {e}"
+                                )
                 elif db_type == DatabaseType.SQLSERVER:
                     result = conn.execute(text("SELECT name FROM sys.databases"))
                     databases = [row[0] for row in result]
