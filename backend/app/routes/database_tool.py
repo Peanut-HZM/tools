@@ -452,6 +452,7 @@ async def query_table_data(
     """Query table data with filtering and sorting"""
     try:
         database_name = request.get("database_name")
+        schema_name = request.get("schema_name")
         where_clause = request.get("where")
         order_by_clause = request.get("order_by")
         page = request.get("page", 1)
@@ -462,6 +463,7 @@ async def query_table_data(
             id,
             table,
             database_name=database_name,
+            schema_name=schema_name,
             where_clause=where_clause,
             order_by_clause=order_by_clause,
             page=page,

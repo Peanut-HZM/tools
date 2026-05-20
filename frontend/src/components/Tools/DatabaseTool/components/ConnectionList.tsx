@@ -357,7 +357,12 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
     e.stopPropagation();
     onToggleExpand();
 
-    if (!isExpanded && !loaded && !config.database_name) {
+    // PostgreSQL: always fetch when expanding (schemas need to be loaded regardless of database_name config)
+    if (!isExpanded && !loaded && config.db_type === 'postgresql') {
+      await fetchDatabases();
+    }
+    // Other DBs: only fetch when no database_name is configured
+    else if (!isExpanded && !loaded && !config.database_name) {
       await fetchDatabases();
     }
   };

@@ -1380,6 +1380,7 @@ class DatabaseToolService:
         config_id: str,
         table_name: str,
         database_name: Optional[str] = None,
+        schema_name: Optional[str] = None,
         where_clause: Optional[str] = None,
         order_by_clause: Optional[str] = None,
         page: int = 1,
@@ -1428,8 +1429,16 @@ class DatabaseToolService:
         # Basic validation to prevent simple injection of "; DROP TABLE" style attacks if possible,
         # though user has SQL execution rights anyway via the main tool.
 
-        sql = f"SELECT * FROM {table_name}"
-        count_sql = f"SELECT COUNT(*) FROM {table_name}"
+        db_type = config_row["db_type"]
+
+        # Schema-qualified table name for PostgreSQL
+        if db_type == DatabaseType.POSTGRESQL and schema_name:
+            qualified_table = f'"{schema_name}"."{table_name}"'
+        else:
+            qualified_table = table_name
+
+        sql = f"SELECT * FROM {qualified_table}"
+        count_sql = f"SELECT COUNT(*) FROM {qualified_table}"
 
         if where_clause and where_clause.strip():
             sql += f" WHERE {where_clause}"
