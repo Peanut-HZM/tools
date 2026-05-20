@@ -428,11 +428,12 @@ async def get_table_schema(
     id: str = PathParam(..., description="Configuration ID"),
     table: str = PathParam(..., description="Table Name"),
     database_name: Optional[str] = Query(None, description="Database Name"),
+    schema_name: Optional[str] = Query(None, description="Schema Name (PostgreSQL only)"),
     user_id: str = Depends(get_current_user_id),
 ):
     """Get table schema structure"""
     try:
-        return DatabaseToolService.get_table_schema(user_id, id, table, database_name)
+        return DatabaseToolService.get_table_schema(user_id, id, table, database_name, schema_name)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -649,11 +650,12 @@ async def get_table_detail(
     id: str = PathParam(..., description="Configuration ID"),
     table: str = PathParam(..., description="Table Name"),
     database_name: str = Query(..., description="Database Name"),
+    schema_name: Optional[str] = Query(None, description="Schema Name (PostgreSQL only)"),
     user_id: str = Depends(get_current_user_id),
 ):
     """获取表详细结构（字段、索引、外键）"""
     try:
-        return DatabaseToolService.get_table_detail(user_id, id, table, database_name)
+        return DatabaseToolService.get_table_detail(user_id, id, table, database_name, schema_name)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -665,11 +667,12 @@ async def get_table_row_count(
     id: str = PathParam(..., description="Configuration ID"),
     table: str = PathParam(..., description="Table Name"),
     database_name: str = Query(..., description="Database Name"),
+    schema_name: Optional[str] = Query(None, description="Schema Name (PostgreSQL only)"),
     user_id: str = Depends(get_current_user_id),
 ):
     """获取表行数"""
     try:
-        count = DatabaseToolService.get_table_row_count(user_id, id, table, database_name)
+        count = DatabaseToolService.get_table_row_count(user_id, id, table, database_name, schema_name)
         return {"table_name": table, "row_count": count}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

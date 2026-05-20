@@ -1262,6 +1262,7 @@ class DatabaseToolService:
         config_id: str,
         table_name: str,
         database_name: Optional[str] = None,
+        schema_name: Optional[str] = None,
     ) -> TableSchema:
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
         if not config_row:
@@ -1291,15 +1292,20 @@ class DatabaseToolService:
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
         inspector = inspect(engine)
 
+        # PostgreSQL: use schema-qualified table name
+        qualified_table_name = table_name
+        if config_row["db_type"] == DatabaseType.POSTGRESQL and schema_name:
+            qualified_table_name = f'"{schema_name}"."{table_name}"'
+
         # Get table comment
         table_comment = None
         try:
-            table_comment = inspector.get_table_comment(table_name).get("text")
+            table_comment = inspector.get_table_comment(qualified_table_name).get("text")
         except:
             pass
 
         columns = []
-        for col in inspector.get_columns(table_name):
+        for col in inspector.get_columns(qualified_table_name):
             # Convert SQLAlchemy type to string
             col["type"] = str(col["type"])
             # Ensure comment is present
@@ -1307,11 +1313,11 @@ class DatabaseToolService:
                 col["comment"] = None
             columns.append(col)
 
-        pk_constraint = inspector.get_pk_constraint(table_name)
+        pk_constraint = inspector.get_pk_constraint(qualified_table_name)
         primary_key = pk_constraint.get("constrained_columns", [])
 
-        indexes = inspector.get_indexes(table_name)
-        foreign_keys = inspector.get_foreign_keys(table_name)
+        indexes = inspector.get_indexes(qualified_table_name)
+        foreign_keys = inspector.get_foreign_keys(qualified_table_name)
 
         return TableSchema(
             table_name=table_name,
@@ -1679,9 +1685,7 @@ class DatabaseToolService:
                             }
                         )
 
-            # PostgreSQL: Search in current DB only (due to isolation)
-            # Or we could try to iterate over all DBs, but that's expensive.
-            # For now, search in the connected database.
+            # PostgreSQL: Search in current DB, return schema info
             elif db_type == DatabaseType.POSTGRESQL:
                 engine = DBConnectionManager.get_engine(config_id, config_dict)
                 with engine.connect() as conn:
@@ -1697,9 +1701,7 @@ class DatabaseToolService:
                     for row in rows:
                         results.append(
                             {
-                                "database": current_db,  # Postgres tables are in schema, but we list DBs.
-                                # Actually, get_databases_list lists DBs.
-                                # This search is limited to current DB.
+                                "database": f"{current_db}:{row[0]}",  # Include schema info
                                 "table": row[1],
                                 "type": "view"
                                 if "VIEW" in str(row[2]).upper()
@@ -2361,13 +2363,14 @@ class DatabaseToolService:
                     """)
                     )
                 elif db_type == DatabaseType.POSTGRESQL:
+                    schema_filter = request.schema_name or "public"
                     result = conn.execute(
                         text("""
                         SELECT tablename, ''
                         FROM pg_tables
-                        WHERE schemaname = 'public'
+                        WHERE schemaname = :schema
                         LIMIT 100
-                    """)
+                    """).bindparams(schema=schema_filter)
                     )
                 elif db_type == DatabaseType.SQLITE:
                     result = conn.execute(
@@ -2912,6 +2915,7 @@ class DatabaseToolService:
         config_id: str,
         table_name: str,
         database_name: Optional[str] = None,
+        schema_name: Optional[str] = None,
     ) -> TableDetailResponse:
         """获取表详细结构（字段、索引、外键）"""
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
@@ -2938,19 +2942,24 @@ class DatabaseToolService:
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
         inspector = inspect(engine)
 
+        # PostgreSQL: use schema-qualified table name
+        qualified_table_name = table_name
+        if config_row["db_type"] == DatabaseType.POSTGRESQL and schema_name:
+            qualified_table_name = f'"{schema_name}"."{table_name}"'
+
         # 表注释
         table_comment = None
         try:
-            table_comment = inspector.get_table_comment(table_name).get("text")
+            table_comment = inspector.get_table_comment(qualified_table_name).get("text")
         except Exception:
             pass
 
         # 字段
         columns = []
-        pk_constraint = inspector.get_pk_constraint(table_name)
+        pk_constraint = inspector.get_pk_constraint(qualified_table_name)
         pk_columns = set(pk_constraint.get("constrained_columns", [])) if pk_constraint else set()
 
-        for idx, col in enumerate(inspector.get_columns(table_name)):
+        for idx, col in enumerate(inspector.get_columns(qualified_table_name)):
             col_type = str(col["type"])
             length = None
             if "(" in col_type:
@@ -2976,7 +2985,7 @@ class DatabaseToolService:
 
         # 索引
         indexes = []
-        for idx in inspector.get_indexes(table_name):
+        for idx in inspector.get_indexes(qualified_table_name):
             indexes.append(
                 IndexDetail(
                     name=idx["name"],
@@ -2988,7 +2997,7 @@ class DatabaseToolService:
 
         # 外键
         foreign_keys = []
-        for fk in inspector.get_foreign_keys(table_name):
+        for fk in inspector.get_foreign_keys(qualified_table_name):
             foreign_keys.append(
                 ForeignKeyDetail(
                     name=fk.get("name", ""),
@@ -3022,6 +3031,7 @@ class DatabaseToolService:
         config_id: str,
         table_name: str,
         database_name: str,
+        schema_name: Optional[str] = None,
     ) -> int:
         """获取表行数"""
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
@@ -3046,9 +3056,15 @@ class DatabaseToolService:
         engine_key = f"{config_id}:{database_name}"
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
 
+        # PostgreSQL: use schema-qualified table name for COUNT query
+        if config_row["db_type"] == DatabaseType.POSTGRESQL and schema_name:
+            table_ref = f'"{schema_name}"."{table_name}"'
+        else:
+            table_ref = f'"{table_name}"'
+
         try:
             with engine.connect() as conn:
-                result = conn.execute(text(f"SELECT COUNT(*) FROM \"{table_name}\""))
+                result = conn.execute(text(f"SELECT COUNT(*) FROM {table_ref}"))
                 return result.scalar() or 0
         except Exception as e:
             logger.warning(f"Failed to get row count for {table_name}: {e}")

@@ -239,6 +239,7 @@ class ExplainPlanResponse(BaseModel):
 class TablePreviewRequest(BaseModel):
     database_name: str
     table_name: str
+    schema_name: Optional[str] = None  # PostgreSQL schema 支持
     page: int = Field(1, ge=1)
     page_size: int = Field(20, ge=1, le=1000)
     order_by: Optional[str] = None
@@ -260,6 +261,7 @@ class TablePreviewResponse(BaseModel):
 class AutoCompleteRequest(BaseModel):
     query: str
     database_name: Optional[str] = None
+    schema_name: Optional[str] = None  # PostgreSQL schema 支持
     position: int = Field(0, description="光标位置")
 
 
