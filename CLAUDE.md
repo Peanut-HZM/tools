@@ -101,13 +101,34 @@ tools/
 
 ## 开发规范
 
-**重要**: 本项目有严格的开发规范，详见 [AGENTS.md](AGENTS.md)，核心要求：
+**重要**: 核心开发规则如下：
 
 1. **语言**: 所有对话和代码注释使用中文
 2. **热重载**: 优先使用热重载，非必要不重启服务
 3. **最小变更**: 只修改必要的代码，不改动已正常的业务逻辑
 4. **编译验证**: 修改后必须验证能正常编译
 5. **日志**: 后端关键代码必须包含日志记录
+6. **服务重启**: 完成代码修改后，必须使用 `dev_services.py` 脚本重启相关模块以应用变更
+
+### 服务重启规则
+
+完成前后端代码修改后，执行以下步骤：
+
+```bash
+# 重启前后端服务
+python dev_services.py restart
+
+# 或仅重启后端（只修改了后端代码时）
+python dev_services.py restart backend
+
+# 或仅重启前端（只修改了前端代码时）
+python dev_services.py restart frontend
+
+# 确认服务状态
+python dev_services.py status
+```
+
+**注意**: 不要手动使用 `uvicorn` 或 `npm run dev` 重启服务，统一通过 `dev_services.py` 管理。
 
 ## 配置
 
