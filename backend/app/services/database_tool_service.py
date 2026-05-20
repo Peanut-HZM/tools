@@ -1105,36 +1105,47 @@ class DatabaseToolService:
                         databases = [row[0] for row in result]
                     else:
                         # 查询所有非模板数据库
-                        db_result = conn.execute(
-                            text(
-                                "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
-                            )
+                        # 先用 postgres 系统库建立连接（因为没有指定 database_name 时 PG 无法直接连接）
+                        fallback_config = config_dict.copy()
+                        fallback_config["database_name"] = "postgres"
+                        temp_key = f"{config_id}:_temp_postgres_fallback"
+                        fallback_engine = DBConnectionManager.get_engine(
+                            temp_key, fallback_config
                         )
-                        db_names = [row[0] for row in db_result]
-                        # 对每个数据库查询其 schema
-                        for db_name in db_names:
-                            try:
-                                schema_config = config_dict.copy()
-                                schema_config["database_name"] = db_name
-                                temp_key = f"{config_id}:_temp_{db_name}"
-                                temp_engine = DBConnectionManager.get_engine(
-                                    temp_key, schema_config
-                                )
-                                with temp_engine.connect() as db_conn:
-                                    schema_result = db_conn.execute(
-                                        text(
-                                            "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"
-                                        )
+                        try:
+                            with fallback_engine.connect() as fallback_conn:
+                                db_result = fallback_conn.execute(
+                                    text(
+                                        "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
                                     )
-                                    for schema_row in schema_result:
-                                        databases.append(
-                                            f"{db_name}:{schema_row[0]}"
-                                        )
-                                temp_engine.dispose()
-                            except Exception as e:
-                                logger.warning(
-                                    f"Failed to get schemas for {db_name}: {e}"
                                 )
+                                db_names = [row[0] for row in db_result]
+                            # 对每个数据库查询其 schema
+                            for db_name in db_names:
+                                try:
+                                    schema_config = config_dict.copy()
+                                    schema_config["database_name"] = db_name
+                                    temp_key = f"{config_id}:_temp_{db_name}"
+                                    temp_engine = DBConnectionManager.get_engine(
+                                        temp_key, schema_config
+                                    )
+                                    with temp_engine.connect() as db_conn:
+                                        schema_result = db_conn.execute(
+                                            text(
+                                                "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"
+                                            )
+                                        )
+                                        for schema_row in schema_result:
+                                            databases.append(
+                                                f"{db_name}:{schema_row[0]}"
+                                            )
+                                    temp_engine.dispose()
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Failed to get schemas for {db_name}: {e}"
+                                    )
+                        finally:
+                            fallback_engine.dispose()
                 elif db_type == DatabaseType.SQLSERVER:
                     result = conn.execute(text("SELECT name FROM sys.databases"))
                     databases = [row[0] for row in result]

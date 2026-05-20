@@ -575,27 +575,39 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
                 ))
               ) : (
                 // 未指定 database_name，databases 是 "database:schema" 格式
-                filteredDatabases.map(dbEntry => {
-                  const parts = dbEntry.split(':', 1);
-                  const pgDbName = parts.length > 1 ? parts[0] : (config.database_name || dbEntry);
-                  const schemaName = parts.length > 1 ? parts[1] : dbEntry;
+                (() => {
+                  // 按数据库分组
+                  const grouped: Record<string, string[]> = {};
+                  filteredDatabases.forEach(dbEntry => {
+                    const parts = dbEntry.split(':');
+                    if (parts.length === 2) {
+                      const [dbName, schemaName] = parts;
+                      if (!grouped[dbName]) grouped[dbName] = [];
+                      grouped[dbName].push(schemaName);
+                    } else {
+                      // 兼容没有冒号的条目
+                      const fallbackDb = config.database_name || dbEntry;
+                      if (!grouped[fallbackDb]) grouped[fallbackDb] = [];
+                      grouped[fallbackDb].push(dbEntry);
+                    }
+                  });
 
-                  return (
-                    <SchemaNode
-                      key={dbEntry}
+                  return Object.entries(grouped).map(([dbName, schemas]) => (
+                    <PostgresDatabaseNode
+                      key={dbName}
                       configId={config.id}
-                      dbName={pgDbName}
-                      schemaName={schemaName}
-                      onSelectTable={(table) => onSelectTable(config.id, pgDbName, table, schemaName)}
-                      onSelectSchema={() => onSelectDatabase(config.id, pgDbName)}
+                      dbName={dbName}
+                      schemaNames={schemas}
+                      onSelectTable={onSelectTable}
+                      onSelectDatabase={onSelectDatabase}
                       onOpenSqlConsole={onOpenSqlConsole}
-                      onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
-                      onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
+                      onOpenBackup={(d, tables) => onOpenBackup(config.id, d, tables)}
+                      onOpenBackupHistory={(d) => onOpenBackupHistory(config.id, d)}
                       searchTerm={searchTerm}
-                      activeSchemaName={activeDatabaseName}
+                      activeDatabaseName={activeDatabaseName}
                     />
-                  );
-                })
+                  ));
+                })()
               )}
               {databases.length === 0 && !loading && (
                 <div className="text-xs text-slate-500 py-1 px-2 italic">{t.search.noResults}</div>
@@ -1377,6 +1389,76 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
             tableName={modifyTable}
             onSuccess={onRefresh}
           />
+      )}
+    </div>
+  );
+};
+
+interface PostgresDatabaseNodeProps {
+  configId: string;
+  dbName: string;
+  schemaNames: string[];
+  onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
+  onSelectDatabase: (configId: string, dbName: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
+  onOpenBackup: (dbName: string, tables?: string[]) => void;
+  onOpenBackupHistory: (dbName: string) => void;
+  searchTerm: string;
+  activeDatabaseName?: string;
+}
+
+const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
+  configId, dbName, schemaNames, onSelectTable, onSelectDatabase,
+  onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, activeDatabaseName
+}) => {
+  const { t } = useI18n();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const filteredSchemas = searchTerm
+    ? schemaNames.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+    : schemaNames;
+
+  if (searchTerm && filteredSchemas.length === 0) return null;
+
+  const isActive = activeDatabaseName === dbName;
+
+  return (
+    <div className="text-sm select-none">
+      <div
+        className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
+          isActive ? 'bg-blue-600/20 text-blue-300' : 'text-slate-300 hover:bg-slate-700/50'
+        }`}
+        onClick={() => {
+          setIsExpanded(!isExpanded);
+          onSelectDatabase(configId, dbName);
+        }}
+      >
+        <span className="w-4 h-4 flex items-center justify-center">
+          <i className={`fas fa-chevron-right text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
+        </span>
+        <i className="fas fa-database text-blue-500/80 text-xs"></i>
+        <span className="truncate font-medium">{dbName}</span>
+        <span className="text-[10px] bg-slate-700 px-1 rounded-full">{filteredSchemas.length}</span>
+      </div>
+
+      {isExpanded && (
+        <div className="ml-4 pl-2 border-l border-slate-700 mt-1 space-y-0.5">
+          {filteredSchemas.map(schema => (
+            <SchemaNode
+              key={schema}
+              configId={configId}
+              dbName={dbName}
+              schemaName={schema}
+              onSelectTable={(table) => onSelectTable(configId, dbName, table, schema)}
+              onSelectSchema={() => onSelectDatabase(configId, dbName)}
+              onOpenSqlConsole={onOpenSqlConsole}
+              onOpenBackup={(d, tables) => onOpenBackup(d, tables)}
+              onOpenBackupHistory={(d) => onOpenBackupHistory(d)}
+              searchTerm={searchTerm}
+              activeSchemaName={activeDatabaseName}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
