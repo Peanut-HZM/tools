@@ -9,6 +9,7 @@ import ResizablePanel from '../CursorHistory/ResizablePanel';
 interface SqlTabState {
   configId: string;
   databaseName: string;
+  schemaName: string;
   sql: string;
 }
 
@@ -107,6 +108,7 @@ const DatabaseToolContent: React.FC = () => {
     const sqlState: SqlTabState | undefined = configId ? {
       configId,
       databaseName: databaseName || '',
+      schemaName: '',
       sql: initialSql || '',
     } : undefined;
 
@@ -121,16 +123,17 @@ const DatabaseToolContent: React.FC = () => {
   };
 
   // 左→右联动：左侧点击连接/数据库时更新活跃Tab
-  const handleConnectionSelect = useCallback((configId: string, databaseName?: string) => {
+  const handleConnectionSelect = useCallback((configId: string, databaseName?: string, schemaName?: string) => {
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (activeTab?.type === 'sql') {
       const db = databaseName || configs.find(c => c.id === configId)?.database_name || '';
+      const schema = schemaName || '';
       const currentSql = activeTab.sqlState?.sql || '';
-      setTabs(prev => prev.map(t => 
-        t.id === activeTabId 
-          ? { 
-              ...t, 
-              sqlState: { configId, databaseName: db, sql: currentSql },
+      setTabs(prev => prev.map(t =>
+        t.id === activeTabId
+          ? {
+              ...t,
+              sqlState: { configId, databaseName: db, schemaName: schema, sql: currentSql },
               title: deriveTabTitle(configId, db, configs)
             }
           : t
@@ -141,12 +144,12 @@ const DatabaseToolContent: React.FC = () => {
   }, [tabs, activeTabId, configs]);
 
   // 右→左联动：SQLExecutor内状态变更时更新Tab
-  const handleSqlStateChange = useCallback((tabId: string, state: { configId: string; database: string; sql: string }) => {
-    setTabs(prev => prev.map(t => 
-      t.id === tabId 
-        ? { 
-            ...t, 
-            sqlState: { configId: state.configId, databaseName: state.database, sql: state.sql },
+  const handleSqlStateChange = useCallback((tabId: string, state: { configId: string; database: string; schema?: string; sql: string }) => {
+    setTabs(prev => prev.map(t =>
+      t.id === tabId
+        ? {
+            ...t,
+            sqlState: { configId: state.configId, databaseName: state.database, schemaName: state.schema || '', sql: state.sql },
             title: deriveTabTitle(state.configId, state.database, configs)
           }
         : t
@@ -227,6 +230,7 @@ const DatabaseToolContent: React.FC = () => {
                 <SQLExecutor
                   configId={tab.sqlState?.configId || ''}
                   database={tab.sqlState?.databaseName || ''}
+                  schema={tab.sqlState?.schemaName || ''}
                   sql={tab.sqlState?.sql || ''}
                   onStateChange={(state) => handleSqlStateChange(tab.id, state)}
                 />

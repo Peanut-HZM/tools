@@ -10,13 +10,15 @@ import { useI18n } from '../../../i18n';
 interface SQLExecutorProps {
   configId: string;
   database: string;
+  schema: string;
   sql: string;
-  onStateChange: (state: { configId: string; database: string; sql: string }) => void;
+  onStateChange: (state: { configId: string; database: string; schema?: string; sql: string }) => void;
 }
 
-const SQLExecutor: React.FC<SQLExecutorProps> = ({ 
-  configId, 
+const SQLExecutor: React.FC<SQLExecutorProps> = ({
+  configId,
   database,
+  schema,
   sql,
   onStateChange
 }) => {
@@ -35,6 +37,8 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
   const [result, setResult] = useState<SQLExecutionResult | null>(null);
   const [databases, setDatabases] = useState<string[]>([]);
   const [dbLoading, setDbLoading] = useState(false);
+  const [schemas, setSchemas] = useState<string[]>([]);
+  const [schemaLoading, setSchemaLoading] = useState(false);
   const [tables, setTables] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -44,15 +48,30 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
       if (!currentConfig) {
         setDatabases([]);
         setTables([]);
+        setSchemas([]);
         return;
       }
 
       setDbLoading(true);
       try {
         const targetDb = currentDatabase || currentConfig.database_name;
-        const [dbs, structure] = await Promise.allSettled([
-          api.getDatabasesList(currentConfig.id),
-          targetDb ? api.getDatabaseStructure(currentConfig.id, targetDb) : Promise.resolve(null)
+        const isPostgres = currentConfig.db_type === 'postgresql';
+
+        const dbsPromise = api.getDatabasesList(currentConfig.id);
+
+        let schemasPromise: Promise<string[]> = Promise.resolve([]);
+        if (isPostgres && targetDb) {
+          schemasPromise = api.getSchemasList(currentConfig.id, targetDb).catch(() => []);
+        }
+
+        const structurePromise = targetDb
+          ? api.getDatabaseStructure(currentConfig.id, targetDb).catch(() => null)
+          : Promise.resolve(null);
+
+        const [dbs, structure, schemasResult] = await Promise.allSettled([
+          dbsPromise,
+          structurePromise,
+          schemasPromise,
         ]);
 
         if (dbs.status === 'fulfilled') {
@@ -66,10 +85,19 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
             ...structure.value.tables.map(t => t.name),
             ...structure.value.views.map(v => v.name)
           ]);
+        } else {
+          setTables([]);
+        }
+
+        if (schemasPromise && schemasResult.status === 'fulfilled') {
+          setSchemas(schemasResult.value);
+        } else {
+          setSchemas([]);
         }
       } catch (err) {
         console.error("Failed to load databases", err);
         setDatabases([]);
+        setSchemas([]);
       } finally {
         setDbLoading(false);
       }
@@ -97,6 +125,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
         db_config_id: configId,
         sql: sql,
         database_name: currentDatabase || undefined,
+        schema_name: (currentConfig?.db_type === 'postgresql' && schema) ? schema : undefined,
         page: targetPage,
         page_size: pageSize
       });
@@ -119,6 +148,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
     onStateChange({
       configId: newConfigId,
       database: newConfig?.database_name || '',
+      schema: '',
       sql
     });
   }, [configs, sql, onStateChange]);
@@ -127,9 +157,19 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
     onStateChange({
       configId,
       database: newDatabase,
+      schema: '',
       sql
     });
   }, [configId, sql, onStateChange]);
+
+  const handleSchemaChange = useCallback((newSchema: string) => {
+    onStateChange({
+      configId,
+      database,
+      schema: newSchema,
+      sql
+    });
+  }, [configId, database, sql, onStateChange]);
 
   const handleSqlChange = useCallback((newSql: string) => {
     onStateChange({
@@ -172,6 +212,30 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
                 ))}
               </select>
               {dbLoading && (
+                <div className="absolute right-2 top-1.5 pointer-events-none">
+                  <i className="fas fa-spinner fa-spin text-xs text-slate-400"></i>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentConfig && currentConfig.db_type === 'postgresql' && schemas.length > 0 && (
+          <div className="flex items-center space-x-2">
+            <label className="text-sm text-slate-400">Schema:</label>
+            <div className="relative">
+              <select
+                className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-blue-500 min-w-[150px] appearance-none pr-8"
+                value={schema || ''}
+                onChange={(e) => handleSchemaChange(e.target.value)}
+                disabled={schemaLoading}
+              >
+                <option value="">Default (public)</option>
+                {schemas.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              {schemaLoading && (
                 <div className="absolute right-2 top-1.5 pointer-events-none">
                   <i className="fas fa-spinner fa-spin text-xs text-slate-400"></i>
                 </div>
