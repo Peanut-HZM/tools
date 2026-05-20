@@ -91,6 +91,7 @@ class SQLExecutionRequest(BaseModel):
     sql: str
     params: Optional[Dict[str, Any]] = None
     database_name: Optional[str] = None  # Override database name
+    schema_name: Optional[str] = None  # Schema name for PostgreSQL
     page: Optional[int] = Field(None, ge=1, description="Page number for pagination")
     page_size: Optional[int] = Field(
         None, ge=1, le=1000, description="Page size for pagination"

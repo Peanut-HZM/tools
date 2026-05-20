@@ -942,10 +942,16 @@ class DatabaseToolService:
         }
 
         final_sql = request.sql
+
+        # PostgreSQL schema 注入：当指定了 schema_name 时，自动为未指定 schema 的表名添加前缀
+        if config_row["db_type"] == DatabaseType.POSTGRESQL and request.schema_name:
+            from app.utils.sql_schema_injector import process_sql_with_schema_injection
+            final_sql = process_sql_with_schema_injection(request.sql, request.schema_name)
+
         # Only apply auto-pagination if it's a single SELECT statement
         import sqlparse
 
-        statements = sqlparse.split(request.sql)
+        statements = sqlparse.split(final_sql)
         statements = [s for s in statements if s.strip()]
 
         if len(statements) == 1:
