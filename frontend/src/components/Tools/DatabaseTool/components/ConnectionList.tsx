@@ -11,6 +11,7 @@ import DDLDialog from './DDLDialog';
 import BackupDialog from './BackupDialog';
 import BackupHistoryDialog from './BackupHistoryDialog';
 import DisplaySettingsDialog from './DisplaySettingsDialog';
+import SchemaNode from './SchemaNode';
 import { DisplayPreferences } from '../../../../types/databaseTool';
 
 interface ConnectionListProps {
@@ -552,48 +553,101 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
 
       {isExpanded && (
         <div className="ml-4 pl-2 border-l border-slate-700 mt-1 space-y-1">
-          {config.database_name ? (
-            <DatabaseStructureNode
-                configId={config.id}
-                dbName={config.database_name}
-                onSelectTable={(table) => onSelectTable(config.id, config.database_name, table)}
-                onSelectDatabase={() => onSelectDatabase(config.id, config.database_name!)}
-                onOpenSqlConsole={onOpenSqlConsole}
-                onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
-                onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
-                searchTerm={searchTerm}
-                activeDatabaseName={activeDatabaseName}
-            />
-          ) : (
+          {config.db_type === 'postgresql' ? (
+            // PostgreSQL: 渲染 Schema 层级
             <>
-              {filteredDatabases.map(db => (
-                <DatabaseStructureNode
-                    key={db}
+              {config.database_name ? (
+                // 已指定 database_name，databases 是 schema 列表
+                filteredDatabases.map(schema => (
+                  <SchemaNode
+                    key={schema}
                     configId={config.id}
-                    dbName={db}
-                    onSelectTable={(table) => onSelectTable(config.id, db, table)}
-                    onSelectDatabase={() => onSelectDatabase(config.id, db)}
-                    onRefreshDatabases={fetchDatabases}
+                    dbName={config.database_name}
+                    schemaName={schema}
+                    onSelectTable={(table) => onSelectTable(config.id, config.database_name, table)}
+                    onSelectSchema={() => onSelectDatabase(config.id, config.database_name!)}
+                    onOpenSqlConsole={onOpenSqlConsole}
+                    onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
+                    onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
+                    searchTerm={searchTerm}
+                    activeSchemaName={activeDatabaseName}
+                  />
+                ))
+              ) : (
+                // 未指定 database_name，databases 是 "database:schema" 格式
+                filteredDatabases.map(dbEntry => {
+                  const parts = dbEntry.split(':', 1);
+                  const pgDbName = parts.length > 1 ? parts[0] : (config.database_name || dbEntry);
+                  const schemaName = parts.length > 1 ? parts[1] : dbEntry;
+
+                  return (
+                    <SchemaNode
+                      key={dbEntry}
+                      configId={config.id}
+                      dbName={pgDbName}
+                      schemaName={schemaName}
+                      onSelectTable={(table) => onSelectTable(config.id, pgDbName, table)}
+                      onSelectSchema={() => onSelectDatabase(config.id, pgDbName)}
+                      onOpenSqlConsole={onOpenSqlConsole}
+                      onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
+                      onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
+                      searchTerm={searchTerm}
+                      activeSchemaName={activeDatabaseName}
+                    />
+                  );
+                })
+              )}
+              {databases.length === 0 && !loading && (
+                <div className="text-xs text-slate-500 py-1 px-2 italic">{t.search.noResults}</div>
+              )}
+            </>
+          ) : (
+            // 其他数据库: 保持原有逻辑
+            <>
+              {config.database_name ? (
+                <DatabaseStructureNode
+                    configId={config.id}
+                    dbName={config.database_name}
+                    onSelectTable={(table) => onSelectTable(config.id, config.database_name, table)}
+                    onSelectDatabase={() => onSelectDatabase(config.id, config.database_name!)}
                     onOpenSqlConsole={onOpenSqlConsole}
                     onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
                     onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
                     searchTerm={searchTerm}
                     activeDatabaseName={activeDatabaseName}
                 />
-              ))}
-              {databases.length === 0 && !loading && (
-                 <div className="text-xs text-slate-500 py-1 px-2 italic">{t.search.noResults}</div>
-              )}
-              {databases.length > 0 && databasesToShow.length === 0 && (
-                 <div className="text-xs text-slate-500 py-1 px-2 italic">
-                   {t.database.status.hiddenByFilter}
-                   <button
-                     onClick={handleFilterClick}
-                     className="ml-2 text-blue-400 hover:underline"
-                   >
-                     {t.database.executor.clear}
-                   </button>
-                 </div>
+              ) : (
+                <>
+                  {filteredDatabases.map(db => (
+                    <DatabaseStructureNode
+                        key={db}
+                        configId={config.id}
+                        dbName={db}
+                        onSelectTable={(table) => onSelectTable(config.id, db, table)}
+                        onSelectDatabase={() => onSelectDatabase(config.id, db)}
+                        onRefreshDatabases={fetchDatabases}
+                        onOpenSqlConsole={onOpenSqlConsole}
+                        onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
+                        onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
+                        searchTerm={searchTerm}
+                        activeDatabaseName={activeDatabaseName}
+                    />
+                  ))}
+                  {databases.length === 0 && !loading && (
+                     <div className="text-xs text-slate-500 py-1 px-2 italic">{t.search.noResults}</div>
+                  )}
+                  {databases.length > 0 && databasesToShow.length === 0 && (
+                     <div className="text-xs text-slate-500 py-1 px-2 italic">
+                       {t.database.status.hiddenByFilter}
+                       <button
+                         onClick={handleFilterClick}
+                         className="ml-2 text-blue-400 hover:underline"
+                       >
+                         {t.database.executor.clear}
+                       </button>
+                     </div>
+                  )}
+                </>
               )}
             </>
           )}
