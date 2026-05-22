@@ -491,13 +491,29 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       })
       : databasesToShow;
 
+const handleSelectAndExpand = async () => {
+    // 选中连接
+    onSelect();
+    // 切换展开/收起状态（与点击箭头一致的效果）
+    const willExpand = !isExpanded;
+    onToggleExpand();
+    // 只在展开且未加载数据时加载
+    if (willExpand && !loaded) {
+      if (config.db_type === 'postgresql') {
+        await fetchDatabases();
+      } else if (!config.database_name) {
+        await fetchDatabases();
+      }
+    }
+  };
+
   return (
     <div className="select-none">
       <div
         className={`p-2 rounded-md cursor-pointer group flex items-center justify-between transition-colors ${
           isSelected ? 'bg-blue-600/20 text-blue-100 border border-blue-600/50' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
         }`}
-        onClick={onSelect}
+        onClick={handleSelectAndExpand}
         onContextMenu={handleContextMenu}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
