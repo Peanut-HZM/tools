@@ -49,6 +49,7 @@ dist-ssr/
 # Build outputs
 *.tsbuildinfo
 .cache/
+.swc/
 
 # Environment variables
 .env.local
@@ -80,6 +81,7 @@ design/
 
 # Git Worktrees
 .worktrees/
+.claude/worktrees/
 
 # Database files
 *.db
@@ -89,6 +91,7 @@ cursor_history.db
 .gstack/
 .playwright-mcp
 .opencode
+.superpowers/
 
 # AI Agent metadata
 .omc/
