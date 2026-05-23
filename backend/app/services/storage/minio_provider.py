@@ -16,13 +16,15 @@ class MinioProvider(StorageProvider):
     """Minio storage provider using minio SDK"""
 
     def __init__(self):
+        api_endpoint = getattr(settings, "MINIO_API_ENDPOINT", "") or settings.MINIO_ENDPOINT
+        is_internal = api_endpoint.startswith(("127.", "localhost", "192.168.", "10."))
         self._client = Minio(
-            settings.MINIO_ENDPOINT,
+            api_endpoint,
             access_key=settings.MINIO_ACCESS_KEY,
             secret_key=settings.MINIO_SECRET_KEY,
-            secure=settings.MINIO_SECURE,
+            secure=not is_internal and settings.MINIO_SECURE,
         )
-        self._endpoint = (
+        self._public_endpoint = (
             f"https://{settings.MINIO_ENDPOINT}"
             if settings.MINIO_SECURE
             else f"http://{settings.MINIO_ENDPOINT}"
@@ -41,7 +43,7 @@ class MinioProvider(StorageProvider):
 
     @property
     def base_url(self) -> str:
-        return f"{self._endpoint}/{self._bucket_name}"
+        return f"{self._public_endpoint}/{self._bucket_name}"
 
     def upload_file(
         self,
@@ -51,10 +53,6 @@ class MinioProvider(StorageProvider):
         content_type: str,
         metadata: dict[str, str] | None = None,
     ) -> str:
-        headers = {}
-        if content_type:
-            headers["Content-Type"] = content_type
-
         # Convert metadata dict to Minio user metadata (x-amz-meta-* prefix)
         minio_metadata = None
         if metadata:
@@ -66,7 +64,6 @@ class MinioProvider(StorageProvider):
             data,
             length=size,
             content_type=content_type or "application/octet-stream",
-            headers=headers,
             metadata=minio_metadata,
         )
         return f"{self.base_url}/{object_name}"
