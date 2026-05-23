@@ -50,12 +50,15 @@ def get_oss_client():
 
 
 def get_minio_client():
-    """Get Minio client"""
+    """Get Minio client — prefer internal API endpoint if available"""
+    api_endpoint = getattr(settings, "MINIO_API_ENDPOINT", "") or settings.MINIO_ENDPOINT
+    # Use secure=False for internal API (HTTP), secure=True for public endpoint (HTTPS)
+    is_internal = api_endpoint.startswith(("127.", "localhost", "192.168.", "10."))
     client = Minio(
-        settings.MINIO_ENDPOINT,
+        api_endpoint,
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY,
-        secure=settings.MINIO_SECURE,
+        secure=not is_internal and settings.MINIO_SECURE,
     )
     return client, settings.MINIO_BUCKET_NAME
 
@@ -135,7 +138,7 @@ def migrate_file(oss_bucket, minio_client, minio_bucket, obj) -> bool:
                 object_key,
                 BytesIO(content),
                 length=len(content),
-                content_type=obj.content_type or "application/octet-stream",
+                content_type=getattr(obj, "content_type", None) or "application/octet-stream",
             )
 
             # Verify size

@@ -75,6 +75,7 @@ class Settings(BaseSettings):
 
     # Minio 配置
     MINIO_ENDPOINT: str = "minio.peanuthzm.com.cn"
+    MINIO_API_ENDPOINT: str = ""  # 内网 API 地址（如 127.0.0.1:9000），为空则使用 MINIO_ENDPOINT
     MINIO_ACCESS_KEY: str = "admin"
     MINIO_SECRET_KEY: str = "MinioAdmin@2025!"
     MINIO_BUCKET_NAME: str = "tools-files"
