@@ -86,22 +86,22 @@ def get_device_id_from_header(
 
 
 def get_oss_upload_url(oss_key: str) -> str:
-    """获取 OSS 上传 URL"""
-    return f"https://{settings.ALIYUN_OSS_BUCKET_NAME}.{settings.ALIYUN_OSS_ENDPOINT}/{oss_key}"
+    """获取 OSS 上传 URL（根据当前 provider 动态生成）"""
+    from app.services.oss_service import oss_service
+    return f"{oss_service._storage.provider.base_url}/{oss_key}"
 
 
 def get_oss_download_url(oss_key: str, expires: int = 3600) -> str:
     """获取 OSS 下载 URL（带签名）"""
     from app.services.oss_service import oss_service
 
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         # 如果 OSS 未初始化，返回公共读 URL（降级）
-        logger.warning("OSS bucket not initialized, returning public URL")
-        return f"https://{settings.ALIYUN_OSS_BUCKET_NAME}.{settings.ALIYUN_OSS_ENDPOINT}/{oss_key}"
+        logger.warning("OSS service not available, returning public URL")
+        return f"{oss_service._storage.provider.base_url}/{oss_key}"
 
-    # 生成签名 URL，expires 单位是秒
-    # sign_url 方法会自动生成包含 OSSAccessKeyId、Expires 和 Signature 的 URL
-    download_url = oss_service.bucket.sign_url('GET', oss_key, expires)
+    # 生成签名 URL
+    download_url = oss_service.sign_url('GET', oss_key, expires)
 
     # 确保使用 HTTPS
     if download_url.startswith('http://'):
@@ -381,7 +381,7 @@ async def upload_file(
     oss_key = f"cross_share/{current_user}/{timestamp}/{unique_id}_{file_name}"
 
     # 上传到 OSS
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=500, detail="OSS 服务未初始化")
 
     try:
@@ -390,9 +390,15 @@ async def upload_file(
         file_size = len(file_content)
 
         # 上传到 OSS
-        result = oss_service.bucket.put_object(oss_key, io.BytesIO(file_content))
-        if result.status != 200:
-            raise HTTPException(status_code=500, detail=f"上传到 OSS 失败，状态码：{result.status}")
+        url = oss_service.upload_file(
+            object_name=oss_key,
+            data=io.BytesIO(file_content),
+            size=file_size,
+            content_type=file_type,
+            uploaded_by="system",
+        )
+        if not url:
+            raise HTTPException(status_code=500, detail="上传到 OSS 失败")
 
         logger.info(f"File uploaded successfully: {file_name}, size: {file_size} bytes")
     except Exception as e:
@@ -403,8 +409,8 @@ async def upload_file(
     if file_size > config.max_file_size:
         # 上传成功后删除文件
         try:
-            oss_service.bucket.delete_object(oss_key)
-        except:
+            oss_service.delete_file(oss_key)
+        except Exception:
             pass
         raise HTTPException(
             status_code=400,
@@ -415,8 +421,8 @@ async def upload_file(
     if stats["used_quota"] + file_size > config.storage_quota:
         # 上传成功后删除文件
         try:
-            oss_service.bucket.delete_object(oss_key)
-        except:
+            oss_service.delete_file(oss_key)
+        except Exception:
             pass
         raise HTTPException(status_code=400, detail="存储空间不足")
 
@@ -615,12 +621,12 @@ async def get_file_content(
     if not file:
         raise HTTPException(status_code=404, detail="文件不存在")
 
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=500, detail="OSS 服务未初始化")
 
     try:
         # 从 OSS 获取文件内容
-        obj = oss_service.bucket.get_object(file.oss_key)
+        obj = oss_service.get_object(file.oss_key)
         content = obj.read()
 
         # 根据文件扩展名设置正确的 Content-Type

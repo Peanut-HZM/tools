@@ -10,7 +10,6 @@ import io
 import logging
 from datetime import datetime
 from typing import List, Optional, Tuple
-import oss2
 
 from app.services.oss_service import oss_service
 
@@ -41,7 +40,7 @@ class OssVersionService:
         Returns:
             Tuple of (success: bool, version_id: str)
         """
-        if not oss_service.bucket:
+        if not oss_service.is_available():
             return False, ""
 
         try:
@@ -51,15 +50,22 @@ class OssVersionService:
 
             preview = content_preview or content[:200] if content else ""
             metadata = {
-                "x-oss-meta-created-at": timestamp,
-                "x-oss-meta-content-preview": preview[:200],
-                "x-oss-meta-original-path": file_path,
+                "created-at": timestamp,
+                "content-preview": preview[:200],
+                "original-path": file_path,
             }
 
             content_bytes = content.encode("utf-8")
             file_obj = io.BytesIO(content_bytes)
 
-            oss_service.bucket.put_object(version_path, file_obj, headers=metadata)
+            oss_service.upload_file(
+                object_name=version_path,
+                data=file_obj,
+                size=len(content_bytes),
+                content_type="text/markdown",
+                uploaded_by="system",
+                metadata=metadata,
+            )
 
             # Cleanup old versions if needed
             self._cleanup_old_versions(user_id, file_path)
@@ -79,32 +85,31 @@ class OssVersionService:
         Returns:
             List of version info dicts
         """
-        if not oss_service.bucket:
+        if not oss_service.is_available():
             return []
 
         try:
             prefix = f"{self.version_prefix}/{user_id}/{file_path}/"
             versions = []
 
-            for obj in oss2.ObjectIterator(oss_service.bucket, prefix=prefix):
-                version_id = os.path.splitext(os.path.basename(obj.key))[0]
+            for item in oss_service.list_files(prefix=prefix, max_keys=1000):
+                version_id = os.path.splitext(os.path.basename(item["key"]))[0]
 
                 # Parse version ID (timestamp_random)
                 parts = version_id.split("_")
                 timestamp = parts[0] if parts else ""
 
-                # Get metadata
-                try:
-                    head_result = oss_service.bucket.head_object(obj.key)
-                    preview = head_result.headers.get("x-oss-meta-content-preview", "")
-                except:
-                    preview = ""
+                # Get metadata via head_object
+                preview = ""
+                head = oss_service.head_object(item["key"])
+                if head:
+                    preview = head.get("x-oss-meta-content-preview", "")
 
                 versions.append(
                     {
                         "version_id": version_id,
                         "created_at": self._format_timestamp(timestamp),
-                        "size": obj.size,
+                        "size": item["size"],
                         "content_preview": preview,
                     }
                 )
@@ -128,12 +133,12 @@ class OssVersionService:
         Returns:
             Tuple of (success: bool, content: str)
         """
-        if not oss_service.bucket:
+        if not oss_service.is_available():
             return False, ""
 
         try:
             version_path = self._get_version_path(user_id, file_path, version_id)
-            result = oss_service.bucket.get_object(version_path)
+            result = oss_service.get_object(version_path)
             content = result.read().decode("utf-8")
             return True, content
 
@@ -151,7 +156,7 @@ class OssVersionService:
         Returns:
             Tuple of (success: bool, new_version_id: str)
         """
-        if not oss_service.bucket:
+        if not oss_service.is_available():
             return False, ""
 
         try:
@@ -191,12 +196,12 @@ class OssVersionService:
         Returns:
             True if successful
         """
-        if not oss_service.bucket:
+        if not oss_service.is_available():
             return False
 
         try:
             version_path = self._get_version_path(user_id, file_path, version_id)
-            oss_service.bucket.delete_object(version_path)
+            oss_service.delete_file(version_path)
             return True
 
         except Exception as e:
@@ -209,8 +214,8 @@ class OssVersionService:
             prefix = f"{self.version_prefix}/{user_id}/{file_path}/"
             versions = []
 
-            for obj in oss2.ObjectIterator(oss_service.bucket, prefix=prefix):
-                versions.append(obj.key)
+            for item in oss_service.list_files(prefix=prefix, max_keys=1000):
+                versions.append(item["key"])
 
             if len(versions) > self.max_versions:
                 versions.sort()
@@ -218,8 +223,8 @@ class OssVersionService:
 
                 for version_key in versions_to_delete:
                     try:
-                        oss_service.bucket.delete_object(version_key)
-                    except:
+                        oss_service.delete_file(version_key)
+                    except Exception:
                         pass
 
         except Exception as e:
@@ -231,7 +236,7 @@ class OssVersionService:
             if len(timestamp) >= 14:
                 dt = datetime.strptime(timestamp[:14], "%Y%m%d%H%M%S")
                 return dt.isoformat()
-        except:
+        except Exception:
             pass
         return timestamp
 

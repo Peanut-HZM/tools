@@ -70,6 +70,16 @@ class Settings(BaseSettings):
     ALIYUN_OSS_BUCKET_NAME: str = "oss-peanut"
     ALIYUN_OSS_CALLBACK_URL: str = ""
 
+    # Storage Provider Selection
+    STORAGE_PROVIDER: str = "aliyun_oss"  # "aliyun_oss" | "minio"
+
+    # Minio 配置
+    MINIO_ENDPOINT: str = "minio.peanuthzm.com.cn"
+    MINIO_ACCESS_KEY: str = "admin"
+    MINIO_SECRET_KEY: str = "MinioAdmin@2025!"
+    MINIO_BUCKET_NAME: str = "tools-files"
+    MINIO_SECURE: bool = True
+
     # Redis Cache for Token Usage
     CACHE_REDIS_HOST: str = "39.107.229.30"
     CACHE_REDIS_PORT: int = 6379

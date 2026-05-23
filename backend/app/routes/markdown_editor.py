@@ -32,7 +32,6 @@ router = APIRouter(prefix="/api/markdown-editor", tags=["markdown-editor"])
 
 
 from pydantic import BaseModel
-import oss2
 
 
 class RootPathRequest(BaseModel):
@@ -421,7 +420,7 @@ async def upload_markdown_to_oss(
     Upload a Markdown file to OSS.
     Only accepts .md, .markdown, .txt files.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     # Validate file type
@@ -481,7 +480,7 @@ async def read_markdown_from_oss(
     Read a Markdown file from OSS.
     Only allows reading files belonging to the current user.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     # Security check: Ensure user can only read their own files
@@ -492,7 +491,7 @@ async def read_markdown_from_oss(
 
     try:
         # Get object from OSS
-        result = oss_service.bucket.get_object(file_path)
+        result = oss_service.get_object(file_path)
         content = result.read().decode("utf-8")
 
         filename = os.path.basename(file_path)
@@ -503,9 +502,9 @@ async def read_markdown_from_oss(
             filename=filename,
             message="File read successfully",
         )
-    except oss2.exceptions.NoSuchKey:
-        raise HTTPException(status_code=404, detail="File not found in OSS")
     except Exception as e:
+        if "not found" in str(e).lower() or "NoSuchKey" in str(e):
+            raise HTTPException(status_code=404, detail="File not found in OSS")
         raise HTTPException(status_code=500, detail=f"Read error: {str(e)}")
 
 
@@ -517,7 +516,7 @@ async def save_markdown_to_oss(
     Save Markdown content to OSS.
     Only allows saving files belonging to the current user.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     # Security check: Ensure user can only save their own files
@@ -565,7 +564,7 @@ async def list_oss_markdown_files(user_id: str = Depends(get_current_user_id)):
     """
     List all Markdown files in OSS for the current user.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     try:
@@ -574,15 +573,15 @@ async def list_oss_markdown_files(user_id: str = Depends(get_current_user_id)):
         files = []
 
         # Get files from OSS directly
-        for obj in oss2.ObjectIterator(oss_service.bucket, prefix=prefix):
-            if obj.key.endswith((".md", ".markdown", ".txt")):
+        for item in oss_service.list_files(prefix=prefix, max_keys=1000):
+            if item["key"].endswith((".md", ".markdown", ".txt")):
                 files.append(
                     OssFileInfo(
-                        file_path=obj.key,
-                        filename=os.path.basename(obj.key),
-                        size=obj.size,
-                        last_modified=obj.last_modified.isoformat()
-                        if obj.last_modified
+                        file_path=item["key"],
+                        filename=os.path.basename(item["key"]),
+                        size=item["size"],
+                        last_modified=item["last_modified"].isoformat()
+                        if item["last_modified"]
                         else None,
                     )
                 )
@@ -640,7 +639,7 @@ async def list_file_versions(
     """
     List all versions for a specific file.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     # Security check
@@ -683,7 +682,7 @@ async def read_file_version(
     """
     Read content of a specific version.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     # Security check
@@ -719,7 +718,7 @@ async def rollback_to_version(
     """
     Rollback to a specific version.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     file_path = request.get("file_path")
@@ -764,7 +763,7 @@ async def delete_file_version(
     """
     Delete a specific version.
     """
-    if not oss_service.bucket:
+    if not oss_service.is_available():
         raise HTTPException(status_code=503, detail="OSS service is not configured")
 
     # Security check
