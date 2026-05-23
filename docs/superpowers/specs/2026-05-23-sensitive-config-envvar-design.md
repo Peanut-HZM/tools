@@ -67,6 +67,7 @@ OPENCLAW_GATEWAY_URL: str = "ws://127.0.0.1:18081"              # 非敏感，�
 OPENCLAW_TOKEN: str = ""
 
 # JWT 和加密密钥：提供 dev 默认值（启动时会警告）
+# 注意：当前代码是 `JWT_SECRET_KEY: str`（无默认值），需要修改为以下形式：
 JWT_SECRET_KEY: str = "dev-jwt-secret-change-me"
 JWT_ALGORITHM: str = "HS256"
 JWT_EXPIRE_MINUTES: int = 10080
@@ -108,7 +109,8 @@ class ASRSettings(BaseSettings):
 - 新增：当 `ENV=prod` 时，若 `ALIYUN_OSS_ACCESS_KEY_ID` 为空 → ERROR
 - 新增：当 `ENV=prod` 时，若 `MINIO_ACCESS_KEY` 为空 → ERROR
 - 新增：当 `ENV=prod` 时，若 `CACHE_REDIS_PASSWORD` 为空 → WARNING（Redis 可能无密码）
-- 新增：当 `ENV=prod` 时，若 `OCR_API_KEY` 为空 → ERROR（如果使用 OCR 功能）
+- 新增：当 `ENV=prod` 时，若 `ocr_settings.API_KEY` 为空 → ERROR（需导入 `ocr_settings`）
+- 新增：当 `ENV=prod` 时，若 `asr_settings.API_KEY` 为空 → ERROR（需导入 `asr_settings`）
 
 ### 4. storage_migration.py 修复
 
