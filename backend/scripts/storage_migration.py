@@ -104,10 +104,10 @@ def oss_url_to_minio_url(old_url: str) -> str:
     return f"https://{settings.MINIO_ENDPOINT}/{settings.MINIO_BUCKET_NAME}/{object_key}"
 
 
-def list_oss_files(oss_bucket, start_after: str = "") -> list:
+def list_oss_files(oss_bucket, marker: str = "") -> list:
     """List all files from Aliyun OSS"""
     files = []
-    iterator = oss2.ObjectIterator(oss_bucket, start_after=start_after if start_after else None, max_keys=BATCH_SIZE)
+    iterator = oss2.ObjectIterator(oss_bucket, marker=marker if marker else None, max_keys=BATCH_SIZE)
     for obj in iterator:
         files.append(obj)
     return files
@@ -183,7 +183,7 @@ def dry_run():
     files = []
     marker = ""
     while True:
-        batch = list_oss_files(oss_bucket, start_after=marker if marker else "")
+        batch = list_oss_files(oss_bucket, marker=marker if marker else "")
         if not batch:
             break
         files.extend(batch)
@@ -244,7 +244,7 @@ def migrate(resume: bool = False):
     all_files = []
     marker = ""
     while True:
-        batch = list_oss_files(oss_bucket, start_after=marker if marker else "")
+        batch = list_oss_files(oss_bucket, marker=marker if marker else "")
         if not batch:
             break
         all_files.extend(batch)
@@ -309,7 +309,7 @@ def verify():
     oss_files = {}
     marker = ""
     while True:
-        batch = list_oss_files(oss_bucket, start_after=marker if marker else "")
+        batch = list_oss_files(oss_bucket, marker=marker if marker else "")
         if not batch:
             break
         for obj in batch:
