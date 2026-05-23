@@ -64,13 +64,9 @@ def get_minio_client():
 
 
 def get_db_conn():
-    """Get PostgreSQL connection"""
+    """Get PostgreSQL connection from DATABASE_URL"""
     return psycopg2.connect(
-        host=settings.__dict__.get("POSTGRES_HOST", "39.107.229.30"),
-        port=5432,
-        database="tools",
-        user="postgres",
-        password="Peanut2817*#",
+        settings.DATABASE_URL,
         cursor_factory=RealDictCursor,
     )
 
