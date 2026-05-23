@@ -134,9 +134,23 @@ class StorageProvider(ABC):
     def get_object(self, object_name: str) -> BinaryIO:
         """获取文件内容流"""
 
-    def download_file(self, object_name: str) -> bytes:
-        """获取文件完整内容（便捷方法，默认实现为 get_object().read()）"""
-        return self.get_object(object_name).read()
+    def download_file(self, object_name_or_url: str) -> bytes:
+        """获取文件完整内容（便捷方法）
+        
+        参数可以是 object_key（如 `uploads/user1/file.png`）
+        也可以是完整 URL（如 `https://minio.peanuthzm.com.cn/tools-files/uploads/user1/file.png`）
+        内部会自动提取 object_key 后调用 get_object().read()"""
+        object_key = self._extract_key(object_name_or_url)
+        return self.get_object(object_key).read()
+
+    def _extract_key(self, url_or_key: str) -> str:
+        """从完整 URL 中提取 object_key，如果已经是 key 则原样返回"""
+        if url_or_key.startswith(("http://", "https://")):
+            # 提取 URL 中域名之后的部分
+            from urllib.parse import urlparse
+            parsed = urlparse(url_or_key)
+            return parsed.path.lstrip("/")
+        return url_or_key
 
     @abstractmethod
     def head_object(self, object_name: str) -> dict | None:
@@ -161,7 +175,7 @@ class StorageProvider(ABC):
         """Bucket 的基础 URL，用于拼接文件访问地址"""
 ```
 
-### 3.4 Minio Provider 实现要点
+### 3.5 Minio Provider 实现要点
 
 - SDK: `minio` (`pip install minio>=7.2.0`)
 - Endpoint 处理：去除协议前缀（`https://minio.peanuthzm.com.cn/` → `minio.peanuthzm.com.cn`）
@@ -186,7 +200,7 @@ class StorageProvider(ABC):
   ```
 - 文件 URL 生成：`https://minio.peanuthzm.com.cn/{bucket_name}/{object_name}`
 
-### 3.5 Aliyun OSS Provider 实现要点
+### 3.6 Aliyun OSS Provider 实现要点
 
 - 从现有 `OssService` 提取逻辑
 - SDK: `oss2`（已有依赖）
@@ -195,7 +209,7 @@ class StorageProvider(ABC):
 - `list_files` → `oss2.ObjectIterator`
 - 其余方法直接从现有代码迁移
 
-### 3.6 工厂函数 (`factory.py`)
+### 3.7 工厂函数 (`factory.py`)
 
 ```python
 def create_provider() -> StorageProvider:
@@ -209,23 +223,23 @@ def create_provider() -> StorageProvider:
         raise ValueError(f"Unknown storage provider: {provider_type}")
 ```
 
-### 3.7 StorageService 统一服务 (`service.py`)
+### 3.8 StorageService 统一服务 (`service.py`)
 
 将现有 `OssService` 的所有能力迁移到 `StorageService`：
 
 | 方法 | 实现 |
 |------|------|
-| `upload_file(object_name, data, size, content_type, uploaded_by)` | 委托 provider.upload_file + 保存 DB 记录 |
+| `upload_file(object_name, data, size, content_type, uploaded_by, metadata)` | 委托 provider.upload_file + 保存 DB 记录 + metadata 透传 |
 | `delete_file(object_name)` | 委托 provider.delete_file + 删除 DB 记录 |
 | `list_files_db(limit, offset)` | 查询 `oss_files` 表（不变） |
 | `list_files(prefix, max_keys)` | 委托 provider.list_files |
 | `get_object(object_name)` | 委托 provider.get_object |
-| `download_file(object_name)` | 委托 provider.download_file（返回 bytes） |
+| `download_file(object_name_or_url)` | 委托 provider.download_file（返回 bytes，支持完整 URL 或 object_key） |
 | `sign_url(method, object_name, expires)` | 委托 provider.sign_url |
 | `head_object(object_name)` | 委托 provider.head_object |
-| `upload_file(object_name, data, size, content_type, metadata)` | 委托 provider.upload_file + metadata 透传 |
+| `is_available()` | 检查 provider 是否可用（替代 `if not oss_service.bucket`） |
 
-### 3.8 向后兼容层 (`oss_service.py` 改造)
+### 3.9 向后兼容层 (`oss_service.py` 改造)
 
 现有 `OssService` 改为 `StorageService` 的薄封装：
 
@@ -238,24 +252,55 @@ class OssService:
 
     @property
     def bucket(self):
-        """兼容属性：由于 oss2.Bucket 和 minio.Minio 的 API 完全不同，
-        不再直接暴露底层 SDK 对象。此属性标记为废弃，访问时抛出 NotImplementedError，
-        强制调用方改为使用 oss_service 的包装方法"""
-        raise NotImplementedError(
-            "oss_service.bucket 已废弃，请使用 oss_service.upload_file/delete_file 等包装方法"
-        )
+        """兼容属性：返回当前 provider 的底层客户端对象，
+        仅用于 `if not oss_service.bucket` 可用性检查，不可用于直接调用方法"""
+        return self._storage._provider.client
 
-    def upload_file(self, ...):
-        return self._storage.upload_file(...)
+    def is_available(self) -> bool:
+        """检查存储服务是否可用（推荐替代 `if not oss_service.bucket` 的新方式）"""
+        return self._storage._provider is not None
 
-    def delete_file(self, ...):
-        return self._storage.delete_file(...)
+    def upload_file(self, object_name: str, data: BinaryIO, size: int,
+                    content_type: str, uploaded_by: str = "system",
+                    metadata: dict[str, str] | None = None) -> Optional[str]:
+        return self._storage.upload_file(object_name, data, size, content_type,
+                                         uploaded_by, metadata)
 
-    def list_files_db(self, ...):
-        return self._storage.list_files_db(...)
+    def delete_file(self, object_name: str) -> bool:
+        return self._storage.delete_file(object_name)
+
+    def list_files_db(self, limit: int = 100, offset: int = 0) -> list:
+        return self._storage.list_files_db(limit, offset)
+
+    def list_files(self, prefix: str = "", max_keys: int = 100) -> list:
+        return self._storage.list_files(prefix, max_keys)
+
+    def get_object(self, object_name: str) -> BinaryIO:
+        return self._storage.get_object(object_name)
+
+    def download_file(self, object_name_or_url: str) -> bytes:
+        return self._storage.download_file(object_name_or_url)
+
+    def sign_url(self, method: str, object_name: str, expires: int = 3600) -> str:
+        return self._storage.sign_url(method, object_name, expires)
+
+    def head_object(self, object_name: str) -> dict | None:
+        return self._storage.head_object(object_name)
 ```
 
-### 3.9 需改造的直接调用文件
+### 3.10 可用性检查与直接调用文件改造
+
+#### 3.10.1 可用性检查替换
+
+以下代码中 `if not oss_service.bucket` 的可用性检查（共 15 处）可保持不变（`bucket` 属性返回 provider.client，不可用时返回 None），但建议逐步替换为 `if not oss_service.is_available()`：
+
+| 文件 | 行号 | 检查方式 |
+|------|------|----------|
+| `oss_version_service.py` | 44, 82, 131, 154, 194 | `if not oss_service.bucket` |
+| `routes/markdown_editor.py` | 424, 484, 520, 568, 643, 686, 722, 767 | `if not oss_service.bucket` |
+| `routes/cross_share.py` | 97, 384, 618 | `if not oss_service.bucket` |
+
+#### 3.10.2 直接 bucket 方法调用改造
 
 以下文件直接使用 `oss_service.bucket.xxx()` 方法，需改为调用 `oss_service` 的包装方法：
 
@@ -266,19 +311,20 @@ class OssService:
 | `oss_version_service.py` | `bucket.head_object` | `oss_service.head_object` |
 | `oss_version_service.py` | `bucket.delete_object` | `oss_service.delete_file` |
 | `oss_version_service.py` | `oss2.ObjectIterator(bucket, prefix)` | `oss_service.list_files(prefix)` |
-| `routes/cross_share.py` | `bucket.sign_url` | `oss_service.sign_url` |
-| `routes/cross_share.py` | `bucket.put_object` | `oss_service.upload_file` |
-| `routes/cross_share.py` | `bucket.delete_object` | `oss_service.delete_file` |
-| `routes/cross_share.py` | `bucket.get_object` | `oss_service.get_object` |
+| `routes/cross_share.py` | `bucket.sign_url('GET', oss_key, expires)` | `oss_service.sign_url('GET', oss_key, expires)` |
+| `routes/cross_share.py` | `bucket.put_object(oss_key, io.BytesIO(file_content))` | `oss_service.upload_file(oss_key, io.BytesIO(file_content), size, content_type)` |
+| `routes/cross_share.py` | `bucket.delete_object(oss_key)` | `oss_service.delete_file(oss_key)` |
+| `routes/cross_share.py` | `bucket.get_object(file.oss_key)` | `oss_service.get_object(file.oss_key)` |
+| `routes/cross_share.py` | `get_oss_upload_url(oss_key)` 硬编码阿里云 URL | `f"{oss_service.provider.base_url}/{oss_key}"` |
 | `routes/markdown_editor.py` | `bucket.get_object` | `oss_service.get_object` |
 | `routes/markdown_editor.py` | `oss2.ObjectIterator` | `oss_service.list_files` |
-| `routes/image_downloader.py` | `oss_service.download_file` | `oss_service.download_file`（已在 base.py 中定义，返回 bytes） |
+| `routes/image_downloader.py` | `oss_service.download_file(row.oss_url)`（完整 URL） | `oss_service.download_file(row.oss_url)`（已支持 URL 或 key） |
 
-**注意：** `oss_version_service.py` 中 `upload_file` 调用需传入 `metadata` 参数（`created_at`、`content_preview` 等版本元数据），新的 `StorageProvider.upload_file` 支持可选的 `metadata` 参数。
+**注意：**
+- `oss_version_service.py` 中 `bucket.put_object(version_path, file_obj, headers=metadata)` 传入自定义元数据头。新的 `StorageProvider.upload_file` 支持可选的 `metadata` 参数，实现中将 dict 转换为 HTTP headers（Aliyun: `x-oss-meta-*`，Minio: `x-amz-meta-*`）。
+- `list_files` 返回的数据形状从 `oss2.ObjectIterator` 的对象属性访问（`obj.key`、`obj.size`）变为字典键访问（`item["key"]`、`item["size"]`）。调用方需相应调整。
 
-**注意：** `list_files` 返回的数据形状从 `oss2.ObjectIterator` 的对象属性访问（`obj.key`、`obj.size`）变为字典键访问（`item["key"]`、`item["size"]`）。调用方需相应调整。
-
-### 3.10 异常类型迁移
+### 3.11 异常类型迁移
 
 现有代码中直接使用 `oss2.exceptions.NoSuchKey` 的地方需改为 `storage.NotFoundError`：
 
