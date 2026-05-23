@@ -194,16 +194,24 @@ async def lifespan(app: FastAPI):
 def _check_security_settings():
     """检查安全密钥配置是否合规"""
     from app.config.config import settings
+    from app.config.ocr_config import ocr_settings
+    from app.config.asr_config import asr_settings
 
     # 已知的硬编码默认值（需要替换）
     DEFAULT_KEYS = [
         "VPYvNpIeL36rBs1XlICVkPlsNgP+Lp1FQCyp17cCOk4=",
     ]
 
-    if settings.JWT_SECRET_KEY in DEFAULT_KEYS:
+    # 开发环境安全默认值
+    DEV_DEFAULTS = [
+        "dev-jwt-secret-change-me",
+        "dev-db-encryption-change-me",
+    ]
+
+    if settings.JWT_SECRET_KEY in DEFAULT_KEYS or settings.JWT_SECRET_KEY in DEV_DEFAULTS:
         logger.warning("JWT_SECRET_KEY 使用了默认硬编码值，生产环境请务必更换！运行: python scripts/generate_keys.py")
 
-    if settings.DB_ENCRYPTION_KEY in DEFAULT_KEYS:
+    if settings.DB_ENCRYPTION_KEY in DEFAULT_KEYS or settings.DB_ENCRYPTION_KEY in DEV_DEFAULTS:
         logger.warning("DB_ENCRYPTION_KEY 使用了默认硬编码值，生产环境请务必更换！")
 
     if settings.JWT_SECRET_KEY == settings.DB_ENCRYPTION_KEY:
@@ -214,6 +222,20 @@ def _check_security_settings():
 
     if len(settings.DB_ENCRYPTION_KEY) < 32:
         logger.warning("DB_ENCRYPTION_KEY 长度不足 32 字符，建议更换为更长的随机密钥")
+
+    # 生产环境额外检查
+    if settings.ENV == "prod":
+        if not settings.ALIYUN_OSS_ACCESS_KEY_ID and settings.STORAGE_PROVIDER == "aliyun_oss":
+            logger.error("生产环境使用 aliyun_oss 时 ALIYUN_OSS_ACCESS_KEY_ID 不能为空")
+
+        if not settings.MINIO_ACCESS_KEY and settings.STORAGE_PROVIDER == "minio":
+            logger.error("生产环境使用 minio 时 MINIO_ACCESS_KEY 不能为空")
+
+        if not ocr_settings.API_KEY:
+            logger.error("生产环境 OCR_API_KEY 不能为空")
+
+        if not asr_settings.API_KEY:
+            logger.error("生产环境 ASR_API_KEY 不能为空")
 
 
 app = FastAPI(title="Tool Aggregation API", lifespan=lifespan)
