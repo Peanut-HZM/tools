@@ -64,8 +64,8 @@ class Settings(BaseSettings):
     OPENCLAW_TOKEN: str = ""
 
     # Aliyun OSS
-    ALIYUN_OSS_ACCESS_KEY_ID: str = "LTAI5t6mbZdwcN8dWgKv3p51"
-    ALIYUN_OSS_ACCESS_KEY_SECRET: str = "uSIkuXXyPMgUOtBraMeNE8v4df54kn"
+    ALIYUN_OSS_ACCESS_KEY_ID: str = ""
+    ALIYUN_OSS_ACCESS_KEY_SECRET: str = ""
     ALIYUN_OSS_ENDPOINT: str = "oss-cn-beijing.aliyuncs.com"
     ALIYUN_OSS_BUCKET_NAME: str = "oss-peanut"
     ALIYUN_OSS_CALLBACK_URL: str = ""
@@ -76,13 +76,13 @@ class Settings(BaseSettings):
     # Minio 配置
     MINIO_ENDPOINT: str = "minio.peanuthzm.com.cn"
     MINIO_API_ENDPOINT: str = ""  # 内网 API 地址（如 127.0.0.1:9000），为空则使用 MINIO_ENDPOINT
-    MINIO_ACCESS_KEY: str = "admin"
-    MINIO_SECRET_KEY: str = "MinioAdmin@2025!"
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
     MINIO_BUCKET_NAME: str = "tools-files"
     MINIO_SECURE: bool = True
 
     # Redis Cache for Token Usage
-    CACHE_REDIS_HOST: str = "39.107.229.30"
+    CACHE_REDIS_HOST: str = "localhost"
     CACHE_REDIS_PORT: int = 6379
     CACHE_REDIS_DB: int = 0
     CACHE_REDIS_PASSWORD: str = ""
