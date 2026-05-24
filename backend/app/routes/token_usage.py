@@ -1573,6 +1573,7 @@ async def query_token_usage(
     """统一查询端点：优先 Redis 缓存 → 降级 DB"""
     request_id = str(uuid.uuid4())
     started_at = time.perf_counter()
+    user_id = "unknown"
     logger.info(
         "[%s] Token Usage 查询入口: source=%s, type=%s, days=%s, group_by=%s",
         request_id,
@@ -1755,6 +1756,8 @@ async def query_token_usage(
             )
         finally:
             db.close()
+    except HTTPException:
+        raise
     except Exception as exc:
         elapsed_ms = (time.perf_counter() - started_at) * 1000
         logger.error(
@@ -1764,7 +1767,21 @@ async def query_token_usage(
             elapsed_ms,
             exc_info=True,
         )
-        raise
+        return _finish_query_response(
+            request_id=request_id,
+            started_at=started_at,
+            user_id=user_id,
+            req=req,
+            items=[],
+            summary=compute_db_summary([]),
+            devices=[],
+            cached=False,
+            response_source="fallback_empty",
+            model_summary=[],
+            dimension_summaries=_empty_dimension_rows(),
+            filter_options=_empty_filter_options(),
+            sync_meta=_empty_sync_meta(),
+        )
 
 
 def _execute_db_query(

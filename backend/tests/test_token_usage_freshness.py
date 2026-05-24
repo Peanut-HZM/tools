@@ -179,3 +179,39 @@ def test_query_registers_pending_sync_without_direct_sync(monkeypatch):
     assert registered_users == ["user-1"]
     assert response.cached is True
     assert response.items == []
+
+
+def test_query_returns_empty_response_when_database_unavailable(monkeypatch):
+    def fail_session():
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(
+        token_usage_route,
+        "get_current_user_id",
+        lambda authorization: "user-1",
+    )
+    monkeypatch.setattr(
+        token_usage_route,
+        "register_pending_sync_user",
+        lambda user_id: None,
+    )
+    monkeypatch.setattr(
+        token_usage_route,
+        "get_query_cached_payload",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr(token_usage_route, "SessionLocal", fail_session)
+
+    response = asyncio.run(
+        token_usage_route.query_token_usage(
+            token_usage_route.DbQueryRequest(),
+            authorization="Bearer test-token",
+        )
+    )
+
+    assert response.cached is False
+    assert response.items == []
+    assert response.summary.total_tokens == 0
+    assert response.dimension_summaries.devices == []
+    assert response.filter_options.devices == []
+    assert response.sync_meta.refresh_lock.locked is False
