@@ -185,6 +185,9 @@ export default function TokenUsage() {
   const [refreshing, setRefreshing] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  const [pollError, setPollError] = useState<string | null>(null);
   const [cached, setCached] = useState(false);
   const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
   const [autoExpanded, setAutoExpanded] = useState(false);
@@ -195,7 +198,7 @@ export default function TokenUsage() {
   const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const lastAutoRefreshRef = useRef<Record<string, number>>({});
+  const pollInFlightRef = useRef(false);
 
   const timeRangeOptions = useMemo(() => {
     if (reportType === 'daily') {
@@ -291,13 +294,23 @@ export default function TokenUsage() {
   }, [reportType]);
 
   const loadDevices = useCallback(async () => {
-    const result = await getUserDevices();
-    setDevices(result.devices);
+    try {
+      const result = await getUserDevices();
+      setDevices(result.devices);
+      setDeviceError(null);
+      return true;
+    } catch (err: any) {
+      setDeviceError(err.message || '加载设备列表失败');
+      return false;
+    }
   }, []);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(async (options?: { silent?: boolean; preservePage?: boolean }) => {
+    const silent = Boolean(options?.silent);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const result = await getDbTokenUsage({
         source,
@@ -319,67 +332,101 @@ export default function TokenUsage() {
       setDimensionSummaries(result.dimension_summaries || emptyDimensionSummaries);
       setFilterOptions(result.filter_options || emptyFilterOptions);
       setSyncMeta(result.sync_meta || null);
-      setCurrentPage(1);
+      setPollError(null);
+      if (!options?.preservePage) {
+        setCurrentPage(1);
+      }
       if (result.devices?.length) {
         setDevices(result.devices);
+        setDeviceError(null);
       }
+      return true;
     } catch (err: any) {
-      setError(err.message || '加载 Token 使用数据失败');
+      const message = err.message || '加载 Token 使用数据失败';
+      if (silent) {
+        setPollError(message);
+      } else {
+        setError(message);
+      }
+      return false;
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [days, groupBy, reportType, selectedDevice, selectedModel, selectedTool, sortBy, sortOrder, source]);
 
   useEffect(() => {
-    checkTokenUsageHealth().then(setHealth).catch(() => setHealth(null));
-    loadDevices().catch(() => undefined);
+    checkTokenUsageHealth()
+      .then(result => {
+        setHealth(result);
+        setHealthError(null);
+      })
+      .catch((err: any) => {
+        setHealth(null);
+        setHealthError(err.message || '健康检查失败');
+      });
+    loadDevices();
   }, [loadDevices]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const queryKey = `${source}:${reportType}:${days}:${groupBy}:${selectedDevice || 'all'}:${selectedTool || 'all-tools'}:${selectedModel || 'all-models'}:${sortBy}:${sortOrder}`;
-
   useEffect(() => {
-    if (!syncMeta?.is_stale || backgroundRefreshing || refreshing) return;
-    const lastAt = lastAutoRefreshRef.current[queryKey] || 0;
-    if (Date.now() - lastAt < 60_000) return;
-
     let cancelled = false;
-    lastAutoRefreshRef.current[queryKey] = Date.now();
+    let timer: ReturnType<typeof window.setTimeout> | null = null;
 
-    async function refreshStaleData() {
+    function schedule(delayMs: number) {
+      if (cancelled) return;
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(runPoll, delayMs);
+    }
+
+    async function runPoll() {
+      if (cancelled) return;
+      if (document.hidden) {
+        schedule(60_000);
+        return;
+      }
+      if (pollInFlightRef.current) {
+        schedule(60_000);
+        return;
+      }
+
+      pollInFlightRef.current = true;
       setBackgroundRefreshing(true);
-      setRefreshError(null);
       try {
-        const result = await refreshTokenUsage({ days: Math.max(days, 90), background: true, reason: 'stale' });
-        if (result.locked) {
-          if (!cancelled) setRefreshError('其他窗口正在更新数据');
-          return;
-        }
-        if (!cancelled) {
-          await loadDevices();
-          await fetchData();
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          setRefreshError(err.message || '后台刷新失败，已保留当前数据');
-        }
+        const ok = await fetchData({ silent: true, preservePage: true });
+        schedule(ok ? 60_000 : 120_000);
       } finally {
+        pollInFlightRef.current = false;
         if (!cancelled) setBackgroundRefreshing(false);
       }
     }
 
-    refreshStaleData();
+    const handleVisibilityChange = () => {
+      if (document.hidden) return;
+      if (timer) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
+      runPoll();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    schedule(60_000);
     return () => {
       cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [backgroundRefreshing, days, fetchData, loadDevices, queryKey, refreshing, syncMeta?.is_stale]);
+  }, [fetchData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     setError(null);
+    setRefreshError(null);
     setLastSyncMessage(null);
     try {
       const result = await refreshTokenUsage({ days: Math.max(days, 90), background: false, reason: 'manual' });
@@ -393,7 +440,7 @@ export default function TokenUsage() {
       await loadDevices();
       await fetchData();
     } catch (err: any) {
-      setError(err.message || '手动同步失败');
+      setRefreshError(err.message || '手动刷新失败');
     } finally {
       setRefreshing(false);
     }
@@ -796,9 +843,13 @@ export default function TokenUsage() {
         </label>
       </div>
 
-      {(error || lastSyncMessage || autoExpanded) && (
+      {(error || refreshError || deviceError || healthError || pollError || lastSyncMessage || autoExpanded) && (
         <div className="mb-5 space-y-2">
           {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+          {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
+          {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{deviceError}</div>}
+          {healthError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{healthError}</div>}
+          {pollError && <div className="rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-300">后台轮询失败：{pollError}</div>}
           {lastSyncMessage && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{lastSyncMessage}</div>}
           {autoExpanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {actualDays} 天。</div>}
         </div>
