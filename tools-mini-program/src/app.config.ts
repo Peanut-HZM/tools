@@ -15,7 +15,37 @@ export default {
     'pages/help/index',
     'pages/openclaw/index',
   ],
-  subPackages: [],
+  subPackages: [
+    {
+      root: 'package-media',
+      pages: [
+        'pages/image-downloader/index',
+        'pages/video-downloader/index',
+      ],
+    },
+    {
+      root: 'package-docs',
+      pages: [
+        'pages/markitdown-converter/index',
+        'pages/markdown-editor/index',
+      ],
+    },
+    {
+      root: 'package-learning',
+      pages: [
+        'pages/course-platform/index',
+        'pages/course-platform/detail/index',
+        'pages/tech-contents/index',
+        'pages/tech-contents/detail/index',
+      ],
+    },
+    {
+      root: 'package-stats',
+      pages: [
+        'pages/token-usage/index',
+      ],
+    },
+  ],
   preloadRule: {},
   window: {
     backgroundTextStyle: 'dark',
