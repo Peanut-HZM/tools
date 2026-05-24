@@ -1,0 +1,133 @@
+.token-usage-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+
+  .filters {
+    padding: 20rpx 30rpx;
+    background: var(--bg-secondary);
+    border-bottom: 1rpx solid var(--border-color);
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      padding: 16rpx 0;
+      border-bottom: 1rpx solid var(--border-color);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .filter-label {
+        width: 120rpx;
+        color: var(--text-secondary);
+        font-size: 28rpx;
+      }
+
+      .picker-value {
+        flex: 1;
+        color: var(--text-primary);
+        font-size: 28rpx;
+        text-align: right;
+        padding: 10rpx 20rpx;
+        background: var(--bg-primary);
+        border-radius: 8rpx;
+      }
+    }
+  }
+
+  .error-state {
+    text-align: center;
+    padding: 100rpx 40rpx;
+    color: #ef4444;
+
+    .retry {
+      display: block;
+      color: #6366f1;
+      margin-top: 20rpx;
+    }
+  }
+
+  .stats-content {
+    padding: 20rpx;
+
+    .summary-cards {
+      display: flex;
+      gap: 20rpx;
+      margin-bottom: 30rpx;
+
+      .summary-card {
+        flex: 1;
+        padding: 30rpx;
+        background: var(--bg-secondary);
+        border-radius: 16rpx;
+        text-align: center;
+
+        .card-value {
+          display: block;
+          color: #6366f1;
+          font-size: 40rpx;
+          font-weight: bold;
+          margin-bottom: 10rpx;
+        }
+
+        .card-label {
+          color: var(--text-secondary);
+          font-size: 24rpx;
+        }
+      }
+    }
+
+    .data-list {
+      background: var(--bg-secondary);
+      border-radius: 16rpx;
+      overflow: hidden;
+
+      .list-header {
+        display: flex;
+        padding: 20rpx;
+        background: var(--bg-primary);
+        border-bottom: 1rpx solid var(--border-color);
+
+        .header-cell {
+          flex: 1;
+          color: var(--text-secondary);
+          font-size: 24rpx;
+          text-align: center;
+
+          &:first-child {
+            text-align: left;
+          }
+        }
+      }
+
+      .list-row {
+        display: flex;
+        padding: 20rpx;
+        border-bottom: 1rpx solid var(--border-color);
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .cell {
+          flex: 1;
+          color: var(--text-primary);
+          font-size: 26rpx;
+          text-align: center;
+
+          &:first-child {
+            text-align: left;
+          }
+        }
+      }
+    }
+
+    .cached-hint {
+      display: block;
+      text-align: center;
+      padding: 20rpx;
+      color: var(--text-secondary);
+      font-size: 22rpx;
+    }
+  }
+}

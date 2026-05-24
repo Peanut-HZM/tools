@@ -1,0 +1,101 @@
+.tech-contents-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+
+  .type-bar {
+    white-space: nowrap;
+    padding: 20rpx;
+    background: var(--bg-secondary);
+    border-bottom: 1rpx solid var(--border-color);
+
+    .type-item {
+      display: inline-block;
+      padding: 12rpx 24rpx;
+      margin-right: 16rpx;
+      background: var(--bg-primary);
+      border-radius: 30rpx;
+      color: var(--text-secondary);
+      font-size: 26rpx;
+
+      &.active {
+        background: #6366f1;
+        color: #fff;
+      }
+    }
+  }
+
+  .error-state {
+    text-align: center;
+    padding: 200rpx 40rpx;
+
+    .error-text { color: #ef4444; margin-bottom: 20rpx; }
+    .retry-text { color: #6366f1; font-size: 28rpx; }
+  }
+
+  .content-list {
+    padding: 20rpx;
+
+    .empty-state {
+      text-align: center;
+      padding: 200rpx;
+      color: var(--text-secondary);
+    }
+
+    .content-card {
+      padding: 24rpx;
+      margin-bottom: 20rpx;
+      background: var(--bg-secondary);
+      border-radius: 16rpx;
+
+      .cover {
+        width: 100%;
+        height: 200rpx;
+        border-radius: 10rpx;
+        margin-bottom: 16rpx;
+      }
+
+      .info {
+        .type-tag {
+          display: inline-block;
+          padding: 4rpx 16rpx;
+          background: #6366f1;
+          color: #fff;
+          border-radius: 8rpx;
+          font-size: 22rpx;
+          margin-bottom: 12rpx;
+        }
+
+        .title {
+          display: block;
+          color: var(--text-primary);
+          font-size: 30rpx;
+          font-weight: bold;
+          margin-bottom: 10rpx;
+        }
+
+        .desc {
+          display: block;
+          color: var(--text-secondary);
+          font-size: 24rpx;
+          line-height: 1.4;
+          margin-bottom: 16rpx;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .meta {
+          display: flex;
+          gap: 20rpx;
+
+          .author, .time {
+            color: var(--text-secondary);
+            font-size: 22rpx;
+          }
+        }
+      }
+    }
+  }
+}
