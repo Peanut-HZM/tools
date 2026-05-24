@@ -1,0 +1,169 @@
+.markdown-editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-primary);
+
+  .tab-bar {
+    display: flex;
+    height: 80rpx;
+    background: var(--bg-secondary);
+    border-bottom: 1rpx solid var(--border-color);
+
+    .tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 28rpx;
+      position: relative;
+
+      &.active {
+        color: #6366f1;
+        font-weight: bold;
+
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 30%;
+          right: 30%;
+          height: 4rpx;
+          background: #6366f1;
+          border-radius: 2rpx;
+        }
+      }
+    }
+  }
+
+  .editor-section {
+    flex: 1;
+    padding: 20rpx;
+
+    .editor-textarea {
+      width: 100%;
+      height: 100%;
+      background: var(--bg-secondary);
+      border-radius: 12rpx;
+      padding: 20rpx;
+      color: var(--text-primary);
+      font-size: 28rpx;
+      line-height: 1.6;
+      box-sizing: border-box;
+    }
+  }
+
+  .preview-section {
+    flex: 1;
+    padding: 20rpx;
+    overflow-y: auto;
+
+    .empty-preview {
+      text-align: center;
+      padding: 200rpx 40rpx;
+      color: var(--text-secondary);
+      font-size: 28rpx;
+    }
+  }
+
+  .toolbar {
+    display: flex;
+    padding: 20rpx;
+    gap: 20rpx;
+    border-top: 1rpx solid var(--border-color);
+    background: var(--bg-secondary);
+
+    .tool-btn {
+      flex: 1;
+      height: 70rpx;
+      line-height: 70rpx;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border-radius: 10rpx;
+      font-size: 26rpx;
+      border: 1rpx solid var(--border-color);
+
+      &:active {
+        opacity: 0.8;
+      }
+    }
+  }
+
+  .oss-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+
+    .oss-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .oss-content {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-height: 60%;
+      background: var(--bg-secondary);
+      border-radius: 24rpx 24rpx 0 0;
+      display: flex;
+      flex-direction: column;
+
+      .oss-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 30rpx;
+        border-bottom: 1rpx solid var(--border-color);
+
+        .oss-title {
+          color: var(--text-primary);
+          font-size: 32rpx;
+          font-weight: bold;
+        }
+
+        .oss-close {
+          color: #6366f1;
+          font-size: 28rpx;
+        }
+      }
+
+      .oss-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 20rpx;
+
+        .oss-empty {
+          display: block;
+          text-align: center;
+          padding: 100rpx;
+          color: var(--text-secondary);
+          font-size: 28rpx;
+        }
+
+        .oss-item {
+          padding: 24rpx;
+          border-bottom: 1rpx solid var(--border-color);
+
+          .oss-filename {
+            color: var(--text-primary);
+            font-size: 28rpx;
+          }
+
+          &:active {
+            background: var(--bg-primary);
+          }
+        }
+      }
+    }
+  }
+}

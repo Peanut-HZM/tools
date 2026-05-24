@@ -1,0 +1,142 @@
+.video-downloader-page {
+  padding: 30rpx;
+  min-height: 100vh;
+  background: var(--bg-primary);
+
+  .input-section {
+    margin-bottom: 30rpx;
+
+    .url-input {
+      width: 100%;
+      height: 80rpx;
+      padding: 0 20rpx;
+      background: var(--bg-secondary);
+      border-radius: 12rpx;
+      color: var(--text-primary);
+      font-size: 28rpx;
+      margin-bottom: 20rpx;
+      box-sizing: border-box;
+    }
+
+    .extract-btn {
+      width: 100%;
+      height: 80rpx;
+      line-height: 80rpx;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 12rpx;
+      font-size: 30rpx;
+
+      &[disabled] {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .task-status {
+    text-align: center;
+    padding: 60rpx 40rpx;
+    background: var(--bg-secondary);
+    border-radius: 16rpx;
+    margin-bottom: 30rpx;
+
+    .status-text {
+      display: block;
+      color: var(--text-primary);
+      font-size: 32rpx;
+      margin-bottom: 20rpx;
+    }
+
+    .speed, .eta {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 26rpx;
+      margin-top: 10rpx;
+    }
+
+    .cancel-btn {
+      margin-top: 30rpx;
+      width: 200rpx;
+      height: 70rpx;
+      line-height: 70rpx;
+      background: #ef4444;
+      color: #fff;
+      border-radius: 12rpx;
+    }
+  }
+
+  .error-state {
+    text-align: center;
+    padding: 100rpx 40rpx;
+
+    .error-text {
+      color: #ef4444;
+      margin-bottom: 30rpx;
+    }
+
+    .retry-btn {
+      width: 200rpx;
+      height: 70rpx;
+      line-height: 70rpx;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 12rpx;
+    }
+  }
+
+  .video-list {
+    .count-text {
+      display: block;
+      margin-bottom: 20rpx;
+      color: var(--text-secondary);
+      font-size: 26rpx;
+    }
+
+    .video-item {
+      display: flex;
+      align-items: center;
+      padding: 24rpx;
+      margin-bottom: 20rpx;
+      background: var(--bg-secondary);
+      border-radius: 16rpx;
+
+      .video-info {
+        flex: 1;
+        overflow: hidden;
+
+        .title {
+          display: block;
+          color: var(--text-primary);
+          font-size: 28rpx;
+          margin-bottom: 10rpx;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .meta {
+          display: block;
+          color: var(--text-secondary);
+          font-size: 24rpx;
+          margin-top: 6rpx;
+        }
+      }
+
+      .download-btn {
+        width: 140rpx;
+        height: 64rpx;
+        line-height: 64rpx;
+        font-size: 26rpx;
+        padding: 0;
+        background: #6366f1;
+        color: #fff;
+        border-radius: 10rpx;
+        flex-shrink: 0;
+
+        &[disabled] {
+          opacity: 0.5;
+        }
+      }
+    }
+  }
+}

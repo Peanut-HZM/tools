@@ -1,0 +1,128 @@
+.image-downloader-page {
+  padding: 30rpx;
+  min-height: 100vh;
+  background: var(--bg-primary);
+
+  .input-section {
+    margin-bottom: 30rpx;
+
+    .url-input {
+      width: 100%;
+      height: 80rpx;
+      padding: 0 20rpx;
+      background: var(--bg-secondary);
+      border-radius: 12rpx;
+      color: var(--text-primary);
+      font-size: 28rpx;
+      margin-bottom: 20rpx;
+      box-sizing: border-box;
+    }
+
+    .extract-btn {
+      width: 100%;
+      height: 80rpx;
+      line-height: 80rpx;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 12rpx;
+      font-size: 30rpx;
+
+      &[disabled] {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .empty-state,
+  .error-state {
+    text-align: center;
+    padding: 100rpx 40rpx;
+    color: var(--text-secondary);
+
+    .hint {
+      display: block;
+      margin-top: 20rpx;
+      font-size: 26rpx;
+    }
+
+    .error-text {
+      color: #ef4444;
+      margin-bottom: 30rpx;
+    }
+
+    .retry-btn {
+      width: 200rpx;
+      height: 70rpx;
+      line-height: 70rpx;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 12rpx;
+    }
+  }
+
+  .image-list {
+    .count-text {
+      display: block;
+      margin-bottom: 20rpx;
+      color: var(--text-secondary);
+      font-size: 26rpx;
+    }
+
+    .image-item {
+      display: flex;
+      align-items: center;
+      padding: 20rpx;
+      margin-bottom: 20rpx;
+      background: var(--bg-secondary);
+      border-radius: 16rpx;
+
+      .thumbnail {
+        width: 120rpx;
+        height: 120rpx;
+        border-radius: 8rpx;
+        flex-shrink: 0;
+      }
+
+      .image-info {
+        flex: 1;
+        margin-left: 20rpx;
+        overflow: hidden;
+
+        .format {
+          display: block;
+          color: var(--text-primary);
+          font-size: 28rpx;
+        }
+
+        .size {
+          display: block;
+          color: var(--text-secondary);
+          font-size: 24rpx;
+          margin-top: 8rpx;
+        }
+      }
+
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10rpx;
+
+        .action-btn {
+          width: 120rpx;
+          height: 56rpx;
+          line-height: 56rpx;
+          font-size: 24rpx;
+          padding: 0;
+          background: var(--bg-primary);
+          color: var(--text-primary);
+          border-radius: 8rpx;
+
+          &.primary {
+            background: #6366f1;
+            color: #fff;
+          }
+        }
+      }
+    }
+  }
+}

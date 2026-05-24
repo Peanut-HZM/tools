@@ -1,0 +1,116 @@
+.markitdown-converter-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+
+  .upload-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 200rpx 60rpx;
+
+    .title {
+      color: var(--text-primary);
+      font-size: 36rpx;
+      font-weight: bold;
+      margin-bottom: 20rpx;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 28rpx;
+      margin-bottom: 60rpx;
+    }
+
+    .select-btn {
+      width: 400rpx;
+      height: 100rpx;
+      line-height: 100rpx;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 16rpx;
+      font-size: 32rpx;
+    }
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: 24rpx;
+      margin-top: 30rpx;
+    }
+  }
+
+  .error-state {
+    text-align: center;
+    padding: 200rpx 60rpx;
+
+    .error-text {
+      color: #ef4444;
+      margin-bottom: 30rpx;
+    }
+
+    .retry-btn {
+      width: 200rpx;
+      height: 70rpx;
+      line-height: 70rpx;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 12rpx;
+    }
+  }
+
+  .result-section {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+
+    .result-header {
+      padding: 30rpx;
+      background: var(--bg-secondary);
+      border-bottom: 1rpx solid var(--border-color);
+
+      .filename {
+        display: block;
+        color: var(--text-primary);
+        font-size: 30rpx;
+        font-weight: bold;
+      }
+
+      .meta {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 24rpx;
+        margin-top: 10rpx;
+      }
+    }
+
+    .markdown-preview {
+      flex: 1;
+      padding: 20rpx;
+      overflow-y: auto;
+    }
+
+    .actions {
+      display: flex;
+      padding: 20rpx;
+      gap: 20rpx;
+      border-top: 1rpx solid var(--border-color);
+      background: var(--bg-secondary);
+
+      .action-btn {
+        flex: 1;
+        height: 80rpx;
+        line-height: 80rpx;
+        background: #6366f1;
+        color: #fff;
+        border-radius: 12rpx;
+        font-size: 28rpx;
+
+        &.secondary {
+          background: var(--bg-primary);
+          color: var(--text-primary);
+          border: 1rpx solid var(--border-color);
+        }
+      }
+    }
+  }
+}
