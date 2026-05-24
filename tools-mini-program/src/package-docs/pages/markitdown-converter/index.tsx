@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import Taro from '@tarojs/taro';
 import { View, Button, Text, ScrollView } from '@tarojs/components';
-import { converterApi } from '../../services/converter';
-import type { ConvertResponse } from '../../services/converter';
-import { chooseFileCompat, copyText, formatApiError } from '../../utils/mobileTool';
-import Markdown from '../../components/Markdown';
-import Loading from '../../components/Loading';
+import { converterApi } from '../../../services/converter';
+import type { ConvertResponse } from '../../../services/converter';
+import { chooseFileCompat, copyText, formatApiError } from '../../../utils/mobileTool';
+import Markdown from '../../../components/Markdown';
+import Loading from '../../../components/Loading';
 import './index.scss';
 
 type PageState = 'idle' | 'selecting' | 'converting' | 'error' | 'success';

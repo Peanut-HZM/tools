@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import Taro from '@tarojs/taro';
 import { View, Input, Button, ScrollView, Image, Text } from '@tarojs/components';
-import { imageDownloaderApi } from '../../services/imageDownloader';
-import type { ImageInfo } from '../../services/imageDownloader';
-import { copyText, openOrCopyUrl, formatApiError } from '../../utils/mobileTool';
-import Loading from '../../components/Loading';
+import { imageDownloaderApi } from '../../../services/imageDownloader';
+import type { ImageInfo } from '../../../services/imageDownloader';
+import { copyText, openOrCopyUrl, formatApiError } from '../../../utils/mobileTool';
+import Loading from '../../../components/Loading';
 import './index.scss';
 
 type PageState = 'idle' | 'loading' | 'empty' | 'error' | 'success';

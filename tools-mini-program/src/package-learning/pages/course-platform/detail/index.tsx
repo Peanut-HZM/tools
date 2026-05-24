@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import Taro, { useRouter } from '@tarojs/taro';
 import { View, Text, Image, ScrollView, Button } from '@tarojs/components';
-import { coursePlatformApi } from '../../../services/coursePlatform';
-import type { CourseDetail, CourseChapter } from '../../../services/coursePlatform';
-import { formatApiError } from '../../../utils/mobileTool';
-import Markdown from '../../../components/Markdown';
-import Loading from '../../../components/Loading';
+import { coursePlatformApi } from '../../../../services/coursePlatform';
+import type { CourseDetail, CourseChapter } from '../../../../services/coursePlatform';
+import { formatApiError } from '../../../../utils/mobileTool';
+import Markdown from '../../../../components/Markdown';
+import Loading from '../../../../components/Loading';
 import './index.scss';
 
 export default function CourseDetailPage() {

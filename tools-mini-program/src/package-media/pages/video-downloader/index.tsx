@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import Taro from '@tarojs/taro';
 import { View, Input, Button, Text, ScrollView } from '@tarojs/components';
-import { videoDownloaderApi } from '../../services/videoDownloader';
-import type { VideoInfo, TaskStatusResponse } from '../../services/videoDownloader';
-import { openOrCopyUrl, formatApiError, pollTask } from '../../utils/mobileTool';
-import Loading from '../../components/Loading';
+import { videoDownloaderApi } from '../../../services/videoDownloader';
+import type { VideoInfo, TaskStatusResponse } from '../../../services/videoDownloader';
+import { openOrCopyUrl, formatApiError, pollTask } from '../../../utils/mobileTool';
+import Loading from '../../../components/Loading';
 import './index.scss';
 
 type PageState = 'idle' | 'extracting' | 'downloading' | 'error' | 'success' | 'task-running';

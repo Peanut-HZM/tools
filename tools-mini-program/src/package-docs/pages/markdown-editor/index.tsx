@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import Taro from '@tarojs/taro';
 import { View, Textarea, Button, Text, ScrollView } from '@tarojs/components';
-import { markdownEditorApi } from '../../services/markdownEditor';
-import { copyText, formatApiError } from '../../utils/mobileTool';
-import Markdown from '../../components/Markdown';
+import { markdownEditorApi } from '../../../services/markdownEditor';
+import { copyText, formatApiError } from '../../../utils/mobileTool';
+import Markdown from '../../../components/Markdown';
 import './index.scss';
 
 type Tab = 'edit' | 'preview';

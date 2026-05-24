@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import Taro from '@tarojs/taro';
 import { View, Text, ScrollView, Image } from '@tarojs/components';
-import { techContentsApi } from '../../services/techContents';
-import type { TechContent, ContentType } from '../../services/techContents';
-import { formatApiError } from '../../utils/mobileTool';
-import Loading from '../../components/Loading';
+import { techContentsApi } from '../../../services/techContents';
+import type { TechContent, ContentType } from '../../../services/techContents';
+import { formatApiError } from '../../../utils/mobileTool';
+import Loading from '../../../components/Loading';
 import './index.scss';
 
 type PageState = 'loading' | 'error' | 'success';
