@@ -63,6 +63,11 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "sqlite:///./data/tools.db"
+    DB_PSYCOPG_POOL_MIN_CONN: int = 1
+    DB_PSYCOPG_POOL_MAX_CONN: int = 3
+    DB_SQLALCHEMY_POOL_SIZE: int = 2
+    DB_SQLALCHEMY_MAX_OVERFLOW: int = 1
+    DB_SQLALCHEMY_POOL_TIMEOUT: int = 10
     # Security
     JWT_SECRET_KEY: str = "dev-jwt-secret-change-me"
     JWT_ALGORITHM: str = "HS256"

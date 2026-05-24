@@ -107,10 +107,12 @@ def test_connection() -> bool:
 _pool = None
 
 
-def get_connection_pool(min_conn: int = 2, max_conn: int = 10):
+def get_connection_pool(min_conn: Optional[int] = None, max_conn: Optional[int] = None):
     """获取或创建连接池（单例懒加载）"""
     global _pool
     if _pool is None:
+        min_conn = min_conn if min_conn is not None else settings.DB_PSYCOPG_POOL_MIN_CONN
+        max_conn = max_conn if max_conn is not None else settings.DB_PSYCOPG_POOL_MAX_CONN
         config = get_db_config()
         _pool = psycopg2.pool.ThreadedConnectionPool(
             minconn=min_conn,
@@ -130,6 +132,15 @@ def get_pooled_db_connection():
     """从连接池获取连接"""
     pool = get_connection_pool()
     return pool.getconn()
+
+
+def close_connection_pool():
+    """关闭 psycopg2 连接池，避免热重载残留进程继续占用数据库连接。"""
+    global _pool
+    if _pool is not None:
+        _pool.closeall()
+        _pool = None
+        logger.info("数据库连接池已关闭")
 
 
 def release_db_connection(conn):

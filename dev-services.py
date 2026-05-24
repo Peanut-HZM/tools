@@ -1102,13 +1102,60 @@ def kill_process(pid: int, graceful: bool = True):
         log(f"{proc_name} (PID {pid}) 已强制终止", "WARN")
 
 
+def _iter_child_processes(pid: int) -> list:
+    """递归获取子进程列表，子进程优先用于关闭进程树。"""
+    try:
+        proc = psutil.Process(pid)
+        return proc.children(recursive=True)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return []
+
+
+def kill_process_tree(pid: int, graceful: bool = True):
+    """终止进程树，避免 uvicorn --reload 子进程残留并继续占用数据库连接。"""
+    children = _iter_child_processes(pid)
+    def _depth(proc):
+        try:
+            return len(proc.parents())
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return 0
+
+    for child in sorted(children, key=_depth, reverse=True):
+        if child.pid == os.getpid():
+            continue
+        kill_process(child.pid, graceful=graceful)
+    kill_process(pid, graceful=graceful)
+
+
+def cleanup_orphan_python_children(project_dir: Path):
+    """清理当前项目下父进程已消失的 Python reload 子进程。"""
+    project_dir = project_dir.resolve()
+    cleaned = 0
+    for proc in psutil.process_iter(["pid", "ppid", "name", "cmdline"]):
+        try:
+            cmdline = " ".join(proc.info.get("cmdline") or [])
+            if "multiprocessing.spawn" not in cmdline:
+                continue
+            parent_pid = int(proc.info.get("ppid") or 0)
+            if parent_pid and _pid_alive(parent_pid):
+                continue
+            cwd = Path(proc.cwd()).resolve()
+            if project_dir == cwd or project_dir in cwd.parents:
+                kill_process(proc.pid, graceful=False)
+                cleaned += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+            continue
+    if cleaned:
+        log(f"已清理 {cleaned} 个孤儿 Python reload 子进程", "WARN")
+
+
 def stop_service(name: str, port: int):
     """优雅停止指定服务"""
     log(f"停止 {name} (端口 {port})...", "INFO")
     pids = find_process_by_port(port)
     if pids:
         for pid in pids:
-            kill_process(pid, graceful=True)
+            kill_process_tree(pid, graceful=True)
     else:
         log(f"{name} 未运行", "INFO")
 
@@ -1119,7 +1166,7 @@ def kill_service(name: str, port: int):
     pids = find_process_by_port(port)
     if pids:
         for pid in pids:
-            kill_process(pid, graceful=False)
+            kill_process_tree(pid, graceful=False)
     else:
         log(f"{name} 未运行", "INFO")
 
@@ -1248,6 +1295,9 @@ def start_service(svc: Service) -> bool:
         log(f"项目目录不存在: {svc.project_dir}", "ERROR")
         return False
 
+    if svc.project_type == "python":
+        cleanup_orphan_python_children(svc.project_dir)
+
     # 检查端口占用
     in_use, pids = check_port(svc.port)
     if in_use:
@@ -1330,6 +1380,8 @@ def stop_service_wrapper(svc: Service):
     """停止单个服务"""
     log_section(f"停止 {svc.name}")
     stop_service(svc.name, svc.port)
+    if svc.project_type == "python":
+        cleanup_orphan_python_children(svc.project_dir)
 
 
 def restart_service(svc: Service) -> bool:

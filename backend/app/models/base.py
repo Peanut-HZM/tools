@@ -11,14 +11,25 @@ from app.config.config import settings
 DATABASE_URL = settings.DATABASE_URL
 
 # 创建引擎
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
+engine_kwargs = {
+    "connect_args": {"check_same_thread": False}
     if DATABASE_URL.startswith("sqlite")
     else {},
-    pool_pre_ping=True,
-    pool_recycle=1800,
-)
+    "pool_pre_ping": True,
+    "pool_recycle": 1800,
+}
+
+if not DATABASE_URL.startswith("sqlite"):
+    # 开发环境连接远程 PostgreSQL 时，限制单进程连接预算，避免热重载进程耗尽服务端连接。
+    engine_kwargs.update(
+        {
+            "pool_size": settings.DB_SQLALCHEMY_POOL_SIZE,
+            "max_overflow": settings.DB_SQLALCHEMY_MAX_OVERFLOW,
+            "pool_timeout": settings.DB_SQLALCHEMY_POOL_TIMEOUT,
+        }
+    )
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 # 会话工厂
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

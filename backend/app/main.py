@@ -182,6 +182,14 @@ async def lifespan(app: FastAPI):
             await db_pool_cleanup_task
         except asyncio.CancelledError:
             pass
+    try:
+        from app.config.database import close_connection_pool
+
+        close_connection_pool()
+        engine.dispose()
+        logger.info("数据库连接资源已释放")
+    except Exception as e:
+        logger.warning(f"数据库连接资源释放失败: {e}")
 
 
 def _check_security_settings():
