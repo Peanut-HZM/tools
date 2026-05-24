@@ -89,7 +89,7 @@ class Settings(BaseSettings):
     CACHE_REDIS_TOKEN_USAGE_TTL: int = 3600  # 1 小时
 
     class Config:
-        env_file = ".env"
+        env_file = str(PROJECT_ROOT / ".env")
         env_file_encoding = "utf-8"
         case_sensitive = True
 
