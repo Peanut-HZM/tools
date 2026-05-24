@@ -193,6 +193,16 @@ TOOLS_DATA = [
         category="开发工具",
     ),
     Tool(
+        id="tech-contents",
+        icon="fa-file-lines",
+        iconColor="bg-teal-500",
+        title="技术内容",
+        description="浏览技术分析和分享内容，涵盖技术解析与项目案例",
+        rating=4.8,
+        usageCount="New",
+        category="学习工具",
+    ),
+    Tool(
         id="token-usage",
         icon="fa-chart-line",
         iconColor="bg-blue-500",
