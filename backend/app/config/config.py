@@ -3,6 +3,7 @@ Application Configuration
 """
 
 from typing import List, Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 import os
@@ -48,6 +49,18 @@ class Settings(BaseSettings):
     USERS_DATA_PATH: str = "./data/users"
     BACKEND_PORT: Optional[int] = 19092
 
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug_mode(cls, value):
+        """兼容把 DEBUG 写成环境名称的旧环境变量。"""
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"release", "prod", "production"}:
+                return False
+            if normalized in {"dev", "debug", "development"}:
+                return True
+        return value
+
     # Database
     DATABASE_URL: str = "sqlite:///./data/tools.db"
     # Security
@@ -87,6 +100,13 @@ class Settings(BaseSettings):
     CACHE_REDIS_DB: int = 0
     CACHE_REDIS_PASSWORD: str = ""
     CACHE_REDIS_TOKEN_USAGE_TTL: int = 3600  # 1 小时
+
+    # Token Usage 后台定时同步
+    TOKEN_USAGE_BACKGROUND_SYNC_ENABLED: bool = True
+    TOKEN_USAGE_BACKGROUND_SYNC_INTERVAL_SECONDS: int = 1800
+    TOKEN_USAGE_BACKGROUND_SYNC_DAYS: int = 90
+    TOKEN_USAGE_BACKGROUND_SYNC_INITIAL_DELAY_SECONDS: int = 30
+    TOKEN_USAGE_BACKGROUND_SYNC_MAX_USERS_PER_RUN: int = 50
 
     class Config:
         env_file = str(PROJECT_ROOT / ".env")
