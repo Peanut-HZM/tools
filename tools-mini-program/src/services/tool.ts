@@ -14,21 +14,27 @@ const TOOL_PATH_MAP: Record<string, string | null> = {
   'ocr-tool': '/pages/ocr/index',
   'asr-tool': '/pages/asr/index',
   'http-api-client': '/pages/http-client/index',
+  'openclaw': '/pages/openclaw/index',
+  // 第一批：媒体与文档
+  'image-downloader': '/package-media/pages/image-downloader/index',
+  'video-downloader': '/package-media/pages/video-downloader/index',
+  'markitdown-converter': '/package-docs/pages/markitdown-converter/index',
+  'markdown-editor': '/package-docs/pages/markdown-editor/index',
+  // 第二批：学习
+  'course-platform': '/package-learning/pages/course-platform/index',
+  'tech-contents': '/package-learning/pages/tech-contents/index',
+  // 第三批：统计
+  'token-usage': '/package-stats/pages/token-usage/index',
+  // 隐藏工具（保持 null）
   'database-tool': null,
   'redis-tool': null,
   'ssh-tool': null,
   'cursor-history': null,
   'openspec-course': null,
-  'image-downloader': null,
-  'video-downloader': null,
   'ai-assistant': null,
-  'markdown-editor': null,
-  'markitdown-converter': null,
   'product-manager': null,
   'learning-share': null,
-  'course-platform': null,
-  'openclaw': '/pages/openclaw/index',
-  'system-monitor': null,  // 系统监控不适合移动端
+  'system-monitor': null,
 }
 
 export const toolApi = {
