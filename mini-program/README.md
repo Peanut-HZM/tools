@@ -1,4 +1,4 @@
-# 工具箱小程序 (tools-mini-program)
+# 工具箱小程序 (mini-program)
 
 基于 Taro 4.x 的微信小程序，与 PC 端工具箱共享后端 API，提供暗色主题的工具浏览和使用体验。
 
@@ -41,7 +41,7 @@
 
 ```bash
 git clone <仓库地址>
-cd tools/tools-mini-program
+cd tools/mini-program
 ```
 
 **2. 安装依赖**
@@ -60,7 +60,7 @@ npm run build:weapp
 
 1. 打开「微信开发者工具」
 2. 选择「导入项目」
-3. 项目目录选择：`tools/tools-mini-program`
+3. 项目目录选择：`tools/mini-program`
 4. AppID 使用测试号或你已申请的 AppID
 5. 点击「导入」
 
@@ -147,7 +147,7 @@ cd ../backend
 uvicorn app.main:app --reload --port 19092
 
 # 2. 启动小程序开发模式（热重载）
-cd tools-mini-program
+cd mini-program
 npm run dev:weapp
 ```
 
@@ -161,7 +161,7 @@ npm run dev:weapp
 ### 目录结构
 
 ```
-tools-mini-program/
+mini-program/
 ├── config/                    # Taro 构建配置
 │   ├── index.ts
 │   ├── dev.ts
