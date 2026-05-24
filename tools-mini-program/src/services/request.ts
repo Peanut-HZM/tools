@@ -1,6 +1,6 @@
 import Taro from '@tarojs/taro';
 
-const API_BASE_URL = process.env.TARO_APP_API_URL || 'http://localhost:19092/api';
+const API_BASE_URL = process.env.TARO_APP_API_URL || 'https://tools.peanuthzm.com.cn/api';
 
 /**
  * 获取请求头（包含认证 token）
