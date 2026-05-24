@@ -1,9 +1,20 @@
 """Token Usage freshness 元数据单元测试"""
 
+import asyncio
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from app.routes.token_usage import _build_sync_meta_from_values, _rows_to_model_summary
+from app.routes import token_usage as token_usage_route
+from app.routes.token_usage import (
+    DimensionSummaries,
+    FilterOptions,
+    SyncMeta,
+    _build_sync_meta_from_values,
+    _empty_dimension_rows,
+    _empty_filter_options,
+    _empty_sync_meta,
+    _rows_to_model_summary,
+)
 
 
 def test_build_sync_meta_marks_fresh_data():
@@ -96,3 +107,75 @@ def test_rows_to_model_summary_uses_tool_name_for_total_model():
     summary = _rows_to_model_summary(rows)
 
     assert summary[0]["display_model"] == "Claude Code total"
+
+
+def test_empty_dimension_rows_returns_dimension_summaries():
+    assert isinstance(_empty_dimension_rows(), DimensionSummaries)
+    assert _empty_dimension_rows().devices == []
+    assert _empty_dimension_rows().tools == []
+    assert _empty_dimension_rows().models == []
+
+
+def test_empty_filter_options_returns_filter_options():
+    assert isinstance(_empty_filter_options(), FilterOptions)
+    assert _empty_filter_options().tools == []
+    assert _empty_filter_options().devices == []
+    assert _empty_filter_options().models == []
+
+
+def test_empty_sync_meta_returns_sync_meta():
+    meta = _empty_sync_meta()
+
+    assert isinstance(meta, SyncMeta)
+    assert meta.refresh_lock.locked is False
+    assert meta.sources_status == []
+
+
+def test_query_registers_pending_sync_without_direct_sync(monkeypatch):
+    registered_users = []
+
+    def fail_direct_sync(*args, **kwargs):
+        raise AssertionError("query 不应直接执行同步")
+
+    monkeypatch.setattr(
+        token_usage_route,
+        "get_current_user_id",
+        lambda authorization: "user-1",
+    )
+    monkeypatch.setattr(
+        token_usage_route,
+        "register_pending_sync_user",
+        registered_users.append,
+    )
+    monkeypatch.setattr(token_usage_route, "sync_token_usage", fail_direct_sync)
+    monkeypatch.setattr(
+        token_usage_route,
+        "get_query_cached_payload",
+        lambda **kwargs: {
+            "items": [],
+            "summary": {
+                "total_input_tokens": 0,
+                "total_output_tokens": 0,
+                "total_tokens": 0,
+                "total_cost": 0,
+                "days_count": 0,
+                "avg_daily_cost": 0,
+            },
+            "devices": [],
+            "model_summary": [],
+            "dimension_summaries": _empty_dimension_rows().model_dump(),
+            "filter_options": _empty_filter_options().model_dump(),
+            "sync_meta": _empty_sync_meta().model_dump(),
+        },
+    )
+
+    response = asyncio.run(
+        token_usage_route.query_token_usage(
+            token_usage_route.DbQueryRequest(),
+            authorization="Bearer test-token",
+        )
+    )
+
+    assert registered_users == ["user-1"]
+    assert response.cached is True
+    assert response.items == []

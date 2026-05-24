@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, date
@@ -32,6 +33,7 @@ from app.models.token_usage_models import (
     DeviceRegistry,
 )
 from app.services.token_usage_sync_service import sync_token_usage
+from app.services.token_usage_background_sync import register_pending_sync_user
 from app.routes.auth import get_current_user_id
 from app.utils.device_id import get_device_id
 
@@ -655,12 +657,10 @@ async def db_query_token_usage(
             summary=UsageSummary(**cached["summary"]),
             devices=cached.get("devices", []),
             cached=True,
-            dimension_summaries=DimensionSummaries(
-                **cached.get("dimension_summaries", _empty_dimension_rows())
+            dimension_summaries=_to_dimension_summaries(
+                cached.get("dimension_summaries")
             ),
-            filter_options=FilterOptions(
-                **cached.get("filter_options", _empty_filter_options())
-            ),
+            filter_options=_to_filter_options(cached.get("filter_options")),
         )
 
     # 2. Redis 未命中，查数据库
@@ -988,12 +988,40 @@ def _build_dimension_summary(
     return result
 
 
-def _empty_dimension_rows() -> dict:
-    return {"devices": [], "tools": [], "models": []}
+def _empty_dimension_rows() -> DimensionSummaries:
+    return DimensionSummaries()
 
 
-def _empty_filter_options() -> dict:
-    return {"tools": [], "devices": [], "models": []}
+def _empty_filter_options() -> FilterOptions:
+    return FilterOptions()
+
+
+def _empty_sync_meta() -> SyncMeta:
+    return SyncMeta()
+
+
+def _to_dimension_summaries(value) -> DimensionSummaries:
+    if isinstance(value, DimensionSummaries):
+        return value
+    if not value:
+        return _empty_dimension_rows()
+    return DimensionSummaries(**value)
+
+
+def _to_filter_options(value) -> FilterOptions:
+    if isinstance(value, FilterOptions):
+        return value
+    if not value:
+        return _empty_filter_options()
+    return FilterOptions(**value)
+
+
+def _to_sync_meta(value) -> SyncMeta:
+    if isinstance(value, SyncMeta):
+        return value
+    if not value:
+        return _empty_sync_meta()
+    return SyncMeta(**value)
 
 
 def _rollup_dimension(bucket: dict, row, dims: dict) -> None:
@@ -1170,7 +1198,10 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime) -> tuple[
     records = db.query(TokenUsageRecord).filter(*filters).all()
     device_names = _load_device_names(db, user_id)
     if not records:
-        return _empty_dimension_rows(), _empty_filter_options()
+        return (
+            _empty_dimension_rows().model_dump(),
+            _empty_filter_options().model_dump(),
+        )
     return _build_dimension_data(records, device_names)
 
 
@@ -1475,41 +1506,62 @@ def _execute_model_summary_query(db, user_id: str, req, since_date: datetime):
     )
 
 
-async def _fallback_to_cli_for_query(req: DbQueryRequest) -> DbUsageResponse:
-    """DB 无数据时的最后降级（仅 claude source）"""
-    loop = asyncio.get_event_loop()
-    since = (datetime.now() - timedelta(days=req.days)).strftime("%Y%m%d")
-
-    raw = await loop.run_in_executor(
-        None,
-        lambda: UsageFetcher.fetch_claude(
-            report_type="daily", since=since, breakdown=False
-        ),
+def _finish_query_response(
+    *,
+    request_id: str,
+    started_at: float,
+    user_id: str,
+    req: DbQueryRequest,
+    items: list[DbUsageItem],
+    summary: UsageSummary,
+    devices: list[dict],
+    cached: bool,
+    response_source: str,
+    actual_days: Optional[int] = None,
+    auto_expanded: bool = False,
+    model_summary: Optional[list] = None,
+    dimension_summaries=None,
+    filter_options=None,
+    sync_meta=None,
+) -> DbUsageResponse:
+    """统一收口 Token Usage 查询响应和耗时日志。"""
+    elapsed_ms = (time.perf_counter() - started_at) * 1000
+    item_count = len(items)
+    logger.info(
+        "[%s] Token Usage 查询出口: 用户=%s, 来源=%s, source=%s, type=%s, "
+        "days=%s, items=%s, cached=%s, 耗时=%.2fms",
+        request_id,
+        user_id,
+        response_source,
+        req.source,
+        req.type,
+        req.days,
+        item_count,
+        cached,
+        elapsed_ms,
     )
-
-    if "error" in raw:
-        return DbUsageResponse(
-            items=[],
-            summary=UsageSummary(
-                total_input_tokens=0,
-                total_output_tokens=0,
-                total_tokens=0,
-                total_cost=0,
-                days_count=0,
-                avg_daily_cost=0,
-            ),
-            devices=[],
+    if elapsed_ms > 1000:
+        logger.warning(
+            "[%s] Token Usage 查询耗时超过 1 秒: 用户=%s, 耗时=%.2fms",
+            request_id,
+            user_id,
+            elapsed_ms,
         )
 
-    items = normalize_entries(raw, req.type)
-    items = apply_aggregation(items, req.type)
-    summary = compute_summary(items)
-
     return DbUsageResponse(
-        items=[DbUsageItem(**i.model_dump()) for i in items],
+        items=items,
         summary=summary,
-        devices=[],
-        cached=False,
+        devices=devices,
+        cached=cached,
+        actual_days=actual_days,
+        auto_expanded=auto_expanded,
+        model_summary=[
+            item if isinstance(item, ModelSummaryItem) else ModelSummaryItem(**item)
+            for item in (model_summary or [])
+        ],
+        dimension_summaries=_to_dimension_summaries(dimension_summaries),
+        filter_options=_to_filter_options(filter_options),
+        sync_meta=_to_sync_meta(sync_meta),
     )
 
 
@@ -1519,140 +1571,29 @@ async def query_token_usage(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
     """统一查询端点：优先 Redis 缓存 → 降级 DB"""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    try:
-        user_id = get_current_user_id(authorization=authorization)
-    except HTTPException:
-        raise HTTPException(status_code=401, detail="认证失败")
-
-    # 1. 优先查 Redis 缓存
-    cached = get_query_cached_payload(
-        source=req.source,
-        report_type=req.type,
-        days=req.days,
-        group_by=req.group_by,
-        user_id=user_id,
-        device_id=req.device_id or "",
-        tool_id=req.tool_id or "",
-        model=req.model or "",
-        sort_by=req.sort_by,
-        sort_order=req.sort_order,
+    request_id = str(uuid.uuid4())
+    started_at = time.perf_counter()
+    logger.info(
+        "[%s] Token Usage 查询入口: source=%s, type=%s, days=%s, group_by=%s",
+        request_id,
+        req.source,
+        req.type,
+        req.days,
+        req.group_by,
     )
-    if cached:
-        logger.info(f"查询: Redis 缓存命中 /{req.source}/{req.type}/{req.days}天")
-        # 缓存命中直接返回，不再查询数据库
-        cached_items = [DbUsageItem(**item) for item in cached["items"]]
-        return DbUsageResponse(
-            items=cached_items,
-            summary=UsageSummary(**cached["summary"]),
-            devices=cached.get("devices", []),
-            cached=True,
-            model_summary=[
-                ModelSummaryItem(**item)
-                for item in cached.get("model_summary", [])
-            ],
-            dimension_summaries=DimensionSummaries(
-                **cached.get("dimension_summaries", _empty_dimension_rows())
-            ),
-            filter_options=FilterOptions(
-                **cached.get("filter_options", _empty_filter_options())
-            ),
-            sync_meta=SyncMeta(**cached.get("sync_meta", _empty_sync_meta())),
-        )
 
-    # 2. Redis 未命中，查 DB
-    db = SessionLocal()
     try:
-        regs = db.query(DeviceRegistry).filter(DeviceRegistry.user_id == user_id).all()
-        if regs:
-            devices = [
-                {
-                    "id": reg.device_id,
-                    "name": reg.display_name
-                    or reg.default_display_name
-                    or reg.device_id,
-                }
-                for reg in regs
-            ]
-        else:
-            device_ids = (
-                db.query(TokenUsageRecord.device_id)
-                .filter(TokenUsageRecord.user_id == user_id)
-                .distinct()
-                .all()
-            )
-            devices = [{"id": row[0], "name": row[0]} for row in device_ids]
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Authorization header missing")
+        try:
+            user_id = get_current_user_id(authorization=authorization)
+        except HTTPException:
+            raise HTTPException(status_code=401, detail="认证失败")
 
-        if req.source != "all":
-            active_ids = set(
-                row[0]
-                for row in db.query(TokenUsageRecord.device_id)
-                .filter(
-                    TokenUsageRecord.user_id == user_id,
-                    TokenUsageRecord.source == req.source,
-                )
-                .distinct()
-                .all()
-            )
-            devices = [d for d in devices if d["id"] in active_ids]
+        register_pending_sync_user(user_id)
 
-        since_date = datetime.now() - timedelta(days=req.days)
-        items = _execute_db_query(db, user_id, req, since_date)
-        dimension_rows, filter_options = _query_dimension_data(
-            db, user_id, req, since_date
-        )
-        _attach_models_to_items(db, user_id, req, since_date, items)
-
-        auto_expanded = False
-        actual_days = req.days
-        if not items and req.days < 365:
-            source_filter = _build_record_filters(user_id, req)
-            has_any_data = (
-                db.query(TokenUsageRecord).filter(*source_filter).first() is not None
-            )
-            if has_any_data:
-                since_date = datetime.now() - timedelta(days=365)
-                items = _execute_db_query(db, user_id, req, since_date)
-                _attach_models_to_items(db, user_id, req, since_date, items)
-                auto_expanded = True
-                actual_days = 365
-
-        summary = compute_db_summary(items)
-
-        model_summary = _rows_to_model_summary(
-            _execute_model_summary_query(db, user_id, req, since_date)
-        )
-        dimension_rows, filter_options = _query_dimension_data(
-            db, user_id, req, since_date
-        )
-        sync_meta_dict = _get_sync_meta(db, user_id, req, None)
-
-        if not items:
-            logger.info(f"用户 {user_id} 的 Token Usage 数据为空，返回空结果")
-            return DbUsageResponse(
-                items=[],
-                summary=summary,
-                devices=devices,
-                cached=False,
-                actual_days=actual_days if auto_expanded else None,
-                auto_expanded=auto_expanded,
-                model_summary=[ModelSummaryItem(**item) for item in model_summary],
-                dimension_summaries=DimensionSummaries(**dimension_rows),
-                filter_options=FilterOptions(**filter_options),
-                sync_meta=SyncMeta(**sync_meta_dict),
-            )
-
-        # 3. 写入 Redis 缓存
-        cache_payload = {
-            "items": [item.model_dump() for item in items],
-            "summary": summary.model_dump(),
-            "devices": devices,
-            "model_summary": model_summary,
-            "dimension_summaries": dimension_rows,
-            "filter_options": filter_options,
-        }
-        set_query_cached_data(
+        # 优先读取 Redis 缓存，命中时不访问数据库和 CLI。
+        cached = get_query_cached_payload(
             source=req.source,
             report_type=req.type,
             days=req.days,
@@ -1663,23 +1604,167 @@ async def query_token_usage(
             model=req.model or "",
             sort_by=req.sort_by,
             sort_order=req.sort_order,
-            data=cache_payload,
         )
+        if cached:
+            cached_items = [DbUsageItem(**item) for item in cached["items"]]
+            return _finish_query_response(
+                request_id=request_id,
+                started_at=started_at,
+                user_id=user_id,
+                req=req,
+                items=cached_items,
+                summary=UsageSummary(**cached["summary"]),
+                devices=cached.get("devices", []),
+                cached=True,
+                response_source="redis",
+                model_summary=cached.get("model_summary", []),
+                dimension_summaries=cached.get("dimension_summaries"),
+                filter_options=cached.get("filter_options"),
+                sync_meta=cached.get("sync_meta"),
+            )
 
-        return DbUsageResponse(
-            items=items,
-            summary=summary,
-            devices=devices,
-            cached=False,
-            actual_days=actual_days if auto_expanded else None,
-            auto_expanded=auto_expanded,
-            model_summary=[ModelSummaryItem(**item) for item in model_summary],
-            dimension_summaries=DimensionSummaries(**dimension_rows),
-            filter_options=FilterOptions(**filter_options),
-            sync_meta=SyncMeta(**sync_meta_dict),
+        # Redis 未命中时只读 DB，不在请求链路执行同步。
+        db = SessionLocal()
+        try:
+            regs = (
+                db.query(DeviceRegistry)
+                .filter(DeviceRegistry.user_id == user_id)
+                .all()
+            )
+            if regs:
+                devices = [
+                    {
+                        "id": reg.device_id,
+                        "name": reg.display_name
+                        or reg.default_display_name
+                        or reg.device_id,
+                    }
+                    for reg in regs
+                ]
+            else:
+                device_ids = (
+                    db.query(TokenUsageRecord.device_id)
+                    .filter(TokenUsageRecord.user_id == user_id)
+                    .distinct()
+                    .all()
+                )
+                devices = [{"id": row[0], "name": row[0]} for row in device_ids]
+
+            if req.source != "all":
+                active_ids = set(
+                    row[0]
+                    for row in db.query(TokenUsageRecord.device_id)
+                    .filter(
+                        TokenUsageRecord.user_id == user_id,
+                        TokenUsageRecord.source == req.source,
+                    )
+                    .distinct()
+                    .all()
+                )
+                devices = [d for d in devices if d["id"] in active_ids]
+
+            since_date = datetime.now() - timedelta(days=req.days)
+            items = _execute_db_query(db, user_id, req, since_date)
+            dimension_rows, filter_options = _query_dimension_data(
+                db, user_id, req, since_date
+            )
+            _attach_models_to_items(db, user_id, req, since_date, items)
+
+            auto_expanded = False
+            actual_days = req.days
+            if not items and req.days < 365:
+                source_filter = _build_record_filters(user_id, req)
+                has_any_data = (
+                    db.query(TokenUsageRecord).filter(*source_filter).first()
+                    is not None
+                )
+                if has_any_data:
+                    since_date = datetime.now() - timedelta(days=365)
+                    items = _execute_db_query(db, user_id, req, since_date)
+                    _attach_models_to_items(db, user_id, req, since_date, items)
+                    auto_expanded = True
+                    actual_days = 365
+
+            summary = compute_db_summary(items)
+            model_summary = _rows_to_model_summary(
+                _execute_model_summary_query(db, user_id, req, since_date)
+            )
+            dimension_rows, filter_options = _query_dimension_data(
+                db, user_id, req, since_date
+            )
+            sync_meta_dict = _get_sync_meta(db, user_id, req, None)
+
+            if not items:
+                return _finish_query_response(
+                    request_id=request_id,
+                    started_at=started_at,
+                    user_id=user_id,
+                    req=req,
+                    items=[],
+                    summary=summary,
+                    devices=devices,
+                    cached=False,
+                    response_source="db_empty",
+                    actual_days=actual_days if auto_expanded else None,
+                    auto_expanded=auto_expanded,
+                    model_summary=model_summary,
+                    dimension_summaries=dimension_rows,
+                    filter_options=filter_options,
+                    sync_meta=sync_meta_dict,
+                )
+
+            cache_payload = {
+                "items": [item.model_dump() for item in items],
+                "summary": summary.model_dump(),
+                "devices": devices,
+                "model_summary": model_summary,
+                "dimension_summaries": dimension_rows,
+                "filter_options": filter_options,
+                "sync_meta": sync_meta_dict,
+            }
+            set_query_cached_data(
+                source=req.source,
+                report_type=req.type,
+                days=req.days,
+                group_by=req.group_by,
+                user_id=user_id,
+                device_id=req.device_id or "",
+                tool_id=req.tool_id or "",
+                model=req.model or "",
+                sort_by=req.sort_by,
+                sort_order=req.sort_order,
+                data=cache_payload,
+            )
+
+            return _finish_query_response(
+                request_id=request_id,
+                started_at=started_at,
+                user_id=user_id,
+                req=req,
+                items=items,
+                summary=summary,
+                devices=devices,
+                cached=False,
+                response_source="db",
+                actual_days=actual_days if auto_expanded else None,
+                auto_expanded=auto_expanded,
+                model_summary=model_summary,
+                dimension_summaries=dimension_rows,
+                filter_options=filter_options,
+                sync_meta=sync_meta_dict,
+            )
+        finally:
+            db.close()
+    except Exception as exc:
+        elapsed_ms = (time.perf_counter() - started_at) * 1000
+        logger.error(
+            "[%s] Token Usage 查询异常: 错误=%s, 耗时=%.2fms",
+            request_id,
+            exc,
+            elapsed_ms,
+            exc_info=True,
         )
-    finally:
-        db.close()
+        raise
 
 
 def _execute_db_query(
