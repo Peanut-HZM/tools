@@ -1349,30 +1349,30 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
                 </button>
 
                 <i className={`fas ${itemIcon} text-slate-500 text-[10px]`}></i>
-                <span
-                  className="truncate text-xs flex-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onItemClick(item.name);
-                  }}
-                >
-                  {searchTerm ? (
-                      <>
-                         {item.name.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>
-                             part.toLowerCase() === searchTerm.toLowerCase()
-                                 ? <span key={i} className="bg-yellow-500/30 text-yellow-200">{part}</span>
-                                 : part
-                         )}
-                      </>
-                  ) : item.name}
-                </span>
-
-                {item.comment && (
-                    <div className="absolute left-full ml-2 top-0 z-50 hidden group-hover/item:block whitespace-nowrap bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded border border-slate-600 shadow-lg pointer-events-none">
-                        {item.comment}
-                        <div className="absolute top-2 -left-1 w-2 h-2 bg-slate-800 border-l border-b border-slate-600 transform rotate-45"></div>
+                <div className="flex-1 min-w-0">
+                  <span
+                    className="truncate text-xs cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onItemClick(item.name);
+                    }}
+                  >
+                    {searchTerm ? (
+                        <>
+                           {item.name.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>
+                               part.toLowerCase() === searchTerm.toLowerCase()
+                                   ? <span key={i} className="bg-yellow-500/30 text-yellow-200">{part}</span>
+                                   : part
+                           )}
+                        </>
+                    ) : item.name}
+                  </span>
+                  {item.comment && (
+                    <div className="text-[10px] text-slate-600 truncate" title={item.comment}>
+                      {item.comment}
                     </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Table Detail Panel */}

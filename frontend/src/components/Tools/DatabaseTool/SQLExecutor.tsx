@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useDatabaseTool } from '../../../contexts/DatabaseToolContext';
 import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
-import { SQLExecutionResult } from '../../../types/databaseTool';
+import { SQLExecutionResult, TableItem } from '../../../types/databaseTool';
 import SQLEditor from './components/SQLEditor';
 import ResultViewer from './components/ResultViewer';
 import { useI18n } from '../../../i18n';
@@ -39,7 +39,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
   const [dbLoading, setDbLoading] = useState(false);
   const [schemas, setSchemas] = useState<string[]>([]);
   const [schemaLoading, setSchemaLoading] = useState(false);
-  const [tables, setTables] = useState<string[]>([]);
+  const [tables, setTables] = useState<TableItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -87,10 +87,11 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
         }
 
         if (structure.status === 'fulfilled' && structure.value) {
-          setTables([
-            ...structure.value.tables.map(t => t.name),
-            ...structure.value.views.map(v => v.name)
-          ]);
+          const tablesAndViews: TableItem[] = [
+            ...structure.value.tables,
+            ...structure.value.views
+          ];
+          setTables(tablesAndViews);
         } else {
           setTables([]);
         }

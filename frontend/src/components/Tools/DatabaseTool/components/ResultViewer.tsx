@@ -554,14 +554,14 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap group relative"
                     title={comment || undefined}
                   >
-                    {col}
-                    {primaryKey?.includes(col) && <i className="fas fa-key text-yellow-500/70 ml-1 text-[10px]" title="Primary Key"></i>}
-                    
+                    <div>
+                      {col}
+                      {primaryKey?.includes(col) && <i className="fas fa-key text-yellow-500/70 ml-1 text-[10px]" title="Primary Key"></i>}
+                    </div>
                     {comment && (
-                       <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block whitespace-nowrap bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded border border-slate-600 shadow-lg z-50 pointer-events-none">
-                           {comment}
-                           <div className="absolute -bottom-1 left-4 w-2 h-2 bg-slate-800 border-r border-b border-slate-600 transform rotate-45"></div>
-                       </div>
+                      <div className="text-[10px] text-slate-600 font-normal normal-case tracking-normal mt-0.5 truncate">
+                        {comment}
+                      </div>
                     )}
                   </th>
                 );

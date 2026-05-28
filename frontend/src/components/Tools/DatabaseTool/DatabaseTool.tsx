@@ -122,15 +122,16 @@ const DatabaseToolContent: React.FC = () => {
     setActiveTabId(tabId);
   };
 
-    // 左→右联动：左侧点击连接/数据库时更新活跃Tab
   const handleConnectionSelect = useCallback((configId: string, databaseName?: string, schemaName?: string) => {
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    if (activeTab?.type === 'sql') {
+    setTabs(prev => {
+      const activeTab = prev.find(t => t.id === activeTabId);
+      if (activeTab?.type !== 'sql') return prev;
+
       const db = databaseName || configs.find(c => c.id === configId)?.database_name || '';
       const existingSchema = activeTab.sqlState?.schemaName || '';
       const schema = schemaName !== undefined ? schemaName : existingSchema;
       const currentSql = activeTab.sqlState?.sql || '';
-      setTabs(prev => prev.map(t =>
+      return prev.map(t =>
         t.id === activeTabId
           ? {
               ...t,
@@ -138,21 +139,27 @@ const DatabaseToolContent: React.FC = () => {
               title: deriveTabTitle(configId, db, configs)
             }
           : t
-      ));
-    }
-  }, [tabs, activeTabId, configs]);
+      );
+    });
+  }, [activeTabId, configs]);
 
   // 右→左联动：SQLExecutor内状态变更时更新Tab
   const handleSqlStateChange = useCallback((tabId: string, state: { configId: string; database: string; schema?: string; sql: string }) => {
-    setTabs(prev => prev.map(t =>
-      t.id === tabId
-        ? {
-            ...t,
-            sqlState: { configId: state.configId, databaseName: state.database, schemaName: state.schema || '', sql: state.sql },
-            title: deriveTabTitle(state.configId, state.database, configs)
-          }
-        : t
-    ));
+    setTabs(prev => prev.map(t => {
+      if (t.id !== tabId) return t;
+      
+      const existingSchema = t.sqlState?.schemaName || '';
+      return {
+        ...t,
+        sqlState: { 
+          configId: state.configId, 
+          databaseName: state.database, 
+          schemaName: state.schema !== undefined ? state.schema : existingSchema, 
+          sql: state.sql 
+        },
+        title: deriveTabTitle(state.configId, state.database, configs)
+      };
+    }));
   }, [configs]);
 
   // 从活跃Tab派生左侧高亮状态

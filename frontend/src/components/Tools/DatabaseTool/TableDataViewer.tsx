@@ -84,6 +84,17 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       fetchData(newPage);
   };
 
+  const getFieldsPlaceholder = (includeDesc?: boolean) => {
+    if (!schema || schema.columns.length === 0) {
+      return includeDesc ? 'id = 1' : 'id desc';
+    }
+    const fieldNames = schema.columns.slice(0, 3).map(c => c.name).join(', ');
+    if (includeDesc) {
+      return `${fieldNames} desc`;
+    }
+    return `${fieldNames}`;
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-900">
       {/* Header / Toolbar */}
@@ -125,7 +136,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
               type="text"
               value={whereClause}
               onChange={(e) => setWhereClause(e.target.value)}
-              placeholder="id = '' and user in ()"
+              placeholder={getFieldsPlaceholder()}
               className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && handleExecute()}
             />
@@ -140,7 +151,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
               type="text"
               value={orderByClause}
               onChange={(e) => setOrderByClause(e.target.value)}
-              placeholder="update_time desc, create_time desc"
+              placeholder={getFieldsPlaceholder(true)}
               className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && handleExecute()}
             />

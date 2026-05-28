@@ -1390,20 +1390,19 @@ class DatabaseToolService:
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
         inspector = inspect(engine)
 
-        # PostgreSQL: use schema-qualified table name
-        qualified_table_name = table_name
-        if config_row["db_type"] == DatabaseType.POSTGRESQL and schema_name:
-            qualified_table_name = f'"{schema_name}"."{table_name}"'
+        # PostgreSQL: 使用 schema 关键字参数
+        is_postgresql = config_row["db_type"] == DatabaseType.POSTGRESQL
+        schema_kw = {"schema": schema_name} if (is_postgresql and schema_name) else {}
 
         # Get table comment
         table_comment = None
         try:
-            table_comment = inspector.get_table_comment(qualified_table_name).get("text")
+            table_comment = inspector.get_table_comment(table_name, **schema_kw).get("text")
         except:
             pass
 
         columns = []
-        for col in inspector.get_columns(qualified_table_name):
+        for col in inspector.get_columns(table_name, **schema_kw):
             # Convert SQLAlchemy type to string
             col["type"] = str(col["type"])
             # Ensure comment is present
@@ -1411,11 +1410,11 @@ class DatabaseToolService:
                 col["comment"] = None
             columns.append(col)
 
-        pk_constraint = inspector.get_pk_constraint(qualified_table_name)
+        pk_constraint = inspector.get_pk_constraint(table_name, **schema_kw)
         primary_key = pk_constraint.get("constrained_columns", [])
 
-        indexes = inspector.get_indexes(qualified_table_name)
-        foreign_keys = inspector.get_foreign_keys(qualified_table_name)
+        indexes = inspector.get_indexes(table_name, **schema_kw)
+        foreign_keys = inspector.get_foreign_keys(table_name, **schema_kw)
 
         return TableSchema(
             table_name=table_name,
@@ -3064,24 +3063,23 @@ class DatabaseToolService:
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
         inspector = inspect(engine)
 
-        # PostgreSQL: use schema-qualified table name
-        qualified_table_name = table_name
-        if config_row["db_type"] == DatabaseType.POSTGRESQL and schema_name:
-            qualified_table_name = f'"{schema_name}"."{table_name}"'
+        # PostgreSQL: 使用 schema 参数传递给 inspector 方法
+        is_postgresql = config_row["db_type"] == DatabaseType.POSTGRESQL
+        schema_kw = {"schema": schema_name} if (is_postgresql and schema_name) else {}
 
         # 表注释
         table_comment = None
         try:
-            table_comment = inspector.get_table_comment(qualified_table_name).get("text")
+            table_comment = inspector.get_table_comment(table_name, **schema_kw).get("text")
         except Exception:
             pass
 
         # 字段
         columns = []
-        pk_constraint = inspector.get_pk_constraint(qualified_table_name)
+        pk_constraint = inspector.get_pk_constraint(table_name, **schema_kw)
         pk_columns = set(pk_constraint.get("constrained_columns", [])) if pk_constraint else set()
 
-        for idx, col in enumerate(inspector.get_columns(qualified_table_name)):
+        for idx, col in enumerate(inspector.get_columns(table_name, **schema_kw)):
             col_type = str(col["type"])
             length = None
             if "(" in col_type:
@@ -3107,7 +3105,7 @@ class DatabaseToolService:
 
         # 索引
         indexes = []
-        for idx in inspector.get_indexes(qualified_table_name):
+        for idx in inspector.get_indexes(table_name, **schema_kw):
             indexes.append(
                 IndexDetail(
                     name=idx["name"],
@@ -3119,7 +3117,7 @@ class DatabaseToolService:
 
         # 外键
         foreign_keys = []
-        for fk in inspector.get_foreign_keys(qualified_table_name):
+        for fk in inspector.get_foreign_keys(table_name, **schema_kw):
             foreign_keys.append(
                 ForeignKeyDetail(
                     name=fk.get("name", ""),
@@ -3133,7 +3131,11 @@ class DatabaseToolService:
         row_count = None
         try:
             with engine.connect() as conn:
-                result = conn.execute(text(f"SELECT COUNT(*) FROM \"{table_name}\""))
+                if is_postgresql and schema_name:
+                    count_sql = text(f'SELECT COUNT(*) FROM "{schema_name}"."{table_name}"')
+                else:
+                    count_sql = text(f"SELECT COUNT(*) FROM \"{table_name}\"")
+                result = conn.execute(count_sql)
                 row_count = result.scalar()
         except Exception:
             pass

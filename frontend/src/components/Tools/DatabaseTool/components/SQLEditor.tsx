@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
+import { TableItem } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 
 interface SQLEditorProps {
@@ -7,7 +8,7 @@ interface SQLEditorProps {
   onChange: (value: string) => void;
   onExecute: () => void;
   loading?: boolean;
-  tables?: string[];
+  tables?: TableItem[];
   pageSize?: number;
   onPageSizeChange?: (size: number) => void;
 }
@@ -34,11 +35,11 @@ const SQLEditor: React.FC<SQLEditorProps> = ({ value, onChange, onExecute, loadi
           };
 
           const suggestions = tables.map(table => ({
-            label: table,
+            label: table.name,
             kind: monaco.languages.CompletionItemKind.Class,
-            insertText: table,
+            insertText: table.name,
             range: range,
-            detail: 'Table'
+            detail: table.comment || 'Table'
           }));
 
           return { suggestions };
@@ -56,6 +57,11 @@ const SQLEditor: React.FC<SQLEditorProps> = ({ value, onChange, onExecute, loadi
     
     // Add Command+Enter / Ctrl+Enter to execute
     editor.addCommand(monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.Enter, () => {
+      onExecute();
+    });
+
+    // Add Shift+Enter to execute
+    editor.addCommand(monacoInstance.KeyMod.Shift | monacoInstance.KeyCode.Enter, () => {
       onExecute();
     });
   };

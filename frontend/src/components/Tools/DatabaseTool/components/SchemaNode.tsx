@@ -225,8 +225,9 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
     try {
       const detail = await api.getTableDetail(configId, tableName, dbName, schemaName);
       setExpandedDetails(prev => ({ ...prev, [tableName]: detail }));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load table detail', e);
+      toast.error(`获取表字段详情失败: ${e.message || '未知错误'}`);
     } finally {
       setLoadingDetails(prev => {
         const next = new Set(prev);
@@ -368,10 +369,11 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          e.preventDefault();
                           toggleTableDetail(item.name);
                         }}
-                        className="w-3 h-3 flex items-center justify-center text-slate-600 hover:text-slate-300"
-                        title="Show structure detail"
+                        className="w-4 h-4 flex items-center justify-center text-slate-500 hover:text-slate-200 shrink-0"
+                        title="查看表字段"
                       >
                         {loadingDetails.has(item.name) ? (
                           <i className="fas fa-spinner fa-spin text-[8px]"></i>
@@ -381,30 +383,30 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                       </button>
 
                       <i className="fas fa-table text-slate-500 text-[10px]"></i>
-                      <span
-                        className="truncate text-xs flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTableClick(item.name);
-                        }}
-                      >
-                        {searchTerm ? (
-                          <>
-                            {item.name.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>
-                              part.toLowerCase() === searchTerm.toLowerCase()
-                                ? <span key={i} className="bg-yellow-500/30 text-yellow-200">{part}</span>
-                                : part
-                            )}
-                          </>
-                        ) : item.name}
-                      </span>
-
-                      {item.comment && (
-                        <div className="absolute left-full ml-2 top-0 z-50 hidden group-hover/item:block whitespace-nowrap bg-slate-800 text-slate-200 text-xs px-2 py-1 rounded border border-slate-600 shadow-lg pointer-events-none">
-                          {item.comment}
-                          <div className="absolute top-2 -left-1 w-2 h-2 bg-slate-800 border-l border-b border-slate-600 transform rotate-45"></div>
-                        </div>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className="truncate text-xs cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTableClick(item.name);
+                          }}
+                        >
+                          {searchTerm ? (
+                            <>
+                              {item.name.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>
+                                part.toLowerCase() === searchTerm.toLowerCase()
+                                  ? <span key={i} className="bg-yellow-500/30 text-yellow-200">{part}</span>
+                                  : part
+                              )}
+                            </>
+                          ) : item.name}
+                        </span>
+                        {item.comment && (
+                          <div className="text-[10px] text-slate-600 truncate" title={item.comment}>
+                            {item.comment}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Table Detail Panel */}
