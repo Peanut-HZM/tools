@@ -100,15 +100,15 @@ const DatabaseToolContent: React.FC = () => {
     setActiveTabId(tabId);
   };
   
-  const handleOpenSqlConsole = (initialSql?: string, databaseName?: string, configId?: string) => {
+  const handleOpenSqlConsole = (initialSql?: string, databaseName?: string, configId?: string, schemaName?: string) => {
     const tabId = `sql-${Date.now()}`;
-    
+
     const title = deriveTabTitle(configId || '', databaseName || '', configs);
 
     const sqlState: SqlTabState | undefined = configId ? {
       configId,
       databaseName: databaseName || '',
-      schemaName: '',
+      schemaName: schemaName || '',
       sql: initialSql || '',
     } : undefined;
 
@@ -122,12 +122,13 @@ const DatabaseToolContent: React.FC = () => {
     setActiveTabId(tabId);
   };
 
-  // 左→右联动：左侧点击连接/数据库时更新活跃Tab
+    // 左→右联动：左侧点击连接/数据库时更新活跃Tab
   const handleConnectionSelect = useCallback((configId: string, databaseName?: string, schemaName?: string) => {
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (activeTab?.type === 'sql') {
       const db = databaseName || configs.find(c => c.id === configId)?.database_name || '';
-      const schema = schemaName || '';
+      const existingSchema = activeTab.sqlState?.schemaName || '';
+      const schema = schemaName !== undefined ? schemaName : existingSchema;
       const currentSql = activeTab.sqlState?.sql || '';
       setTabs(prev => prev.map(t =>
         t.id === activeTabId
@@ -138,8 +139,6 @@ const DatabaseToolContent: React.FC = () => {
             }
           : t
       ));
-    } else {
-      handleOpenSqlConsole('', databaseName, configId);
     }
   }, [tabs, activeTabId, configs]);
 
@@ -161,9 +160,12 @@ const DatabaseToolContent: React.FC = () => {
   const activeConfigId = activeTab?.type === 'sql' 
     ? activeTab.sqlState?.configId 
     : activeTab?.data?.configId;
-  const activeDatabaseName = activeTab?.type === 'sql' 
-    ? activeTab.sqlState?.databaseName 
+  const activeDatabaseName = activeTab?.type === 'sql'
+    ? activeTab.sqlState?.databaseName
     : activeTab?.data?.databaseName;
+  const activeSchemaName = activeTab?.type === 'sql'
+    ? activeTab.sqlState?.schemaName
+    : activeTab?.data?.schemaName;
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-900 text-slate-100">
@@ -180,6 +182,7 @@ const DatabaseToolContent: React.FC = () => {
           onOpenSqlConsole={handleOpenSqlConsole}
           activeConfigId={activeConfigId}
           activeDatabaseName={activeDatabaseName}
+          activeSchemaName={activeSchemaName}
           onConnectionSelect={handleConnectionSelect}
         />
       </ResizablePanel>

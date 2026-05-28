@@ -18,13 +18,14 @@ interface ConnectionListProps {
   onAddConfig: () => void;
   onEditConfig: (id: string) => void;
   onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
-  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string, schemaName?: string) => void;
   activeConfigId?: string;
   activeDatabaseName?: string;
-  onConnectionSelect?: (configId: string, databaseName?: string) => void;
+  activeSchemaName?: string;
+  onConnectionSelect?: (configId: string, databaseName?: string, schemaName?: string) => void;
 }
 
-const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConfig, onSelectTable, onOpenSqlConsole, activeConfigId, activeDatabaseName, onConnectionSelect }) => {
+const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConfig, onSelectTable, onOpenSqlConsole, activeConfigId, activeDatabaseName, activeSchemaName, onConnectionSelect }) => {
   const { configs, currentConfig, selectConfigById, setCurrentDatabase, refreshConfigs, isLoading } = useDatabaseTool();
   const { t } = useI18n();
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
@@ -67,9 +68,9 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
     setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
-  const handleSelectDatabase = (configId: string, dbName: string) => {
+  const handleSelectDatabase = (configId: string, dbName: string, schemaName?: string) => {
     if (onConnectionSelect) {
-      onConnectionSelect(configId, dbName);
+      onConnectionSelect(configId, dbName, schemaName);
     } else {
       if (currentConfig?.id !== configId) {
         selectConfigById(configId);
@@ -179,6 +180,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             searchTerm={searchTerm}
             displayPreferences={displayPreferences}
             activeDatabaseName={activeDatabaseName}
+            activeSchemaName={activeSchemaName}
           />
         ))}
 
@@ -231,19 +233,20 @@ interface ConnectionNodeProps {
   onSelect: () => void;
   onEdit: () => void;
   onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
-  onSelectDatabase: (configId: string, dbName: string) => void;
+  onSelectDatabase: (configId: string, dbName: string, schemaName?: string) => void;
   getEnvColor: (env?: Environment) => string;
   onRefreshConfigs: () => Promise<void>;
-  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string, schemaName?: string) => void;
   onOpenBackup: (configId: string, dbName: string, tables?: string[]) => void;
   onOpenBackupHistory: (configId: string, dbName?: string) => void;
   searchTerm: string;
   displayPreferences?: DisplayPreferences | null;
   activeDatabaseName?: string;
+  activeSchemaName?: string;
 }
 
 const ConnectionNode: React.FC<ConnectionNodeProps> = ({
-  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences, activeDatabaseName
+  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences, activeDatabaseName, activeSchemaName
 }) => {
   const { t } = useI18n();
   const [databases, setDatabases] = useState<string[]>([]);
@@ -586,12 +589,12 @@ const handleSelectAndExpand = async () => {
                     dbName={config.database_name}
                     schemaName={schema}
                     onSelectTable={(table) => onSelectTable(config.id, config.database_name, table, schema)}
-                    onSelectSchema={() => onSelectDatabase(config.id, config.database_name!)}
+                    onSelectSchema={(schema) => onSelectDatabase(config.id, config.database_name!, schema)}
                     onOpenSqlConsole={onOpenSqlConsole}
                     onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
                     onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
                     searchTerm={searchTerm}
-                    activeSchemaName={activeDatabaseName}
+                    activeSchemaName={activeSchemaName}
                   />
                 ))
               ) : (
@@ -626,6 +629,7 @@ const handleSelectAndExpand = async () => {
                       onOpenBackupHistory={(d) => onOpenBackupHistory(config.id, d)}
                       searchTerm={searchTerm}
                       activeDatabaseName={activeDatabaseName}
+                      activeSchemaName={activeSchemaName}
                     />
                   ));
                 })()
@@ -769,7 +773,6 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
   };
 
   const handleTableClick = (table: string) => {
-    onSelectDatabase();
     onSelectTable(table);
   };
 
@@ -1420,17 +1423,18 @@ interface PostgresDatabaseNodeProps {
   dbName: string;
   schemaNames: string[];
   onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
-  onSelectDatabase: (configId: string, dbName: string) => void;
-  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
+  onSelectDatabase: (configId: string, dbName: string, schemaName?: string) => void;
+  onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string, schemaName?: string) => void;
   onOpenBackup: (dbName: string, tables?: string[]) => void;
   onOpenBackupHistory: (dbName: string) => void;
   searchTerm: string;
   activeDatabaseName?: string;
+  activeSchemaName?: string;
 }
 
 const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
   configId, dbName, schemaNames, onSelectTable, onSelectDatabase,
-  onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, activeDatabaseName
+  onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, activeDatabaseName, activeSchemaName
 }) => {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1471,12 +1475,12 @@ const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
               dbName={dbName}
               schemaName={schema}
               onSelectTable={(table) => onSelectTable(configId, dbName, table, schema)}
-              onSelectSchema={() => onSelectDatabase(configId, dbName)}
+              onSelectSchema={(schema) => onSelectDatabase(configId, dbName, schema)}
               onOpenSqlConsole={onOpenSqlConsole}
               onOpenBackup={(d, tables) => onOpenBackup(d, tables)}
               onOpenBackupHistory={(d) => onOpenBackupHistory(d)}
               searchTerm={searchTerm}
-              activeSchemaName={activeDatabaseName}
+              activeSchemaName={activeSchemaName}
             />
           ))}
         </div>

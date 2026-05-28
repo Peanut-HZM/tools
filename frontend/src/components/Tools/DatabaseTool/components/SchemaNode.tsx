@@ -12,7 +12,7 @@ interface SchemaNodeProps {
   dbName: string;
   schemaName: string;
   onSelectTable: (tableName: string) => void;
-  onSelectSchema: () => void;
+  onSelectSchema: (schemaName: string) => void;
   onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string) => void;
   onOpenBackup: (dbName: string, tables?: string[]) => void;
   onOpenBackupHistory: (dbName: string) => void;
@@ -70,7 +70,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    onSelectSchema();
+    onSelectSchema(schemaName);
 
     const nextState = !isExpanded;
     setIsExpanded(nextState);
@@ -81,14 +81,14 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
   };
 
   const handleTableClick = (table: string) => {
-    onSelectSchema();
+    onSelectSchema(schemaName);
     onSelectTable(table);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onSelectSchema();
+    onSelectSchema(schemaName);
 
     const items: MenuItem[] = [
       {
