@@ -5,6 +5,7 @@ import { useToast } from '../../../hooks/useToast';
 import { SQLExecutionResult, TableItem } from '../../../types/databaseTool';
 import SQLEditor from './components/SQLEditor';
 import ResultViewer from './components/ResultViewer';
+import SQLHistoryPanel from './components/SQLHistoryPanel';
 import { useI18n } from '../../../i18n';
 
 interface SQLExecutorProps {
@@ -42,6 +43,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
   const [tables, setTables] = useState<TableItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -186,6 +188,16 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
     });
   }, [configId, database, onStateChange]);
 
+  const handleReuseHistory = useCallback((sql: string) => {
+    onStateChange({
+      configId,
+      database,
+      schema,
+      sql
+    });
+    setShowHistoryPanel(false);
+  }, [configId, database, schema, onStateChange]);
+
   return (
     <div className="flex flex-col h-full gap-4 p-4 bg-slate-900">
         <div className="flex items-center space-x-4 bg-slate-800 p-2 rounded-md border border-slate-700">
@@ -250,6 +262,20 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
             </div>
           </div>
         )}
+        
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setShowHistoryPanel(!showHistoryPanel)}
+            className={`p-1.5 rounded transition-colors ${
+              showHistoryPanel 
+                ? 'bg-blue-600 text-white' 
+                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+            }`}
+            title="SQL 历史记录"
+          >
+            <i className="fas fa-history text-sm"></i>
+          </button>
+        </div>
       </div>
 
       {!configId ? (
@@ -258,44 +284,56 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
            <p>{t.database.status.disconnected}</p>
         </div>
       ) : (
-        <>
-          <div className="h-1/3 min-h-[200px]">
-            <SQLEditor 
-              value={sql} 
-              onChange={handleSqlChange} 
-              onExecute={handleExecute} 
-              loading={loading}
-              tables={tables}
-            />
-          </div>
-          <div className="flex-1 min-h-0 flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-              <h3 className="text-slate-300 text-sm font-medium">{t.database.executor.results}</h3>
-              {result && result.success && result.result_data && (
-                <div className="flex items-center gap-2 text-xs">
-                  <button 
-                    disabled={page <= 1 || loading}
-                    onClick={() => handlePageChange(page - 1)}
-                    className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
-                  >
-                    <i className="fas fa-chevron-left"></i>
-                  </button>
-                  <span className="text-slate-400 bg-slate-800 border border-slate-700 px-2 py-1 rounded">
-                    Page {page}
-                  </span>
-                  <button 
-                    disabled={(!result.result_data || result.result_data.length < pageSize) || loading}
-                    onClick={() => handlePageChange(page + 1)}
-                    className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
-                  >
-                    <i className="fas fa-chevron-right"></i>
-                  </button>
-                </div>
-              )}
+        <div className="flex flex-1 gap-4 overflow-hidden">
+          <div className={`flex flex-col gap-4 transition-all ${showHistoryPanel ? 'flex-1 min-w-0' : 'flex-[1_1_0%]'}`}>
+            <div className="h-1/3 min-h-[200px]">
+              <SQLEditor 
+                value={sql} 
+                onChange={handleSqlChange} 
+                onExecute={handleExecute} 
+                loading={loading}
+                tables={tables}
+              />
             </div>
-            <ResultViewer result={result} />
+            <div className="flex-1 min-h-0 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <h3 className="text-slate-300 text-sm font-medium">{t.database.executor.results}</h3>
+                {result && result.success && result.result_data && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <button 
+                      disabled={page <= 1 || loading}
+                      onClick={() => handlePageChange(page - 1)}
+                      className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                    >
+                      <i className="fas fa-chevron-left"></i>
+                    </button>
+                    <span className="text-slate-400 bg-slate-800 border border-slate-700 px-2 py-1 rounded">
+                      Page {page}
+                    </span>
+                    <button 
+                      disabled={(!result.result_data || result.result_data.length < pageSize) || loading}
+                      onClick={() => handlePageChange(page + 1)}
+                      className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                    >
+                      <i className="fas fa-chevron-right"></i>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <ResultViewer result={result} />
+            </div>
           </div>
-        </>
+          
+          {showHistoryPanel && (
+            <div className="w-80 shrink-0">
+              <SQLHistoryPanel
+                isOpen={showHistoryPanel}
+                onClose={() => setShowHistoryPanel(false)}
+                onReuseSql={handleReuseHistory}
+              />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

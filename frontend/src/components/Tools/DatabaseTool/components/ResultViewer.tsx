@@ -6,6 +6,7 @@ import JsonViewModal from './JsonViewModal';
 import { generateInsertStatements, generateUpdateStatements } from '../../../../utils/sqlGenerator';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
+import ColumnSelector from './ColumnSelector';
 
 interface ResultViewerProps {
   result: SQLExecutionResult | null;
@@ -35,6 +36,9 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [viewingRow, setViewingRow] = useState<any | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  // 列显示状态（按表名持久化到 localStorage）
+  const storageKey = tableName ? `db-column-visibility-${configId}-${databaseName || ''}-${schemaName || ''}-${tableName}` : null;
 
   // Inline editing state
   const [cellEdits, setCellEdits] = useState<Map<string, { oldValue: any; newValue: any }>>(new Map());
@@ -371,7 +375,34 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
   }
 
   const columns = result.columns || (result.result_data && result.result_data.length > 0 ? Object.keys(result.result_data[0]) : []);
-  
+
+  // 列显示管理：从 localStorage 加载并过滤
+  const getStoredColumns = () => {
+    if (!storageKey) return [];
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const storedCols = getStoredColumns();
+  // 过滤掉当前表不存在的列
+  const displayColumns = storedCols.filter((col: string) => columns.includes(col));
+  // 如果存储的列全部无效，则显示所有列
+  const visibleColumns = displayColumns.length > 0 ? displayColumns : columns;
+
+  const handleColumnChange = (cols: string[]) => {
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(cols));
+      } catch (e) {
+        console.error('Failed to save column visibility:', e);
+      }
+    }
+  };
+
   if (columns.length === 0) {
     return (
       <div className="h-full p-4 bg-slate-800 border border-slate-700 rounded-md flex flex-col items-center justify-center">
@@ -468,23 +499,37 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                <i className="fas fa-code"></i>
                {t.database.executor.viewJson}
              </button>
-             <button 
-               onClick={handleBatchDelete}
-               disabled={!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0}
-               className={`px-2 py-1 text-xs rounded flex items-center gap-1 transition-colors ${
-                 (!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0)
-                   ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
-                   : 'bg-red-600/80 hover:bg-red-600 text-white'
-               }`}
-               title={selectedIndices.size === 0 
-                 ? t.database.executor.noDataSelected 
-                 : (!primaryKey || primaryKey.length === 0) 
-                   ? t.database.batchDelete.noPrimaryKey 
-                   : t.database.executor.deleteRows}
-             >
-               <i className={`fas ${(!primaryKey || primaryKey.length === 0) ? 'fa-ban' : 'fa-trash'}`}></i>
-               {t.database.executor.deleteRows}
-             </button>
+              {columns.length > 0 && (
+                <ColumnSelector
+                  columns={columns}
+                  schema={schema}
+                  visibleColumns={visibleColumns}
+                  onColumnChange={handleColumnChange}
+                />
+              )}
+              <button
+                onClick={handleBatchDelete}
+                disabled={!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0}
+                className={`px-2 py-1 text-xs rounded flex items-center gap-1 transition-colors ${
+                  (!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0)
+                    ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
+                    : 'bg-red-600/80 hover:bg-red-600 text-white'
+                }`}
+                title={selectedIndices.size === 0 
+                  ? t.database.executor.noDataSelected 
+                  : (!primaryKey || primaryKey.length === 0) 
+                    ? t.database.batchDelete.noPrimaryKey 
+                    : t.database.executor.deleteRows}
+              >
+                <i className={`fas ${(!primaryKey || primaryKey.length === 0) ? 'fa-ban' : 'fa-trash'}`}></i>
+                {t.database.executor.deleteRows}
+              </button>
+              <ColumnSelector
+                columns={columns}
+                schema={schema}
+                visibleColumns={visibleColumns}
+                onColumnChange={handleColumnChange}
+              />
             {/* Edit buttons */}
             {primaryKey && primaryKey.length > 0 && (
               <>
@@ -543,29 +588,29 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     Action
                  </th>
               )}
-              {columns.map((col) => {
-                const colDef = schema?.columns?.find((c: any) => c.name === col);
-                const comment = colDef?.comment;
-                
-                return (
-                  <th
-                    key={col}
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap group relative"
-                    title={comment || undefined}
-                  >
-                    <div>
-                      {col}
-                      {primaryKey?.includes(col) && <i className="fas fa-key text-yellow-500/70 ml-1 text-[10px]" title="Primary Key"></i>}
-                    </div>
-                    {comment && (
-                      <div className="text-[10px] text-slate-600 font-normal normal-case tracking-normal mt-0.5 truncate">
-                        {comment}
-                      </div>
-                    )}
-                  </th>
-                );
-              })}
+               {visibleColumns.map((col) => {
+                 const colDef = schema?.columns?.find((c: any) => c.name === col);
+                 const comment = colDef?.comment;
+
+                 return (
+                   <th
+                     key={col}
+                     scope="col"
+                     className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap group relative"
+                     title={comment || undefined}
+                   >
+                     <div>
+                       {col}
+                       {primaryKey?.includes(col) && <i className="fas fa-key text-yellow-500/70 ml-1 text-[10px]" title="Primary Key"></i>}
+                     </div>
+                     {comment && (
+                       <div className="text-[10px] text-slate-600 font-normal normal-case tracking-normal mt-0.5 truncate">
+                         {comment}
+                       </div>
+                     )}
+                   </th>
+                 );
+               })}
             </tr>
           </thead>
           <tbody className="bg-slate-800 divide-y divide-slate-700">
@@ -588,14 +633,14 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     </button>
                   </td>
                 )}
-                {columns.map((col) => (
+                {visibleColumns.map((col) => (
                   <td key={`new-${newRowIdx}-${col}`} className="px-6 py-2 whitespace-nowrap text-sm text-slate-300 max-w-xs">
                     {renderCell(newRow, 0, col, true, newRowIdx)}
                   </td>
                 ))}
               </tr>
             ))}
-            
+
             {/* Existing rows */}
             {result.result_data?.map((row, idx) => (
               <tr key={idx} className={`hover:bg-slate-700/50 transition-colors ${selectedIndices.has(idx) ? 'bg-blue-900/10' : ''}`}>
@@ -611,7 +656,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 )}
                 {enableSelection && (
                    <td className="px-4 py-4 w-16">
-                      <button 
+                      <button
                         onClick={() => setViewingRow(row)}
                         className="text-slate-400 hover:text-blue-400 transition-colors p-1"
                         title="View JSON"
@@ -620,7 +665,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                       </button>
                    </td>
                 )}
-                {columns.map((col) => {
+                {visibleColumns.map((col) => {
                   const isDirty = cellEdits.has(getEditKey(idx, col));
                   return (
                     <td key={`${idx}-${col}`} className={`px-6 py-4 whitespace-nowrap text-sm max-w-xs ${isDirty ? 'bg-yellow-900/20' : 'text-slate-300'}`}>

@@ -484,6 +484,11 @@ export const zhCN = {
         foreignKeys: '外键',
         showStructureDetail: '显示结构详情',
       },
+      columns: {
+        title: '列显示',
+        selectAll: '全选',
+        minOneRequired: '至少需要显示一列',
+      },
     },
   },
 

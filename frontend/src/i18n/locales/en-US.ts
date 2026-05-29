@@ -483,6 +483,11 @@ export const enUS = {
         foreignKeys: 'Foreign Keys',
         showStructureDetail: 'Show Structure Detail',
       },
+      columns: {
+        title: 'Column Visibility',
+        selectAll: 'Select All',
+        minOneRequired: 'At least one column must be visible',
+      },
     },
   },
 
