@@ -1200,7 +1200,7 @@ def _iter_child_processes(pid: int) -> list:
         return []
 
 
-def kill_process_tree(pid: int, graceful: bool = True):
+def kill_process_tree(pid: int, graceful: bool = True, use_taskkill: bool = True):
     """终止进程树，避免 uvicorn --reload 子进程残留并继续占用数据库连接。"""
     children = _iter_child_processes(pid)
     def _depth(proc):
@@ -1212,8 +1212,8 @@ def kill_process_tree(pid: int, graceful: bool = True):
     for child in sorted(children, key=_depth, reverse=True):
         if child.pid == os.getpid():
             continue
-        kill_process(child.pid, graceful=graceful)
-    kill_process(pid, graceful=graceful)
+        kill_process(child.pid, graceful=graceful, use_taskkill=use_taskkill)
+    kill_process(pid, graceful=graceful, use_taskkill=use_taskkill)
 
 
 def cleanup_orphan_python_children(project_dir: Path):
