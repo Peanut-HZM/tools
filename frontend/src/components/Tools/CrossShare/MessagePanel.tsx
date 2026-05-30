@@ -1,7 +1,7 @@
 /**
  * 消息面板组件
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { messageApi, Message } from '../../../services/crossShare';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '../../../hooks/useToast';
@@ -21,7 +21,8 @@ const MessagePanel: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [hasUserScrolled, setHasUserScrolled] = useState(false); // 用户是否曾经手动向上滚动
-  const [showScrollButton, setShowScrollButton] = useState(false); // 是否显示滚动按钮
+  const [showScrollButton, setShowScrollButton] = useState(false); // 是否显示滚动到底部按钮
+  const [showScrollTopButton, setShowScrollTopButton] = useState(false); // 是否显示滚动到顶部按钮
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set()); // 记录已展开的消息 ID
   const [collapsibleMessages, setCollapsibleMessages] = useState<Set<string>>(new Set()); // 记录需要折叠的消息 ID
   const [pasteContent, setPasteContent] = useState<string | null>(null); // 待粘贴的内容
@@ -31,10 +32,11 @@ const MessagePanel: React.FC = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true); // 是否是首次加载
   const contentRefs = useRef<Map<string, HTMLDivElement>>(new Map()); // 存储消息内容 ref
+  const hasUserScrolledRef = useRef(false); // 同步 ref，避免闭包问题
   const { toast, showToast } = useToast();
 
   // 检查用户是否在底部
-  const checkIsAtBottom = () => {
+  const checkIsAtBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return true;
 
@@ -44,7 +46,7 @@ const MessagePanel: React.FC = () => {
     const clientHeight = container.clientHeight;
 
     return scrollHeight - scrollTop - clientHeight < threshold;
-  };
+  }, []);
 
   // 监听滚动事件
   useEffect(() => {
@@ -54,16 +56,18 @@ const MessagePanel: React.FC = () => {
     const handleScroll = () => {
       const atBottom = checkIsAtBottom();
       if (!atBottom) {
+        hasUserScrolledRef.current = true;
         setHasUserScrolled(true);
-        setShowScrollButton(true);
-      } else {
-        setShowScrollButton(false);
       }
+      setShowScrollButton(!atBottom);
+      setShowScrollTopButton(container.scrollTop > 300);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
+    // 初始化时检测一次滚动状态
+    handleScroll();
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [checkIsAtBottom]);
 
   // 检查消息内容高度，确定是否需要折叠
   useEffect(() => {
@@ -92,21 +96,37 @@ const MessagePanel: React.FC = () => {
   // 自动滚动到底部：首次加载使用 instant，后续新增消息使用 smooth
   useEffect(() => {
     if (isInitialLoad.current) {
-      // 首次加载：直接跳到底部，无动画
-      setTimeout(() => {
+      // 首次加载：使用 requestAnimationFrame + 多次尝试确保 DOM 渲染完成
+      const scrollToBottomOnReady = () => {
         const container = messagesContainerRef.current;
-        if (container) {
-          container.scrollTop = container.scrollHeight;
+        if (!container) {
+          requestAnimationFrame(scrollToBottomOnReady);
+          return;
         }
-        isInitialLoad.current = false;
-      }, 100);
+
+        // 如果内容高度还不够，继续等待
+        if (container.scrollHeight === 0 || container.scrollHeight <= container.clientHeight) {
+          setTimeout(scrollToBottomOnReady, 50);
+          return;
+        }
+
+        // 使用双重 requestAnimationFrame 确保布局已完全更新
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (container && messagesContainerRef.current) {
+              container.scrollTop = container.scrollHeight;
+            }
+            isInitialLoad.current = false;
+          });
+        });
+      };
+
+      requestAnimationFrame(scrollToBottomOnReady);
     } else if (!hasUserScrolled) {
       // 用户未手动滚动过，平滑滚动到底部
-      setTimeout(() => {
-        if (checkIsAtBottom()) {
-          scrollToBottom();
-        }
-      }, 50);
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
     }
     // 如果用户已经手动滚动过，不再自动滚动
   }, [messages]);
@@ -139,6 +159,15 @@ const MessagePanel: React.FC = () => {
     scrollToBottom();
     setHasUserScrolled(false); // 重置标志，允许后续自动滚动
     setShowScrollButton(false);
+  };
+
+  // 手动滚动到顶部按钮
+  const handleScrollToTop = () => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    setShowScrollTopButton(false);
   };
 
   const handleSend = async () => {
@@ -425,54 +454,77 @@ const MessagePanel: React.FC = () => {
       </div>
 
       {/* Messages List - 使用 flex-1 填充剩余空间，内部滚动 */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 relative">
-        {filteredMessages.length === 0 ? (
-          <div className="text-center text-slate-500 py-16">
-            <div className="text-6xl mb-4">🔍</div>
-            <div className="text-slate-300">{searchTerm ? '未找到匹配的消息' : '暂无消息'}</div>
-            <div className="text-sm mt-2 text-slate-500">
-              {searchTerm ? '尝试其他关键词' : '发送一条消息开始跨设备同步'}
-            </div>
-          </div>
-        ) : (
-          filteredMessages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex items-start space-x-3 group ${
-                msg.message_type === 'clipboard' ? 'opacity-70' : ''
-              }`}
-            >
-              <div className="text-2xl">{getMessageIcon(msg.message_type)}</div>
-              <div className="flex-1 bg-slate-700/50 rounded-lg p-4 border border-slate-600 relative">
-                {renderMessageContent(msg)}
-                <div className="text-xs text-slate-500 mt-2">
-                  <span>
-                    {searchTerm ? (
-                      <HighlightText
-                        text={new Date(msg.created_at).toLocaleString('zh-CN')}
-                        highlight={searchTerm}
-                      />
-                    ) : (
-                      new Date(msg.created_at).toLocaleString('zh-CN')
-                    )}
-                    {msg.message_type === 'clipboard' && ' • 剪贴板'}
-                  </span>
-                </div>
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+          {filteredMessages.length === 0 ? (
+            <div className="text-center text-slate-500 py-16">
+              <div className="text-6xl mb-4">🔍</div>
+              <div className="text-slate-300">{searchTerm ? '未找到匹配的消息' : '暂无消息'}</div>
+              <div className="text-sm mt-2 text-slate-500">
+                {searchTerm ? '尝试其他关键词' : '发送一条消息开始跨设备同步'}
               </div>
             </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
+          ) : (
+            filteredMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex items-start space-x-3 group ${
+                  msg.message_type === 'clipboard' ? 'opacity-70' : ''
+                }`}
+              >
+                <div className="text-2xl">{getMessageIcon(msg.message_type)}</div>
+                <div className="flex-1 bg-slate-700/50 rounded-lg p-4 border border-slate-600 relative">
+                  {renderMessageContent(msg)}
+                  <div className="text-xs text-slate-500 mt-2">
+                    <span>
+                      {searchTerm ? (
+                        <HighlightText
+                          text={new Date(msg.created_at).toLocaleString('zh-CN')}
+                          highlight={searchTerm}
+                        />
+                      ) : (
+                        new Date(msg.created_at).toLocaleString('zh-CN')
+                      )}
+                      {msg.message_type === 'clipboard' && ' • 剪贴板'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-        {/* 滚动到底部按钮 - 当用户手动向上滚动后显示 */}
-        {showScrollButton && (
-          <button
-            onClick={handleScrollToBottom}
-            className="absolute bottom-4 right-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-lg transition-all duration-300 flex items-center space-x-2"
-          >
-            <i className="fas fa-arrow-down"></i>
-            <span>滚动到底部</span>
-          </button>
+        {/* 浮动滚动按钮 - 放在滚动容器外面，使用绝对定位固定在右下角 */}
+        {(showScrollButton || showScrollTopButton) && (
+          <div className="absolute bottom-20 right-6 flex flex-col-reverse gap-2 z-50">
+            {/* 滚动到底部 */}
+            {showScrollButton && (
+              <button
+                onClick={handleScrollToBottom}
+                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
+                title="滚动到底部"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+                <span>底部</span>
+              </button>
+            )}
+            {/* 滚动到顶部 */}
+            {showScrollTopButton && (
+              <button
+                onClick={handleScrollToTop}
+                className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
+                title="滚动到顶部"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+                <span>顶部</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
 

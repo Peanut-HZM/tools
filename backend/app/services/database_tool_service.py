@@ -952,7 +952,12 @@ class DatabaseToolService:
         import sqlparse
 
         statements = sqlparse.split(final_sql)
-        statements = [s for s in statements if s.strip()]
+        # Filter empty statements, semicolon-only statements, and pure comment statements
+        sql_keywords = {'INSERT', 'SELECT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'SET', 'BEGIN', 'COMMIT', 'ROLLBACK', 'TRUNCATE', 'REPLACE', 'MERGE'}
+        statements = [
+            s for s in statements
+            if s.strip() and s.strip() != ';' and any(kw in s.upper() for kw in sql_keywords)
+        ]
 
         if len(statements) == 1:
             if (

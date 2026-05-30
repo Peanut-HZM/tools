@@ -83,6 +83,39 @@ def check_need_rebase() -> bool:
     return "Your branch is behind" in stdout or "can be fast-forwarded" in stdout
 
 
+def is_working_dirty() -> bool:
+    """检查工作目录是否有未提交的更改"""
+    code, stdout, stderr = run_command("git status --porcelain")
+    if code != 0:
+        print_status(f"检查工作目录状态失败: {stderr}", "ERROR")
+        return False
+    return len(stdout.strip()) > 0
+
+
+def stash_changes() -> bool:
+    """执行 git stash 保存更改"""
+    print_status("检测到未提交的更改，正在 stash 保存...", "INFO")
+    code, stdout, stderr = run_command('git stash push -m "auto-stash-before-rebase"')
+    if code != 0:
+        print_status(f"Stash 保存失败: {stderr}", "ERROR")
+        return False
+    print_status("更改已保存到 stash", "SUCCESS")
+    return True
+
+
+def pop_stash() -> bool:
+    """执行 git stash pop 恢复更改"""
+    print_status("正在恢复 stash 中的更改...", "INFO")
+    code, stdout, stderr = run_command("git stash pop")
+    if code != 0:
+        print_status("恢复 stash 时发生冲突，请手动解决", "WARNING")
+        print(stderr)
+        print_status("可用命令: git stash drop  (删除 stash)", "WARNING")
+        return False
+    print_status("更改已恢复", "SUCCESS")
+    return True
+
+
 def rebase_onto_remote() -> Tuple[bool, str]:
     """
     执行 rebase 操作，将本地提交变基到远程分支之上
@@ -103,9 +136,20 @@ def rebase_onto_remote() -> Tuple[bool, str]:
     if code != 0:
         return False, f"fetch 失败：{stderr}"
 
+    # 检测是否需要 stash
+    need_pop = False
+    if is_working_dirty():
+        if not stash_changes():
+            return False, "Stash 保存失败"
+        need_pop = True
+
     # 执行 rebase
     command = f"git rebase origin/{branch}"
     code, stdout, stderr = run_command(command, show_output=True)
+
+    # rebase 结束后恢复 stash
+    if need_pop:
+        pop_stash()
 
     if code != 0:
         # 检查是否是冲突导致的失败

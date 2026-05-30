@@ -197,6 +197,19 @@ if [ "$UNPUSHED_COUNT" -gt 0 ]; then
             echo -e "${BLUE}正在获取远程状态...${NC}"
             git fetch origin
 
+            # 检测工作目录是否有未提交的更改
+            NEED_POP=false
+            if [ -n "$(git status --porcelain)" ]; then
+                echo -e "${YELLOW}检测到未提交的更改，正在 stash 保存...${NC}"
+                if git stash push -m "auto-stash-before-rebase"; then
+                    echo -e "${GREEN}更改已保存到 stash${NC}"
+                    NEED_POP=true
+                else
+                    echo -e "${RED}Stash 保存失败${NC}"
+                    exit 1
+                fi
+            fi
+
             # 执行 rebase
             if git rebase "origin/$BRANCH"; then
                 echo -e "${GREEN}变基成功！${NC}"
@@ -204,6 +217,17 @@ if [ "$UNPUSHED_COUNT" -gt 0 ]; then
                 echo -e "${RED}变基遇到冲突，请手动解决后运行 'git rebase --continue'${NC}"
                 echo -e "${YELLOW}变基中止，请解决冲突后手动执行 git push${NC}"
                 exit 1
+            fi
+
+            # 恢复 stash
+            if [ "$NEED_POP" = true ]; then
+                echo -e "${YELLOW}正在恢复 stash 中的更改...${NC}"
+                if git stash pop; then
+                    echo -e "${GREEN}更改已恢复${NC}"
+                else
+                    echo -e "${YELLOW}恢复 stash 时发生冲突，请手动解决${NC}"
+                    echo -e "${YELLOW}可用命令: git stash drop  (删除 stash)${NC}"
+                fi
             fi
         else
             echo -e "${YELLOW}跳过 rebase，直接推送可能导致失败${NC}"

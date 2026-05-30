@@ -36,6 +36,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [viewingRow, setViewingRow] = useState<any | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [errorCopied, setErrorCopied] = useState(false);
 
   // 列显示状态（按表名持久化到 localStorage）
   const storageKey = tableName ? `db-column-visibility-${configId}-${databaseName || ''}-${schemaName || ''}-${tableName}` : null;
@@ -342,15 +343,35 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   if (!result.success) {
     return (
-      <div className="h-full p-4 bg-red-900/20 border border-red-800/50 rounded-md overflow-auto">
-        <h3 className="text-red-400 font-medium mb-2 flex items-center gap-2">
-          <i className="fas fa-exclamation-circle"></i>
-          {t.common.error}
-        </h3>
-        <pre className="text-red-300 text-sm font-mono whitespace-pre-wrap">
-          {result.error_message}
-        </pre>
-        <div className="mt-4 text-xs text-red-500/70">
+      <div className="h-full flex flex-col bg-red-900/20 border border-red-800/50 rounded-md overflow-hidden">
+        <div className="px-4 py-2 border-b border-red-800/30 flex items-center justify-between">
+          <h3 className="text-red-400 font-medium flex items-center gap-2">
+            <i className="fas fa-exclamation-circle"></i>
+            {t.common.error}
+          </h3>
+          <button
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(result.error_message || '');
+                setErrorCopied(true);
+                setTimeout(() => setErrorCopied(false), 2000);
+              } catch (err) {
+                console.error('复制失败', err);
+              }
+            }}
+            className="px-2 py-1 bg-red-800/50 hover:bg-red-700/50 text-red-300 text-xs rounded flex items-center gap-1 transition-colors"
+            title="复制错误信息"
+          >
+            <i className={`fas ${errorCopied ? 'fa-check text-green-400' : 'fa-copy'}`}></i>
+            {errorCopied ? '已复制' : '复制错误'}
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-4">
+          <pre className="text-red-300 text-sm font-mono whitespace-pre-wrap">
+            {result.error_message}
+          </pre>
+        </div>
+        <div className="px-4 py-2 border-t border-red-800/30 text-xs text-red-500/70">
           {interpolate(t.database.executor.duration, { time: result.execution_time_ms.toFixed(2) })}
         </div>
       </div>

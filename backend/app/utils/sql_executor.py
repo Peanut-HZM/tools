@@ -27,8 +27,12 @@ class SQLExecutor:
             with engine.connect() as conn:
                 # Split SQL into statements
                 statements = sqlparse.split(sql)
-                # Filter empty statements
-                statements = [s for s in statements if s.strip()]
+                # Filter empty, semicolon-only, and comment-only statements
+                sql_keywords = {'INSERT', 'SELECT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'SET', 'BEGIN', 'COMMIT', 'ROLLBACK', 'TRUNCATE', 'REPLACE', 'MERGE'}
+                statements = [
+                    s for s in statements
+                    if s.strip() and s.strip() != ';' and any(kw in s.upper() for kw in sql_keywords)
+                ]
 
                 if not statements:
                     return SQLExecutionResult(

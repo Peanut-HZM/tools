@@ -81,11 +81,45 @@ def fetch_remote():
     return True
 
 
+def is_working_dirty():
+    """检查工作目录是否有未提交的更改"""
+    code, stdout, stderr = run_command("git status --porcelain")
+    if code != 0:
+        print_status(f"检查工作目录状态失败: {stderr}", "ERROR")
+        return False
+    # --porcelain 输出为空表示工作目录干净
+    return len(stdout.strip()) > 0
+
+
+def stash_changes():
+    """执行 git stash 保存更改"""
+    print_status("检测到未提交的更改，正在 stash 保存...", "INFO")
+    code, stdout, stderr = run_command('git stash push -m "auto-stash-before-rebase"')
+    if code != 0:
+        print_status(f"Stash 保存失败: {stderr}", "ERROR")
+        return False
+    print_status("更改已保存到 stash", "SUCCESS")
+    return True
+
+
+def pop_stash():
+    """执行 git stash pop 恢复更改"""
+    print_status("正在恢复 stash 中的更改...", "INFO")
+    code, stdout, stderr = run_command("git stash pop")
+    if code != 0:
+        print_status("恢复 stash 时发生冲突，请手动解决", "WARNING")
+        print(stderr)
+        print_status("可用命令: git stash drop  (删除 stash)", "WARNING")
+        return False
+    print_status("更改已恢复", "SUCCESS")
+    return True
+
+
 def rebase_origin():
     """使用 rebase 更新本地代码"""
     print_status("开始 rebase origin/master...", "INFO")
     code, stdout, stderr = run_command("git rebase origin/master")
-    
+
     if code != 0:
         print_status("Rebase 遇到冲突或错误", "ERROR")
         print(stderr)
@@ -93,7 +127,7 @@ def rebase_origin():
         print_status("  git rebase --continue  (解决冲突后继续)", "WARNING")
         print_status("  git rebase --abort     (取消 rebase)", "WARNING")
         return False
-    
+
     print(stdout)
     print_status("Rebase 成功完成!", "SUCCESS")
     return True
@@ -112,22 +146,33 @@ def main():
     print_status("=" * 60, "INFO")
     print_status("Git Repository Update (Rebase Mode)", "INFO")
     print_status("=" * 60, "INFO")
-    
+
     # 检查初始状态
     if not check_git_status():
         sys.exit(1)
-    
+
+    # 检测是否需要 stash
+    need_pop = False
+    if is_working_dirty():
+        if not stash_changes():
+            sys.exit(1)
+        need_pop = True
+
     # 获取远程更新
     if not fetch_remote():
         sys.exit(1)
-    
+
     # 执行 rebase
     if not rebase_origin():
         sys.exit(1)
-    
+
+    # 恢复 stash
+    if need_pop:
+        pop_stash()
+
     # 显示最终状态
     show_final_status()
-    
+
     print_status("\n[OK] 仓库更新完成!", "SUCCESS")
     print_status("如需推送到远程，请运行: python push_repo.py", "INFO")
 
