@@ -1125,8 +1125,8 @@ def verify_belongs_to_service(pid: int, svc: Service) -> bool:
     return False
 
 
-def kill_process(pid: int, graceful: bool = True):
-    """终止进程"""
+def kill_process(pid: int, graceful: bool = True, use_taskkill: bool = True):
+    """终止进程，支持跨平台降级。注意：此函数只应接收已通过身份验证的 PID。"""
     try:
         proc = psutil.Process(pid)
         proc_name = proc.name()
@@ -1135,24 +1135,60 @@ def kill_process(pid: int, graceful: bool = True):
         return
 
     if graceful:
-        proc.terminate()
         try:
+            proc.terminate()
             proc.wait(timeout=3)
             log(f"{proc_name} (PID {pid}) 已停止", "SUCCESS")
-        except (psutil.TimeoutExpired, ChildProcessError):
-            try:
-                proc.kill()
-                proc.wait(timeout=2)
-            except (psutil.TimeoutExpired, ChildProcessError):
-                pass
-            log(f"{proc_name} (PID {pid}) 已强制终止", "WARN")
-    else:
+            return
+        except psutil.AccessDenied:
+            log(f"终止 {proc_name} (PID {pid}) 权限不足，尝试系统级强制终止", "WARN")
+        except (psutil.TimeoutExpired, ChildProcessError, psutil.NoSuchProcess):
+            pass  # 继续到强制终止
+
+    # 强制终止阶段
+    killed = False
+    try:
         proc.kill()
-        try:
-            proc.wait(timeout=2)
-        except (psutil.TimeoutExpired, ChildProcessError):
-            pass
+        killed = True  # kill 信号已成功发送
+        proc.wait(timeout=2)
+    except psutil.AccessDenied:
+        log(f"强制终止 {proc_name} (PID {pid}) 权限不足", "WARN")
+    except (psutil.TimeoutExpired, ChildProcessError, psutil.NoSuchProcess):
+        pass  # 进程已在终止中或已消失
+
+    if not killed and use_taskkill:
+        # 跨平台系统级强制终止
+        if sys.platform == "win32":
+            try:
+                result = subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(pid)],
+                    capture_output=True, timeout=5
+                )
+                if result.returncode == 0:
+                    killed = True
+                else:
+                    stderr = result.stderr.decode("utf-8", errors="ignore") if result.stderr else ""
+                    log(f"taskkill 失败 (PID {pid}): {stderr}", "ERROR")
+            except Exception as e:
+                log(f"taskkill 执行异常 (PID {pid}): {e}", "ERROR")
+        else:
+            try:
+                result = subprocess.run(
+                    ["kill", "-9", str(pid)],
+                    capture_output=True, timeout=5
+                )
+                if result.returncode == 0:
+                    killed = True
+                else:
+                    stderr = result.stderr.decode("utf-8", errors="ignore") if result.stderr else ""
+                    log(f"kill -9 失败 (PID {pid}): {stderr}", "ERROR")
+            except Exception as e:
+                log(f"kill -9 执行异常 (PID {pid}): {e}", "ERROR")
+
+    if killed:
         log(f"{proc_name} (PID {pid}) 已强制终止", "WARN")
+    else:
+        log(f"无法终止 {proc_name} (PID {pid})，请手动处理", "ERROR")
 
 
 def _iter_child_processes(pid: int) -> list:
