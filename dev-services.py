@@ -1075,6 +1075,56 @@ def find_process_by_port(port: int) -> list:
     return sorted(pids)
 
 
+def verify_belongs_to_service(pid: int, svc: Service) -> bool:
+    """验证 PID 是否属于指定的服务。任一验证通过即返回 True，全部失败返回 False。"""
+    try:
+        proc = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return False
+    except psutil.AccessDenied:
+        log(f"无法验证 PID {pid}（权限不足），跳过", "WARN")
+        return False
+
+    project_dir = svc.project_dir.resolve()
+
+    # 第一层：cwd 验证
+    try:
+        cwd = Path(proc.cwd()).resolve()
+        if cwd == project_dir or project_dir in cwd.parents:
+            return True
+    except (psutil.AccessDenied, OSError):
+        pass
+
+    # 第二层：cmdline 特征验证（排除通用参数，避免误匹配）
+    try:
+        cmdline = " ".join(proc.cmdline())
+        GENERIC_ARGS = {"--port", "--host", "--reload", "-m", "--workers", "--loop", "--http"}
+        for part in svc.start_cmd:
+            if part in GENERIC_ARGS:
+                continue
+            if part in cmdline:
+                return True
+        if svc.project_type == "python":
+            indicators = [k for k in ["uvicorn", "fastapi", "app.main", "gunicorn", "flask", "django"] if k in cmdline]
+            if len(indicators) >= 2:
+                return True
+        if svc.project_type in ["vite", "uniapp", "taro"]:
+            if "vite" in cmdline and str(project_dir) in cmdline:
+                return True
+    except (psutil.AccessDenied, OSError):
+        pass
+
+    # 第三层：端口验证
+    try:
+        for conn in proc.connections(kind='inet'):
+            if conn.laddr and conn.laddr.port == svc.port:
+                return True
+    except (psutil.AccessDenied, OSError):
+        pass
+
+    return False
+
+
 def kill_process(pid: int, graceful: bool = True):
     """终止进程"""
     try:
