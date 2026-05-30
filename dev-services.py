@@ -1168,7 +1168,11 @@ def kill_process(pid: int, graceful: bool = True, use_taskkill: bool = True):
                     killed = True
                 else:
                     stderr = result.stderr.decode("utf-8", errors="ignore") if result.stderr else ""
-                    log(f"taskkill 失败 (PID {pid}): {stderr}", "ERROR")
+                    # 进程不存在说明已被终止，视为成功
+                    if "not found" in stderr.lower() or "无法找到" in stderr or "找不到" in stderr:
+                        killed = True
+                    else:
+                        log(f"taskkill 失败 (PID {pid}): {stderr}", "ERROR")
             except Exception as e:
                 log(f"taskkill 执行异常 (PID {pid}): {e}", "ERROR")
         else:
@@ -1181,9 +1185,20 @@ def kill_process(pid: int, graceful: bool = True, use_taskkill: bool = True):
                     killed = True
                 else:
                     stderr = result.stderr.decode("utf-8", errors="ignore") if result.stderr else ""
-                    log(f"kill -9 失败 (PID {pid}): {stderr}", "ERROR")
+                    # 进程不存在说明已被终止，视为成功
+                    if "no such process" in stderr.lower() or "not found" in stderr.lower():
+                        killed = True
+                    else:
+                        log(f"kill -9 失败 (PID {pid}): {stderr}", "ERROR")
             except Exception as e:
                 log(f"kill -9 执行异常 (PID {pid}): {e}", "ERROR")
+
+    # 兜底检查：进程已消失则视为成功终止（可能已被之前的信号终止）
+    if not killed:
+        try:
+            psutil.Process(pid)
+        except psutil.NoSuchProcess:
+            killed = True
 
     if killed:
         log(f"{proc_name} (PID {pid}) 已强制终止", "WARN")
