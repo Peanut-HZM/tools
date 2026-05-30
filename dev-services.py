@@ -1230,7 +1230,7 @@ def cleanup_orphan_python_children(project_dir: Path):
                 continue
             cwd = Path(proc.cwd()).resolve()
             if project_dir == cwd or project_dir in cwd.parents:
-                kill_process(proc.pid, graceful=False)
+                kill_process(proc.pid, graceful=False, use_taskkill=True)
                 cleaned += 1
         except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
             continue
@@ -1417,7 +1417,7 @@ def start_service(svc: Service) -> bool:
         alive_pids = [pid for pid in pids if _pid_alive(pid)]
         if alive_pids:
             log(f"端口 {svc.port} 已被占用 (PID: {', '.join(map(str, alive_pids))})，先停止...", "WARN")
-            kill_service(svc.name, svc.port)
+            kill_service(svc)
             time.sleep(3)
         else:
             log(f"端口 {svc.port} 有残留连接 (PID 已不存在)，直接启动...", "WARN")
@@ -1492,7 +1492,7 @@ def _suggest_runtime_install(svc: Service):
 def stop_service_wrapper(svc: Service):
     """停止单个服务"""
     log_section(f"停止 {svc.name}")
-    stop_service(svc.name, svc.port)
+    stop_service(svc)
     if svc.project_type == "python":
         cleanup_orphan_python_children(svc.project_dir)
 
@@ -1781,7 +1781,7 @@ def main():
         else:
             for svc in services:
                 if target in ("all", svc.name.lower(), svc.project_type.lower()):
-                    kill_service(svc.name, svc.port)
+                    kill_service(svc)
         log_separator()
         return
 
