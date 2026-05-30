@@ -1238,26 +1238,50 @@ def cleanup_orphan_python_children(project_dir: Path):
         log(f"已清理 {cleaned} 个孤儿 Python reload 子进程", "WARN")
 
 
-def stop_service(name: str, port: int):
-    """优雅停止指定服务"""
-    log(f"停止 {name} (端口 {port})...", "INFO")
-    pids = find_process_by_port(port)
-    if pids:
-        for pid in pids:
-            kill_process_tree(pid, graceful=True)
-    else:
-        log(f"{name} 未运行", "INFO")
+def stop_service(svc: Service):
+    """优雅停止指定服务，带身份验证"""
+    log(f"停止 {svc.name} (端口 {svc.port})...", "INFO")
+    pids = find_process_by_port(svc.port)
+    if not pids:
+        log(f"{svc.name} 未运行", "INFO")
+        return
+
+    verified = []
+    for pid in pids:
+        if verify_belongs_to_service(pid, svc):
+            verified.append(pid)
+        else:
+            log(f"PID {pid} 不属于 {svc.name}，跳过", "WARN")
+
+    if not verified:
+        log(f"端口 {svc.port} 被占用，但未找到属于 {svc.name} 的进程", "WARN")
+        return
+
+    for pid in verified:
+        kill_process_tree(pid, graceful=True)
 
 
-def kill_service(name: str, port: int):
-    """强制终止指定服务"""
-    log(f"强制终止 {name} (端口 {port})...", "WARN")
-    pids = find_process_by_port(port)
-    if pids:
-        for pid in pids:
-            kill_process_tree(pid, graceful=False)
-    else:
-        log(f"{name} 未运行", "INFO")
+def kill_service(svc: Service):
+    """强制终止指定服务，带身份验证"""
+    log(f"强制终止 {svc.name} (端口 {svc.port})...", "WARN")
+    pids = find_process_by_port(svc.port)
+    if not pids:
+        log(f"{svc.name} 未运行", "INFO")
+        return
+
+    verified = []
+    for pid in pids:
+        if verify_belongs_to_service(pid, svc):
+            verified.append(pid)
+        else:
+            log(f"PID {pid} 不属于 {svc.name}，跳过", "WARN")
+
+    if not verified:
+        log(f"端口 {svc.port} 被占用，但未找到属于 {svc.name} 的进程", "WARN")
+        return
+
+    for pid in verified:
+        kill_process_tree(pid, graceful=False)
 
 
 # ============================================================
