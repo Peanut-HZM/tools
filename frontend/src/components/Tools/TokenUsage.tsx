@@ -36,9 +36,7 @@ import {
   renameDevice,
   type DbUsageItem,
   type DeviceInfo,
-  type DimensionSummaries,
   type DimensionSummaryItem,
-  type FilterOptions,
   type ModelSummaryItem,
   type SyncMeta,
   type TokenUsageGroupBy,
@@ -47,32 +45,14 @@ import {
   type TokenUsageSortOrder,
   type TokenUsageSource,
   type UsageHealthCheck,
-  type UsageSummary,
 } from '../../api/tokenUsageApi';
+import { useDebouncedValue } from './hooks/useDebouncedValue';
+import { useTokenUsageSummary } from './hooks/useTokenUsageSummary';
+import { useTokenUsageDetails } from './hooks/useTokenUsageDetails';
+import { useTokenUsagePolling } from './hooks/useTokenUsagePolling';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
-const PAGE_SIZE = 20;
-
-const emptySummary: UsageSummary = {
-  total_input_tokens: 0,
-  total_output_tokens: 0,
-  total_tokens: 0,
-  total_cost: 0,
-  days_count: 0,
-  avg_daily_cost: 0,
-};
-
-const emptyDimensionSummaries: DimensionSummaries = {
-  devices: [],
-  tools: [],
-  models: [],
-};
-
-const emptyFilterOptions: FilterOptions = {
-  devices: [],
-  tools: [],
-  models: [],
-};
+const PAGE_SIZE = 50;
 
 function formatToken(num: number): string {
   if (num >= 100_000_000) return `${(num / 100_000_000).toFixed(1)}亿`;
@@ -166,8 +146,6 @@ function DataFreshnessBadge({
 }
 
 export default function TokenUsage() {
-  const [items, setItems] = useState<DbUsageItem[]>([]);
-  const [summary, setSummary] = useState<UsageSummary>(emptySummary);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [health, setHealth] = useState<UsageHealthCheck | null>(null);
   const [source, setSource] = useState<TokenUsageSource>('all');
@@ -181,24 +159,15 @@ export default function TokenUsage() {
   const [sortOrder, setSortOrder] = useState<TokenUsageSortOrder>('desc');
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
-  const [cached, setCached] = useState(false);
   const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
-  const [autoExpanded, setAutoExpanded] = useState(false);
-  const [actualDays, setActualDays] = useState<number | null>(null);
-  const [modelSummary, setModelSummary] = useState<ModelSummaryItem[]>([]);
-  const [dimensionSummaries, setDimensionSummaries] = useState<DimensionSummaries>(emptyDimensionSummaries);
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>(emptyFilterOptions);
-  const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const pollInFlightRef = useRef(false);
 
   const timeRangeOptions = useMemo(() => {
     if (reportType === 'daily') {
@@ -228,66 +197,6 @@ export default function TokenUsage() {
     return new Map(devices.map(device => [device.id, device.name]));
   }, [devices]);
 
-  const toolNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    filterOptions.tools.forEach(tool => map.set(tool.tool_id, tool.tool_name));
-    dimensionSummaries.tools.forEach(tool => {
-      if (tool.tool_id) map.set(tool.tool_id, tool.label);
-      map.set(tool.key, tool.label);
-    });
-    return map;
-  }, [dimensionSummaries.tools, filterOptions.tools]);
-
-  const modelNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    filterOptions.models.forEach(model => map.set(model.model, model.model_display_name));
-    dimensionSummaries.models.forEach(model => {
-      if (model.model) map.set(model.model, model.label);
-      map.set(model.key, model.label);
-    });
-    return map;
-  }, [dimensionSummaries.models, filterOptions.models]);
-
-  const toolOptions = useMemo(() => {
-    if (filterOptions.tools.length) {
-      return filterOptions.tools.map(tool => ({
-        value: tool.tool_id,
-        label: tool.tool_name,
-        count: tool.records_count,
-      }));
-    }
-    return dimensionSummaries.tools.map(tool => ({
-      value: tool.tool_id || tool.key,
-      label: tool.label,
-      count: tool.records_count,
-    }));
-  }, [dimensionSummaries.tools, filterOptions.tools]);
-
-  const modelOptions = useMemo(() => {
-    const options = filterOptions.models.length
-      ? filterOptions.models
-          .filter(model => !selectedTool || model.tool_id === selectedTool)
-          .map(model => ({
-            value: model.model,
-            label: model.model_display_name,
-            count: model.records_count,
-          }))
-      : dimensionSummaries.models
-          .filter(model => !selectedTool || model.tool_id === selectedTool)
-          .map(model => ({
-            value: model.model || model.key,
-            label: model.label,
-            count: model.records_count,
-          }));
-
-    const unique = new Map<string, { value: string; label: string; count: number }>();
-    options.forEach(option => {
-      if (!option.value || unique.has(option.value)) return;
-      unique.set(option.value, option);
-    });
-    return [...unique.values()];
-  }, [dimensionSummaries.models, filterOptions.models, selectedTool]);
-
   useEffect(() => {
     setDays(reportType === 'daily' ? 30 : reportType === 'weekly' ? 56 : 180);
     setCurrentPage(1);
@@ -305,56 +214,42 @@ export default function TokenUsage() {
     }
   }, []);
 
-  const fetchData = useCallback(async (options?: { silent?: boolean; preservePage?: boolean }) => {
-    const silent = Boolean(options?.silent);
-    if (!silent) {
-      setLoading(true);
-      setError(null);
-    }
-    try {
-      const result = await getDbTokenUsage({
-        source,
-        type: reportType,
-        days,
-        group_by: groupBy,
-        device_id: selectedDevice || undefined,
-        tool_id: selectedTool || undefined,
-        model: selectedModel || undefined,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-      });
-      setItems(result.items || []);
-      setSummary(result.summary || emptySummary);
-      setCached(Boolean(result.cached));
-      setAutoExpanded(Boolean(result.auto_expanded));
-      setActualDays(result.actual_days || null);
-      setModelSummary(result.model_summary || []);
-      setDimensionSummaries(result.dimension_summaries || emptyDimensionSummaries);
-      setFilterOptions(result.filter_options || emptyFilterOptions);
-      setSyncMeta(result.sync_meta || null);
-      setPollError(null);
-      if (!options?.preservePage) {
-        setCurrentPage(1);
-      }
-      if (result.devices?.length) {
-        setDevices(result.devices);
-        setDeviceError(null);
-      }
-      return true;
-    } catch (err: any) {
-      const message = err.message || '加载 Token 使用数据失败';
-      if (silent) {
-        setPollError(message);
-      } else {
-        setError(message);
-      }
-      return false;
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
-  }, [days, groupBy, reportType, selectedDevice, selectedModel, selectedTool, sortBy, sortOrder, source]);
+  const debouncedSource = useDebouncedValue(source, 200);
+  const debouncedDays = useDebouncedValue(days, 200);
+  const debouncedGroupBy = useDebouncedValue(groupBy, 200);
+  const debouncedSortBy = useDebouncedValue(sortBy, 200);
+  const debouncedSortOrder = useDebouncedValue(sortOrder, 200);
+  const debouncedDevice = useDebouncedValue(selectedDevice, 300);
+  const debouncedTool = useDebouncedValue(selectedTool, 300);
+  const debouncedModel = useDebouncedValue(selectedModel, 300);
+
+  const summary = useTokenUsageSummary({
+    type: reportType,
+    days: debouncedDays,
+    group_by: debouncedGroupBy,
+    source: debouncedSource,
+    device_id: debouncedDevice || undefined,
+    tool_id: debouncedTool || undefined,
+    model: debouncedModel || undefined,
+  });
+
+  const details = useTokenUsageDetails({
+    type: reportType,
+    days: debouncedDays,
+    group_by: debouncedGroupBy,
+    source: debouncedSource,
+    device_id: debouncedDevice || undefined,
+    tool_id: debouncedTool || undefined,
+    model: debouncedModel || undefined,
+    sort_by: debouncedSortBy,
+    sort_order: debouncedSortOrder,
+    limit: PAGE_SIZE,
+    offset: (currentPage - 1) * PAGE_SIZE,
+  });
+
+  useTokenUsagePolling(async (opts) => {
+    await summary.refresh(opts);
+  });
 
   useEffect(() => {
     checkTokenUsageHealth()
@@ -366,62 +261,69 @@ export default function TokenUsage() {
         setHealth(null);
         setHealthError(err.message || '健康检查失败');
       });
-    loadDevices();
-  }, [loadDevices]);
+    void loadDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const toolNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    summary.data.filter_options.tools.forEach(tool => map.set(tool.tool_id, tool.tool_name));
+    summary.data.dimension_summaries.tools.forEach(tool => {
+      if (tool.tool_id) map.set(tool.tool_id, tool.label);
+      map.set(tool.key, tool.label);
+    });
+    return map;
+  }, [summary.data.dimension_summaries.tools, summary.data.filter_options.tools]);
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof window.setTimeout> | null = null;
+  const modelNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    summary.data.filter_options.models.forEach(model => map.set(model.model, model.model_display_name));
+    summary.data.dimension_summaries.models.forEach(model => {
+      if (model.model) map.set(model.model, model.label);
+      map.set(model.key, model.label);
+    });
+    return map;
+  }, [summary.data.dimension_summaries.models, summary.data.filter_options.models]);
 
-    function schedule(delayMs: number) {
-      if (cancelled) return;
-      if (timer) window.clearTimeout(timer);
-      timer = window.setTimeout(runPoll, delayMs);
+  const toolOptions = useMemo(() => {
+    if (summary.data.filter_options.tools.length) {
+      return summary.data.filter_options.tools.map(tool => ({
+        value: tool.tool_id,
+        label: tool.tool_name,
+        count: tool.records_count,
+      }));
     }
+    return summary.data.dimension_summaries.tools.map(tool => ({
+      value: tool.tool_id || tool.key,
+      label: tool.label,
+      count: tool.records_count,
+    }));
+  }, [summary.data.dimension_summaries.tools, summary.data.filter_options.tools]);
 
-    async function runPoll() {
-      if (cancelled) return;
-      if (document.hidden) {
-        schedule(60_000);
-        return;
-      }
-      if (pollInFlightRef.current) {
-        schedule(60_000);
-        return;
-      }
+  const modelOptions = useMemo(() => {
+    const options = summary.data.filter_options.models.length
+      ? summary.data.filter_options.models
+          .filter(model => !selectedTool || model.tool_id === selectedTool)
+          .map(model => ({
+            value: model.model,
+            label: model.model_display_name,
+            count: model.records_count,
+          }))
+      : summary.data.dimension_summaries.models
+          .filter(model => !selectedTool || model.tool_id === selectedTool)
+          .map(model => ({
+            value: model.model || model.key,
+            label: model.label,
+            count: model.records_count,
+          }));
 
-      pollInFlightRef.current = true;
-      setBackgroundRefreshing(true);
-      try {
-        const ok = await fetchData({ silent: true, preservePage: true });
-        schedule(ok ? 60_000 : 120_000);
-      } finally {
-        pollInFlightRef.current = false;
-        if (!cancelled) setBackgroundRefreshing(false);
-      }
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) return;
-      if (timer) {
-        window.clearTimeout(timer);
-        timer = null;
-      }
-      runPoll();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    schedule(60_000);
-    return () => {
-      cancelled = true;
-      if (timer) window.clearTimeout(timer);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [fetchData]);
+    const unique = new Map<string, { value: string; label: string; count: number }>();
+    options.forEach(option => {
+      if (!option.value || unique.has(option.value)) return;
+      unique.set(option.value, option);
+    });
+    return [...unique.values()];
+  }, [summary.data.dimension_summaries.models, summary.data.filter_options.models, selectedTool]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -438,7 +340,7 @@ export default function TokenUsage() {
       setLastSyncMessage(`已同步 ${result.total_records} 条记录${errors}`);
       setRefreshError(null);
       await loadDevices();
-      await fetchData();
+      await Promise.all([summary.refresh(), details.refresh()]);
     } catch (err: any) {
       setRefreshError(err.message || '手动刷新失败');
     } finally {
@@ -455,15 +357,9 @@ export default function TokenUsage() {
     try {
       const result = await clearTokenUsageData();
       setLastSyncMessage(result.message);
-      setItems([]);
-      setSummary(emptySummary);
-      setModelSummary([]);
-      setDimensionSummaries(emptyDimensionSummaries);
-      setFilterOptions(emptyFilterOptions);
-      setSyncMeta(null);
       setRefreshError(null);
       await loadDevices();
-      await fetchData();
+      await Promise.all([summary.refresh(), details.refresh()]);
     } catch (err: any) {
       setError(err.message || '清理数据失败');
     } finally {
@@ -477,20 +373,20 @@ export default function TokenUsage() {
     const nextName = window.prompt('请输入设备名称。留空会恢复默认名称。', currentName);
     if (nextName === null) return;
 
-    setLoading(true);
+    setRefreshing(true);
     setError(null);
     try {
       await renameDevice(selectedDevice, nextName);
       await loadDevices();
-      await fetchData();
+      await Promise.all([summary.refresh(), details.refresh()]);
     } catch (err: any) {
       setError(err.message || '重命名设备失败');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const sortedItems = useMemo(() => [...items], [items]);
+  const sortedItems = useMemo(() => [...details.data.items], [details.data.items]);
 
   const getToolLabel = useCallback((value?: string | null) => {
     if (!value) return '-';
@@ -508,7 +404,7 @@ export default function TokenUsage() {
   }, [getModelLabel]);
 
   const chartData = useMemo(
-    () => [...items].sort((a, b) => a.date.localeCompare(b.date)).map(item => ({
+    () => [...details.data.items].sort((a, b) => a.date.localeCompare(b.date)).map(item => ({
       date: item.date,
       inputTokens: item.input_tokens,
       outputTokens: item.output_tokens,
@@ -516,7 +412,7 @@ export default function TokenUsage() {
       totalTokens: item.total_tokens,
       cost: item.total_cost,
     })),
-    [items]
+    [details.data.items]
   );
 
   const groupedData = useMemo(() => {
@@ -524,7 +420,7 @@ export default function TokenUsage() {
     const grouped: Record<string, Record<string, number>> = {};
     const dates = new Set<string>();
 
-    items.forEach(item => {
+    details.data.items.forEach(item => {
       const key = item.group_key
         ? groupBy === 'device'
           ? deviceNameMap.get(item.group_key) || item.group_key
@@ -546,7 +442,7 @@ export default function TokenUsage() {
       });
       return row;
     });
-  }, [deviceNameMap, getModelLabel, getToolLabel, groupBy, items]);
+  }, [deviceNameMap, getModelLabel, getToolLabel, groupBy, details.data.items]);
 
   const modelData = useMemo(() => {
     const sourceName = (sourceValue: string) => {
@@ -555,7 +451,7 @@ export default function TokenUsage() {
       return sourceValue;
     };
 
-    return modelSummary
+    return summary.data.model_summary
       .map(item => ({
         name: `${sourceName(item.source)} · ${item.display_model || getModelLabel(item.model) || '未知模型'}`,
         value: item.total_cost > 0 ? item.total_cost : item.total_tokens,
@@ -566,10 +462,10 @@ export default function TokenUsage() {
       .filter(item => item.value > 0 || item.tokens > 0)
       .sort((a, b) => b.value - a.value || b.tokens - a.tokens)
       .slice(0, 8);
-  }, [getModelLabel, modelSummary]);
+  }, [getModelLabel, summary.data.model_summary]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
-  const paginatedItems = sortedItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(details.data.total / PAGE_SIZE));
+  const paginatedItems = details.data.items;
 
   const getGroupLabel = (item: DbUsageItem) => {
     if (groupBy === 'device' && item.group_key) {
@@ -592,9 +488,9 @@ export default function TokenUsage() {
   };
 
   const exportCSV = () => {
-    if (!items.length) return;
+    if (!details.data.items.length) return;
     const headers = ['日期', '分组', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD'];
-    const rows = sortedItems.map(item => [
+    const rows = details.data.items.map(item => [
       item.date,
       getGroupLabel(item),
       getRowToolLabel(item),
@@ -628,14 +524,14 @@ export default function TokenUsage() {
     {
       key: 'devices',
       title: '设备',
-      items: dimensionSummaries.devices,
+      items: summary.data.dimension_summaries.devices,
       activeValue: selectedDevice,
       onSelect: item => setSelectedDevice(item.device_id || item.key),
     },
     {
       key: 'tools',
       title: '工具',
-      items: dimensionSummaries.tools,
+      items: summary.data.dimension_summaries.tools,
       activeValue: selectedTool,
       onSelect: item => {
         setSelectedTool(item.tool_id || item.key);
@@ -645,7 +541,7 @@ export default function TokenUsage() {
     {
       key: 'models',
       title: '模型',
-      items: dimensionSummaries.models,
+      items: summary.data.dimension_summaries.models,
       activeValue: selectedModel,
       onSelect: item => {
         setSelectedModel(item.model || item.key);
@@ -677,15 +573,15 @@ export default function TokenUsage() {
 
         <div className="flex flex-nowrap items-center gap-2">
           <DataFreshnessBadge
-            syncMeta={syncMeta}
-            cached={cached}
+            syncMeta={summary.data.sync_meta}
+            cached={Boolean(summary.data.cached)}
             refreshing={refreshing || backgroundRefreshing}
             refreshError={refreshError}
             onRefresh={handleRefresh}
           />
           <button
             onClick={handleRefresh}
-            disabled={loading || refreshing}
+            disabled={refreshing}
             className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             title="刷新"
           >
@@ -693,7 +589,7 @@ export default function TokenUsage() {
           </button>
           <button
             onClick={exportCSV}
-            disabled={!items.length || loading}
+            disabled={!details.data.items.length}
             className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             title="导出"
           >
@@ -701,7 +597,7 @@ export default function TokenUsage() {
           </button>
           <button
             onClick={handleClearData}
-            disabled={loading || clearing}
+            disabled={clearing}
             className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             title="清理"
           >
@@ -843,7 +739,7 @@ export default function TokenUsage() {
         </label>
       </div>
 
-      {(error || refreshError || deviceError || healthError || pollError || lastSyncMessage || autoExpanded) && (
+      {(error || refreshError || deviceError || healthError || pollError || lastSyncMessage || summary.data.auto_expanded) && (
         <div className="mb-5 space-y-2">
           {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
           {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
@@ -851,17 +747,17 @@ export default function TokenUsage() {
           {healthError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{healthError}</div>}
           {pollError && <div className="rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-300">后台轮询失败：{pollError}</div>}
           {lastSyncMessage && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{lastSyncMessage}</div>}
-          {autoExpanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {actualDays} 天。</div>}
+          {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
         </div>
       )}
 
       <div className="mb-5 grid gap-3 md:grid-cols-5">
         {[
-          { label: '总成本', value: formatCurrency(summary.total_cost), icon: Activity },
-          { label: '日均成本', value: formatCurrency(summary.avg_daily_cost), icon: BarChart3 },
-          { label: '总 Token', value: formatToken(summary.total_tokens), icon: Database },
-          { label: '输入 Token', value: formatToken(summary.total_input_tokens), icon: HardDrive },
-          { label: '输出 Token', value: formatToken(summary.total_output_tokens), icon: HardDrive },
+          { label: '总成本', value: formatCurrency(summary.data.summary.total_cost), icon: Activity },
+          { label: '日均成本', value: formatCurrency(summary.data.summary.avg_daily_cost), icon: BarChart3 },
+          { label: '总 Token', value: formatToken(summary.data.summary.total_tokens), icon: Database },
+          { label: '输入 Token', value: formatToken(summary.data.summary.total_input_tokens), icon: HardDrive },
+          { label: '输出 Token', value: formatToken(summary.data.summary.total_output_tokens), icon: HardDrive },
         ].map(card => (
           <div key={card.label} className="rounded-md border border-slate-800 bg-slate-900 p-4">
             <div className="mb-2 flex items-center justify-between text-xs text-slate-400">
@@ -915,7 +811,7 @@ export default function TokenUsage() {
         <div className="rounded-md border border-slate-800 bg-slate-900 p-4">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-medium text-white">{chartTitle}</h2>
-            {loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
+            {summary.loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
           </div>
           <div className="h-80">
             {(groupBy === 'none' ? chartData : groupedData).length ? (
@@ -1002,7 +898,7 @@ export default function TokenUsage() {
       <div className="rounded-md border border-slate-800 bg-slate-900">
         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
           <h2 className="text-base font-medium text-white">明细数据</h2>
-          <span className="text-xs text-slate-400">共 {items.length} 条</span>
+          <span className="text-xs text-slate-400">共 {details.data.total} 条</span>
         </div>
         <div className="overflow-auto">
           <table className="w-full min-w-[1040px] text-sm">
@@ -1021,7 +917,7 @@ export default function TokenUsage() {
               </tr>
             </thead>
             <tbody>
-              {!paginatedItems.length && !loading ? (
+              {!paginatedItems.length && !details.loading ? (
                 <tr>
                   <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 9 : 10}>暂无数据。可以点击“刷新”采集当前用户和设备的数据。</td>
                 </tr>
