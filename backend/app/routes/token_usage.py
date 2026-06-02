@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, date
 from types import SimpleNamespace
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Header, Body
+from fastapi import APIRouter, HTTPException, Header, Body, Response
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import func, or_
 
@@ -944,10 +944,14 @@ async def get_token_usage_details(
 
 @router.post("/db-query", response_model=DbUsageResponse)
 async def db_query_token_usage(
+    response: Response,
     req: DbQueryRequest,
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
-    """从数据库查询 Token 消耗统计（支持按设备、模型分组）"""
+    """[DEPRECATED] 从数据库查询 Token 消耗统计。请改用 /summary 和 /details。本接口将在 2026-09 前后下线。"""
+    response.headers["Deprecation"] = "true"
+    response.headers["Sunset"] = "Wed, 01 Sep 2026 00:00:00 GMT"
+    response.headers["Link"] = '</api/token-usage/summary>; rel="successor-version"'
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
     try:
