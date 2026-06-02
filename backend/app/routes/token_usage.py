@@ -1193,6 +1193,81 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
     return dimension_rows, filter_options
 
 
+def build_chart_series(
+    records: list, group_by: str
+) -> list[dict]:
+    """将 TokenUsageRecord 列表转换为图表所需的 (date, group_key) 序列。
+
+    按 date + (可选) group_key 聚合 total_tokens 和 total_cost。
+    行数上限：days × 最多 5 个 group_key（取 top 5 cost 维度）。
+    """
+    if not records:
+        return []
+
+    if group_by != "none":
+        key_totals: dict[str, float] = {}
+        for row in records:
+            if group_by == "device":
+                key = getattr(row, "device_id", None) or "unknown"
+            elif group_by == "tool":
+                key = getattr(row, "tool_id", None) or _map_source_to_tool(
+                    getattr(row, "source", None)
+                )["tool_id"]
+            elif group_by == "model":
+                key = getattr(row, "model", None) or "unknown"
+            else:
+                key = "_total"
+            key_totals[key] = key_totals.get(key, 0.0) + float(
+                getattr(row, "total_cost", 0) or 0
+            )
+        top_keys = sorted(key_totals.items(), key=lambda x: x[1], reverse=True)[:5]
+        allowed_keys = {k for k, _ in top_keys}
+    else:
+        allowed_keys = None
+
+    series_map: dict[tuple, dict] = {}
+    for row in records:
+        date_val = getattr(row, "record_date", None)
+        if date_val is None:
+            continue
+        date_key = date_val.isoformat() if hasattr(date_val, "isoformat") else str(date_val)
+
+        if group_by == "none":
+            gk = None
+        elif group_by == "device":
+            gk = getattr(row, "device_id", None) or "unknown"
+        elif group_by == "tool":
+            gk = getattr(row, "tool_id", None) or _map_source_to_tool(
+                getattr(row, "source", None)
+            )["tool_id"]
+        elif group_by == "model":
+            gk = getattr(row, "model", None) or "unknown"
+        else:
+            gk = None
+
+        if allowed_keys is not None and gk is not None and gk not in allowed_keys:
+            continue
+
+        key = (date_key, gk)
+        bucket = series_map.setdefault(
+            key, {"date": date_key, "group_key": gk, "total_tokens": 0, "total_cost": 0.0}
+        )
+        bucket["total_tokens"] += int(getattr(row, "total_tokens", 0) or 0)
+        bucket["total_cost"] += float(getattr(row, "total_cost", 0) or 0)
+
+    result = [
+        {
+            "date": v["date"],
+            "group_key": v["group_key"],
+            "total_tokens": v["total_tokens"],
+            "total_cost": round(v["total_cost"], 4),
+        }
+        for v in series_map.values()
+    ]
+    result.sort(key=lambda x: (x["date"], x["group_key"] or ""))
+    return result
+
+
 def _query_dimension_data(db, user_id: str, req, since_date: datetime) -> tuple[dict, dict]:
     filters = _build_record_filters(user_id, req, since_date)
     records = db.query(TokenUsageRecord).filter(*filters).all()
