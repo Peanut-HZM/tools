@@ -819,6 +819,129 @@ async def get_token_usage_summary(
         db.close()
 
 
+@router.post("/details", response_model=DetailsResponse)
+async def get_token_usage_details(
+    req: DetailsRequest,
+    authorization: Optional[str] = Header(None),
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    # sort_by 用 "details:<sort>:<order>:<limit>:<offset>" 命名空间避免与 /db-query / /summary 共享缓存键
+    cache_key_extra = f"details:{req.sort_by}:{req.sort_order}:{req.limit}:{req.offset}"
+    cached_payload = get_query_cached_data(
+        source=req.source,
+        report_type=req.type,
+        days=req.days,
+        group_by=req.group_by,
+        user_id=user_id,
+        device_id=req.device_id or "",
+        tool_id=req.tool_id or "",
+        model=req.model or "",
+        sort_by=cache_key_extra,
+        sort_order="desc",
+    )
+    if cached_payload and "details_data" in cached_payload:
+        logger.info(f"details 缓存命中 user={user_id}")
+        return DetailsResponse(**cached_payload["details_data"], cached=True)
+
+    db = SessionLocal()
+    try:
+        req_ns = SimpleNamespace(
+            source=req.source,
+            type=req.type,
+            days=req.days,
+            group_by=req.group_by,
+            device_id=req.device_id,
+            tool_id=req.tool_id,
+            model=req.model,
+            sort_by=req.sort_by,
+            sort_order=req.sort_order,
+        )
+
+        has_data = (
+            db.query(TokenUsageRecord)
+            .filter(TokenUsageRecord.user_id == user_id)
+            .first()
+            is not None
+        )
+        if not has_data:
+            return DetailsResponse(
+                items=[], total=0, limit=req.limit, offset=req.offset, has_more=False
+            )
+
+        since_date = datetime.now() - timedelta(days=req.days)
+        records = (
+            db.query(TokenUsageRecord)
+            .filter(*_build_record_filters(user_id, req_ns, since_date))
+            .all()
+        )
+
+        sorted_records = _sort_usage_items(records, req.sort_by, req.sort_order)
+        total = len(sorted_records)
+        paged = sorted_records[req.offset : req.offset + req.limit]
+
+        items = []
+        for r in paged:
+            date_val = r.record_date
+            date_key = date_val.isoformat() if hasattr(date_val, "isoformat") else str(date_val)
+            group_key = None
+            if req.group_by == "device":
+                group_key = r.device_id
+            elif req.group_by == "tool":
+                group_key = r.tool_id
+            elif req.group_by == "model":
+                group_key = r.model
+
+            items.append(
+                DbUsageItem(
+                    date=date_key,
+                    input_tokens=int(r.input_tokens or 0),
+                    output_tokens=int(r.output_tokens or 0),
+                    cache_creation_tokens=int(r.cache_creation_tokens or 0),
+                    cache_read_tokens=int(r.cache_read_tokens or 0),
+                    total_tokens=int(r.total_tokens or 0),
+                    total_cost=float(r.total_cost or 0),
+                    models_used=[r.model] if r.model else [],
+                    model_breakdowns=[],
+                    group_key=group_key,
+                )
+            )
+
+        has_more = (req.offset + len(items)) < total
+
+        response = DetailsResponse(
+            items=items,
+            total=total,
+            limit=req.limit,
+            offset=req.offset,
+            has_more=has_more,
+        )
+        cached_dict = response.model_dump(exclude={"cached"})
+
+        set_query_cached_data(
+            source=req.source,
+            report_type=req.type,
+            days=req.days,
+            group_by=req.group_by,
+            user_id=user_id,
+            device_id=req.device_id or "",
+            tool_id=req.tool_id or "",
+            model=req.model or "",
+            sort_by=cache_key_extra,
+            sort_order="desc",
+            data={"details_data": cached_dict},
+        )
+
+        return DetailsResponse(**cached_dict, cached=False)
+    finally:
+        db.close()
+
+
 @router.post("/db-query", response_model=DbUsageResponse)
 async def db_query_token_usage(
     req: DbQueryRequest,
