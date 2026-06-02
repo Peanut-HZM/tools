@@ -164,6 +164,60 @@ export interface DbUsageResponse {
   sync_meta: SyncMeta;
 }
 
+export interface ChartSeriesItem {
+  date: string;
+  group_key?: string | null;
+  total_tokens: number;
+  total_cost: number;
+}
+
+export interface SummaryUsageSummary {
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cache_creation_tokens: number;
+  total_cache_read_tokens: number;
+  total_tokens: number;
+  total_cost: number;
+  days_count: number;
+  avg_daily_cost: number;
+}
+
+export interface TokenUsageSummaryResponse {
+  summary: SummaryUsageSummary;
+  dimension_summaries: DimensionSummaries;
+  model_summary: ModelSummaryItem[];
+  filter_options: FilterOptions;
+  sync_meta: SyncMeta;
+  chart_series: ChartSeriesItem[];
+  cached?: boolean;
+  auto_expanded?: boolean;
+  actual_days?: number | null;
+  devices: DeviceInfo[];
+}
+
+export interface TokenUsageDetailsResponse {
+  items: DbUsageItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  cached?: boolean;
+}
+
+export interface TokenUsageDetailsParams {
+  type?: TokenUsageReportType;
+  days?: number;
+  group_by?: TokenUsageGroupBy;
+  source?: TokenUsageSource;
+  device_id?: string;
+  tool_id?: string;
+  model?: string;
+  sort_by?: TokenUsageSortBy;
+  sort_order?: TokenUsageSortOrder;
+  limit?: number;
+  offset?: number;
+}
+
 export interface SyncTokenUsageResponse {
   message?: string;
   sources_synced: string[];
