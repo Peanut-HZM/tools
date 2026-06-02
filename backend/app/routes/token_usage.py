@@ -624,6 +624,38 @@ class DbUsageResponse(BaseModel):
     sync_meta: SyncMeta = Field(default_factory=SyncMeta)
 
 
+class ChartSeriesItem(BaseModel):
+    date: str
+    group_key: Optional[str] = None
+    total_tokens: int
+    total_cost: float
+
+
+class SummaryUsageSummary(BaseModel):
+    """summary 端点专用的汇总结构（比 UsageSummary 多了 cache 拆分）"""
+    total_input_tokens: int
+    total_output_tokens: int
+    total_cache_creation_tokens: int
+    total_cache_read_tokens: int
+    total_tokens: int
+    total_cost: float
+    days_count: int
+    avg_daily_cost: float
+
+
+class SummaryResponse(BaseModel):
+    summary: SummaryUsageSummary
+    dimension_summaries: DimensionSummaries = Field(default_factory=DimensionSummaries)
+    model_summary: list[ModelSummaryItem] = Field(default_factory=list)
+    filter_options: FilterOptions = Field(default_factory=FilterOptions)
+    sync_meta: SyncMeta = Field(default_factory=SyncMeta)
+    chart_series: list[ChartSeriesItem] = Field(default_factory=list)
+    cached: bool = False
+    auto_expanded: bool = False
+    actual_days: Optional[int] = None
+    devices: list[dict] = Field(default_factory=list)
+
+
 @router.post("/db-query", response_model=DbUsageResponse)
 async def db_query_token_usage(
     req: DbQueryRequest,
