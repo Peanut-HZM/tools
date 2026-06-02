@@ -242,6 +242,52 @@ export async function checkTokenUsageHealth(): Promise<UsageHealthCheck> {
   return response.json();
 }
 
+export async function getTokenUsageSummary(params: DbQueryParams): Promise<TokenUsageSummaryResponse> {
+  const search = new URLSearchParams();
+  search.set('type', params.type);
+  search.set('days', String(params.days || 30));
+  search.set('group_by', params.group_by || 'none');
+  search.set('source', params.source || 'all');
+  if (params.device_id) search.set('device_id', params.device_id);
+  if (params.tool_id) search.set('tool_id', params.tool_id);
+  if (params.model) search.set('model', params.model);
+
+  const response = await fetch(`${BASE_URL}/summary?${search.toString()}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw await readError(response, '概览加载失败');
+  }
+  return response.json();
+}
+
+export async function getTokenUsageDetails(params: TokenUsageDetailsParams): Promise<TokenUsageDetailsResponse> {
+  const response = await fetch(`${BASE_URL}/details`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      type: params.type,
+      days: params.days || 30,
+      group_by: params.group_by || 'none',
+      source: params.source || 'all',
+      device_id: params.device_id,
+      tool_id: params.tool_id,
+      model: params.model,
+      sort_by: params.sort_by || 'date',
+      sort_order: params.sort_order || 'desc',
+      limit: params.limit ?? 50,
+      offset: params.offset ?? 0,
+    }),
+  });
+  if (!response.ok) {
+    throw await readError(response, '明细加载失败');
+  }
+  return response.json();
+}
+
 export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageResponse> {
   const response = await fetch(`${BASE_URL}/query`, {
     method: 'POST',
