@@ -656,6 +656,29 @@ class SummaryResponse(BaseModel):
     devices: list[dict] = Field(default_factory=list)
 
 
+class DetailsRequest(BaseModel):
+    source: str = Field(default="all", description="claude | opencode | all")
+    type: str = Field(default="daily", description="daily | weekly | monthly")
+    days: int = Field(default=30, ge=1, le=365)
+    group_by: str = Field(default="none", description="none | device | tool | model")
+    device_id: Optional[str] = None
+    tool_id: Optional[str] = None
+    model: Optional[str] = None
+    sort_by: str = Field(default="date")
+    sort_order: str = Field(default="desc")
+    limit: int = Field(default=50, ge=1, le=200)
+    offset: int = Field(default=0, ge=0)
+
+
+class DetailsResponse(BaseModel):
+    items: list[DbUsageItem]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+    cached: bool = False
+
+
 @router.post("/db-query", response_model=DbUsageResponse)
 async def db_query_token_usage(
     req: DbQueryRequest,
