@@ -679,6 +679,146 @@ class DetailsResponse(BaseModel):
     cached: bool = False
 
 
+@router.get("/summary", response_model=SummaryResponse)
+async def get_token_usage_summary(
+    source: str = "all",
+    type: str = "daily",
+    days: int = 30,
+    group_by: str = "none",
+    device_id: Optional[str] = None,
+    tool_id: Optional[str] = None,
+    model: Optional[str] = None,
+    authorization: Optional[str] = Header(None),
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    # sort_by="__summary__" 命名空间避免与 /db-query 共用缓存键造成互相覆盖
+    cached_payload = get_query_cached_payload(
+        source=source,
+        report_type=type,
+        days=days,
+        group_by=group_by,
+        user_id=user_id,
+        device_id=device_id or "",
+        tool_id=tool_id or "",
+        model=model or "",
+        sort_by="__summary__",
+        sort_order="desc",
+    )
+
+    if cached_payload and "summary_data" in cached_payload:
+        logger.info(f"summary 缓存命中 user={user_id}")
+        payload = cached_payload["summary_data"]
+        return SummaryResponse(**payload)
+
+    db = SessionLocal()
+    try:
+        req = SimpleNamespace(
+            source=source,
+            type=type,
+            days=days,
+            group_by=group_by,
+            device_id=device_id,
+            tool_id=tool_id,
+            model=model,
+            sort_by="date",
+            sort_order="desc",
+        )
+
+        has_data = (
+            db.query(TokenUsageRecord)
+            .filter(TokenUsageRecord.user_id == user_id)
+            .first()
+            is not None
+        )
+        if not has_data:
+            return SummaryResponse(
+                summary=SummaryUsageSummary(
+                    total_input_tokens=0,
+                    total_output_tokens=0,
+                    total_cache_creation_tokens=0,
+                    total_cache_read_tokens=0,
+                    total_tokens=0,
+                    total_cost=0.0,
+                    days_count=0,
+                    avg_daily_cost=0.0,
+                )
+            )
+
+        since_date = datetime.now() - timedelta(days=days)
+        records = (
+            db.query(TokenUsageRecord)
+            .filter(*_build_record_filters(user_id, req, since_date))
+            .all()
+        )
+
+        total_input = sum(int(getattr(r, "input_tokens", 0) or 0) for r in records)
+        total_output = sum(int(getattr(r, "output_tokens", 0) or 0) for r in records)
+        total_cc = sum(int(getattr(r, "cache_creation_tokens", 0) or 0) for r in records)
+        total_cr = sum(int(getattr(r, "cache_read_tokens", 0) or 0) for r in records)
+        total_tokens = total_input + total_output + total_cc + total_cr
+        total_cost = sum(float(getattr(r, "total_cost", 0) or 0) for r in records)
+        days_count = len({r.record_date for r in records}) if records else 0
+
+        summary = SummaryUsageSummary(
+            total_input_tokens=total_input,
+            total_output_tokens=total_output,
+            total_cache_creation_tokens=total_cc,
+            total_cache_read_tokens=total_cr,
+            total_tokens=total_tokens,
+            total_cost=round(total_cost, 4),
+            days_count=days_count,
+            avg_daily_cost=round(total_cost / max(days_count, 1), 4),
+        )
+
+        dimension_rows, filter_options = _query_dimension_data(
+            db, user_id, req, since_date
+        )
+
+        model_rows = _execute_model_summary_query(db, user_id, req, since_date)
+        model_summary = _rows_to_model_summary(model_rows)
+
+        device_names = _load_device_names(db, user_id)
+        devices = [{"id": did, "name": name} for did, name in device_names.items()]
+
+        chart_series = build_chart_series(records, group_by)
+
+        sync_meta = _get_sync_meta(db, user_id, req, None)
+
+        payload = SummaryResponse(
+            summary=summary,
+            dimension_summaries=_to_dimension_summaries(dimension_rows),
+            model_summary=model_summary,
+            filter_options=_to_filter_options(filter_options),
+            sync_meta=_to_sync_meta(sync_meta),
+            chart_series=[ChartSeriesItem(**s) for s in chart_series],
+            devices=devices,
+        ).model_dump(exclude={"cached"})
+
+        set_query_cached_data(
+            source=source,
+            report_type=type,
+            days=days,
+            group_by=group_by,
+            user_id=user_id,
+            device_id=device_id or "",
+            tool_id=tool_id or "",
+            model=model or "",
+            sort_by="__summary__",
+            sort_order="desc",
+            data={"summary_data": payload},
+        )
+
+        return SummaryResponse(**payload, cached=False)
+    finally:
+        db.close()
+
+
 @router.post("/db-query", response_model=DbUsageResponse)
 async def db_query_token_usage(
     req: DbQueryRequest,
