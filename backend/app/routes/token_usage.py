@@ -1614,12 +1614,15 @@ def _sort_usage_items(items, sort_by: str, sort_order: str):
     selected = sort_by if sort_by in allowed else "date"
     reverse = sort_order != "asc"
 
+    field_mapping = {"date": "record_date"}
+    orm_field = field_mapping.get(selected, selected)
+
     def sort_value(item):
         if selected == "cache_tokens":
             return (getattr(item, "cache_creation_tokens", 0) or 0) + (
                 getattr(item, "cache_read_tokens", 0) or 0
             )
-        return getattr(item, selected, None) or 0
+        return getattr(item, orm_field, None) or 0
 
     return sorted(items, key=sort_value, reverse=reverse)
 
