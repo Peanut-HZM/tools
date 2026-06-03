@@ -66,13 +66,6 @@ function formatCurrency(num: number): string {
   return `$${Number(num || 0).toFixed(2)}`;
 }
 
-function sourceLabel(source: TokenUsageSource): string {
-  if (source === 'claude') return 'Claude Code';
-  if (source === 'opencode') return 'OpenCode';
-  if (source === 'codex') return 'Codex';
-  return '全部工具';
-}
-
 function healthLabel(ok: boolean): string {
   return ok ? '可用' : '不可用';
 }
@@ -148,7 +141,6 @@ function DataFreshnessBadge({
 export default function TokenUsage() {
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [health, setHealth] = useState<UsageHealthCheck | null>(null);
-  const [source, setSource] = useState<TokenUsageSource>('all');
   const [reportType, setReportType] = useState<TokenUsageReportType>('daily');
   const [days, setDays] = useState(30);
   const [groupBy, setGroupBy] = useState<TokenUsageGroupBy>('none');
@@ -156,7 +148,6 @@ export default function TokenUsage() {
   const [selectedTool, setSelectedTool] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
   const [sortBy, setSortBy] = useState<TokenUsageSortBy>('date');
-  const [sortOrder, setSortOrder] = useState<TokenUsageSortOrder>('desc');
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
@@ -214,11 +205,9 @@ export default function TokenUsage() {
     }
   }, []);
 
-  const debouncedSource = useDebouncedValue(source, 200);
   const debouncedDays = useDebouncedValue(days, 200);
   const debouncedGroupBy = useDebouncedValue(groupBy, 200);
   const debouncedSortBy = useDebouncedValue(sortBy, 200);
-  const debouncedSortOrder = useDebouncedValue(sortOrder, 200);
   const debouncedDevice = useDebouncedValue(selectedDevice, 300);
   const debouncedTool = useDebouncedValue(selectedTool, 300);
   const debouncedModel = useDebouncedValue(selectedModel, 300);
@@ -227,7 +216,7 @@ export default function TokenUsage() {
     type: reportType,
     days: debouncedDays,
     group_by: debouncedGroupBy,
-    source: debouncedSource,
+    source: 'all',
     device_id: debouncedDevice || undefined,
     tool_id: debouncedTool || undefined,
     model: debouncedModel || undefined,
@@ -237,12 +226,12 @@ export default function TokenUsage() {
     type: reportType,
     days: debouncedDays,
     group_by: debouncedGroupBy,
-    source: debouncedSource,
+    source: 'all',
     device_id: debouncedDevice || undefined,
     tool_id: debouncedTool || undefined,
     model: debouncedModel || undefined,
     sort_by: debouncedSortBy,
-    sort_order: debouncedSortOrder,
+    sort_order: 'desc',
     limit: PAGE_SIZE,
     offset: (currentPage - 1) * PAGE_SIZE,
   });
@@ -483,7 +472,6 @@ export default function TokenUsage() {
   const getRowToolLabel = (item: DbUsageItem) => {
     if (groupBy === 'tool' && item.group_key) return getToolLabel(item.group_key);
     if (selectedTool) return getToolLabel(selectedTool);
-    if (source !== 'all') return sourceLabel(source);
     return '-';
   };
 
@@ -509,7 +497,7 @@ export default function TokenUsage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `token-usage-${source}-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `token-usage-all-${reportType}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -551,7 +539,7 @@ export default function TokenUsage() {
   ];
 
   const chartTitle = groupBy === 'none'
-    ? `${sourceLabel(source)} 趋势`
+    ? 'Token 消耗趋势'
     : groupBy === 'device'
       ? '设备消耗对比'
       : groupBy === 'tool'
@@ -626,15 +614,6 @@ export default function TokenUsage() {
       )}
 
       <div className="mb-5 grid gap-3 rounded-md border border-slate-800 bg-slate-900 p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-        <label className="space-y-1">
-          <span className="text-xs text-slate-400">来源</span>
-          <select value={source} onChange={event => setSource(event.target.value as TokenUsageSource)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
-            <option value="all">全部工具</option>
-            <option value="claude">Claude Code</option>
-            <option value="opencode">OpenCode</option>
-          </select>
-        </label>
-
         <label className="space-y-1">
           <span className="text-xs text-slate-400">工具</span>
           <select
@@ -719,14 +698,6 @@ export default function TokenUsage() {
             <option value="input_tokens">输入</option>
             <option value="output_tokens">输出</option>
             <option value="cache_tokens">缓存</option>
-          </select>
-        </label>
-
-        <label className="space-y-1">
-          <span className="text-xs text-slate-400">方向</span>
-          <select value={sortOrder} onChange={event => setSortOrder(event.target.value as TokenUsageSortOrder)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
-            <option value="desc">降序</option>
-            <option value="asc">升序</option>
           </select>
         </label>
 
