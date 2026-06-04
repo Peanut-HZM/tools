@@ -149,6 +149,7 @@ export interface DbQueryParams {
 
 export interface DbUsageItem extends UsageItem {
   group_key?: string;
+  tool_id?: string;
 }
 
 export interface DbUsageResponse {

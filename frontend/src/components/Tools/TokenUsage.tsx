@@ -470,8 +470,7 @@ export default function TokenUsage() {
   };
 
   const getRowToolLabel = (item: DbUsageItem) => {
-    if (groupBy === 'tool' && item.group_key) return getToolLabel(item.group_key);
-    if (selectedTool) return getToolLabel(selectedTool);
+    if (item.tool_id) return getToolLabel(item.tool_id);
     return '-';
   };
 
