@@ -518,6 +518,7 @@ class DbUsageItem(BaseModel):
     total_cost: float
     models_used: list[str] = Field(default_factory=list)
     model_breakdowns: list[dict] = Field(default_factory=list)
+    tool_id: Optional[str] = Field(default=None, description="工具ID")
     group_key: Optional[str] = Field(
         default=None, description="设备名或模型名（分组时）"
     )
@@ -908,6 +909,7 @@ async def get_token_usage_details(
                     total_cost=float(r.total_cost or 0),
                     models_used=[r.model] if r.model else [],
                     model_breakdowns=[],
+                    tool_id=r.tool_id,
                     group_key=group_key,
                 )
             )
