@@ -116,7 +116,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({ value, onChange, onExecute, loadi
             }`}
         >
           {loading && <i className="fas fa-spinner fa-spin"></i>}
-          {loading ? t.database.status.testing : t.database.executor.run}
+          {loading ? t.database.executor.executing : t.database.executor.run}
         </button>
       </div>
     </div>
