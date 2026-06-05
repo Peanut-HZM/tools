@@ -16,12 +16,9 @@ import {
 import {
   Bar,
   CartesianGrid,
-  Cell,
   ComposedChart,
   Legend,
   Line,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -36,7 +33,6 @@ import {
   renameDevice,
   type DbUsageItem,
   type DeviceInfo,
-  type DimensionSummaryItem,
   type ModelSummaryItem,
   type SyncMeta,
   type TokenUsageGroupBy,
@@ -50,6 +46,7 @@ import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useTokenUsageSummary } from './hooks/useTokenUsageSummary';
 import { useTokenUsageDetails } from './hooks/useTokenUsageDetails';
 import { useTokenUsagePolling } from './hooks/useTokenUsagePolling';
+import DimensionPieCard, { type PieSlice } from './TokenUsage/DimensionPieCard';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 const PAGE_SIZE = 50;
@@ -433,26 +430,6 @@ export default function TokenUsage() {
     });
   }, [deviceNameMap, getModelLabel, getToolLabel, groupBy, details.data.items]);
 
-  const modelData = useMemo(() => {
-    const sourceName = (sourceValue: string) => {
-      if (sourceValue === 'claude') return 'Claude';
-      if (sourceValue === 'opencode') return 'OpenCode';
-      return sourceValue;
-    };
-
-    return summary.data.model_summary
-      .map(item => ({
-        name: `${sourceName(item.source)} · ${item.display_model || getModelLabel(item.model) || '未知模型'}`,
-        value: item.total_cost > 0 ? item.total_cost : item.total_tokens,
-        cost: item.total_cost,
-        tokens: item.total_tokens,
-        metric: item.total_cost > 0 ? 'cost' : 'tokens',
-      }))
-      .filter(item => item.value > 0 || item.tokens > 0)
-      .sort((a, b) => b.value - a.value || b.tokens - a.tokens)
-      .slice(0, 8);
-  }, [getModelLabel, summary.data.model_summary]);
-
   const totalPages = Math.max(1, Math.ceil(details.data.total / PAGE_SIZE));
   const paginatedItems = details.data.items;
 
@@ -501,41 +478,62 @@ export default function TokenUsage() {
     URL.revokeObjectURL(url);
   };
 
-  const dimensionSections: Array<{
-    key: string;
-    title: string;
-    items: DimensionSummaryItem[];
-    activeValue: string;
-    onSelect: (item: DimensionSummaryItem) => void;
-  }> = [
-    {
-      key: 'devices',
-      title: '设备',
-      items: summary.data.dimension_summaries.devices,
-      activeValue: selectedDevice,
-      onSelect: item => setSelectedDevice(item.device_id || item.key),
-    },
-    {
-      key: 'tools',
-      title: '工具',
-      items: summary.data.dimension_summaries.tools,
-      activeValue: selectedTool,
-      onSelect: item => {
-        setSelectedTool(item.tool_id || item.key);
-        setSelectedModel('');
-      },
-    },
-    {
-      key: 'models',
-      title: '模型',
-      items: summary.data.dimension_summaries.models,
-      activeValue: selectedModel,
-      onSelect: item => {
-        setSelectedModel(item.model || item.key);
-        if (item.tool_id) setSelectedTool(item.tool_id);
-      },
-    },
-  ];
+  const devicePieSlices: PieSlice[] = useMemo(
+    () => summary.data.dimension_summaries.devices.map(d => ({
+      key: d.device_id || d.key,
+      label: d.label,
+      tokens: d.total_tokens,
+      cost: d.total_cost,
+    })),
+    [summary.data.dimension_summaries.devices]
+  );
+
+  const toolPieSlices: PieSlice[] = useMemo(
+    () => summary.data.dimension_summaries.tools.map(t => ({
+      key: t.tool_id || t.key,
+      label: t.label,
+      tokens: t.total_tokens,
+      cost: t.total_cost,
+    })),
+    [summary.data.dimension_summaries.tools]
+  );
+
+  const modelPieSlices: PieSlice[] = useMemo(
+    () => summary.data.dimension_summaries.models.map(m => ({
+      key: m.model || m.key,
+      label: m.label,
+      tokens: m.total_tokens,
+      cost: m.total_cost,
+    })),
+    [summary.data.dimension_summaries.models]
+  );
+
+  const modelCostSlices: PieSlice[] = useMemo(
+    () => summary.data.model_summary.map(item => ({
+      key: item.model,
+      label: `${item.source === 'claude' ? 'Claude' : item.source === 'opencode' ? 'OpenCode' : item.source} · ${item.display_model || item.model}`,
+      tokens: item.total_tokens,
+      cost: item.total_cost,
+    })),
+    [summary.data.model_summary]
+  );
+
+  const totalDeviceTokens = useMemo(
+    () => devicePieSlices.reduce((s, x) => s + x.tokens, 0),
+    [devicePieSlices]
+  );
+  const totalToolTokens = useMemo(
+    () => toolPieSlices.reduce((s, x) => s + x.tokens, 0),
+    [toolPieSlices]
+  );
+  const totalModelTokens = useMemo(
+    () => modelPieSlices.reduce((s, x) => s + x.tokens, 0),
+    [modelPieSlices]
+  );
+  const totalModelCostTokens = useMemo(
+    () => modelCostSlices.reduce((s, x) => s + x.tokens, 0),
+    [modelCostSlices]
+  );
 
   const chartTitle = groupBy === 'none'
     ? 'Token 消耗趋势'
@@ -739,129 +737,87 @@ export default function TokenUsage() {
         ))}
       </div>
 
-      <div className="mb-5 grid gap-3 xl:grid-cols-3">
-        {dimensionSections.map(section => (
-          <div key={section.key} className="rounded-md border border-slate-800 bg-slate-900 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-white">{section.title}</h2>
-              <span className="text-xs text-slate-500">Top {Math.min(section.items.length, 5)}</span>
-            </div>
-            <div className="space-y-1.5">
-              {section.items.slice(0, 5).map(item => {
-                const value = item.dimension === 'device'
-                  ? item.device_id || item.key
-                  : item.dimension === 'tool'
-                    ? item.tool_id || item.key
-                    : item.model || item.key;
-                const active = Boolean(value && section.activeValue === value);
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => section.onSelect(item)}
-                    className={`grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 rounded-md px-2 py-1.5 text-left text-xs hover:bg-slate-800 ${active ? 'bg-slate-800 text-white' : 'text-slate-300'}`}
-                    title={item.label}
-                  >
-                    <span className="truncate">{item.label}</span>
-                    <span className="font-mono text-slate-400">{item.cost_share.toFixed(1)}% / {item.token_share.toFixed(1)}%</span>
-                    <span className="font-mono text-slate-500">{formatToken(item.total_tokens)} Token</span>
-                    <span className="font-mono text-emerald-300">{formatCurrency(item.total_cost)}</span>
-                  </button>
-                );
-              })}
-              {!section.items.length && (
-                <div className="px-2 py-4 text-center text-xs text-slate-500">暂无数据</div>
-              )}
-            </div>
-          </div>
-        ))}
+      <div className="mb-5 grid gap-3 xl:grid-cols-4 lg:grid-cols-2 grid-cols-1">
+        <DimensionPieCard
+          title="设备"
+          data={devicePieSlices}
+          totalTokens={totalDeviceTokens}
+          metric="tokens"
+          selectedKey={selectedDevice}
+          onSelect={id => setSelectedDevice(id)}
+        />
+        <DimensionPieCard
+          title="工具"
+          data={toolPieSlices}
+          totalTokens={totalToolTokens}
+          metric="tokens"
+          selectedKey={selectedTool}
+          onSelect={id => {
+            setSelectedTool(id);
+            setSelectedModel('');
+          }}
+        />
+        <DimensionPieCard
+          title="模型"
+          data={modelPieSlices}
+          totalTokens={totalModelTokens}
+          metric="tokens"
+          selectedKey={selectedModel}
+          onSelect={id => setSelectedModel(id)}
+        />
+        <DimensionPieCard
+          title="模型成本占比"
+          data={modelCostSlices}
+          totalTokens={totalModelCostTokens}
+          metric="cost"
+          emptyHint="暂无模型成本数据"
+        />
       </div>
 
-      <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-md border border-slate-800 bg-slate-900 p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-medium text-white">{chartTitle}</h2>
-            {summary.loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
-          </div>
-          <div className="h-80">
-            {(groupBy === 'none' ? chartData : groupedData).length ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={groupBy === 'none' ? chartData : groupedData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={formatToken} />
-                  {groupBy === 'none' && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `$${value}`} />}
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
-                  <Legend />
-                  {groupBy === 'none' ? (
-                    <>
-                      {chartType === 'bar' ? (
-                        <>
-                          <Bar yAxisId="left" dataKey="inputTokens" stackId="tokens" fill="#3b82f6" name="输入" />
-                          <Bar yAxisId="left" dataKey="outputTokens" stackId="tokens" fill="#10b981" name="输出" />
-                          <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="#f59e0b" name="缓存" />
-                        </>
-                      ) : (
-                        <>
-                          <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="#3b82f6" strokeWidth={2} name="输入" dot={{ r: 3 }} />
-                          <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="#10b981" strokeWidth={2} name="输出" dot={{ r: 3 }} />
-                          <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="#f59e0b" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
-                        </>
-                      )}
-                      <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#ef4444" strokeWidth={2} name="成本" dot={{ r: 3 }} />
-                    </>
-                  ) : (
-                    Object.keys(groupedData[0] || {}).filter(key => key !== 'date').map((key, index) => (
-                      chartType === 'bar'
-                        ? <Bar key={key} yAxisId="left" dataKey={key} fill={COLORS[index % COLORS.length]} name={key} />
-                        : <Line key={key} yAxisId="left" type="monotone" dataKey={key} stroke={COLORS[index % COLORS.length]} strokeWidth={2} name={key} dot={{ r: 3 }} />
-                    ))
-                  )}
-                </ComposedChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">暂无图表数据</div>
-            )}
-          </div>
+      <div className="mb-5 rounded-md border border-slate-800 bg-slate-900 p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-medium text-white">{chartTitle}</h2>
+          {summary.loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
         </div>
-
-        <div className="rounded-md border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-4 text-base font-medium text-white">模型成本占比</h2>
-          <div className="h-64">
-            {modelData.length ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={modelData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="55%" outerRadius="82%" paddingAngle={3}>
-                    {modelData.map((_, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(_, __, payload: any) => [
-                      `${formatCurrency(payload?.payload?.cost || 0)} / ${formatToken(payload?.payload?.tokens || 0)} Token`,
-                      payload?.payload?.metric === 'cost' ? '成本占比' : 'Token 占比',
-                    ]}
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">暂无模型成本数据</div>
-            )}
-          </div>
-          <div className="mt-3 space-y-2">
-            {modelData.map((model, index) => (
-              <div key={model.name} className="flex items-center justify-between gap-3 text-xs">
-                <span className="flex min-w-0 items-center gap-2 text-slate-300">
-                  <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                  <span className="truncate">{model.name}</span>
-                </span>
-                <span className="font-mono text-slate-400">
-                  {model.metric === 'cost' ? formatCurrency(model.cost) : `${formatToken(model.tokens)} Token`}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="h-80">
+          {(groupBy === 'none' ? chartData : groupedData).length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={groupBy === 'none' ? chartData : groupedData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={formatToken} />
+                {groupBy === 'none' && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `$${value}`} />}
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
+                <Legend />
+                {groupBy === 'none' ? (
+                  <>
+                    {chartType === 'bar' ? (
+                      <>
+                        <Bar yAxisId="left" dataKey="inputTokens" stackId="tokens" fill="#3b82f6" name="输入" />
+                        <Bar yAxisId="left" dataKey="outputTokens" stackId="tokens" fill="#10b981" name="输出" />
+                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="#f59e0b" name="缓存" />
+                      </>
+                    ) : (
+                      <>
+                        <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="#3b82f6" strokeWidth={2} name="输入" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="#10b981" strokeWidth={2} name="输出" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="#f59e0b" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
+                      </>
+                    )}
+                    <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#ef4444" strokeWidth={2} name="成本" dot={{ r: 3 }} />
+                  </>
+                ) : (
+                  Object.keys(groupedData[0] || {}).filter(key => key !== 'date').map((key, index) => (
+                    chartType === 'bar'
+                      ? <Bar key={key} yAxisId="left" dataKey={key} fill={COLORS[index % COLORS.length]} name={key} />
+                      : <Line key={key} yAxisId="left" type="monotone" dataKey={key} stroke={COLORS[index % COLORS.length]} strokeWidth={2} name={key} dot={{ r: 3 }} />
+                  ))
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-slate-500">暂无图表数据</div>
+          )}
         </div>
       </div>
 
