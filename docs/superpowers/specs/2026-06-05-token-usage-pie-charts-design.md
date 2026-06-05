@@ -118,7 +118,8 @@ interface DimensionPieCardProps {
 **点击行为**：
 - `onSelect` 未提供 → 不绑定点击事件（纯展示）
 - `onSelect` 提供 → 点击某片调用 `onSelect(slice.key)`
-- 选中状态：当前 `selectedKey === slice.key` 时，该片 stroke 加深 2px（slate-100）
+- 选中状态：当前 `selectedKey === slice.key` 时，该片外侧加 2px slate-100 描边（通过 recharts `<Cell stroke strokeWidth={2}>` 实现）
+- 卡片高度：固定 `h-80`（320px），与下方"Token 趋势图"卡片同高；legend 行超出时该列内部滚动（`overflow-y-auto`）
 
 ### 3.4 4 个饼图的具体配置
 
