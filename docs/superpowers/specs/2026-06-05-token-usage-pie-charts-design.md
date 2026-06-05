@@ -85,11 +85,14 @@ interface DimensionPieCardProps {
 
 ### 3.3 组件行为
 
-**数据预处理**（在 DimensionPieCard 内部）：
-1. 按 `tokens` 降序排序
-2. 取前 8 项保留原 `key` 和 `label`
-3. 剩余项合并为 1 个 `{ key: '__other__', label: '其他', isOther: true }`，`tokens` 和 `cost` 分别求和
-4. 颜色：前 8 项用 `COLORS` 调色板（`#3b82f6` ~ `#84cc16` 8 色），`__other__` 用 `#475569`（slate-600）
+**数据预处理**（分两层）：
+- **TokenUsage.tsx 层**（4 个 useMemo）：将 `dimension_summaries.{devices,tools,models}` 和 `model_summary` 映射为 `PieSlice[]`，每项含 `key` / `label` / `tokens` / `cost` 4 字段
+- **DimensionPieCard 内部 useMemo**（1 个）：
+  1. 过滤 `tokens > 0 || cost > 0` 的有效项（避免饼图除零）
+  2. 按 `tokens` 降序排序
+  3. 取前 8 项保留原 `key` 和 `label`
+  4. 剩余项合并为 1 个 `{ key: '__other__', label: '其他', isOther: true }`，`tokens` 和 `cost` 分别求和
+  5. 颜色：前 8 项用 `COLORS` 调色板（`#3b82f6` ~ `#84cc16` 8 色），`__other__` 用 `#475569`（slate-600）
 
 **渲染结构**（每个卡片）：
 ```
@@ -147,7 +150,7 @@ interface DimensionPieCardProps {
   <DimensionPieCard title="工具" data={toolSlices} totalTokens={toolTotal} metric="tokens"
     selectedKey={selectedTool} onSelect={id => { setSelectedTool(id); setSelectedModel(''); }} />
   <DimensionPieCard title="模型" data={modelSlices} totalTokens={modelTotal} metric="tokens"
-    selectedKey={selectedModel} onSelect={id => { setSelectedModel(id); ... }} />
+    selectedKey={selectedModel} onSelect={id => setSelectedModel(id)} />
   <DimensionPieCard title="模型成本占比" data={modelCostSlices} totalTokens={modelCostTotal} metric="cost" />
 </div>
 ```
@@ -186,7 +189,7 @@ interface DimensionPieCardProps {
 
 ## 6. 实施计划概要
 
-按 TDD 方式分 2 个 Task：
+按 TDD 方式分 3 个 Task：
 
 **Task 1：DimensionPieCard 组件 + 测试**
 - 写 `DimensionPieCard.test.tsx`（13 个测试用例，先红）
