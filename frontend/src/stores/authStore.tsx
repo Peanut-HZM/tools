@@ -2,7 +2,7 @@
  * Authentication Store - Manages user authentication state using React Context
  * Note: Using React Context instead of Zustand to avoid adding new dependencies
  */
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import * as authApi from '../api/authApi';
 import { syncTokenUsage as apiSyncTokenUsage } from '../api/tokenUsageApi';
 
@@ -51,11 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // 登录/已认证后触发 Token 数据同步（静默，不影响主流程）
+  const syncInProgressRef = useRef(false);
+
   const triggerTokenSync = async () => {
+    if (syncInProgressRef.current) return;
+    syncInProgressRef.current = true;
     try {
       await apiSyncTokenUsage();
     } catch {
       // 同步失败不影响认证流程，用户可手动点击"同步数据"
+    } finally {
+      syncInProgressRef.current = false;
     }
   };
 

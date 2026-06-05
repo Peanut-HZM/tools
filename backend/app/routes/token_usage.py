@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import time
 import uuid
 from collections import defaultdict
@@ -32,10 +33,11 @@ from app.models.token_usage_models import (
     TokenUsageSyncLog,
     DeviceRegistry,
 )
-from app.services.token_usage_sync_service import sync_token_usage
+from app.services.token_usage_sync_service import sync_token_usage, sync_token_usage_v2
 from app.services.token_usage_background_sync import register_pending_sync_user
+from app.services.ccusage_scheduler import get_sync_lock
 from app.routes.auth import get_current_user_id
-from app.utils.device_id import get_device_id
+from app.utils.device_id import get_device_id, get_device_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -1054,11 +1056,11 @@ async def db_query_token_usage(
         db.close()
 
 
-@router.post("/sync")
-async def sync_token_usage_endpoint(
+@router.post("/refresh-ccusage")
+async def refresh_ccusage_endpoint(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
-    """手动触发 Token Usage 同步到数据库"""
+    """手动触发 ccusage 同步（v2 数据源）。同步运行，等待完成。"""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
     try:
@@ -1066,9 +1068,55 @@ async def sync_token_usage_endpoint(
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
 
+    if os.environ.get("DESKTOP_MODE") == "1":
+        raise HTTPException(status_code=403, detail="桌面模式不支持手动同步")
+
+    lock = get_sync_lock()
+    if lock.locked():
+        raise HTTPException(status_code=429, detail="同步进行中，请稍后重试")
+
+    db = SessionLocal()
+    try:
+        today = date.today().isoformat()
+        count = await asyncio.to_thread(
+            sync_token_usage_v2,
+            db=db,
+            user_id=user_id,
+            device_id=get_device_id(),
+            device_name=get_device_display_name(),
+            since=today,
+            until=today,
+        )
+        return {"success": True, "synced_records": count, "date": today}
+    except Exception as e:
+        logger.error(f"[ccusage-manual] 手动同步失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"同步失败: {e}")
+    finally:
+        db.close()
+
+
+@router.post("/sync")
+async def sync_token_usage_endpoint(
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """手动触发 Token Usage 同步到数据库（异步线程执行，带锁防并发）"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    lock = get_sync_lock()
+    if lock.locked():
+        raise HTTPException(status_code=429, detail="同步进行中，请稍后重试")
+
     invalidate_user_query_cache(user_id)
-    result = sync_token_usage(user_id=user_id, days=90)
-    invalidate_user_query_cache(user_id)
+    try:
+        # 将同步阻塞的 CLI 调用丢到线程池执行，避免阻塞事件循环
+        result = await asyncio.to_thread(sync_token_usage, user_id=user_id, days=90)
+    finally:
+        invalidate_user_query_cache(user_id)
     return result
 
 
