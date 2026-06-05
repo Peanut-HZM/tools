@@ -34,6 +34,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
   const leftColumnRef = useRef<HTMLDivElement>(null);
   const [editorHeight, setEditorHeight] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [columnHeight, setColumnHeight] = useState(0);
 
   useEffect(() => {
@@ -69,6 +70,15 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isFullscreen]);
 
   useEffect(() => {
     setResult(null);
@@ -374,8 +384,18 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
           >
             <div
               data-testid="editor-wrapper"
-              className={editorHeight === null ? 'h-1/3 min-h-[200px]' : 'shrink-0'}
-              style={editorHeight !== null ? { height: `${editorHeight}px` } : undefined}
+              className={
+                isFullscreen
+                  ? 'h-full'
+                  : editorHeight === null
+                    ? 'h-1/3 min-h-[200px]'
+                    : 'shrink-0'
+              }
+              style={
+                !isFullscreen && editorHeight !== null
+                  ? { height: `${editorHeight}px` }
+                  : undefined
+              }
             >
               <SQLEditor
                 value={sql}
@@ -383,45 +403,51 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
                 onExecute={handleExecute}
                 loading={loading}
                 tables={tables}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={() => setIsFullscreen(prev => !prev)}
               />
             </div>
-            <div
-              data-testid="drag-handle"
-              role="separator"
-              aria-orientation="horizontal"
-              aria-label={t.database.executor.dragHandleHint}
-              onMouseDown={handleDragStart}
-              className="h-1.5 bg-slate-700 hover:bg-blue-500 active:bg-blue-400 cursor-ns-resize transition-colors rounded flex items-center justify-center group"
-            >
-              <div className="w-12 h-0.5 bg-slate-500 group-hover:bg-white/80 rounded" />
-            </div>
-            <div className="flex-1 min-h-0 flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <h3 className="text-slate-300 text-sm font-medium">{t.database.executor.results}</h3>
-                {result && result.success && result.result_data && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <button
-                      disabled={page <= 1 || loading}
-                      onClick={() => handlePageChange(page - 1)}
-                      className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
-                    >
-                      <i className="fas fa-chevron-left"></i>
-                    </button>
-                    <span className="text-slate-400 bg-slate-800 border border-slate-700 px-2 py-1 rounded">
-                      Page {page}
-                    </span>
-                    <button
-                      disabled={(!result.result_data || result.result_data.length < pageSize) || loading}
-                      onClick={() => handlePageChange(page + 1)}
-                      className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
-                    >
-                      <i className="fas fa-chevron-right"></i>
-                    </button>
-                  </div>
-                )}
+            {!isFullscreen && (
+              <div
+                data-testid="drag-handle"
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label={t.database.executor.dragHandleHint}
+                onMouseDown={handleDragStart}
+                className="h-1.5 bg-slate-700 hover:bg-blue-500 active:bg-blue-400 cursor-ns-resize transition-colors rounded flex items-center justify-center group"
+              >
+                <div className="w-12 h-0.5 bg-slate-500 group-hover:bg-white/80 rounded" />
               </div>
-              <ResultViewer result={result} />
-            </div>
+            )}
+            {!isFullscreen && (
+              <div className="flex-1 min-h-0 flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-slate-300 text-sm font-medium">{t.database.executor.results}</h3>
+                  {result && result.success && result.result_data && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <button
+                        disabled={page <= 1 || loading}
+                        onClick={() => handlePageChange(page - 1)}
+                        className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                      >
+                        <i className="fas fa-chevron-left"></i>
+                      </button>
+                      <span className="text-slate-400 bg-slate-800 border border-slate-700 px-2 py-1 rounded">
+                        Page {page}
+                      </span>
+                      <button
+                        disabled={(!result.result_data || result.result_data.length < pageSize) || loading}
+                        onClick={() => handlePageChange(page + 1)}
+                        className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                      >
+                        <i className="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <ResultViewer result={result} />
+              </div>
+            )}
           </div>
           
           {showHistoryPanel && (

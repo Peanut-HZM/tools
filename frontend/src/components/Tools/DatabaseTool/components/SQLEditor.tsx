@@ -11,9 +11,16 @@ interface SQLEditorProps {
   tables?: TableItem[];
   pageSize?: number;
   onPageSizeChange?: (size: number) => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
-const SQLEditor: React.FC<SQLEditorProps> = ({ value, onChange, onExecute, loading, tables = [], pageSize, onPageSizeChange }) => {
+const SQLEditor: React.FC<SQLEditorProps> = ({
+  value, onChange, onExecute, loading, tables = [],
+  pageSize, onPageSizeChange,
+  isFullscreen = false,
+  onToggleFullscreen
+}) => {
   const { t } = useI18n();
   const monaco = useMonaco();
   const editorRef = useRef<any>(null);
@@ -70,13 +77,30 @@ const SQLEditor: React.FC<SQLEditorProps> = ({ value, onChange, onExecute, loadi
     <div className="flex flex-col h-full border border-slate-700 rounded-md overflow-hidden bg-slate-800 shadow-sm">
       <div className="bg-slate-900 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
         <span className="text-sm font-medium text-slate-300">{t.database.executor.title}</span>
-        <div className="space-x-2">
-           <button 
-             className="text-xs text-slate-400 hover:text-blue-400 transition-colors"
-             onClick={() => onChange('')}
-           >
-             {t.database.executor.clear}
-           </button>
+        <div className="space-x-2 flex items-center">
+          <button
+            className="text-xs text-slate-400 hover:text-blue-400 transition-colors"
+            onClick={() => onChange('')}
+          >
+            {t.database.executor.clear}
+          </button>
+          {onToggleFullscreen && (
+            <button
+              data-testid="fullscreen-toggle"
+              onClick={onToggleFullscreen}
+              title={isFullscreen
+                ? t.database.executor.exitFullscreen
+                : t.database.executor.enterFullscreen}
+              aria-label={isFullscreen
+                ? t.database.executor.exitFullscreen
+                : t.database.executor.enterFullscreen}
+              className="text-slate-400 hover:text-blue-400 transition-colors"
+            >
+              <i className={isFullscreen
+                ? 'fas fa-compress text-sm'
+                : 'fas fa-expand text-sm'} />
+            </button>
+          )}
         </div>
       </div>
       <div className="flex-1 relative">

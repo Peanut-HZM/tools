@@ -135,3 +135,76 @@ describe('SQLExecutor 拖动 + 持久化', () => {
     expect(editorWrapper?.className).toContain('h-1/3');
   });
 });
+
+describe('SQLExecutor 全屏', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('点击全屏按钮后结果区不渲染', () => {
+    const { container } = renderWithProvider({
+      configId: 'cfg-1',
+      database: '',
+      schema: '',
+      sql: 'SELECT 1',
+      onStateChange: () => {},
+    });
+    const fsBtn = container.querySelector('[data-testid="fullscreen-toggle"]') as HTMLElement;
+    expect(fsBtn).toBeTruthy();
+    expect(container.querySelector('h3')?.textContent).toContain('执行结果');
+
+    fireEvent.click(fsBtn);
+
+    expect(container.querySelector('h3')).toBeNull();
+  });
+
+  it('再次点击全屏按钮恢复结果区', () => {
+    const { container } = renderWithProvider({
+      configId: 'cfg-1',
+      database: '',
+      schema: '',
+      sql: 'SELECT 1',
+      onStateChange: () => {},
+    });
+    const fsBtn = container.querySelector('[data-testid="fullscreen-toggle"]') as HTMLElement;
+
+    fireEvent.click(fsBtn);
+    expect(container.querySelector('h3')).toBeNull();
+
+    fireEvent.click(fsBtn);
+    expect(container.querySelector('h3')?.textContent).toContain('执行结果');
+  });
+
+  it('全屏状态下按 Esc 恢复', () => {
+    const { container } = renderWithProvider({
+      configId: 'cfg-1',
+      database: '',
+      schema: '',
+      sql: 'SELECT 1',
+      onStateChange: () => {},
+    });
+    const fsBtn = container.querySelector('[data-testid="fullscreen-toggle"]') as HTMLElement;
+
+    fireEvent.click(fsBtn);
+    expect(container.querySelector('h3')).toBeNull();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(container.querySelector('h3')?.textContent).toContain('执行结果');
+  });
+
+  it('全屏状态下拖动手柄不渲染', () => {
+    const { container } = renderWithProvider({
+      configId: 'cfg-1',
+      database: '',
+      schema: '',
+      sql: 'SELECT 1',
+      onStateChange: () => {},
+    });
+    expect(container.querySelector('[data-testid="drag-handle"]')).toBeTruthy();
+
+    const fsBtn = container.querySelector('[data-testid="fullscreen-toggle"]') as HTMLElement;
+    fireEvent.click(fsBtn);
+
+    expect(container.querySelector('[data-testid="drag-handle"]')).toBeNull();
+  });
+});
