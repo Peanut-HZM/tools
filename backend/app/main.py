@@ -158,7 +158,17 @@ async def lifespan(app: FastAPI):
     # 打印启动完成信号（dev_services.py 检测此关键字）
     logger.info("Application startup complete")
 
+    # 启动 ccusage 调度器
+    from app.services.ccusage_scheduler import init_scheduler, shutdown_scheduler
+    init_scheduler()
+
     yield
+
+    # 关闭 ccusage 调度器
+    try:
+        shutdown_scheduler()
+    except Exception as e:
+        logger.warning(f"ccusage scheduler 关闭失败: {e}")
 
     # 关闭时
     logger.info("Shutting down application...")

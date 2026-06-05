@@ -229,17 +229,30 @@ def _parse_opencode_entries(entries: list[dict]) -> list[dict]:
     return results
 
 
-def sync_token_usage(user_id: str, days: int = 90) -> dict:
+def sync_token_usage(
+    user_id: str,
+    days: int = 90,
+    *,
+    since_date: Optional[date] = None,
+    until_date: Optional[date] = None,
+) -> dict:
     """
     增量同步 Token Usage 数据到数据库。
 
     Args:
         user_id: 当前用户 ID
         days: 同步最近 N 天数据
+        since_date: 起始日期（覆盖 days）
+        until_date: 结束日期（覆盖 days）
 
     Returns:
         {sources_synced: [...], total_records: int, errors: [...]}
     """
+    if until_date is None:
+        until_date = date.today()
+    if since_date is None:
+        since_date = until_date - timedelta(days=days - 1)
+
     device_id = get_device_id()
     device_name = get_device_display_name()
     db = SessionLocal()
@@ -317,6 +330,18 @@ def sync_token_usage(user_id: str, days: int = 90) -> dict:
         result["errors"].append(f"数据库: {str(e)}")
     finally:
         db.close()
+
+    # V2: ccusage 统一数据源
+    try:
+        v2_count = _run_ccusage_v2_sync(
+            db, user_id, device_id, device_name, since_date, until_date
+        )
+        if v2_count > 0:
+            result["ccusage_records"] = v2_count
+            result["total_records"] += v2_count
+    except Exception as e:
+        logger.error(f"[ccusage-v2] 同步失败: {e}", exc_info=True)
+        result["errors"].append(f"ccusage-v2: {e}")
 
     return result
 
@@ -420,3 +445,201 @@ def _log_sync(db, user_id: str, device_id: str, source: str,
             records_count=records_count,
             error_message=error_message,
         ))
+
+
+# ========================================================================
+# ccusage 统一数据源（v2）— 替代 _parse_opencode_entries
+# ========================================================================
+
+# Agent 优先级（用于模型归属歧义时的 tie-breaker）
+AGENT_PRIORITY = [
+    "claude", "opencode", "openclaw", "codex", "amp",
+    "droid", "codebuff", "hermes", "pi", "goose",
+    "kilo", "copilot", "gemini", "kimi", "qwen",
+]
+
+# agent_id → 显示名映射
+AGENT_DISPLAY_NAMES = {
+    "claude": "Claude Code",
+    "opencode": "OpenCode",
+    "openclaw": "OpenClaw",
+    "codex": "Codex",
+    "amp": "Amp",
+    "droid": "Droid",
+    "codebuff": "Codebuff",
+    "hermes": "Hermes",
+    "pi": "pi",
+    "goose": "Goose",
+    "kilo": "Kilo",
+    "copilot": "GitHub Copilot",
+    "gemini": "Gemini",
+    "kimi": "Kimi",
+    "qwen": "Qwen",
+    "other": "Other",
+}
+
+
+def _infer_agent(
+    model_name: str,
+    date_str: str,
+    agent_models_dict: dict,
+) -> str:
+    """根据模型名 + 当日各 agent 的 modelsUsed 字典推断归属。
+
+    agent_models_dict 形如:
+    {
+        "2026-06-05": {
+            "claude": {"claude-opus-4-8", "gpt-5.5", ...},
+            "opencode": {"minimax-m3-free", "qwen3.6-plus", ...},
+        },
+    }
+
+    规则:
+    1. 模型在当日某 agent 的 modelsUsed 中 → 归属该 agent
+    2. 多个 agent 都含该模型（歧义）→ 按 AGENT_PRIORITY 选最高优先级
+    3. 都不含 → "other"（兜底，WARNING 日志）
+    """
+    day_agents = agent_models_dict.get(date_str, {})
+    candidates = [agent for agent, models in day_agents.items() if model_name in models]
+    if not candidates:
+        return "other"
+    for priority_agent in AGENT_PRIORITY:
+        if priority_agent in candidates:
+            return priority_agent
+    return candidates[0]
+
+
+def _parse_ccusage_records(
+    daily: list[dict],
+    agent_models_dict: dict,
+) -> list[dict]:
+    """解析 ccusage daily JSON 为 (date, agent, model) 三元组记录。
+
+    Args:
+        daily: ccusage daily --json 的 daily 数组
+        agent_models_dict: 来自 ccusage <agent> daily --json 的 {date: {agent: modelsUsed set}}
+
+    Returns:
+        list of dict, 每条含 record_date, source, model, 4 个 token 字段, total_cost 等
+    """
+    results = []
+    for day in daily:
+        period = day.get("period") or day.get("date")
+        if not period:
+            continue
+        try:
+            record_date = date.fromisoformat(period)
+        except (ValueError, TypeError):
+            continue
+
+        breakdowns = day.get("modelBreakdowns") or []
+        for bd in breakdowns:
+            model_name = bd.get("modelName") or bd.get("model") or "_unknown"
+            agent = _infer_agent(model_name, period, agent_models_dict)
+            if agent == "other":
+                logger.warning(
+                    f"[ccusage] 模型 {model_name}（{period}）不在任何 per-agent modelsUsed 中，归 'other'"
+                )
+
+            input_tokens = _safe_int(bd, "inputTokens", "input_tokens")
+            output_tokens = _safe_int(bd, "outputTokens", "output_tokens")
+            cache_creation_tokens = _safe_int(bd, "cacheCreationTokens", "cache_creation_tokens")
+            cache_read_tokens = _safe_int(bd, "cacheReadTokens", "cache_read_tokens")
+            total_tokens = _calc_total_tokens(
+                input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens
+            )
+            total_cost = _safe_float(bd, "cost")
+
+            results.append({
+                "record_date": record_date,
+                "source": agent,
+                "tool_id": agent,
+                "tool_name": AGENT_DISPLAY_NAMES.get(agent, "Other"),
+                "model": model_name,
+                "model_display_name": model_name,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cache_creation_tokens": cache_creation_tokens,
+                "cache_read_tokens": cache_read_tokens,
+                "total_tokens": total_tokens,
+                "total_cost": total_cost,
+                "source_raw": "ccusage-daily",
+            })
+    return results
+
+
+def _run_ccusage_v2_sync(
+    db,
+    user_id: str,
+    device_id: str,
+    device_name: str,
+    since_date,
+    until_date,
+) -> int:
+    """v2: ccusage 统一数据源同步"""
+    from app.utils.usage_fetcher_v2 import UsageFetcherV2
+
+    since_str = since_date.isoformat() if hasattr(since_date, "isoformat") else str(since_date)
+    until_str = until_date.isoformat() if hasattr(until_date, "isoformat") else str(until_date)
+
+    daily_result = UsageFetcherV2.fetch_ccusage_daily(since=since_str, until=until_str)
+    if "error" in daily_result:
+        logger.warning(f"[ccusage-v2] daily 拉取失败: {daily_result['error']}")
+        return 0
+
+    daily_list = daily_result.get("daily", [])
+    if not daily_list:
+        logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 无数据")
+        return 0
+
+    all_agents: set[str] = set()
+    for day in daily_list:
+        meta = day.get("metadata", {}) or {}
+        for a in meta.get("agents", []) or []:
+            all_agents.add(a)
+
+    agent_models_dict: dict[str, dict[str, set[str]]] = {}
+    for agent in sorted(all_agents):
+        agent_result = UsageFetcherV2.fetch_ccusage_agent_daily(
+            agent=agent, since=since_str, until=until_str
+        )
+        if "error" in agent_result:
+            logger.warning(f"[ccusage-v2] {agent} daily 拉取失败: {agent_result['error']}")
+            continue
+        for day in (agent_result.get("daily") or []):
+            date_key = day.get("date")
+            if not date_key:
+                continue
+            agent_models_dict.setdefault(date_key, {}).setdefault(agent, set()).update(
+                day.get("modelsUsed") or []
+            )
+
+    records = _parse_ccusage_records(daily_list, agent_models_dict)
+    if not records:
+        logger.info(f"[ccusage-v2] 解析后 0 条记录（{since_str} ~ {until_str}）")
+        return 0
+
+    count = _upsert_records(db, user_id, device_id, "v2", records, device_name)
+    logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 同步 {count} 条")
+    return count
+
+
+def sync_token_usage_v2(
+    db,
+    user_id: str,
+    device_id: str,
+    device_name: str,
+    since: str,
+    until: str,
+) -> int:
+    """公开 API：v2 ccusage 同步入口，供 scheduler 和手动端点使用。"""
+    since_date = date.fromisoformat(since)
+    until_date = date.fromisoformat(until)
+    return _run_ccusage_v2_sync(
+        db=db,
+        user_id=user_id,
+        device_id=device_id,
+        device_name=device_name,
+        since_date=since_date,
+        until_date=until_date,
+    )

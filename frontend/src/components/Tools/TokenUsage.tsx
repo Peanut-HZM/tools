@@ -149,6 +149,8 @@ export default function TokenUsage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
@@ -350,6 +352,30 @@ export default function TokenUsage() {
       setError(err.message || '清理数据失败');
     } finally {
       setClearing(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncError(null);
+    setLastSyncMessage(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch('/api/token-usage/refresh-ccusage', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setLastSyncMessage(`ccusage 同步完成: ${data.synced_records} 条`);
+      await Promise.all([summary.refresh(), details.refresh()]);
+    } catch (e: any) {
+      setSyncError(e.message || '同步失败');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -588,6 +614,18 @@ export default function TokenUsage() {
           >
             {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="inline-flex h-8 flex-shrink-0 items-center justify-center gap-1 rounded-md border border-slate-700 px-2 text-xs text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            title="ccusage 数据同步"
+          >
+            {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {syncing ? '同步中...' : '同步数据'}
+          </button>
+          {syncError && (
+            <span className="inline-flex items-center text-xs text-red-400">{syncError}</span>
+          )}
         </div>
       </div>
 
