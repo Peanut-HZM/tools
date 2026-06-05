@@ -41,6 +41,26 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
   // 列显示状态（按表名持久化到 localStorage）
   const storageKey = tableName ? `db-column-visibility-${configId}-${databaseName || ''}-${schemaName || ''}-${tableName}` : null;
 
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!storageKey) {
+      setVisibleColumns([]);
+      return;
+    }
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) {
+        setVisibleColumns([]);
+        return;
+      }
+      const parsed: string[] = JSON.parse(saved);
+      setVisibleColumns(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setVisibleColumns([]);
+    }
+  }, [storageKey]);
+
   // Inline editing state
   const [cellEdits, setCellEdits] = useState<Map<string, { oldValue: any; newValue: any }>>(new Map());
   const [newRows, setNewRows] = useState<Record<string, any>[]>([]);
@@ -397,24 +417,11 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   const columns = result.columns || (result.result_data && result.result_data.length > 0 ? Object.keys(result.result_data[0]) : []);
 
-  // 列显示管理：从 localStorage 加载并过滤
-  const getStoredColumns = () => {
-    if (!storageKey) return [];
-    try {
-      const saved = localStorage.getItem(storageKey);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const storedCols = getStoredColumns();
-  // 过滤掉当前表不存在的列
-  const displayColumns = storedCols.filter((col: string) => columns.includes(col));
-  // 如果存储的列全部无效，则显示所有列
-  const visibleColumns = displayColumns.length > 0 ? displayColumns : columns;
+  const validStoredColumns = visibleColumns.filter((col) => columns.includes(col));
+  const effectiveVisibleColumns = validStoredColumns.length > 0 ? validStoredColumns : columns;
 
   const handleColumnChange = (cols: string[]) => {
+    setVisibleColumns(cols);
     if (storageKey) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(cols));
@@ -524,7 +531,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 <ColumnSelector
                   columns={columns}
                   schema={schema}
-                  visibleColumns={visibleColumns}
+                  visibleColumns={effectiveVisibleColumns}
                   onColumnChange={handleColumnChange}
                 />
               )}
@@ -536,21 +543,15 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
                     : 'bg-red-600/80 hover:bg-red-600 text-white'
                 }`}
-                title={selectedIndices.size === 0 
-                  ? t.database.executor.noDataSelected 
-                  : (!primaryKey || primaryKey.length === 0) 
-                    ? t.database.batchDelete.noPrimaryKey 
+                title={selectedIndices.size === 0
+                  ? t.database.executor.noDataSelected
+                  : (!primaryKey || primaryKey.length === 0)
+                    ? t.database.batchDelete.noPrimaryKey
                     : t.database.executor.deleteRows}
               >
                 <i className={`fas ${(!primaryKey || primaryKey.length === 0) ? 'fa-ban' : 'fa-trash'}`}></i>
                 {t.database.executor.deleteRows}
               </button>
-              <ColumnSelector
-                columns={columns}
-                schema={schema}
-                visibleColumns={visibleColumns}
-                onColumnChange={handleColumnChange}
-              />
             {/* Edit buttons */}
             {primaryKey && primaryKey.length > 0 && (
               <>
@@ -609,7 +610,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     Action
                  </th>
               )}
-               {visibleColumns.map((col) => {
+               {effectiveVisibleColumns.map((col) => {
                  const colDef = schema?.columns?.find((c: any) => c.name === col);
                  const comment = colDef?.comment;
 
@@ -654,7 +655,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     </button>
                   </td>
                 )}
-                {visibleColumns.map((col) => (
+                {effectiveVisibleColumns.map((col) => (
                   <td key={`new-${newRowIdx}-${col}`} className="px-6 py-2 whitespace-nowrap text-sm text-slate-300 max-w-xs">
                     {renderCell(newRow, 0, col, true, newRowIdx)}
                   </td>
@@ -686,7 +687,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                       </button>
                    </td>
                 )}
-                {visibleColumns.map((col) => {
+                {effectiveVisibleColumns.map((col) => {
                   const isDirty = cellEdits.has(getEditKey(idx, col));
                   return (
                     <td key={`${idx}-${col}`} className={`px-6 py-4 whitespace-nowrap text-sm max-w-xs ${isDirty ? 'bg-yellow-900/20' : 'text-slate-300'}`}>

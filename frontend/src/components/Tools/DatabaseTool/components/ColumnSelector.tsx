@@ -19,6 +19,9 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  // 使用 useId 生成唯一 id，避免页面上出现重复 id 导致的 label-htmlFor 错乱
+  const uniqueId = React.useId();
+  const selectAllId = `col-select-all-${uniqueId}`;
 
   // 点击外部关闭
   useEffect(() => {
@@ -85,7 +88,7 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
             ? 'bg-blue-600 text-white' 
             : 'text-slate-400 hover:text-white hover:bg-slate-700'
         }`}
-        title={t.database.executor.columns || '列'}
+        title={t.database.dialog.tableDetail.columns || '列'}
       >
         <i className="fas fa-columns text-sm"></i>
       </button>
@@ -99,14 +102,14 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-700 bg-slate-800/50 rounded-t-lg">
             <input
               type="checkbox"
-              id="col-select-all"
+              id={selectAllId}
               checked={isAllSelected}
               ref={input => { if (input) input.indeterminate = isSomeSelected; }}
               onChange={handleToggleAll}
               className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
             />
-            <label htmlFor="col-select-all" className="text-xs font-medium text-slate-300 cursor-pointer select-none flex-1">
-              {t.database.columns.selectAll || '全选'}
+            <label htmlFor={selectAllId} className="text-xs font-medium text-slate-300 cursor-pointer select-none flex-1">
+              {t.database.dialog.columns.selectAll || '全选'}
             </label>
             <span className="text-[10px] text-slate-500">
               {visibleColumns.length} / {columns.length}
@@ -148,7 +151,7 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
 
           {/* 提示 */}
           <div className="px-3 py-2 border-t border-slate-700 text-[10px] text-slate-600 rounded-b-lg">
-            {t.database.columns.minOneRequired || '至少需要显示一列'}
+            {t.database.dialog.columns.minOneRequired || '至少需要显示一列'}
           </div>
         </div>
       )}
