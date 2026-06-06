@@ -1485,8 +1485,8 @@ def _install_python_dependencies(svc: Service) -> bool:
         return True
 
     python_exe = _get_service_python(svc)
-    # 只检查前 5 个包
-    check_pkgs = packages[:5]
+    # 检查前 10 个包（平衡速度和覆盖率）
+    check_pkgs = packages[:10]
     missing = [pkg for pkg in check_pkgs if not _check_python_import(python_exe, pkg)]
 
     if not missing:
@@ -1500,6 +1500,8 @@ def _install_python_dependencies(svc: Service) -> bool:
             cwd=str(svc.project_dir),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="ignore",
             timeout=120,
         )
         if result.returncode == 0:
@@ -1532,7 +1534,9 @@ def _install_node_dependencies(svc: Service) -> bool:
             cwd=str(svc.project_dir),
             capture_output=True,
             text=True,
-            timeout=180,
+            encoding="utf-8",
+            errors="ignore",
+            timeout=300,
         )
         if result.returncode == 0:
             log(f"[{svc.name}] 依赖安装成功", "SUCCESS")
@@ -1542,7 +1546,7 @@ def _install_node_dependencies(svc: Service) -> bool:
             log(f"[{svc.name}] 依赖安装失败: {err}", "WARN")
             return False
     except subprocess.TimeoutExpired:
-        log(f"[{svc.name}] 依赖安装超时 (180s)", "WARN")
+        log(f"[{svc.name}] 依赖安装超时 (300s)", "WARN")
         return False
     except Exception as e:
         log(f"[{svc.name}] 依赖安装异常: {e}", "WARN")
@@ -1559,6 +1563,57 @@ def install_dependencies(svc: Service) -> bool:
     if svc.project_type in ("spring-boot", "spring-boot-gradle"):
         return True
     return True
+
+
+def _retry_after_missing_module(svc: Service) -> bool:
+    """启动失败后，检查日志中的 ModuleNotFoundError，自动安装缺失模块并重试一次。"""
+    log_file = svc.log_path
+    if not log_file.exists():
+        return False
+
+    try:
+        content = log_file.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return False
+
+    # 匹配 ModuleNotFoundError: No module named 'xxx'
+    match = re.search(r"ModuleNotFoundError: No module named ['\"]([^'\"]+)['\"]", content)
+    if not match:
+        return False
+
+    module_name = match.group(1)
+    # 模块名通常等于 pip 包名（如 apscheduler）
+    # 但有一些例外（如 PIL -> Pillow），先尝试直接用模块名安装
+    pip_package = module_name.split(".")[0]  # apscheduler.schedulers -> apscheduler
+
+    python_exe = _get_service_python(svc)
+    log(f"[{svc.name}] 检测到缺失模块 '{module_name}'，尝试自动安装 '{pip_package}' 后重试...", "INFO")
+
+    try:
+        result = subprocess.run(
+            [python_exe, "-m", "pip", "install", pip_package],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="ignore",
+            timeout=120,
+        )
+        if result.returncode == 0:
+            log(f"[{svc.name}] 模块 '{pip_package}' 安装成功，重新启动...", "SUCCESS")
+            # 重试启动：停止当前进程（如果有），重新启动
+            stop_service_wrapper(svc)
+            time.sleep(2)
+            return start_service(svc)
+        else:
+            err = result.stderr.strip()[-200:] if result.stderr else "未知错误"
+            log(f"[{svc.name}] 模块 '{pip_package}' 安装失败: {err}", "WARN")
+            return False
+    except subprocess.TimeoutExpired:
+        log(f"[{svc.name}] 模块 '{pip_package}' 安装超时 (120s)", "WARN")
+        return False
+    except Exception as e:
+        log(f"[{svc.name}] 模块 '{pip_package}' 安装异常: {e}", "WARN")
+        return False
 
 
 # ============================================================
@@ -1620,6 +1675,10 @@ def start_service(svc: Service) -> bool:
         log(f"{svc.name} 已就绪 {svc.health_url}", "SUCCESS")
         return True
     else:
+        # 启动失败时，检查是否因 Python 模块缺失导致，尝试自动修复后重试一次
+        if svc.project_type == "python":
+            if _retry_after_missing_module(svc):
+                return True
         log(f"{svc.name} 启动失败", "ERROR")
         return False
 
