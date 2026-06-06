@@ -264,19 +264,3 @@ class UsageFetcher:
             _set_cache(cache_key, result)
         return result
 
-    @staticmethod
-    def health_check() -> dict:
-        """检查所有 CLI 工具是否可用"""
-        if _DESKTOP_MODE:
-            return {
-                "desktop_mode": True,
-                "message": "桌面模式下 CLI 工具不可用",
-                "ccusage_installed": False,
-                "opencode_usage_installed": False,
-                "ccusage_opencode_installed": False,
-            }
-        return {
-            "ccusage_installed": shutil.which("ccusage") is not None,
-            "opencode_usage_installed": shutil.which("opencode-usage") is not None,
-            "ccusage_opencode_installed": shutil.which("ccusage-opencode") is not None,
-        }

@@ -347,12 +347,6 @@ def merge_items(items_a: list[UsageItem], items_b: list[UsageItem]) -> list[Usag
     ]
 
 
-@router.get("/health")
-async def health_check():
-    """检查所有 CLI 工具是否可用"""
-    return UsageFetcher.health_check()
-
-
 class RefreshUsageRequest(BaseModel):
     days: int = Field(default=90, ge=1, le=365, description="同步最近 N 天数据")
     background: bool = Field(default=False, description="是否为前端自动触发的静默刷新")
