@@ -622,9 +622,9 @@ def _run_ccusage_v2_sync(
             date_key = day.get("date")
             if not date_key:
                 continue
-            agent_models_dict.setdefault(date_key, {}).setdefault(agent, set()).update(
-                day.get("modelsUsed") or []
-            )
+            # 支持 modelsUsed 数组（claude/opencode）或 models 字典（codex）
+            models = day.get("modelsUsed") or list(day.get("models", {}).keys())
+            agent_models_dict.setdefault(date_key, {}).setdefault(agent, set()).update(models)
 
     records = _parse_ccusage_records(daily_list, agent_models_dict)
     if not records:
