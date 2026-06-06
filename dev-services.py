@@ -1586,12 +1586,20 @@ def _retry_after_missing_module(svc: Service) -> bool:
     # 但有一些例外（如 PIL -> Pillow），先尝试直接用模块名安装
     pip_package = module_name.split(".")[0]  # apscheduler.schedulers -> apscheduler
 
+    # 安全校验：防止命令注入 / 参数走私
+    if not pip_package or not re.fullmatch(r"[A-Za-z0-9_\-]+", pip_package):
+        log(f"[{svc.name}] 模块名 '{pip_package}' 包含非法字符，跳过自动安装", "WARN")
+        return False
+    if pip_package.startswith("-"):
+        log(f"[{svc.name}] 模块名 '{pip_package}' 以 '-' 开头，跳过自动安装", "WARN")
+        return False
+
     python_exe = _get_service_python(svc)
     log(f"[{svc.name}] 检测到缺失模块 '{module_name}'，尝试自动安装 '{pip_package}' 后重试...", "INFO")
 
     try:
         result = subprocess.run(
-            [python_exe, "-m", "pip", "install", pip_package],
+            [python_exe, "-m", "pip", "install", "--", pip_package],
             capture_output=True,
             text=True,
             encoding="utf-8",
