@@ -1411,6 +1411,157 @@ def _print_log_tail(name: str, log_file: Path):
 
 
 # ============================================================
+# 依赖安装
+# ============================================================
+
+def _parse_requirements_packages(req_file: Path) -> list[str]:
+    """从 requirements.txt 中提取包名列表（去掉版本约束）。"""
+    packages = []
+    if not req_file.exists():
+        return packages
+    try:
+        text = req_file.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return packages
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line.startswith("-"):
+            continue
+        # 去掉行内注释
+        if " #" in line:
+            line = line.split(" #")[0].strip()
+        # 提取纯包名
+        pkg = re.split(r"[=~!<>,;\[\]]", line)[0].strip()
+        if pkg:
+            packages.append(pkg)
+    return packages
+
+
+def _check_python_import(python_exe: str, package: str) -> bool:
+    """检查指定 Python 解释器是否可以导入某个包。"""
+    try:
+        result = subprocess.run(
+            [python_exe, "-c", f"import {package}"],
+            capture_output=True,
+            timeout=5,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def _get_service_python(svc: Service) -> str:
+    """获取服务对应的 Python 解释器路径。"""
+    if svc.project_type == "python":
+        # 优先从启动命令中提取
+        if svc.start_cmd and svc.start_cmd[0].lower().endswith(("python.exe", "python")):
+            exe = Path(svc.start_cmd[0])
+            if exe.exists():
+                return str(exe)
+        # 从项目目录找 venv/.venv 中的 Python
+        for venv_name in ("venv", ".venv"):
+            venv_dir = svc.project_dir / venv_name
+            if venv_dir.exists():
+                if sys.platform == "win32":
+                    py = venv_dir / "Scripts" / "python.exe"
+                else:
+                    py = venv_dir / "bin" / "python"
+                if py.exists():
+                    return str(py)
+    # 回退到当前解释器
+    return sys.executable
+
+
+def _install_python_dependencies(svc: Service) -> bool:
+    """检查并安装 Python 缺失依赖。"""
+    req_file = svc.project_dir / "requirements.txt"
+    if not req_file.exists():
+        log(f"[{svc.name}] 未找到 requirements.txt，跳过依赖检查", "DEBUG")
+        return True
+
+    packages = _parse_requirements_packages(req_file)
+    if not packages:
+        log(f"[{svc.name}] requirements.txt 为空，跳过依赖检查", "DEBUG")
+        return True
+
+    python_exe = _get_service_python(svc)
+    # 只检查前 5 个包
+    check_pkgs = packages[:5]
+    missing = [pkg for pkg in check_pkgs if not _check_python_import(python_exe, pkg)]
+
+    if not missing:
+        log(f"[{svc.name}] Python 依赖已满足", "DEBUG")
+        return True
+
+    log(f"[{svc.name}] 检测到缺失依赖: {', '.join(missing)}，开始安装...", "INFO")
+    try:
+        result = subprocess.run(
+            [python_exe, "-m", "pip", "install", "-r", str(req_file)],
+            cwd=str(svc.project_dir),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode == 0:
+            log(f"[{svc.name}] 依赖安装成功", "SUCCESS")
+            return True
+        else:
+            err = result.stderr.strip()[-200:] if result.stderr else "未知错误"
+            log(f"[{svc.name}] 依赖安装失败: {err}", "WARN")
+            return False
+    except subprocess.TimeoutExpired:
+        log(f"[{svc.name}] 依赖安装超时 (120s)", "WARN")
+        return False
+    except Exception as e:
+        log(f"[{svc.name}] 依赖安装异常: {e}", "WARN")
+        return False
+
+
+def _install_node_dependencies(svc: Service) -> bool:
+    """检查并安装 Node.js 缺失依赖。"""
+    node_modules = svc.project_dir / "node_modules"
+    if node_modules.exists() and any(node_modules.iterdir()):
+        log(f"[{svc.name}] node_modules 已存在，跳过依赖安装", "DEBUG")
+        return True
+
+    pkg_manager = _get_package_manager(svc.project_dir)
+    log(f"[{svc.name}] node_modules 缺失，开始执行 {pkg_manager} install...", "INFO")
+    try:
+        result = subprocess.run(
+            [pkg_manager, "install"],
+            cwd=str(svc.project_dir),
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        if result.returncode == 0:
+            log(f"[{svc.name}] 依赖安装成功", "SUCCESS")
+            return True
+        else:
+            err = result.stderr.strip()[-200:] if result.stderr else "未知错误"
+            log(f"[{svc.name}] 依赖安装失败: {err}", "WARN")
+            return False
+    except subprocess.TimeoutExpired:
+        log(f"[{svc.name}] 依赖安装超时 (180s)", "WARN")
+        return False
+    except Exception as e:
+        log(f"[{svc.name}] 依赖安装异常: {e}", "WARN")
+        return False
+
+
+def install_dependencies(svc: Service) -> bool:
+    """根据服务类型安装缺失的依赖。返回 True 表示依赖已满足（或无需安装），
+    False 表示安装失败（但不阻断启动）。"""
+    if svc.project_type == "python":
+        return _install_python_dependencies(svc)
+    if svc.project_type in ("vite", "taro", "uniapp", "next", "node-backend"):
+        return _install_node_dependencies(svc)
+    if svc.project_type in ("spring-boot", "spring-boot-gradle"):
+        return True
+    return True
+
+
+# ============================================================
 # 启动/停止
 # ============================================================
 
@@ -1436,6 +1587,9 @@ def start_service(svc: Service) -> bool:
             time.sleep(3)
         else:
             log(f"端口 {svc.port} 有残留连接 (PID 已不存在)，直接启动...", "WARN")
+
+    # 【新增】安装缺失依赖（失败不阻断启动）
+    install_dependencies(svc)
 
     # 启动进程
     cmd = svc.start_cmd
