@@ -92,6 +92,18 @@ def _map_source_to_tool(source: str) -> dict:
         "claude": {"tool_id": "claude-code", "tool_name": "Claude Code"},
         "opencode": {"tool_id": "opencode", "tool_name": "OpenCode"},
         "codex": {"tool_id": "codex", "tool_name": "Codex"},
+        "openclaw": {"tool_id": "openclaw", "tool_name": "OpenClaw"},
+        "amp": {"tool_id": "amp", "tool_name": "Amp"},
+        "droid": {"tool_id": "droid", "tool_name": "Droid"},
+        "codebuff": {"tool_id": "codebuff", "tool_name": "Codebuff"},
+        "hermes": {"tool_id": "hermes", "tool_name": "Hermes"},
+        "pi": {"tool_id": "pi", "tool_name": "pi"},
+        "goose": {"tool_id": "goose", "tool_name": "Goose"},
+        "kilo": {"tool_id": "kilo", "tool_name": "Kilo"},
+        "copilot": {"tool_id": "copilot", "tool_name": "GitHub Copilot"},
+        "gemini": {"tool_id": "gemini", "tool_name": "Gemini"},
+        "kimi": {"tool_id": "kimi", "tool_name": "Kimi"},
+        "qwen": {"tool_id": "qwen", "tool_name": "Qwen"},
     }
     return mapping.get(
         source_value,
@@ -619,9 +631,19 @@ def _run_ccusage_v2_sync(
         logger.info(f"[ccusage-v2] 解析后 0 条记录（{since_str} ~ {until_str}）")
         return 0
 
-    count = _upsert_records(db, user_id, device_id, "v2", records, device_name)
-    logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 同步 {count} 条")
-    return count
+    # 按 agent 分组，分别 upsert，确保每个 Agent 有正确的 source/tool_id/tool_name
+    from itertools import groupby
+
+    records_sorted = sorted(records, key=lambda r: r["source"])
+    total_count = 0
+    for agent, group in groupby(records_sorted, key=lambda r: r["source"]):
+        agent_records = list(group)
+        count = _upsert_records(db, user_id, device_id, agent, agent_records, device_name)
+        total_count += count
+        logger.info(f"[ccusage-v2] {agent}: 同步 {count} 条")
+
+    logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 总计同步 {total_count} 条")
+    return total_count
 
 
 def sync_token_usage_v2(
