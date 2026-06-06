@@ -3,7 +3,6 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
-  CheckCircle2,
   Clock,
   Database,
   Download,
@@ -25,7 +24,6 @@ import {
   YAxis,
 } from 'recharts';
 import {
-  checkTokenUsageHealth,
   clearTokenUsageData,
   getDbTokenUsage,
   getUserDevices,
@@ -40,7 +38,6 @@ import {
   type TokenUsageSortBy,
   type TokenUsageSortOrder,
   type TokenUsageSource,
-  type UsageHealthCheck,
 } from '../../api/tokenUsageApi';
 import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useTokenUsageSummary } from './hooks/useTokenUsageSummary';
@@ -61,10 +58,6 @@ function formatToken(num: number): string {
 
 function formatCurrency(num: number): string {
   return `$${Number(num || 0).toFixed(2)}`;
-}
-
-function healthLabel(ok: boolean): string {
-  return ok ? '可用' : '不可用';
 }
 
 function formatRelativeTime(value?: string | null): string {
@@ -137,7 +130,6 @@ function DataFreshnessBadge({
 
 export default function TokenUsage() {
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
-  const [health, setHealth] = useState<UsageHealthCheck | null>(null);
   const [reportType, setReportType] = useState<TokenUsageReportType>('daily');
   const [days, setDays] = useState(30);
   const [groupBy, setGroupBy] = useState<TokenUsageGroupBy>('none');
@@ -153,7 +145,6 @@ export default function TokenUsage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deviceError, setDeviceError] = useState<string | null>(null);
-  const [healthError, setHealthError] = useState<string | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
   const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
@@ -240,15 +231,6 @@ export default function TokenUsage() {
   });
 
   useEffect(() => {
-    checkTokenUsageHealth()
-      .then(result => {
-        setHealth(result);
-        setHealthError(null);
-      })
-      .catch((err: any) => {
-        setHealth(null);
-        setHealthError(err.message || '健康检查失败');
-      });
     void loadDevices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -629,25 +611,6 @@ export default function TokenUsage() {
         </div>
       </div>
 
-      {health && (
-        <div className="mb-4 grid gap-3 md:grid-cols-4">
-          {[
-            { name: 'ccusage', ok: health.ccusage_installed, detail: 'Claude Code' },
-            { name: 'opencode-usage', ok: health.opencode_usage_installed, detail: 'OpenCode' },
-            { name: 'ccusage-opencode', ok: health.ccusage_opencode_installed, detail: 'OpenCode 历史数据' },
-            { name: 'Codex/OpenClaw', ok: null, detail: '待接入真实 usage 数据' },
-          ].map(({ name, ok, detail }) => (
-            <div key={name} className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-900 px-3 py-2">
-              <span className="text-sm text-slate-300" title={detail}>{name}</span>
-              <span className={`inline-flex items-center gap-1 text-xs ${ok === true ? 'text-emerald-300' : ok === false ? 'text-red-300' : 'text-slate-500'}`}>
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {ok === null ? '待接入' : healthLabel(Boolean(ok))}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className="mb-5 grid gap-3 rounded-md border border-slate-800 bg-slate-900 p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
         <label className="space-y-1">
           <span className="text-xs text-slate-400">工具</span>
@@ -745,12 +708,11 @@ export default function TokenUsage() {
         </label>
       </div>
 
-      {(error || refreshError || deviceError || healthError || pollError || lastSyncMessage || summary.data.auto_expanded) && (
+      {(error || refreshError || deviceError || pollError || lastSyncMessage || summary.data.auto_expanded) && (
         <div className="mb-5 space-y-2">
           {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
           {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
           {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{deviceError}</div>}
-          {healthError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{healthError}</div>}
           {pollError && <div className="rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-300">后台轮询失败：{pollError}</div>}
           {lastSyncMessage && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{lastSyncMessage}</div>}
           {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
