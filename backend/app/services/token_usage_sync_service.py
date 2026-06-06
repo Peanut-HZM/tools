@@ -334,6 +334,18 @@ def sync_token_usage(
                 except Exception:
                     pass
 
+        # V2: ccusage 统一数据源（在同一事务中提交）
+        try:
+            v2_count = _run_ccusage_v2_sync(
+                db, user_id, device_id, device_name, since_date, until_date
+            )
+            if v2_count > 0:
+                result["ccusage_records"] = v2_count
+                result["total_records"] += v2_count
+        except Exception as e:
+            logger.error(f"[ccusage-v2] 同步失败: {e}", exc_info=True)
+            result["errors"].append(f"ccusage-v2: {e}")
+
         db.commit()
 
     except Exception as e:
@@ -342,18 +354,6 @@ def sync_token_usage(
         result["errors"].append(f"数据库: {str(e)}")
     finally:
         db.close()
-
-    # V2: ccusage 统一数据源
-    try:
-        v2_count = _run_ccusage_v2_sync(
-            db, user_id, device_id, device_name, since_date, until_date
-        )
-        if v2_count > 0:
-            result["ccusage_records"] = v2_count
-            result["total_records"] += v2_count
-    except Exception as e:
-        logger.error(f"[ccusage-v2] 同步失败: {e}", exc_info=True)
-        result["errors"].append(f"ccusage-v2: {e}")
 
     return result
 
