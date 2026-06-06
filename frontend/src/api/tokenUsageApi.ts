@@ -37,12 +37,6 @@ export interface UsageResponse {
   cache_time?: string;
 }
 
-export interface UsageHealthCheck {
-  ccusage_installed: boolean;
-  opencode_usage_installed: boolean;
-  ccusage_opencode_installed: boolean;
-}
-
 export interface ModelSummaryItem {
   source: string;
   model: string;
@@ -231,16 +225,6 @@ export interface SyncTokenUsageResponse {
 async function readError(response: Response, fallback: string): Promise<Error> {
   const error = await response.json().catch(() => ({ detail: response.statusText }));
   return new Error(error.detail || fallback);
-}
-
-export async function checkTokenUsageHealth(): Promise<UsageHealthCheck> {
-  const response = await fetch(`${BASE_URL}/health`, {
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    throw await readError(response, '健康检查失败');
-  }
-  return response.json();
 }
 
 export async function getTokenUsageSummary(params: DbQueryParams): Promise<TokenUsageSummaryResponse> {
