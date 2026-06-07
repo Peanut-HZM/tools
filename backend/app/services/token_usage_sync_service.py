@@ -5,9 +5,14 @@ from datetime import datetime, timedelta, date
 from typing import Optional
 
 from app.models.base import SessionLocal
-from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog, DeviceRegistry
+from app.models.token_usage_models import (
+    TokenUsageRecord,
+    TokenUsageSyncLog,
+    DeviceRegistry,
+    DeviceIdAlias,
+)
 from app.utils.usage_fetcher import UsageFetcher
-from app.utils.device_id import get_device_id, get_device_display_name
+from app.utils.device_id import get_device_id, get_device_display_name, get_device_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -267,25 +272,49 @@ def sync_token_usage(
 
     device_id = get_device_id()
     device_name = get_device_display_name()
+    device_fingerprint, id_type = get_device_fingerprint()
+    fingerprint_match = None
+
     db = SessionLocal()
     result = {"sources_synced": [], "total_records": 0, "errors": []}
 
-    # 确保设备已注册到 device_registry
+    # 确保设备已注册到 device_registry，并更新指纹
     try:
         existing = db.query(DeviceRegistry).filter_by(
             user_id=user_id, device_id=device_id
         ).first()
         if not existing:
+            # 检查是否有相同指纹的设备
+            matched = None
+            if device_fingerprint:
+                matched = db.query(DeviceRegistry).filter_by(
+                    user_id=user_id, device_fingerprint=device_fingerprint
+                ).first()
+
+            if matched and matched.device_id != device_id:
+                fingerprint_match = {
+                    "matched_device_id": matched.device_id,
+                    "matched_device_name": matched.display_name
+                    or matched.default_display_name
+                    or matched.device_id,
+                }
+
             db.add(DeviceRegistry(
                 user_id=user_id,
                 device_id=device_id,
                 display_name=None,
                 default_display_name=device_name,
+                device_fingerprint=device_fingerprint,
+                fingerprint_version=1,
+                id_type=id_type,
             ))
             db.commit()
-        elif not existing.default_display_name:
-            # 旧设备没有 default_display_name，补填
-            existing.default_display_name = device_name
+        else:
+            existing.device_fingerprint = device_fingerprint
+            existing.fingerprint_version = 1
+            existing.id_type = id_type
+            if not existing.default_display_name:
+                existing.default_display_name = device_name
             db.commit()
     except Exception as e:
         logger.warning(f"设备注册失败: {e}")
@@ -353,7 +382,10 @@ def sync_token_usage(
         logger.error(f"数据库事务失败: {e}")
         result["errors"].append(f"数据库: {str(e)}")
     finally:
-        db.close()
+        if fingerprint_match:
+            result["fingerprint_match"] = fingerprint_match
+
+    db.close()
 
     return result
 

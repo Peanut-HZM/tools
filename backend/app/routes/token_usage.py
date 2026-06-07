@@ -39,7 +39,7 @@ from app.services.token_usage_sync_service import sync_token_usage, sync_token_u
 from app.services.token_usage_background_sync import register_pending_sync_user
 from app.services.ccusage_scheduler import get_sync_lock
 from app.routes.auth import get_current_user_id
-from app.utils.device_id import get_device_id, get_device_display_name
+from app.utils.device_id import get_device_id, get_device_display_name, get_device_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -1052,6 +1052,54 @@ async def db_query_token_usage(
         db.close()
 
 
+def _ensure_device_registered_with_fingerprint(
+    db,
+    user_id: str,
+    device_id: str,
+    device_name: str,
+    device_fingerprint: str,
+    id_type: str,
+) -> Optional[dict]:
+    """确保设备已注册，并返回 fingerprint_match（如有）。"""
+    existing = db.query(DeviceRegistry).filter_by(
+        user_id=user_id, device_id=device_id
+    ).first()
+    if existing:
+        existing.device_fingerprint = device_fingerprint
+        existing.fingerprint_version = 1
+        existing.id_type = id_type
+        if not existing.default_display_name:
+            existing.default_display_name = device_name
+        db.commit()
+        return None
+
+    matched = None
+    if device_fingerprint:
+        matched = db.query(DeviceRegistry).filter_by(
+            user_id=user_id, device_fingerprint=device_fingerprint
+        ).first()
+
+    db.add(DeviceRegistry(
+        user_id=user_id,
+        device_id=device_id,
+        display_name=None,
+        default_display_name=device_name,
+        device_fingerprint=device_fingerprint,
+        fingerprint_version=1,
+        id_type=id_type,
+    ))
+    db.commit()
+
+    if matched and matched.device_id != device_id:
+        return {
+            "matched_device_id": matched.device_id,
+            "matched_device_name": matched.display_name
+            or matched.default_display_name
+            or matched.device_id,
+        }
+    return None
+
+
 @router.post("/refresh-ccusage")
 async def refresh_ccusage_endpoint(
     authorization: Optional[str] = Header(None, description="Bearer token"),
@@ -1071,15 +1119,22 @@ async def refresh_ccusage_endpoint(
     if lock.locked():
         raise HTTPException(status_code=429, detail="同步进行中，请稍后重试")
 
+    device_id = get_device_id()
+    device_name = get_device_display_name()
+    device_fingerprint, id_type = get_device_fingerprint()
+
     db = SessionLocal()
     try:
+        _ensure_device_registered_with_fingerprint(
+            db, user_id, device_id, device_name, device_fingerprint, id_type
+        )
         today = date.today().isoformat()
         count = await asyncio.to_thread(
             sync_token_usage_v2,
             db=db,
             user_id=user_id,
-            device_id=get_device_id(),
-            device_name=get_device_display_name(),
+            device_id=device_id,
+            device_name=device_name,
             since=today,
             until=today,
         )
