@@ -32,6 +32,8 @@ from app.models.token_usage_models import (
     TokenUsageRecord,
     TokenUsageSyncLog,
     DeviceRegistry,
+    DeviceIdAlias,
+    DeviceMergeLog,
 )
 from app.services.token_usage_sync_service import sync_token_usage, sync_token_usage_v2
 from app.services.token_usage_background_sync import register_pending_sync_user

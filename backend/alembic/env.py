@@ -20,7 +20,9 @@ config = context.config
 
 # 从环境变量读取数据库 URL
 database_url = os.getenv("DATABASE_URL", "sqlite:///./pm_agent.db")
-config.set_main_option("sqlalchemy.url", database_url)
+# 转义 % 字符以避免 ConfigParser 插值语法错误
+database_url_escaped = database_url.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", database_url_escaped)
 
 # 配置日志
 if config.config_file_name is not None:

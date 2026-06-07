@@ -81,6 +81,42 @@ class DeviceRegistry(Base):
     device_id = Column(String(128), nullable=False)
     display_name = Column(String(128), nullable=True)  # 用户自定义名称
     default_display_name = Column(String(128), nullable=True)  # 注册时捕获的原始设备名
+    device_fingerprint = Column(String(256), nullable=True)
+    fingerprint_version = Column(Integer, nullable=False, default=0)
+    id_type = Column(String(16), nullable=False, default="uuid")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (UniqueConstraint("user_id", "device_id"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "device_id"),
+        Index("idx_device_registry_fingerprint", "user_id", "device_fingerprint"),
+    )
+
+
+class DeviceIdAlias(Base):
+    """设备 ID 别名映射 — 用于复用/合并同一物理设备的多个 UUID"""
+    __tablename__ = "device_id_alias"
+
+    alias_device_id = Column(String(128), primary_key=True)
+    canonical_device_id = Column(String(128), nullable=False, index=True)
+    user_id = Column(String(64), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_device_alias_user", "user_id", "canonical_device_id"),
+    )
+
+
+class DeviceMergeLog(Base):
+    """设备合并日志 — 记录手动合并/复用操作"""
+    __tablename__ = "device_merge_log"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(String(64), nullable=False, index=True)
+    source_device_id = Column(String(128), nullable=False)
+    target_device_id = Column(String(128), nullable=False)
+    merged_at = Column(DateTime(timezone=True), server_default=func.now())
+    record_count = Column(Integer, nullable=False, default=0)
+
+    __table_args__ = (
+        Index("idx_device_merge_log_user", "user_id", "merged_at"),
+    )
