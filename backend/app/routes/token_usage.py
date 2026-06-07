@@ -355,6 +355,16 @@ class RefreshUsageRequest(BaseModel):
     reason: str = Field(default="manual", description="manual | stale")
 
 
+class DeviceAliasRequest(BaseModel):
+    alias_device_id: str
+    canonical_device_id: str
+
+
+class DeviceMergeRequest(BaseModel):
+    source_device_ids: list[str]
+    target_device_id: str
+
+
 @router.post("/refresh")
 async def refresh_cache(
     req: RefreshUsageRequest = Body(default_factory=RefreshUsageRequest),
@@ -452,7 +462,7 @@ async def clear_usage_data(
 async def get_user_devices(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
-    """获取当前用户的设备列表"""
+    """获取当前用户的设备列表（含指纹类型和 canonical_id）"""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
     try:
@@ -462,7 +472,10 @@ async def get_user_devices(
 
     db = SessionLocal()
     try:
+        current_device_id = get_device_id()
         regs = db.query(DeviceRegistry).filter(DeviceRegistry.user_id == user_id).all()
+        alias_rows = db.query(DeviceIdAlias).filter(DeviceIdAlias.user_id == user_id).all()
+        alias_map = {row.alias_device_id: row.canonical_device_id for row in alias_rows}
 
         if regs:
             devices = [
@@ -471,6 +484,12 @@ async def get_user_devices(
                     "name": reg.display_name
                     or reg.default_display_name
                     or reg.device_id,
+                    "default_name": reg.default_display_name or reg.device_id,
+                    "display_name": reg.display_name,
+                    "fingerprint": reg.device_fingerprint,
+                    "id_type": reg.id_type,
+                    "canonical_id": alias_map.get(reg.device_id),
+                    "is_current": reg.device_id == current_device_id,
                 }
                 for reg in regs
             ]
@@ -1169,6 +1188,183 @@ async def sync_token_usage_endpoint(
     finally:
         invalidate_user_query_cache(user_id)
     return result
+
+
+@router.post("/devices/alias")
+async def create_device_alias(
+    req: DeviceAliasRequest,
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """将当前设备(alias)映射到已有设备(canonical)下"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    if req.alias_device_id == req.canonical_device_id:
+        raise HTTPException(status_code=400, detail="alias 和 canonical 不能相同")
+
+    db = SessionLocal()
+    try:
+        canonical = db.query(DeviceRegistry).filter_by(
+            user_id=user_id, device_id=req.canonical_device_id
+        ).first()
+        if not canonical:
+            raise HTTPException(status_code=404, detail="目标设备不存在")
+
+        alias = db.query(DeviceIdAlias).filter_by(
+            user_id=user_id, alias_device_id=req.alias_device_id
+        ).first()
+        if alias:
+            alias.canonical_device_id = req.canonical_device_id
+        else:
+            db.add(DeviceIdAlias(
+                user_id=user_id,
+                alias_device_id=req.alias_device_id,
+                canonical_device_id=req.canonical_device_id,
+            ))
+
+        record_count = (
+            db.query(TokenUsageRecord)
+            .filter(
+                TokenUsageRecord.user_id == user_id,
+                TokenUsageRecord.device_id == req.alias_device_id,
+            )
+            .count()
+        )
+        db.add(DeviceMergeLog(
+            user_id=user_id,
+            source_device_id=req.alias_device_id,
+            target_device_id=req.canonical_device_id,
+            record_count=record_count,
+        ))
+        db.commit()
+
+        invalidate_user_query_cache(user_id)
+        return {
+            "alias_device_id": req.alias_device_id,
+            "canonical_device_id": req.canonical_device_id,
+            "record_count": record_count,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"创建设备别名失败: {e}")
+        raise HTTPException(status_code=500, detail=f"创建别名失败: {e}")
+    finally:
+        db.close()
+
+
+@router.post("/devices/merge")
+async def merge_devices(
+    req: DeviceMergeRequest,
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """批量将多个源设备合并到目标设备下"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    if req.target_device_id in req.source_device_ids:
+        raise HTTPException(status_code=400, detail="源设备不能包含目标设备")
+
+    db = SessionLocal()
+    try:
+        canonical = db.query(DeviceRegistry).filter_by(
+            user_id=user_id, device_id=req.target_device_id
+        ).first()
+        if not canonical:
+            raise HTTPException(status_code=404, detail="目标设备不存在")
+
+        total_records = 0
+        for source_id in req.source_device_ids:
+            if source_id == req.target_device_id:
+                continue
+
+            alias = db.query(DeviceIdAlias).filter_by(
+                user_id=user_id, alias_device_id=source_id
+            ).first()
+            if alias:
+                alias.canonical_device_id = req.target_device_id
+            else:
+                db.add(DeviceIdAlias(
+                    user_id=user_id,
+                    alias_device_id=source_id,
+                    canonical_device_id=req.target_device_id,
+                ))
+
+            record_count = (
+                db.query(TokenUsageRecord)
+                .filter(
+                    TokenUsageRecord.user_id == user_id,
+                    TokenUsageRecord.device_id == source_id,
+                )
+                .count()
+            )
+            total_records += record_count
+            db.add(DeviceMergeLog(
+                user_id=user_id,
+                source_device_id=source_id,
+                target_device_id=req.target_device_id,
+                record_count=record_count,
+            ))
+
+        db.commit()
+        invalidate_user_query_cache(user_id)
+        return {
+            "merged": len(req.source_device_ids),
+            "target_device_id": req.target_device_id,
+            "total_record_count": total_records,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"合并设备失败: {e}")
+        raise HTTPException(status_code=500, detail=f"合并失败: {e}")
+    finally:
+        db.close()
+
+
+@router.delete("/devices/alias/{alias_device_id}")
+async def delete_device_alias(
+    alias_device_id: str,
+    authorization: Optional[str] = Header(None, description="Bearer token"),
+):
+    """撤销设备的 alias 映射"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        user_id = get_current_user_id(authorization=authorization)
+    except HTTPException:
+        raise HTTPException(status_code=401, detail="认证失败")
+
+    db = SessionLocal()
+    try:
+        alias = db.query(DeviceIdAlias).filter_by(
+            user_id=user_id, alias_device_id=alias_device_id
+        ).first()
+        if not alias:
+            raise HTTPException(status_code=404, detail="别名映射不存在")
+
+        db.delete(alias)
+        db.commit()
+        invalidate_user_query_cache(user_id)
+        return {"alias_device_id": alias_device_id, "removed": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"撤销别名失败: {e}")
+        raise HTTPException(status_code=500, detail=f"撤销失败: {e}")
+    finally:
+        db.close()
 
 
 @router.put("/devices/{device_id}/rename")
