@@ -75,6 +75,18 @@ export interface SyncMeta {
 export interface DeviceInfo {
   id: string;
   name: string;
+  default_name?: string;
+  display_name?: string | null;
+  fingerprint?: string | null;
+  id_type?: 'hardware' | 'uuid';
+  canonical_id?: string | null;
+  is_current?: boolean;
+}
+
+export interface FingerprintMatch {
+  matched_device_id: string;
+  matched_device_name: string;
+  message?: string;
 }
 
 export interface DimensionSummaryItem {
@@ -220,6 +232,7 @@ export interface SyncTokenUsageResponse {
   errors: string[];
   locked?: boolean;
   lock_ttl_seconds?: number;
+  fingerprint_match?: FingerprintMatch | null;
 }
 
 async function readError(response: Response, fallback: string): Promise<Error> {
@@ -377,6 +390,59 @@ export async function getUserDevices(): Promise<{ devices: DeviceInfo[] }> {
   });
   if (!response.ok) {
     throw await readError(response, '获取设备列表失败');
+  }
+  return response.json();
+}
+
+export async function createDeviceAlias(
+  aliasDeviceId: string,
+  canonicalDeviceId: string
+): Promise<{ alias_device_id: string; canonical_device_id: string; record_count: number }> {
+  const response = await fetch(`${BASE_URL}/devices/alias`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      alias_device_id: aliasDeviceId,
+      canonical_device_id: canonicalDeviceId,
+    }),
+  });
+  if (!response.ok) {
+    throw await readError(response, '创建设备别名失败');
+  }
+  return response.json();
+}
+
+export async function mergeDevices(
+  sourceDeviceIds: string[],
+  targetDeviceId: string
+): Promise<{ merged: number; target_device_id: string; total_record_count: number }> {
+  const response = await fetch(`${BASE_URL}/devices/merge`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      source_device_ids: sourceDeviceIds,
+      target_device_id: targetDeviceId,
+    }),
+  });
+  if (!response.ok) {
+    throw await readError(response, '合并设备失败');
+  }
+  return response.json();
+}
+
+export async function deleteDeviceAlias(aliasDeviceId: string): Promise<{ alias_device_id: string; removed: boolean }> {
+  const response = await fetch(`${BASE_URL}/devices/alias/${encodeURIComponent(aliasDeviceId)}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw await readError(response, '撤销设备别名失败');
   }
   return response.json();
 }
