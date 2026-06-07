@@ -539,6 +539,7 @@ class DbUsageItem(BaseModel):
     group_key: Optional[str] = Field(
         default=None, description="设备名或模型名（分组时）"
     )
+    device_name: Optional[str] = Field(default=None, description="设备显示名称")
 
 
 class DeviceInfo(BaseModel):
@@ -911,6 +912,7 @@ async def get_token_usage_details(
         total = len(sorted_records)
         paged = sorted_records[req.offset : req.offset + req.limit]
 
+        device_name_map = _load_device_names(db, user_id)
         items = []
         for r in paged:
             date_val = r.record_date
@@ -936,6 +938,7 @@ async def get_token_usage_details(
                     model_breakdowns=[],
                     tool_id=r.tool_id,
                     group_key=group_key,
+                    device_name=device_name_map.get(r.device_id, r.device_id),
                 )
             )
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -461,10 +461,11 @@ export default function TokenUsage() {
 
   const exportCSV = () => {
     if (!details.data.items.length) return;
-    const headers = ['日期', '分组', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD'];
+    const headers = ['日期', '分组', '设备', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD'];
     const rows = details.data.items.map(item => [
       item.date,
       getGroupLabel(item),
+      item.device_name || '-',
       getRowToolLabel(item),
       formatModelsUsed(item.models_used),
       item.input_tokens,
@@ -832,6 +833,7 @@ export default function TokenUsage() {
               <tr>
                 <th className="px-4 py-3 text-left">日期</th>
                 {groupBy !== 'none' && <th className="px-4 py-3 text-left">分组</th>}
+                <th className="px-4 py-3 text-left">设备</th>
                 <th className="px-4 py-3 text-left">工具</th>
                 <th className="px-4 py-3 text-right">输入</th>
                 <th className="px-4 py-3 text-right">输出</th>
@@ -845,12 +847,15 @@ export default function TokenUsage() {
             <tbody>
               {!paginatedItems.length && !details.loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 9 : 10}>暂无数据。可以点击“刷新”采集当前用户和设备的数据。</td>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 10 : 11}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
                 </tr>
               ) : paginatedItems.map((item, index) => (
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/60">
                   <td className="px-4 py-3 text-slate-200">{item.date}</td>
                   {groupBy !== 'none' && <td className="max-w-[180px] truncate px-4 py-3 text-slate-300" title={getGroupLabel(item)}>{getGroupLabel(item)}</td>}
+                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-300" title={item.device_name || '-'}>
+                    {item.device_name || '-'}
+                  </td>
                   <td className="max-w-[160px] truncate px-4 py-3 text-slate-400" title={getRowToolLabel(item)}>
                     {getRowToolLabel(item)}
                   </td>
