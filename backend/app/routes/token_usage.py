@@ -736,6 +736,10 @@ async def get_token_usage_summary(
 
     db = SessionLocal()
     try:
+        from app.utils.device_name_resolver import load_alias_map
+
+        alias_map = load_alias_map(db, user_id)
+
         req = SimpleNamespace(
             source=source,
             type=type,
@@ -771,7 +775,7 @@ async def get_token_usage_summary(
         since_date = datetime.now() - timedelta(days=days)
         records = (
             db.query(TokenUsageRecord)
-            .filter(*_build_record_filters(user_id, req, since_date))
+            .filter(*_build_record_filters(user_id, req, since_date, alias_map))
             .all()
         )
 
@@ -795,10 +799,10 @@ async def get_token_usage_summary(
         )
 
         dimension_rows, filter_options = _query_dimension_data(
-            db, user_id, req, since_date
+            db, user_id, req, since_date, alias_map
         )
 
-        model_rows = _execute_model_summary_query(db, user_id, req, since_date)
+        model_rows = _execute_model_summary_query(db, user_id, req, since_date, alias_map)
         model_summary = _rows_to_model_summary(model_rows)
 
         device_names = _load_device_names(db, user_id)
@@ -869,6 +873,10 @@ async def get_token_usage_details(
 
     db = SessionLocal()
     try:
+        from app.utils.device_name_resolver import load_alias_map
+
+        alias_map = load_alias_map(db, user_id)
+
         req_ns = SimpleNamespace(
             source=req.source,
             type=req.type,
@@ -895,7 +903,7 @@ async def get_token_usage_details(
         since_date = datetime.now() - timedelta(days=req.days)
         records = (
             db.query(TokenUsageRecord)
-            .filter(*_build_record_filters(user_id, req_ns, since_date))
+            .filter(*_build_record_filters(user_id, req_ns, since_date, alias_map))
             .all()
         )
 
@@ -1558,11 +1566,17 @@ def _normalize_record_dimensions(row, device_names: dict[str, str]) -> dict:
 
 
 def _load_device_names(db, user_id: str) -> dict[str, str]:
-    rows = db.query(DeviceRegistry).filter(DeviceRegistry.user_id == user_id).all()
-    return {
-        row.device_id: row.display_name or row.default_display_name or row.device_id
-        for row in rows
-    }
+    from app.utils.device_name_resolver import load_device_name_map, load_alias_map
+
+    names = load_device_name_map(db, user_id)
+    alias_map = load_alias_map(db, user_id)
+
+    # 为 canonical device 补充 alias 的显示名
+    for alias_id, canonical_id in alias_map.items():
+        if canonical_id not in names:
+            names[canonical_id] = names.get(alias_id, canonical_id)
+
+    return names
 
 
 def _build_dimension_summary(
@@ -1887,8 +1901,8 @@ def build_chart_series(
     return result
 
 
-def _query_dimension_data(db, user_id: str, req, since_date: datetime) -> tuple[dict, dict]:
-    filters = _build_record_filters(user_id, req, since_date)
+def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map: Optional[dict[str, str]] = None) -> tuple[dict, dict]:
+    filters = _build_record_filters(user_id, req, since_date, alias_map)
     records = db.query(TokenUsageRecord).filter(*filters).all()
     device_names = _load_device_names(db, user_id)
     if not records:
@@ -1993,15 +2007,27 @@ def _rows_to_model_summary(rows) -> list[dict]:
     )
 
 
-def _build_record_filters(user_id: str, req, since_date: Optional[datetime] = None) -> list:
+def _build_record_filters(
+    user_id: str,
+    req,
+    since_date: Optional[datetime] = None,
+    alias_map: Optional[dict[str, str]] = None,
+) -> list:
     """构建 Token Usage 记录查询条件，保证元信息和明细口径一致。"""
+    from app.utils.device_name_resolver import build_alias_aware_device_filter
+
     filters = [TokenUsageRecord.user_id == user_id]
     if since_date is not None:
         filters.append(TokenUsageRecord.record_date >= since_date.date())
     if getattr(req, "source", "all") != "all":
         filters.append(TokenUsageRecord.source == req.source)
     if getattr(req, "device_id", None):
-        filters.append(TokenUsageRecord.device_id == req.device_id)
+        if alias_map:
+            filters.extend(
+                build_alias_aware_device_filter(req.device_id, alias_map)
+            )
+        else:
+            filters.append(TokenUsageRecord.device_id == req.device_id)
     tool_id = getattr(req, "tool_id", None)
     if tool_id:
         source_matches = [
@@ -2177,9 +2203,9 @@ def _get_sync_meta(db, user_id: str, req, cached_payload: Optional[dict]) -> dic
     )
 
 
-def _execute_model_summary_query(db, user_id: str, req, since_date: datetime):
+def _execute_model_summary_query(db, user_id: str, req, since_date: datetime, alias_map: Optional[dict[str, str]] = None):
     """按 source/model 聚合模型统计，避免前端从日期行猜测。"""
-    filters = _build_record_filters(user_id, req, since_date)
+    filters = _build_record_filters(user_id, req, since_date, alias_map)
 
     return (
         db.query(
@@ -2324,6 +2350,10 @@ async def query_token_usage(
         # Redis 未命中时只读 DB，不在请求链路执行同步。
         db = SessionLocal()
         try:
+            from app.utils.device_name_resolver import load_alias_map
+
+            alias_map = load_alias_map(db, user_id)
+
             regs = (
                 db.query(DeviceRegistry)
                 .filter(DeviceRegistry.user_id == user_id)
@@ -2362,33 +2392,33 @@ async def query_token_usage(
                 devices = [d for d in devices if d["id"] in active_ids]
 
             since_date = datetime.now() - timedelta(days=req.days)
-            items = _execute_db_query(db, user_id, req, since_date)
+            items = _execute_db_query(db, user_id, req, since_date, alias_map)
             dimension_rows, filter_options = _query_dimension_data(
-                db, user_id, req, since_date
+                db, user_id, req, since_date, alias_map
             )
             _attach_models_to_items(db, user_id, req, since_date, items)
 
             auto_expanded = False
             actual_days = req.days
             if not items and req.days < 365:
-                source_filter = _build_record_filters(user_id, req)
+                source_filter = _build_record_filters(user_id, req, alias_map=alias_map)
                 has_any_data = (
                     db.query(TokenUsageRecord).filter(*source_filter).first()
                     is not None
                 )
                 if has_any_data:
                     since_date = datetime.now() - timedelta(days=365)
-                    items = _execute_db_query(db, user_id, req, since_date)
+                    items = _execute_db_query(db, user_id, req, since_date, alias_map)
                     _attach_models_to_items(db, user_id, req, since_date, items)
                     auto_expanded = True
                     actual_days = 365
 
             summary = compute_db_summary(items)
             model_summary = _rows_to_model_summary(
-                _execute_model_summary_query(db, user_id, req, since_date)
+                _execute_model_summary_query(db, user_id, req, since_date, alias_map)
             )
             dimension_rows, filter_options = _query_dimension_data(
-                db, user_id, req, since_date
+                db, user_id, req, since_date, alias_map
             )
             sync_meta_dict = _get_sync_meta(db, user_id, req, None)
 
@@ -2482,10 +2512,10 @@ async def query_token_usage(
 
 
 def _execute_db_query(
-    db, user_id: str, req: DbQueryRequest, since_date: datetime
+    db, user_id: str, req: DbQueryRequest, since_date: datetime, alias_map: Optional[dict[str, str]] = None
 ) -> list[DbUsageItem]:
     """执行数据库聚合查询"""
-    base_filter = _build_record_filters(user_id, req, since_date)
+    base_filter = _build_record_filters(user_id, req, since_date, alias_map)
 
     if req.group_by == "device":
         # 按设备分组，返回每个设备的每日聚合
