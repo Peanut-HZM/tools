@@ -25,12 +25,14 @@ import {
 } from 'recharts';
 import {
   clearTokenUsageData,
+  createDeviceAlias,
   getDbTokenUsage,
   getUserDevices,
   refreshTokenUsage,
   renameDevice,
   type DbUsageItem,
   type DeviceInfo,
+  type FingerprintMatch,
   type ModelSummaryItem,
   type SyncMeta,
   type TokenUsageGroupBy,
@@ -39,6 +41,7 @@ import {
   type TokenUsageSortOrder,
   type TokenUsageSource,
 } from '../../api/tokenUsageApi';
+import FingerprintMatchDialog from './TokenUsage/FingerprintMatchDialog';
 import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useTokenUsageSummary } from './hooks/useTokenUsageSummary';
 import { useTokenUsageDetails } from './hooks/useTokenUsageDetails';
@@ -149,6 +152,7 @@ export default function TokenUsage() {
   const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [fingerprintMatch, setFingerprintMatch] = useState<FingerprintMatch | null>(null);
 
   const timeRangeOptions = useMemo(() => {
     if (reportType === 'daily') {
@@ -305,6 +309,9 @@ export default function TokenUsage() {
       if (result.locked) {
         setRefreshError('已有刷新任务进行中，请稍后重试');
         return;
+      }
+      if (result.fingerprint_match) {
+        setFingerprintMatch(result.fingerprint_match);
       }
       const errors = result.errors?.length ? `，${result.errors.length} 个来源有告警` : '';
       setLastSyncMessage(`已同步 ${result.total_records} 条记录${errors}`);
@@ -881,6 +888,28 @@ export default function TokenUsage() {
           </div>
         )}
       </div>
+
+      {fingerprintMatch && (
+        <FingerprintMatchDialog
+          match={fingerprintMatch}
+          currentDeviceName={devices.find(d => d.is_current)?.name || '当前设备'}
+          onReuse={async () => {
+            try {
+              const currentDevice = devices.find(d => d.is_current);
+              if (currentDevice && fingerprintMatch) {
+                await createDeviceAlias(currentDevice.id, fingerprintMatch.matched_device_id);
+                setFingerprintMatch(null);
+                await loadDevices();
+                await Promise.all([summary.refresh(), details.refresh()]);
+              }
+            } catch (e: any) {
+              setError(e.message || '复用设备失败');
+            }
+          }}
+          onCreateNew={() => setFingerprintMatch(null)}
+          onClose={() => setFingerprintMatch(null)}
+        />
+      )}
     </div>
   );
 }
