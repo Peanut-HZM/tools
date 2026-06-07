@@ -10,6 +10,7 @@ import {
   HardDrive,
   Loader2,
   RefreshCw,
+  Settings,
   Trash2,
 } from 'lucide-react';
 import {
@@ -26,8 +27,10 @@ import {
 import {
   clearTokenUsageData,
   createDeviceAlias,
+  deleteDeviceAlias,
   getDbTokenUsage,
   getUserDevices,
+  mergeDevices,
   refreshTokenUsage,
   renameDevice,
   type DbUsageItem,
@@ -41,6 +44,7 @@ import {
   type TokenUsageSortOrder,
   type TokenUsageSource,
 } from '../../api/tokenUsageApi';
+import DeviceManagerModal from './TokenUsage/DeviceManagerModal';
 import FingerprintMatchDialog from './TokenUsage/FingerprintMatchDialog';
 import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useTokenUsageSummary } from './hooks/useTokenUsageSummary';
@@ -153,6 +157,7 @@ export default function TokenUsage() {
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [fingerprintMatch, setFingerprintMatch] = useState<FingerprintMatch | null>(null);
+  const [deviceManagerOpen, setDeviceManagerOpen] = useState(false);
 
   const timeRangeOptions = useMemo(() => {
     if (reportType === 'daily') {
@@ -682,6 +687,14 @@ export default function TokenUsage() {
             >
               <Edit3 className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => setDeviceManagerOpen(true)}
+              disabled={!devices.length}
+              title="管理设备"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
           </div>
         </label>
 
@@ -908,6 +921,29 @@ export default function TokenUsage() {
           }}
           onCreateNew={() => setFingerprintMatch(null)}
           onClose={() => setFingerprintMatch(null)}
+        />
+      )}
+
+      {deviceManagerOpen && (
+        <DeviceManagerModal
+          devices={devices}
+          open={deviceManagerOpen}
+          onClose={() => setDeviceManagerOpen(false)}
+          onRename={async (id, name) => {
+            await renameDevice(id, name);
+            await loadDevices();
+            await Promise.all([summary.refresh(), details.refresh()]);
+          }}
+          onMerge={async (sourceIds, targetId) => {
+            await mergeDevices(sourceIds, targetId);
+            await loadDevices();
+            await Promise.all([summary.refresh(), details.refresh()]);
+          }}
+          onUnmerge={async (aliasId) => {
+            await deleteDeviceAlias(aliasId);
+            await loadDevices();
+            await Promise.all([summary.refresh(), details.refresh()]);
+          }}
         />
       )}
     </div>
