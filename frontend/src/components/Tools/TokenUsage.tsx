@@ -50,6 +50,7 @@ import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useTokenUsageSummary } from './hooks/useTokenUsageSummary';
 import { useTokenUsageDetails } from './hooks/useTokenUsageDetails';
 import { useTokenUsagePolling } from './hooks/useTokenUsagePolling';
+import { getAuthToken } from '../../api/authApi';
 import DimensionPieCard, { type PieSlice } from './TokenUsage/DimensionPieCard';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -354,7 +355,7 @@ export default function TokenUsage() {
     setSyncError(null);
     setLastSyncMessage(null);
     try {
-      const token = localStorage.getItem('token') || '';
+      const token = getAuthToken() || '';
       const res = await fetch('/api/token-usage/refresh-ccusage', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },

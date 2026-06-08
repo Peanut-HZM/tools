@@ -4,6 +4,7 @@
 
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { getAuthToken } from '../api/authApi';
 
 const httpClient = axios.create({
   baseURL: `${API_BASE_URL}/http-client`,
@@ -14,7 +15,7 @@ const httpClient = axios.create({
 
 // 请求拦截器 - 添加 JWT token
 httpClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
