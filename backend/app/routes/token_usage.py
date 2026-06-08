@@ -537,8 +537,9 @@ class DbUsageItem(BaseModel):
     model_breakdowns: list[dict] = Field(default_factory=list)
     tool_id: Optional[str] = Field(default=None, description="工具ID")
     group_key: Optional[str] = Field(
-        default=None, description="设备名或模型名（分组时）"
+        default=None, description="分组维度 key（device_id/tool_id/model）"
     )
+    device_id: Optional[str] = Field(default=None, description="设备ID")
     device_name: Optional[str] = Field(default=None, description="设备显示名称")
 
 
@@ -938,6 +939,7 @@ async def get_token_usage_details(
                     model_breakdowns=[],
                     tool_id=r.tool_id,
                     group_key=group_key,
+                    device_id=r.device_id,
                     device_name=device_name_map.get(r.device_id, r.device_id),
                 )
             )
@@ -1406,6 +1408,7 @@ async def rename_device(
 
         reg.display_name = name.strip()[:128] if name.strip() else None
         db.commit()
+        invalidate_user_query_cache(user_id)
 
         return {"device_id": device_id, "display_name": reg.display_name}
     finally:

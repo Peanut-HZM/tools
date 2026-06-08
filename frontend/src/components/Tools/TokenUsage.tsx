@@ -675,7 +675,7 @@ export default function TokenUsage() {
           <div className="flex gap-1">
             <select value={selectedDevice} onChange={event => setSelectedDevice(event.target.value)} className="h-9 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
               <option value="">全部设备</option>
-              {devices.map(device => (
+              {devices.filter(device => !device.canonical_id).map(device => (
                 <option key={device.id} value={device.id}>{device.name}</option>
               ))}
             </select>
@@ -873,8 +873,8 @@ export default function TokenUsage() {
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/60">
                   <td className="px-4 py-3 text-slate-200">{item.date}</td>
                   {groupBy !== 'none' && <td className="max-w-[180px] truncate px-4 py-3 text-slate-300" title={getGroupLabel(item)}>{getGroupLabel(item)}</td>}
-                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-300" title={item.device_name || '-'}>
-                    {item.device_name || '-'}
+                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-300" title={item.device_id ? (deviceNameMap.get(item.device_id) || item.device_name || '-') : (item.device_name || '-')}>
+                    {item.device_id ? (deviceNameMap.get(item.device_id) || item.device_name || '-') : (item.device_name || '-')}
                   </td>
                   <td className="max-w-[160px] truncate px-4 py-3 text-slate-400" title={getRowToolLabel(item)}>
                     {getRowToolLabel(item)}
