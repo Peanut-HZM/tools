@@ -67,7 +67,7 @@ const MessagePanel: React.FC = () => {
     // 初始化时检测一次滚动状态
     handleScroll();
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [checkIsAtBottom]);
+  }, []);
 
   // 检查消息内容高度，确定是否需要折叠
   useEffect(() => {
@@ -580,3 +580,4 @@ const MessagePanel: React.FC = () => {
 };
 
 export default MessagePanel;
+
