@@ -95,3 +95,12 @@ cursor_history.db
 
 # AI Agent metadata
 .omc/
+
+# Screenshots and test artifacts
+*.png
+
+# Backup directories
+frontend/node_modules.bak/
+
+# Backend logs
+backend/logs/
