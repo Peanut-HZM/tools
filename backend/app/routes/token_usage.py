@@ -869,8 +869,17 @@ async def get_token_usage_details(
         sort_order="desc",
     )
     if cached_payload and "details_data" in cached_payload:
-        logger.info(f"details 缓存命中 user={user_id}")
-        return DetailsResponse(**cached_payload["details_data"], cached=True)
+        details_data = cached_payload["details_data"]
+        # 缓存数据完整性校验：防止损坏缓存（items 为空但 total > 0）被使用
+        items = details_data.get("items", [])
+        total = details_data.get("total", 0)
+        if len(items) == 0 and total > 0:
+            logger.warning(
+                f"details 缓存数据损坏（items 为空但 total={total}），跳过缓存重新查询: user={user_id}"
+            )
+        else:
+            logger.info(f"details 缓存命中 user={user_id}")
+            return DetailsResponse(**details_data, cached=True)
 
     db = SessionLocal()
     try:
