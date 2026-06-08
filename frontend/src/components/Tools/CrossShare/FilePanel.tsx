@@ -77,8 +77,14 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
   const handleDownload = async (file: CrossFile) => {
     try {
       const { download_url } = await fileApi.getDownloadUrl(file.id);
-      // 在新窗口打开下载链接
-      window.open(download_url, '_blank');
+      // 使用 a 标签的 download 属性强制下载，而不是在新标签页打开
+      const link = document.createElement('a');
+      link.href = download_url;
+      link.download = file.file_name;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error('Failed to get download URL:', error);
     }

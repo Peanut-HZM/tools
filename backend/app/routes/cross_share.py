@@ -92,19 +92,35 @@ def get_oss_upload_url(oss_key: str) -> str:
 
 
 def get_oss_download_url(oss_key: str, expires: int = 3600) -> str:
-    """获取 OSS 下载 URL（带签名）"""
+    """获取 OSS 下载 URL（带签名）
+
+    优先返回直接访问 Minio 的签名 URL（性能最佳）。
+    当存储服务不可用时，降级返回一个指向本后端代理的 URL，
+    确保前端仍有机会通过代理获取文件，避免空指针错误。
+    """
     from app.services.oss_service import oss_service
 
     if not oss_service.is_available():
-        # 如果 OSS 未初始化，返回公共读 URL（降级）
-        logger.warning("OSS service not available, returning public URL")
-        return f"{oss_service._storage.provider.base_url}/{oss_key}"
+        # 服务不可用时返回一个指向后端的内容代理 URL。
+        # 该 URL 会在前端尝试访问时，由本后端负责从 OSS 读取并代理返回。
+        # 注意：如果 OSS 持续不可用，该代理 URL 也会返回错误，但至少不会崩溃。
+        logger.warning("OSS service not available, falling back to backend proxy URL")
+        # 使用配置的公共 Minio URL 兜底（仅当 _storage 可用时才能生成有效 URL）
+        try:
+            storage = oss_service._storage
+            if storage is not None and storage.provider is not None:
+                return f"{storage.provider.base_url}/{oss_key}"
+        except Exception:
+            pass
+        # storage 不可用时，返回一个明确的错误占位 URL
+        # 前端应检查该 URL 是否指向本地代理，并给出友好提示
+        return f"/api/cross-share/files/by-key/{oss_key}/proxy"
 
     # 生成签名 URL
     download_url = oss_service.sign_url('GET', oss_key, expires)
 
-    # 确保使用 HTTPS
-    if download_url.startswith('http://'):
+    # 根据 Minio 配置决定是否强制 HTTPS
+    if settings.MINIO_SECURE and download_url.startswith('http://'):
         download_url = 'https://' + download_url[7:]
 
     return download_url
@@ -674,6 +690,58 @@ async def get_file_content(
         )
     except Exception as e:
         logger.error(f"Failed to get file content from OSS: {e}")
+        raise HTTPException(status_code=500, detail=f"获取文件内容失败：{str(e)}")
+
+
+@router.get("/files/by-key/{oss_key:path}/proxy")
+async def proxy_file_by_key(
+    oss_key: str,
+    service: CrossShareService = Depends(get_cross_share_service),
+    current_user: str = Depends(get_current_user_id),
+):
+    """文件内容代理 - 根据 oss_key 从 OSS 读取并返回
+
+    当 OSS 签名 URL 不可用时的降级方案。
+    """
+    from fastapi.responses import StreamingResponse
+    from app.services.oss_service import oss_service
+    import io
+
+    if not oss_service.is_available():
+        raise HTTPException(status_code=503, detail="存储服务不可用，请稍后重试")
+
+    # 根据 oss_key 找到对应的文件记录
+    file = service.get_file_by_oss_key(oss_key, current_user)
+    if not file:
+        raise HTTPException(status_code=404, detail="文件不存在")
+
+    try:
+        obj = oss_service.get_object(oss_key)
+        content = obj.read()
+
+        ext = file.file_name.lower().split('.')[-1] if '.' in file.file_name else ''
+        content_type_map = {
+            'md': 'text/markdown; charset=utf-8', 'markdown': 'text/markdown; charset=utf-8',
+            'json': 'application/json; charset=utf-8', 'txt': 'text/plain; charset=utf-8',
+            'csv': 'text/csv; charset=utf-8', 'xml': 'application/xml; charset=utf-8',
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+            'gif': 'image/gif', 'webp': 'image/webp', 'svg': 'image/svg+xml',
+            'pdf': 'application/pdf', 'mp4': 'video/mp4', 'webm': 'video/webm',
+            'mp3': 'audio/mpeg', 'wav': 'audio/wav',
+        }
+        content_type = content_type_map.get(ext, 'application/octet-stream')
+
+        return StreamingResponse(
+            io.BytesIO(content),
+            media_type=content_type,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control": "public, max-age=3600",
+                "Content-Disposition": f'inline; filename="{file.file_name}"',
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to proxy file by key from OSS: {e}")
         raise HTTPException(status_code=500, detail=f"获取文件内容失败：{str(e)}")
 
 
