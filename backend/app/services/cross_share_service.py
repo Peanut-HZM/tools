@@ -270,6 +270,16 @@ class CrossShareService:
             )
         ).first()
 
+    def get_file_by_oss_key(self, oss_key: str, user_id: str) -> Optional[CrossFile]:
+        """根据 oss_key 获取文件（用于降级代理）"""
+        return self.db.query(CrossFile).filter(
+            and_(
+                CrossFile.oss_key == oss_key,
+                CrossFile.user_id == user_id,
+                CrossFile.is_deleted == False
+            )
+        ).first()
+
     def create_file(self, user_id: str, file: FileCreate, expires_at: datetime = None) -> CrossFile:
         """创建文件记录
         
