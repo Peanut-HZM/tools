@@ -1101,7 +1101,7 @@ def _ensure_device_registered_with_fingerprint(
     device_fingerprint: str,
     id_type: str,
 ) -> Optional[dict]:
-    """确保设备已注册，并返回 fingerprint_match（如有）。"""
+    """确保设备已注册，并自动合并相同指纹的设备。"""
     existing = db.query(DeviceRegistry).filter_by(
         user_id=user_id, device_id=device_id
     ).first()
@@ -1131,7 +1131,20 @@ def _ensure_device_registered_with_fingerprint(
     ))
     db.commit()
 
+    # 自动合并相同指纹的设备
     if matched and matched.device_id != device_id:
+        existing_alias = db.query(DeviceIdAlias).filter_by(
+            user_id=user_id, alias_device_id=device_id
+        ).first()
+        if not existing_alias:
+            db.add(DeviceIdAlias(
+                alias_device_id=device_id,
+                canonical_device_id=matched.device_id,
+                user_id=user_id,
+            ))
+            db.commit()
+            logger.info(f"自动合并设备 {device_id} -> {matched.device_id} (指纹匹配)")
+
         return {
             "matched_device_id": matched.device_id,
             "matched_device_name": matched.display_name

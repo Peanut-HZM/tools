@@ -291,14 +291,6 @@ def sync_token_usage(
                     user_id=user_id, device_fingerprint=device_fingerprint
                 ).first()
 
-            if matched and matched.device_id != device_id:
-                fingerprint_match = {
-                    "matched_device_id": matched.device_id,
-                    "matched_device_name": matched.display_name
-                    or matched.default_display_name
-                    or matched.device_id,
-                }
-
             db.add(DeviceRegistry(
                 user_id=user_id,
                 device_id=device_id,
@@ -309,6 +301,26 @@ def sync_token_usage(
                 id_type=id_type,
             ))
             db.commit()
+
+            # 自动合并相同指纹的设备
+            if matched and matched.device_id != device_id:
+                existing_alias = db.query(DeviceIdAlias).filter_by(
+                    user_id=user_id, alias_device_id=device_id
+                ).first()
+                if not existing_alias:
+                    db.add(DeviceIdAlias(
+                        alias_device_id=device_id,
+                        canonical_device_id=matched.device_id,
+                        user_id=user_id,
+                    ))
+                    db.commit()
+                    logger.info(f"自动合并设备 {device_id} -> {matched.device_id} (指纹匹配)")
+                fingerprint_match = {
+                    "matched_device_id": matched.device_id,
+                    "matched_device_name": matched.display_name
+                    or matched.default_display_name
+                    or matched.device_id,
+                }
         else:
             existing.device_fingerprint = device_fingerprint
             existing.fingerprint_version = 1
