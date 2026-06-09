@@ -14,12 +14,9 @@ from typing import Optional
 _DESKTOP_MODE = os.environ.get("DESKTOP_MODE") == "1"
 
 # CLI 工具从用户主目录查找数据
-_home_raw = os.path.expanduser("~")
-# macOS 上从 JetBrains 项目子目录运行时，expanduser 可能返回项目路径
-# 而非真实用户主目录，此时需要修正。Windows 无此问题，故跳过。
-if platform.system() != "Windows" and "IdeaProjects" in _home_raw:
-    _home_raw = f"/Users/{os.getlogin()}"
-USER_HOME = _home_raw
+import pwd
+_uid = os.getuid()
+USER_HOME = pwd.getpwuid(_uid).pw_dir if _uid > 0 else os.path.expanduser("~")
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +82,12 @@ def _run_cmd(cmd: list[str], timeout: int = 60) -> dict:
             i += 1
 
         if json_index == -1:
+            logger.error(f"CLI 输出中没有找到 JSON: stdout[:500]={output[:500]}")
             return {"error": "未找到 JSON 输出"}
 
-        return json.loads(output[json_index:])
+        parsed = json.loads(output[json_index:])
+
+        return parsed
     except subprocess.TimeoutExpired:
         return {"error": f"CLI 执行超时（> {timeout}s）"}
     except json.JSONDecodeError as e:
@@ -136,7 +136,7 @@ class UsageFetcher:
         if breakdown:
             cmd.append("--breakdown")
 
-        result = _run_cmd(cmd)
+        result = _run_cmd(cmd, timeout=180)
         if "error" not in result:
             _set_cache(cache_key, result)
         return result
@@ -229,7 +229,7 @@ class UsageFetcher:
         else:
             cmd.append("--by=model")
 
-        result = _run_cmd(cmd)
+        result = _run_cmd(cmd, timeout=180)
         if "error" not in result:
             _set_cache(cache_key, result)
         return result
@@ -259,7 +259,7 @@ class UsageFetcher:
             cmd = [node_exe, ccusage_opencode_path, "daily", "--json"]
         else:
             cmd = ["ccusage-opencode", "daily", "--json"]
-        result = _run_cmd(cmd)
+        result = _run_cmd(cmd, timeout=120)
         if "error" not in result:
             _set_cache(cache_key, result)
         return result
