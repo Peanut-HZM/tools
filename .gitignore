@@ -104,3 +104,39 @@ frontend/node_modules.bak/
 
 # Backend logs
 backend/logs/
+backend/logs/*.log
+backend/logs/*.log.*
+
+# Root logs directory
+logs/
+logs/*.log
+logs/*.log.*
+
+# AI Agent files
+.agents/
+.opencode/
+.superpowers/
+.gstack/
+.playwright-mcp/
+.omc/
+
+# Design baselines (auto-generated)
+docs/superpowers/baselines/
+
+# Python caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Node caches
+.eslintcache
+
+# Build outputs (explicit)
+frontend/dist/
+backend/dist/
+frontend/.vite/
+frontend/.turbo/
+
+# Temporary files
+*.tmp
+*.temp
