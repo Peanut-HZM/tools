@@ -4,11 +4,17 @@ import getpass
 import hashlib
 import logging
 import os
-import pwd
 import socket
 import uuid
 from pathlib import Path
 from typing import Optional, Tuple
+
+# Windows 平台兼容：pwd 和 os.getuid() 仅在 Unix 可用
+try:
+    import pwd
+    _HAS_PWD = True
+except ImportError:
+    _HAS_PWD = False
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +24,19 @@ _FINGERPRINT_SALT = "tools-device-fingerprint-v1"
 
 def _get_real_home() -> Path:
     """获取真实用户主目录，不受 config.py 覆盖 HOME 环境变量影响。"""
-    uid = os.getuid()
-    try:
-        return Path(pwd.getpwuid(uid).pw_dir)
-    except (KeyError, TypeError):
-        return Path(os.environ.get("HOME", "/root"))
+    # Windows 平台直接使用 Path.home()
+    if os.name == "nt":
+        return Path.home()
+
+    # Unix/Linux/macOS 平台尝试通过 pwd 获取真实家目录
+    if _HAS_PWD:
+        try:
+            uid = os.getuid()
+            return Path(pwd.getpwuid(uid).pw_dir)
+        except (KeyError, TypeError, AttributeError):
+            pass
+
+    return Path(os.environ.get("HOME", "/root"))
 
 
 def get_device_id() -> str:

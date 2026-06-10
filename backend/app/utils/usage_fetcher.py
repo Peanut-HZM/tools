@@ -13,10 +13,14 @@ from typing import Optional
 # 桌面模式检测
 _DESKTOP_MODE = os.environ.get("DESKTOP_MODE") == "1"
 
-# CLI 工具从用户主目录查找数据
-import pwd
-_uid = os.getuid()
-USER_HOME = pwd.getpwuid(_uid).pw_dir if _uid > 0 else os.path.expanduser("~")
+# CLI 工具从用户主目录查找数据（跨平台兼容）
+try:
+    import pwd
+    _uid = os.getuid()
+    USER_HOME = pwd.getpwuid(_uid).pw_dir if _uid > 0 else os.path.expanduser("~")
+except (ImportError, AttributeError):
+    # Windows 平台不支持 pwd 和 os.getuid()
+    USER_HOME = os.path.expanduser("~")
 
 logger = logging.getLogger(__name__)
 

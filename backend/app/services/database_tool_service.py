@@ -247,6 +247,20 @@ class DatabaseToolService:
             # For simplicity, we just generate ADD/MODIFY/DROP. Reordering is hard.
 
             # Helper for MySQL type mapping/formatting
+            def _escape_sql_string(value: str) -> str:
+                """转义 SQL 字符串中的单引号，防止 SQL 注入和语法错误"""
+                return value.replace("'", "\\'")
+
+            def _strip_outer_quotes(value: str) -> str:
+                """去除字符串外层包裹的单引号或双引号"""
+                value = value.strip()
+                if len(value) >= 2:
+                    if (value[0] == "'" and value[-1] == "'") or (
+                        value[0] == '"' and value[-1] == '"'
+                    ):
+                        return value[1:-1]
+                return value
+
             def format_col_def(col: ColumnDefinition):
                 def_str = f"`{col.name}` {col.type}"
                 if col.length:
@@ -258,17 +272,20 @@ class DatabaseToolService:
                     def_str += " NULL"
 
                 if col.default_value is not None:
-                    # simplistic quoting for default
-                    if col.default_value.upper() in ["CURRENT_TIMESTAMP", "NULL"]:
-                        def_str += f" DEFAULT {col.default_value}"
+                    # 清理默认值中的外层引号，避免嵌套引号导致语法错误
+                    default_val = _strip_outer_quotes(str(col.default_value)).strip()
+                    if default_val.upper() in ["CURRENT_TIMESTAMP", "NULL"]:
+                        def_str += f" DEFAULT {default_val}"
                     else:
-                        def_str += f" DEFAULT '{col.default_value}'"
+                        # 使用单引号包裹，并转义内部单引号
+                        def_str += f" DEFAULT '{_escape_sql_string(default_val)}'"
 
                 if col.auto_increment:
                     def_str += " AUTO_INCREMENT"
 
                 if col.comment:
-                    def_str += f" COMMENT '{col.comment}'"
+                    # 转义注释中的单引号，防止 SQL 语法错误
+                    def_str += f" COMMENT '{_escape_sql_string(col.comment)}'"
 
                 return def_str
 
@@ -297,7 +314,7 @@ class DatabaseToolService:
             # 2. Handle Table Comment
             if request.comment is not None:
                 statements.append(
-                    f"ALTER TABLE {qualified_table} COMMENT = '{request.comment}'"
+                    f"ALTER TABLE {qualified_table} COMMENT = '{_escape_sql_string(request.comment)}'"
                 )
 
             # 3. Handle Table Rename
