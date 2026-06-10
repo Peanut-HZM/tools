@@ -38,10 +38,10 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
 
   const prefetchedRef = useRef(false);
 
-  const fetchStructure = async () => {
+  const fetchStructure = async (skipCache = false) => {
     setLoading(true);
     try {
-      const data = await api.getDatabaseStructure(configId, dbName, schemaName);
+      const data = await api.getDatabaseStructure(configId, dbName, schemaName, skipCache);
       setStructure(data);
       return data;
     } catch (err) {
@@ -105,7 +105,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         icon: 'fa-sync',
         action: async () => {
           setStructure(null);
-          await fetchStructure();
+          await fetchStructure(true); // skipCache=true 强制刷新
         }
       },
       {
@@ -152,6 +152,18 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         icon: 'fa-code',
         action: () => {
           handleTableClick(item.name);
+        }
+      },
+      {
+        label: t.database.contextMenu.refreshTableStructure || '刷新表结构',
+        icon: 'fa-sync',
+        action: async () => {
+          setStructure(null);
+          const data = await fetchStructure(true); // skipCache=true 强制刷新
+          // 如果当前表详情已展开，同步刷新详情
+          if (data && expandedDetails[item.name]) {
+            toggleTableDetail(item.name);
+          }
         }
       },
       {

@@ -206,13 +206,18 @@ export async function truncateTableInstance(id: string, table: string, databaseN
 // In-flight 请求去重：相同 (id, databaseName) 的并发请求共享同一个 Promise
 const pendingStructureRequests = new Map<string, Promise<DatabaseStructure>>();
 
-export async function getDatabaseStructure(id: string, databaseName: string, schemaName?: string): Promise<DatabaseStructure> {
+export async function getDatabaseStructure(id: string, databaseName: string, schemaName?: string, skipCache = false): Promise<DatabaseStructure> {
   const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
   const cacheKey = `structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`;
 
-  // 1. 查 IndexedDB 缓存
-  const cached = await DBCache.get<DatabaseStructure>(cacheKey);
-  if (cached) return cached;
+  // 1. 查 IndexedDB 缓存（skipCache=true 时跳过）
+  if (!skipCache) {
+    const cached = await DBCache.get<DatabaseStructure>(cacheKey);
+    if (cached) return cached;
+  } else {
+    // 强制刷新时先清除缓存
+    await DBCache.invalidate(cacheKey);
+  }
 
   // 2. 检查是否已有相同请求在飞行中
   if (pendingStructureRequests.has(cacheKey)) {
