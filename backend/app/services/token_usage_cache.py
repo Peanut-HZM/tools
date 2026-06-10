@@ -161,7 +161,11 @@ def invalidate_cache() -> bool:
 
 
 def invalidate_user_query_cache(user_id: str) -> bool:
-    """清除指定用户的 Token Usage 查询缓存。"""
+    """清除指定用户的 Token Usage 查询缓存（用户维度，影响该用户所有设备）。
+
+    注意：此方法会影响同一用户下所有设备的缓存。当只需要清除特定设备缓存时，
+    应使用 invalidate_device_query_cache 以实现设备级隔离。
+    """
     client = get_redis_client()
     if not client:
         return False
@@ -180,6 +184,38 @@ def invalidate_user_query_cache(user_id: str) -> bool:
         return True
     except Exception as e:
         logger.warning(f"清除用户 Token Usage 查询缓存失败: {e}")
+        return False
+
+
+def invalidate_device_query_cache(user_id: str, device_id: str) -> bool:
+    """仅清除指定 user + device 的设备维度查询缓存（不影响同用户下的其他设备）。
+
+    缓存 key 结构: token_usage:query:{source}:{report_type}:{days}:{group_by}:
+                  {user_id}:{device_id}:{tool_id}:{model}:{sort_by}:{sort_order}
+
+    此方法精确匹配 device_id 位置，因此只清除该设备的缓存键，保留其他设备的缓存。
+    空 device_id 的 user 级汇总缓存不会被清除（避免影响其他设备）。
+    """
+    client = get_redis_client()
+    if not client:
+        return False
+    if not user_id:
+        return False
+    if not device_id:
+        return invalidate_user_query_cache(user_id)
+
+    try:
+        pattern = f"token_usage:query:*:*:*:*:{user_id}:{device_id}:*"
+        keys = client.keys(pattern)
+        if not keys:
+            return True
+        count = client.delete(*keys)
+        logger.info(
+            f"已清除设备 {device_id[:8]}... 的 {count} 个查询缓存键 (user={user_id})"
+        )
+        return True
+    except Exception as e:
+        logger.warning(f"清除设备 {device_id[:8]}... 查询缓存失败: {e}")
         return False
 
 

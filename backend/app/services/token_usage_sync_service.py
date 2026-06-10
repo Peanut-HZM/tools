@@ -332,9 +332,9 @@ def sync_token_usage(
         logger.warning(f"设备注册失败: {e}")
 
     try:
+        # v2 流程（ccusage 统一数据源）已覆盖 opencode，此处仅保留 claude 以防降级
         sources = [
             ("claude", _fetch_claude_daily, _parse_claude_entries),
-            ("opencode", _fetch_opencode_daily, _parse_opencode_entries),
         ]
 
         for source_name, fetch_fn, parse_fn in sources:

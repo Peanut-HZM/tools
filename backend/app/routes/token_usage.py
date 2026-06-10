@@ -21,6 +21,7 @@ from app.services.token_usage_cache import (
     set_cached_data,
     invalidate_cache,
     invalidate_user_query_cache,
+    invalidate_device_query_cache,
     get_query_cached_data,
     get_query_cached_payload,
     set_query_cached_data,
@@ -395,9 +396,11 @@ async def refresh_cache(
         logger.info(
             f"用户 {user_id} 刷新 Token Usage 数据: days={req.days}, background={req.background}, reason={req.reason}"
         )
-        invalidate_user_query_cache(user_id)
+        # 设备级缓存清除：只清除当前设备的缓存，不影响同用户下的其他设备
+        device_id = get_device_id()
+        invalidate_device_query_cache(user_id, device_id)
         result = sync_token_usage(user_id=user_id, days=req.days)
-        invalidate_user_query_cache(user_id)
+        invalidate_device_query_cache(user_id, device_id)
         result["message"] = "同步完成，缓存已刷新"
         result["locked"] = False
         return result
@@ -1192,6 +1195,8 @@ async def refresh_ccusage_endpoint(
             since=today,
             until=today,
         )
+        # 设备级缓存清除：只清除当前设备的缓存，不影响同用户下的其他设备
+        invalidate_device_query_cache(user_id, device_id)
         return {"success": True, "synced_records": count, "date": today}
     except Exception as e:
         logger.error(f"[ccusage-manual] 手动同步失败: {e}", exc_info=True)
@@ -1216,12 +1221,14 @@ async def sync_token_usage_endpoint(
     if lock.locked():
         raise HTTPException(status_code=429, detail="同步进行中，请稍后重试")
 
-    invalidate_user_query_cache(user_id)
+    # 设备级缓存清除：只清除当前设备的缓存，不影响同用户下的其他设备
+    device_id = get_device_id()
+    invalidate_device_query_cache(user_id, device_id)
     try:
         # 将同步阻塞的 CLI 调用丢到线程池执行，避免阻塞事件循环
         result = await asyncio.to_thread(sync_token_usage, user_id=user_id, days=90)
     finally:
-        invalidate_user_query_cache(user_id)
+        invalidate_device_query_cache(user_id, device_id)
     return result
 
 
