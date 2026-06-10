@@ -11,6 +11,46 @@ import sqlparse
 
 logger = logging.getLogger(__name__)
 
+# 允许的 SQL 关键字白名单（含会话控制语句 PREPARE/EXECUTE/DEALLOCATE 等）
+SQL_KEYWORDS = {
+    'SELECT', 'INSERT', 'UPDATE', 'DELETE',
+    'CREATE', 'ALTER', 'DROP', 'TRUNCATE',
+    'SET', 'SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN',
+    'BEGIN', 'START', 'COMMIT', 'ROLLBACK', 'SAVEPOINT',
+    'PREPARE', 'EXECUTE', 'DEALLOCATE',
+    'CALL', 'USE', 'LOCK', 'UNLOCK',
+    'GRANT', 'REVOKE', 'FLUSH', 'OPTIMIZE', 'ANALYZE',
+    'REPLACE', 'MERGE', 'LOAD', 'HANDLER',
+    'DELIMITER',
+}
+
+# 用于剥离 SQL 注释但保留字符串字面量的正则（含 '' / "" 转义识别）
+_STRIP_COMMENTS_RE = re.compile(
+    r"""('(?:[^'\\]|\\.|'')*')"""
+    r"""|("(?:[^"\\]|\\.|(?:""))*")"""
+    r"""|(--[^\r\n]*)"""
+    r"""|(/\*[\s\S]*?\*/)""",
+    re.DOTALL,
+)
+
+
+def strip_sql_comments(raw: str) -> str:
+    """剥离 SQL 注释（行注释 -- 与块注释 /* */），保留字符串字面量内容"""
+    def _replace(m):
+        if m.group(1) or m.group(2):
+            return m.group(0)
+        return ''
+    return _STRIP_COMMENTS_RE.sub(_replace, raw)
+
+
+def is_executable_statement(stmt: str) -> bool:
+    """判断一条语句是否包含可执行的 SQL 关键字（注释剥离后再判定）"""
+    stripped = stmt.strip()
+    if not stripped or stripped == ';':
+        return False
+    upper_no_comments = strip_sql_comments(stripped).upper()
+    return any(kw in upper_no_comments for kw in SQL_KEYWORDS)
+
 
 class SQLExecutor:
     @staticmethod
@@ -25,13 +65,10 @@ class SQLExecutor:
 
         try:
             with engine.connect() as conn:
-                # Split SQL into statements
-                statements = sqlparse.split(sql)
-                # Filter empty, semicolon-only, and comment-only statements
-                sql_keywords = {'INSERT', 'SELECT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'SET', 'BEGIN', 'COMMIT', 'ROLLBACK', 'TRUNCATE', 'REPLACE', 'MERGE'}
+                # 切分 SQL 为多条语句，过滤空/纯注释/无合法关键字的语句
                 statements = [
-                    s for s in statements
-                    if s.strip() and s.strip() != ';' and any(kw in s.upper() for kw in sql_keywords)
+                    s for s in sqlparse.split(sql)
+                    if is_executable_statement(s)
                 ]
 
                 if not statements:

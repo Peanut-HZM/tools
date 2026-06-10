@@ -51,7 +51,7 @@ from app.services.backup_generators import get_generator
 from app.services.backup_storage import backup_storage
 from app.utils.encryption import EncryptionUtils
 from app.utils.db_connection_manager import DBConnectionManager
-from app.utils.sql_executor import SQLExecutor
+from app.utils.sql_executor import SQLExecutor, sqlparse, is_executable_statement
 from sqlalchemy import inspect, text
 
 logger = logging.getLogger(__name__)
@@ -948,15 +948,10 @@ class DatabaseToolService:
             from app.utils.sql_schema_injector import process_sql_with_schema_injection
             final_sql = process_sql_with_schema_injection(request.sql, request.schema_name)
 
-        # Only apply auto-pagination if it's a single SELECT statement
-        import sqlparse
-
-        statements = sqlparse.split(final_sql)
-        # Filter empty statements, semicolon-only statements, and pure comment statements
-        sql_keywords = {'INSERT', 'SELECT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'SET', 'BEGIN', 'COMMIT', 'ROLLBACK', 'TRUNCATE', 'REPLACE', 'MERGE'}
+        # 仅在单条 SELECT 语句时应用自动分页，避免影响多语句脚本
         statements = [
-            s for s in statements
-            if s.strip() and s.strip() != ';' and any(kw in s.upper() for kw in sql_keywords)
+            s for s in sqlparse.split(final_sql)
+            if is_executable_statement(s)
         ]
 
         if len(statements) == 1:
