@@ -163,8 +163,9 @@ def invalidate_cache() -> bool:
 def invalidate_user_query_cache(user_id: str) -> bool:
     """清除指定用户的 Token Usage 查询缓存（用户维度，影响该用户所有设备）。
 
-    注意：此方法会影响同一用户下所有设备的缓存。当只需要清除特定设备缓存时，
-    应使用 invalidate_device_query_cache 以实现设备级隔离。
+    当用户执行刷新或同步操作时调用，确保后续查询能获取最新数据。
+    注意：由于 summary/details 查询的缓存键中 device_id 为空（汇总所有设备的数据），
+    同步操作必须使用此方法（而非设备级清除）以确保聚合缓存也被清除。
     """
     client = get_redis_client()
     if not client:
