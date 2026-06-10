@@ -20,7 +20,6 @@ const MessagePanel: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [hasUserScrolled, setHasUserScrolled] = useState(false); // 用户是否曾经手动向上滚动
   const [showScrollButton, setShowScrollButton] = useState(false); // 是否显示滚动到底部按钮
   const [showScrollTopButton, setShowScrollTopButton] = useState(false); // 是否显示滚动到顶部按钮
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set()); // 记录已展开的消息 ID
@@ -32,7 +31,6 @@ const MessagePanel: React.FC = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true); // 是否是首次加载
   const contentRefs = useRef<Map<string, HTMLDivElement>>(new Map()); // 存储消息内容 ref
-  const hasUserScrolledRef = useRef(false); // 同步 ref，避免闭包问题
   const { toast, showToast } = useToast();
 
   // 检查用户是否在底部
@@ -55,10 +53,6 @@ const MessagePanel: React.FC = () => {
 
     const handleScroll = () => {
       const atBottom = checkIsAtBottom();
-      if (!atBottom) {
-        hasUserScrolledRef.current = true;
-        setHasUserScrolled(true);
-      }
       setShowScrollButton(!atBottom);
       setShowScrollTopButton(container.scrollTop > 300);
     };
@@ -93,43 +87,41 @@ const MessagePanel: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 自动滚动到底部：首次加载使用 instant，后续新增消息使用 smooth
+  // 自动滚动到底部：仅初次加载时执行一次，使用 instant 方式
   useEffect(() => {
-    if (isInitialLoad.current) {
-      // 首次加载：使用 requestAnimationFrame + 多次尝试确保 DOM 渲染完成
-      const scrollToBottomOnReady = () => {
-        const container = messagesContainerRef.current;
-        if (!container) {
-          requestAnimationFrame(scrollToBottomOnReady);
-          return;
-        }
-
-        // 如果内容高度还不够，继续等待
-        if (container.scrollHeight === 0 || container.scrollHeight <= container.clientHeight) {
-          setTimeout(scrollToBottomOnReady, 50);
-          return;
-        }
-
-        // 使用双重 requestAnimationFrame 确保布局已完全更新
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (container && messagesContainerRef.current) {
-              container.scrollTop = container.scrollHeight;
-            }
-            isInitialLoad.current = false;
-          });
-        });
-      };
-
-      requestAnimationFrame(scrollToBottomOnReady);
-    } else if (!hasUserScrolled) {
-      // 用户未手动滚动过，平滑滚动到底部
-      requestAnimationFrame(() => {
-        scrollToBottom();
-      });
+    if (!isInitialLoad.current) {
+      return;
     }
-    // 如果用户已经手动滚动过，不再自动滚动
-  }, [messages]);
+
+    // 首次加载：使用 requestAnimationFrame + 多次尝试确保 DOM 渲染完成
+    const scrollToBottomOnReady = () => {
+      const container = messagesContainerRef.current;
+      if (!container) {
+        requestAnimationFrame(scrollToBottomOnReady);
+        return;
+      }
+
+      // 如果内容高度还不够，继续等待
+      if (container.scrollHeight === 0 || container.scrollHeight <= container.clientHeight) {
+        setTimeout(scrollToBottomOnReady, 50);
+        return;
+      }
+
+      // 使用双重 requestAnimationFrame 确保布局已完全更新
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (container && messagesContainerRef.current) {
+            container.scrollTop = container.scrollHeight;
+          }
+          isInitialLoad.current = false;
+        });
+      });
+    };
+
+    requestAnimationFrame(scrollToBottomOnReady);
+    // 仅在组件挂载时滚动一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadMessages = async () => {
     try {
@@ -157,7 +149,6 @@ const MessagePanel: React.FC = () => {
   // 手动滚动到底部按钮
   const handleScrollToBottom = () => {
     scrollToBottom();
-    setHasUserScrolled(false); // 重置标志，允许后续自动滚动
     setShowScrollButton(false);
   };
 

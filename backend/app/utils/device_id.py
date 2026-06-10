@@ -3,6 +3,8 @@
 import getpass
 import hashlib
 import logging
+import os
+import pwd
 import socket
 import uuid
 from pathlib import Path
@@ -14,9 +16,18 @@ logger = logging.getLogger(__name__)
 _FINGERPRINT_SALT = "tools-device-fingerprint-v1"
 
 
+def _get_real_home() -> Path:
+    """获取真实用户主目录，不受 config.py 覆盖 HOME 环境变量影响。"""
+    uid = os.getuid()
+    try:
+        return Path(pwd.getpwuid(uid).pw_dir)
+    except (KeyError, TypeError):
+        return Path(os.environ.get("HOME", "/root"))
+
+
 def get_device_id() -> str:
-    """获取设备唯一标识（UUID）"""
-    config_dir = Path.home() / ".tools"
+    """获取设备唯一标识（UUID），持久化到真实 HOME 目录下。"""
+    config_dir = _get_real_home() / ".tools"
     config_dir.mkdir(parents=True, exist_ok=True)
     device_file = config_dir / "device_id"
 
@@ -26,7 +37,7 @@ def get_device_id() -> str:
     device_id = str(uuid.uuid4())
     try:
         device_file.write_text(device_id)
-        logger.info(f"已生成并保存设备标识: {device_id}")
+        logger.info(f"已生成并保存设备标识: {device_id} (path={device_file})")
     except Exception as e:
         logger.warning(f"设备标识持久化失败，将使用临时 UUID: {e}")
 

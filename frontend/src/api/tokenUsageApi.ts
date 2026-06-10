@@ -6,7 +6,7 @@ const BASE_URL = `${API_BASE_URL}/token-usage`;
 export type TokenUsageSource = 'claude' | 'opencode' | 'codex' | 'all';
 export type TokenUsageReportType = 'daily' | 'weekly' | 'monthly';
 export type TokenUsageGroupBy = 'none' | 'device' | 'tool' | 'model';
-export type TokenUsageSortBy = 'date' | 'total_tokens' | 'total_cost' | 'input_tokens' | 'output_tokens' | 'cache_tokens';
+export type TokenUsageSortBy = 'date' | 'total_tokens' | 'total_cost' | 'input_tokens' | 'output_tokens' | 'cache_tokens' | 'created_at';
 export type TokenUsageSortOrder = 'asc' | 'desc';
 
 export interface UsageItem {
@@ -158,6 +158,7 @@ export interface DbUsageItem extends UsageItem {
   tool_id?: string;
   device_id?: string;
   device_name?: string;
+  created_at?: string;
 }
 
 export interface DbUsageResponse {

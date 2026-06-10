@@ -22,9 +22,6 @@ from app.services.token_usage_cache import (
     invalidate_cache,
     invalidate_user_query_cache,
     invalidate_device_query_cache,
-    get_query_cached_data,
-    get_query_cached_payload,
-    set_query_cached_data,
     acquire_refresh_lock,
     release_refresh_lock,
 )
@@ -543,6 +540,7 @@ class DbUsageItem(BaseModel):
     )
     device_id: Optional[str] = Field(default=None, description="设备ID")
     device_name: Optional[str] = Field(default=None, description="设备显示名称")
+    created_at: Optional[str] = Field(default=None, description="数据入库时间")
 
 
 class DeviceInfo(BaseModel):
@@ -719,25 +717,7 @@ async def get_token_usage_summary(
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
 
-    # sort_by="__summary__" 命名空间避免与 /db-query 共用缓存键造成互相覆盖
-    cached_payload = get_query_cached_payload(
-        source=source,
-        report_type=type,
-        days=days,
-        group_by=group_by,
-        user_id=user_id,
-        device_id=device_id or "",
-        tool_id=tool_id or "",
-        model=model or "",
-        sort_by="__summary__",
-        sort_order="desc",
-    )
-
-    if cached_payload and "summary_data" in cached_payload:
-        logger.info(f"summary 缓存命中 user={user_id}")
-        payload = cached_payload["summary_data"]
-        return SummaryResponse(**payload)
-
+    # 直接从数据库查询，不使用 Redis 缓存
     db = SessionLocal()
     try:
         from app.utils.device_name_resolver import load_alias_map
@@ -826,20 +806,6 @@ async def get_token_usage_summary(
             devices=devices,
         ).model_dump(exclude={"cached"})
 
-        set_query_cached_data(
-            source=source,
-            report_type=type,
-            days=days,
-            group_by=group_by,
-            user_id=user_id,
-            device_id=device_id or "",
-            tool_id=tool_id or "",
-            model=model or "",
-            sort_by="__summary__",
-            sort_order="desc",
-            data={"summary_data": payload},
-        )
-
         return SummaryResponse(**payload, cached=False)
     finally:
         db.close()
@@ -856,33 +822,6 @@ async def get_token_usage_details(
         user_id = get_current_user_id(authorization=authorization)
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
-
-    # sort_by 用 "details:<sort>:<order>:<limit>:<offset>" 命名空间避免与 /db-query / /summary 共享缓存键
-    cache_key_extra = f"details:{req.sort_by}:{req.sort_order}:{req.limit}:{req.offset}"
-    cached_payload = get_query_cached_data(
-        source=req.source,
-        report_type=req.type,
-        days=req.days,
-        group_by=req.group_by,
-        user_id=user_id,
-        device_id=req.device_id or "",
-        tool_id=req.tool_id or "",
-        model=req.model or "",
-        sort_by=cache_key_extra,
-        sort_order="desc",
-    )
-    if cached_payload and "details_data" in cached_payload:
-        details_data = cached_payload["details_data"]
-        # 缓存数据完整性校验：防止损坏缓存（items 为空但 total > 0）被使用
-        items = details_data.get("items", [])
-        total = details_data.get("total", 0)
-        if len(items) == 0 and total > 0:
-            logger.warning(
-                f"details 缓存数据损坏（items 为空但 total={total}），跳过缓存重新查询: user={user_id}"
-            )
-        else:
-            logger.info(f"details 缓存命中 user={user_id}")
-            return DetailsResponse(**details_data, cached=True)
 
     db = SessionLocal()
     try:
@@ -952,6 +891,7 @@ async def get_token_usage_details(
                     group_key=group_key,
                     device_id=r.device_id,
                     device_name=device_name_map.get(r.device_id, r.device_id),
+                    created_at=_to_iso(getattr(r, "updated_at", None) or getattr(r, "created_at", None)),
                 )
             )
 
@@ -964,23 +904,7 @@ async def get_token_usage_details(
             offset=req.offset,
             has_more=has_more,
         )
-        cached_dict = response.model_dump(exclude={"cached"})
-
-        set_query_cached_data(
-            source=req.source,
-            report_type=req.type,
-            days=req.days,
-            group_by=req.group_by,
-            user_id=user_id,
-            device_id=req.device_id or "",
-            tool_id=req.tool_id or "",
-            model=req.model or "",
-            sort_by=cache_key_extra,
-            sort_order="desc",
-            data={"details_data": cached_dict},
-        )
-
-        return DetailsResponse(**cached_dict, cached=False)
+        return response
     finally:
         db.close()
 
@@ -1002,33 +926,7 @@ async def db_query_token_usage(
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
 
-    # 1. 优先查 Redis 缓存
-    cached = get_query_cached_data(
-        source=req.source,
-        report_type=req.type,
-        days=req.days,
-        group_by=req.group_by,
-        user_id=user_id,
-        device_id=req.device_id or "",
-        tool_id=req.tool_id or "",
-        model=req.model or "",
-        sort_by=req.sort_by,
-        sort_order=req.sort_order,
-    )
-    if cached:
-        logger.info(f"查询: Redis 缓存命中 /{req.source}/{req.type}/{req.days}天")
-        return DbUsageResponse(
-            items=[DbUsageItem(**item) for item in cached["items"]],
-            summary=UsageSummary(**cached["summary"]),
-            devices=cached.get("devices", []),
-            cached=True,
-            dimension_summaries=_to_dimension_summaries(
-                cached.get("dimension_summaries")
-            ),
-            filter_options=_to_filter_options(cached.get("filter_options")),
-        )
-
-    # 2. Redis 未命中，查数据库
+    # 直接从数据库查询
     db = SessionLocal()
     try:
         has_data = (
@@ -1953,19 +1851,34 @@ def _sort_usage_items(items, sort_by: str, sort_order: str):
         "input_tokens",
         "output_tokens",
         "cache_tokens",
+        "created_at",
     }
     selected = sort_by if sort_by in allowed else "date"
     reverse = sort_order != "asc"
 
-    field_mapping = {"date": "record_date"}
-    orm_field = field_mapping.get(selected, selected)
+    field_mapping = {"date": "record_date", "created_at": "updated_at"}
 
     def sort_value(item):
+        orm_field = field_mapping.get(selected, selected)
         if selected == "cache_tokens":
             return (getattr(item, "cache_creation_tokens", 0) or 0) + (
                 getattr(item, "cache_read_tokens", 0) or 0
             )
-        return getattr(item, orm_field, None) or 0
+        val = getattr(item, orm_field, None)
+        if val is None:
+            # 没有 updated_at 的记录排到最后
+            return "" if selected == "created_at" else 0
+        return val
+
+    def compound_sort_key(item):
+        date_val = getattr(item, "record_date", None) or ""
+        updated_val = getattr(item, "updated_at", None) or ""
+        if selected == "date":
+            return (date_val, updated_val)
+        return (date_val, sort_value(item))
+
+    if selected == "date" or selected == "created_at":
+        return sorted(items, key=compound_sort_key, reverse=reverse)
 
     return sorted(items, key=sort_value, reverse=reverse)
 
@@ -2325,7 +2238,7 @@ async def query_token_usage(
     req: DbQueryRequest,
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
-    """统一查询端点：优先 Redis 缓存 → 降级 DB"""
+    """统一查询端点：直接从数据库查询。"""
     request_id = str(uuid.uuid4())
     started_at = time.perf_counter()
     user_id = "unknown"
@@ -2348,38 +2261,7 @@ async def query_token_usage(
 
         register_pending_sync_user(user_id)
 
-        # 优先读取 Redis 缓存，命中时不访问数据库和 CLI。
-        cached = get_query_cached_payload(
-            source=req.source,
-            report_type=req.type,
-            days=req.days,
-            group_by=req.group_by,
-            user_id=user_id,
-            device_id=req.device_id or "",
-            tool_id=req.tool_id or "",
-            model=req.model or "",
-            sort_by=req.sort_by,
-            sort_order=req.sort_order,
-        )
-        if cached:
-            cached_items = [DbUsageItem(**item) for item in cached["items"]]
-            return _finish_query_response(
-                request_id=request_id,
-                started_at=started_at,
-                user_id=user_id,
-                req=req,
-                items=cached_items,
-                summary=UsageSummary(**cached["summary"]),
-                devices=cached.get("devices", []),
-                cached=True,
-                response_source="redis",
-                model_summary=cached.get("model_summary", []),
-                dimension_summaries=cached.get("dimension_summaries"),
-                filter_options=cached.get("filter_options"),
-                sync_meta=cached.get("sync_meta"),
-            )
-
-        # Redis 未命中时只读 DB，不在请求链路执行同步。
+        # 直接从数据库查询，不使用 Redis 缓存
         db = SessionLocal()
         try:
             from app.utils.device_name_resolver import load_alias_map
@@ -2472,29 +2354,6 @@ async def query_token_usage(
                     filter_options=filter_options,
                     sync_meta=sync_meta_dict,
                 )
-
-            cache_payload = {
-                "items": [item.model_dump() for item in items],
-                "summary": summary.model_dump(),
-                "devices": devices,
-                "model_summary": model_summary,
-                "dimension_summaries": dimension_rows,
-                "filter_options": filter_options,
-                "sync_meta": sync_meta_dict,
-            }
-            set_query_cached_data(
-                source=req.source,
-                report_type=req.type,
-                days=req.days,
-                group_by=req.group_by,
-                user_id=user_id,
-                device_id=req.device_id or "",
-                tool_id=req.tool_id or "",
-                model=req.model or "",
-                sort_by=req.sort_by,
-                sort_order=req.sort_order,
-                data=cache_payload,
-            )
 
             return _finish_query_response(
                 request_id=request_id,

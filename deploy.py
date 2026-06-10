@@ -193,11 +193,14 @@ def deploy_backend():
         f"ssh {SERVER_USER}@{SERVER_HOST} "
         f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
         f"cd {BACKEND_DEPLOY_PATH} && "
+        f"cp -f /root/.tools/device_id /tmp/tools_device_id.bak 2>/dev/null || true && "
         f"rm -rf app alembic data utils middleware models routes services bin migrations && "
         f"tar -xzf /tmp/backend_deploy.tar.gz && "
         f"cp -r backend_deploy/* . && "
         f"rm -rf backend_deploy && "
-        f"rm -f /tmp/backend_deploy.tar.gz\""
+        f"rm -f /tmp/backend_deploy.tar.gz && "
+        f"mkdir -p /root/.tools && "
+        f"mv -f /tmp/tools_device_id.bak /root/.tools/device_id 2>/dev/null || true\""
     )
     
     # 在服务器上安装依赖

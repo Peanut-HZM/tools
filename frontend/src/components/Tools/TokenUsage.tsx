@@ -3,7 +3,6 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
-  Clock,
   Database,
   Download,
   Edit3,
@@ -13,6 +12,7 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
 import {
   Bar,
   CartesianGrid,
@@ -68,17 +68,6 @@ function formatCurrency(num: number): string {
   return `$${Number(num || 0).toFixed(2)}`;
 }
 
-function formatRelativeTime(value?: string | null): string {
-  if (!value) return '尚未同步';
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return '时间未知';
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (diffSeconds < 60) return '刚刚更新';
-  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} 分钟前`;
-  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} 小时前`;
-  return `${Math.floor(diffSeconds / 86400)} 天前`;
-}
-
 function formatDateTime(value?: string | null): string {
   if (!value) return '暂无记录';
   const date = new Date(value);
@@ -86,57 +75,8 @@ function formatDateTime(value?: string | null): string {
   return date.toLocaleString('zh-CN', { hour12: false });
 }
 
-function DataFreshnessBadge({
-  syncMeta,
-  cached,
-  refreshing,
-  refreshError,
-  onRefresh,
-}: {
-  syncMeta: SyncMeta | null;
-  cached: boolean;
-  refreshing: boolean;
-  refreshError: string | null;
-  onRefresh: () => void;
-}) {
-  const stale = Boolean(syncMeta?.is_stale);
-  const locked = Boolean(syncMeta?.refresh_lock?.locked);
-  const ttl = syncMeta?.cache_ttl_seconds ?? 0;
-
-  const buildTooltip = () => {
-    const lines: string[] = [];
-    lines.push(`状态：${refreshing ? '后台更新中' : refreshError ? '刷新失败' : locked ? '其他窗口正在更新' : stale ? '数据已过期' : cached ? '缓存有效' : '数据库聚合'}`);
-    lines.push(`最后同步：${formatDateTime(syncMeta?.last_success_at)}`);
-    if (ttl > 0) lines.push(`缓存有效期：剩余 ${Math.ceil(ttl / 60)} 分钟`);
-    else lines.push('缓存有效期：未命中缓存');
-    if (syncMeta?.stale_reason) lines.push(syncMeta.stale_reason);
-    if (refreshError) lines.push(refreshError);
-    return lines.join('\n');
-  };
-
-  const textClass = refreshing || locked
-    ? 'text-sky-300'
-    : refreshError || stale
-      ? 'text-amber-300'
-      : 'text-emerald-300';
-
-  return (
-    <span className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-xs" title={buildTooltip()}>
-      {refreshing ? (
-        <Loader2 className={`h-3.5 w-3.5 flex-shrink-0 animate-spin ${textClass}`} />
-      ) : refreshError || stale ? (
-        <AlertTriangle className={`h-3.5 w-3.5 flex-shrink-0 ${textClass}`} />
-      ) : (
-        <Clock className={`h-3.5 w-3.5 flex-shrink-0 ${textClass}`} />
-      )}
-      <span className={`truncate ${textClass}`}>
-        {refreshing ? '后台更新中' : refreshError ? '刷新失败' : `最后同步 ${formatRelativeTime(syncMeta?.last_success_at)}`}
-      </span>
-    </span>
-  );
-}
-
 export default function TokenUsage() {
+  const { showToast } = useToast();
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [reportType, setReportType] = useState<TokenUsageReportType>('daily');
   const [days, setDays] = useState(30);
@@ -154,7 +94,6 @@ export default function TokenUsage() {
   const [error, setError] = useState<string | null>(null);
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
-  const [lastSyncMessage, setLastSyncMessage] = useState<string | null>(null);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [fingerprintMatch, setFingerprintMatch] = useState<FingerprintMatch | null>(null);
@@ -309,7 +248,6 @@ export default function TokenUsage() {
     setRefreshing(true);
     setError(null);
     setRefreshError(null);
-    setLastSyncMessage(null);
     try {
       const result = await refreshTokenUsage({ days: Math.max(days, 90), background: false, reason: 'manual' });
       if (result.locked) {
@@ -320,10 +258,10 @@ export default function TokenUsage() {
         setFingerprintMatch(result.fingerprint_match);
       }
       const errors = result.errors?.length ? `，${result.errors.length} 个来源有告警` : '';
-      setLastSyncMessage(`已同步 ${result.total_records} 条记录${errors}`);
       setRefreshError(null);
       await loadDevices();
       await Promise.all([summary.refresh(), details.refresh()]);
+      showToast(`已同步 ${result.total_records} 条记录${errors}`, 'success', 3000);
     } catch (err: any) {
       setRefreshError(err.message || '手动刷新失败');
     } finally {
@@ -339,10 +277,10 @@ export default function TokenUsage() {
     setError(null);
     try {
       const result = await clearTokenUsageData();
-      setLastSyncMessage(result.message);
       setRefreshError(null);
       await loadDevices();
       await Promise.all([summary.refresh(), details.refresh()]);
+      showToast(result.message || '数据已清理', 'success', 3000);
     } catch (err: any) {
       setError(err.message || '清理数据失败');
     } finally {
@@ -353,7 +291,6 @@ export default function TokenUsage() {
   const handleSync = async () => {
     setSyncing(true);
     setSyncError(null);
-    setLastSyncMessage(null);
     try {
       const token = getAuthToken() || '';
       const res = await fetch('/api/token-usage/refresh-ccusage', {
@@ -365,8 +302,9 @@ export default function TokenUsage() {
         throw new Error(err.detail || `HTTP ${res.status}`);
       }
       const data = await res.json();
-      setLastSyncMessage(`ccusage 同步完成: ${data.synced_records} 条`);
       await Promise.all([summary.refresh(), details.refresh()]);
+      await loadDevices();
+      showToast(`同步完成: ${data.synced_records} 条`, 'success', 3000);
     } catch (e: any) {
       setSyncError(e.message || '同步失败');
     } finally {
@@ -474,7 +412,7 @@ export default function TokenUsage() {
 
   const exportCSV = () => {
     if (!details.data.items.length) return;
-    const headers = ['日期', '分组', '设备', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD'];
+    const headers = ['日期', '分组', '设备', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD', '更新时间'];
     const rows = details.data.items.map(item => [
       item.date,
       getGroupLabel(item),
@@ -487,6 +425,7 @@ export default function TokenUsage() {
       item.cache_read_tokens,
       item.total_tokens,
       item.total_cost,
+      item.created_at || '',
     ]);
     const csv = [headers, ...rows]
       .map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(','))
@@ -579,13 +518,7 @@ export default function TokenUsage() {
         </div>
 
         <div className="flex flex-nowrap items-center gap-2">
-          <DataFreshnessBadge
-            syncMeta={summary.data.sync_meta}
-            cached={Boolean(summary.data.cached)}
-            refreshing={refreshing || backgroundRefreshing}
-            refreshError={refreshError}
-            onRefresh={handleRefresh}
-          />
+          <span className="text-xs text-slate-400">{formatDateTime(summary.data.sync_meta?.last_success_at)}</span>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -712,7 +645,9 @@ export default function TokenUsage() {
         <label className="space-y-1">
           <span className="text-xs text-slate-400">排序</span>
           <select value={sortBy} onChange={event => setSortBy(event.target.value as TokenUsageSortBy)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+            <option value="created_at">更新时间</option>
             <option value="date">日期</option>
+            <option value="created_at">更新时间</option>
             <option value="total_tokens">总 Token</option>
             <option value="total_cost">成本</option>
             <option value="input_tokens">输入</option>
@@ -730,13 +665,12 @@ export default function TokenUsage() {
         </label>
       </div>
 
-      {(error || refreshError || deviceError || pollError || lastSyncMessage || summary.data.auto_expanded) && (
+      {(error || refreshError || deviceError || pollError || summary.data.auto_expanded) && (
         <div className="mb-5 space-y-2">
           {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
           {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
           {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{deviceError}</div>}
           {pollError && <div className="rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-300">后台轮询失败：{pollError}</div>}
-          {lastSyncMessage && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{lastSyncMessage}</div>}
           {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
         </div>
       )}
@@ -863,12 +797,13 @@ export default function TokenUsage() {
                 <th className="px-4 py-3 text-right">总计</th>
                 <th className="px-4 py-3 text-right">成本</th>
                 <th className="px-4 py-3 text-left">模型</th>
+                <th className="px-4 py-3 text-left">更新时间</th>
               </tr>
             </thead>
             <tbody>
               {!paginatedItems.length && !details.loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 10 : 11}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 11 : 12}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
                 </tr>
               ) : paginatedItems.map((item, index) => (
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/60">
@@ -887,6 +822,7 @@ export default function TokenUsage() {
                   <td className="px-4 py-3 text-right font-mono font-medium text-white">{formatToken(item.total_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(item.total_cost)}</td>
                   <td className="max-w-[240px] truncate px-4 py-3 text-slate-400" title={formatModelsUsed(item.models_used)}>{formatModelsUsed(item.models_used)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
                 </tr>
               ))}
             </tbody>
