@@ -526,12 +526,9 @@ class DatabaseToolService:
                 for row in rows:
                     password = None
                     if include_password:
-                        try:
-                            password = EncryptionUtils.decrypt(
-                                row["password_encrypted"]
-                            )
-                        except Exception:
-                            password = None
+                        password, _ = DatabaseToolService._decrypt_password(
+                            row["password_encrypted"], row["id"]
+                        )
                     # 'row' is a RealDictRow
                     config = DatabaseConfigResponse(
                         id=row["id"],
@@ -1105,10 +1102,11 @@ class DatabaseToolService:
         if not config_row:
             raise ValueError("Configuration not found")
 
-        try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
-        except Exception:
-            raise ValueError("Failed to decrypt password")
+        password, error = DatabaseToolService._decrypt_password(
+            config_row["password_encrypted"], config_id
+        )
+        if error:
+            raise ValueError(error)
 
         config_dict = {
             "db_type": config_row["db_type"],
