@@ -64,9 +64,12 @@ async def get_databases(
         raise HTTPException(
             status_code=403, detail="Permission denied: Admin access required"
         )
-    return DatabaseToolService.get_all_configs(
-        user_id, include_password=include_password
-    )
+    try:
+        return DatabaseToolService.get_all_configs(
+            user_id, include_password=include_password
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/databases", response_model=DatabaseConfigResponse)
@@ -184,6 +187,8 @@ async def get_databases_list(
     """List databases for a connection"""
     try:
         return DatabaseToolService.get_databases_list(user_id, id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
