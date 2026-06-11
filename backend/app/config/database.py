@@ -133,13 +133,35 @@ def get_pooled_db_connection():
     pool = get_connection_pool()
     conn = pool.getconn()
 
-    # 连接已被服务端关闭时，回收并重新获取
-    if getattr(conn, "closed", 0):
+    # 通过轻量查询验证连接是否真正可用
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+    except Exception as e:
+        logger.warning(f"数据库连接健康检查失败，尝试重新获取连接: {e}")
+        # 探针失败时重试一次，避免无限循环
         try:
             pool.putconn(conn, close=True)
-        except Exception:
-            pass
+        except Exception as close_err:
+            logger.debug(f"回收已关闭连接时发生异常: {close_err}")
+            try:
+                if not getattr(conn, "closed", 0):
+                    conn.close()
+            except Exception:
+                pass
         conn = pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+        except Exception as retry_err:
+            logger.error(f"重新获取的数据库连接仍无效: {retry_err}")
+            try:
+                pool.putconn(conn, close=True)
+            except Exception:
+                pass
+            raise ConnectionError(f"无法获取有效的数据库连接: {retry_err}")
 
     return conn
 
@@ -157,12 +179,21 @@ def release_db_connection(conn):
     """释放连接回池，失败时不影响业务"""
     if conn is None:
         return
+    global _pool
+    pool = _pool  # 读取一次，避免多线程竞态
+    if pool is None:
+        try:
+            if not getattr(conn, "closed", 0):
+                conn.close()
+        except Exception:
+            pass
+        return
     try:
-        pool = get_connection_pool()
         pool.putconn(conn)
     except Exception as e:
         logger.warning(f"释放数据库连接回池失败: {e}")
         try:
-            conn.close()
+            if not getattr(conn, "closed", 0):
+                conn.close()
         except Exception:
             pass
