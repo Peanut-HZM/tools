@@ -108,7 +108,7 @@ class DBConnectionManager:
         try:
             # 连接池配置
             pool_size = config.get("max_pool_size", 10)
-            pool_recycle = 3600  # 1 小时回收连接，配合 pool_pre_ping 防止使用过期连接
+            pool_recycle = 300  # 5 分钟回收连接，避免云数据库/本地 PG 空闲超时后复用失效连接
             max_overflow = config.get(
                 "max_overflow", 20
             )  # 允许超出 pool_size 的最大连接数

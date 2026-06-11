@@ -104,6 +104,23 @@ _STRUCTURE_CACHE = StructureCache(ttl=600, maxsize=100)
 
 class DatabaseToolService:
     @staticmethod
+    def _decrypt_password(password_encrypted: str, config_id: str = "") -> tuple[str | None, str | None]:
+        """
+        解密数据库配置密码。
+        返回 (password, error_message)。
+        解密失败时返回 (None, 错误描述)，不会抛异常。
+        """
+        if not password_encrypted:
+            return None, "数据库配置密码为空"
+        try:
+            password = EncryptionUtils.decrypt(password_encrypted)
+            return password, None
+        except Exception as e:
+            msg = str(e) or "未知错误"
+            logger.error(f"数据库配置 {config_id} 密码解密失败: {msg}")
+            return None, f"密码解密失败: {msg}，请编辑该连接重新保存密码"
+
+    @staticmethod
     def generate_ddl(
         user_id: str, config_id: str, table_name: str, database_name: str, schema_name: str = None
     ) -> str:
@@ -126,8 +143,7 @@ class DatabaseToolService:
             "charset": config_row["charset"],
         }
 
-        engine_key = f"{config_id}:{database_name}"
-        engine = DBConnectionManager.get_engine(engine_key, config_dict)
+        engine = DBConnectionManager.get_engine(config_id, config_dict)
         db_type = config_row["db_type"]
 
         try:
