@@ -129,9 +129,19 @@ def get_connection_pool(min_conn: Optional[int] = None, max_conn: Optional[int] 
 
 
 def get_pooled_db_connection():
-    """从连接池获取连接"""
+    """从连接池获取连接，若连接已失效则重取一次"""
     pool = get_connection_pool()
-    return pool.getconn()
+    conn = pool.getconn()
+
+    # 连接已被服务端关闭时，回收并重新获取
+    if getattr(conn, "closed", 0):
+        try:
+            pool.putconn(conn, close=True)
+        except Exception:
+            pass
+        conn = pool.getconn()
+
+    return conn
 
 
 def close_connection_pool():
@@ -144,6 +154,15 @@ def close_connection_pool():
 
 
 def release_db_connection(conn):
-    """释放连接回池"""
-    pool = get_connection_pool()
-    pool.putconn(conn)
+    """释放连接回池，失败时不影响业务"""
+    if conn is None:
+        return
+    try:
+        pool = get_connection_pool()
+        pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"释放数据库连接回池失败: {e}")
+        try:
+            conn.close()
+        except Exception:
+            pass
