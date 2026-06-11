@@ -949,13 +949,14 @@ class DatabaseToolService:
                 error_message="Configuration not found or access denied",
             )
 
-        try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
-        except Exception:
+        password, error = DatabaseToolService._decrypt_password(
+            config_row["password_encrypted"], request.db_config_id
+        )
+        if error:
             return SQLExecutionResult(
                 success=False,
                 execution_time_ms=0,
-                error_message="Failed to decrypt password",
+                error_message=error,
             )
 
         config_dict = {
@@ -1476,13 +1477,14 @@ class DatabaseToolService:
                 error_message="Configuration not found",
             )
 
-        try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
-        except Exception:
+        password, error = DatabaseToolService._decrypt_password(
+            config_row["password_encrypted"], request.db_config_id
+        )
+        if error:
             return SQLExecutionResult(
                 success=False,
                 execution_time_ms=0,
-                error_message="Failed to decrypt password",
+                error_message=error,
             )
 
         # If database_name is provided (e.g. for multi-db connections), use it
