@@ -588,7 +588,15 @@ class ToolsService:
                     "SELECT * FROM tool_categories WHERE deleted = FALSE ORDER BY sort_order"
                 )
                 rows = cur.fetchall()
-                result = [Category(**row) for row in rows]
+                # 将 datetime 转换为字符串以匹配 Category 模型
+                result = []
+                for row in rows:
+                    cat_data = dict(row)
+                    if isinstance(cat_data.get("created_at"), datetime):
+                        cat_data["created_at"] = cat_data["created_at"].isoformat()
+                    if isinstance(cat_data.get("updated_at"), datetime):
+                        cat_data["updated_at"] = cat_data["updated_at"].isoformat()
+                    result.append(Category(**cat_data))
             _tools_cache.set("categories", result)
             return result
         except Exception as e:
