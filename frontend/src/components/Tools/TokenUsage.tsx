@@ -349,15 +349,19 @@ export default function TokenUsage() {
   }, [getModelLabel]);
 
   const chartData = useMemo(
-    () => [...details.data.items].sort((a, b) => a.date.localeCompare(b.date)).map(item => ({
-      date: item.date,
-      inputTokens: item.input_tokens,
-      outputTokens: item.output_tokens,
-      cacheTokens: item.cache_creation_tokens + item.cache_read_tokens,
-      totalTokens: item.total_tokens,
-      cost: item.total_cost,
-    })),
-    [details.data.items]
+    () =>
+      [...summary.data.chart_series]
+        .filter(s => s.group_key == null)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map(item => ({
+          date: item.date,
+          inputTokens: item.input_tokens ?? 0,
+          outputTokens: item.output_tokens ?? 0,
+          cacheTokens: item.cache_tokens ?? 0,
+          totalTokens: item.total_tokens,
+          cost: item.total_cost,
+        })),
+    [summary.data.chart_series]
   );
 
   const groupedData = useMemo(() => {
