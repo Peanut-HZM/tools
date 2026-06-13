@@ -52,6 +52,7 @@ export interface ModelSummaryItem {
 export interface SyncMeta {
   last_synced_at?: string | null;
   last_success_at?: string | null;
+  latest_record_at?: string | null;
   cache_written_at?: string | null;
   cache_ttl_seconds: number;
   cache_expires_at?: string | null;
@@ -179,6 +180,9 @@ export interface ChartSeriesItem {
   group_key?: string | null;
   total_tokens: number;
   total_cost: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_tokens?: number;
 }
 
 export interface SummaryUsageSummary {
