@@ -1,7 +1,6 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
-import Hero from './components/Hero/Hero';
 import CategoryTabs from './components/Hero/CategoryTabs';
 import DeployTimeIndicator from './components/Hero/DeployTimeIndicator';
 import ToolGrid from './components/Hero/ToolGrid';
@@ -116,6 +115,8 @@ function HomePage() {
 
   // 初始化标记，防止 useEffect 重复触发
   const isInitializedRef = useRef(false);
+  // 首次渲染标记，防止分类 effect 在挂载时触发
+  const isFirstRenderRef = useRef(true);
   // AbortController，用于取消过期请求
   const abortControllerRef = useRef<AbortController>();
 
@@ -211,6 +212,10 @@ function HomePage() {
 
   // 根据分类筛选（初始化完成后才触发）
   useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
     if (!isInitializedRef.current) return;
     const signal = abortPreviousRequest();
     if (activeCategory === "全部工具") {
@@ -222,6 +227,7 @@ function HomePage() {
 
   // 根据搜索关键词筛选
   useEffect(() => {
+    if (isFirstRenderRef.current) return;
     if (!isInitializedRef.current) return;
     const signal = abortPreviousRequest();
     if (debouncedValue) {
