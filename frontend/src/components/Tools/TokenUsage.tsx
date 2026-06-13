@@ -518,7 +518,12 @@ export default function TokenUsage() {
         </div>
 
         <div className="flex flex-nowrap items-center gap-2">
-          <span className="text-xs text-slate-400">{formatDateTime(summary.data.sync_meta?.last_success_at)}</span>
+          <span className="text-xs text-slate-400">
+            {formatDateTime(
+              summary.data.sync_meta?.latest_record_at ||
+              summary.data.sync_meta?.last_success_at
+            )}
+          </span>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
