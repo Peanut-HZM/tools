@@ -1976,6 +1976,9 @@ def main():
     parser.add_argument("--type", dest="svc_type", default=None, help="服务类型过滤: vite|python|spring-boot|node-backend")
     parser.add_argument("--port", dest="port", type=int, default=None, help="端口号过滤")
     parser.add_argument("--foreground", "-f", action="store_true", help="前台模式运行")
+    parser.add_argument("--all", action="store_true", help="清空默认排除列表，扫描所有目录")
+    parser.add_argument("--exclude", action="append", metavar="DIR", help="追加排除指定目录名（可多次使用）")
+    parser.add_argument("--include", action="append", metavar="DIR", help="从排除列表中移除指定目录名（可多次使用，优先级高于 --exclude）")
 
     args = parser.parse_args()
 
