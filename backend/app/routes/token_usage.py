@@ -1816,10 +1816,20 @@ def build_chart_series(
 
         key = (date_key, gk)
         bucket = series_map.setdefault(
-            key, {"date": date_key, "group_key": gk, "total_tokens": 0, "total_cost": 0.0}
+            key, {
+                "date": date_key, "group_key": gk,
+                "total_tokens": 0, "total_cost": 0.0,
+                "input_tokens": 0, "output_tokens": 0, "cache_tokens": 0,
+            }
         )
         bucket["total_tokens"] += int(getattr(row, "total_tokens", 0) or 0)
         bucket["total_cost"] += float(getattr(row, "total_cost", 0) or 0)
+        bucket["input_tokens"] += int(getattr(row, "input_tokens", 0) or 0)
+        bucket["output_tokens"] += int(getattr(row, "output_tokens", 0) or 0)
+        bucket["cache_tokens"] += (
+            int(getattr(row, "cache_creation_tokens", 0) or 0)
+            + int(getattr(row, "cache_read_tokens", 0) or 0)
+        )
 
     result = [
         {
@@ -1827,6 +1837,9 @@ def build_chart_series(
             "group_key": v["group_key"],
             "total_tokens": v["total_tokens"],
             "total_cost": round(v["total_cost"], 4),
+            "input_tokens": v["input_tokens"],
+            "output_tokens": v["output_tokens"],
+            "cache_tokens": v["cache_tokens"],
         }
         for v in series_map.values()
     ]
