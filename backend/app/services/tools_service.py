@@ -14,6 +14,11 @@ from app.models import Tool, Category, ToolCreateRequest, CategoryCreateRequest
 
 logger = logging.getLogger(__name__)
 
+from app.services.simple_cache import SimpleTTLCache
+
+# 全局缓存实例（进程级别单例）
+_tools_cache = SimpleTTLCache(default_ttl=300)
+
 
 class ToolsService:
     """Service for managing tools in database"""
@@ -534,6 +539,11 @@ class ToolsService:
 
     def get_tools_for_platform(self, platform: str, category: Optional[str] = None) -> List[Tool]:
         """按平台获取在线工具，支持分类过滤（参数化查询防止 SQL 注入）"""
+        cache_key = f"tools:{platform}:{category or 'all'}"
+        cached = _tools_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         conn = None
         try:
             conn = get_pooled_db_connection()
@@ -554,7 +564,9 @@ class ToolsService:
                 cur.execute(base_sql, params)
 
                 rows = cur.fetchall()
-                return [self._row_to_tool(row) for row in rows]
+                result = [self._row_to_tool(row) for row in rows]
+            _tools_cache.set(cache_key, result)
+            return result
         except Exception as e:
             logger.error(f"Error fetching tools for platform {platform}: {e}")
             return []
@@ -563,6 +575,11 @@ class ToolsService:
                 release_db_connection(conn)
 
     def get_all_categories(self) -> List[Category]:
+        # 尝试从缓存获取
+        cached = _tools_cache.get("categories")
+        if cached is not None:
+            return cached
+
         conn = None
         try:
             conn = get_pooled_db_connection()
@@ -571,7 +588,9 @@ class ToolsService:
                     "SELECT * FROM tool_categories WHERE deleted = FALSE ORDER BY sort_order"
                 )
                 rows = cur.fetchall()
-                return [Category(**row) for row in rows]
+                result = [Category(**row) for row in rows]
+            _tools_cache.set("categories", result)
+            return result
         except Exception as e:
             logger.error(f"Error fetching categories: {e}")
             return []
