@@ -166,7 +166,7 @@ def discover_services(root_dir: Optional[Path] = None, max_depth: int = MAX_SCAN
     return services
 
 
-def _scan_directory(current: Path, root: Path, max_depth: int, services: list):
+def _scan_directory(current: Path, root: Path, max_depth: int, services: list, exclude_dirs: Optional[set[str]] = None):
     """递归扫描，跳过黑名单目录"""
     rel_depth = len(current.relative_to(root).parts)
     if rel_depth > max_depth:
@@ -174,6 +174,10 @@ def _scan_directory(current: Path, root: Path, max_depth: int, services: list):
 
     # 跳过黑名单
     if current != root and (current.name in SKIP_DIRS or current.name in AUXILIARY_DIRS):
+        return
+
+    # 跳过用户排除的目录
+    if exclude_dirs and current != root and current.name.lower() in exclude_dirs:
         return
 
     # 尝试发现服务
