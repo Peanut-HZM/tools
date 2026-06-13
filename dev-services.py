@@ -55,6 +55,9 @@ SKIP_DIRS = {
 }
 AUXILIARY_DIRS = {"tools", "scripts", "script", "bin", ".superpowers", ".gstack"}
 
+# 默认排除的服务目录（仅当用户显式 --include 或 --all 时才扫描）
+DEFAULT_EXCLUDE_DIRS = {"mini-program", "tools-mini-program"}
+
 # 框架默认端口
 DEFAULT_PORTS = {
     "vite": 5173,
