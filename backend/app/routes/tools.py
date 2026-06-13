@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException
 from typing import List, Optional
 from app.models import ToolsResponse, SearchResponse, CategoryResponse, Category, CategoryCreateRequest
-from app.services.tools_service import tools_service
+from app.services.tools_service import tools_service, _tools_cache
 from app.services.system_monitor_service import get_system_info, get_resource_usage, get_process_list, kill_process
 
 router = APIRouter(tags=["tools"])
@@ -18,6 +18,7 @@ def create_category(request: CategoryCreateRequest):
         category = tools_service.create_category(request)
         if not category:
             raise HTTPException(status_code=500, detail="Failed to create category")
+        _tools_cache.invalidate("categories")
         return category
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -29,6 +30,7 @@ def update_category(cat_id: str, request: CategoryCreateRequest):
         category = tools_service.update_category(cat_id, request)
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
+        _tools_cache.invalidate("categories")
         return category
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -40,6 +42,7 @@ def delete_category(cat_id: str):
         success = tools_service.delete_category(cat_id)
         if not success:
             raise HTTPException(status_code=404, detail="Category not found")
+        _tools_cache.invalidate("categories")
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
