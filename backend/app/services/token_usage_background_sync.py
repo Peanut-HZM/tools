@@ -107,6 +107,7 @@ def run_background_sync_once(days: int, max_users: int) -> dict[str, list[str]]:
     logger.info("Token Usage 后台同步开始: users=%s, days=%s", len(user_ids), days)
 
     for user_id in user_ids:
+        user_started = time.perf_counter()
         owner = str(uuid.uuid4())
         lock = acquire_refresh_lock(user_id, owner)
         if not lock.get("acquired"):
@@ -122,18 +123,22 @@ def run_background_sync_once(days: int, max_users: int) -> dict[str, list[str]]:
             sync_result = sync_token_usage(user_id=user_id, days=days)
             invalidate_user_query_cache(user_id)
             result["synced_users"].append(user_id)
+            user_elapsed_ms = int((time.perf_counter() - user_started) * 1000)
             logger.info(
-                "Token Usage 后台同步完成: user=%s, records=%s, errors=%s",
+                "Token Usage 后台同步完成: user=%s, records=%s, errors=%s, elapsed_ms=%s",
                 user_id,
                 sync_result.get("total_records"),
                 len(sync_result.get("errors") or []),
+                user_elapsed_ms,
             )
         except Exception as exc:
             result["failed_users"].append(user_id)
+            user_elapsed_ms = int((time.perf_counter() - user_started) * 1000)
             logger.warning(
-                "Token Usage 后台同步失败: user=%s, error=%s",
+                "Token Usage 后台同步失败: user=%s, error=%s, elapsed_ms=%s",
                 user_id,
                 exc,
+                user_elapsed_ms,
                 exc_info=True,
             )
         finally:
