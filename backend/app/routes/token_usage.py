@@ -649,6 +649,9 @@ class ChartSeriesItem(BaseModel):
     group_key: Optional[str] = None
     total_tokens: int
     total_cost: float
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_tokens: int = 0
 
 
 class SummaryUsageSummary(BaseModel):
