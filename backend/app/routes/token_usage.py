@@ -621,6 +621,7 @@ class FilterOptions(BaseModel):
 class SyncMeta(BaseModel):
     last_synced_at: Optional[str] = None
     last_success_at: Optional[str] = None
+    latest_record_at: Optional[str] = None
     cache_written_at: Optional[str] = None
     cache_ttl_seconds: int = 0
     cache_expires_at: Optional[str] = None
@@ -2026,6 +2027,23 @@ def _latest_record_updated_at(db, user_id: str, req):
     return row.updated_at or row.created_at
 
 
+def _latest_record_at_global(db, user_id: str) -> Optional[datetime]:
+    """取该用户全局最新记录的写入时间,不受任何筛选影响。
+    优先 updated_at,缺失时 fallback created_at。
+    """
+    row = (
+        db.query(
+            func.max(TokenUsageRecord.updated_at).label("updated_at"),
+            func.max(TokenUsageRecord.created_at).label("created_at"),
+        )
+        .filter(TokenUsageRecord.user_id == user_id)
+        .first()
+    )
+    if not row:
+        return None
+    return row.updated_at or row.created_at
+
+
 def _query_item_model_map(db, user_id: str, req, since_date: datetime) -> dict[tuple, list[str]]:
     """查询每个明细行对应的模型集合，用于补全表格模型列。"""
     filters = _build_record_filters(user_id, req, since_date)
@@ -2151,7 +2169,7 @@ def _get_sync_meta(db, user_id: str, req, cached_payload: Optional[dict]) -> dic
     if last_success_at is None:
         last_success_at = _latest_record_updated_at(db, user_id, req)
 
-    return _build_sync_meta_from_values(
+    result = _build_sync_meta_from_values(
         now=datetime.now(),
         last_success_at=last_success_at,
         cache_written_at=_parse_cache_time(
@@ -2162,6 +2180,8 @@ def _get_sync_meta(db, user_id: str, req, cached_payload: Optional[dict]) -> dic
         sources_status=sources_status,
         refresh_lock={"locked": False, "owner": None, "ttl_seconds": 0},
     )
+    result["latest_record_at"] = _to_iso(_latest_record_at_global(db, user_id))
+    return result
 
 
 def _execute_model_summary_query(db, user_id: str, req, since_date: datetime, alias_map: Optional[dict[str, str]] = None):
