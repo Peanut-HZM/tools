@@ -191,7 +191,7 @@ def _scan_directory(current: Path, root: Path, max_depth: int, services: list, e
     try:
         for child in sorted(current.iterdir()):
             if child.is_dir():
-                _scan_directory(child, root, max_depth, services)
+                _scan_directory(child, root, max_depth, services, exclude_dirs)
     except PermissionError:
         pass
 
@@ -1994,8 +1994,17 @@ def main():
             log(f"目标路径不存在: {args.target}", "ERROR")
             return
 
+    # 计算有效排除集合
+    effective_exclude = set(DEFAULT_EXCLUDE_DIRS)
+    if args.all:
+        effective_exclude = set()
+    for d in (args.exclude or []):
+        effective_exclude.add(d.lower())
+    for d in (args.include or []):
+        effective_exclude.discard(d.lower())
+
     # 发现服务
-    services = discover_services(root_dir=root_dir)
+    services = discover_services(root_dir=root_dir, exclude_dirs=effective_exclude)
     services = filter_services(services, args.svc_type, args.port)
     services = assign_unique_ports(services)
 
