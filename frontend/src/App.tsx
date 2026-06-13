@@ -1,10 +1,7 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
-import CategoryTabs from './components/Hero/CategoryTabs';
-import DeployTimeIndicator from './components/Hero/DeployTimeIndicator';
-import ToolGrid from './components/Hero/ToolGrid';
-import SkeletonGrid from './components/Hero/SkeletonGrid';
+import Hero from './components/Hero/Hero';
 import Layout from './components/Layout/Layout';
 import AdminLayout from './components/Admin/AdminLayout';
 import ToolManagement from './components/Admin/ToolManagement';
@@ -103,8 +100,7 @@ function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [filteredTools, setFilteredTools] = useState<Tool[]>([]);
-  const [toolsLoading, setToolsLoading] = useState(true);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>(["全部工具"]);
   const { t } = useI18n();
@@ -112,13 +108,6 @@ function HomePage() {
 
   const { activeCategory, handleCategoryChange } = useCategory();
   const { debouncedValue, handleSearchChange } = useOutletContext<LayoutContext>();
-
-  // 初始化标记，防止 useEffect 重复触发
-  const isInitializedRef = useRef(false);
-  // 首次渲染标记，防止分类 effect 在挂载时触发
-  const isFirstRenderRef = useRef(true);
-  // AbortController，用于取消过期请求
-  const abortControllerRef = useRef<AbortController>();
 
   // Sync URL query with search state
   useEffect(() => {
@@ -129,122 +118,85 @@ function HomePage() {
     }
   }, [location.search]);
 
-  const abortPreviousRequest = () => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
-    return abortControllerRef.current.signal;
-  };
-
-  const isAbortError = (err: any): boolean => {
-    return err?.name === 'AbortError';
-  };
+  // 初始加载所有工具
+  useEffect(() => {
+    loadCategories();
+    loadTools();
+  }, []);
 
   const loadCategories = async () => {
     try {
-      setCategoriesLoading(true);
       const cats = await fetchCategories();
       const catNames = ["全部工具", ...cats.map(c => c.name)];
       setCategories(Array.from(new Set(catNames)));
     } catch (e) {
-      if (!isAbortError(e)) {
-        console.error("Failed to load categories", e);
-      }
-    } finally {
-      setCategoriesLoading(false);
+      console.error("Failed to load categories", e);
+      // Fallback to default if failed? Or keep "全部工具"
     }
   };
 
-  const loadTools = async (signal?: AbortSignal) => {
+
+  const loadTools = async () => {
     try {
-      setToolsLoading(true);
-      const data = await fetchTools('pc', signal);
+      setLoading(true);
+      const data = await fetchTools('pc');
       setFilteredTools(data);
       setError(null);
     } catch (err) {
-      if (!isAbortError(err)) {
+      setError(t.errors.toolLoadFailed);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadToolsDataByCategory = async (category: string) => {
+    try {
+        setLoading(true);
+        const data = await loadToolsByCategory(category, 'pc');
+        setFilteredTools(data);
+        setError(null);
+    } catch (err) {
         setError(t.errors.toolLoadFailed);
         console.error(err);
-      }
     } finally {
-      setToolsLoading(false);
+        setLoading(false);
     }
   };
 
-  const loadToolsDataByCategory = async (category: string, signal?: AbortSignal) => {
+  const searchToolsData = async (query: string) => {
     try {
-      setToolsLoading(true);
-      const data = await loadToolsByCategory(category, 'pc', signal);
+      setLoading(true);
+      const data = await searchTools(query);
       setFilteredTools(data);
       setError(null);
     } catch (err) {
-      if (!isAbortError(err)) {
-        setError(t.errors.toolLoadFailed);
-        console.error(err);
-      }
+      setError(t.errors.toolSearchFailed);
+      console.error(err);
     } finally {
-      setToolsLoading(false);
+      setLoading(false);
     }
   };
 
-  const searchToolsData = async (query: string, signal?: AbortSignal) => {
-    try {
-      setToolsLoading(true);
-      const data = await searchTools(query, signal);
-      setFilteredTools(data);
-      setError(null);
-    } catch (err) {
-      if (!isAbortError(err)) {
-        setError(t.errors.toolSearchFailed);
-        console.error(err);
-      }
-    } finally {
-      setToolsLoading(false);
-    }
-  };
-
-  // 初始加载
+  // 根据分类筛选
   useEffect(() => {
-    const signal = abortPreviousRequest();
-    loadCategories();
-    loadTools(signal);
-    isInitializedRef.current = true;
-  }, []);
-
-  // 根据分类筛选（初始化完成后才触发）
-  useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return;
-    }
-    if (!isInitializedRef.current) return;
-    const signal = abortPreviousRequest();
     if (activeCategory === "全部工具") {
-      loadTools(signal);
+      loadTools();
     } else {
-      loadToolsDataByCategory(activeCategory, signal);
+      loadToolsDataByCategory(activeCategory);
     }
   }, [activeCategory]);
 
   // 根据搜索关键词筛选
   useEffect(() => {
-    if (isFirstRenderRef.current) return;
-    if (!isInitializedRef.current) return;
-    const signal = abortPreviousRequest();
     if (debouncedValue) {
-      searchToolsData(debouncedValue, signal);
+      searchToolsData(debouncedValue);
     } else if (activeCategory === "全部工具") {
-      loadTools(signal);
+      loadTools();
     } else {
-      loadToolsDataByCategory(activeCategory, signal);
+      loadToolsDataByCategory(activeCategory);
     }
   }, [debouncedValue]);
-
-  // 组件卸载时取消请求
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, []);
 
   // 处理工具点击 - 使用路由导航
   const handleToolClick = (toolId: string) => {
@@ -303,19 +255,20 @@ function HomePage() {
         </div>
       )}
 
-      <div className="flex items-center justify-center mb-8">
-        <CategoryTabs
-          categories={categories}
-          activeCategory={activeCategory}
-          onCategoryChange={handleCategoryChange}
-        />
-        <DeployTimeIndicator />
-      </div>
-
-      {toolsLoading ? (
-        <SkeletonGrid />
+      {loading ? (
+        <div className="text-center py-16">
+          <div className="text-xl text-slate-400">{t.common.loading}</div>
+        </div>
       ) : (
-        <ToolGrid tools={filteredTools} onToolClick={handleToolClick} />
+        <>
+          <Hero
+            activeCategory={activeCategory}
+            onCategoryChange={handleCategoryChange}
+            tools={filteredTools}
+            onToolClick={handleToolClick}
+            categories={categories}
+          />
+        </>
       )}
     </div>
   );
