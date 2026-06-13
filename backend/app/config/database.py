@@ -128,10 +128,18 @@ def get_connection_pool(min_conn: Optional[int] = None, max_conn: Optional[int] 
     return _pool
 
 
+def _health_check_enabled() -> bool:
+    """判断是否启用数据库连接健康检查"""
+    return getattr(settings, "DB_HEALTH_CHECK", "false").lower() == "true"
+
+
 def get_pooled_db_connection():
-    """从连接池获取连接，若连接已失效则重取一次"""
+    """从连接池获取连接，若连接已失效则重取一次（健康检查可配置）"""
     pool = get_connection_pool()
     conn = pool.getconn()
+
+    if not _health_check_enabled():
+        return conn
 
     # 通过轻量查询验证连接是否真正可用
     try:
