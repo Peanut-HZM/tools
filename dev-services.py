@@ -158,11 +158,11 @@ class Service:
 # 项目发现
 # ============================================================
 
-def discover_services(root_dir: Optional[Path] = None, max_depth: int = MAX_SCAN_DEPTH) -> list[Service]:
+def discover_services(root_dir: Optional[Path] = None, max_depth: int = MAX_SCAN_DEPTH, exclude_dirs: Optional[set[str]] = None) -> list[Service]:
     """递归扫描目录，发现所有服务"""
     base = root_dir or CWD
     services = []
-    _scan_directory(base, base, max_depth, services)
+    _scan_directory(base, base, max_depth, services, exclude_dirs or set())
     return services
 
 
