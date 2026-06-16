@@ -116,7 +116,7 @@ class DatabaseToolService:
             password = EncryptionUtils.decrypt(password_encrypted)
             return password, None
         except Exception as e:
-            msg = str(e) or "未知错误"
+            msg = str(e) or f"{type(e).__name__}"
             logger.error(f"数据库配置 {config_id} 密码解密失败: {msg}")
             return None, f"密码解密失败: {msg}，请编辑该连接重新保存密码"
 
@@ -1478,7 +1478,7 @@ class DatabaseToolService:
             )
 
         password, error = DatabaseToolService._decrypt_password(
-            config_row["password_encrypted"], request.db_config_id
+            config_row["password_encrypted"], config_id
         )
         if error:
             return SQLExecutionResult(

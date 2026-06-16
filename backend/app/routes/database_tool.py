@@ -41,6 +41,7 @@ from app.models.database_tool_models import (
     RowOperationResult,
     DisplayPreference,
     DisplayPreferenceResponse,
+    QueryTableDataRequest,
 )
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -466,29 +467,24 @@ async def get_table_schema(
 async def query_table_data(
     id: str = PathParam(..., description="Configuration ID"),
     table: str = PathParam(..., description="Table Name"),
-    request: dict = Body(..., description="Query parameters"),
+    body: QueryTableDataRequest = Body(...),
     user_id: str = Depends(get_current_user_id),
 ):
     """Query table data with filtering and sorting"""
     try:
-        database_name = request.get("database_name")
-        schema_name = request.get("schema_name")
-        where_clause = request.get("where")
-        order_by_clause = request.get("order_by")
-        page = request.get("page", 1)
-        page_size = request.get("page_size", 20)
-
         return DatabaseToolService.query_table_data(
             user_id,
             id,
             table,
-            database_name=database_name,
-            schema_name=schema_name,
-            where_clause=where_clause,
-            order_by_clause=order_by_clause,
-            page=page,
-            page_size=page_size,
+            database_name=body.database_name,
+            schema_name=body.schema_name,
+            where_clause=body.where,
+            order_by_clause=body.order_by,
+            page=body.page,
+            page_size=body.page_size,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

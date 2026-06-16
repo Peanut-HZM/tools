@@ -159,6 +159,17 @@ class TableData(BaseModel):
     page_size: int
 
 
+class QueryTableDataRequest(BaseModel):
+    """表数据查询请求体（用于 POST /databases/{id}/tables/{table}/data）"""
+
+    database_name: Optional[str] = None
+    schema_name: Optional[str] = None
+    where: Optional[str] = None
+    order_by: Optional[str] = None
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=1000)
+
+
 class SearchResult(BaseModel):
     database: str
     table: str
