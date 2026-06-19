@@ -631,22 +631,41 @@ def _run_ccusage_v2_sync(
     device_name: str,
     since_date,
     until_date,
-) -> int:
-    """v2: ccusage 统一数据源同步"""
+) -> dict:
+    """v2: ccusage 统一数据源同步
+
+    Returns:
+        {"count": int, "errors": list[dict]}
+        errors 中每个元素为 {"source": "...", "error": "...", "error_code": "...",
+                              "remediation": "...", "details": {...}}
+    """
     from app.utils.usage_fetcher_v2 import UsageFetcherV2
 
     since_str = since_date.isoformat() if hasattr(since_date, "isoformat") else str(since_date)
     until_str = until_date.isoformat() if hasattr(until_date, "isoformat") else str(until_date)
 
+    errors: list[dict] = []
+
     daily_result = UsageFetcherV2.fetch_ccusage_daily(since=since_str, until=until_str)
     if "error" in daily_result:
         logger.warning(f"[ccusage-v2] daily 拉取失败: {daily_result['error']}")
-        return 0
+        return {
+            "count": 0,
+            "errors": [
+                {
+                    "source": "ccusage-v2:daily",
+                    "error": daily_result["error"],
+                    "error_code": daily_result.get("error_code"),
+                    "remediation": daily_result.get("remediation"),
+                    "details": daily_result.get("details") or {},
+                }
+            ],
+        }
 
     daily_list = daily_result.get("daily", [])
     if not daily_list:
         logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 无数据")
-        return 0
+        return {"count": 0, "errors": []}
 
     all_agents: set[str] = set()
     for day in daily_list:
@@ -661,6 +680,15 @@ def _run_ccusage_v2_sync(
         )
         if "error" in agent_result:
             logger.warning(f"[ccusage-v2] {agent} daily 拉取失败: {agent_result['error']}")
+            errors.append(
+                {
+                    "source": f"ccusage-v2:{agent}",
+                    "error": agent_result["error"],
+                    "error_code": agent_result.get("error_code"),
+                    "remediation": agent_result.get("remediation"),
+                    "details": agent_result.get("details") or {},
+                }
+            )
             continue
         for day in (agent_result.get("daily") or []):
             date_key = day.get("date")
@@ -673,7 +701,7 @@ def _run_ccusage_v2_sync(
     records = _parse_ccusage_records(daily_list, agent_models_dict)
     if not records:
         logger.info(f"[ccusage-v2] 解析后 0 条记录（{since_str} ~ {until_str}）")
-        return 0
+        return {"count": 0, "errors": errors}
 
     # 按 agent 分组，分别 upsert，确保每个 Agent 有正确的 source/tool_id/tool_name
     from itertools import groupby
@@ -687,7 +715,7 @@ def _run_ccusage_v2_sync(
         logger.info(f"[ccusage-v2] {agent}: 同步 {count} 条")
 
     logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 总计同步 {total_count} 条")
-    return total_count
+    return {"count": total_count, "errors": errors}
 
 
 def sync_token_usage_v2(
@@ -697,8 +725,12 @@ def sync_token_usage_v2(
     device_name: str,
     since: str,
     until: str,
-) -> int:
-    """公开 API：v2 ccusage 同步入口，供 scheduler 和手动端点使用。"""
+) -> dict:
+    """公开 API：v2 ccusage 同步入口，供 scheduler 和手动端点使用。
+
+    Returns:
+        {"count": int, "errors": list[dict]}
+    """
     since_date = date.fromisoformat(since)
     until_date = date.fromisoformat(until)
     return _run_ccusage_v2_sync(

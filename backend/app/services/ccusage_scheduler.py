@@ -90,7 +90,7 @@ def _resolve_scheduler_user_id(db) -> str:
     return "system"
 
 
-def _sync_today(date_str: str) -> int:
+def _sync_today(date_str: str) -> dict:
     """同步指定日期数据（同步函数，run in thread）。"""
     db = SessionLocal()
     try:

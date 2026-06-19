@@ -1087,7 +1087,7 @@ async def refresh_ccusage_endpoint(
             db, user_id, device_id, device_name, device_fingerprint, id_type
         )
         today = date.today().isoformat()
-        count = await asyncio.to_thread(
+        result = await asyncio.to_thread(
             sync_token_usage_v2,
             db=db,
             user_id=user_id,
@@ -1098,7 +1098,13 @@ async def refresh_ccusage_endpoint(
         )
         # 清除聚合查询缓存（同步后汇总数据已更新）
         invalidate_user_query_cache(user_id)
-        return {"success": True, "synced_records": count, "date": today}
+        # result 现在是 dict: {"count": int, "errors": list[dict]}
+        count = result.get("count", 0)
+        errors = result.get("errors", [])
+        response = {"success": True, "synced_records": count, "date": today}
+        if errors:
+            response["errors"] = errors
+        return response
     except Exception as e:
         logger.error(f"[ccusage-manual] 手动同步失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"同步失败: {e}")
