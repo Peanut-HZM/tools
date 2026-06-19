@@ -49,3 +49,56 @@ class CcusageError:
 # 模块级缓存
 _ccusage_path: Optional[str] = None
 _node_path: Optional[str] = None
+
+
+def _expand_user(path: str) -> str:
+    """跨平台展开 ~ 路径"""
+    return os.path.expanduser(path)
+
+
+def _node_search_paths() -> list[str]:
+    """根据当前操作系统返回 node 候选路径列表"""
+    system = platform.system()
+    home = _expand_user("~")
+
+    if system == "Windows":
+        return [
+            r"C:\Program Files\nodejs\node.exe",
+            r"C:\Program Files (x86)\nodejs\node.exe",
+            os.path.join(home, "AppData", "Roaming", "nvm", "current", "node.exe"),
+        ]
+
+    # macOS / Linux
+    paths = [
+        "/usr/local/bin/node",
+        "/usr/bin/node",
+        os.path.join(home, ".npm-global", "bin", "node"),
+    ]
+    if system == "Darwin":
+        paths.append("/opt/homebrew/bin/node")
+    # NVM 多版本目录（glob 展开）
+    paths.extend(sorted(glob.glob(os.path.join(home, ".nvm", "versions", "node", "*", "bin", "node"))))
+    return paths
+
+
+def find_node() -> Optional[str]:
+    """查找 Node.js 可执行文件路径；未找到返回 None"""
+    global _node_path
+    if _node_path is not None:
+        return _node_path
+
+    # 优先使用 PATH 中的 node
+    which_result = shutil.which("node")
+    if which_result and os.path.exists(which_result):
+        _node_path = which_result
+        logger.info("[ccusage-invoker] 从 PATH 找到 node: %s", which_result)
+        return _node_path
+
+    for p in _node_search_paths():
+        if os.path.exists(p):
+            _node_path = p
+            logger.info("[ccusage-invoker] 找到 node: %s", p)
+            return _node_path
+
+    logger.warning("[ccusage-invoker] 未找到 node。系统: %s", platform.system())
+    return None
