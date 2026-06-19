@@ -1107,7 +1107,22 @@ async def refresh_ccusage_endpoint(
         return response
     except Exception as e:
         logger.error(f"[ccusage-manual] 手动同步失败: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"同步失败: {e}")
+        # 尝试从 ccusage_invoker 错误中提取结构化信息
+        from app.utils.ccusage_invoker import CcusageError
+        if isinstance(e, CcusageError):
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": e.message,
+                    "error_code": e.code,
+                    "remediation": e.remediation,
+                },
+            )
+        raise HTTPException(status_code=500, detail={
+            "message": f"同步失败: {e}",
+            "error_code": "CLI_EXECUTION_ERROR",
+            "remediation": "请检查 ccusage 安装是否完整",
+        })
     finally:
         db.close()
 
