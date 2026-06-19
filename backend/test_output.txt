@@ -1,0 +1,190 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\peanu\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+rootdir: G:\IdeaProjects\tools\backend
+plugins: anyio-4.13.0, Faker-40.13.0, asyncio-1.3.0, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 7 items
+
+tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_valid_config PASSED [ 14%]
+tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_invalid_sale_time_format PASSED [ 28%]
+tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_invalid_sale_time_text PASSED [ 42%]
+tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_preheat_too_small PASSED [ 57%]
+tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_refresh_interval_too_small FAILED [ 71%]
+tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_timeout_too_small FAILED [ 85%]
+tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_timeout_too_large FAILED [100%]
+
+================================== FAILURES ===================================
+_____________ TestValidateConfig.test_refresh_interval_too_small ______________
+
+self = <tests.test_glm_coding_rusher_service.TestValidateConfig object at 0x000001D08BBCFAD0>
+
+    def test_refresh_interval_too_small(self):
+        config = {"refresh_interval_ms": 50, "sale_time": "10:00"}
+        with pytest.raises(ConfigError, match="refresh_interval_ms"):
+>           validate_config(config)
+
+tests\test_glm_coding_rusher_service.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+config = {'refresh_interval_ms': 50, 'sale_time': '10:00'}
+
+    def validate_config(config: dict) -> None:
+        """
+        校验抢购配置
+    
+        Args:
+            config: 配置字典
+    
+        Raises:
+            ConfigError: 配置不合法
+        """
+        # sale_time 校验
+        sale_time = config.get("sale_time", "")
+        if not sale_time:
+            raise ConfigError("sale_time 不能为空")
+        try:
+            h, m = map(int, sale_time.split(":"))
+            if not (0 <= h <= 23 and 0 <= m <= 59):
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise ConfigError("sale_time 格式必须为 HH:MM，例如 10:00")
+    
+        # preheat_seconds 校验
+        preheat = config.get("preheat_seconds", 0)
+        if preheat < 30:
+>           raise ConfigError("preheat_seconds 不能小于 30 秒")
+E           app.services.glm_coding_rusher_service.ConfigError: preheat_seconds 不能小于 30 秒
+
+app\services\glm_coding_rusher_service.py:127: ConfigError
+
+During handling of the above exception, another exception occurred:
+
+self = <tests.test_glm_coding_rusher_service.TestValidateConfig object at 0x000001D08BBCFAD0>
+
+    def test_refresh_interval_too_small(self):
+        config = {"refresh_interval_ms": 50, "sale_time": "10:00"}
+>       with pytest.raises(ConfigError, match="refresh_interval_ms"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'refresh_interval_ms'
+E         Actual message: 'preheat_seconds 不能小于 30 秒'
+
+tests\test_glm_coding_rusher_service.py:127: AssertionError
+__________________ TestValidateConfig.test_timeout_too_small __________________
+
+self = <tests.test_glm_coding_rusher_service.TestValidateConfig object at 0x000001D08BE49D00>
+
+    def test_timeout_too_small(self):
+        config = {"timeout_seconds": 0, "sale_time": "10:00"}
+        with pytest.raises(ConfigError, match="timeout_seconds"):
+>           validate_config(config)
+
+tests\test_glm_coding_rusher_service.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+config = {'sale_time': '10:00', 'timeout_seconds': 0}
+
+    def validate_config(config: dict) -> None:
+        """
+        校验抢购配置
+    
+        Args:
+            config: 配置字典
+    
+        Raises:
+            ConfigError: 配置不合法
+        """
+        # sale_time 校验
+        sale_time = config.get("sale_time", "")
+        if not sale_time:
+            raise ConfigError("sale_time 不能为空")
+        try:
+            h, m = map(int, sale_time.split(":"))
+            if not (0 <= h <= 23 and 0 <= m <= 59):
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise ConfigError("sale_time 格式必须为 HH:MM，例如 10:00")
+    
+        # preheat_seconds 校验
+        preheat = config.get("preheat_seconds", 0)
+        if preheat < 30:
+>           raise ConfigError("preheat_seconds 不能小于 30 秒")
+E           app.services.glm_coding_rusher_service.ConfigError: preheat_seconds 不能小于 30 秒
+
+app\services\glm_coding_rusher_service.py:127: ConfigError
+
+During handling of the above exception, another exception occurred:
+
+self = <tests.test_glm_coding_rusher_service.TestValidateConfig object at 0x000001D08BE49D00>
+
+    def test_timeout_too_small(self):
+        config = {"timeout_seconds": 0, "sale_time": "10:00"}
+>       with pytest.raises(ConfigError, match="timeout_seconds"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'timeout_seconds'
+E         Actual message: 'preheat_seconds 不能小于 30 秒'
+
+tests\test_glm_coding_rusher_service.py:132: AssertionError
+__________________ TestValidateConfig.test_timeout_too_large __________________
+
+self = <tests.test_glm_coding_rusher_service.TestValidateConfig object at 0x000001D08BE49F20>
+
+    def test_timeout_too_large(self):
+        config = {"timeout_seconds": 3600, "sale_time": "10:00"}
+        with pytest.raises(ConfigError, match="timeout_seconds"):
+>           validate_config(config)
+
+tests\test_glm_coding_rusher_service.py:138: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+config = {'sale_time': '10:00', 'timeout_seconds': 3600}
+
+    def validate_config(config: dict) -> None:
+        """
+        校验抢购配置
+    
+        Args:
+            config: 配置字典
+    
+        Raises:
+            ConfigError: 配置不合法
+        """
+        # sale_time 校验
+        sale_time = config.get("sale_time", "")
+        if not sale_time:
+            raise ConfigError("sale_time 不能为空")
+        try:
+            h, m = map(int, sale_time.split(":"))
+            if not (0 <= h <= 23 and 0 <= m <= 59):
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise ConfigError("sale_time 格式必须为 HH:MM，例如 10:00")
+    
+        # preheat_seconds 校验
+        preheat = config.get("preheat_seconds", 0)
+        if preheat < 30:
+>           raise ConfigError("preheat_seconds 不能小于 30 秒")
+E           app.services.glm_coding_rusher_service.ConfigError: preheat_seconds 不能小于 30 秒
+
+app\services\glm_coding_rusher_service.py:127: ConfigError
+
+During handling of the above exception, another exception occurred:
+
+self = <tests.test_glm_coding_rusher_service.TestValidateConfig object at 0x000001D08BE49F20>
+
+    def test_timeout_too_large(self):
+        config = {"timeout_seconds": 3600, "sale_time": "10:00"}
+>       with pytest.raises(ConfigError, match="timeout_seconds"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'timeout_seconds'
+E         Actual message: 'preheat_seconds 不能小于 30 秒'
+
+tests\test_glm_coding_rusher_service.py:137: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_refresh_interval_too_small
+FAILED tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_timeout_too_small
+FAILED tests/test_glm_coding_rusher_service.py::TestValidateConfig::test_timeout_too_large
+========================= 3 failed, 4 passed in 0.64s =========================
