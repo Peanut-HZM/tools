@@ -70,6 +70,7 @@ Thumbs.db
 downloads/
 download/
 backend/data/
+!backend/data/glm_coding_rusher/.gitkeep
 backend_deploy/data/
 backend_deploy.tar.gz
 
