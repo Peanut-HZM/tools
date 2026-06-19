@@ -331,7 +331,14 @@ export default function TokenUsage() {
     }
   };
 
-  const sortedItems = useMemo(() => [...details.data.items], [details.data.items]);
+  const resolveDeviceName = useCallback((item: DbUsageItem): string => {
+    const backendName = item.device_name?.trim();
+    if (backendName) return backendName;
+    if (item.device_id) {
+      return deviceNameMap.get(item.device_id) || item.device_id;
+    }
+    return '-';
+  }, [deviceNameMap]);
 
   const getToolLabel = useCallback((value?: string | null) => {
     if (!value) return '-';
@@ -420,7 +427,7 @@ export default function TokenUsage() {
     const rows = details.data.items.map(item => [
       item.date,
       getGroupLabel(item),
-      item.device_name || '-',
+      item.device_name || (item.device_id ? deviceNameMap.get(item.device_id) || '-' : '-'),
       getRowToolLabel(item),
       formatModelsUsed(item.models_used),
       item.input_tokens,
@@ -818,8 +825,8 @@ export default function TokenUsage() {
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/60">
                   <td className="px-4 py-3 text-slate-200">{item.date}</td>
                   {groupBy !== 'none' && <td className="max-w-[180px] truncate px-4 py-3 text-slate-300" title={getGroupLabel(item)}>{getGroupLabel(item)}</td>}
-                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-300" title={item.device_id ? (deviceNameMap.get(item.device_id) || item.device_name || '-') : (item.device_name || '-')}>
-                    {item.device_id ? (deviceNameMap.get(item.device_id) || item.device_name || '-') : (item.device_name || '-')}
+                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-300" title={resolveDeviceName(item)}>
+                    {resolveDeviceName(item)}
                   </td>
                   <td className="max-w-[160px] truncate px-4 py-3 text-slate-400" title={getRowToolLabel(item)}>
                     {getRowToolLabel(item)}

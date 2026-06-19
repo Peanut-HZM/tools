@@ -1505,10 +1505,13 @@ def _load_device_names(db, user_id: str) -> dict[str, str]:
     names = load_device_name_map(db, user_id)
     alias_map = load_alias_map(db, user_id)
 
-    # 为 canonical device 补充 alias 的显示名
+    # 将 alias 设备的名称解析为 canonical 设备的显示名，
+    # 确保合并/别名后，明细记录和维度统计都使用 canonical 设备的名称
     for alias_id, canonical_id in alias_map.items():
+        canonical_name = names.get(canonical_id, canonical_id)
+        names[alias_id] = canonical_name
         if canonical_id not in names:
-            names[canonical_id] = names.get(alias_id, canonical_id)
+            names[canonical_id] = canonical_name
 
     return names
 

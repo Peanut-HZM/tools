@@ -50,6 +50,19 @@ def _run_cmd(cmd: list[str], timeout: int = 60) -> dict:
         env = os.environ.copy()
         env["HOME"] = USER_HOME
 
+        # Windows 下确保 Node.js 在 PATH 中（ccusage 等 CLI 依赖 node 运行时）
+        if platform.system() == "Windows":
+            node_dirs = [
+                r"C:\Program Files\nodejs",
+                r"C:\Program Files (x86)\nodejs",
+                os.path.expanduser(r"~\AppData\Roaming\nvm\current"),
+            ]
+            node_path = shutil.which("node")
+            if node_path:
+                node_dirs.append(os.path.dirname(node_path))
+            existing_path = env.get("PATH", "")
+            env["PATH"] = ";".join(node_dirs) + ";" + existing_path
+
         # Windows 下已使用完整路径，不需要 shell=True
         result = subprocess.run(
             cmd,
