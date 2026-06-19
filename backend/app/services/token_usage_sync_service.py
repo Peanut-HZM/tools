@@ -13,6 +13,7 @@ from app.models.token_usage_models import (
 )
 from app.utils.usage_fetcher import UsageFetcher
 from app.utils.device_id import get_device_id, get_device_display_name, get_device_fingerprint
+from app.utils.ccusage_invoker import CcusageError
 
 logger = logging.getLogger(__name__)
 
@@ -373,15 +374,24 @@ def sync_token_usage(
                 logger.info(f"[{source_name}] 同步 {count} 条记录到数据库")
 
             except Exception as e:
-                error_msg = f"{source_name}: {str(e)}"
-                result["errors"].append({
-                    "source": source_name,
-                    "error": error_msg,
-                    "error_code": "FETCH_ERROR",
-                    "remediation": "请检查网络连接或工具安装状态",
-                    "details": {"exception": str(e)},
-                })
-                logger.error(f"同步失败 {error_msg}")
+                # 检查是否是 CcusageError 类型
+                if isinstance(e, CcusageError):
+                    result["errors"].append({
+                        "source": source_name,
+                        "error": e.message,
+                        "error_code": e.code,
+                        "remediation": e.remediation,
+                        "details": e.details,
+                    })
+                else:
+                    result["errors"].append({
+                        "source": source_name,
+                        "error": f"{source_name}: {str(e)}",
+                        "error_code": "FETCH_ERROR",
+                        "remediation": "请检查网络连接或工具安装状态",
+                        "details": {"exception": str(e)},
+                    })
+                logger.error(f"同步失败 {source_name}: {e}")
                 try:
                     _log_sync(db, user_id, device_id, source_name, "failed", 0, str(e))
                 except Exception:
@@ -401,26 +411,46 @@ def sync_token_usage(
             result["errors"].extend(v2_errors)
         except Exception as e:
             logger.error(f"[ccusage-v2] 同步失败: {e}", exc_info=True)
-            result["errors"].append({
-                "source": "ccusage-v2",
-                "error": f"ccusage-v2: {str(e)}",
-                "error_code": "V2_SYNC_ERROR",
-                "remediation": "请检查 ccusage 安装和网络连接",
-                "details": {"exception": str(e)},
-            })
+            # 检查是否是 CcusageError 类型
+            if isinstance(e, CcusageError):
+                result["errors"].append({
+                    "source": "ccusage-v2",
+                    "error": e.message,
+                    "error_code": e.code,
+                    "remediation": e.remediation,
+                    "details": e.details,
+                })
+            else:
+                result["errors"].append({
+                    "source": "ccusage-v2",
+                    "error": f"ccusage-v2: {str(e)}",
+                    "error_code": "V2_SYNC_ERROR",
+                    "remediation": "请检查 ccusage 安装和网络连接",
+                    "details": {"exception": str(e)},
+                })
 
         db.commit()
 
     except Exception as e:
         db.rollback()
         logger.error(f"数据库事务失败: {e}")
-        result["errors"].append({
-            "source": "database",
-            "error": f"数据库: {str(e)}",
-            "error_code": "DB_TRANSACTION_ERROR",
-            "remediation": "请检查数据库连接",
-            "details": {"exception": str(e)},
-        })
+        # 检查是否是 CcusageError 类型
+        if isinstance(e, CcusageError):
+            result["errors"].append({
+                "source": "database",
+                "error": e.message,
+                "error_code": e.code,
+                "remediation": e.remediation,
+                "details": e.details,
+            })
+        else:
+            result["errors"].append({
+                "source": "database",
+                "error": f"数据库: {str(e)}",
+                "error_code": "DB_TRANSACTION_ERROR",
+                "remediation": "请检查数据库连接",
+                "details": {"exception": str(e)},
+            })
     finally:
         if fingerprint_match:
             result["fingerprint_match"] = fingerprint_match
