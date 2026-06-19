@@ -36,11 +36,21 @@ class LoginStatusResponse(BaseModel):
 class RusherStatusResponse(BaseModel):
     """抢购状态响应"""
     is_running: bool
-    current_phase: str = Field(description="idle|preheating|refreshing|clicking|success|failed")
+    current_phase: str = Field(description="idle|preheating|refreshing|clicking|awaiting_payment|success|failed")
     message: str
     next_sale_time: Optional[str] = None
     countdown_seconds: Optional[int] = None
     last_error: Optional[str] = None
+    payment_url: Optional[str] = None
+    payment_state_file: Optional[str] = None
+
+
+class PaymentInfoResponse(BaseModel):
+    """支付信息响应"""
+    has_payment: bool
+    payment_url: Optional[str] = None
+    browser_alive: bool
+    message: str
 
 
 class RusherLogItem(BaseModel):

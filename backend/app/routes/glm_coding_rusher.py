@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.schemas.glm_coding_rusher_schemas import (
     RusherConfigRequest, RusherConfigResponse,
-    LoginStatusResponse, RusherStatusResponse,
+    LoginStatusResponse, RusherStatusResponse, PaymentInfoResponse,
     RusherLogItem, RusherLogListResponse,
     LoginRequest, StartRequest,
 )
@@ -17,6 +17,7 @@ from app.services.glm_coding_rusher_service import (
     open_login_window, check_login_valid, state_file_exists, get_state_path,
     validate_config, ConfigError,
     get_task_status, get_task_logs, start_rush, stop_rush,
+    close_payment_window,
     next_sale_time, format_countdown,
 )
 
@@ -135,10 +136,40 @@ def status():
         next_sale_time=nxt.strftime("%Y-%m-%d %H:%M:%S"),
         countdown_seconds=countdown,
         last_error=task.get("last_error"),
+        payment_url=task.get("payment_url"),
+        payment_state_file=task.get("payment_state_file"),
     )
 
 
-@router.get("/logs", response_model=RusherLogListResponse)
+@router.get("/payment-info", response_model=PaymentInfoResponse)
+def payment_info():
+    """获取支付信息"""
+    task = get_task_status()
+    payment_url = task.get("payment_url")
+    has_payment = bool(payment_url and task.get("current_phase") == "awaiting_payment")
+
+    from app.services.glm_coding_rusher_service import _payment_browser
+    browser_alive = _payment_browser is not None
+
+    if has_payment:
+        return PaymentInfoResponse(
+            has_payment=True,
+            payment_url=payment_url,
+            browser_alive=browser_alive,
+            message="请在弹出的浏览器窗口中完成支付",
+        )
+    return PaymentInfoResponse(
+        has_payment=False,
+        payment_url=None,
+        browser_alive=browser_alive,
+        message="暂无待支付的订单",
+    )
+
+
+@router.post("/close-payment")
+def close_payment():
+    """手动关闭支付浏览器"""
+    return close_payment_window()
 def logs(limit: int = 100):
     """获取抢购日志"""
     items = get_task_logs(limit=limit)

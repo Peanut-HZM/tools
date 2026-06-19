@@ -333,9 +333,12 @@ _current_task = {
     "countdown_seconds": None,
     "last_error": None,
     "task_id": None,
+    "payment_url": None,
+    "payment_state_file": None,
 }
 _task_lock = threading.Lock()
 _logs_buffer: list = []
+_payment_browser = None  # headed 支付浏览器引用
 
 
 def _update_task(**kwargs):
@@ -369,6 +372,96 @@ def get_task_logs(task_id: str = None, limit: int = 100) -> list:
     else:
         logs = list(_logs_buffer)
     return logs[-limit:]
+
+
+def _open_payment_window(state_path: Path, payment_url: str, task_id: str):
+    """
+    启动 headed 浏览器打开支付页，等待用户完成支付
+
+    Args:
+        state_path: 登录态 state 文件路径
+        payment_url: 支付页 URL
+        task_id: 任务 ID
+    """
+    global _payment_browser
+
+    def _run():
+        global _payment_browser
+        try:
+            from playwright.sync_api import sync_playwright
+
+            _append_log("payment", "启动支付浏览器（可见模式）...", task_id)
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=False)
+                _payment_browser = browser
+                context = browser.new_context(storage_state=str(state_path))
+                page = context.new_page()
+
+                _append_log("payment", f"打开支付页: {payment_url}", task_id)
+                page.goto(payment_url, wait_until="networkidle", timeout=30000)
+                _append_log(
+                    "payment",
+                    "支付浏览器已打开，请在此窗口中完成支付",
+                    task_id,
+                )
+                _update_task(
+                    current_phase="awaiting_payment",
+                    message="支付浏览器已打开，请在窗口中完成支付",
+                )
+
+                # 等待浏览器关闭（用户手动关闭）
+                # 通过定期检查浏览器是否还活着
+                try:
+                    while True:
+                        page.wait_for_timeout(1000)
+                        # 检查页面是否仍然可访问
+                        try:
+                            page.title()
+                        except Exception:
+                            _append_log(
+                                "payment",
+                                "支付浏览器已关闭",
+                                task_id,
+                            )
+                            break
+                except Exception:
+                    pass
+
+                try:
+                    browser.close()
+                except Exception:
+                    pass
+                _payment_browser = None
+                _append_log("payment", "支付流程结束", task_id)
+                _update_task(
+                    current_phase="idle",
+                    message="支付流程结束",
+                )
+
+        except Exception as e:
+            logger.error(f"支付浏览器异常: {e}")
+            _append_log("failed", f"支付浏览器异常: {e}", task_id)
+            _update_task(
+                current_phase="failed",
+                message=f"支付浏览器异常: {str(e)}",
+                last_error=str(e),
+            )
+            _payment_browser = None
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+
+def close_payment_window() -> dict:
+    """手动关闭支付浏览器（兜底）"""
+    global _payment_browser
+    if _payment_browser is not None:
+        try:
+            _payment_browser.close()
+            return {"success": True, "message": "支付浏览器已关闭"}
+        except Exception as e:
+            return {"success": False, "message": f"关闭失败: {e}"}
+    return {"success": False, "message": "没有打开的支付浏览器"}
 
 
 def _execute_rush(config: dict):
@@ -474,15 +567,58 @@ def _execute_rush(config: dict):
                             button.click()
                             _append_log("clicking", "已点击按钮，等待页面响应...", task_id)
 
-                            # 等待进入支付页
-                            page.wait_for_timeout(3000)
-                            current_url = page.url
-                            _append_log("success", f"已跳转到: {current_url}", task_id)
+                            # 等待进入支付页（最多 10 秒）
+                            _append_log("clicking", "等待页面跳转...", task_id)
+                            payment_url = None
+                            for i in range(20):  # 每 0.5 秒检测一次，共 10 秒
+                                page.wait_for_timeout(500)
+                                current_url = page.url
+                                # 检测是否跳转到支付/订单页（URL 变化或包含特定关键词）
+                                if "open.bigmodel.cn" in current_url and current_url != TARGET_URL:
+                                    # 等待网络空闲
+                                    try:
+                                        page.wait_for_load_state("networkidle", timeout=3000)
+                                    except Exception:
+                                        pass
+                                    payment_url = page.url
+                                    _append_log(
+                                        "clicking",
+                                        f"已跳转到支付页: {payment_url}",
+                                        task_id,
+                                    )
+                                    break
+
+                            if payment_url is None:
+                                payment_url = page.url
+                                _append_log(
+                                    "warning",
+                                    f"未检测到支付页跳转，使用当前 URL: {payment_url}",
+                                    task_id,
+                                )
+
+                            # 保存登录态和支付信息
+                            _append_log("clicking", "保存登录态...", task_id)
+                            payment_state_path = STATE_DIR / f"payment_{task_id}.json"
+                            context.storage_state(path=str(payment_state_path))
                             _update_task(
-                                is_running=False, current_phase="success",
-                                message=f"成功进入下单页: {current_url}",
+                                is_running=False,
+                                current_phase="awaiting_payment",
+                                message="抢购成功！请在弹出的浏览器窗口中完成支付",
+                                payment_url=payment_url,
+                                payment_state_file=payment_state_path.name,
                             )
+                            _append_log(
+                                "success",
+                                f"抢购成功！支付 URL: {payment_url}",
+                                task_id,
+                            )
+
+                            # 关闭 headless 浏览器
                             browser.close()
+                            _append_log("clicking", "headless 浏览器已关闭", task_id)
+
+                            # 启动 headed 浏览器打开支付页
+                            _open_payment_window(payment_state_path, payment_url, task_id)
                             return
 
                     retry_count += 1
