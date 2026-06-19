@@ -341,7 +341,13 @@ def sync_token_usage(
             try:
                 raw_entries = fetch_fn(days)
                 if not raw_entries:
-                    result["errors"].append(f"{source_name}: 无数据")
+                    result["errors"].append({
+                        "source": source_name,
+                        "error": f"{source_name}: 无数据",
+                        "error_code": "NO_DATA",
+                        "remediation": "请检查是否有使用该工具的记录",
+                        "details": {},
+                    })
                     continue
 
                 parsed = parse_fn(raw_entries)
@@ -368,7 +374,13 @@ def sync_token_usage(
 
             except Exception as e:
                 error_msg = f"{source_name}: {str(e)}"
-                result["errors"].append(error_msg)
+                result["errors"].append({
+                    "source": source_name,
+                    "error": error_msg,
+                    "error_code": "FETCH_ERROR",
+                    "remediation": "请检查网络连接或工具安装状态",
+                    "details": {"exception": str(e)},
+                })
                 logger.error(f"同步失败 {error_msg}")
                 try:
                     _log_sync(db, user_id, device_id, source_name, "failed", 0, str(e))
@@ -377,22 +389,38 @@ def sync_token_usage(
 
         # V2: ccusage 统一数据源（在同一事务中提交）
         try:
-            v2_count = _run_ccusage_v2_sync(
+            v2_result = _run_ccusage_v2_sync(
                 db, user_id, device_id, device_name, since_date, until_date
             )
+            v2_count = v2_result.get("count", 0)
+            v2_errors = v2_result.get("errors", [])
             if v2_count > 0:
                 result["ccusage_records"] = v2_count
                 result["total_records"] += v2_count
+            # 将 v2 的结构化 errors 合并到结果中
+            result["errors"].extend(v2_errors)
         except Exception as e:
             logger.error(f"[ccusage-v2] 同步失败: {e}", exc_info=True)
-            result["errors"].append(f"ccusage-v2: {e}")
+            result["errors"].append({
+                "source": "ccusage-v2",
+                "error": f"ccusage-v2: {str(e)}",
+                "error_code": "V2_SYNC_ERROR",
+                "remediation": "请检查 ccusage 安装和网络连接",
+                "details": {"exception": str(e)},
+            })
 
         db.commit()
 
     except Exception as e:
         db.rollback()
         logger.error(f"数据库事务失败: {e}")
-        result["errors"].append(f"数据库: {str(e)}")
+        result["errors"].append({
+            "source": "database",
+            "error": f"数据库: {str(e)}",
+            "error_code": "DB_TRANSACTION_ERROR",
+            "remediation": "请检查数据库连接",
+            "details": {"exception": str(e)},
+        })
     finally:
         if fingerprint_match:
             result["fingerprint_match"] = fingerprint_match
