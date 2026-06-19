@@ -93,3 +93,47 @@ def format_countdown(seconds: int) -> str:
     m = (seconds % 3600) // 60
     s = seconds % 60
     return f"{h:02d}:{m:02d}:{s:02d}"
+
+
+class ConfigError(Exception):
+    """配置校验错误"""
+    pass
+
+
+def validate_config(config: dict) -> None:
+    """
+    校验抢购配置
+
+    Args:
+        config: 配置字典
+
+    Raises:
+        ConfigError: 配置不合法
+    """
+    # sale_time 校验
+    sale_time = config.get("sale_time", "")
+    if not sale_time:
+        raise ConfigError("sale_time 不能为空")
+    try:
+        h, m = map(int, sale_time.split(":"))
+        if not (0 <= h <= 23 and 0 <= m <= 59):
+            raise ValueError()
+    except (ValueError, TypeError):
+        raise ConfigError("sale_time 格式必须为 HH:MM，例如 10:00")
+
+    # preheat_seconds 校验
+    preheat = config.get("preheat_seconds", 0)
+    if preheat < 30:
+        raise ConfigError("preheat_seconds 不能小于 30 秒")
+
+    # refresh_interval_ms 校验
+    interval = config.get("refresh_interval_ms", 0)
+    if interval < 200:
+        raise ConfigError("refresh_interval_ms 不能小于 200ms，避免风控")
+
+    # timeout_seconds 校验
+    timeout = config.get("timeout_seconds", 0)
+    if timeout < 10:
+        raise ConfigError("timeout_seconds 不能小于 10 秒")
+    if timeout > 600:
+        raise ConfigError("timeout_seconds 不能大于 600 秒（10 分钟）")

@@ -6,6 +6,7 @@ from freezegun import freeze_time
 from app.services.glm_coding_rusher_service import (
     parse_button_state, ButtonState,
     next_sale_time, format_countdown,
+    validate_config, ConfigError,
 )
 
 
@@ -90,3 +91,48 @@ class TestFormatCountdown:
 
     def test_negative(self):
         assert format_countdown(-5) == "00:00:00"
+
+
+class TestValidateConfig:
+    """测试配置校验"""
+
+    def test_valid_config(self):
+        config = {
+            "target_package": "pro",
+            "sale_time": "10:00",
+            "preheat_seconds": 90,
+            "refresh_interval_ms": 500,
+            "timeout_seconds": 60,
+        }
+        result = validate_config(config)
+        assert result is None  # 无错误
+
+    def test_invalid_sale_time_format(self):
+        config = {"sale_time": "25:00"}
+        with pytest.raises(ConfigError, match="sale_time"):
+            validate_config(config)
+
+    def test_invalid_sale_time_text(self):
+        config = {"sale_time": "abc"}
+        with pytest.raises(ConfigError, match="sale_time"):
+            validate_config(config)
+
+    def test_preheat_too_small(self):
+        config = {"preheat_seconds": 5, "sale_time": "10:00"}
+        with pytest.raises(ConfigError, match="preheat_seconds"):
+            validate_config(config)
+
+    def test_refresh_interval_too_small(self):
+        config = {"refresh_interval_ms": 50, "sale_time": "10:00", "preheat_seconds": 90, "timeout_seconds": 60}
+        with pytest.raises(ConfigError, match="refresh_interval_ms"):
+            validate_config(config)
+
+    def test_timeout_too_small(self):
+        config = {"timeout_seconds": 0, "sale_time": "10:00", "preheat_seconds": 90, "refresh_interval_ms": 500}
+        with pytest.raises(ConfigError, match="timeout_seconds"):
+            validate_config(config)
+
+    def test_timeout_too_large(self):
+        config = {"timeout_seconds": 3600, "sale_time": "10:00", "preheat_seconds": 90, "refresh_interval_ms": 500}
+        with pytest.raises(ConfigError, match="timeout_seconds"):
+            validate_config(config)
