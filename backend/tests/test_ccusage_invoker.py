@@ -71,10 +71,10 @@ def test_find_node_searches_known_paths_on_macos(monkeypatch):
     with patch("platform.system", return_value="Darwin"), \
          patch("shutil.which", return_value=None), \
          patch("os.path.exists") as mock_exists:
-        # 第二个存在的路径（Homebrew Intel）应该被返回
+        # 第二个存在的路径（/usr/bin/node）应该被返回
         mock_exists.side_effect = [False, True]
         result = find_node()
-    assert result == "/usr/local/bin/node"
+    assert result == "/usr/bin/node"
 
 
 def test_find_node_uses_cached_value(monkeypatch):
@@ -84,9 +84,15 @@ def test_find_node_uses_cached_value(monkeypatch):
 
 def test_find_node_uses_glob_for_nvm(monkeypatch):
     monkeypatch.setattr(ccusage_invoker, "_node_path", None)
+
+    def exists_side_effect(p):
+        if ".nvm" in p:
+            return True
+        return False
+
     with patch("platform.system", return_value="Linux"), \
          patch("shutil.which", return_value=None), \
-         patch("os.path.exists", return_value=False), \
+         patch("os.path.exists", side_effect=exists_side_effect), \
          patch("glob.glob", return_value=["/home/u/.nvm/versions/node/v20.0.0/bin/node"]):
         result = find_node()
     assert result == "/home/u/.nvm/versions/node/v20.0.0/bin/node"
