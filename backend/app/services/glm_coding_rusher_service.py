@@ -2,6 +2,7 @@
 
 from enum import Enum
 from typing import List
+from datetime import datetime, time, timedelta
 
 
 class ButtonState(str, Enum):
@@ -52,3 +53,43 @@ def parse_button_state(text: str, disabled: bool) -> ButtonState:
         return ButtonState.SOLD_OUT
 
     return ButtonState.UNKNOWN
+
+
+def next_sale_time(sale_time_str: str, now: datetime = None) -> datetime:
+    """
+    计算下一次开抢时间
+
+    Args:
+        sale_time_str: 格式 "HH:MM"，例如 "10:00"
+        now: 当前时间（用于测试），默认为 datetime.now()
+
+    Returns:
+        下一次开抢的 datetime
+    """
+    if now is None:
+        now = datetime.now()
+
+    h, m = map(int, sale_time_str.split(":"))
+    today_sale = now.replace(hour=h, minute=m, second=0, microsecond=0)
+
+    if now < today_sale:
+        return today_sale
+    return today_sale + timedelta(days=1)
+
+
+def format_countdown(seconds: int) -> str:
+    """
+    将秒数格式化为 HH:MM:SS
+
+    Args:
+        seconds: 剩余秒数
+
+    Returns:
+        格式化后的倒计时字符串
+    """
+    if seconds <= 0:
+        return "00:00:00"
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    return f"{h:02d}:{m:02d}:{s:02d}"
