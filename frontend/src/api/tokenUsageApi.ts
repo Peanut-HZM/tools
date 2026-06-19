@@ -232,11 +232,19 @@ export interface TokenUsageDetailsParams {
   offset?: number;
 }
 
+export interface SyncError {
+  source: string;
+  error: string;
+  error_code?: string | null;
+  remediation?: string | null;
+  details?: Record<string, any>;
+}
+
 export interface SyncTokenUsageResponse {
   message?: string;
   sources_synced: string[];
   total_records: number;
-  errors: string[];
+  errors: SyncError[];
   locked?: boolean;
   lock_ttl_seconds?: number;
   fingerprint_match?: FingerprintMatch | null;

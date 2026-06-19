@@ -37,6 +37,7 @@ import {
   type DeviceInfo,
   type FingerprintMatch,
   type ModelSummaryItem,
+  type SyncError,
   type SyncMeta,
   type TokenUsageGroupBy,
   type TokenUsageReportType,
@@ -96,6 +97,7 @@ export default function TokenUsage() {
   const [pollError, setPollError] = useState<string | null>(null);
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [refreshErrors, setRefreshErrors] = useState<SyncError[]>([]);
   const [fingerprintMatch, setFingerprintMatch] = useState<FingerprintMatch | null>(null);
   const [deviceManagerOpen, setDeviceManagerOpen] = useState(false);
 
@@ -248,6 +250,7 @@ export default function TokenUsage() {
     setRefreshing(true);
     setError(null);
     setRefreshError(null);
+    setRefreshErrors([]);
     try {
       const result = await refreshTokenUsage({ days: Math.max(days, 90), background: false, reason: 'manual' });
       if (result.locked) {
@@ -257,11 +260,18 @@ export default function TokenUsage() {
       if (result.fingerprint_match) {
         setFingerprintMatch(result.fingerprint_match);
       }
-      const errors = result.errors?.length ? `，${result.errors.length} 个来源有告警` : '';
+      // 保存结构化的 errors 数组
+      if (result.errors && result.errors.length > 0) {
+        setRefreshErrors(result.errors);
+      } else {
+        setRefreshErrors([]);
+      }
       setRefreshError(null);
       await loadDevices();
       await Promise.all([summary.refresh(), details.refresh()]);
-      showToast(`已同步 ${result.total_records} 条记录${errors}`, 'success', 3000);
+      const errorCount = result.errors?.length || 0;
+      const errorsMsg = errorCount > 0 ? `，${errorCount} 个来源有告警` : '';
+      showToast(`已同步 ${result.total_records} 条记录${errorsMsg}`, 'success', 3000);
     } catch (err: any) {
       setRefreshError(err.message || '手动刷新失败');
     } finally {
@@ -681,10 +691,36 @@ export default function TokenUsage() {
         </label>
       </div>
 
-      {(error || refreshError || deviceError || pollError || summary.data.auto_expanded) && (
+      {(error || refreshError || refreshErrors.length > 0 || deviceError || pollError || summary.data.auto_expanded) && (
         <div className="mb-5 space-y-2">
           {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
           {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
+          {refreshErrors.length > 0 && (
+            <div className="space-y-2">
+              {refreshErrors.map((err, idx) => (
+                <div key={idx} className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-400" />
+                    <div className="flex-1">
+                      <div className="font-medium text-amber-200">
+                        {err.source}: {err.error}
+                      </div>
+                      {err.error_code && (
+                        <div className="mt-1 text-xs text-amber-300">
+                          错误代码: {err.error_code}
+                        </div>
+                      )}
+                      {err.remediation && (
+                        <div className="mt-1 text-xs text-amber-200">
+                          建议: {err.remediation}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{deviceError}</div>}
           {pollError && <div className="rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-300">后台轮询失败：{pollError}</div>}
           {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
