@@ -213,6 +213,17 @@ TOOLS_DATA = [
         category="开发工具",
     ),
     Tool(
+        id="glm-coding-rusher",
+        icon="fa-bolt",
+        iconColor="bg-amber-500",
+        title="GLM-Coding Pro 抢购",
+        description="每天 10:00 限量抢购 GLM-Coding Pro 套餐，自动化抢购助手",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具",
+        require_login=True,
+    ),
+    Tool(
         id="openclaw",
         icon="fa-comments",
         iconColor="bg-violet-500",

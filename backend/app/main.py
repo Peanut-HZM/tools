@@ -31,6 +31,7 @@ from app.routes import http_client
 from app.routes import course_platform_admin
 from app.routes import tech_contents
 from app.routes import cursor_history
+from app.routes import glm_coding_rusher
 from app.api.routes import llm_config, conversations, prd, messages, health
 from app.services.download_manager import get_manager
 import asyncio
@@ -350,6 +351,9 @@ app.include_router(contact_message.router)
 
 # Cursor History router
 app.include_router(cursor_history.router, prefix="/api")
+
+# GLM-Coding Rusher router
+app.include_router(glm_coding_rusher.router, prefix="/api")
 
 # OpenClaw router
 from app.routes import openclaw as openclaw_router
