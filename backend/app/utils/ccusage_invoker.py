@@ -102,3 +102,224 @@ def find_node() -> Optional[str]:
 
     logger.warning("[ccusage-invoker] 未找到 node。系统: %s", platform.system())
     return None
+
+
+def _ccusage_search_paths() -> list[str]:
+    """根据当前操作系统返回 ccusage 候选路径列表"""
+    system = platform.system()
+    home = _expand_user("~")
+
+    if system == "Windows":
+        return [
+            os.path.join(home, "AppData", "Roaming", "npm", "ccusage.cmd"),
+            os.path.join(home, "AppData", "Roaming", "npm", "ccusage.ps1"),
+            os.path.join(home, "AppData", "Roaming", "npm", "ccusage"),
+            os.path.join(home, "AppData", "Local", "pnpm", "ccusage.cmd"),
+            os.path.join(home, "AppData", "Local", "pnpm", "ccusage"),
+            r"C:\Program Files\nodejs\ccusage.cmd",
+        ]
+
+    paths = [
+        "/usr/local/bin/ccusage",
+        "/usr/bin/ccusage",
+        os.path.join(home, ".npm-global", "bin", "ccusage"),
+    ]
+    if system == "Darwin":
+        paths.insert(0, "/opt/homebrew/bin/ccusage")
+        paths.append(os.path.join(home, "Library", "pnpm", "ccusage"))
+    elif system == "Linux":
+        paths.append(os.path.join(home, ".local", "share", "pnpm", "ccusage"))
+
+    # NVM 多版本目录
+    paths.extend(sorted(glob.glob(os.path.join(home, ".nvm", "versions", "node", "*", "bin", "ccusage"))))
+    return paths
+
+
+def find_ccusage() -> Optional[str]:
+    """查找 ccusage 可执行文件路径；未找到返回 None"""
+    global _ccusage_path
+    if _ccusage_path is not None:
+        return _ccusage_path
+
+    # 优先使用 PATH 中的 ccusage
+    which_result = shutil.which("ccusage")
+    if which_result and os.path.exists(which_result):
+        _ccusage_path = which_result
+        logger.info("[ccusage-invoker] 从 PATH 找到 ccusage: %s", which_result)
+        return _ccusage_path
+
+    for p in _ccusage_search_paths():
+        if os.path.exists(p):
+            _ccusage_path = p
+            logger.info("[ccusage-invoker] 找到 ccusage: %s", p)
+            return _ccusage_path
+
+    logger.warning(
+        "[ccusage-invoker] 未找到 ccusage。系统: %s，PATH 片段: %s",
+        platform.system(),
+        os.environ.get("PATH", "")[:200],
+    )
+    return None
+
+
+def build_cmd(args: list[str]) -> list[str]:
+    """根据当前平台构造 ccusage 执行命令。
+
+    Windows 下 .cmd / .ps1 文件需要通过 node 直接调用 JS 入口，绕开 .cmd 内部
+    的 node 解析（service 进程 PATH 经常不含 Node.js）。
+    """
+    ccusage_path = find_ccusage()
+    if ccusage_path is None:
+        return []
+
+    # Windows 下 .cmd / .ps1 改用 node 直接调用
+    if os.name == "nt" and ccusage_path.lower().endswith((".cmd", ".ps1")):
+        node_path = find_node()
+        if not node_path:
+            return []
+        npm_dir = os.path.dirname(ccusage_path)
+        js_path = os.path.join(npm_dir, "node_modules", "ccusage", "dist", "cli.js")
+        if not os.path.exists(js_path):
+            return []
+        return [node_path, js_path] + list(args)
+
+    return [ccusage_path] + list(args)
+
+
+import json
+
+
+def _make_cli_not_found_error(searched: list[str] | None = None) -> CcusageError:
+    return CcusageError(
+        code=ErrorCode.CLI_NOT_FOUND,
+        message="未找到 ccusage 命令",
+        remediation="请运行 `npm i -g ccusage` 安装 ccusage",
+        details={"searched_paths": (searched or [])[:5]},
+    )
+
+
+def _make_node_not_found_error() -> CcusageError:
+    return CcusageError(
+        code=ErrorCode.NODE_NOT_FOUND,
+        message="未找到 Node.js，ccusage 依赖 node 运行时",
+        remediation="请先安装 Node.js: https://nodejs.org",
+        details={"platform": platform.system()},
+    )
+
+
+def run_ccusage(args: list[str], timeout: int = 180) -> dict:
+    """统一执行 ccusage CLI 并返回结构化结果。
+
+    Returns:
+        {"ok": True, "data": <parsed json>}  成功
+        {"ok": False, "error": CcusageError}  失败
+    """
+    ccusage_path = find_ccusage()
+    if ccusage_path is None:
+        return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
+
+    # Windows 下 .cmd/.ps1 需要 node
+    if os.name == "nt" and ccusage_path.lower().endswith((".cmd", ".ps1")):
+        if find_node() is None:
+            return {"ok": False, "error": _make_node_not_found_error()}
+
+    cmd = build_cmd(args)
+    if not cmd:
+        return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
+
+    try:
+        env = os.environ.copy()
+        env["HOME"] = _expand_user("~")
+        # Windows 下确保 Node.js 在 PATH 中
+        if os.name == "nt":
+            node_path = find_node()
+            if node_path:
+                env["PATH"] = os.path.dirname(node_path) + ";" + env.get("PATH", "")
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.EXEC_TIMEOUT,
+                message=f"ccusage 执行超时（>{timeout}s）",
+                remediation="请稍后重试，或检查 ccusage 数据量是否过大",
+                details={"timeout_seconds": timeout},
+            ),
+        }
+    except PermissionError as e:
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.PERMISSION_DENIED,
+                message="ccusage 执行权限不足",
+                remediation="请检查 ccusage 可执行权限（chmod +x ccusage）",
+                details={"error": str(e)},
+            ),
+        }
+    except FileNotFoundError as e:
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.CLI_NOT_FOUND,
+                message=f"找不到命令：{cmd[0]}",
+                remediation="请确认 ccusage 已正确安装且在 PATH 中",
+                details={"error": str(e)},
+            ),
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.CLI_EXECUTION_ERROR,
+                message=f"ccusage 执行异常: {e}",
+                remediation="请检查 ccusage 安装是否完整",
+                details={"error": str(e)},
+            ),
+        }
+
+    if result.returncode != 0:
+        err_msg = (result.stderr or "CLI 执行失败").strip()[:500]
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.CLI_EXECUTION_ERROR,
+                message=f"ccusage 退出码 {result.returncode}",
+                remediation="请根据错误信息排查，或重新安装 ccusage",
+                details={"stderr": err_msg, "returncode": result.returncode},
+            ),
+        }
+
+    # 解析 JSON 输出
+    output = result.stdout.strip()
+    try:
+        # 找到 JSON 起始位置（跳过日志行）
+        start = -1
+        for i, ch in enumerate(output):
+            if ch in ("{", "["):
+                try:
+                    json.loads(output[i:])
+                    start = i
+                    break
+                except json.JSONDecodeError:
+                    continue
+        if start == -1:
+            raise json.JSONDecodeError("未找到 JSON 起始", output, 0)
+        data = json.loads(output[start:])
+        return {"ok": True, "data": data}
+    except json.JSONDecodeError as e:
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.INVALID_JSON_OUTPUT,
+                message="ccusage 输出不是有效 JSON",
+                remediation="请检查 ccusage 版本（建议 ≥ 15.0），或运行 `ccusage --version` 验证",
+                details={"error": str(e), "stdout_preview": output[:300]},
+            ),
+        }
