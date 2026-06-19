@@ -7,6 +7,7 @@ from app.services.glm_coding_rusher_service import (
     parse_button_state, ButtonState,
     next_sale_time, format_countdown,
     validate_config, ConfigError,
+    get_state_path, STATE_DIR,
 )
 
 
@@ -136,3 +137,20 @@ class TestValidateConfig:
         config = {"timeout_seconds": 3600, "sale_time": "10:00", "preheat_seconds": 90, "refresh_interval_ms": 500}
         with pytest.raises(ConfigError, match="timeout_seconds"):
             validate_config(config)
+
+
+class TestGetStatePath:
+    """测试 state 文件路径"""
+
+    def test_returns_path_object(self):
+        from pathlib import Path
+        result = get_state_path()
+        assert isinstance(result, Path)
+
+    def test_path_ends_with_state_json(self):
+        result = get_state_path()
+        assert result.name == "state.json"
+
+    def test_path_inside_state_dir(self):
+        result = get_state_path()
+        assert str(STATE_DIR) in str(result)
