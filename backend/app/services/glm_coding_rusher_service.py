@@ -158,8 +158,13 @@ def validate_config(config: dict) -> None:
         raise ConfigError("timeout_seconds 不能大于 600 秒（10 分钟）")
 
 
-# 登录态检测关键字
-LOGIN_INDICATORS = ["登录", "注册", "微信一键登录", "请输入账号"]
+# 登录态检测：检查页面是否包含未登录特征元素
+# 如果页面包含这些元素，说明未登录；否则说明已登录
+UNLOGIN_INDICATORS = [
+    "登录 / 注册",  # 未登录时的按钮文字
+    "请输入账号",   # 登录表单
+    "扫码登录",     # 扫码登录提示
+]
 
 
 def _check_login_state(page) -> bool:
@@ -171,9 +176,14 @@ def _check_login_state(page) -> bool:
     """
     try:
         body_text = page.text_content("body") or ""
-        for indicator in LOGIN_INDICATORS:
+        # 如果页面包含未登录特征元素，说明未登录
+        for indicator in UNLOGIN_INDICATORS:
             if indicator in body_text:
                 return False
+        # 检查是否有登录按钮（精确匹配）
+        login_button = page.locator("button:has-text('登录 / 注册')")
+        if login_button.count() > 0:
+            return False
         return True
     except Exception as e:
         logger.warning(f"检查登录状态异常: {e}")
