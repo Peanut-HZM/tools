@@ -97,3 +97,20 @@ export async function getStatus(): Promise<RusherStatus> {
 export async function getLogs(limit = 100): Promise<LogListResponse> {
   return request(`/logs?limit=${limit}`);
 }
+
+export interface PaymentInfo {
+  has_payment: boolean;
+  payment_url: string | null;
+  browser_alive: boolean;
+  message: string;
+}
+
+/** 获取支付信息 */
+export async function getPaymentInfo(): Promise<PaymentInfo> {
+  return request('/payment-info');
+}
+
+/** 关闭支付浏览器 */
+export async function closePaymentBrowser(): Promise<{ success: boolean; message: string }> {
+  return request('/close-payment', { method: 'POST' });
+}

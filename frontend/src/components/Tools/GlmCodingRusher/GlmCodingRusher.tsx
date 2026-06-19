@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getLoginStatus, getConfig, saveConfig,
   startLogin, startRush, stopRush,
-  getStatus, getLogs,
-  RusherConfig, LoginStatus, RusherStatus, RusherLog,
+  getStatus, getLogs, getPaymentInfo, closePaymentBrowser,
+  RusherConfig, LoginStatus, RusherStatus, RusherLog, PaymentInfo,
 } from '../../../api/glmCodingRusherApi';
 
 const PHASE_LABELS: Record<string, string> = {
@@ -11,6 +11,7 @@ const PHASE_LABELS: Record<string, string> = {
   preheating: '预热中',
   refreshing: '刷新检测中',
   clicking: '正在点击',
+  awaiting_payment: '等待支付',
   success: '抢购成功',
   failed: '已停止',
 };
@@ -20,6 +21,7 @@ const PHASE_COLORS: Record<string, string> = {
   preheating: 'bg-blue-500',
   refreshing: 'bg-yellow-500',
   clicking: 'bg-orange-500',
+  awaiting_payment: 'bg-purple-500',
   success: 'bg-green-500',
   failed: 'bg-red-500',
 };
@@ -42,14 +44,18 @@ export default function GlmCodingRusher() {
   const [logs, setLogs] = useState<RusherLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
 
   // 轮询状态和日志
   const poll = useCallback(async () => {
     try {
-      const [s, l, ls] = await Promise.all([getStatus(), getLogs(), getLoginStatus()]);
+      const [s, l, ls, p] = await Promise.all([
+        getStatus(), getLogs(), getLoginStatus(), getPaymentInfo(),
+      ]);
       setStatus(s);
       setLogs(l.items);
       setLoginStatus(ls);
+      setPaymentInfo(p);
     } catch {
       // 忽略轮询错误
     }
@@ -121,6 +127,19 @@ export default function GlmCodingRusher() {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClosePayment = async () => {
+    try {
+      const res = await closePaymentBrowser();
+      if (res.success) {
+        await poll(); // 刷新状态
+      } else {
+        setError(res.message);
+      }
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -249,6 +268,41 @@ export default function GlmCodingRusher() {
 
               {status.last_error && (
                 <p className="text-sm text-red-400 text-center mb-4">错误: {status.last_error}</p>
+              )}
+
+              {/* 支付信息卡片 */}
+              {paymentInfo?.has_payment && (
+                <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="fas fa-credit-card text-purple-400" />
+                    <span className="text-sm font-semibold text-purple-300">
+                      {paymentInfo.browser_alive ? '支付窗口已打开' : '支付已结束'}
+                    </span>
+                  </div>
+                  {paymentInfo.payment_url && (
+                    <div className="text-xs text-slate-400 break-all mb-3">
+                      {paymentInfo.payment_url}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    {paymentInfo.payment_url && (
+                      <button
+                        onClick={() => window.open(paymentInfo.payment_url!, '_blank')}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+                      >
+                        在浏览器中打开
+                      </button>
+                    )}
+                    {paymentInfo.browser_alive && (
+                      <button
+                        onClick={handleClosePayment}
+                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded text-xs"
+                      >
+                        关闭支付窗口
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
 
               <div className="flex justify-center gap-3">
