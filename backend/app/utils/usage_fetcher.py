@@ -1,26 +1,16 @@
 """CLI 子进程调用封装，统一三种数据源（ccusage / opencode-usage / ccusage-opencode）"""
 
-import json
 import logging
 import os
-import platform
 import shutil
-import subprocess
 import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+from app.utils.ccusage_invoker import run_ccusage, run_generic_cli
+
 # 桌面模式检测
 _DESKTOP_MODE = os.environ.get("DESKTOP_MODE") == "1"
-
-# CLI 工具从用户主目录查找数据（跨平台兼容）
-try:
-    import pwd
-    _uid = os.getuid()
-    USER_HOME = pwd.getpwuid(_uid).pw_dir if _uid > 0 else os.path.expanduser("~")
-except (ImportError, AttributeError):
-    # Windows 平台不支持 pwd 和 os.getuid()
-    USER_HOME = os.path.expanduser("~")
 
 logger = logging.getLogger(__name__)
 
@@ -42,77 +32,6 @@ def _get_from_cache(key: str) -> Optional[dict]:
 
 def _set_cache(key: str, data: dict) -> None:
     _cache[key] = {"ts": time.time(), "data": data}
-
-
-def _run_cmd(cmd: list[str], timeout: int = 60) -> dict:
-    """执行 CLI 命令并解析 JSON 输出"""
-    try:
-        env = os.environ.copy()
-        env["HOME"] = USER_HOME
-
-        # Windows 下确保 Node.js 在 PATH 中（ccusage 等 CLI 依赖 node 运行时）
-        if platform.system() == "Windows":
-            node_dirs = [
-                r"C:\Program Files\nodejs",
-                r"C:\Program Files (x86)\nodejs",
-                os.path.expanduser(r"~\AppData\Roaming\nvm\current"),
-            ]
-            node_path = shutil.which("node")
-            if node_path:
-                node_dirs.append(os.path.dirname(node_path))
-            existing_path = env.get("PATH", "")
-            env["PATH"] = ";".join(node_dirs) + ";" + existing_path
-
-        # Windows 下已使用完整路径，不需要 shell=True
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=USER_HOME,
-            env=env,
-        )
-        if result.returncode != 0:
-            err = result.stderr.strip()[:500] or "CLI 执行失败"
-            # 忽略 bun 协议错误（opencode-usage 使用 bun 运行时）
-            if "bun:" in err or "ERR_UNSUPPORTED_ESM_URL_SCHEME" in err:
-                logger.warning("opencode-usage 需要 bun 运行时，当前环境不支持: %s", err[:200])
-                return {"error": "opencode-usage 需要 bun 运行时，当前环境不支持"}
-            logger.error("CLI failed: %s -> %s", " ".join(cmd), err)
-            return {"error": err}
-
-        output = result.stdout.strip()
-        # 尝试找到真正的 JSON 起始位置（跳过日志行中的 [ 或 {）
-        json_index = -1
-        i = 0
-        while i < len(output):
-            ch = output[i]
-            if ch in ("{", "["):
-                # 验证从这里开始是否能解析为有效 JSON
-                try:
-                    json.loads(output[i:])
-                    json_index = i
-                    break
-                except json.JSONDecodeError:
-                    # 不是有效的 JSON 起始，继续向后搜索
-                    pass
-            i += 1
-
-        if json_index == -1:
-            logger.error(f"CLI 输出中没有找到 JSON: stdout[:500]={output[:500]}")
-            return {"error": "未找到 JSON 输出"}
-
-        parsed = json.loads(output[json_index:])
-
-        return parsed
-    except subprocess.TimeoutExpired:
-        return {"error": f"CLI 执行超时（> {timeout}s）"}
-    except json.JSONDecodeError as e:
-        return {"error": f"JSON 解析失败: {str(e)}"}
-    except FileNotFoundError:
-        return {"error": f"CLI 未安装: {cmd[0]}"}
-    except Exception as e:
-        return {"error": f"未知错误: {str(e)}"}
 
 
 class UsageFetcher:
@@ -137,26 +56,22 @@ class UsageFetcher:
         if cached:
             return cached
 
-        # Windows 下使用完整路径运行 node + index.js
-        if platform.system() == "Windows":
-            node_exe = shutil.which("node.exe") or shutil.which("node") or "node"
-            ccusage_path = os.path.expanduser(
-                "~/AppData/Roaming/npm/node_modules/ccusage/dist/index.js"
-            )
-            cmd = [node_exe, ccusage_path, report_type, "--json", "--offline"]
-        else:
-            cmd = ["ccusage", report_type, "--json", "--offline"]
+        args = [report_type, "--json", "--offline"]
         if since:
-            cmd += ["--since", since]
+            args += ["--since", since]
         if until:
-            cmd += ["--until", until]
+            args += ["--until", until]
         if breakdown:
-            cmd.append("--breakdown")
+            args.append("--breakdown")
 
-        result = _run_cmd(cmd, timeout=180)
-        if "error" not in result:
-            _set_cache(cache_key, result)
-        return result
+        result = run_ccusage(args, timeout=180)
+        if result["ok"]:
+            data = result["data"]
+            _set_cache(cache_key, data)
+            return data
+        else:
+            error = result["error"]
+            return {"error": f"{error.code}: {error.message}"}
 
     @staticmethod
     def fetch_opencode(
@@ -224,32 +139,25 @@ class UsageFetcher:
         if _DESKTOP_MODE:
             return {"error": "Token Usage CLI 功能在桌面模式下不可用"}
 
-        if shutil.which("opencode-usage") is None:
-            return {"error": "CLI 未安装: opencode-usage"}
-
         cache_key = f"opencode-current:{days}:{by}"
         cached = _get_from_cache(cache_key)
         if cached:
             return cached
 
-        # Windows 下使用完整路径运行 node + index.js
-        if platform.system() == "Windows":
-            node_exe = shutil.which("node.exe") or shutil.which("node") or "node"
-            opencode_usage_path = os.path.expanduser(
-                "~/AppData/Roaming/npm/node_modules/opencode-usage/dist/index.js"
-            )
-            cmd = [node_exe, opencode_usage_path, "run", "--json", f"--days={days}"]
-        else:
-            cmd = ["opencode-usage", "run", "--json", f"--days={days}"]
+        args = ["run", "--json", f"--days={days}"]
         if by:
-            cmd.append(f"--by={by}")
+            args.append(f"--by={by}")
         else:
-            cmd.append("--by=model")
+            args.append("--by=model")
 
-        result = _run_cmd(cmd, timeout=180)
-        if "error" not in result:
-            _set_cache(cache_key, result)
-        return result
+        result = run_generic_cli("opencode-usage", args, timeout=180)
+        if result["ok"]:
+            data = result["data"]
+            _set_cache(cache_key, data)
+            return data
+        else:
+            error = result["error"]
+            return {"error": f"{error.code}: {error.message}"}
 
     @staticmethod
     def _fetch_opencode_legacy(days: int) -> dict:
@@ -257,27 +165,18 @@ class UsageFetcher:
         if _DESKTOP_MODE:
             return {"error": "Token Usage CLI 功能在桌面模式下不可用"}
 
-        if shutil.which("ccusage-opencode") is None:
-            return {
-                "error": "CLI 未安装: ccusage-opencode（请先 npm i -g @ccusage/opencode）"
-            }
-
         cache_key = f"opencode-legacy:{days}"
         cached = _get_from_cache(cache_key)
         if cached:
             return cached
 
-        # Windows 下使用完整路径运行 node + index.js
-        if platform.system() == "Windows":
-            node_exe = shutil.which("node.exe") or shutil.which("node") or "node"
-            ccusage_opencode_path = os.path.expanduser(
-                "~/AppData/Roaming/npm/node_modules/@ccusage/opencode/dist/index.js"
-            )
-            cmd = [node_exe, ccusage_opencode_path, "daily", "--json"]
+        args = ["daily", "--json"]
+        result = run_generic_cli("ccusage-opencode", args, timeout=120)
+        if result["ok"]:
+            data = result["data"]
+            _set_cache(cache_key, data)
+            return data
         else:
-            cmd = ["ccusage-opencode", "daily", "--json"]
-        result = _run_cmd(cmd, timeout=120)
-        if "error" not in result:
-            _set_cache(cache_key, result)
-        return result
+            error = result["error"]
+            return {"error": f"{error.code}: {error.message}"}
 

@@ -6,6 +6,7 @@ Purpose: 统一的 ccusage CLI 调用器，提供跨平台路径发现和结构�
 from __future__ import annotations
 
 import glob
+import json
 import logging
 import os
 import platform
@@ -49,6 +50,7 @@ class CcusageError:
 # 模块级缓存
 _ccusage_path: Optional[str] = None
 _node_path: Optional[str] = None
+_cli_path_cache: dict[str, Optional[str]] = {}
 
 
 def _expand_user(path: str) -> str:
@@ -186,9 +188,6 @@ def build_cmd(args: list[str]) -> list[str]:
     return [ccusage_path] + list(args)
 
 
-import json
-
-
 def _make_cli_not_found_error(searched: list[str] | None = None) -> CcusageError:
     return CcusageError(
         code=ErrorCode.CLI_NOT_FOUND,
@@ -207,30 +206,11 @@ def _make_node_not_found_error() -> CcusageError:
     )
 
 
-def run_ccusage(args: list[str], timeout: int = 180) -> dict:
-    """统一执行 ccusage CLI 并返回结构化结果。
-
-    Returns:
-        {"ok": True, "data": <parsed json>}  成功
-        {"ok": False, "error": CcusageError}  失败
-    """
-    ccusage_path = find_ccusage()
-    if ccusage_path is None:
-        return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
-
-    # Windows 下 .cmd/.ps1 需要 node
-    if os.name == "nt" and ccusage_path.lower().endswith((".cmd", ".ps1")):
-        if find_node() is None:
-            return {"ok": False, "error": _make_node_not_found_error()}
-
-    cmd = build_cmd(args)
-    if not cmd:
-        return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
-
+def _execute_and_parse(cmd: list[str], cli_name: str, timeout: int) -> dict:
+    """执行命令并解析 JSON 输出的通用 helper"""
     try:
         env = os.environ.copy()
         env["HOME"] = _expand_user("~")
-        # Windows 下确保 Node.js 在 PATH 中
         if os.name == "nt":
             node_path = find_node()
             if node_path:
@@ -248,8 +228,8 @@ def run_ccusage(args: list[str], timeout: int = 180) -> dict:
             "ok": False,
             "error": CcusageError(
                 code=ErrorCode.EXEC_TIMEOUT,
-                message=f"ccusage 执行超时（>{timeout}s）",
-                remediation="请稍后重试，或检查 ccusage 数据量是否过大",
+                message=f"{cli_name} 执行超时（>{timeout}s）",
+                remediation="请稍后重试",
                 details={"timeout_seconds": timeout},
             ),
         }
@@ -258,8 +238,8 @@ def run_ccusage(args: list[str], timeout: int = 180) -> dict:
             "ok": False,
             "error": CcusageError(
                 code=ErrorCode.PERMISSION_DENIED,
-                message="ccusage 执行权限不足",
-                remediation="请检查 ccusage 可执行权限（chmod +x ccusage）",
+                message=f"{cli_name} 执行权限不足",
+                remediation="请检查可执行权限",
                 details={"error": str(e)},
             ),
         }
@@ -269,7 +249,7 @@ def run_ccusage(args: list[str], timeout: int = 180) -> dict:
             "error": CcusageError(
                 code=ErrorCode.CLI_NOT_FOUND,
                 message=f"找不到命令：{cmd[0]}",
-                remediation="请确认 ccusage 已正确安装且在 PATH 中",
+                remediation=f"请确认 {cli_name} 已正确安装",
                 details={"error": str(e)},
             ),
         }
@@ -278,28 +258,36 @@ def run_ccusage(args: list[str], timeout: int = 180) -> dict:
             "ok": False,
             "error": CcusageError(
                 code=ErrorCode.CLI_EXECUTION_ERROR,
-                message=f"ccusage 执行异常: {e}",
-                remediation="请检查 ccusage 安装是否完整",
+                message=f"{cli_name} 执行异常: {e}",
+                remediation="请检查安装是否完整",
                 details={"error": str(e)},
             ),
         }
 
     if result.returncode != 0:
         err_msg = (result.stderr or "CLI 执行失败").strip()[:500]
+        if "bun:" in err_msg or "ERR_UNSUPPORTED_ESM_URL_SCHEME" in err_msg:
+            return {
+                "ok": False,
+                "error": CcusageError(
+                    code=ErrorCode.CLI_EXECUTION_ERROR,
+                    message=f"{cli_name} 需要 bun 运行时，当前环境不支持",
+                    remediation="请安装 bun: https://bun.sh",
+                    details={"stderr": err_msg[:200]},
+                ),
+            }
         return {
             "ok": False,
             "error": CcusageError(
                 code=ErrorCode.CLI_EXECUTION_ERROR,
-                message=f"ccusage 退出码 {result.returncode}",
-                remediation="请根据错误信息排查，或重新安装 ccusage",
+                message=f"{cli_name} 退出码 {result.returncode}",
+                remediation="请根据错误信息排查",
                 details={"stderr": err_msg, "returncode": result.returncode},
             ),
         }
 
-    # 解析 JSON 输出
     output = result.stdout.strip()
     try:
-        # 找到 JSON 起始位置（跳过日志行）
         start = -1
         for i, ch in enumerate(output):
             if ch in ("{", "["):
@@ -318,8 +306,77 @@ def run_ccusage(args: list[str], timeout: int = 180) -> dict:
             "ok": False,
             "error": CcusageError(
                 code=ErrorCode.INVALID_JSON_OUTPUT,
-                message="ccusage 输出不是有效 JSON",
-                remediation="请检查 ccusage 版本（建议 ≥ 15.0），或运行 `ccusage --version` 验证",
+                message=f"{cli_name} 输出不是有效 JSON",
+                remediation="请检查版本或运行 --version 验证",
                 details={"error": str(e), "stdout_preview": output[:300]},
             ),
         }
+
+
+def run_generic_cli(cli_name: str, args: list[str], timeout: int = 180) -> dict:
+    """通用 npm CLI 工具执行器。
+
+    支持 ccusage / opencode-usage / ccusage-opencode 等通过 npm 全局安装的 CLI。
+    跨平台处理 .cmd/.ps1 与 node 直接调用。
+
+    Returns:
+        {"ok": True, "data": <parsed json>}  成功
+        {"ok": False, "error": CcusageError}  失败
+    """
+    cache_key = f"generic:{cli_name}"
+
+    if cache_key not in _cli_path_cache:
+        which_result = shutil.which(cli_name)
+        if which_result and os.path.exists(which_result):
+            _cli_path_cache[cache_key] = which_result
+        else:
+            _cli_path_cache[cache_key] = None
+
+    cli_path = _cli_path_cache[cache_key]
+    if cli_path is None:
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.CLI_NOT_FOUND,
+                message=f"未找到 {cli_name} 命令",
+                remediation=f"请运行 `npm i -g {cli_name}` 安装",
+            ),
+        }
+
+    cmd = _build_cli_cmd(cli_path, args)
+    return _execute_and_parse(cmd, cli_name, timeout)
+
+
+def _build_cli_cmd(cli_path: str, args: list[str]) -> list[str]:
+    """为 CLI 工具构造执行命令，Windows 下尝试 node 直接调用 JS 入口"""
+    if os.name == "nt" and cli_path.lower().endswith((".cmd", ".ps1")):
+        node_path = find_node()
+        if not node_path:
+            return [cli_path] + list(args)
+        npm_dir = os.path.dirname(cli_path)
+        pkg_name = os.path.basename(cli_path).replace(".cmd", "").replace(".ps1", "")
+        js_path = os.path.join(npm_dir, "node_modules", pkg_name, "dist", "cli.js")
+        if not os.path.exists(js_path):
+            js_path = os.path.join(npm_dir, "node_modules", pkg_name, "dist", "index.js")
+        if not os.path.exists(js_path):
+            return [cli_path] + list(args)
+        return [node_path, js_path] + list(args)
+    return [cli_path] + list(args)
+
+
+def run_ccusage(args: list[str], timeout: int = 180) -> dict:
+    """统一执行 ccusage CLI 并返回结构化结果。
+
+    Returns:
+        {"ok": True, "data": <parsed json>}  成功
+        {"ok": False, "error": CcusageError}  失败
+    """
+    ccusage_path = find_ccusage()
+    if ccusage_path is None:
+        return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
+
+    cmd = build_cmd(args)
+    if not cmd:
+        return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
+
+    return _execute_and_parse(cmd, "ccusage", timeout)

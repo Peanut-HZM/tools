@@ -25,18 +25,18 @@ def test_fetch_ccusage_daily_uses_correct_flags():
         "totals": {"inputTokens": 100, "outputTokens": 10, "totalTokens": 110, "totalCost": 0.001}
     }
 
-    with patch("app.utils.usage_fetcher_v2._run_cmd", return_value=fake_result) as mock_run, \
+    with patch("app.utils.usage_fetcher_v2.run_ccusage", return_value={"ok": True, "data": fake_result}) as mock_run, \
          patch("app.utils.usage_fetcher_v2._get_from_cache", return_value=None), \
-         patch("app.utils.usage_fetcher_v2._set_cache"):
+         patch("app.utils.usage_fetcher_v2._set_cache"), \
+         patch("app.utils.usage_fetcher_v2.find_ccusage", return_value="/usr/bin/ccusage"):
         UsageFetcherV2.fetch_ccusage_daily(since="2026-06-05", until="2026-06-05")
 
-    cmd = mock_run.call_args[0][0]
-    assert cmd[0] == "ccusage"
-    assert "daily" in cmd
-    assert "--json" in cmd
-    assert "--since=2026-06-05" in cmd
-    assert "--until=2026-06-05" in cmd
-    assert "--offline" in cmd
+    args = mock_run.call_args[0][0]
+    assert args[0] == "daily"
+    assert "--json" in args
+    assert "--since=2026-06-05" in args
+    assert "--until=2026-06-05" in args
+    assert "--offline" in args
 
 
 def test_fetch_ccusage_agent_daily_opencode():
@@ -54,17 +54,17 @@ def test_fetch_ccusage_agent_daily_opencode():
         "totals": {"inputTokens": 100, "outputTokens": 10, "totalTokens": 110, "totalCost": 0.0}
     }
 
-    with patch("app.utils.usage_fetcher_v2._run_cmd", return_value=fake_result) as mock_run, \
+    with patch("app.utils.usage_fetcher_v2.run_ccusage", return_value={"ok": True, "data": fake_result}) as mock_run, \
          patch("app.utils.usage_fetcher_v2._get_from_cache", return_value=None), \
-         patch("app.utils.usage_fetcher_v2._set_cache"):
+         patch("app.utils.usage_fetcher_v2._set_cache"), \
+         patch("app.utils.usage_fetcher_v2.find_ccusage", return_value="/usr/bin/ccusage"):
         UsageFetcherV2.fetch_ccusage_agent_daily(
             agent="opencode", since="2026-06-05", until="2026-06-05"
         )
 
-    cmd = mock_run.call_args[0][0]
-    assert cmd[0] == "ccusage"
-    assert cmd[1] == "opencode"
-    assert cmd[2] == "daily"
-    assert "--json" in cmd
-    assert "--since=2026-06-05" in cmd
-    assert "--until=2026-06-05" in cmd
+    args = mock_run.call_args[0][0]
+    assert args[0] == "opencode"
+    assert args[1] == "daily"
+    assert "--json" in args
+    assert "--since=2026-06-05" in args
+    assert "--until=2026-06-05" in args
