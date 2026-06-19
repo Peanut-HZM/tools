@@ -256,13 +256,14 @@ def check_login_valid() -> dict:
         return {"valid": False, "message": f"校验失败: {str(e)}"}
 
 
-# Pro 套餐特征文本
-PRO_PACKAGE_KEYWORD = "Pro 全量权益"
+# Pro 套餐按钮选择器
+# 策略 1: 通过 Pro 套餐卡片定位（最可靠）
+# 策略 2: 定位所有"特惠订阅"按钮，取第 3 个（Pro 套餐）
 PRO_BUTTON_SELECTORS = [
     # 通过 Pro 套餐卡片定位按钮
-    "xpath=//h3[contains(text(), 'Pro 全量权益')]/ancestor::div[1]//button",
+    "xpath=//*[contains(text(), 'Pro 全量权益')]/ancestor::div[contains(@class, 'card')]//button",
     # 直接定位第三个"特惠订阅"按钮
-    "button >> nth=2",
+    "button:has-text('特惠订阅') >> nth=2",
 ]
 
 
@@ -276,7 +277,9 @@ def _find_pro_button(page):
     for selector in PRO_BUTTON_SELECTORS:
         try:
             locator = page.locator(selector)
-            if locator.count() > 0:
+            count = locator.count()
+            if count > 0:
+                logger.debug(f"选择器 {selector} 匹配到 {count} 个元素")
                 return locator.first
         except Exception as e:
             logger.debug(f"选择器 {selector} 未命中: {e}")
@@ -407,7 +410,7 @@ def _execute_rush(config: dict):
 
             _append_log("preheating", "预热完成，等待开抢时间...", task_id)
 
-            # 等待到 9:59:50
+            # 计算下次开抢时间
             target = next_sale_time(sale_time)
             rush_start = target.replace(second=50) if target.second == 0 else target
             now = datetime.now()
@@ -415,10 +418,34 @@ def _execute_rush(config: dict):
             # 如果当前时间早于 rush_start，等待
             wait_seconds = (rush_start - now).total_seconds()
             if wait_seconds > 0:
-                _append_log("preheating", f"等待 {int(wait_seconds)} 秒后开始刷新", task_id)
-                _update_task(countdown_seconds=int(wait_seconds))
-                # 这里简化处理：实际可以倒计时刷新
-                time_module.sleep(max(0, wait_seconds - 5))  # 提前 5 秒准备
+                # 最多等待 5 分钟，超过就直接开始刷新（用于测试）
+                max_wait = 300  # 5 分钟
+                if wait_seconds > max_wait:
+                    _append_log(
+                        "preheating",
+                        f"距离开抢还有 {int(wait_seconds)} 秒（{int(wait_seconds//60)} 分钟），"
+                        f"超过 {max_wait} 秒限制，直接进入刷新模式（测试模式）",
+                        task_id,
+                    )
+                else:
+                    _append_log(
+                        "preheating",
+                        f"等待 {int(wait_seconds)} 秒后开始刷新（目标时间：{target.strftime('%H:%M:%S')}）",
+                        task_id,
+                    )
+                    _update_task(countdown_seconds=int(wait_seconds))
+                    time_module.sleep(max(0, wait_seconds - 5))  # 提前 5 秒准备
+
+            # 先检测一次按钮状态
+            _append_log("preheating", "开始检测按钮状态...", task_id)
+            button_state = _detect_pro_button_state(page)
+            _append_log(
+                "preheating",
+                f"当前按钮状态：state={button_state['state'].value}, "
+                f"text={button_state['text']}, "
+                f"disabled={button_state['disabled']}",
+                task_id,
+            )
 
             # 刷新轮询
             _update_task(current_phase="refreshing", message="开始刷新页面")
