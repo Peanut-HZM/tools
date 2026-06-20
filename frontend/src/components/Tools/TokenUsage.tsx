@@ -490,13 +490,36 @@ export default function TokenUsage() {
     [summary.data.dimension_summaries.models]
   );
 
+  // 修复：按纯 model 字段二次合并，避免同一模型因 source 不同而被拆分
   const modelCostSlices: PieSlice[] = useMemo(
-    () => summary.data.model_summary.map(item => ({
-      key: item.model,
-      label: `${item.source === 'claude' ? 'Claude' : item.source === 'opencode' ? 'OpenCode' : item.source} · ${item.display_model || item.model}`,
-      tokens: item.total_tokens,
-      cost: item.total_cost,
-    })),
+    () => {
+      const modelMap = new Map<string, { tokens: number; cost: number; sources: Set<string>; display_model: string }>();
+      summary.data.model_summary.forEach(item => {
+        const existing = modelMap.get(item.model);
+        if (existing) {
+          existing.tokens += item.total_tokens;
+          existing.cost += item.total_cost;
+          existing.sources.add(item.source);
+        } else {
+          modelMap.set(item.model, {
+            tokens: item.total_tokens,
+            cost: item.total_cost,
+            sources: new Set([item.source]),
+            display_model: item.display_model || item.model,
+          });
+        }
+      });
+
+      return [...modelMap.entries()].map(([model, data]) => ({
+        key: model,
+        // 如果有多个来源，显示为 "Claude + OpenCode · model_name"；单来源则只显示来源名
+        label: data.sources.size > 1
+          ? `${[...data.sources].map(s => s === 'claude' ? 'Claude' : s === 'opencode' ? 'OpenCode' : s).join(' + ')} · ${data.display_model}`
+          : `${data.sources.has('claude') ? 'Claude' : data.sources.has('opencode') ? 'OpenCode' : [...data.sources][0]} · ${data.display_model}`,
+        tokens: data.tokens,
+        cost: data.cost,
+      }));
+    },
     [summary.data.model_summary]
   );
 
