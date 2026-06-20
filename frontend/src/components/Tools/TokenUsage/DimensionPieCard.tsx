@@ -9,6 +9,7 @@ export interface PieSlice {
   tokens: number;
   cost: number;
   isOther?: boolean;
+  percent?: number;
 }
 
 interface DimensionPieCardProps {
@@ -49,8 +50,14 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
     if (valid.length === 0) return { type: 'empty-all-zero' as const };
     // 去掉 Top N 限制，显示全部切片，按 tokens 降序
     const sorted = [...valid].sort((a, b) => b.tokens - a.tokens);
-    return { type: 'data' as const, slices: sorted };
-  }, [data]);
+    // 为每个切片计算百分比（基于 totalTokens，用于 Tooltip 展示）
+    const totalForPercent = totalTokens > 0 ? totalTokens : sorted.reduce((s, x) => s + x.tokens, 0);
+    const withPercent = sorted.map(s => ({
+      ...s,
+      percent: totalForPercent > 0 ? (s.tokens / totalForPercent * 100) : 0,
+    }));
+    return { type: 'data' as const, slices: withPercent };
+  }, [data, totalTokens]);
 
   if (processed.type !== 'data') {
     const message = processed.type === 'empty-no-data' ? emptyHint : '暂无 Token 数据';
@@ -109,14 +116,28 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                 })}
               </Pie>
               <Tooltip
-                formatter={((_: unknown, __: unknown, payload: { payload?: PieSlice } | undefined) => {
-                  const slice = payload?.payload;
-                  return [
-                    slice ? valueLabel(slice) : '',
-                    metric === 'cost' ? '成本占比' : 'Token 占比',
-                  ] as [string, string];
-                }) as never}
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }}
+                content={({ payload }: { payload?: Array<{ payload?: PieSlice }> }) => {
+                  const slice = payload?.[0]?.payload;
+                  if (!slice) return null;
+                  const pct = `${(slice.percent ?? 0).toFixed(1)}%`;
+                  return (
+                    <div className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 shadow-lg">
+                      <div className="mb-1 font-medium text-white">{title}</div>
+                      <div className="mb-1 text-slate-300">{slice.label}</div>
+                      {metric === 'cost' ? (
+                        <>
+                          <div>{formatCurrency(slice.cost)} <span className="text-slate-500">({pct})</span></div>
+                          <div className="text-slate-400">{formatToken(slice.tokens)} Token</div>
+                        </>
+                      ) : (
+                        <>
+                          <div>{formatToken(slice.tokens)} Token <span className="text-slate-500">({pct})</span></div>
+                          <div className="text-slate-400">{formatCurrency(slice.cost)}</div>
+                        </>
+                      )}
+                    </div>
+                  );
+                }}
               />
             </PieChart>
           </ResponsiveContainer>

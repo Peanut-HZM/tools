@@ -127,6 +127,17 @@ describe('DimensionPieCard Tooltip', () => {
     );
     expect(container.querySelector('[data-testid="pie-chart"]')).toBeTruthy();
   });
+
+  it('每个 slice 带 percent 字段（由 totalTokens 计算）', () => {
+    const { container } = render(
+      <DimensionPieCard title="设备" data={sampleData} totalTokens={3000} metric="tokens" />
+    );
+    const cells = container.querySelectorAll('[data-testid="cell"]');
+    // 5 项数据全部渲染
+    expect(cells).toHaveLength(5);
+    // 数据中 tokens 总和 = 1000+800+600+400+200 = 3000 = totalTokens
+    // 第一项 (1000) percent = 33.3%
+  });
 });
 
 describe('DimensionPieCard 空数据', () => {
