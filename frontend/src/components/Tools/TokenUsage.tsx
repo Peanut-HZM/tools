@@ -491,37 +491,28 @@ export default function TokenUsage() {
   );
 
   // 修复：按纯 model 字段二次合并，避免同一模型因 source 不同而被拆分
-  const modelCostSlices: PieSlice[] = useMemo(
-    () => {
-      const modelMap = new Map<string, { tokens: number; cost: number; sources: Set<string>; display_model: string }>();
-      summary.data.model_summary.forEach(item => {
-        const existing = modelMap.get(item.model);
-        if (existing) {
-          existing.tokens += item.total_tokens;
-          existing.cost += item.total_cost;
-          existing.sources.add(item.source);
-        } else {
-          modelMap.set(item.model, {
-            tokens: item.total_tokens,
-            cost: item.total_cost,
-            sources: new Set([item.source]),
-            display_model: item.display_model || item.model,
-          });
-        }
-      });
-
-      return [...modelMap.entries()].map(([model, data]) => ({
-        key: model,
-        // 如果有多个来源，显示为 "Claude + OpenCode · model_name"；单来源则只显示来源名
-        label: data.sources.size > 1
-          ? `${[...data.sources].map(s => s === 'claude' ? 'Claude' : s === 'opencode' ? 'OpenCode' : s).join(' + ')} · ${data.display_model}`
-          : `${data.sources.has('claude') ? 'Claude' : data.sources.has('opencode') ? 'OpenCode' : [...data.sources][0]} · ${data.display_model}`,
-        tokens: data.tokens,
-        cost: data.cost,
-      }));
-    },
-    [summary.data.model_summary]
-  );
+  // label 直接用纯模型名，不再带工具/source 前缀（用户要求"不需要关注工具"）
+  const modelCostSlices: PieSlice[] = useMemo(() => {
+    const modelMap = new Map<string, { tokens: number; cost: number }>();
+    summary.data.model_summary.forEach(item => {
+      const existing = modelMap.get(item.model);
+      if (existing) {
+        existing.tokens += item.total_tokens;
+        existing.cost += item.total_cost;
+      } else {
+        modelMap.set(item.model, {
+          tokens: item.total_tokens,
+          cost: item.total_cost,
+        });
+      }
+    });
+    return [...modelMap.entries()].map(([model, data]) => ({
+      key: model,
+      label: model,
+      tokens: data.tokens,
+      cost: data.cost,
+    }));
+  }, [summary.data.model_summary]);
 
   const totalDeviceTokens = useMemo(
     () => devicePieSlices.reduce((s, x) => s + x.tokens, 0),

@@ -763,7 +763,7 @@ async def get_token_usage_summary(
         since_date = datetime.now() - timedelta(days=days)
         records = (
             db.query(TokenUsageRecord)
-            .filter(*_build_record_filters(user_id, req, since_date, alias_map))
+            .filter(*_build_record_filters(user_id, req, since_date, alias_map, db=db))
             .all()
         )
 
@@ -859,7 +859,7 @@ async def get_token_usage_details(
         since_date = datetime.now() - timedelta(days=req.days)
         records = (
             db.query(TokenUsageRecord)
-            .filter(*_build_record_filters(user_id, req_ns, since_date, alias_map))
+            .filter(*_build_record_filters(user_id, req_ns, since_date, alias_map, db=db))
             .all()
         )
 
@@ -1539,6 +1539,38 @@ def _load_device_names(db, user_id: str) -> dict[str, str]:
     return names
 
 
+def _resolve_same_display_name_ids(
+    db, user_id: str, device_id: str, alias_map: Optional[dict[str, str]]
+) -> list[str]:
+    """
+    给定一个 device_id，找出所有在 DeviceRegistry 中 display_name
+    与其相同的 device_id（包括 alias 展开后的设备），返回完整集合。
+
+    用途：设备饼图按显示名合并后，点击切片传入的 device_id 仅是一个
+    canonical id，但查询应该覆盖所有同名的设备记录。
+    """
+    from app.utils.device_name_resolver import load_device_name_map
+
+    device_names = load_device_name_map(db, user_id)
+    target_name = device_names.get(device_id)
+    if not target_name:
+        return []
+
+    # 找出所有 display_name 相同的 device_id
+    same_ids = [did for did, name in device_names.items() if name == target_name]
+    if not same_ids:
+        return [device_id]
+
+    # 把 alias 反向也展开：如果某个 device_id 是 alias 且它的 canonical 也同名，加入
+    expanded = set(same_ids)
+    if alias_map:
+        for alias_id, canonical_id in alias_map.items():
+            if canonical_id in expanded or alias_id in expanded:
+                expanded.add(alias_id)
+                expanded.add(canonical_id)
+    return list(expanded)
+
+
 def _build_dimension_summary(
     rows,
     dimension: str,
@@ -1879,7 +1911,7 @@ def build_chart_series(
 
 
 def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map: Optional[dict[str, str]] = None) -> tuple[dict, dict]:
-    filters = _build_record_filters(user_id, req, since_date, alias_map)
+    filters = _build_record_filters(user_id, req, since_date, alias_map, db=db)
     records = db.query(TokenUsageRecord).filter(*filters).all()
     device_names = _load_device_names(db, user_id)
     if not records:
@@ -2004,6 +2036,7 @@ def _build_record_filters(
     req,
     since_date: Optional[datetime] = None,
     alias_map: Optional[dict[str, str]] = None,
+    db=None,  # 新增：可选，用于同名设备展开
 ) -> list:
     """构建 Token Usage 记录查询条件，保证元信息和明细口径一致。"""
     from app.utils.device_name_resolver import build_alias_aware_device_filter
@@ -2014,7 +2047,14 @@ def _build_record_filters(
     if getattr(req, "source", "all") != "all":
         filters.append(TokenUsageRecord.source == req.source)
     if getattr(req, "device_id", None):
-        if alias_map:
+        # 修复问题 2 联动：同名设备筛选时，把所有同显示名的 device_id 都查进来
+        same_name_ids = (
+            _resolve_same_display_name_ids(db, user_id, req.device_id, alias_map)
+            if db is not None else []
+        )
+        if same_name_ids:
+            filters.append(TokenUsageRecord.device_id.in_(same_name_ids))
+        elif alias_map:
             filters.extend(
                 build_alias_aware_device_filter(req.device_id, alias_map)
             )
@@ -2043,7 +2083,7 @@ def _build_record_filters(
 
 def _latest_record_updated_at(db, user_id: str, req):
     """当同步日志缺失时，用实际记录更新时间兜底显示数据更新时间。"""
-    filters = _build_record_filters(user_id, req)
+    filters = _build_record_filters(user_id, req, db=db)
     row = (
         db.query(
             func.max(TokenUsageRecord.updated_at).label("updated_at"),
@@ -2076,7 +2116,7 @@ def _latest_record_at_global(db, user_id: str) -> Optional[datetime]:
 
 def _query_item_model_map(db, user_id: str, req, since_date: datetime) -> dict[tuple, list[str]]:
     """查询每个明细行对应的模型集合，用于补全表格模型列。"""
-    filters = _build_record_filters(user_id, req, since_date)
+    filters = _build_record_filters(user_id, req, since_date, db=db)
 
     if req.group_by == "device":
         rows = (
@@ -2216,7 +2256,7 @@ def _get_sync_meta(db, user_id: str, req, cached_payload: Optional[dict]) -> dic
 
 def _execute_model_summary_query(db, user_id: str, req, since_date: datetime, alias_map: Optional[dict[str, str]] = None):
     """按 source/model 聚合模型统计，避免前端从日期行猜测。"""
-    filters = _build_record_filters(user_id, req, since_date, alias_map)
+    filters = _build_record_filters(user_id, req, since_date, alias_map, db=db)
 
     return (
         db.query(
@@ -2381,7 +2421,7 @@ async def query_token_usage(
             auto_expanded = False
             actual_days = req.days
             if not items and req.days < 365:
-                source_filter = _build_record_filters(user_id, req, alias_map=alias_map)
+                source_filter = _build_record_filters(user_id, req, alias_map=alias_map, db=db)
                 has_any_data = (
                     db.query(TokenUsageRecord).filter(*source_filter).first()
                     is not None
@@ -2472,7 +2512,7 @@ def _execute_db_query(
     db, user_id: str, req: DbQueryRequest, since_date: datetime, alias_map: Optional[dict[str, str]] = None
 ) -> list[DbUsageItem]:
     """执行数据库聚合查询"""
-    base_filter = _build_record_filters(user_id, req, since_date, alias_map)
+    base_filter = _build_record_filters(user_id, req, since_date, alias_map, db=db)
 
     if req.group_by == "device":
         # 按设备分组，返回每个设备的每日聚合

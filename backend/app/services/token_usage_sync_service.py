@@ -589,7 +589,6 @@ AGENT_DISPLAY_NAMES = {
     "gemini": "Gemini",
     "kimi": "Kimi",
     "qwen": "Qwen",
-    "other": "Other",
 }
 
 
@@ -628,7 +627,10 @@ def _infer_agent(
         # 当日仅 1 个 agent 时 fallback 到该 agent
         if len(day_agents) == 1:
             return next(iter(day_agents.keys()))
-        return "other"  # 当日无任何 agent 数据（极端情况）
+        # 当日无任何 agent 数据（agent_models_dict 完全为空）→ 也抛错，不静默归 other
+        raise ValueError(
+            f"模型 '{model_name}' 在 {date_str} 当日无 agent 数据可用于推断"
+        )
     for priority_agent in AGENT_PRIORITY:
         if priority_agent in candidates:
             return priority_agent
@@ -649,6 +651,7 @@ def _parse_ccusage_records(
         list of dict, 每条含 record_date, source, model, 4 个 token 字段, total_cost 等
     """
     results = []
+    skipped = 0
     for day in daily:
         period = day.get("period") or day.get("date")
         if not period:
@@ -661,11 +664,13 @@ def _parse_ccusage_records(
         breakdowns = day.get("modelBreakdowns") or []
         for bd in breakdowns:
             model_name = bd.get("modelName") or bd.get("model") or "_unknown"
-            agent = _infer_agent(model_name, period, agent_models_dict)
-            if agent == "other":
-                logger.warning(
-                    f"[ccusage] 模型 {model_name}（{period}）不在任何 per-agent modelsUsed 中，归 'other'"
-                )
+            # 修复问题 3：_infer_agent 无法归属时抛 ValueError，这里捕获并跳过该条记录
+            try:
+                agent = _infer_agent(model_name, period, agent_models_dict)
+            except ValueError as exc:
+                logger.warning(f"[ccusage] 跳过无法归属的记录: {exc}")
+                skipped += 1
+                continue
 
             input_tokens = _safe_int(bd, "inputTokens", "input_tokens")
             output_tokens = _safe_int(bd, "outputTokens", "output_tokens")
@@ -680,7 +685,7 @@ def _parse_ccusage_records(
                 "record_date": record_date,
                 "source": agent,
                 "tool_id": agent,
-                "tool_name": AGENT_DISPLAY_NAMES.get(agent, "Other"),
+                "tool_name": AGENT_DISPLAY_NAMES.get(agent, agent),
                 "model": model_name,
                 "model_display_name": model_name,
                 "input_tokens": input_tokens,
@@ -691,6 +696,8 @@ def _parse_ccusage_records(
                 "total_cost": total_cost,
                 "source_raw": "ccusage-daily",
             })
+    if skipped:
+        logger.info(f"[ccusage] 共跳过 {skipped} 条无法归属的记录")
     return results
 
 
