@@ -116,6 +116,11 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                 })}
               </Pie>
               <Tooltip
+                wrapperStyle={{
+                  // 将浮窗从鼠标位置偏移，避免落在甜甜圈中心空洞内
+                  transform: 'translate(20px, -100px)',
+                  pointerEvents: 'none',
+                }}
                 content={({ payload }: { payload?: Array<{ payload?: PieSlice }> }) => {
                   const slice = payload?.[0]?.payload;
                   if (!slice) return null;
