@@ -1500,9 +1500,11 @@ def _normalize_record_dimensions(row, device_names: dict[str, str]) -> dict:
     tool_id = getattr(row, "tool_id", None) or tool["tool_id"]
     tool_name = getattr(row, "tool_name", None) or tool["tool_name"]
     device_id = getattr(row, "device_id", None) or "unknown"
+    # 修复问题 1：设备名优先从 device_names map 取（用户重命名后的名称），
+    # 而非记录里落库的旧快照
     device_name = (
-        getattr(row, "device_name", None)
-        or device_names.get(device_id)
+        device_names.get(device_id)
+        or getattr(row, "device_name", None)
         or device_id
     )
     model = getattr(row, "model", None) or "unknown"
@@ -1644,9 +1646,11 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
 
     for row in records:
         dims = _normalize_record_dimensions(row, device_names)
-        device_key = dims["device_id"]
+        # 修复问题 2：设备维度按显示名分组，而非 device_id
+        # 这样两个不同 device_id 但显示名相同的设备会合并为一个切片
+        device_key = dims["device_name"]
         tool_key = dims["tool_id"]
-        model_key = f"{dims['tool_id']}:{dims['model']}"
+        model_key = f"{dims['model']}"
 
         device_bucket = device_buckets.setdefault(
             device_key,
@@ -1654,7 +1658,7 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
                 "dimension": "device",
                 "key": device_key,
                 "label": dims["device_name"],
-                "device_id": device_key,
+                "device_id": dims["device_id"],
                 "tool_id": None,
                 "source": None,
                 "model": None,
@@ -1696,6 +1700,8 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
             {"label": dims["tool_name"], "source": dims["source"]},
         )
 
+        # 修复问题 4：模型维度按纯 model 字段分组，不再带 tool_id 前缀
+        model_key = dims["model"]
         model_bucket = model_buckets.setdefault(
             model_key,
             {
@@ -1703,8 +1709,8 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
                 "key": model_key,
                 "label": dims["model_display_name"],
                 "device_id": None,
-                "tool_id": tool_key,
-                "source": dims["source"],
+                "tool_id": None,
+                "source": None,
                 "model": dims["model"],
                 "input_tokens": 0,
                 "output_tokens": 0,
@@ -1721,8 +1727,8 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
             row,
             {
                 "label": dims["model_display_name"],
-                "tool_id": tool_key,
-                "source": dims["source"],
+                "tool_id": None,
+                "source": None,
                 "model": dims["model"],
             },
         )

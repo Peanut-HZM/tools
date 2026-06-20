@@ -611,12 +611,24 @@ def _infer_agent(
     规则:
     1. 模型在当日某 agent 的 modelsUsed 中 → 归属该 agent
     2. 多个 agent 都含该模型（歧义）→ 按 AGENT_PRIORITY 选最高优先级
-    3. 都不含 → "other"（兜底，WARNING 日志）
+    3. 都不含且当日有多个 agent → 抛 ValueError，不再返回 "other" 兜底
+    4. 都不含但当日仅 1 个 agent → 归该 agent（唯一候选 fallback）
     """
     day_agents = agent_models_dict.get(date_str, {})
     candidates = [agent for agent, models in day_agents.items() if model_name in models]
     if not candidates:
-        return "other"
+        # 修复问题 3：多 agent 当日但模型不在任何 modelsUsed 中 → 抛错
+        # 让上层知道这是数据异常，而非静默返回 "other"
+        if len(day_agents) > 1:
+            raise ValueError(
+                f"模型 '{model_name}' 在 {date_str} 当日有 {len(day_agents)} 个 agent "
+                f"({', '.join(day_agents.keys())})，但不在任何 agent 的 modelsUsed 中，"
+                f"无法确定归属"
+            )
+        # 当日仅 1 个 agent 时 fallback 到该 agent
+        if len(day_agents) == 1:
+            return next(iter(day_agents.keys()))
+        return "other"  # 当日无任何 agent 数据（极端情况）
     for priority_agent in AGENT_PRIORITY:
         if priority_agent in candidates:
             return priority_agent
