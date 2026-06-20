@@ -58,23 +58,23 @@ describe('DimensionPieCard 渲染', () => {
   });
 });
 
-describe('DimensionPieCard 切片聚合', () => {
-  it('12 项数据：渲染 8 个原分片 + 1 个"其他"分片 = 9 个 Cell', () => {
+describe('DimensionPieCard 切片显示', () => {
+  it('12 项数据：全部 12 个 Cell 都渲染，无"其他"聚合', () => {
     const twelve = Array.from({ length: 12 }, (_, i) => slice(`s${i}`, `设备 ${i}`, 100 - i * 5));
     render(<DimensionPieCard title="设备" data={twelve} totalTokens={1000} metric="tokens" />);
-    expect(screen.getAllByTestId('cell')).toHaveLength(9);
-    expect(screen.getByText('其他')).toBeTruthy();
+    expect(screen.getAllByTestId('cell')).toHaveLength(12);
+    expect(screen.queryByText('其他')).toBeNull();
   });
 
-  it('"其他"分片 tokens = 剩余 4 项 tokens 之和', () => {
-    const twelve = Array.from({ length: 12 }, (_, i) => slice(`s${i}`, `设备 ${i}`, 100 - i * 5));
-    // 排序后取前 8：tokens = 100,95,90,85,80,75,70,65 = 660
-    // 剩余 4 项：60,55,50,45 = 210
+  it('20 项数据：全部渲染，图例可滚动', () => {
+    const twenty = Array.from({ length: 20 }, (_, i) => slice(`s${i}`, `模型 ${i}`, 200 - i * 8));
     const { container } = render(
-      <DimensionPieCard title="设备" data={twelve} totalTokens={870} metric="tokens" />
+      <DimensionPieCard title="模型" data={twenty} totalTokens={2000} metric="tokens" />
     );
-    const legendText = container.textContent || '';
-    expect(legendText).toContain('210 Token');
+    expect(screen.getAllByTestId('cell')).toHaveLength(20);
+    // 图例区域应有滚动能力
+    const legendArea = container.querySelector('.overflow-y-auto');
+    expect(legendArea).toBeTruthy();
   });
 });
 
@@ -144,7 +144,7 @@ describe('DimensionPieCard 空数据', () => {
 });
 
 describe('DimensionPieCard 颜色', () => {
-  it('前 8 项用 COLORS 调色板，"其他"用 #475569', () => {
+  it('所有项用 COLORS 调色板循环取色（无"其他"专用色）', () => {
     const ten = Array.from({ length: 10 }, (_, i) => slice(`s${i}`, `X${i}`, 100 - i));
     const { container } = render(
       <DimensionPieCard title="设备" data={ten} totalTokens={1000} metric="tokens" />
@@ -153,7 +153,9 @@ describe('DimensionPieCard 颜色', () => {
     const fills = Array.from(cells).map(c => c.getAttribute('data-fill'));
     expect(fills[0]).toBe('#3b82f6');
     expect(fills[7]).toBe('#84cc16');
-    expect(fills[8]).toBe('#475569');
+    // 第 9 项循环回 COLORS[0]，而非 #475569
+    expect(fills[8]).toBe('#3b82f6');
+    expect(fills[9]).toBe('#10b981');
   });
 });
 

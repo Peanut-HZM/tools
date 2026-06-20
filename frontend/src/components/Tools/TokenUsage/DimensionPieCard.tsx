@@ -2,9 +2,6 @@ import React, { useMemo } from 'react';
 import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
-const OTHER_COLOR = '#475569';
-const MAX_SLICES = 8;
-const SLICE_KEY_OTHER = '__other__';
 
 export interface PieSlice {
   key: string;
@@ -46,19 +43,13 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   emptyHint = '暂无数据',
 }) => {
   const processed = useMemo(() => {
-    // 区分 3 种空状态：data 未提供 vs data 全为 0
+    // 区分 2 种空状态：data 未提供 vs data 全为 0
     if (data.length === 0) return { type: 'empty-no-data' as const };
     const valid = data.filter(d => d.tokens > 0 || d.cost > 0);
     if (valid.length === 0) return { type: 'empty-all-zero' as const };
+    // 去掉 Top N 限制，显示全部切片，按 tokens 降序
     const sorted = [...valid].sort((a, b) => b.tokens - a.tokens);
-    const top = sorted.slice(0, MAX_SLICES);
-    const rest = sorted.slice(MAX_SLICES);
-    if (rest.length > 0) {
-      const otherTokens = rest.reduce((sum, s) => sum + s.tokens, 0);
-      const otherCost = rest.reduce((sum, s) => sum + s.cost, 0);
-      top.push({ key: SLICE_KEY_OTHER, label: '其他', tokens: otherTokens, cost: otherCost, isOther: true });
-    }
-    return { type: 'data' as const, slices: top };
+    return { type: 'data' as const, slices: sorted };
   }, [data]);
 
   if (processed.type !== 'data') {
@@ -67,7 +58,6 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
       <div className="rounded-md border border-slate-800 bg-slate-900 p-3 h-80 flex flex-col">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium text-white">{title}</h2>
-          <span className="text-xs text-slate-500">Top {MAX_SLICES}</span>
         </div>
         <div className="flex-1 flex items-center justify-center text-sm text-slate-500">
           {message}
@@ -87,7 +77,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
     <div className="rounded-md border border-slate-800 bg-slate-900 p-3 h-80 flex flex-col">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-medium text-white">{title}</h2>
-        <span className="text-xs text-slate-500">Top {MAX_SLICES}</span>
+        <span className="text-xs text-slate-500">{slices.length} 项</span>
       </div>
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="relative h-44">
@@ -106,7 +96,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                 style={{ cursor: onSelect ? 'pointer' : 'default' }}
               >
                 {slices.map((s, i) => {
-                  const fill = s.isOther ? OTHER_COLOR : COLORS[i % COLORS.length];
+                  const fill = COLORS[i % COLORS.length];
                   const isSelected = selectedKey === s.key;
                   return (
                     <Cell
@@ -141,7 +131,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
               <span className="flex min-w-0 items-center gap-1.5 text-slate-300">
                 <span
                   className="h-2 w-2 flex-none rounded-full"
-                  style={{ backgroundColor: s.isOther ? OTHER_COLOR : COLORS[i % COLORS.length] }}
+                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
                 />
                 <span className="truncate">{s.label}</span>
               </span>
