@@ -32,8 +32,6 @@ export const TerminalPanel: React.FC<Props> = ({
   const heartbeatTimerRef = useRef<number | null>(null);
   const socketStateRef = useRef<'closed' | 'open'>('closed');
   const statusRef = useRef<ConnectionStatus>('disconnected');
-  // 标记是否已挂载完成,用于 createdAt effect 跳过首次
-  const mountedRef = useRef<boolean>(false);
 
   const setStatus = (s: ConnectionStatus) => {
     statusRef.current = s;
@@ -132,43 +130,82 @@ export const TerminalPanel: React.FC<Props> = ({
     setStatus('disconnected');
   };
 
-  // 1. 初始化 xterm + 挂载时立刻连接
+  // 1. 挂载初始化 + createdAt 变化时重连
+  const mountCountRef = useRef(0);
   useEffect(() => {
-    if (!terminalRef.current || terminalInstance.current) return;
-    const terminal = new Terminal({ cursorBlink: true, fontSize: 13, theme: { background: '#0f172a', foreground: '#e2e8f0' } });
-    const fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
-    terminal.loadAddon(new WebLinksAddon());
-    terminal.open(terminalRef.current);
-    terminalInstance.current = terminal;
-    fitAddonRef.current = fitAddon;
+    if (!terminalRef.current) return;
 
-    const dataDisposable = terminal.onData((data) => {
-      const s = socketRef.current;
-      if (s && s.readyState === WebSocket.OPEN) s.send(JSON.stringify({ type: 'input', data }));
-    });
+    // 首次挂载:创建 xterm 实例
+    if (!terminalInstance.current) {
+      const terminal = new Terminal({ cursorBlink: true, fontSize: 13, theme: { background: '#0f172a', foreground: '#e2e8f0' } });
+      const fitAddon = new FitAddon();
+      terminal.loadAddon(fitAddon);
+      terminal.loadAddon(new WebLinksAddon());
+      terminal.open(terminalRef.current);
+      terminalInstance.current = terminal;
+      fitAddonRef.current = fitAddon;
 
-    connect();
-    mountedRef.current = true;
+      const dataDisposable = terminal.onData((data) => {
+        const s = socketRef.current;
+        if (s && s.readyState === WebSocket.OPEN) s.send(JSON.stringify({ type: 'input', data }));
+      });
+      (terminal as any).__dataDisposable = dataDisposable;
+    }
+
+    // StrictMode 防御:首次 mount 时 StrictMode 会立即 unmount 再 remount
+    // effect cleanup 会关闭 socket,然后 remount 时再次执行 connect()
+    // 通过 mountCountRef 判断:只在第 2 次(StrictMode remount)或第 1 次(生产环境)连接
+    mountCountRef.current += 1;
+    const isStrictModeRemount = mountCountRef.current === 2;
+    if (mountCountRef.current === 1 || isStrictModeRemount) {
+      // 检查 socket 是否已活跃,避免重复连接
+      if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+        connect();
+      }
+    }
 
     return () => {
-      dataDisposable.dispose();
-      stopHeartbeat();
-      socketRef.current?.close();
-      socketRef.current = null;
-      terminal.dispose();
-      terminalInstance.current = null;
-      fitAddonRef.current = null;
+      // StrictMode 首次 mount 的 cleanup:不关闭 socket(因为马上会 remount)
+      // 后续的 cleanup:正常关闭
+      if (mountCountRef.current >= 2) {
+        stopHeartbeat();
+        socketRef.current?.close();
+        socketRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 2. createdAt 变化 → 重连(retry 场景);首次挂载由上面的 effect 负责
+  }, [createdAt]);
+  const connectedRef = useRef<boolean>(false);
   useEffect(() => {
-    if (!mountedRef.current) return;
-    if (!terminalInstance.current) return;
-    terminalInstance.current.clear();
-    connect();
+    if (!terminalRef.current) return;
+    if (!terminalInstance.current) {
+      const terminal = new Terminal({ cursorBlink: true, fontSize: 13, theme: { background: '#0f172a', foreground: '#e2e8f0' } });
+      const fitAddon = new FitAddon();
+      terminal.loadAddon(fitAddon);
+      terminal.loadAddon(new WebLinksAddon());
+      terminal.open(terminalRef.current);
+      terminalInstance.current = terminal;
+      fitAddonRef.current = fitAddon;
+
+      const dataDisposable = terminal.onData((data) => {
+        const s = socketRef.current;
+        if (s && s.readyState === WebSocket.OPEN) s.send(JSON.stringify({ type: 'input', data }));
+      });
+      (terminal as any).__dataDisposable = dataDisposable;
+    }
+
+    // StrictMode 防御:只在首次真正挂载时连接
+    // StrictMode 会触发 mount→unmount→remount,但只有第二次 remount 是真正的挂载
+    // 通过检查 connectedRef 确保只在第二次 remount 时连接
+    if (!connectedRef.current) {
+      connectedRef.current = true;
+      connect();
+    }
+
+    return () => {
+      // cleanup 中不关闭 socket,避免 StrictMode 模拟卸载时关闭真正的连接
+      // socket 会在组件真正卸载时由浏览器自动关闭
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createdAt]);
 
