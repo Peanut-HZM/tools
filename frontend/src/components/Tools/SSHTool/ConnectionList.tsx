@@ -4,14 +4,16 @@ import { useI18n, interpolate } from '../../../i18n';
 
 interface Props {
   configs: SSHConfig[];
+  /** 仅用于保留 API 兼容;实际不再使用高亮 */
   selectedId: string | null;
+  /** 语义:打开新 tab(不再是"选中") */
   onSelect: (id: string) => void;
   onAdd: () => void;
   onEdit: (config: SSHConfig) => void;
   onDelete: (id: string) => void;
 }
 
-export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect, onAdd, onEdit, onDelete }) => {
+export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEdit, onDelete }) => {
   const { t } = useI18n();
 
   return (
@@ -32,11 +34,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
         {configs.map(config => (
           <div
             key={config.id}
-            className={`p-2 rounded cursor-pointer group flex justify-between items-center ${
-              selectedId === config.id
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-            }`}
+            className="p-2 rounded cursor-pointer group flex justify-between items-center text-slate-300 hover:bg-slate-700 hover:text-white"
             onClick={() => onSelect(config.id)}
           >
             <div className="truncate flex-1">
@@ -44,14 +42,14 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
                 <i className="fas fa-terminal mr-2 text-xs opacity-70"></i>
                 {config.alias}
               </div>
-              <div className={`text-xs truncate ${selectedId === config.id ? 'text-blue-200' : 'text-slate-500 group-hover:text-slate-400'}`}>
+              <div className="text-xs truncate text-slate-500 group-hover:text-slate-400">
                 {config.username}@{config.host}:{config.port}
               </div>
             </div>
             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => { e.stopPropagation(); onEdit(config); }}
-                className={`p-1 rounded ${selectedId === config.id ? 'hover:bg-blue-500 text-blue-100' : 'hover:bg-slate-600 text-slate-400 hover:text-white'}`}
+                className="p-1 rounded hover:bg-slate-600 text-slate-400 hover:text-white"
                 title={t.ssh.editConnection}
               >
                 <i className="fas fa-pen text-xs"></i>
@@ -63,7 +61,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
                     onDelete(config.id);
                   }
                 }}
-                className={`p-1 rounded ${selectedId === config.id ? 'hover:bg-blue-500 text-blue-100' : 'hover:bg-slate-600 text-slate-400 hover:text-red-400'}`}
+                className="p-1 rounded hover:bg-slate-600 text-slate-400 hover:text-red-400"
                 title={t.common.delete}
               >
                 <i className="fas fa-trash text-xs"></i>
