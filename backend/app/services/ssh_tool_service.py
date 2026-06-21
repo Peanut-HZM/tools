@@ -370,17 +370,26 @@ class SSHToolService:
             token_data = auth_service.verify_token_data(token)
             user_id = token_data.user_id
         except ValueError:
+            try:
+                await websocket.send_text(json.dumps({"type": "error", "message": "Authentication failed"}))
+            except Exception:
+                pass
             await websocket.close(code=4003, reason="Authentication failed")
             return
 
         config = SSHToolService._get_config_record(config_id, user_id)
         if not config:
+            try:
+                await websocket.send_text(json.dumps({"type": "error", "message": "Config not found"}))
+            except Exception:
+                pass
             await websocket.close(code=4000, reason="Config not found")
             return
 
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+        channel = None
         try:
             column_map = SSHToolService._get_column_map()
             password_value = config.get(column_map["password"])
@@ -401,45 +410,114 @@ class SSHToolService:
                 allow_agent=False,
                 look_for_keys=False
             )
+            # 防止被 server 端 TCP idle timeout 切断
+            ssh.get_transport().set_keepalive(30)
 
             channel = ssh.invoke_shell(term='xterm-256color', width=cols, height=rows)
-            logger.info("SSH session started: %s", config_id)
+            # 设置 5s 超时,避免 recv 永久阻塞,让循环有机会响应 stop_event
+            channel.settimeout(5.0)
+            logger.info("SSH session started: user_id=%s config_id=%s", user_id, config_id)
+
+            stop_event = asyncio.Event()
+
+            async def send_pong():
+                """每 30s 向前端发一次 pong,前端以 90s 无数据为死亡判定"""
+                while not stop_event.is_set():
+                    try:
+                        await asyncio.wait_for(stop_event.wait(), timeout=30.0)
+                        return  # stop_event 被 set,退出
+                    except asyncio.TimeoutError:
+                        pass
+                    try:
+                        if websocket.client_state.name == "CONNECTED":
+                            await websocket.send_text(json.dumps({"type": "pong"}))
+                    except Exception:
+                        break
 
             async def receive_from_client():
-                while True:
+                while not stop_event.is_set():
                     try:
                         data = await websocket.receive_text()
                     except WebSocketDisconnect:
+                        break
+                    except Exception:
                         break
                     try:
                         message = json.loads(data)
                     except json.JSONDecodeError:
                         continue
                     message_type = message.get('type')
-                    if message_type == 'resize':
-                        channel.resize_pty(width=int(message.get('cols', cols)), height=int(message.get('rows', rows)))
-                    elif message_type == 'input':
-                        channel.send(message.get('data', ''))
+                    if message_type == 'resize' and channel is not None:
+                        try:
+                            channel.resize_pty(width=int(message.get('cols', cols)), height=int(message.get('rows', rows)))
+                        except Exception:
+                            pass
+                    elif message_type == 'input' and channel is not None:
+                        try:
+                            channel.send(message.get('data', ''))
+                        except Exception:
+                            break
+                    elif message_type == 'ping':
+                        # 兼容旧协议,后端不再依赖前端 ping
+                        pass
 
             async def send_to_client():
-                while True:
-                    if channel.exit_status_ready():
+                loop = asyncio.get_event_loop()
+                while not stop_event.is_set():
+                    if channel is None:
                         break
-                    if channel.recv_ready():
-                        data = channel.recv(4096)
-                        if not data:
-                            break
+                    if channel.exit_status_ready():
+                        try:
+                            await websocket.send_text(json.dumps({"type": "exit"}))
+                        except Exception:
+                            pass
+                        break
+                    try:
+                        # 在 executor 里跑阻塞的 recv,settimeout(5.0) 保证最多阻塞 5s
+                        data = await loop.run_in_executor(None, channel.recv, 4096)
+                    except Exception as e:
+                        # socket.timeout 是正常的,继续循环
+                        if 'timed out' in str(e).lower() or 'timeout' in str(e).lower():
+                            continue
+                        # 其他异常视为会话结束
+                        break
+                    if not data:
+                        try:
+                            await websocket.send_text(json.dumps({"type": "exit"}))
+                        except Exception:
+                            pass
+                        break
+                    try:
                         await websocket.send_text(data.decode('utf-8', errors='ignore'))
-                    else:
-                        await asyncio.sleep(0.01)
+                    except Exception:
+                        break
 
-            await asyncio.gather(receive_from_client(), send_to_client())
+            pong_task = asyncio.create_task(send_pong())
+            try:
+                await asyncio.gather(receive_from_client(), send_to_client())
+            finally:
+                stop_event.set()
+                pong_task.cancel()
+                try:
+                    await pong_task
+                except (asyncio.CancelledError, Exception):
+                    pass
         except Exception as e:
             logger.error("SSH connection failed: %s", str(e))
-            await websocket.close(code=4000, reason="SSH connection failed")
+            try:
+                await websocket.send_text(json.dumps({"type": "error", "message": str(e)}))
+            except Exception:
+                pass
+            try:
+                await websocket.close(code=4000, reason="SSH connection failed")
+            except Exception:
+                pass
         finally:
-            ssh.close()
-            logger.info("SSH session closed: %s", config_id)
+            try:
+                ssh.close()
+            except Exception:
+                pass
+            logger.info("SSH session closed: user_id=%s config_id=%s", user_id, config_id)
 
     # ============ SFTP 文件传输功能 ============
 
