@@ -63,9 +63,9 @@ async def test_ssh_connect_failure_pushes_error_message_then_closes():
 
         await SSHToolService.handle_ssh_session(ws, 'cfg-x', 'fake-token')
 
-    # 发了 type=error
+    # 发了 type=error,message 为通用错误消息(不泄露内部细节)
     error_msgs = [json.loads(m) for m in ws.sent if m.startswith('{')]
-    assert any(m.get('type') == 'error' and 'Connection refused' in m.get('message', '') for m in error_msgs)
+    assert any(m.get('type') == 'error' and m.get('message') == 'SSH connection failed' for m in error_msgs)
     # close 被调用
     assert ws.closed
 

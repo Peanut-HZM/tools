@@ -505,7 +505,7 @@ class SSHToolService:
         except Exception as e:
             logger.error("SSH connection failed: %s", str(e))
             try:
-                await websocket.send_text(json.dumps({"type": "error", "message": str(e)}))
+                await websocket.send_text(json.dumps({"type": "error", "message": "SSH connection failed"}))
             except Exception:
                 pass
             try:
