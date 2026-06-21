@@ -142,7 +142,10 @@ const SSHTool: React.FC = () => {
                 <div
                   key={tab.tabId}
                   className="absolute inset-0"
-                  style={{ display: tab.tabId === activeTabId ? 'block' : 'none' }}
+                  style={{
+                    visibility: tab.tabId === activeTabId ? 'visible' : 'hidden',
+                    zIndex: tab.tabId === activeTabId ? 1 : 0,
+                  }}
                 >
                   <TerminalPanel
                     tabId={tab.tabId}

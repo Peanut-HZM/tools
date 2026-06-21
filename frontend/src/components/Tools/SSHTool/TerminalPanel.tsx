@@ -140,7 +140,6 @@ export const TerminalPanel: React.FC<Props> = ({
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(new WebLinksAddon());
     terminal.open(terminalRef.current);
-    fitAddon.fit();
     terminalInstance.current = terminal;
     fitAddonRef.current = fitAddon;
 
