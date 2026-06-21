@@ -17,6 +17,7 @@ import {
   Bar,
   CartesianGrid,
   ComposedChart,
+  LabelList,
   Legend,
   Line,
   ResponsiveContainer,
@@ -817,7 +818,9 @@ export default function TokenUsage() {
                       <>
                         <Bar yAxisId="left" dataKey="inputTokens" stackId="tokens" fill="#3b82f6" name="输入" />
                         <Bar yAxisId="left" dataKey="outputTokens" stackId="tokens" fill="#10b981" name="输出" />
-                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="#f59e0b" name="缓存" />
+                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="#f59e0b" name="缓存">
+                          <LabelList dataKey="totalTokens" formatter={formatToken} position="top" style={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 500 }} />
+                        </Bar>
                       </>
                     ) : (
                       <>
