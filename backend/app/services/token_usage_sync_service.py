@@ -52,6 +52,17 @@ def _parse_date(date_val: str) -> Optional[date]:
     return None
 
 
+def _get_date_key(day: dict) -> Optional[str]:
+    """统一读取 ccusage daily 条目的日期字段。
+
+    ccusage CLI 不同子命令返回的日期字段可能为 date 或 period，
+    这里优先取 date，不存在时 fallback 到 period，避免数据被跳过。
+    """
+    if not isinstance(day, dict):
+        return None
+    return day.get("date") or day.get("period") or None
+
+
 def _fetch_claude_daily(days: int) -> list[dict]:
     """获取 Claude 数据（daily 粒度，带 breakdown）"""
     since = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
@@ -653,7 +664,7 @@ def _parse_ccusage_records(
     results = []
     skipped = 0
     for day in daily:
-        period = day.get("period") or day.get("date")
+        period = _get_date_key(day)
         if not period:
             continue
         try:
@@ -768,7 +779,7 @@ def _run_ccusage_v2_sync(
             )
             continue
         for day in (agent_result.get("daily") or []):
-            date_key = day.get("date")
+            date_key = _get_date_key(day)
             if not date_key:
                 continue
             # 支持 modelsUsed 数组（claude/opencode）或 models 字典（codex）

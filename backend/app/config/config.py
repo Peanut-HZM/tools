@@ -15,6 +15,10 @@ import sys
 # 检测桌面模式（由 desktop_app.py 或 desktop_config.py 设置）
 _is_desktop = os.environ.get("DESKTOP_MODE") == "1"
 
+# 保存真实 HOME（ccusage 等 CLI 工具依赖 HOME 读取 ~/.claude 等 agent 数据）
+# 必须在覆盖 HOME 之前保存，否则 ccusage 将无法找到数据源
+REAL_HOME = os.environ.get("HOME") or Path.home().expanduser()
+
 if _is_desktop:
     # 桌面模式：使用独立配置，不覆盖 HOME
     env_path = Path(os.environ.get("DESKTOP_ENV_PATH", ""))

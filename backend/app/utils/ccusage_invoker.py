@@ -210,7 +210,13 @@ def _execute_and_parse(cmd: list[str], cli_name: str, timeout: int) -> dict:
     """执行命令并解析 JSON 输出的通用 helper"""
     try:
         env = os.environ.copy()
-        env["HOME"] = _expand_user("~")
+        # 使用真实 HOME（config.py 会覆盖 HOME 为 CACHE_DIR，
+        # 但 ccusage 等 CLI 工具依赖 HOME 读取 ~/.claude 等 agent 数据目录）
+        try:
+            from app.config.config import REAL_HOME
+            env["HOME"] = REAL_HOME
+        except Exception:
+            env["HOME"] = _expand_user("~")
         if os.name == "nt":
             node_path = find_node()
             if node_path:
