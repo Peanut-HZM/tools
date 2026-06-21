@@ -599,6 +599,14 @@ export const enUS = {
     testing: 'Testing...',
     testSuccess: 'Connection successful',
     testFailed: 'Connection failed',
+    tabLimitReached: 'Maximum 20 SSH sessions, close others first',
+    confirmCloseTab: 'Disconnect this SSH session and close the tab?',
+    retryConnection: 'Retry',
+    closeTab: 'Close tab',
+    connectionTimeout: 'Connection timed out, please retry',
+    sessionDisconnected: 'Session disconnected',
+    connectionError: 'Connection failed: {reason}',
+    tabCount: '{count} / {max}',
   },
   // Admin - Contact Message Management
   admin: {

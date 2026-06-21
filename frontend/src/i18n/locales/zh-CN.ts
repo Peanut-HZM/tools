@@ -600,6 +600,14 @@ export const zhCN = {
     testing: '测试中...',
     testSuccess: '连接成功',
     testFailed: '连接失败',
+    tabLimitReached: '最多保留 20 个 SSH 会话,请先关闭其他会话',
+    confirmCloseTab: '确定要断开此 SSH 会话并关闭标签页吗?',
+    retryConnection: '重试',
+    closeTab: '关闭标签',
+    connectionTimeout: '连接超时,请重试',
+    sessionDisconnected: '会话已断开',
+    connectionError: '连接失败: {reason}',
+    tabCount: '{count} / {max}',
   },
   // Admin - Contact Message Management
   admin: {
