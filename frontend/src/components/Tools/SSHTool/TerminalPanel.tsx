@@ -1,185 +1,222 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import 'xterm/css/xterm.css';
-import { SSHConfig, buildSSHWebSocketUrl } from '../../../api/sshToolApi';
+import { buildSSHWebSocketUrl } from '../../../api/sshToolApi';
 import { getAuthToken } from '../../../api/authApi';
-import { useI18n } from '../../../i18n';
 import { useToast } from '../../../hooks/useToast';
+import { ConnectionStatus, HEARTBEAT_TIMEOUT_MS } from './types';
 
 interface Props {
-  config?: SSHConfig | null;
+  tabId: string;
+  configId: string;
+  /** 变化时触发重连(retry 场景) */
+  createdAt: number;
+  isActive: boolean;
+  onStatusChange: (tabId: string, status: ConnectionStatus) => void;
+  /** 当前未使用,留给 TabBar 红点点击调用;本期由 TerminalPanel 内部 retry 即可 */
+  onRetry?: (tabId: string) => void;
 }
 
-export const TerminalPanel: React.FC<Props> = ({ config }) => {
-  const { t } = useI18n();
+/** 单条 WebSocket 会话:连接、消息分发、心跳判活、清理 */
+export const TerminalPanel: React.FC<Props> = ({
+  tabId, configId, createdAt, isActive, onStatusChange,
+}) => {
   const { addToast } = useToast();
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const terminalInstance = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  const [terminalReady, setTerminalReady] = useState(false);
+  const lastDataAtRef = useRef<number>(0);
+  const heartbeatTimerRef = useRef<number | null>(null);
+  const socketStateRef = useRef<'closed' | 'open'>('closed');
+  const statusRef = useRef<ConnectionStatus>('disconnected');
+  // 标记是否已挂载完成,用于 createdAt effect 跳过首次
+  const mountedRef = useRef<boolean>(false);
 
-  const connect = (force = false) => {
-    if (!config) return;
-    if (!force && (status === 'connected' || status === 'connecting')) return;
-    const token = getAuthToken();
-    if (!token) {
-      addToast(t.ssh.authRequired, 'error');
-      return;
+  const setStatus = (s: ConnectionStatus) => {
+    statusRef.current = s;
+    onStatusChange(tabId, s);
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatTimerRef.current !== null) {
+      window.clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
     }
+  };
+
+  const startHeartbeat = () => {
+    stopHeartbeat();
+    lastDataAtRef.current = Date.now();
+    heartbeatTimerRef.current = window.setInterval(() => {
+      if (Date.now() - lastDataAtRef.current >= HEARTBEAT_TIMEOUT_MS) {
+        stopHeartbeat();
+        socketRef.current?.close();
+        setStatus('error');
+      }
+    }, 5_000);
+  };
+
+  const connect = () => {
+    const token = getAuthToken();
+    if (!token) { addToast('请先登录再连接', 'error'); return; }
     const terminal = terminalInstance.current;
     if (!terminal) return;
-    const cols = terminal.cols || 80;
-    const rows = terminal.rows || 24;
-    const wsUrl = buildSSHWebSocketUrl(config.id, token, cols, rows);
+
+    socketRef.current?.close();
+
+    const wsUrl = buildSSHWebSocketUrl(configId, token, terminal.cols || 80, terminal.rows || 24);
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
+    socketStateRef.current = 'closed';
     setStatus('connecting');
 
     socket.onopen = () => {
+      socketStateRef.current = 'open';
       setStatus('connected');
       socket.send(JSON.stringify({ type: 'resize', cols: terminal.cols, rows: terminal.rows }));
       terminal.focus();
-      terminal.writeln(`${config.username}@${config.host}:${config.port} connected`);
+      startHeartbeat();
     };
+
     socket.onmessage = (event) => {
-      terminal.write(event.data);
+      lastDataAtRef.current = Date.now();
+      const data = event.data;
+      if (typeof data === 'string' && data.startsWith('{')) {
+        try {
+          const msg = JSON.parse(data);
+          if (msg && typeof msg === 'object') {
+            if (msg.type === 'error') {
+              terminal.writeln(`\r\n[错误] ${msg.message ?? ''}`);
+              setStatus('error');
+              stopHeartbeat();
+              socket.close();
+              return;
+            }
+            if (msg.type === 'exit') {
+              terminal.writeln('\r\n[会话已结束]');
+              setStatus('disconnected');
+              stopHeartbeat();
+              socket.close();
+              return;
+            }
+            if (msg.type === 'pong') return;
+          }
+        } catch {
+          // 非 JSON,按普通输出处理
+        }
+      }
+      terminal.write(data);
     };
-    socket.onclose = (event) => {
-      setStatus('disconnected');
-      const reason = event.reason || 'Connection closed';
-      terminal.writeln(`Disconnected (${event.code}): ${reason}`);
+
+    socket.onclose = () => {
+      socketStateRef.current = 'closed';
+      stopHeartbeat();
+      if (statusRef.current === 'connecting' || statusRef.current === 'connected') {
+        setStatus('error');
+      }
     };
+
     socket.onerror = () => {
-      setStatus('disconnected');
-      addToast(t.ssh.connectionFailed, 'error');
-      terminal.writeln(t.ssh.connectionFailed);
+      // 不在此处 setStatus,等 onclose 统一处理
     };
   };
 
   const disconnect = () => {
+    stopHeartbeat();
     socketRef.current?.close();
     socketRef.current = null;
+    socketStateRef.current = 'closed';
     setStatus('disconnected');
   };
 
+  // 1. 初始化 xterm + 挂载时立刻连接
   useEffect(() => {
     if (!terminalRef.current || terminalInstance.current) return;
-    const terminal = new Terminal({
-      cursorBlink: true,
-      fontSize: 13,
-      theme: {
-        background: '#0f172a',
-        foreground: '#e2e8f0'
-      }
-    });
+    const terminal = new Terminal({ cursorBlink: true, fontSize: 13, theme: { background: '#0f172a', foreground: '#e2e8f0' } });
     const fitAddon = new FitAddon();
-    const webLinksAddon = new WebLinksAddon();
     terminal.loadAddon(fitAddon);
-    terminal.loadAddon(webLinksAddon);
+    terminal.loadAddon(new WebLinksAddon());
     terminal.open(terminalRef.current);
     fitAddon.fit();
     terminalInstance.current = terminal;
     fitAddonRef.current = fitAddon;
-    setTerminalReady(true);
-    terminal.focus();
-
-    const resizeHandler = () => {
-      fitAddon.fit();
-      const socket = socketRef.current;
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'resize', cols: terminal.cols, rows: terminal.rows }));
-      }
-    };
-    window.addEventListener('resize', resizeHandler);
 
     const dataDisposable = terminal.onData((data) => {
-      const socket = socketRef.current;
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'input', data }));
-      }
+      const s = socketRef.current;
+      if (s && s.readyState === WebSocket.OPEN) s.send(JSON.stringify({ type: 'input', data }));
     });
+
+    connect();
+    mountedRef.current = true;
 
     return () => {
       dataDisposable.dispose();
-      window.removeEventListener('resize', resizeHandler);
+      stopHeartbeat();
+      socketRef.current?.close();
+      socketRef.current = null;
       terminal.dispose();
       terminalInstance.current = null;
       fitAddonRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 2. createdAt 变化 → 重连(retry 场景);首次挂载由上面的 effect 负责
   useEffect(() => {
-    disconnect();
-    const terminal = terminalInstance.current;
-    if (terminal) {
-      terminal.clear();
-      if (config) {
-        terminal.writeln(`${t.ssh.readyForConnection} ${config.username}@${config.host}:${config.port}`);
-      }
-    }
-  }, [config?.id]);
+    if (!mountedRef.current) return;
+    if (!terminalInstance.current) return;
+    terminalInstance.current.clear();
+    connect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createdAt]);
 
+  // 3. isActive 切换:补一次 fit + resize
   useEffect(() => {
-    if (terminalReady && config) {
-      connect(true);
-    }
-  }, [terminalReady, config?.id]);
+    if (!isActive) return;
+    const fit = fitAddonRef.current;
+    const terminal = terminalInstance.current;
+    const socket = socketRef.current;
+    if (!fit || !terminal) return;
+    const tid = setTimeout(() => {
+      fit.fit();
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'resize', cols: terminal.cols, rows: terminal.rows }));
+      }
+    }, 0);
+    return () => clearTimeout(tid);
+  }, [isActive]);
+
+  // 4. window resize → 仅 active 的 panel 才真正 fit + resize
+  useEffect(() => {
+    const handler = () => {
+      if (!isActive) return;
+      const fit = fitAddonRef.current;
+      const terminal = terminalInstance.current;
+      const socket = socketRef.current;
+      if (!fit || !terminal) return;
+      fit.fit();
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'resize', cols: terminal.cols, rows: terminal.rows }));
+      }
+    };
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [isActive]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900">
-        <div className="text-sm text-slate-300">
-          {config ? `${config.alias} · ${config.username}@${config.host}:${config.port}` : t.ssh.selectConnection}
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            status === 'connected' ? 'bg-green-500/20 text-green-300' : status === 'connecting' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-slate-700 text-slate-300'
-          }`}>
-            {status === 'connected' ? t.ssh.connected : status === 'connecting' ? t.ssh.connecting : t.ssh.disconnected}
-          </span>
-          {config && status !== 'connected' ? (
-            <button
-              onClick={() => connect()}
-              className="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-            >
-              {t.ssh.connect}
-            </button>
-          ) : config ? (
-            <button
-              onClick={disconnect}
-              className="px-3 py-1.5 text-xs rounded bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
-            >
-              {t.ssh.disconnect}
-            </button>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex-1 bg-slate-900 relative">
-        <div
-          ref={terminalRef}
-          data-testid="ssh-terminal"
-          className="w-full h-full"
-          onClick={() => {
-            const terminal = terminalInstance.current;
-            if (terminal) {
-              terminal.focus();
-            }
-            if (config && status === 'disconnected') {
-              connect(true);
-            }
-          }}
-        />
-        {!config && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 pointer-events-none">
-            <i className="fas fa-terminal text-6xl mb-4 opacity-20"></i>
-            <p className="text-lg">{t.ssh.selectConnection}</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <div
+      ref={terminalRef}
+      data-testid={`ssh-terminal-${tabId}`}
+      className="w-full h-full bg-slate-900"
+      onClick={() => {
+        terminalInstance.current?.focus();
+        if (statusRef.current === 'error' || statusRef.current === 'disconnected') {
+          connect();
+        }
+      }}
+    />
   );
 };
