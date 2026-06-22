@@ -1754,15 +1754,42 @@ class DatabaseToolService:
         engine_key = f"{config_id}:{database_name}"
         engine = DBConnectionManager.get_engine(engine_key, config_dict)
 
-        try:
-            with engine.connect().execution_options(
-                isolation_level="AUTOCOMMIT"
-            ) as conn:
-                conn.execute(text(sql))
-            return True
-        except Exception as e:
-            logger.error(f"Failed to truncate table: {e}")
-            raise e
+        # 使用 engine.begin() 模式 + 自动重连机制
+        # 解决远程数据库连接断开时 "server closed the connection unexpectedly" 错误
+        last_error = None
+        for attempt in range(2):  # 最多重试 1 次
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(sql))
+                return True
+            except Exception as e:
+                last_error = e
+                error_msg = str(e).lower()
+                # 连接断开错误，丢弃失效引擎并重试
+                if any(keyword in error_msg for keyword in [
+                    "server closed the connection",
+                    "connection closed",
+                    "connection refused",
+                    "lost connection",
+                    "broken pipe",
+                    "connection reset",
+                    "ssl connection has been closed",
+                ]):
+                    logger.warning(
+                        f"Truncate table 连接已断开 (尝试 {attempt + 1}/2): {e}"
+                    )
+                    if attempt == 0:
+                        # 关闭失效引擎，下次会重新创建
+                        DBConnectionManager.close_engine(engine_key)
+                        engine = DBConnectionManager.get_engine(engine_key, config_dict)
+                        continue
+                # 非连接错误，直接抛出
+                logger.error(f"Failed to truncate table: {e}")
+                raise
+
+        # 重试后仍失败
+        logger.error(f"Failed to truncate table after retry: {last_error}")
+        raise last_error
 
     # --------------------------------------------------------------------------
     # Search

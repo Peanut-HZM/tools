@@ -120,6 +120,8 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showTruncateConfirm, setShowTruncateConfirm] = useState(false);
+  const [truncating, setTruncating] = useState(false);
 
   const handleBatchDelete = () => {
     if (!primaryKey || primaryKey.length === 0) return;
@@ -128,7 +130,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   const confirmDelete = async () => {
     if (!configId || !tableName) return;
-    
+
     setDeleting(true);
     try {
       const selectedRows = getSelectedRows();
@@ -137,14 +139,14 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         primaryKey.forEach(pk => { keyObj[pk] = row[pk]; });
         return keyObj;
       });
-      
+
       const deleteResult = await api.batchDeleteRows(configId, tableName, {
         database_name: databaseName,
         schema_name: schemaName,
         primary_keys: primaryKey,
         key_values: keyValues
       });
-      
+
       if (deleteResult.success) {
         toast.success(interpolate(t.database.batchDelete.success, { count: String(deleteResult.deleted_count) }));
         setShowDeleteConfirm(false);
@@ -156,6 +158,32 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
       toast.error(error.message || 'Delete failed');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleTruncate = async () => {
+    if (!configId || !tableName) return;
+
+    setTruncating(true);
+    try {
+      const success = await api.truncateTableInstance(
+        configId,
+        tableName,
+        databaseName || '',
+        schemaName
+      );
+
+      if (success) {
+        toast.success('表数据已清空');
+        setShowTruncateConfirm(false);
+        if (onDeleted) onDeleted();
+      } else {
+        toast.error('清空表失败');
+      }
+    } catch (error: any) {
+      toast.error(error.message || '清空表失败');
+    } finally {
+      setTruncating(false);
     }
   };
 
@@ -563,6 +591,14 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                   <i className="fas fa-plus"></i>
                   {t.database.executor.addRow}
                 </button>
+                <button
+                  onClick={() => setShowTruncateConfirm(true)}
+                  className="px-2 py-1 bg-red-700/80 hover:bg-red-600 text-white text-xs rounded flex items-center gap-1 transition-colors"
+                  title="清空表数据"
+                >
+                  <i className="fas fa-trash-alt"></i>
+                  清空表
+                </button>
                 {totalChanges > 0 && (
                   <>
                     <button
@@ -715,12 +751,12 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
               <i className="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
               <h3 className="text-lg font-semibold text-slate-100">{t.database.batchDelete.confirmTitle}</h3>
             </div>
-            
+
             <div className="px-6 py-4 space-y-3">
               <p className="text-slate-300">
                 {interpolate(t.database.batchDelete.confirmMessage, { count: String(selectedIndices.size) })}
               </p>
-              
+
               <div className="bg-slate-900 rounded p-3 space-y-2 text-sm">
                 <div className="flex gap-2">
                   <span className="text-slate-500 min-w-[60px]">{t.database.batchDelete.table}:</span>
@@ -740,7 +776,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                         const vals = rows.map(r => String(r[pk]));
                         return `${pk} IN (${vals.join(', ')})`;
                       } else if (primaryKey && primaryKey.length > 1) {
-                        return rows.map(r => 
+                        return rows.map(r =>
                           `(${primaryKey.map(pk => `${pk}=${String(r[pk])}`).join(', ')})`
                         ).join(', ');
                       }
@@ -750,7 +786,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
@@ -766,6 +802,45 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
               >
                 {deleting && <i className="fas fa-spinner fa-spin"></i>}
                 {t.database.batchDelete.deleteButton}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTruncateConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-slate-700 flex items-center gap-3">
+              <i className="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+              <h3 className="text-lg font-semibold text-slate-100">确认清空表</h3>
+            </div>
+
+            <div className="px-6 py-4 space-y-3">
+              <p className="text-slate-300">
+                确定要清空表 <span className="font-mono text-yellow-400">{tableName}</span> 的所有数据吗？
+              </p>
+              <p className="text-red-400 text-sm">
+                <i className="fas fa-exclamation-circle mr-1"></i>
+                此操作不可撤销，表中的所有数据将被删除。
+              </p>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+              <button
+                onClick={() => setShowTruncateConfirm(false)}
+                disabled={truncating}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-sm disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleTruncate}
+                disabled={truncating}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {truncating && <i className="fas fa-spinner fa-spin"></i>}
+                确认清空
               </button>
             </div>
           </div>

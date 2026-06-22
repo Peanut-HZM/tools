@@ -399,8 +399,24 @@ async def truncate_table_instance(
         if result:
             _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
         return result
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # 提供用户友好的错误信息
+        error_msg = str(e).lower()
+        if any(keyword in error_msg for keyword in [
+            "server closed the connection",
+            "connection closed",
+            "connection refused",
+            "lost connection",
+            "broken pipe",
+            "connection reset",
+        ]):
+            raise HTTPException(
+                status_code=503,
+                detail="数据库连接已断开，请稍后重试。如问题持续，请检查数据库服务状态。",
+            )
+        raise HTTPException(status_code=500, detail=f"清空表失败: {str(e)}")
 
 
 # --------------------------------------------------------------------------
