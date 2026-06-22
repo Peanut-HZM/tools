@@ -1,6 +1,7 @@
 """GLM-Coding Pro 抢购核心服务"""
 
 import logging
+import os
 from enum import Enum
 from pathlib import Path
 from typing import List
@@ -12,6 +13,28 @@ logger = logging.getLogger(__name__)
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 STATE_DIR = _BACKEND_ROOT / "data" / "glm_coding_rusher"
 TARGET_URL = "https://open.bigmodel.cn/glm-coding"
+
+
+def _setup_playwright_browsers_path():
+    """设置 Playwright 浏览器路径为用户实际缓存目录
+
+    因为后端的 HOME 被设置为 backend/data/cache，需要覆盖这个环境变量，
+    让 Playwright 能找到已安装的浏览器。
+    """
+    # 使用 REAL_HOME（在 config.py 中保存的真实用户 HOME）
+    from app.config.config import REAL_HOME
+
+    user_cache_dir = Path(REAL_HOME) / "Library" / "Caches" / "ms-playwright"
+    if user_cache_dir.exists():
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(user_cache_dir)
+        logger.info(f"设置 Playwright 浏览器路径: {user_cache_dir}")
+    elif os.name != "nt":  # Linux
+        linux_cache_dir = Path(REAL_HOME) / ".cache" / "ms-playwright"
+        if linux_cache_dir.exists():
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(linux_cache_dir)
+            logger.info(f"设置 Playwright 浏览器路径: {linux_cache_dir}")
+    else:
+        logger.warning(f"未找到 Playwright 浏览器缓存目录")
 
 
 def get_state_path() -> Path:
@@ -198,6 +221,8 @@ def open_login_window(headless: bool = False) -> dict:
         {"success": bool, "message": str}
     """
     try:
+        _setup_playwright_browsers_path()
+
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
@@ -237,6 +262,8 @@ def check_login_valid() -> dict:
         return {"valid": False, "message": "未登录，请先完成登录"}
 
     try:
+        _setup_playwright_browsers_path()
+
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
@@ -388,6 +415,8 @@ def _open_payment_window(state_path: Path, payment_url: str, task_id: str):
     def _run():
         global _payment_browser
         try:
+            _setup_playwright_browsers_path()
+
             from playwright.sync_api import sync_playwright
 
             _append_log("payment", "启动支付浏览器（可见模式）...", task_id)
@@ -480,6 +509,8 @@ def _execute_rush(config: dict):
     _update_task(current_phase="preheating", message="启动浏览器")
 
     try:
+        _setup_playwright_browsers_path()
+
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
