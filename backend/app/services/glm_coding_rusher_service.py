@@ -375,15 +375,37 @@ def _update_task(**kwargs):
 
 
 def _append_log(phase: str, message: str, task_id: str):
-    """追加日志到缓冲区"""
-    _logs_buffer.append({
+    """追加日志到缓冲区（同时写入数据库）"""
+    log_entry = {
         "id": str(uuid.uuid4()),
         "task_id": task_id,
         "phase": phase,
         "message": message,
         "created_at": datetime.now(),
-    })
+    }
+    _logs_buffer.append(log_entry)
     logger.info(f"[{phase}] {message}")
+
+    # 双写到数据库
+    try:
+        from app.models.glm_coding_rusher_models import GlmCodingRusherLog
+        from app.db.session import SessionLocal
+
+        db = SessionLocal()
+        try:
+            db_log = GlmCodingRusherLog(
+                id=log_entry["id"],
+                task_id=task_id,
+                user_id="system",  # 暂时使用 system，后续可扩展为真实用户 ID
+                phase=phase,
+                message=message,
+            )
+            db.add(db_log)
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"日志双写数据库失败: {e}")
 
 
 def get_task_status() -> dict:
@@ -393,12 +415,37 @@ def get_task_status() -> dict:
 
 
 def get_task_logs(task_id: str = None, limit: int = 100) -> list:
-    """获取任务日志"""
-    if task_id:
-        logs = [l for l in _logs_buffer if l["task_id"] == task_id]
-    else:
-        logs = list(_logs_buffer)
-    return logs[-limit:]
+    """获取任务日志（优先从数据库读取）"""
+    try:
+        from app.models.glm_coding_rusher_models import GlmCodingRusherLog
+        from app.db.session import SessionLocal
+
+        db = SessionLocal()
+        try:
+            query = db.query(GlmCodingRusherLog)
+            if task_id:
+                query = query.filter(GlmCodingRusherLog.task_id == task_id)
+            logs = query.order_by(GlmCodingRusherLog.created_at.desc()).limit(limit).all()
+            return [
+                {
+                    "id": log.id,
+                    "task_id": log.task_id,
+                    "phase": log.phase,
+                    "message": log.message,
+                    "created_at": log.created_at,
+                }
+                for log in reversed(logs)
+            ]
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"从数据库读取日志失败，回退到内存缓冲区: {e}")
+        # 回退到内存缓冲区
+        if task_id:
+            logs = [l for l in _logs_buffer if l["task_id"] == task_id]
+        else:
+            logs = list(_logs_buffer)
+        return logs[-limit:]
 
 
 def _open_payment_window(state_path: Path, payment_url: str, task_id: str):
