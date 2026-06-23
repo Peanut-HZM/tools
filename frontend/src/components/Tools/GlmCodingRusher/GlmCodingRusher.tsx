@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getLoginStatus, getConfig, saveConfig,
   startLogin, startRush, stopRush,
-  getStatus, getLogs, getPaymentInfo, closePaymentBrowser,
-  RusherConfig, LoginStatus, RusherStatus, RusherLog, PaymentInfo,
+  getStatus, getLogs, getPaymentInfo, closePaymentBrowser, getTasks,
+  RusherConfig, LoginStatus, RusherStatus, RusherLog, PaymentInfo, TaskInfo,
 } from '../../../api/glmCodingRusherApi';
 
 const PHASE_LABELS: Record<string, string> = {
@@ -45,6 +45,9 @@ export default function GlmCodingRusher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
+  const [tasks, setTasks] = useState<TaskInfo[]>([]);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [lastSuccessTask, setLastSuccessTask] = useState<TaskInfo | null>(null);
 
   // 轮询状态和日志
   const poll = useCallback(async () => {
@@ -52,6 +55,22 @@ export default function GlmCodingRusher() {
       const [s, l, ls, p] = await Promise.all([
         getStatus(), getLogs(), getLoginStatus(), getPaymentInfo(),
       ]);
+
+      // 检测抢购成功状态变化
+      const prevPhase = status.current_phase;
+      const currPhase = s.current_phase;
+
+      if (prevPhase !== 'success' && currPhase === 'awaiting_payment') {
+        // 从非成功状态变为等待支付状态，显示成功弹窗
+        setSuccessModalVisible(true);
+
+        // 获取当前任务信息
+        const taskList = await getTasks(1);
+        if (taskList.items.length > 0) {
+          setLastSuccessTask(taskList.items[0]);
+        }
+      }
+
       setStatus(s);
       setLogs(l.items);
       setLoginStatus(ls);
@@ -59,7 +78,7 @@ export default function GlmCodingRusher() {
     } catch {
       // 忽略轮询错误
     }
-  }, []);
+  }, [status.current_phase]);
 
   useEffect(() => {
     poll();
@@ -70,6 +89,19 @@ export default function GlmCodingRusher() {
   // 加载配置
   useEffect(() => {
     getConfig().then(setConfig).catch(() => {});
+  }, []);
+
+  // 加载任务历史
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const taskList = await getTasks(10);
+        setTasks(taskList.items);
+      } catch {
+        // 忽略错误
+      }
+    };
+    loadTasks();
   }, []);
 
   const handleLogin = async () => {
@@ -318,29 +350,102 @@ export default function GlmCodingRusher() {
             </div>
           </div>
 
-          {/* 右侧：实时日志区 */}
-          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 lg:sticky lg:top-6 lg:self-start lg:h-[calc(100vh-3rem)] lg:flex lg:flex-col">
-            <h2 className="text-lg font-semibold mb-4">实时日志</h2>
-            <div className="bg-slate-900 rounded-lg p-4 overflow-y-auto font-mono text-xs space-y-1 flex-1 min-h-[400px] lg:min-h-0">
-              {logs.length === 0 ? (
-                <div className="text-slate-500 text-center py-8">暂无日志</div>
-              ) : (
-                logs.map((log) => (
-                  <div key={log.id} className="flex gap-2">
-                    <span className="text-slate-500 shrink-0">
-                      {new Date(log.created_at).toLocaleTimeString()}
-                    </span>
-                    <span className={`shrink-0 px-1.5 rounded ${PHASE_COLORS[log.phase] || 'bg-slate-600'} text-white text-[10px]`}>
-                      {log.phase}
-                    </span>
-                    <span className="text-slate-300 break-all">{log.message}</span>
-                  </div>
-                ))
-              )}
+          {/* 右侧：实时日志区 + 任务历史 */}
+          <div className="space-y-6">
+            {/* 任务历史面板 */}
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+              <h2 className="text-lg font-semibold mb-4">任务历史</h2>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {tasks.length === 0 ? (
+                  <div className="text-slate-500 text-center py-4 text-sm">暂无历史任务</div>
+                ) : (
+                  tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="p-3 bg-slate-900/50 rounded-lg cursor-pointer hover:bg-slate-900 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2 py-0.5 rounded text-xs ${PHASE_COLORS[task.phase] || 'bg-slate-600'} text-white`}>
+                          {PHASE_LABELS[task.phase] || task.phase}
+                        </span>
+                        <span className="text-slate-500 text-xs">
+                          {new Date(task.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="text-slate-400 text-xs mt-1 truncate">{task.message}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* 实时日志区 */}
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 lg:sticky lg:top-6 lg:self-start lg:h-[calc(100vh-3rem)] lg:flex lg:flex-col">
+              <h2 className="text-lg font-semibold mb-4">实时日志</h2>
+              <div className="bg-slate-900 rounded-lg p-4 overflow-y-auto font-mono text-xs space-y-1 flex-1 min-h-[400px] lg:min-h-0">
+                {logs.length === 0 ? (
+                  <div className="text-slate-500 text-center py-8">暂无日志</div>
+                ) : (
+                  logs.map((log) => (
+                    <div key={log.id} className="flex gap-2">
+                      <span className="text-slate-500 shrink-0">
+                        {new Date(log.created_at).toLocaleTimeString()}
+                      </span>
+                      <span className={`shrink-0 px-1.5 rounded ${PHASE_COLORS[log.phase] || 'bg-slate-600'} text-white text-[10px]`}>
+                        {log.phase}
+                      </span>
+                      <span className="text-slate-300 break-all">{log.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* 抢购成功弹窗 */}
+      {successModalVisible && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-slate-700 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">🎉</span>
+              <h3 className="text-lg font-bold">抢购成功！</h3>
+            </div>
+            <div className="py-4">
+              <p className="text-slate-300 mb-4">
+                抢购已成功！请在弹出的支付窗口中完成支付流程。
+              </p>
+              {lastSuccessTask && (
+                <div className="bg-slate-900/50 p-3 rounded text-sm space-y-1">
+                  <div className="text-slate-400">任务ID: {lastSuccessTask.id.slice(0, 8)}...</div>
+                  <div className="text-slate-400">状态: {PHASE_LABELS[lastSuccessTask.phase]}</div>
+                  <div className="text-slate-400">时间: {new Date(lastSuccessTask.created_at).toLocaleString()}</div>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setSuccessModalVisible(false)}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm"
+              >
+                关闭
+              </button>
+              <button
+                onClick={() => {
+                  if (paymentInfo?.payment_url) {
+                    window.open(paymentInfo.payment_url, '_blank');
+                  }
+                  setSuccessModalVisible(false);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm"
+              >
+                去支付
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
