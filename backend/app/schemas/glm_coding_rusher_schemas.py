@@ -76,3 +76,16 @@ class LoginRequest(BaseModel):
 class StartRequest(BaseModel):
     """启动抢购请求"""
     config_override: Optional[RusherConfigRequest] = None
+
+
+class RusherTaskResponse(BaseModel):
+    """任务响应"""
+    success: bool
+    message: str
+    task_id: Optional[str] = None
+
+
+class StopTaskResponse(BaseModel):
+    """停止任务响应"""
+    success: bool
+    message: str
