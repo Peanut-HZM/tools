@@ -1,5 +1,6 @@
 """GLM-Coding Pro 抢购工具 Pydantic 模型"""
 
+import json
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
@@ -78,14 +79,23 @@ class StartRequest(BaseModel):
     config_override: Optional[RusherConfigRequest] = None
 
 
-class RusherTaskResponse(BaseModel):
-    """任务响应"""
-    success: bool
-    message: str
-    task_id: Optional[str] = None
+class TaskSummary(BaseModel):
+    """抢购任务摘要"""
+    id: str
+    result: str
+    target_package: str
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+    refresh_count: int
+    payment_url: Optional[str] = None
 
 
-class StopTaskResponse(BaseModel):
-    """停止任务响应"""
-    success: bool
-    message: str
+class TaskDetail(TaskSummary):
+    """抢购任务详情（含完整配置快照）"""
+    config_snapshot: dict
+
+
+class TaskListResponse(BaseModel):
+    """抢购任务列表响应"""
+    items: List[TaskSummary]
+    total: int
