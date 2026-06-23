@@ -12,6 +12,7 @@ from app.schemas.glm_coding_rusher_schemas import (
     LoginStatusResponse, RusherStatusResponse, PaymentInfoResponse,
     RusherLogItem, RusherLogListResponse,
     LoginRequest, StartRequest,
+    RusherTaskResponse, StopTaskResponse,
 )
 from app.services.glm_coding_rusher_service import (
     open_login_window, check_login_valid, state_file_exists, get_state_path,
@@ -174,6 +175,42 @@ def close_payment():
 def logs(limit: int = 100, task_id: str = None):
     """获取抢购日志"""
     items = get_task_logs(task_id=task_id, limit=limit)
+    return RusherLogListResponse(
+        items=[RusherLogItem(**item) for item in items],
+        total=len(items),
+    )
+
+
+@router.get("/tasks", response_model=RusherLogListResponse)
+def list_tasks(limit: int = 100):
+    """获取所有任务列表（从日志中提取唯一 task_id）"""
+    all_logs = get_task_logs(limit=1000)
+    # 提取唯一的 task_id
+    task_ids = list(dict.fromkeys(log["task_id"] for log in all_logs))
+
+    tasks = []
+    for task_id in task_ids[:limit]:
+        task_logs = [log for log in all_logs if log["task_id"] == task_id]
+        if task_logs:
+            latest_log = task_logs[-1]
+            tasks.append({
+                "id": task_id,
+                "phase": latest_log["phase"],
+                "message": latest_log["message"],
+                "created_at": latest_log["created_at"],
+                "log_count": len(task_logs),
+            })
+
+    return RusherLogListResponse(
+        items=[RusherLogItem(**task) for task in tasks],
+        total=len(tasks),
+    )
+
+
+@router.get("/tasks/{task_id}", response_model=RusherLogListResponse)
+def get_task(task_id: str):
+    """获取指定任务的详细信息"""
+    items = get_task_logs(task_id=task_id, limit=200)
     return RusherLogListResponse(
         items=[RusherLogItem(**item) for item in items],
         total=len(items),
