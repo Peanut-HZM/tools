@@ -34,3 +34,18 @@ class GlmCodingRusherLog(Base):
     phase = Column(String(32), nullable=False)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class GlmCodingRusherTask(Base):
+    """抢购任务记录表"""
+    __tablename__ = "glm_coding_rusher_tasks"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(64), nullable=False, index=True)
+    config_snapshot = Column(Text, nullable=False, default="{}")
+    result = Column(String(32), nullable=False, default="running")
+    refresh_count = Column(Integer, nullable=False, default=0)
+    payment_url = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=False)
+    ended_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
