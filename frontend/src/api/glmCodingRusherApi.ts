@@ -114,3 +114,26 @@ export async function getPaymentInfo(): Promise<PaymentInfo> {
 export async function closePaymentBrowser(): Promise<{ success: boolean; message: string }> {
   return request('/close-payment', { method: 'POST' });
 }
+
+export interface TaskInfo {
+  id: string;
+  phase: string;
+  message: string;
+  created_at: string;
+  log_count: number;
+}
+
+export interface TaskListResponse {
+  items: TaskInfo[];
+  total: number;
+}
+
+/** 获取任务列表 */
+export async function getTasks(limit = 100): Promise<TaskListResponse> {
+  return request(`/tasks?limit=${limit}`);
+}
+
+/** 获取指定任务的日志 */
+export async function getTaskLogs(taskId: string, limit = 200): Promise<LogListResponse> {
+  return request(`/tasks/${taskId}?limit=${limit}`);
+}
