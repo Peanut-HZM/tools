@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getLoginStatus, getConfig, saveConfig,
   startLogin, startRush, stopRush,
-  getStatus, getLogs, getPaymentInfo, closePaymentBrowser, getTasks,
-  RusherConfig, LoginStatus, RusherStatus, RusherLog, PaymentInfo, TaskInfo,
+  getStatus, getLogs, getPaymentInfo, closePaymentBrowser,
+  getTasks, getTaskLogs,
+  RusherConfig, LoginStatus, RusherStatus, RusherLog, PaymentInfo, TaskSummary,
 } from '../../../api/glmCodingRusherApi';
 
 const PHASE_LABELS: Record<string, string> = {
@@ -45,9 +46,11 @@ export default function GlmCodingRusher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
-  const [tasks, setTasks] = useState<TaskInfo[]>([]);
-  const [successModalVisible, setSuccessModalVisible] = useState(false);
-  const [lastSuccessTask, setLastSuccessTask] = useState<TaskInfo | null>(null);
+  const [tasks, setTasks] = useState<TaskSummary[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [justStarted, setJustStarted] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successPaymentUrl, setSuccessPaymentUrl] = useState<string | null>(null);
 
   // 轮询状态和日志
   const poll = useCallback(async () => {
@@ -55,54 +58,57 @@ export default function GlmCodingRusher() {
       const [s, l, ls, p] = await Promise.all([
         getStatus(), getLogs(), getLoginStatus(), getPaymentInfo(),
       ]);
-
-      // 检测抢购成功状态变化
-      const prevPhase = status.current_phase;
-      const currPhase = s.current_phase;
-
-      if (prevPhase !== 'success' && currPhase === 'awaiting_payment') {
-        // 从非成功状态变为等待支付状态，显示成功弹窗
-        setSuccessModalVisible(true);
-
-        // 获取当前任务信息
-        const taskList = await getTasks(1);
-        if (taskList.items.length > 0) {
-          setLastSuccessTask(taskList.items[0]);
-        }
-      }
-
       setStatus(s);
       setLogs(l.items);
       setLoginStatus(ls);
       setPaymentInfo(p);
+
+      // 加载抢购记录
+      try {
+        const t = await getTasks();
+        setTasks(t.items);
+      } catch {
+        // 忽略任务列表加载错误
+      }
+
+      // 轮询确认任务已启动 → 清除 justStarted
+      if (justStarted && s.is_running) {
+        setJustStarted(false);
+      }
+
+      // 检测抢购成功 → 弹窗 + 记录支付 URL
+      if (s.current_phase === 'success' && !showSuccessModal) {
+        setSuccessPaymentUrl(s.payment_url || null);
+        setShowSuccessModal(true);
+      }
     } catch {
       // 忽略轮询错误
     }
-  }, [status.current_phase]);
+  }, [justStarted, showSuccessModal]);
 
   useEffect(() => {
     poll();
-    const timer = setInterval(poll, 1000);
+    // 成功弹窗中 → 暂停轮询；运行中 → 1s；空闲 → 5s
+    const interval = showSuccessModal
+      ? null
+      : status.is_running || status.current_phase !== 'idle'
+        ? 1000
+        : 5000;
+    if (interval === null) return;
+    const timer = setInterval(poll, interval);
     return () => clearInterval(timer);
-  }, [poll]);
+  }, [poll, showSuccessModal, status.is_running, status.current_phase]);
 
   // 加载配置
   useEffect(() => {
     getConfig().then(setConfig).catch(() => {});
   }, []);
 
-  // 加载任务历史
+  // 选中任务切换 → 从 DB 加载该任务完整日志
   useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const taskList = await getTasks(10);
-        setTasks(taskList.items);
-      } catch {
-        // 忽略错误
-      }
-    };
-    loadTasks();
-  }, []);
+    if (!selectedTaskId) return;
+    getTaskLogs(selectedTaskId).then((res) => setLogs(res.items)).catch(() => {});
+  }, [selectedTaskId]);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -141,11 +147,16 @@ export default function GlmCodingRusher() {
   const handleStart = async () => {
     setLoading(true);
     setError(null);
+    setJustStarted(true);
     try {
       const res = await startRush();
-      if (!res.success) throw new Error(res.message);
+      if (!res.success) {
+        throw new Error(res.message);
+      }
+      // 保持 justStarted=true，等轮询确认 is_running 后再清除
     } catch (e: any) {
       setError(e.message);
+      setJustStarted(false);
     } finally {
       setLoading(false);
     }
@@ -175,7 +186,7 @@ export default function GlmCodingRusher() {
     }
   };
 
-  const openPaymentWindow = (url?: string) => {
+  const openPaymentWindow = (url?: string | null) => {
     if (!url) {
       return;
     }
@@ -329,15 +340,15 @@ export default function GlmCodingRusher() {
               )}
 
               <div className="flex justify-center gap-3">
-                {!status.is_running ? (
+                {justStarted ? (
                   <button
-                    onClick={handleStart}
-                    disabled={!loginStatus?.logged_in || loading}
-                    className="px-6 py-2 bg-amber-600 hover:bg-amber-700 rounded-lg text-sm font-bold disabled:opacity-50"
+                    disabled
+                    className="px-6 py-2 bg-amber-600/50 rounded-lg text-sm font-bold cursor-not-allowed"
                   >
-                    开始抢购
+                    <i className="fas fa-spinner fa-spin mr-2" />
+                    抢购中...
                   </button>
-                ) : (
+                ) : status.is_running ? (
                   <button
                     onClick={handleStop}
                     disabled={loading}
@@ -345,44 +356,95 @@ export default function GlmCodingRusher() {
                   >
                     停止抢购
                   </button>
+                ) : (
+                  <button
+                    onClick={handleStart}
+                    disabled={!loginStatus?.logged_in || loading}
+                    className="px-6 py-2 bg-amber-600 hover:bg-amber-700 rounded-lg text-sm font-bold disabled:opacity-50"
+                  >
+                    {status.current_phase === 'success' ? '再次抢购' : '开始抢购'}
+                  </button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* 右侧：实时日志区 + 任务历史 */}
-          <div className="space-y-6">
-            {/* 任务历史面板 */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <h2 className="text-lg font-semibold mb-4">任务历史</h2>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+          {/* 右侧：抢购记录 + 实时日志 */}
+          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 lg:sticky lg:top-6 lg:self-start lg:h-[calc(100vh-3rem)] lg:flex lg:flex-col">
+            {/* 上半区：抢购记录 */}
+            <div className="mb-4 shrink-0" style={{ maxHeight: '40%' }}>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold">
+                  <i className="fas fa-clipboard-list text-amber-400 mr-2" />
+                  抢购记录
+                </h2>
+                {selectedTaskId && (
+                  <button
+                    onClick={() => { setSelectedTaskId(null); }}
+                    className="text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    显示全部日志
+                  </button>
+                )}
+              </div>
+              <div className="overflow-y-auto space-y-1" style={{ maxHeight: 'calc(40vh - 80px)' }}>
                 {tasks.length === 0 ? (
-                  <div className="text-slate-500 text-center py-4 text-sm">暂无历史任务</div>
+                  <div className="text-slate-500 text-center py-4 text-sm">暂无记录</div>
                 ) : (
-                  tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="p-3 bg-slate-900/50 rounded-lg cursor-pointer hover:bg-slate-900 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`px-2 py-0.5 rounded text-xs ${PHASE_COLORS[task.phase] || 'bg-slate-600'} text-white`}>
-                          {PHASE_LABELS[task.phase] || task.phase}
+                  tasks.map((task) => {
+                    const RESULT_ICON: Record<string, string> = {
+                      success: '✅',
+                      timeout: '❌',
+                      stopped: '⏹',
+                      error: '💥',
+                      running: '🔄',
+                    };
+                    const isSelected = task.id === selectedTaskId;
+                    return (
+                      <div
+                        key={task.id}
+                        onClick={() => setSelectedTaskId(isSelected ? null : task.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-blue-600/20 border border-blue-500/40'
+                            : 'bg-slate-900/50 hover:bg-slate-700/50 border border-transparent'
+                        }`}
+                      >
+                        <span>{RESULT_ICON[task.result] || '❓'}</span>
+                        <span className="text-slate-400 shrink-0">
+                          {new Date(task.started_at).toLocaleString('zh-CN', {
+                            month: '2-digit', day: '2-digit',
+                            hour: '2-digit', minute: '2-digit',
+                          })}
                         </span>
-                        <span className="text-slate-500 text-xs">
-                          {new Date(task.created_at).toLocaleDateString()}
+                        <span className="text-slate-300 truncate">
+                          {task.target_package}
+                        </span>
+                        <span className="ml-auto text-slate-500 shrink-0">
+                          {task.refresh_count}次刷新
                         </span>
                       </div>
-                      <div className="text-slate-400 text-xs mt-1 truncate">{task.message}</div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
 
-            {/* 实时日志区 */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 lg:sticky lg:top-6 lg:self-start lg:h-[calc(100vh-3rem)] lg:flex lg:flex-col">
-              <h2 className="text-lg font-semibold mb-4">实时日志</h2>
-              <div className="bg-slate-900 rounded-lg p-4 overflow-y-auto font-mono text-xs space-y-1 flex-1 min-h-[400px] lg:min-h-0">
+            {/* 分割线 */}
+            <div className="border-t border-slate-700 my-2 shrink-0" />
+
+            {/* 下半区：实时日志 */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <h2 className="text-lg font-semibold mb-2 shrink-0">
+                <i className="fas fa-terminal text-green-400 mr-2" />
+                实时日志
+                {selectedTaskId && (
+                  <span className="text-xs text-blue-400 font-normal ml-2">
+                    (筛选中)
+                  </span>
+                )}
+              </h2>
+              <div className="bg-slate-900 rounded-lg p-4 overflow-y-auto font-mono text-xs space-y-1 flex-1 min-h-0">
                 {logs.length === 0 ? (
                   <div className="text-slate-500 text-center py-8">暂无日志</div>
                 ) : (
@@ -405,42 +467,43 @@ export default function GlmCodingRusher() {
       </div>
 
       {/* 抢购成功弹窗 */}
-      {successModalVisible && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-slate-700 shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-2xl">🎉</span>
-              <h3 className="text-lg font-bold">抢购成功！</h3>
-            </div>
-            <div className="py-4">
-              <p className="text-slate-300 mb-4">
-                抢购已成功！请在弹出的支付窗口中完成支付流程。
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-2xl p-8 max-w-md w-full mx-4 border border-green-500/30 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-4">✅</div>
+              <h2 className="text-2xl font-bold text-green-400">抢购成功！</h2>
+              <p className="text-slate-400 mt-2">
+                支付页面已打开，请在浏览器窗口中完成支付
               </p>
-              {lastSuccessTask && (
-                <div className="bg-slate-900/50 p-3 rounded text-sm space-y-1">
-                  <div className="text-slate-400">任务ID: {lastSuccessTask.id.slice(0, 8)}...</div>
-                  <div className="text-slate-400">状态: {PHASE_LABELS[lastSuccessTask.phase]}</div>
-                  <div className="text-slate-400">时间: {new Date(lastSuccessTask.created_at).toLocaleString()}</div>
-                </div>
-              )}
             </div>
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                onClick={() => setSuccessModalVisible(false)}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm"
-              >
-                关闭
-              </button>
+
+            {successPaymentUrl && (
+              <div className="bg-slate-900 rounded-lg p-3 mb-6">
+                <div className="text-xs text-slate-500 mb-1">支付链接</div>
+                <div className="text-sm text-slate-300 break-all font-mono">
+                  {successPaymentUrl}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              {successPaymentUrl && (
+                <button
+                  onClick={() => window.open(successPaymentUrl, '_blank')}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium"
+                >
+                  在浏览器中打开
+                </button>
+              )}
               <button
                 onClick={() => {
-                  if (paymentInfo?.payment_url) {
-                    window.open(paymentInfo.payment_url, '_blank');
-                  }
-                  setSuccessModalVisible(false);
+                  setShowSuccessModal(false);
+                  setSuccessPaymentUrl(null);
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm"
+                className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-sm font-medium"
               >
-                去支付
+                我知道了
               </button>
             </div>
           </div>
