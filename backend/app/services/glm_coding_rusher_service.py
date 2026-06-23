@@ -1,11 +1,15 @@
 """GLM-Coding Pro 抢购核心服务"""
 
+import json
 import logging
 import os
 from enum import Enum
 from pathlib import Path
 from typing import List
 from datetime import datetime, time, timedelta
+
+from app.models.base import SessionLocal
+from app.models.glm_coding_rusher_models import GlmCodingRusherLog, GlmCodingRusherTask
 
 logger = logging.getLogger(__name__)
 
@@ -375,37 +379,85 @@ def _update_task(**kwargs):
 
 
 def _append_log(phase: str, message: str, task_id: str):
-    """追加日志到缓冲区（同时写入数据库）"""
-    log_entry = {
+    """追加日志到缓冲区（内存 + DB 双写）"""
+    entry = {
         "id": str(uuid.uuid4()),
         "task_id": task_id,
         "phase": phase,
         "message": message,
         "created_at": datetime.now(),
     }
-    _logs_buffer.append(log_entry)
+    _logs_buffer.append(entry)
+    # 内存只保留最近 500 条
+    if len(_logs_buffer) > 500:
+        _logs_buffer[:] = _logs_buffer[-500:]
+    # 异步写 DB（不阻塞主线程）
+    try:
+        _save_log_to_db(entry)
+    except Exception as e:
+        logger.debug(f"日志写 DB 异常（已忽略）: {e}")
     logger.info(f"[{phase}] {message}")
 
-    # 双写到数据库
-    try:
-        from app.models.glm_coding_rusher_models import GlmCodingRusherLog
-        from app.db.session import SessionLocal
 
-        db = SessionLocal()
-        try:
-            db_log = GlmCodingRusherLog(
-                id=log_entry["id"],
-                task_id=task_id,
-                user_id="system",  # 暂时使用 system，后续可扩展为真实用户 ID
-                phase=phase,
-                message=message,
-            )
-            db.add(db_log)
-            db.commit()
-        finally:
-            db.close()
+def _get_db():
+    """获取 DB session（非请求上下文，直接创建）"""
+    return SessionLocal()
+
+
+def _save_log_to_db(log_entry: dict):
+    """将日志条目写入 DB"""
+    db = _get_db()
+    try:
+        db_log = GlmCodingRusherLog(
+            id=log_entry["id"],
+            task_id=log_entry["task_id"],
+            user_id="system",  # 当前单用户
+            phase=log_entry["phase"],
+            message=log_entry["message"],
+        )
+        db.add(db_log)
+        db.commit()
     except Exception as e:
-        logger.warning(f"日志双写数据库失败: {e}")
+        logger.warning(f"日志写 DB 失败: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _create_task_record(task_id: str, config: dict):
+    """创建抢购任务记录"""
+    db = _get_db()
+    try:
+        db_task = GlmCodingRusherTask(
+            id=task_id,
+            user_id="system",
+            config_snapshot=json.dumps(config, ensure_ascii=False),
+            result="running",
+            refresh_count=0,
+            started_at=datetime.now(),
+        )
+        db.add(db_task)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"创建任务记录失败: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _update_task_record(task_id: str, **kwargs):
+    """更新抢购任务记录"""
+    db = _get_db()
+    try:
+        db.query(GlmCodingRusherTask).filter(
+            GlmCodingRusherTask.id == task_id
+        ).update(kwargs)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"更新任务记录失败: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 
 def get_task_status() -> dict:
@@ -415,37 +467,77 @@ def get_task_status() -> dict:
 
 
 def get_task_logs(task_id: str = None, limit: int = 100) -> list:
-    """获取任务日志（优先从数据库读取）"""
+    """获取任务日志（从数据库读取）"""
+    db = _get_db()
     try:
-        from app.models.glm_coding_rusher_models import GlmCodingRusherLog
-        from app.db.session import SessionLocal
-
-        db = SessionLocal()
-        try:
-            query = db.query(GlmCodingRusherLog)
-            if task_id:
-                query = query.filter(GlmCodingRusherLog.task_id == task_id)
-            logs = query.order_by(GlmCodingRusherLog.created_at.desc()).limit(limit).all()
-            return [
-                {
-                    "id": log.id,
-                    "task_id": log.task_id,
-                    "phase": log.phase,
-                    "message": log.message,
-                    "created_at": log.created_at,
-                }
-                for log in reversed(logs)
-            ]
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"从数据库读取日志失败，回退到内存缓冲区: {e}")
-        # 回退到内存缓冲区
+        query = db.query(GlmCodingRusherLog)
         if task_id:
-            logs = [l for l in _logs_buffer if l["task_id"] == task_id]
-        else:
-            logs = list(_logs_buffer)
-        return logs[-limit:]
+            query = query.filter(GlmCodingRusherLog.task_id == task_id)
+        logs = query.order_by(GlmCodingRusherLog.created_at.desc()).limit(limit).all()
+        return [
+            {
+                "id": log.id,
+                "task_id": log.task_id,
+                "phase": log.phase,
+                "message": log.message,
+                "created_at": log.created_at,
+            }
+            for log in reversed(logs)
+        ]
+    finally:
+        db.close()
+
+
+def list_task_records(limit: int = 50) -> list:
+    """从 DB 查询抢购任务记录列表（按 started_at 倒序）"""
+    db = _get_db()
+    try:
+        tasks = (
+            db.query(GlmCodingRusherTask)
+            .order_by(GlmCodingRusherTask.started_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": t.id,
+                "result": t.result,
+                "target_package": json.loads(t.config_snapshot).get("target_package", "pro"),
+                "started_at": t.started_at,
+                "ended_at": t.ended_at,
+                "refresh_count": t.refresh_count,
+                "payment_url": t.payment_url,
+                "config_snapshot": json.loads(t.config_snapshot),
+            }
+            for t in tasks
+        ]
+    finally:
+        db.close()
+
+
+def get_task_logs_from_db(task_id: str, limit: int = 500) -> list:
+    """从 DB 查询指定任务的日志"""
+    db = _get_db()
+    try:
+        logs = (
+            db.query(GlmCodingRusherLog)
+            .filter(GlmCodingRusherLog.task_id == task_id)
+            .order_by(GlmCodingRusherLog.created_at.asc())
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": l.id,
+                "task_id": l.task_id,
+                "phase": l.phase,
+                "message": l.message,
+                "created_at": l.created_at,
+            }
+            for l in logs
+        ]
+    finally:
+        db.close()
 
 
 def _open_payment_window(state_path: Path, payment_url: str, task_id: str):
@@ -685,6 +777,13 @@ def _execute_rush(config: dict):
                                 payment_url=payment_url,
                                 payment_state_file=payment_state_path.name,
                             )
+                            _update_task_record(
+                                task_id,
+                                result="success",
+                                refresh_count=retry_count,
+                                payment_url=payment_url,
+                                ended_at=datetime.now(),
+                            )
                             _append_log(
                                 "success",
                                 f"抢购成功！支付 URL: {payment_url}",
@@ -713,6 +812,12 @@ def _execute_rush(config: dict):
                 is_running=False, current_phase="failed",
                 message=f"抢购超时（{timeout}s），未抢到", last_error="超时",
             )
+            _update_task_record(
+                task_id,
+                result="timeout",
+                refresh_count=retry_count,
+                ended_at=datetime.now(),
+            )
             browser.close()
 
     except Exception as e:
@@ -721,6 +826,11 @@ def _execute_rush(config: dict):
         _update_task(
             is_running=False, current_phase="failed",
             message=f"流程异常: {str(e)}", last_error=str(e),
+        )
+        _update_task_record(
+            task_id,
+            result="error",
+            ended_at=datetime.now(),
         )
 
 
@@ -745,6 +855,7 @@ def start_rush(config: dict) -> dict:
         task_id=task_id,
         last_error=None,
     )
+    _create_task_record(task_id, config)
 
     thread = threading.Thread(target=_execute_rush, args=(config,), daemon=True)
     thread.start()
@@ -761,4 +872,7 @@ def stop_rush() -> dict:
         is_running=False, current_phase="failed",
         message="任务已手动停止", last_error="手动停止",
     )
+    task_id = _current_task.get("task_id")
+    if task_id:
+        _update_task_record(task_id, result="stopped", ended_at=datetime.now())
     return {"success": True, "message": "任务已停止"}
