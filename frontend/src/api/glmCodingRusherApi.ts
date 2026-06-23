@@ -115,25 +115,31 @@ export async function closePaymentBrowser(): Promise<{ success: boolean; message
   return request('/close-payment', { method: 'POST' });
 }
 
-export interface TaskInfo {
+export interface TaskSummary {
   id: string;
-  phase: string;
-  message: string;
-  created_at: string;
-  log_count: number;
+  result: string;
+  target_package: string;
+  started_at: string;
+  ended_at: string | null;
+  refresh_count: number;
+  payment_url: string | null;
+}
+
+export interface TaskDetail extends TaskSummary {
+  config_snapshot: Record<string, unknown>;
 }
 
 export interface TaskListResponse {
-  items: TaskInfo[];
+  items: TaskSummary[];
   total: number;
 }
 
-/** 获取任务列表 */
-export async function getTasks(limit = 100): Promise<TaskListResponse> {
+/** 获取抢购任务记录列表 */
+export async function getTasks(limit = 50): Promise<TaskListResponse> {
   return request(`/tasks?limit=${limit}`);
 }
 
-/** 获取指定任务的日志 */
-export async function getTaskLogs(taskId: string, limit = 200): Promise<LogListResponse> {
-  return request(`/tasks/${taskId}?limit=${limit}`);
+/** 获取指定任务的日志（从 DB） */
+export async function getTaskLogs(taskId: string, limit = 500): Promise<LogListResponse> {
+  return request(`/tasks/${taskId}/logs?limit=${limit}`);
 }
