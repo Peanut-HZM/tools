@@ -170,9 +170,10 @@ def payment_info():
 def close_payment():
     """手动关闭支付浏览器"""
     return close_payment_window()
-def logs(limit: int = 100):
+@router.get("/logs")
+def logs(limit: int = 100, task_id: str = None):
     """获取抢购日志"""
-    items = get_task_logs(limit=limit)
+    items = get_task_logs(task_id=task_id, limit=limit)
     return RusherLogListResponse(
         items=[RusherLogItem(**item) for item in items],
         total=len(items),
