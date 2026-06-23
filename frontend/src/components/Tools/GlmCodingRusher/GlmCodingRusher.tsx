@@ -143,6 +143,13 @@ export default function GlmCodingRusher() {
     }
   };
 
+  const openPaymentWindow = (url?: string) => {
+    if (!url) {
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
   // 倒计时格式化
   const formatCountdown = (seconds?: number) => {
     if (seconds === undefined || seconds <= 0) return '00:00:00';
@@ -184,13 +191,6 @@ export default function GlmCodingRusher() {
                     <p className="text-slate-500 text-xs mt-1">{loginStatus.message}</p>
                   )}
                 </div>
-                <button
-                  onClick={handleLogin}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium disabled:opacity-50"
-                >
-                  {loginStatus?.logged_in ? '重新登录' : '打开登录窗口'}
-                </button>
               </div>
             </div>
 
@@ -285,22 +285,13 @@ export default function GlmCodingRusher() {
                     </div>
                   )}
                   <div className="flex gap-2">
-                    {paymentInfo.payment_url && (
-                      <button
-                        onClick={() => window.open(paymentInfo.payment_url!, '_blank')}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-                      >
-                        在浏览器中打开
-                      </button>
-                    )}
-                    {paymentInfo.browser_alive && (
-                      <button
-                        onClick={handleClosePayment}
-                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded text-xs"
-                      >
-                        关闭支付窗口
-                      </button>
-                    )}
+                    <button
+                      onClick={() => openPaymentWindow(paymentInfo.payment_url)}
+                      disabled={!paymentInfo.payment_url}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-xs disabled:opacity-50"
+                    >
+                      支付完成
+                    </button>
                   </div>
                 </div>
               )}
