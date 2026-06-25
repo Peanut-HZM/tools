@@ -19,7 +19,7 @@ import httpx
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 from app.models.http_client_models import (
     CollectionCreate, CollectionUpdate,
     HttpRequestCreate, HttpRequestUpdate,
@@ -75,7 +75,7 @@ class HttpClientService:
         """获取所有集合"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_request_collections
@@ -88,13 +88,13 @@ class HttpClientService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_collection(self, collection_id: str) -> Optional[Dict]:
         """获取集合详情"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_request_collections
@@ -106,13 +106,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def create_collection(self, request: CollectionCreate) -> Optional[Dict]:
         """创建集合"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             collection_id = str(uuid.uuid4())
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
@@ -137,13 +137,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def update_collection(self, collection_id: str, request: CollectionUpdate) -> Optional[Dict]:
         """更新集合"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             updates = []
             values = []
 
@@ -181,13 +181,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def delete_collection(self, collection_id: str) -> bool:
         """删除集合（级联删除子项）"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 # 由于设置了 ON DELETE CASCADE，子表记录会自动删除
                 cur.execute("""
@@ -203,7 +203,7 @@ class HttpClientService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     # ============= Request Methods =============
 
@@ -211,7 +211,7 @@ class HttpClientService:
         """获取集合下的所有请求"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_requests
@@ -224,13 +224,13 @@ class HttpClientService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_request(self, request_id: str) -> Optional[Dict]:
         """获取请求详情"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_requests
@@ -242,13 +242,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def create_request(self, request: HttpRequestCreate) -> Optional[Dict]:
         """创建请求"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             request_id = str(uuid.uuid4())
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
@@ -281,13 +281,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def update_request(self, request_id: str, request: HttpRequestUpdate) -> Optional[Dict]:
         """更新请求"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             updates = []
             values = []
 
@@ -349,13 +349,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def delete_request(self, request_id: str) -> bool:
         """删除请求"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("""
                     DELETE FROM http_requests
@@ -370,7 +370,7 @@ class HttpClientService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     # ============= Environment Methods =============
 
@@ -378,7 +378,7 @@ class HttpClientService:
         """获取所有环境"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_environments
@@ -391,13 +391,13 @@ class HttpClientService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_active_environment(self, workspace_id: str = "default") -> Optional[Dict]:
         """获取当前激活的环境"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_environments
@@ -409,13 +409,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def create_environment(self, request: EnvironmentCreate) -> Optional[Dict]:
         """创建环境"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             env_id = str(uuid.uuid4())
 
             # 如果设置为激活，先 deactivate 其他环境
@@ -448,13 +448,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def update_environment(self, env_id: str, request: EnvironmentUpdate) -> Optional[Dict]:
         """更新环境"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             updates = []
             values = []
 
@@ -502,13 +502,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def _get_environment_raw(self, env_id: str) -> Optional[Dict]:
         """获取环境详情（内部方法）"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_environments
@@ -520,13 +520,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def activate_environment(self, env_id: str) -> Optional[Dict]:
         """激活环境"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # 先 deactivate 所有环境
                 cur.execute("""
@@ -551,13 +551,13 @@ class HttpClientService:
             return None
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def delete_environment(self, env_id: str) -> bool:
         """删除环境"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("""
                     DELETE FROM http_environments
@@ -572,7 +572,7 @@ class HttpClientService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     # ============= Send Request Method =============
 
@@ -796,7 +796,7 @@ class HttpClientService:
         """保存请求历史"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             history_id = str(uuid.uuid4())
             with conn.cursor() as cur:
                 cur.execute("""
@@ -822,13 +822,13 @@ class HttpClientService:
                 conn.rollback()
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_request_history(self, user_id: str, limit: int = 50) -> List[Dict]:
         """获取请求历史"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT * FROM http_request_history
@@ -842,13 +842,13 @@ class HttpClientService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def clear_request_history(self, user_id: str) -> bool:
         """清空请求历史"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("""
                     DELETE FROM http_request_history
@@ -863,7 +863,7 @@ class HttpClientService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     # ============= Import/Export Methods =============
 
