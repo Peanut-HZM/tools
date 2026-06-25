@@ -1,5 +1,6 @@
 import { Tool, ToolCategory } from '../types';
 import { API_BASE_URL } from '../config/api';
+import { getCached, setCache } from '../utils/cache';
 
 // ==================== Promise 缓存（请求去重） ====================
 
@@ -34,28 +35,54 @@ function cachedFetch<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
 // ==================== API 函数 ====================
 
 export async function fetchCategories(signal?: AbortSignal): Promise<ToolCategory[]> {
+  // 1. 尝试从 localStorage 缓存读取
+  const cached = getCached<ToolCategory[]>('categories');
+  if (cached) {
+    return cached;
+  }
+
+  // 2. 缓存未命中，发起请求
   const key = `${API_BASE_URL}/categories`;
-  return cachedFetch(key, async () => {
+  const data = await cachedFetch(key, async () => {
     const response = await fetch(key, { signal });
     if (!response.ok) {
       throw new Error('Failed to fetch categories');
     }
     return await response.json();
   });
+
+  // 3. 写入 localStorage 缓存
+  setCache('categories', data);
+
+  return data;
 }
 
 export async function fetchTools(platform?: string, signal?: AbortSignal): Promise<Tool[]> {
+  const cacheKey = `tools:${platform || 'all'}`;
+
+  // 1. 尝试从 localStorage 缓存读取
+  const cached = getCached<Tool[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // 2. 缓存未命中，发起请求
   const url = platform
     ? `${API_BASE_URL}/tools?platform=${platform}`
     : `${API_BASE_URL}/tools`;
-  return cachedFetch(url, async () => {
+  const data = await cachedFetch(url, async () => {
     const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new Error('Failed to fetch tools');
     }
-    const data = await response.json();
-    return data.tools;
+    const result = await response.json();
+    return result.tools;
   });
+
+  // 3. 写入 localStorage 缓存
+  setCache(cacheKey, data);
+
+  return data;
 }
 
 export async function searchTools(query: string, signal?: AbortSignal): Promise<Tool[]> {
