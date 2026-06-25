@@ -3,6 +3,7 @@ import json
 import logging
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -100,6 +101,9 @@ class StructureCache:
 
 # 全局实例：1 小时 TTL，最多 100 条
 _STRUCTURE_CACHE = StructureCache(ttl=3600, maxsize=100)
+
+# 库名/Schema 列表缓存：5 分钟 TTL（schema 变动不频繁，靠右键刷新与写操作失效兜底）
+_LIST_CACHE = StructureCache(ttl=300, maxsize=200)
 
 
 class DatabaseToolService:
@@ -1098,7 +1102,13 @@ class DatabaseToolService:
     # --------------------------------------------------------------------------
 
     @staticmethod
-    def get_databases_list(user_id: str, config_id: str) -> List[str]:
+    def get_databases_list(user_id: str, config_id: str, skip_cache: bool = False) -> List[str]:
+        cache_key = f"databases:{config_id}"
+        if not skip_cache:
+            cached = _LIST_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
+
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
         if not config_row:
             raise ValueError("Configuration not found")
@@ -1142,8 +1152,8 @@ class DatabaseToolService:
                         )
                         databases = [row[0] for row in result]
                     else:
-                        # 查询所有非模板数据库
-                        # 先用 postgres 系统库建立连接（因为没有指定 database_name 时 PG 无法直接连接）
+                        # 只列库名：连 postgres 系统库查 pg_database，不再遍历各库查 schema。
+                        # Schema 改由 get_schemas_list 在展开具体数据库时懒加载。
                         fallback_config = config_dict.copy()
                         fallback_config["database_name"] = "postgres"
                         temp_key = f"{config_id}:_temp_postgres_fallback"
@@ -1157,31 +1167,7 @@ class DatabaseToolService:
                                         "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
                                     )
                                 )
-                                db_names = [row[0] for row in db_result]
-                            # 对每个数据库查询其 schema
-                            for db_name in db_names:
-                                try:
-                                    schema_config = config_dict.copy()
-                                    schema_config["database_name"] = db_name
-                                    temp_key = f"{config_id}:_temp_{db_name}"
-                                    temp_engine = DBConnectionManager.get_engine(
-                                        temp_key, schema_config
-                                    )
-                                    with temp_engine.connect() as db_conn:
-                                        schema_result = db_conn.execute(
-                                            text(
-                                                "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"
-                                            )
-                                        )
-                                        for schema_row in schema_result:
-                                            databases.append(
-                                                f"{db_name}:{schema_row[0]}"
-                                            )
-                                    temp_engine.dispose()
-                                except Exception as e:
-                                    logger.warning(
-                                        f"Failed to get schemas for {db_name}: {e}"
-                                    )
+                                databases = [row[0] for row in db_result]
                         finally:
                             fallback_engine.dispose()
                 elif db_type == DatabaseType.SQLSERVER:
@@ -1195,10 +1181,15 @@ class DatabaseToolService:
             # return empty list or re-raise
             raise e
 
-        return sorted(databases)
+        result = sorted(databases)
+        _LIST_CACHE.set(cache_key, result)
+        return result
 
     @staticmethod
-    def get_schemas_list(user_id: str, config_id: str, database_name: Optional[str] = None) -> List[str]:
+    def get_schemas_list(
+        user_id: str, config_id: str, database_name: Optional[str] = None,
+        skip_cache: bool = False,
+    ) -> List[str]:
         """获取指定数据库下的 schema 列表（PostgreSQL）"""
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
         if not config_row:
@@ -1218,6 +1209,12 @@ class DatabaseToolService:
         target_db = database_name or config_row.get("database_name")
         if not target_db:
             raise ValueError("database_name is required for PostgreSQL schema listing")
+
+        cache_key = f"schemas:{config_id}:{target_db}"
+        if not skip_cache:
+            cached = _LIST_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
 
         config_dict = {
             "db_type": config_row["db_type"],
@@ -1239,9 +1236,49 @@ class DatabaseToolService:
                     text("SELECT schema_name FROM information_schema.schemata ORDER BY schema_name")
                 )
                 schemas = [row[0] for row in result]
+            _LIST_CACHE.set(cache_key, schemas)
             return schemas
         finally:
             engine.dispose()
+
+    @staticmethod
+    def get_all_schemas(
+        user_id: str, config_id: str, skip_cache: bool = False
+    ) -> Dict[str, List[str]]:
+        """并行查询某 PG 连接下所有库的 schema，供搜索场景使用。
+
+        返回 {database_name: [schema, ...]}。单库查询失败被隔离，记 warning 后跳过。
+        """
+        cache_key = f"all_schemas:{config_id}"
+        if not skip_cache:
+            cached = _LIST_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
+
+        db_names = DatabaseToolService.get_databases_list(
+            user_id, config_id, skip_cache=skip_cache
+        )
+
+        result: Dict[str, List[str]] = {}
+
+        def _fetch_one(db_name: str):
+            return db_name, DatabaseToolService.get_schemas_list(
+                user_id, config_id, db_name, skip_cache=skip_cache
+            )
+
+        # 限制并发，避免短时占用过多数据库连接
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(_fetch_one, db): db for db in db_names}
+            for future in as_completed(futures):
+                db = futures[future]
+                try:
+                    name, schemas = future.result()
+                    result[name] = schemas
+                except Exception as exc:
+                    logger.warning(f"Failed to get schemas for {db}: {exc}")
+
+        _LIST_CACHE.set(cache_key, result)
+        return result
 
     @staticmethod
     def get_database_structure(

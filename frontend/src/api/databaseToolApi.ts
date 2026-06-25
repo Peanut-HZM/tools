@@ -130,10 +130,15 @@ export async function testConnectionById(id: string): Promise<ConnectionTestResu
   return handleResponse<ConnectionTestResult>(response);
 }
 
-export async function getDatabasesList(id: string): Promise<string[]> {
-  const cacheKey = `databases:${id}`;
-  const cached = await DBCache.get<string[]>(cacheKey);
-  if (cached) return cached;
+export async function getDatabasesList(id: string, skipCache = false): Promise<string[]> {
+  // v2：返回格式从 "db:schema" 变为 "db"，提升 cacheKey 版本使旧缓存失效
+  const cacheKey = `databases:v2:${id}`;
+  if (skipCache) {
+    await DBCache.invalidate(cacheKey);
+  } else {
+    const cached = await DBCache.get<string[]>(cacheKey);
+    if (cached) return cached;
+  }
 
   // In-flight 去重：同一连接的并发请求共享 Promise，避免重复请求
   if (pendingDatabasesRequests.has(id)) {
@@ -142,7 +147,8 @@ export async function getDatabasesList(id: string): Promise<string[]> {
 
   const requestPromise = (async () => {
     try {
-      const response = await fetch(`${BASE_URL}/databases/${id}/databases`, {
+      const query = skipCache ? '?skip_cache=true' : '';
+      const response = await fetch(`${BASE_URL}/databases/${id}/databases${query}`, {
         headers: getAuthHeaders()
       });
       const data = await handleResponse<string[]>(response);
@@ -157,18 +163,72 @@ export async function getDatabasesList(id: string): Promise<string[]> {
   return requestPromise;
 }
 
-export async function getSchemasList(id: string, databaseName: string): Promise<string[]> {
+export async function getSchemasList(
+  id: string, databaseName: string, skipCache = false
+): Promise<string[]> {
   const cacheKey = `schemas:${id}:${databaseName}`;
-  const cached = await DBCache.get<string[]>(cacheKey);
-  if (cached) return cached;
+  if (skipCache) {
+    await DBCache.invalidate(cacheKey);
+  } else {
+    const cached = await DBCache.get<string[]>(cacheKey);
+    if (cached) return cached;
+  }
 
-  const response = await fetch(
-    `${BASE_URL}/databases/${id}/schemas?database_name=${encodeURIComponent(databaseName)}`,
-    { headers: getAuthHeaders() }
-  );
-  const data = await handleResponse<string[]>(response);
-  await DBCache.set(cacheKey, data, 'schemas');
-  return data;
+  const pendingKey = `${id}:${databaseName}`;
+  if (pendingSchemasRequests.has(pendingKey)) {
+    return pendingSchemasRequests.get(pendingKey)!;
+  }
+
+  const requestPromise = (async () => {
+    try {
+      const skipParam = skipCache ? '&skip_cache=true' : '';
+      const response = await fetch(
+        `${BASE_URL}/databases/${id}/schemas?database_name=${encodeURIComponent(databaseName)}${skipParam}`,
+        { headers: getAuthHeaders() }
+      );
+      const data = await handleResponse<string[]>(response);
+      await DBCache.set(cacheKey, data, 'schemas');
+      return data;
+    } finally {
+      pendingSchemasRequests.delete(pendingKey);
+    }
+  })();
+
+  pendingSchemasRequests.set(pendingKey, requestPromise);
+  return requestPromise;
+}
+
+export async function getAllSchemas(
+  id: string, skipCache = false
+): Promise<Record<string, string[]>> {
+  const cacheKey = `all_schemas:${id}`;
+  if (skipCache) {
+    await DBCache.invalidate(cacheKey);
+  } else {
+    const cached = await DBCache.get<Record<string, string[]>>(cacheKey);
+    if (cached) return cached;
+  }
+
+  if (pendingAllSchemasRequests.has(id)) {
+    return pendingAllSchemasRequests.get(id)!;
+  }
+
+  const requestPromise = (async () => {
+    try {
+      const query = skipCache ? '?skip_cache=true' : '';
+      const response = await fetch(`${BASE_URL}/databases/${id}/all-schemas${query}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await handleResponse<Record<string, string[]>>(response);
+      await DBCache.set(cacheKey, data, 'databases');
+      return data;
+    } finally {
+      pendingAllSchemasRequests.delete(id);
+    }
+  })();
+
+  pendingAllSchemasRequests.set(id, requestPromise);
+  return requestPromise;
 }
 
 // Database Administration (DDL)
@@ -221,6 +281,8 @@ export async function truncateTableInstance(id: string, table: string, databaseN
 const pendingStructureRequests = new Map<string, Promise<DatabaseStructure>>();
 // In-flight 去重：相同 configId 的数据库列表并发请求共享同一个 Promise
 const pendingDatabasesRequests = new Map<string, Promise<string[]>>();
+const pendingSchemasRequests = new Map<string, Promise<string[]>>();
+const pendingAllSchemasRequests = new Map<string, Promise<Record<string, string[]>>>();
 // 后台静默刷新去重：避免同一 cacheKey 重复触发后台刷新
 const pendingBackgroundRevalidations = new Set<string>();
 

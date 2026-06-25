@@ -45,7 +45,7 @@ from app.models.database_tool_models import (
 )
 from fastapi.responses import FileResponse
 from pathlib import Path
-from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE
+from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE, _LIST_CACHE
 
 router = APIRouter(prefix="/database-tool", tags=["database-tool"])
 
@@ -183,11 +183,12 @@ async def test_connection_by_id(
 @router.get("/databases/{id}/databases", response_model=List[str])
 async def get_databases_list(
     id: str = PathParam(..., description="Configuration ID"),
+    skip_cache: bool = Query(False, description="跳过缓存强制刷新"),
     user_id: str = Depends(get_current_user_id),
 ):
     """List databases for a connection"""
     try:
-        return DatabaseToolService.get_databases_list(user_id, id)
+        return DatabaseToolService.get_databases_list(user_id, id, skip_cache=skip_cache)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -198,11 +199,29 @@ async def get_databases_list(
 async def get_schemas_list(
     id: str = PathParam(..., description="Configuration ID"),
     database_name: Optional[str] = Query(None, description="Database Name (PostgreSQL)"),
+    skip_cache: bool = Query(False, description="跳过缓存强制刷新"),
     user_id: str = Depends(get_current_user_id),
 ):
     """List schemas for a specific database (PostgreSQL)"""
     try:
-        return DatabaseToolService.get_schemas_list(user_id, id, database_name)
+        return DatabaseToolService.get_schemas_list(
+            user_id, id, database_name, skip_cache=skip_cache
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/databases/{id}/all-schemas", response_model=Dict[str, List[str]])
+async def get_all_schemas(
+    id: str = PathParam(..., description="Configuration ID"),
+    skip_cache: bool = Query(False, description="跳过缓存强制刷新"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """并行返回某 PG 连接下所有库的 schema（搜索用）"""
+    try:
+        return DatabaseToolService.get_all_schemas(user_id, id, skip_cache=skip_cache)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -341,6 +360,8 @@ async def create_database_instance(
         result = DatabaseToolService.create_database_instance(user_id, id, name, charset)
         if result:
             _STRUCTURE_CACHE.invalidate(f"{id}:{name}")
+            _LIST_CACHE.invalidate_prefix(f"databases:{id}")
+            _LIST_CACHE.invalidate_prefix(f"all_schemas:{id}")
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -357,6 +378,9 @@ async def drop_database_instance(
         result = DatabaseToolService.drop_database_instance(user_id, id, name)
         if result:
             _STRUCTURE_CACHE.invalidate(f"{id}:{name}")
+            _LIST_CACHE.invalidate_prefix(f"databases:{id}")
+            _LIST_CACHE.invalidate_prefix(f"schemas:{id}:{name}")
+            _LIST_CACHE.invalidate_prefix(f"all_schemas:{id}")
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

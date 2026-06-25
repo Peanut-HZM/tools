@@ -13,6 +13,7 @@ import BackupHistoryDialog from './BackupHistoryDialog';
 import DisplaySettingsDialog from './DisplaySettingsDialog';
 import SchemaNode from './SchemaNode';
 import { DisplayPreferences } from '../../../../types/databaseTool';
+import { toast } from 'sonner';
 
 interface ConnectionListProps {
   onAddConfig: () => void;
@@ -261,6 +262,9 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
   const [searchResults, setSearchResults] = useState<Record<string, string[]>>({});
   const [searching, setSearching] = useState(false);
 
+  // 搜索期：PG 各库 schema 全量（供 schema 名匹配），key=db, value=schema[]
+  const [allSchemas, setAllSchemas] = useState<Record<string, string[]>>({});
+
   // Hover prefetch
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefetchedRef = useRef(false);
@@ -300,6 +304,12 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
   useEffect(() => {
       let active = true;
       const search = async () => {
+          // PG：搜索时并行预取所有库 schema，供 schema 名匹配
+          if (searchTerm && searchTerm.length >= 2 && config.db_type === 'postgresql' && !config.database_name) {
+              api.getAllSchemas(config.id)
+                  .then(s => { if (active) setAllSchemas(s); })
+                  .catch(() => {});
+          }
           if (!searchTerm || searchTerm.length < 2) {
               setSearchResults({});
               return;
@@ -598,41 +608,23 @@ const handleSelectAndExpand = async () => {
                   />
                 ))
               ) : (
-                // 未指定 database_name，databases 是 "database:schema" 格式
-                (() => {
-                  // 按数据库分组
-                  const grouped: Record<string, string[]> = {};
-                  filteredDatabases.forEach(dbEntry => {
-                    const parts = dbEntry.split(':');
-                    if (parts.length === 2) {
-                      const [dbName, schemaName] = parts;
-                      if (!grouped[dbName]) grouped[dbName] = [];
-                      grouped[dbName].push(schemaName);
-                    } else {
-                      // 兼容没有冒号的条目
-                      const fallbackDb = config.database_name || dbEntry;
-                      if (!grouped[fallbackDb]) grouped[fallbackDb] = [];
-                      grouped[fallbackDb].push(dbEntry);
-                    }
-                  });
-
-                  return Object.entries(grouped).map(([dbName, schemas]) => (
-                    <PostgresDatabaseNode
-                      key={dbName}
-                      configId={config.id}
-                      dbName={dbName}
-                      schemaNames={schemas}
-                      onSelectTable={onSelectTable}
-                      onSelectDatabase={onSelectDatabase}
-                      onOpenSqlConsole={onOpenSqlConsole}
-                      onOpenBackup={(d, tables) => onOpenBackup(config.id, d, tables)}
-                      onOpenBackupHistory={(d) => onOpenBackupHistory(config.id, d)}
-                      searchTerm={searchTerm}
-                      activeDatabaseName={activeDatabaseName}
-                      activeSchemaName={activeSchemaName}
-                    />
-                  ));
-                })()
+                // 未指定 database_name：databases 是库名列表，schema 懒加载
+                filteredDatabases.map(dbName => (
+                  <PostgresDatabaseNode
+                    key={dbName}
+                    configId={config.id}
+                    dbName={dbName}
+                    initialSchemaNames={allSchemas[dbName]}
+                    onSelectTable={onSelectTable}
+                    onSelectDatabase={onSelectDatabase}
+                    onOpenSqlConsole={onOpenSqlConsole}
+                    onOpenBackup={(d, tables) => onOpenBackup(config.id, d, tables)}
+                    onOpenBackupHistory={(d) => onOpenBackupHistory(config.id, d)}
+                    searchTerm={searchTerm}
+                    activeDatabaseName={activeDatabaseName}
+                    activeSchemaName={activeSchemaName}
+                  />
+                ))
               )}
               {databases.length === 0 && !loading && (
                 <div className="text-xs text-slate-500 py-1 px-2 italic">{t.search.noResults}</div>
@@ -1444,7 +1436,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
 interface PostgresDatabaseNodeProps {
   configId: string;
   dbName: string;
-  schemaNames: string[];
+  initialSchemaNames?: string[];
   onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
   onSelectDatabase: (configId: string, dbName: string, schemaName?: string) => void;
   onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string, schemaName?: string) => void;
@@ -1456,17 +1448,51 @@ interface PostgresDatabaseNodeProps {
 }
 
 const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
-  configId, dbName, schemaNames, onSelectTable, onSelectDatabase,
+  configId, dbName, initialSchemaNames, onSelectTable, onSelectDatabase,
   onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, activeDatabaseName, activeSchemaName
 }) => {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [schemaNames, setSchemaNames] = useState<string[]>(initialSchemaNames ?? []);
+  const [schemasLoaded, setSchemasLoaded] = useState<boolean>(!!initialSchemaNames);
+  const [loadingSchemas, setLoadingSchemas] = useState(false);
+
+  // 搜索态传入的全量 schema 到达后同步进来
+  useEffect(() => {
+    if (initialSchemaNames) {
+      setSchemaNames(initialSchemaNames);
+      setSchemasLoaded(true);
+    }
+  }, [initialSchemaNames]);
+
+  const fetchSchemas = async (skipCache = false) => {
+    setLoadingSchemas(true);
+    try {
+      const data = await api.getSchemasList(configId, dbName, skipCache);
+      setSchemaNames(data);
+      setSchemasLoaded(true);
+    } catch (err) {
+      console.error("Failed to load schemas", err);
+      toast.error(t.database?.status?.loadFailed || '加载 Schema 失败');
+    } finally {
+      setLoadingSchemas(false);
+    }
+  };
+
+  const handleToggle = () => {
+    const next = !isExpanded;
+    setIsExpanded(next);
+    onSelectDatabase(configId, dbName);
+    if (next && !schemasLoaded && !loadingSchemas) {
+      fetchSchemas();
+    }
+  };
 
   const filteredSchemas = searchTerm
     ? schemaNames.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
     : schemaNames;
 
-  if (searchTerm && filteredSchemas.length === 0) return null;
+  if (searchTerm && schemasLoaded && filteredSchemas.length === 0) return null;
 
   const isActive = activeDatabaseName === dbName;
 
@@ -1476,17 +1502,18 @@ const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
         className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
           isActive ? 'bg-blue-600/20 text-blue-300' : 'text-slate-300 hover:bg-slate-700/50'
         }`}
-        onClick={() => {
-          setIsExpanded(!isExpanded);
-          onSelectDatabase(configId, dbName);
-        }}
+        onClick={handleToggle}
       >
         <span className="w-4 h-4 flex items-center justify-center">
           <i className={`fas fa-chevron-right text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
         </span>
         <i className="fas fa-database text-blue-500/80 text-xs"></i>
         <span className="truncate font-medium">{dbName}</span>
-        <span className="text-[10px] bg-slate-700 px-1 rounded-full">{filteredSchemas.length}</span>
+        {loadingSchemas ? (
+          <i className="fas fa-spinner fa-spin text-[10px] text-slate-400"></i>
+        ) : (
+          schemasLoaded && <span className="text-[10px] bg-slate-700 px-1 rounded-full">{filteredSchemas.length}</span>
+        )}
       </div>
 
       {isExpanded && (

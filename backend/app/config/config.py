@@ -69,8 +69,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./data/tools.db"
     DB_PSYCOPG_POOL_MIN_CONN: int = 1
     DB_PSYCOPG_POOL_MAX_CONN: int = 3
-    DB_SQLALCHEMY_POOL_SIZE: int = 2
-    DB_SQLALCHEMY_MAX_OVERFLOW: int = 1
+    DB_SQLALCHEMY_POOL_SIZE: int = 5
+    DB_SQLALCHEMY_MAX_OVERFLOW: int = 10
     DB_SQLALCHEMY_POOL_TIMEOUT: int = 10
     DB_HEALTH_CHECK: str = "true"  # 开启连接健康检查：取出连接时 SELECT 1 探活，失效则重取，避免池中失效连接导致间歇性 500（如 "server closed the connection unexpectedly"）
     # Security

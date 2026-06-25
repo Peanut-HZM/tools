@@ -287,8 +287,80 @@ def sync_token_usage(
     device_fingerprint, id_type = get_device_fingerprint()
     fingerprint_match = None
 
-    db = SessionLocal()
     result = {"sources_synced": [], "total_records": 0, "errors": []}
+
+    # ===== 阶段一：抓取数据（慢操作：ccusage / claude CLI 子进程，全程不持有数据库连接）=====
+    # 将耗时的子进程抓取与数据库写入解耦，避免后台同步在抓取期间长时间占用连接池连接，
+    # 进而导致前端接口因 "connection pool exhausted" 长时间 Pending。
+
+    # claude 源（v2 流程已覆盖 opencode，此处仅保留 claude 以防降级）
+    claude_parsed: list[dict] = []
+    claude_fetch_error: Optional[Exception] = None
+    try:
+        raw_entries = _fetch_claude_daily(days)
+        if not raw_entries:
+            result["errors"].append({
+                "source": "claude",
+                "error": "claude: 无数据",
+                "error_code": "NO_DATA",
+                "remediation": "请检查是否有使用该工具的记录",
+                "details": {},
+            })
+        else:
+            parsed = _parse_claude_entries(raw_entries)
+            # 去重：同一天同一模型只保留最后一条（取聚合后的记录）
+            deduped: dict[tuple, dict] = {}
+            for rec in parsed:
+                key = (rec["record_date"], rec["model"])
+                deduped[key] = rec  # 后面的覆盖前面的
+            claude_parsed = list(deduped.values())
+    except Exception as e:
+        claude_fetch_error = e
+        if isinstance(e, CcusageError):
+            result["errors"].append({
+                "source": "claude",
+                "error": e.message,
+                "error_code": e.code,
+                "remediation": e.remediation,
+                "details": e.details,
+            })
+        else:
+            result["errors"].append({
+                "source": "claude",
+                "error": f"claude: {str(e)}",
+                "error_code": "FETCH_ERROR",
+                "remediation": "请检查网络连接或工具安装状态",
+                "details": {"exception": str(e)},
+            })
+        logger.error(f"同步失败 claude: {e}")
+
+    # ccusage v2 统一数据源抓取
+    ccusage_records: list[dict] = []
+    try:
+        fetched = _fetch_ccusage_v2_records(since_date, until_date)
+        ccusage_records = fetched["records"]
+        result["errors"].extend(fetched["errors"])
+    except Exception as e:
+        logger.error(f"[ccusage-v2] 抓取失败: {e}", exc_info=True)
+        if isinstance(e, CcusageError):
+            result["errors"].append({
+                "source": "ccusage-v2",
+                "error": e.message,
+                "error_code": e.code,
+                "remediation": e.remediation,
+                "details": e.details,
+            })
+        else:
+            result["errors"].append({
+                "source": "ccusage-v2",
+                "error": f"ccusage-v2: {str(e)}",
+                "error_code": "V2_SYNC_ERROR",
+                "remediation": "请检查 ccusage 安装和网络连接",
+                "details": {"exception": str(e)},
+            })
+
+    # ===== 阶段二：写入数据库（快操作，仅短暂持有连接池连接）=====
+    db = SessionLocal()
 
     # 确保设备已注册到 device_registry，并更新指纹
     try:
@@ -344,101 +416,58 @@ def sync_token_usage(
         logger.warning(f"设备注册失败: {e}")
 
     try:
-        # v2 流程（ccusage 统一数据源）已覆盖 opencode，此处仅保留 claude 以防降级
-        sources = [
-            ("claude", _fetch_claude_daily, _parse_claude_entries),
-        ]
-
-        for source_name, fetch_fn, parse_fn in sources:
+        # 写入 claude 记录（数据已在阶段一抓取完成）
+        if claude_fetch_error is not None:
+            # 抓取阶段已失败，补记一条失败的同步日志
             try:
-                raw_entries = fetch_fn(days)
-                if not raw_entries:
-                    result["errors"].append({
-                        "source": source_name,
-                        "error": f"{source_name}: 无数据",
-                        "error_code": "NO_DATA",
-                        "remediation": "请检查是否有使用该工具的记录",
-                        "details": {},
-                    })
-                    continue
-
-                parsed = parse_fn(raw_entries)
-                # 去重：同一天同一模型只保留最后一条（取聚合后的记录）
-                deduped: dict[tuple, dict] = {}
-                for rec in parsed:
-                    key = (rec["record_date"], rec["model"])
-                    deduped[key] = rec  # 后面的覆盖前面的
-                parsed = list(deduped.values())
+                _log_sync(db, user_id, device_id, "claude", "failed", 0, str(claude_fetch_error))
+            except Exception:
+                pass
+        elif claude_parsed:
+            try:
                 count = _upsert_records(
                     db,
                     user_id,
                     device_id,
-                    source_name,
-                    parsed,
+                    "claude",
+                    claude_parsed,
                     device_name,
                 )
-                result["sources_synced"].append(source_name)
+                result["sources_synced"].append("claude")
                 result["total_records"] += count
-
-                # 记录同步日志
-                _log_sync(db, user_id, device_id, source_name, "success", count)
-                logger.info(f"[{source_name}] 同步 {count} 条记录到数据库")
-
+                _log_sync(db, user_id, device_id, "claude", "success", count)
+                logger.info(f"[claude] 同步 {count} 条记录到数据库")
             except Exception as e:
-                # 检查是否是 CcusageError 类型
-                if isinstance(e, CcusageError):
-                    result["errors"].append({
-                        "source": source_name,
-                        "error": e.message,
-                        "error_code": e.code,
-                        "remediation": e.remediation,
-                        "details": e.details,
-                    })
-                else:
-                    result["errors"].append({
-                        "source": source_name,
-                        "error": f"{source_name}: {str(e)}",
-                        "error_code": "FETCH_ERROR",
-                        "remediation": "请检查网络连接或工具安装状态",
-                        "details": {"exception": str(e)},
-                    })
-                logger.error(f"同步失败 {source_name}: {e}")
+                result["errors"].append({
+                    "source": "claude",
+                    "error": f"claude: {str(e)}",
+                    "error_code": "DB_WRITE_ERROR",
+                    "remediation": "请检查数据库连接",
+                    "details": {"exception": str(e)},
+                })
+                logger.error(f"写入失败 claude: {e}")
                 try:
-                    _log_sync(db, user_id, device_id, source_name, "failed", 0, str(e))
+                    _log_sync(db, user_id, device_id, "claude", "failed", 0, str(e))
                 except Exception:
                     pass
 
-        # V2: ccusage 统一数据源（在同一事务中提交）
+        # 写入 ccusage v2 记录（数据已在阶段一抓取完成）
         try:
-            v2_result = _run_ccusage_v2_sync(
-                db, user_id, device_id, device_name, since_date, until_date
+            v2_count = _write_ccusage_v2_records(
+                db, user_id, device_id, device_name, ccusage_records
             )
-            v2_count = v2_result.get("count", 0)
-            v2_errors = v2_result.get("errors", [])
             if v2_count > 0:
                 result["ccusage_records"] = v2_count
                 result["total_records"] += v2_count
-            # 将 v2 的结构化 errors 合并到结果中
-            result["errors"].extend(v2_errors)
         except Exception as e:
-            logger.error(f"[ccusage-v2] 同步失败: {e}", exc_info=True)
-            # 检查是否是 CcusageError 类型
-            if isinstance(e, CcusageError):
-                result["errors"].append({
-                    "source": "ccusage-v2",
-                    "error": e.message,
-                    "error_code": e.code,
-                    "remediation": e.remediation,
-                    "details": e.details,
-                })
-            else:
-                result["errors"].append({
-                    "source": "ccusage-v2",
-                    "error": f"ccusage-v2: {str(e)}",
-                    "error_code": "V2_SYNC_ERROR",
-                    "remediation": "请检查 ccusage 安装和网络连接",
-                    "details": {"exception": str(e)},
-                })
+            logger.error(f"[ccusage-v2] 写入失败: {e}", exc_info=True)
+            result["errors"].append({
+                "source": "ccusage-v2",
+                "error": f"ccusage-v2: {str(e)}",
+                "error_code": "DB_WRITE_ERROR",
+                "remediation": "请检查数据库连接",
+                "details": {"exception": str(e)},
+            })
 
         db.commit()
 
@@ -465,8 +494,7 @@ def sync_token_usage(
     finally:
         if fingerprint_match:
             result["fingerprint_match"] = fingerprint_match
-
-    db.close()
+        db.close()
 
     return result
 
@@ -712,20 +740,15 @@ def _parse_ccusage_records(
     return results
 
 
-def _run_ccusage_v2_sync(
-    db,
-    user_id: str,
-    device_id: str,
-    device_name: str,
-    since_date,
-    until_date,
-) -> dict:
-    """v2: ccusage 统一数据源同步
+def _fetch_ccusage_v2_records(since_date, until_date) -> dict:
+    """v2: 仅执行 ccusage 子进程抓取与解析（慢操作，不持有数据库连接）。
+
+    将耗时的 ccusage CLI 子进程调用与数据库写入解耦，避免后台同步在抓取期间
+    长时间占用连接池连接。
 
     Returns:
-        {"count": int, "errors": list[dict]}
-        errors 中每个元素为 {"source": "...", "error": "...", "error_code": "...",
-                              "remediation": "...", "details": {...}}
+        {"records": list[dict], "errors": list[dict]}
+        records 为待写入的记录列表；errors 为抓取阶段的结构化错误。
     """
     from app.utils.usage_fetcher_v2 import UsageFetcherV2
 
@@ -738,7 +761,7 @@ def _run_ccusage_v2_sync(
     if "error" in daily_result:
         logger.warning(f"[ccusage-v2] daily 拉取失败: {daily_result['error']}")
         return {
-            "count": 0,
+            "records": [],
             "errors": [
                 {
                     "source": "ccusage-v2:daily",
@@ -753,7 +776,7 @@ def _run_ccusage_v2_sync(
     daily_list = daily_result.get("daily", [])
     if not daily_list:
         logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 无数据")
-        return {"count": 0, "errors": []}
+        return {"records": [], "errors": []}
 
     all_agents: set[str] = set()
     for day in daily_list:
@@ -789,7 +812,20 @@ def _run_ccusage_v2_sync(
     records = _parse_ccusage_records(daily_list, agent_models_dict)
     if not records:
         logger.info(f"[ccusage-v2] 解析后 0 条记录（{since_str} ~ {until_str}）")
-        return {"count": 0, "errors": errors}
+
+    return {"records": records, "errors": errors}
+
+
+def _write_ccusage_v2_records(
+    db,
+    user_id: str,
+    device_id: str,
+    device_name: str,
+    records: list[dict],
+) -> int:
+    """v2: 将已抓取解析的记录写入数据库（快操作）。"""
+    if not records:
+        return 0
 
     # 按 agent 分组，分别 upsert，确保每个 Agent 有正确的 source/tool_id/tool_name
     from itertools import groupby
@@ -802,7 +838,35 @@ def _run_ccusage_v2_sync(
         total_count += count
         logger.info(f"[ccusage-v2] {agent}: 同步 {count} 条")
 
-    logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 总计同步 {total_count} 条")
+    logger.info(f"[ccusage-v2] 总计同步 {total_count} 条")
+    return total_count
+
+
+def _run_ccusage_v2_sync(
+    db,
+    user_id: str,
+    device_id: str,
+    device_name: str,
+    since_date,
+    until_date,
+) -> dict:
+    """v2: ccusage 统一数据源同步（抓取 + 写入）。
+
+    保留给 scheduler / 手动端点等直接传入 db 的调用方使用。后台同步走
+    sync_token_usage 中拆分后的「先抓取后写入」流程，不再经由此函数。
+
+    Returns:
+        {"count": int, "errors": list[dict]}
+        errors 中每个元素为 {"source": "...", "error": "...", "error_code": "...",
+                              "remediation": "...", "details": {...}}
+    """
+    fetched = _fetch_ccusage_v2_records(since_date, until_date)
+    records = fetched["records"]
+    errors = fetched["errors"]
+
+    total_count = _write_ccusage_v2_records(
+        db, user_id, device_id, device_name, records
+    )
     return {"count": total_count, "errors": errors}
 
 
