@@ -5,7 +5,7 @@ import json
 import time
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 from app.models.redis_tool_models import (
     RedisConfigBase, CreateRedisRequest, UpdateRedisRequest,
     RedisConfigResponse, TestConnectionRequest, ConnectionTestResult,
@@ -25,7 +25,7 @@ class RedisToolService:
     @staticmethod
     def _ensure_table():
         """确保 redis_configs 和 redis_script_templates 表存在"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             # Create redis_configs table if not exists
@@ -72,7 +72,7 @@ class RedisToolService:
             conn.commit()
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def _get_column_map():
@@ -80,7 +80,7 @@ class RedisToolService:
         if RedisToolService._column_map:
             return RedisToolService._column_map
         RedisToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -89,7 +89,7 @@ class RedisToolService:
             columns = {row['column_name'] for row in cursor.fetchall()}
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
         def pick(preferred: str, fallback: str):
             if preferred in columns:
                 return preferred
@@ -121,7 +121,7 @@ class RedisToolService:
     @staticmethod
     def get_all_configs(user_id: str) -> List[RedisConfigResponse]:
         RedisToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             column_map = RedisToolService._get_column_map()
@@ -134,12 +134,12 @@ class RedisToolService:
             return [RedisToolService._row_to_response(row) for row in rows]
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def create_config(user_id: str, request: CreateRedisRequest) -> RedisConfigResponse:
         RedisToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             column_map = RedisToolService._get_column_map()
@@ -170,12 +170,12 @@ class RedisToolService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def get_config(config_id: str, user_id: str) -> Optional[RedisConfigResponse]:
         RedisToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             column_map = RedisToolService._get_column_map()
@@ -190,12 +190,12 @@ class RedisToolService:
             return None
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def _get_config_with_password(config_id: str, user_id: str):
         RedisToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             column_map = RedisToolService._get_column_map()
@@ -207,12 +207,12 @@ class RedisToolService:
             return cursor.fetchone()
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def update_config(config_id: str, user_id: str, request: UpdateRedisRequest) -> Optional[RedisConfigResponse]:
         RedisToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             column_map = RedisToolService._get_column_map()
@@ -271,12 +271,12 @@ class RedisToolService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def delete_config(config_id: str, user_id: str) -> bool:
         RedisToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             column_map = RedisToolService._get_column_map()
@@ -293,7 +293,7 @@ class RedisToolService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def _get_redis_client(host, port, password=None, username=None, db=0, decode_responses=True):
@@ -843,7 +843,7 @@ class RedisToolService:
     @staticmethod
     def get_script_templates(user_id: str) -> List[ScriptTemplate]:
         """获取用户的脚本模板列表"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -854,12 +854,12 @@ class RedisToolService:
             return [ScriptTemplate(**row) for row in rows]
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def create_script_template(user_id: str, request: CreateScriptTemplateRequest) -> ScriptTemplate:
         """创建脚本模板"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             template_id = str(uuid.uuid4())
@@ -886,12 +886,12 @@ class RedisToolService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def update_script_template(template_id: str, user_id: str, request: UpdateScriptTemplateRequest) -> bool:
         """更新脚本模板"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             updates = []
@@ -925,12 +925,12 @@ class RedisToolService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def delete_script_template(template_id: str, user_id: str) -> bool:
         """删除脚本模板"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -945,7 +945,7 @@ class RedisToolService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def execute_cli_command(config_id: str, user_id: str, request: CLICommandRequest) -> CLICommandResponse:

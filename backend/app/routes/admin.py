@@ -213,9 +213,9 @@ async def user_login_history(
         user_id: 用户 ID
         limit: 返回记录数量（默认50条）
     """
-    from app.config.database import get_db_connection
+    from app.config.database import get_pooled_db_connection, release_db_connection
 
-    conn = get_db_connection()
+    conn = get_pooled_db_connection()
     try:
         with conn.cursor() as cursor:
             cursor.execute(
@@ -244,7 +244,7 @@ async def user_login_history(
                 ]
             }
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 
 # ==================== OSS Management ====================

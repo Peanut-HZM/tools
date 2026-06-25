@@ -4,7 +4,7 @@ HTTP Client 数据库表初始化
 
 import logging
 import uuid
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ def init_http_client_tables():
     """初始化 HTTP Client 相关的数据库表"""
     conn = None
     try:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         with conn.cursor() as cur:
             # 1. 创建请求集合表
             cur.execute("""
@@ -151,7 +151,7 @@ def init_http_client_tables():
         raise
     finally:
         if conn:
-            conn.close()
+            release_db_connection(conn)
 
 
 if __name__ == "__main__":

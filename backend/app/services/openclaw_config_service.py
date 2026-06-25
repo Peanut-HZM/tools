@@ -13,7 +13,7 @@ from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from cryptography.fernet import Fernet
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class OpenClawConfigService:
         """初始化数据库表"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS openclaw_configs (
@@ -101,13 +101,13 @@ class OpenClawConfigService:
                 conn.rollback()
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def get_config(self) -> Dict[str, str]:
         """获取所有配置"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("SELECT config_key, config_value FROM openclaw_configs")
                 rows = cur.fetchall()
@@ -125,13 +125,13 @@ class OpenClawConfigService:
             return DEFAULT_CONFIGS.copy()
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def update_config(self, data: Dict[str, str]) -> Dict[str, str]:
         """批量更新配置"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 for key, value in data.items():
                     if key in DEFAULT_CONFIGS:
@@ -155,7 +155,7 @@ class OpenClawConfigService:
             raise e
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def is_enabled(self) -> bool:
         """检查功能是否启用"""

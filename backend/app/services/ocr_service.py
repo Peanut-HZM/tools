@@ -16,9 +16,29 @@ from app.models.ocr_models import (
     TableRecognitionRequest, TableRecognitionResponse
 )
 from app.config.ocr_config import ocr_settings
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 
 logger = logging.getLogger(__name__)
+
+# Umi-OCR 语言参数映射：短代码 → 模型配置文件路径
+LANGUAGE_MAP = {
+    "ch": "models/config_chinese.txt",          # 简体中文
+    "chinese": "models/config_chinese.txt",
+    "en": "models/config_en.txt",               # English
+    "english": "models/config_en.txt",
+    "cht": "models/config_chinese_cht.txt",     # 繁體中文
+    "ja": "models/config_japan.txt",            # 日本語
+    "japan": "models/config_japan.txt",
+    "ko": "models/config_korean.txt",           # 한국어
+    "korean": "models/config_korean.txt",
+    "cyrillic": "models/config_cyrillic.txt",   # Русский
+}
+
+
+def _map_language(lang: str) -> str:
+    """将短语言代码转换为 Umi-OCR 模型配置路径"""
+    return LANGUAGE_MAP.get(lang, lang)
+
 
 class OCRService:
     def __init__(self):
@@ -27,7 +47,7 @@ class OCRService:
 
     def _ensure_ocr_history_table(self):
         """确保 ocr_history 和 ocr_quota 表存在"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -66,7 +86,7 @@ class OCRService:
             conn.commit()
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     def _decode_image(self, image_data: str) -> np.ndarray:
         try:
@@ -83,7 +103,7 @@ class OCRService:
     def _save_history(self, user_id: str, image_data: str, result: OCRResponse, lang: str) -> str:
         """保存 OCR 结果到历史记录"""
         self._ensure_ocr_history_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             history_id = str(uuid.uuid4())
@@ -112,12 +132,12 @@ class OCRService:
             return ""
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     def _check_quota(self, user_id: str) -> OCRQuotaInfo:
         """检查用户配额"""
         self._ensure_ocr_history_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             today = datetime.now().date()
@@ -183,12 +203,12 @@ class OCRService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     def _increment_quota_usage(self, user_id: str):
         """增加用户配额使用量"""
         self._ensure_ocr_history_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("""
@@ -202,7 +222,7 @@ class OCRService:
             logger.error(f"Increment quota failed: {e}")
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     def predict(self, image_data: str, lang: str = "ch", user_id: Optional[str] = None, save_history: bool = True) -> OCRResponse:
         """
@@ -229,13 +249,14 @@ class OCRService:
             payload = {
                 "base64": image_data,
                 "options": {
-                    "ocr.language": lang
+                    "ocr.language": _map_language(lang)
                 }
             }
 
-            headers = {
-                "api-key": self.api_key
-            }
+            # Umi-OCR 无需认证头，保留 api_key 字段兼容未来扩展
+            headers = {}
+            if self.api_key:
+                headers["api-key"] = self.api_key
 
             target_url = f"{self.api_url}/api/ocr"
             logger.info(f"Calling OCR API: {target_url}")
@@ -304,7 +325,9 @@ class OCRService:
 
             with httpx.Client(timeout=60.0) as client:
                 target_url = f"{self.api_url}/api/ocr"
-                headers = {"api-key": self.api_key}
+                headers = {}
+                if self.api_key:
+                    headers["api-key"] = self.api_key
 
                 for i in range(n_pages):
                     page = pdf[i]
@@ -317,7 +340,7 @@ class OCRService:
 
                     payload = {
                         "base64": img_base64,
-                        "options": {"ocr.language": "ch"}
+                        "options": {"ocr.language": _map_language("ch")}
                     }
 
                     response = client.post(target_url, json=payload, headers=headers)
@@ -380,7 +403,7 @@ class OCRService:
     def get_history(self, user_id: str, page: int = 1, page_size: int = 20) -> OCRHistoryListResponse:
         """获取用户 OCR 历史记录"""
         self._ensure_ocr_history_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             offset = (page - 1) * page_size
@@ -423,12 +446,12 @@ class OCRService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     def export_ocr_result(self, user_id: str, request: ExportOCRRequest) -> ExportOCRResponse:
         """导出 OCR 识别结果"""
         self._ensure_ocr_history_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT * FROM ocr_history WHERE id = %s AND user_id = %s", (request.history_id, user_id))
@@ -480,7 +503,7 @@ class OCRService:
             raise e
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     def batch_process(self, user_id: str, request: OCRBatchProcessRequest) -> OCRBatchProcessResponse:
         """批量 OCR 处理"""

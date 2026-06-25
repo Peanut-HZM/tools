@@ -10,7 +10,7 @@ from typing import List, Optional, Dict
 import paramiko
 from fastapi import WebSocket, WebSocketDisconnect, HTTPException
 
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 from app.models.ssh_tool_models import (
     CreateSSHRequest, UpdateSSHRequest, SSHConfigResponse, TestSSHConnectionRequest,
     SFTPListRequest, SFTPListResponse, SFTPFileInfo, SFTPDownloadRequest, SFTPDownloadResponse,
@@ -29,7 +29,7 @@ class SSHToolService:
 
     @staticmethod
     def _ensure_table():
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -58,14 +58,14 @@ class SSHToolService:
             conn.commit()
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def _get_column_map():
         if SSHToolService._column_map:
             return SSHToolService._column_map
         SSHToolService._ensure_table()
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -74,7 +74,7 @@ class SSHToolService:
             columns = {row['column_name'] for row in cursor.fetchall()}
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
         def pick(preferred: str, fallback: str):
             if preferred in columns:
                 return preferred
@@ -154,7 +154,7 @@ class SSHToolService:
     def _get_config_record(config_id: str, user_id: str):
         column_map = SSHToolService._get_column_map()
         deleted_column = column_map["deleted"]
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -164,13 +164,13 @@ class SSHToolService:
             return cursor.fetchone()
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def get_configs(user_id: str) -> List[SSHConfigResponse]:
         column_map = SSHToolService._get_column_map()
         deleted_column = column_map["deleted"]
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -181,7 +181,7 @@ class SSHToolService:
             return [SSHToolService._row_to_response(row) for row in rows]
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def create_config(user_id: str, request: CreateSSHRequest) -> SSHConfigResponse:
@@ -199,7 +199,7 @@ class SSHToolService:
             raise HTTPException(status_code=400, detail="Invalid configuration")
         SSHToolService._validate_port(request.port)
 
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             config_id = str(uuid.uuid4())
@@ -234,7 +234,7 @@ class SSHToolService:
             raise
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def update_config(user_id: str, request: UpdateSSHRequest) -> SSHConfigResponse:
@@ -306,7 +306,7 @@ class SSHToolService:
         params.append(request.id)
         params.append(user_id)
 
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             sql = f"UPDATE ssh_configs SET {', '.join(update_fields)} WHERE id = %s AND user_id = %s"
@@ -320,13 +320,13 @@ class SSHToolService:
             raise
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def delete_config(user_id: str, config_id: str) -> bool:
         column_map = SSHToolService._get_column_map()
         deleted_column = column_map["deleted"]
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
@@ -343,7 +343,7 @@ class SSHToolService:
             raise
         finally:
             cursor.close()
-            conn.close()
+            release_db_connection(conn)
 
     @staticmethod
     def _load_private_key(private_key: str, passphrase: Optional[str]):

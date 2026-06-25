@@ -7,7 +7,7 @@ from typing import BinaryIO, Any
 from datetime import datetime
 
 from app.config.config import settings
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 from .factory import create_provider
 from .base import StorageProvider
 
@@ -29,7 +29,7 @@ class StorageService:
         """初始化数据库表"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS oss_files (
@@ -50,7 +50,7 @@ class StorageService:
                 conn.rollback()
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def upload_file(
         self,
@@ -91,7 +91,7 @@ class StorageService:
         """保存文件记录到数据库"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     """
@@ -112,7 +112,7 @@ class StorageService:
                 conn.rollback()
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def delete_file(self, object_name: str) -> bool:
         """删除文件 + 删除 DB 记录"""
@@ -120,7 +120,7 @@ class StorageService:
             self._provider.delete_file(object_name)
             conn = None
             try:
-                conn = get_db_connection()
+                conn = get_pooled_db_connection()
                 with conn.cursor() as cur:
                     cur.execute(
                         "DELETE FROM oss_files WHERE file_path = %s", (object_name,)
@@ -132,7 +132,7 @@ class StorageService:
                     conn.rollback()
             finally:
                 if conn:
-                    conn.close()
+                    release_db_connection(conn)
             return True
         except Exception as e:
             logger.error(f"Error deleting file: {e}")
@@ -144,7 +144,7 @@ class StorageService:
         """从数据库列出文件"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     """
@@ -179,7 +179,7 @@ class StorageService:
             return []
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)
 
     def list_files(
         self, prefix: str = "", max_keys: int = 100
@@ -213,7 +213,7 @@ class StorageService:
         """更新数据库中文件的 URL（用于迁移脚本）"""
         conn = None
         try:
-            conn = get_db_connection()
+            conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE oss_files SET url = %s WHERE file_path = %s",
@@ -228,4 +228,4 @@ class StorageService:
             return False
         finally:
             if conn:
-                conn.close()
+                release_db_connection(conn)

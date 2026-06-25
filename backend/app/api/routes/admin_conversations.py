@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 
 router = APIRouter(prefix="/admin/conversations", tags=["admin-conversations"])
 
@@ -31,7 +31,7 @@ async def list_all_conversations(
     current_user: dict = Depends(require_admin),
 ):
     """获取所有对话列表（管理员）"""
-    conn = get_db_connection()
+    conn = get_pooled_db_connection()
     try:
         with conn.cursor() as cur:
             conditions = []
@@ -102,7 +102,7 @@ async def list_all_conversations(
 
             return conversations
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 
 @router.get("/{conversation_id}/detail")
@@ -111,7 +111,7 @@ async def get_conversation_detail(
     current_user: dict = Depends(require_admin),
 ):
     """获取对话详情（管理员）"""
-    conn = get_db_connection()
+    conn = get_pooled_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -174,7 +174,7 @@ async def get_conversation_detail(
                 "messages": messages,
             }
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 
 @router.get("/stats/overview")
@@ -182,7 +182,7 @@ async def get_conversation_stats(
     current_user: dict = Depends(require_admin),
 ):
     """获取对话统计概览"""
-    conn = get_db_connection()
+    conn = get_pooled_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("""
@@ -225,7 +225,7 @@ async def get_conversation_stats(
                 else 0,
             }
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 
 @router.get("/stats/models")
@@ -233,7 +233,7 @@ async def get_model_usage_stats(
     current_user: dict = Depends(require_admin),
 ):
     """获取模型使用统计"""
-    conn = get_db_connection()
+    conn = get_pooled_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("""
@@ -262,7 +262,7 @@ async def get_model_usage_stats(
                 for r in results
             ]
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 
 @router.get("/stats/users")
@@ -272,7 +272,7 @@ async def get_user_conversation_stats(
     current_user: dict = Depends(require_admin),
 ):
     """获取用户对话统计排行"""
-    conn = get_db_connection()
+    conn = get_pooled_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -304,7 +304,7 @@ async def get_user_conversation_stats(
                 for row in cur.fetchall()
             ]
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 
 @router.delete("/{conversation_id}")
@@ -313,7 +313,7 @@ async def delete_conversation(
     current_user: dict = Depends(require_admin),
 ):
     """删除对话（管理员）"""
-    conn = get_db_connection()
+    conn = get_pooled_db_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -327,4 +327,4 @@ async def delete_conversation(
 
             return {"message": "对话已删除"}
     finally:
-        conn.close()
+        release_db_connection(conn)
