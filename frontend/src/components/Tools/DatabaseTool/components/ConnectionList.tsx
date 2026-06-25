@@ -739,6 +739,28 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
 
   const [dbDdl, setDbDdl] = useState<string | null>(null);
 
+  // Hover 预取：鼠标悬停时提前拉取 structure，点击时瞬间展开
+  const prefetchedRef = useRef(false);
+  const handleMouseEnter = () => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+    api.getDatabaseStructure(configId, dbName).catch(() => {});
+  };
+
+  // 监听后台缓存刷新事件（stale-while-revalidate 触发），自动更新显示
+  useEffect(() => {
+    const expectedKey = `structure:${configId}:${dbName}`;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.cacheKey === expectedKey && structure) {
+        // 缓存已更新，重新从 IndexedDB 拉取新数据（此时瞬间返回）
+        fetchStructure();
+      }
+    };
+    window.addEventListener('db-cache-updated', handler);
+    return () => window.removeEventListener('db-cache-updated', handler);
+  }, [configId, dbName, structure]);
+
   const fetchStructure = async () => {
     setLoading(true);
     try {
@@ -959,6 +981,7 @@ const items: MenuItem[] = [
         }`}
         onClick={handleToggle}
         onContextMenu={handleContextMenu}
+        onMouseEnter={handleMouseEnter}
       >
         <span className="w-4 h-4 flex items-center justify-center">
           {loading ? (

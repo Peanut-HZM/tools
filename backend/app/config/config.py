@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     DB_SQLALCHEMY_POOL_SIZE: int = 2
     DB_SQLALCHEMY_MAX_OVERFLOW: int = 1
     DB_SQLALCHEMY_POOL_TIMEOUT: int = 10
-    DB_HEALTH_CHECK: str = "false"  # "true" 开启连接健康检查（生产环境建议），"false" 跳过以减少延迟
+    DB_HEALTH_CHECK: str = "true"  # 开启连接健康检查：取出连接时 SELECT 1 探活，失效则重取，避免池中失效连接导致间歇性 500（如 "server closed the connection unexpectedly"）
     # Security
     JWT_SECRET_KEY: str = "dev-jwt-secret-change-me"
     JWT_ALGORITHM: str = "HS256"

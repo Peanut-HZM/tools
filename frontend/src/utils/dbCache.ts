@@ -15,9 +15,9 @@ interface CacheConfig {
 
 // 缓存 TTL 配置
 const CACHE_CONFIG: CacheConfig = {
-  configs: { ttl: 5 * 60 * 1000 },         // 连接列表：5 分钟
-  databases: { ttl: 3 * 60 * 1000 },        // 数据库列表：3 分钟
-  structure: { ttl: 10 * 60 * 1000 },       // 表结构：10 分钟
+  configs: { ttl: 30 * 60 * 1000 },        // 连接列表：30 分钟
+  databases: { ttl: 30 * 60 * 1000 },       // 数据库列表：30 分钟
+  structure: { ttl: 60 * 60 * 1000 },       // 表结构：1 小时（表结构低频变动）
   history: { ttl: 60 * 60 * 1000 },         // 执行历史：1 小时
 };
 
@@ -80,6 +80,41 @@ export class DBCache {
 
         request.onerror = () => {
           console.warn('[DBCache] 读取缓存失败:', request.error);
+          resolve(undefined);
+        };
+      });
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * 获取缓存数据，返回 { data, isStale } 结构。
+   * 即使过期也返回数据（供 stale-while-revalidate 策略使用）。
+   * 不存在时返回 undefined。
+   */
+  static async getRaw<T>(cacheKey: string): Promise<{ data: T; isStale: boolean } | undefined> {
+    try {
+      const db = await openDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.get(cacheKey);
+
+        request.onsuccess = () => {
+          const entry: CacheEntry | undefined = request.result;
+          if (!entry) {
+            resolve(undefined);
+            return;
+          }
+          resolve({
+            data: entry.data as T,
+            isStale: Date.now() > entry.expiresAt,
+          });
+        };
+
+        request.onerror = () => {
+          console.warn('[DBCache] getRaw 读取失败:', request.error);
           resolve(undefined);
         };
       });

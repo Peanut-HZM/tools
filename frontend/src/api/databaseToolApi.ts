@@ -135,12 +135,26 @@ export async function getDatabasesList(id: string): Promise<string[]> {
   const cached = await DBCache.get<string[]>(cacheKey);
   if (cached) return cached;
 
-  const response = await fetch(`${BASE_URL}/databases/${id}/databases`, {
-    headers: getAuthHeaders()
-  });
-  const data = await handleResponse<string[]>(response);
-  await DBCache.set(cacheKey, data, 'databases');
-  return data;
+  // In-flight 去重：同一连接的并发请求共享 Promise，避免重复请求
+  if (pendingDatabasesRequests.has(id)) {
+    return pendingDatabasesRequests.get(id)!;
+  }
+
+  const requestPromise = (async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/databases/${id}/databases`, {
+        headers: getAuthHeaders()
+      });
+      const data = await handleResponse<string[]>(response);
+      await DBCache.set(cacheKey, data, 'databases');
+      return data;
+    } finally {
+      pendingDatabasesRequests.delete(id);
+    }
+  })();
+
+  pendingDatabasesRequests.set(id, requestPromise);
+  return requestPromise;
 }
 
 export async function getSchemasList(id: string, databaseName: string): Promise<string[]> {
@@ -205,26 +219,35 @@ export async function truncateTableInstance(id: string, table: string, databaseN
 
 // In-flight 请求去重：相同 (id, databaseName) 的并发请求共享同一个 Promise
 const pendingStructureRequests = new Map<string, Promise<DatabaseStructure>>();
+// In-flight 去重：相同 configId 的数据库列表并发请求共享同一个 Promise
+const pendingDatabasesRequests = new Map<string, Promise<string[]>>();
+// 后台静默刷新去重：避免同一 cacheKey 重复触发后台刷新
+const pendingBackgroundRevalidations = new Set<string>();
 
 export async function getDatabaseStructure(id: string, databaseName: string, schemaName?: string, skipCache = false): Promise<DatabaseStructure> {
   const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
   const cacheKey = `structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`;
 
-  // 1. 查 IndexedDB 缓存（skipCache=true 时跳过）
-  if (!skipCache) {
-    const cached = await DBCache.get<DatabaseStructure>(cacheKey);
-    if (cached) return cached;
-  } else {
-    // 强制刷新时先清除缓存
+  // 1. skipCache 时清除缓存
+  if (skipCache) {
     await DBCache.invalidate(cacheKey);
+  } else {
+    // 2. Stale-While-Revalidate 策略：查 IndexedDB（不管是否过期）
+    const raw = await DBCache.getRaw<DatabaseStructure>(cacheKey);
+    if (raw) {
+      if (raw.isStale) {
+        // 缓存已过期：立即返回旧数据，后台静默刷新
+        revalidateStructureInBackground(cacheKey, id, databaseName, schemaName);
+      }
+      return raw.data;
+    }
   }
 
-  // 2. 检查是否已有相同请求在飞行中
+  // 3. 无缓存：走常规 fetch
   if (pendingStructureRequests.has(cacheKey)) {
     return pendingStructureRequests.get(cacheKey)!;
   }
 
-  // 3. 发起请求并注册到 in-flight 追踪
   const requestPromise = (async () => {
     try {
       const response = await fetch(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
@@ -240,6 +263,30 @@ export async function getDatabaseStructure(id: string, databaseName: string, sch
 
   pendingStructureRequests.set(cacheKey, requestPromise);
   return requestPromise;
+}
+
+// 后台静默刷新 structure 缓存（不阻塞调用方，刷新完通过 CustomEvent 通知）
+function revalidateStructureInBackground(cacheKey: string, id: string, databaseName: string, schemaName?: string) {
+  if (pendingBackgroundRevalidations.has(cacheKey)) return;
+  pendingBackgroundRevalidations.add(cacheKey);
+
+  (async () => {
+    try {
+      const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
+      const response = await fetch(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await handleResponse<DatabaseStructure>(response);
+      await DBCache.set(cacheKey, data, 'structure');
+      // 通知监听者（DatabaseStructureNode）缓存已更新，触发 re-render 显示新数据
+      window.dispatchEvent(new CustomEvent('db-cache-updated', { detail: { cacheKey } }));
+    } catch (e) {
+      // 静默失败：旧数据仍然可用
+      console.warn('[DBCache] background revalidate failed:', e);
+    } finally {
+      pendingBackgroundRevalidations.delete(cacheKey);
+    }
+  })();
 }
 
 export async function getTableDDL(id: string, table: string, databaseName: string, schemaName?: string): Promise<string> {

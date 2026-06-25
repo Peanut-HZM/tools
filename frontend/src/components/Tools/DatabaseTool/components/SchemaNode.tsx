@@ -3,6 +3,7 @@ import { DatabaseStructure, TableItem } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
 import { ContextMenu, MenuItem } from '../../../Common/ContextMenu';
+import { toast } from 'sonner';
 import DDLDialog from './DDLDialog';
 import BackupDialog from './BackupDialog';
 import ModifyTableDialog from './ModifyTableDialog';
@@ -50,6 +51,20 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       setLoading(false);
     }
   };
+
+  // 监听后台缓存刷新事件（stale-while-revalidate 触发），自动更新显示
+  useEffect(() => {
+    const expectedKey = `structure:${configId}:${dbName}${schemaName ? ':' + schemaName : ''}`;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.cacheKey === expectedKey && structure) {
+        // 缓存已更新，重新从 IndexedDB 拉取新数据（此时瞬间返回）
+        fetchStructure();
+      }
+    };
+    window.addEventListener('db-cache-updated', handler);
+    return () => window.removeEventListener('db-cache-updated', handler);
+  }, [configId, dbName, schemaName, structure]);
 
   // Hover prefetch
   const handleMouseEnter = () => {

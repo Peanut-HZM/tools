@@ -98,8 +98,8 @@ class StructureCache:
                 del self._timestamps[k]
 
 
-# 全局实例：10 分钟 TTL，最多 100 条
-_STRUCTURE_CACHE = StructureCache(ttl=600, maxsize=100)
+# 全局实例：1 小时 TTL，最多 100 条
+_STRUCTURE_CACHE = StructureCache(ttl=3600, maxsize=100)
 
 
 class DatabaseToolService:
