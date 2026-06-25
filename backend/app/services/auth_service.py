@@ -16,7 +16,7 @@ from app.models.auth_models import (
     UserCreate, UserLogin, UserInDB, TokenData, AuthResponse, UserResponse,
     AdminPasswordReset, AdminPasswordResetResponse, UserPasswordChange, UserPasswordChangeResponse
 )
-from app.config.database import get_db_connection
+from app.config.database import get_pooled_db_connection, release_db_connection
 from app.config.config import settings
 from app.utils.password_utils import validate_password_strength, generate_random_password, hash_password, verify_password
 from fastapi import Request
@@ -55,7 +55,7 @@ class AuthService:
                    device_info: Optional[str] = None,
                    actor_user_id: Optional[str] = None) -> None:
         """记录密码审计日志"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -69,11 +69,11 @@ class AuthService:
         except Exception as e:
             logger.error(f"记录审计日志失败: {e}")
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def _get_user_by_username(self, username: str) -> Optional[UserInDB]:
         """Get user by username"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -95,7 +95,7 @@ class AuthService:
             logger.error(f"Error getting user by username: {e}")
             return None
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def register(self, user_data: UserCreate) -> AuthResponse:
         """
@@ -130,7 +130,7 @@ class AuthService:
             if not verification_service.verify_code(user_data.phone, user_data.phone_code):
                 raise ValueError("Invalid or expired phone verification code")
         
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 # Check username existence
@@ -181,7 +181,7 @@ class AuthService:
             logger.error(f"Error registering user: {e}")
             raise ValueError("Failed to register user")
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def create_user_admin(self, username: str, email: str, role: str) -> str:
         """
@@ -190,7 +190,7 @@ class AuthService:
         Returns:
             The generated password
         """
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 if self._get_user_by_username(username):
@@ -225,11 +225,11 @@ class AuthService:
             logger.error(f"Error creating admin user: {e}")
             raise ValueError("Failed to create user")
         finally:
-            conn.close()
+            release_db_connection(conn)
     
     def _get_user_by_id(self, user_id: str) -> Optional[UserInDB]:
         """Get user by ID"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -251,7 +251,7 @@ class AuthService:
             logger.error(f"Error getting user by ID: {e}")
             return None
         finally:
-            conn.close()
+            release_db_connection(conn)
     
     def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash"""
@@ -349,7 +349,7 @@ class AuthService:
     
     def get_all_users(self) -> List[UserResponse]:
         """Get all users (admin only) - deprecated, use get_users_paginated instead"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
@@ -368,7 +368,7 @@ class AuthService:
             logger.error(f"Error getting all users: {e}")
             return []
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def get_users_paginated(
         self,
@@ -389,7 +389,7 @@ class AuthService:
         Returns:
             dict with total, page, page_size, total_pages, users
         """
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 # Build query conditions
@@ -451,7 +451,7 @@ class AuthService:
                 "users": []
             }
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def batch_delete_users(self, user_ids: List[str], current_user_id: str) -> dict:
         """
@@ -464,7 +464,7 @@ class AuthService:
         Returns:
             dict with success_count, failed_count, errors
         """
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         success_count = 0
         failed_count = 0
         errors = []
@@ -505,7 +505,7 @@ class AuthService:
                 "errors": [str(e)]
             }
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def batch_update_user_role(self, user_ids: List[str], new_role: str) -> dict:
         """
@@ -518,7 +518,7 @@ class AuthService:
         Returns:
             dict with success_count, failed_count, errors
         """
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         success_count = 0
         failed_count = 0
         errors = []
@@ -556,7 +556,7 @@ class AuthService:
                 "errors": [str(e)]
             }
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def admin_reset_password(self, user_id: str, mode: str, new_password: Optional[str],
                              reset_by_user_id: str, ip_address: Optional[str] = None) -> tuple[bool, str, str]:
@@ -587,7 +587,7 @@ class AuthService:
         else:  # mode == "random"
             actual_password = generate_random_password(12)
 
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 # 检查用户是否存在
@@ -616,7 +616,7 @@ class AuthService:
             logger.error(f"Error resetting password: {e}")
             return False, f"重置失败：{str(e)}", ""
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def change_password(self, user_id: str, old_password: str, new_password: str,
                         ip_address: Optional[str] = None,
@@ -637,7 +637,7 @@ class AuthService:
         if not is_valid:
             return False, error_msg
 
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 # 获取用户
@@ -685,11 +685,11 @@ class AuthService:
             logger.error(f"Error changing password: {e}")
             return False, f"修改失败：{str(e)}"
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def update_user_role(self, user_id: str, new_role: str) -> bool:
         """Update user role (admin only)"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -703,11 +703,11 @@ class AuthService:
             logger.error(f"Error updating user role: {e}")
             return False
         finally:
-            conn.close()
+            release_db_connection(conn)
         
     def delete_user(self, user_id: str) -> bool:
         """Delete user (admin only)"""
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
@@ -718,7 +718,7 @@ class AuthService:
             logger.error(f"Error deleting user: {e}")
             return False
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     def verify_token_data(self, token: str) -> TokenData:
         """
