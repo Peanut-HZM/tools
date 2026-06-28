@@ -11,6 +11,11 @@ def get_categories():
     """获取所有工具分类"""
     return tools_service.get_all_categories()
 
+@router.get("/categories/used", response_model=List[str])
+def get_used_categories():
+    """获取有在线工具的分类名列表"""
+    return tools_service.get_used_categories()
+
 @router.post("/categories", response_model=Category)
 def create_category(request: CategoryCreateRequest):
     """创建工具分类"""
@@ -19,6 +24,7 @@ def create_category(request: CategoryCreateRequest):
         if not category:
             raise HTTPException(status_code=500, detail="Failed to create category")
         _tools_cache.invalidate("categories")
+        _tools_cache.invalidate("used_categories")
         return category
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -31,6 +37,7 @@ def update_category(cat_id: str, request: CategoryCreateRequest):
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
         _tools_cache.invalidate("categories")
+        _tools_cache.invalidate("used_categories")
         return category
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -43,6 +50,7 @@ def delete_category(cat_id: str):
         if not success:
             raise HTTPException(status_code=404, detail="Category not found")
         _tools_cache.invalidate("categories")
+        _tools_cache.invalidate("used_categories")
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

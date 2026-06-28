@@ -144,3 +144,75 @@ class TestValidateToolCategoryRefs:
             tools_service._validate_tool_category_refs(fake_conn)
 
         assert not any("不存在的分类" in r.message for r in caplog.records)
+
+
+class TestGetUsedCategories:
+    """测试 get_used_categories 返回有在线工具的分类列表"""
+
+    def test_returns_used_categories(self):
+        """返回在线的、非空分类的去重列表"""
+        from app.services.tools_service import tools_service
+
+        fake_cursor = FakeCursor()
+        fake_cursor.next_results = [
+            [
+                {"category": "文本工具"},
+                {"category": "AI工具"},
+                {"category": "开发工具"},
+            ],
+        ]
+
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cursor
+
+        with patch("app.services.tools_service.get_pooled_db_connection", return_value=fake_conn), \
+             patch("app.services.tools_service.release_db_connection"):
+            result = tools_service.get_used_categories()
+
+        assert result == ["文本工具", "AI工具", "开发工具"]
+
+    def test_caches_result(self):
+        """第二次调用应走缓存，不查询数据库"""
+        from app.services.tools_service import tools_service, _tools_cache
+
+        _tools_cache.invalidate("used_categories")
+
+        fake_cursor = FakeCursor()
+        fake_cursor.next_results = [
+            [
+                {"category": "文本工具"},
+                {"category": "AI工具"},
+            ],
+        ]
+
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cursor
+
+        with patch("app.services.tools_service.get_pooled_db_connection", return_value=fake_conn), \
+             patch("app.services.tools_service.release_db_connection"):
+            result1 = tools_service.get_used_categories()
+            assert result1 == ["文本工具", "AI工具"]
+            assert len(fake_cursor.calls) == 1
+
+            # 第二次调用应走缓存，不产生新的 execute 调用
+            result2 = tools_service.get_used_categories()
+            assert result2 == ["文本工具", "AI工具"]
+            assert len(fake_cursor.calls) == 1
+
+    def test_returns_empty_when_no_online_tools(self):
+        """没有在线工具时返回空列表"""
+        from app.services.tools_service import tools_service, _tools_cache
+
+        _tools_cache.invalidate("used_categories")
+
+        fake_cursor = FakeCursor()
+        fake_cursor.next_results = [[]]
+
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cursor
+
+        with patch("app.services.tools_service.get_pooled_db_connection", return_value=fake_conn), \
+             patch("app.services.tools_service.release_db_connection"):
+            result = tools_service.get_used_categories()
+
+        assert result == []

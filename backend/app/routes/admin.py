@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from app.services.auth_service import get_auth_service, AuthService
 from app.services.oss_service import oss_service
 from app.services.stats_service import stats_service
-from app.services.tools_service import tools_service
+from app.services.tools_service import tools_service, _tools_cache
 from app.services.settings_service import settings_service
 from app.models.auth_models import UserResponse, UserRoleUpdate, UserCreate, UserListResponse, UserBatchDeleteRequest, UserBatchUpdateRoleRequest, AdminPasswordReset, AdminPasswordResetResponse
 from app.models.stats_models import DashboardStats, ToolVisitRequest
@@ -303,6 +303,7 @@ async def update_tool(
     result = tools_service.update_tool(tool_id, update_data)
     if not result:
         raise HTTPException(status_code=404, detail="工具不存在")
+    _tools_cache.invalidate("used_categories")
     return result
 
 @router.post("/tools/{tool_id}/icon", response_model=dict)
@@ -338,7 +339,10 @@ async def update_tool_status(
     admin_user: UserResponse = Depends(get_admin_user),
 ):
     """更新工具状态（保留旧接口兼容）"""
-    return tools_service.update_tool_status(tool_id, status)
+    result = tools_service.update_tool_status(tool_id, status)
+    if result:
+        _tools_cache.invalidate("used_categories")
+    return result
 
 # ==================== System Settings ====================
 

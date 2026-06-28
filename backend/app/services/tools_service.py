@@ -682,6 +682,35 @@ class ToolsService:
             if conn:
                 release_db_connection(conn)
 
+    def get_used_categories(self) -> List[str]:
+        """返回有在线工具的分类名列表（去重、按使用量降序排列），走缓存。"""
+        cached = _tools_cache.get("used_categories")
+        if cached is not None:
+            return cached
+
+        conn = None
+        try:
+            conn = get_pooled_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT category
+                    FROM tools
+                    WHERE status = 'online'
+                      AND category IS NOT NULL
+                      AND category != ''
+                    ORDER BY usage_count DESC
+                """)
+                rows = cur.fetchall()
+                result = [row["category"] for row in rows]
+            _tools_cache.set("used_categories", result)
+            return result
+        except Exception as e:
+            logger.error(f"Error fetching used categories: {e}")
+            return []
+        finally:
+            if conn:
+                release_db_connection(conn)
+
     def create_category(self, request: CategoryCreateRequest) -> Optional[Category]:
         conn = None
         try:
