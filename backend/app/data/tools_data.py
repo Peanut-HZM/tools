@@ -50,7 +50,7 @@ TOOLS_DATA = [
         description="智能 AI 对话助手，支持多种场景的智能问答和内容生成",
         rating=4.9,
         usageCount="5.2K",
-        category="AI 工具",
+        category="AI工具",
     ),
     Tool(
         id="key-generator",
@@ -90,7 +90,7 @@ TOOLS_DATA = [
         description="基于 Umi-OCR 的离线文字识别，支持截图、批量图片识别和排版解析",
         rating=4.9,
         usageCount="New",
-        category="AI 工具",
+        category="AI工具",
     ),
     Tool(
         id="asr-tool",
@@ -100,7 +100,7 @@ TOOLS_DATA = [
         description="基于 FunASR 的高精度语音识别，支持多种音频格式转文字",
         rating=4.8,
         usageCount="New",
-        category="AI 工具",
+        category="AI工具",
     ),
     Tool(
         id="database-tool",
@@ -140,7 +140,7 @@ TOOLS_DATA = [
         description="智能产品经理助手，支持竞品分析、PRD 生成、需求梳理等功能",
         rating=4.9,
         usageCount="New",
-        category="AI 工具",
+        category="AI工具",
     ),
     Tool(
         id="cross-share",
@@ -231,7 +231,7 @@ TOOLS_DATA = [
         description="连接 OpenClaw Gateway 的 AI 智能对话助手",
         rating=4.9,
         usageCount="New",
-        category="AI 工具",
+        category="AI工具",
         require_login=True,
     ),
 ]
