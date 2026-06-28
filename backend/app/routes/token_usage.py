@@ -470,6 +470,22 @@ async def get_user_devices(
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
 
+    # 尝试从 Redis 缓存读取（5分钟缓存，设备列表变化频率低）
+    from app.services.token_usage_cache import get_redis_client
+    import json
+    
+    client = get_redis_client()
+    cache_key = f"devices:{user_id}"
+    
+    if client:
+        try:
+            cached_data = client.get(cache_key)
+            if cached_data:
+                logger.info(f"devices 缓存命中: user={user_id}")
+                return json.loads(cached_data)
+        except Exception:
+            pass
+
     db = SessionLocal()
     try:
         current_device_id = get_device_id()
@@ -502,9 +518,20 @@ async def get_user_devices(
             )
             devices = [{"id": row[0], "name": row[0]} for row in device_ids]
 
-        return {"devices": devices}
+        result = {"devices": devices}
+        
+        # 写入缓存（5分钟）
+        if client:
+            try:
+                client.setex(cache_key, 300, json.dumps(result))
+                logger.info(f"devices 缓存已写入: user={user_id}, TTL=300s")
+            except Exception:
+                pass
+        
+        return result
     finally:
         db.close()
+
 
 
 # ========== 数据库查询与同步端点 ==========
@@ -722,7 +749,28 @@ async def get_token_usage_summary(
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
 
-    # 直接从数据库查询，不使用 Redis 缓存
+    # 尝试从 Redis 缓存读取（优先返回缓存）
+    from app.services.token_usage_cache import get_query_cached_payload, set_query_cached_data
+    
+    cache_payload = get_query_cached_payload(
+        source=source,
+        report_type=type,
+        days=days,
+        group_by=group_by,
+        user_id=user_id,
+        device_id=device_id or "",
+        tool_id=tool_id or "",
+        model=model or "",
+        sort_by="date",
+        sort_order="desc",
+    )
+    
+    if cache_payload:
+        logger.info(f"summary 缓存命中: user={user_id}, source={source}, days={days}")
+        cached_response = dict(cache_payload)
+        cached_response.pop("_cache_ttl_seconds", None)
+        return SummaryResponse(**cached_response, cached=True)
+
     db = SessionLocal()
     try:
         from app.utils.device_name_resolver import load_alias_map
@@ -762,19 +810,28 @@ async def get_token_usage_summary(
             )
 
         since_date = datetime.now() - timedelta(days=days)
-        records = (
-            db.query(TokenUsageRecord)
+        
+        # 优化：使用数据库聚合替代 Python 内存聚合
+        agg_result = (
+            db.query(
+                func.sum(TokenUsageRecord.input_tokens).label("total_input"),
+                func.sum(TokenUsageRecord.output_tokens).label("total_output"),
+                func.sum(TokenUsageRecord.cache_creation_tokens).label("total_cc"),
+                func.sum(TokenUsageRecord.cache_read_tokens).label("total_cr"),
+                func.sum(TokenUsageRecord.total_cost).label("total_cost"),
+                func.count(func.distinct(TokenUsageRecord.record_date)).label("days_count"),
+            )
             .filter(*_build_record_filters(user_id, req, since_date, alias_map, db=db))
-            .all()
+            .first()
         )
-
-        total_input = sum(int(getattr(r, "input_tokens", 0) or 0) for r in records)
-        total_output = sum(int(getattr(r, "output_tokens", 0) or 0) for r in records)
-        total_cc = sum(int(getattr(r, "cache_creation_tokens", 0) or 0) for r in records)
-        total_cr = sum(int(getattr(r, "cache_read_tokens", 0) or 0) for r in records)
+        
+        total_input = int(agg_result.total_input or 0)
+        total_output = int(agg_result.total_output or 0)
+        total_cc = int(agg_result.total_cc or 0)
+        total_cr = int(agg_result.total_cr or 0)
         total_tokens = total_input + total_output + total_cc + total_cr
-        total_cost = sum(float(getattr(r, "total_cost", 0) or 0) for r in records)
-        days_count = len({r.record_date for r in records}) if records else 0
+        total_cost = float(agg_result.total_cost or 0)
+        days_count = int(agg_result.days_count or 0)
 
         summary = SummaryUsageSummary(
             total_input_tokens=total_input,
@@ -797,7 +854,21 @@ async def get_token_usage_summary(
         device_names = _load_device_names(db, user_id)
         devices = [{"id": did, "name": name} for did, name in device_names.items()]
 
-        chart_series = build_chart_series(records, group_by)
+        # 优化：单独查询用于图表的数据（只取必要字段）
+        chart_records = (
+            db.query(
+                TokenUsageRecord.record_date,
+                TokenUsageRecord.input_tokens,
+                TokenUsageRecord.output_tokens,
+                TokenUsageRecord.cache_creation_tokens,
+                TokenUsageRecord.cache_read_tokens,
+                TokenUsageRecord.total_tokens,
+                TokenUsageRecord.total_cost,
+            )
+            .filter(*_build_record_filters(user_id, req, since_date, alias_map, db=db))
+            .all()
+        )
+        chart_series = build_chart_series(chart_records, group_by)
 
         sync_meta = _get_sync_meta(db, user_id, req, None)
 
@@ -811,9 +882,25 @@ async def get_token_usage_summary(
             devices=devices,
         ).model_dump(exclude={"cached"})
 
+        # 写入 Redis 缓存
+        set_query_cached_data(
+            source=source,
+            report_type=type,
+            days=days,
+            group_by=group_by,
+            user_id=user_id,
+            device_id=device_id or "",
+            tool_id=tool_id or "",
+            model=model or "",
+            sort_by="date",
+            sort_order="desc",
+            data=payload,
+        )
+
         return SummaryResponse(**payload, cached=False)
     finally:
         db.close()
+
 
 
 @router.post("/details", response_model=DetailsResponse)
@@ -827,6 +914,42 @@ async def get_token_usage_details(
         user_id = get_current_user_id(authorization=authorization)
     except HTTPException:
         raise HTTPException(status_code=401, detail="认证失败")
+
+    # 尝试从 Redis 缓存读取（仅当 offset=0 且无筛选时）
+    from app.services.token_usage_cache import get_query_cached_payload, set_query_cached_data
+    
+    cache_payload = None
+    if req.offset == 0 and not req.device_id and not req.tool_id and not req.model:
+        cache_payload = get_query_cached_payload(
+            source=req.source or "all",
+            report_type=req.type or "daily",
+            days=req.days or 30,
+            group_by=req.group_by or "none",
+            user_id=user_id,
+            device_id="",
+            tool_id="",
+            model="",
+            sort_by=req.sort_by or "date",
+            sort_order=req.sort_order or "desc",
+        )
+    
+    if cache_payload:
+        logger.info(f"details 缓存命中: user={user_id}, type={req.type}, days={req.days}")
+        cached_items = cache_payload.get("items", [])
+        cached_total = cache_payload.get("total", 0)
+        # Calculate has_more from cached total and current pagination
+        cached_has_more = (req.offset + len(cached_items)) < cached_total if cached_total > 0 else False
+        # Limit items to requested page size
+        limited_items = cached_items[:req.limit] if len(cached_items) > req.limit else cached_items
+        
+        return DetailsResponse(
+            items=[DbUsageItem(**item) for item in limited_items],
+            total=cached_total,
+            limit=req.limit,
+            offset=req.offset,
+            has_more=cached_has_more,
+            cached=True,
+        )
 
     db = SessionLocal()
     try:
@@ -858,19 +981,37 @@ async def get_token_usage_details(
             )
 
         since_date = datetime.now() - timedelta(days=req.days)
-        records = (
+        base_filters = _build_record_filters(user_id, req_ns, since_date, alias_map, db=db)
+
+        # 先获取符合条件的总记录数
+        total = db.query(TokenUsageRecord).filter(*base_filters).count()
+
+        # DB 层排序 + 分页，避免全量加载到 Python 内存
+        allowed_sort_fields = {
+            "date": TokenUsageRecord.record_date,
+            "total_tokens": TokenUsageRecord.total_tokens,
+            "total_cost": TokenUsageRecord.total_cost,
+            "input_tokens": TokenUsageRecord.input_tokens,
+            "output_tokens": TokenUsageRecord.output_tokens,
+            "created_at": TokenUsageRecord.updated_at,
+        }
+        sort_col = allowed_sort_fields.get(req.sort_by, TokenUsageRecord.record_date)
+        if req.sort_by == "cache_tokens":
+            sort_col = (TokenUsageRecord.cache_creation_tokens + TokenUsageRecord.cache_read_tokens).label("cache_tokens")
+        order_expr = sort_col.desc() if req.sort_order != "asc" else sort_col.asc()
+
+        paged_records = (
             db.query(TokenUsageRecord)
-            .filter(*_build_record_filters(user_id, req_ns, since_date, alias_map, db=db))
+            .filter(*base_filters)
+            .order_by(order_expr)
+            .offset(req.offset)
+            .limit(req.limit)
             .all()
         )
 
-        sorted_records = _sort_usage_items(records, req.sort_by, req.sort_order)
-        total = len(sorted_records)
-        paged = sorted_records[req.offset : req.offset + req.limit]
-
         device_name_map = _load_device_names(db, user_id)
         items = []
-        for r in paged:
+        for r in paged_records:
             date_val = r.record_date
             date_key = date_val.isoformat() if hasattr(date_val, "isoformat") else str(date_val)
             group_key = None
@@ -909,6 +1050,31 @@ async def get_token_usage_details(
             offset=req.offset,
             has_more=has_more,
         )
+        
+        # 写入缓存（仅第一页且无筛选时）
+        if req.offset == 0 and not req.device_id and not req.tool_id and not req.model:
+            try:
+                payload_dict = {
+                    "items": [item.model_dump() for item in items],
+                    "total": total,
+                }
+                set_query_cached_data(
+                    source=req.source or "all",
+                    report_type=req.type or "daily",
+                    days=req.days or 30,
+                    group_by=req.group_by or "none",
+                    user_id=user_id,
+                    device_id="",
+                    tool_id="",
+                    model="",
+                    sort_by=req.sort_by or "date",
+                    sort_order=req.sort_order or "desc",
+                    data=payload_dict,
+                )
+                logger.info(f"details 缓存已写入: user={user_id}")
+            except Exception:
+                pass
+        
         return response
     finally:
         db.close()
@@ -1927,15 +2093,190 @@ def build_chart_series(
 
 
 def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map: Optional[dict[str, str]] = None) -> tuple[dict, dict]:
+    """使用 SQL GROUP BY 聚合三个维度数据，避免全量拉取记录到 Python 内存。"""
     filters = _build_record_filters(user_id, req, since_date, alias_map, db=db)
-    records = db.query(TokenUsageRecord).filter(*filters).all()
-    device_names = _load_device_names(db, user_id)
-    if not records:
-        return (
-            _empty_dimension_rows().model_dump(),
-            _empty_filter_options().model_dump(),
+
+    # --- 设备维度：按 device_id 分组，后续在 Python 中解析显示名称 ---
+    device_display = (
+        db.query(
+            TokenUsageRecord.device_id,
+            func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
+            func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
+            func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
+            func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
+            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            func.sum(TokenUsageRecord.total_cost).label("total_cost"),
+            func.count(TokenUsageRecord.id).label("records_count"),
+            func.max(TokenUsageRecord.updated_at).label("last_used_at"),
         )
-    return _build_dimension_data(records, device_names)
+        .filter(*filters)
+        .group_by(TokenUsageRecord.device_id)
+        .all()
+    )
+
+    # 批量加载设备名称映射（避免 N+1 查询）
+    device_names = _load_device_names(db, user_id)
+
+    device_buckets: dict[str, dict] = {}
+    for row in device_display:
+        did = row.device_id
+        display_name = device_names.get(did, did)
+        b = device_buckets.setdefault(
+            did,
+            {
+                "dimension": "device", "key": did, "label": display_name,
+                "device_id": did, "tool_id": None, "source": None, "model": None,
+                "input_tokens": 0, "output_tokens": 0,
+                "cache_creation_tokens": 0, "cache_read_tokens": 0,
+                "total_tokens": 0, "total_cost": 0.0,
+                "records_count": 0, "last_used_at": None,
+            },
+        )
+        b["input_tokens"] += int(row.input_tokens or 0)
+        b["output_tokens"] += int(row.output_tokens or 0)
+        b["cache_creation_tokens"] += int(row.cache_creation_tokens or 0)
+        b["cache_read_tokens"] += int(row.cache_read_tokens or 0)
+        b["total_tokens"] += int(row.total_tokens or 0)
+        b["total_cost"] += float(row.total_cost or 0)
+        b["records_count"] += int(row.records_count or 0)
+        if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
+            b["last_used_at"] = row.last_used_at
+
+    # --- 工具维度：按 tool_id + source 分组，tool_id 为空时按 source 映射 ---
+    from sqlalchemy import case as sa_case
+
+    tool_id_expr = sa_case(
+        (TokenUsageRecord.source == "claude", "claude-code"),
+        (TokenUsageRecord.source == "opencode", "opencode"),
+        (TokenUsageRecord.source == "codex", "codex"),
+        else_=TokenUsageRecord.source,
+    )
+
+    tool_rows = (
+        db.query(
+            func.coalesce(TokenUsageRecord.tool_id, tool_id_expr).label("tool_id"),
+            TokenUsageRecord.source,
+            func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
+            func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
+            func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
+            func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
+            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            func.sum(TokenUsageRecord.total_cost).label("total_cost"),
+            func.count(TokenUsageRecord.id).label("records_count"),
+            func.max(TokenUsageRecord.updated_at).label("last_used_at"),
+        )
+        .filter(*filters)
+        .group_by(
+            func.coalesce(TokenUsageRecord.tool_id, tool_id_expr),
+            TokenUsageRecord.source,
+        )
+        .all()
+    )
+
+    tool_buckets: dict[str, dict] = {}
+    for row in tool_rows:
+        tid = row.tool_id
+        tool_name = _map_source_to_tool(row.source)["tool_name"] if row.source else tid
+        b = tool_buckets.setdefault(
+            tid,
+            {
+                "dimension": "tool", "key": tid, "label": tool_name,
+                "device_id": None, "tool_id": tid, "source": row.source, "model": None,
+                "input_tokens": 0, "output_tokens": 0,
+                "cache_creation_tokens": 0, "cache_read_tokens": 0,
+                "total_tokens": 0, "total_cost": 0.0,
+                "records_count": 0, "last_used_at": None,
+            },
+        )
+        b["input_tokens"] += int(row.input_tokens or 0)
+        b["output_tokens"] += int(row.output_tokens or 0)
+        b["cache_creation_tokens"] += int(row.cache_creation_tokens or 0)
+        b["cache_read_tokens"] += int(row.cache_read_tokens or 0)
+        b["total_tokens"] += int(row.total_tokens or 0)
+        b["total_cost"] += float(row.total_cost or 0)
+        b["records_count"] += int(row.records_count or 0)
+        if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
+            b["last_used_at"] = row.last_used_at
+
+    # --- 模型维度：按 source + model 分组 ---
+    model_rows = (
+        db.query(
+            TokenUsageRecord.source,
+            TokenUsageRecord.model,
+            func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
+            func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
+            func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
+            func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
+            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            func.sum(TokenUsageRecord.total_cost).label("total_cost"),
+            func.count(TokenUsageRecord.id).label("records_count"),
+            func.max(TokenUsageRecord.updated_at).label("last_used_at"),
+        )
+        .filter(*filters)
+        .group_by(TokenUsageRecord.source, TokenUsageRecord.model)
+        .all()
+    )
+
+    model_buckets: dict[str, dict] = {}
+    for row in model_rows:
+        mk = row.model or "unknown"
+        tool_info = _map_source_to_tool(row.source)
+        b = model_buckets.setdefault(
+            mk,
+            {
+                "dimension": "model", "key": mk,
+                "label": _display_model_name(mk, tool_info["tool_name"]),
+                "device_id": None, "tool_id": None, "source": None, "model": mk,
+                "input_tokens": 0, "output_tokens": 0,
+                "cache_creation_tokens": 0, "cache_read_tokens": 0,
+                "total_tokens": 0, "total_cost": 0.0,
+                "records_count": 0, "last_used_at": None,
+            },
+        )
+        b["input_tokens"] += int(row.input_tokens or 0)
+        b["output_tokens"] += int(row.output_tokens or 0)
+        b["cache_creation_tokens"] += int(row.cache_creation_tokens or 0)
+        b["cache_read_tokens"] += int(row.cache_read_tokens or 0)
+        b["total_tokens"] += int(row.total_tokens or 0)
+        b["total_cost"] += float(row.total_cost or 0)
+        b["records_count"] += int(row.records_count or 0)
+        if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
+            b["last_used_at"] = row.last_used_at
+
+    # --- 汇总百分比 & 排序 ---
+    total_tokens = sum(b["total_tokens"] for b in device_buckets.values())
+    total_cost = sum(b["total_cost"] for b in device_buckets.values())
+
+    dimension_rows = {
+        "devices": _build_dimension_summary(
+            [_bucket_to_row(b) for b in device_buckets.values()], "device", total_tokens, total_cost,
+        ),
+        "tools": _build_dimension_summary(
+            [_bucket_to_row(b) for b in tool_buckets.values()], "tool", total_tokens, total_cost,
+        ),
+        "models": _build_dimension_summary(
+            [_bucket_to_row(b) for b in model_buckets.values()], "model", total_tokens, total_cost,
+        ),
+    }
+    for values in dimension_rows.values():
+        values.sort(key=lambda item: (item["total_cost"], item["total_tokens"]), reverse=True)
+
+    # --- 筛选选项 ---
+    filter_options = {
+        "tools": [
+            {"tool_id": item["tool_id"] or item["key"], "tool_name": item["label"], "records_count": item["records_count"]}
+            for item in dimension_rows["tools"]
+        ],
+        "devices": [
+            {"device_id": item["device_id"] or item["key"], "device_name": item["label"], "records_count": item["records_count"]}
+            for item in dimension_rows["devices"]
+        ],
+        "models": [
+            {"tool_id": item["tool_id"] or "", "source": item["source"] or "", "model": item["model"] or "", "model_display_name": item["label"], "records_count": item["records_count"]}
+            for item in dimension_rows["models"]
+        ],
+    }
+    return dimension_rows, filter_options
 
 
 def _sort_usage_items(items, sort_by: str, sort_order: str):
@@ -2429,9 +2770,6 @@ async def query_token_usage(
 
             since_date = datetime.now() - timedelta(days=req.days)
             items = _execute_db_query(db, user_id, req, since_date, alias_map)
-            dimension_rows, filter_options = _query_dimension_data(
-                db, user_id, req, since_date, alias_map
-            )
             _attach_models_to_items(db, user_id, req, since_date, items)
 
             auto_expanded = False
