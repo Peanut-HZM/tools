@@ -344,6 +344,17 @@ async def update_tool_status(
         _tools_cache.invalidate("used_categories")
     return result
 
+
+# ==================== Category Management ====================
+
+@router.get("/categories", response_model=List[Dict[str, Any]])
+async def list_categories_with_count(
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """admin 分类管理：返回所有未删除分类及在线工具使用计数"""
+    return tools_service.get_categories_with_tool_count()
+
+
 # ==================== System Settings ====================
 
 @router.get("/settings", response_model=Dict[str, Any])

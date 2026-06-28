@@ -8,6 +8,7 @@ from typing import List, Optional, Dict
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from fastapi import HTTPException
 from app.config.database import get_pooled_db_connection, release_db_connection
 from app.data.tools_data import TOOLS_DATA
 from app.models import Tool, Category, ToolCreateRequest, CategoryCreateRequest
@@ -340,7 +341,11 @@ class ToolsService:
                     "UPDATE tools SET status = %s WHERE id = %s", (status, tool_id)
                 )
                 conn.commit()
-                return cur.rowcount > 0
+                success = cur.rowcount > 0
+                if success:
+                    _tools_cache.invalidate("used_categories")
+                    _tools_cache.invalidate_prefix("tools:")
+                return success
         except Exception as e:
             logger.error(f"Error updating tool status: {e}")
             if conn:
@@ -435,6 +440,8 @@ class ToolsService:
                 row = cur.fetchone()
                 conn.commit()
                 if row:
+                    _tools_cache.invalidate("used_categories")
+                    _tools_cache.invalidate_prefix("tools:")
                     return self._row_to_tool(row)
                 return None
         except Exception as e:
@@ -682,9 +689,10 @@ class ToolsService:
             if conn:
                 release_db_connection(conn)
 
-    def get_used_categories(self) -> List[str]:
-        """返回有在线工具的分类名列表（去重、按使用量降序排列），走缓存。"""
-        cached = _tools_cache.get("used_categories")
+    def get_used_categories(self) -> List[Category]:
+        """只返回被至少一个在线工具引用的分类，按 sort_order 排序（前台用）。"""
+        cache_key = "used_categories"
+        cached = _tools_cache.get(cache_key)
         if cached is not None:
             return cached
 
@@ -693,16 +701,15 @@ class ToolsService:
             conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT DISTINCT category
-                    FROM tools
-                    WHERE status = 'online'
-                      AND category IS NOT NULL
-                      AND category != ''
-                    ORDER BY usage_count DESC
+                    SELECT DISTINCT c.*
+                    FROM tool_categories c
+                    JOIN tools t ON t.category = c.name
+                    WHERE t.status = 'online'
+                    ORDER BY c.sort_order ASC, c.name ASC
                 """)
                 rows = cur.fetchall()
-                result = [row["category"] for row in rows]
-            _tools_cache.set("used_categories", result)
+                result = [self._row_to_category(row) for row in rows]
+            _tools_cache.set(cache_key, result)
             return result
         except Exception as e:
             logger.error(f"Error fetching used categories: {e}")
@@ -710,6 +717,46 @@ class ToolsService:
         finally:
             if conn:
                 release_db_connection(conn)
+
+    def get_categories_with_tool_count(self) -> List[Dict]:
+        """admin 用：返回所有未删除分类，每个带 tool_count（在线工具数）。"""
+        conn = None
+        try:
+            conn = get_pooled_db_connection()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT c.*, COUNT(t.id) AS tool_count
+                    FROM tool_categories c
+                    LEFT JOIN tools t ON t.category = c.name AND t.status = 'online'
+                    WHERE c.deleted = FALSE
+                    GROUP BY c.id
+                    ORDER BY c.sort_order ASC, c.name ASC
+                """)
+                rows = cur.fetchall()
+                result = []
+                for row in rows:
+                    d = dict(row)
+                    if isinstance(d.get("created_at"), datetime):
+                        d["created_at"] = d["created_at"].isoformat()
+                    if isinstance(d.get("updated_at"), datetime):
+                        d["updated_at"] = d["updated_at"].isoformat()
+                    result.append(d)
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching categories with tool count: {e}")
+            return []
+        finally:
+            if conn:
+                release_db_connection(conn)
+
+    def _row_to_category(self, row) -> Category:
+        """将 DB row 转换为 Category 模型，处理 datetime 序列化"""
+        cat_data = dict(row)
+        if isinstance(cat_data.get("created_at"), datetime):
+            cat_data["created_at"] = cat_data["created_at"].isoformat()
+        if isinstance(cat_data.get("updated_at"), datetime):
+            cat_data["updated_at"] = cat_data["updated_at"].isoformat()
+        return Category(**cat_data)
 
     def create_category(self, request: CategoryCreateRequest) -> Optional[Category]:
         conn = None
@@ -746,21 +793,50 @@ class ToolsService:
                 release_db_connection(conn)
 
     def update_category(
-        self, cat_id: str, request: CategoryCreateRequest
+        self, cat_id: str, request: CategoryCreateRequest, cascade: bool = False
     ) -> Optional[Category]:
         conn = None
         try:
             conn = get_pooled_db_connection()
             with conn.cursor() as cur:
+                # 查旧名
+                cur.execute(
+                    "SELECT name FROM tool_categories WHERE id = %s AND deleted = FALSE",
+                    (cat_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Category not found")
+                old_name = row["name"]
+                new_name = request.name
+
+                # 若改名且该分类下有工具：必须 cascade=True，否则拒绝
+                if old_name != new_name:
+                    cur.execute(
+                        "SELECT COUNT(*) AS count FROM tools WHERE category = %s",
+                        (old_name,),
+                    )
+                    cnt = cur.fetchone()["count"]
+                    if cnt > 0 and not cascade:
+                        raise HTTPException(
+                            status_code=409,
+                            detail=f"该分类下有 {cnt} 个工具，请确认是否级联更新",
+                        )
+                    if cnt > 0 and cascade:
+                        cur.execute(
+                            "UPDATE tools SET category = %s WHERE category = %s",
+                            (new_name, old_name),
+                        )
+
                 cur.execute(
                     """
-                    UPDATE tool_categories 
+                    UPDATE tool_categories
                     SET name = %s, description = %s, icon = %s, sort_order = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s AND deleted = FALSE
                     RETURNING *
                 """,
                     (
-                        request.name,
+                        new_name,
                         request.description,
                         request.icon,
                         request.sort_order,
@@ -770,8 +846,14 @@ class ToolsService:
                 row = cur.fetchone()
                 conn.commit()
                 if row:
-                    return Category(**row)
+                    _tools_cache.invalidate("used_categories")
+                    _tools_cache.invalidate("categories")
+                    return self._row_to_category(row)
                 return None
+        except HTTPException:
+            if conn:
+                conn.rollback()
+            raise
         except Exception as e:
             logger.error(f"Error updating category: {e}")
             if conn:
@@ -786,12 +868,40 @@ class ToolsService:
         try:
             conn = get_pooled_db_connection()
             with conn.cursor() as cur:
+                # 先查分类名
+                cur.execute(
+                    "SELECT name FROM tool_categories WHERE id = %s AND deleted = FALSE", (cat_id,)
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Category not found")
+                cat_name = row["name"]
+
+                # 检查引用计数
+                cur.execute(
+                    "SELECT COUNT(*) AS count FROM tools WHERE category = %s", (cat_name,)
+                )
+                cnt = cur.fetchone()["count"]
+                if cnt > 0:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"该分类下仍有 {cnt} 个工具，请先迁移后再删除",
+                    )
+
                 # Logical delete
                 cur.execute(
                     "UPDATE tool_categories SET deleted = TRUE WHERE id = %s", (cat_id,)
                 )
                 conn.commit()
-                return cur.rowcount > 0
+                success = cur.rowcount > 0
+                if success:
+                    _tools_cache.invalidate("used_categories")
+                    _tools_cache.invalidate("categories")
+                return success
+        except HTTPException:
+            if conn:
+                conn.rollback()
+            raise
         except Exception as e:
             logger.error(f"Error deleting category: {e}")
             if conn:

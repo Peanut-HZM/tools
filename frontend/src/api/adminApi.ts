@@ -11,10 +11,15 @@ export interface ToolCategory {
     description?: string;
     icon?: string;
     sort_order: number;
+    tool_count?: number;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export async function listCategories(): Promise<ToolCategory[]> {
-    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories`);
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+        headers: getAuthHeaders()
+    });
     if (!response.ok) throw new Error('Failed to list categories');
     return response.json();
 }
@@ -32,8 +37,8 @@ export async function createCategory(data: Partial<ToolCategory>): Promise<ToolC
     return response.json();
 }
 
-export async function updateCategory(id: string, data: Partial<ToolCategory>): Promise<ToolCategory> {
-    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories/${id}`, {
+export async function updateCategory(id: string, data: Partial<ToolCategory>, cascade: boolean = false): Promise<ToolCategory> {
+    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories/${id}?cascade=${cascade}`, {
         method: 'PUT',
         headers: {
             ...getAuthHeaders(),
@@ -41,7 +46,10 @@ export async function updateCategory(id: string, data: Partial<ToolCategory>): P
         },
         body: JSON.stringify(data)
     });
-    if (!response.ok) throw new Error('Failed to update category');
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`${response.status}: ${errText}`);
+    }
     return response.json();
 }
 
@@ -50,7 +58,10 @@ export async function deleteCategory(id: string): Promise<boolean> {
         method: 'DELETE',
         headers: getAuthHeaders()
     });
-    if (!response.ok) throw new Error('Failed to delete category');
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`${response.status}: ${errText}`);
+    }
     return response.json();
 }
 

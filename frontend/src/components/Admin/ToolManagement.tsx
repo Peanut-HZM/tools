@@ -202,7 +202,7 @@ export default function ToolManagement() {
     e.preventDefault();
     try {
       if (isEditingCategory && categoryForm.id) {
-        await updateCategory(categoryForm.id, categoryForm);
+        await updateCategory(categoryForm.id, categoryForm, false);
         success('分类更新成功');
       } else {
         await createCategory(categoryForm);
@@ -213,8 +213,25 @@ export default function ToolManagement() {
       // Refresh categories
       const cats = await listCategories();
       setCategories(cats);
-    } catch (e) {
-      error(isEditingCategory ? '分类更新失败' : '分类创建失败');
+    } catch (e: any) {
+      const msg = e?.message || '';
+      if (msg.startsWith('409:') && isEditingCategory && categoryForm.id) {
+        const confirmed = window.confirm('该分类下有工具正在使用，是否一并更新工具的 category 字段？');
+        if (confirmed) {
+          try {
+            await updateCategory(categoryForm.id, categoryForm, true);
+            success('分类已更新（工具的 category 已级联）');
+            setCategoryForm({ name: '', description: '', icon: '', sort_order: 0 });
+            setIsEditingCategory(false);
+            const cats = await listCategories();
+            setCategories(cats);
+          } catch (e2: any) {
+            error('级联更新失败：' + (e2?.message || ''));
+          }
+        }
+      } else {
+        error(isEditingCategory ? '分类更新失败' : '分类创建失败');
+      }
     }
   };
 
@@ -229,8 +246,13 @@ export default function ToolManagement() {
       await deleteCategory(id);
       success('分类删除成功');
       setCategories(categories.filter(c => c.id !== id));
-    } catch (e) {
-      error('分类删除失败');
+    } catch (e: any) {
+      const msg = e?.message || '';
+      if (msg.startsWith('409:')) {
+        error('该分类下仍有工具，请先迁移后再删除');
+      } else {
+        error('分类删除失败');
+      }
     }
   };
 
@@ -852,6 +874,7 @@ export default function ToolManagement() {
               <thead className="bg-slate-700 text-slate-100 uppercase text-xs">
                 <tr>
                   <th className="px-6 py-3">分类名称</th>
+                  <th className="px-6 py-3">使用计数</th>
                   <th className="px-6 py-3">排序</th>
                   <th className="px-6 py-3">描述</th>
                   <th className="px-6 py-3">操作</th>
@@ -863,6 +886,12 @@ export default function ToolManagement() {
                     <td className="px-6 py-4 flex items-center">
                        {cat.icon && <i className={`fa-solid ${cat.icon} mr-2 text-slate-400`}></i>}
                        <span className="font-medium text-white">{cat.name}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cat.tool_count ? 'text-green-400' : 'text-slate-500'}>
+                        {cat.tool_count || 0}
+                      </span>
+                      {!cat.tool_count && <span className="ml-2 text-xs text-slate-500">未使用</span>}
                     </td>
                     <td className="px-6 py-4">{cat.sort_order}</td>
                     <td className="px-6 py-4 text-sm text-slate-400">{cat.description || '-'}</td>

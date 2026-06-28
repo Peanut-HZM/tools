@@ -8,12 +8,7 @@ router = APIRouter(tags=["tools"])
 
 @router.get("/categories", response_model=List[Category])
 def get_categories():
-    """获取所有工具分类"""
-    return tools_service.get_all_categories()
-
-@router.get("/categories/used", response_model=List[str])
-def get_used_categories():
-    """获取有在线工具的分类名列表"""
+    """获取被在线工具使用的分类（前台首页用）"""
     return tools_service.get_used_categories()
 
 @router.post("/categories", response_model=Category)
@@ -30,15 +25,17 @@ def create_category(request: CategoryCreateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/categories/{cat_id}", response_model=Category)
-def update_category(cat_id: str, request: CategoryCreateRequest):
+def update_category(cat_id: str, request: CategoryCreateRequest, cascade: bool = False):
     """更新工具分类"""
     try:
-        category = tools_service.update_category(cat_id, request)
+        category = tools_service.update_category(cat_id, request, cascade=cascade)
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
         _tools_cache.invalidate("categories")
         _tools_cache.invalidate("used_categories")
         return category
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -52,6 +49,8 @@ def delete_category(cat_id: str):
         _tools_cache.invalidate("categories")
         _tools_cache.invalidate("used_categories")
         return {"success": True}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
