@@ -79,18 +79,6 @@ export const enUS = {
     subtitle: 'One-stop collection of practical tools to improve work efficiency and simplify daily tasks. From text processing to format conversion, from calculation aids to design tools, everything you need is here.',
   },
 
-  // Categories
-  categories: {
-    '全部工具': 'All Tools',
-    '文本工具': 'Text Tools',
-    '转换工具': 'Conversion',
-    '计算工具': 'Calculation',
-    '设计工具': 'Design',
-    '实用工具': 'Utilities',
-    '开发工具': 'Dev Tools',
-    'AI 工具': 'AI Tools',
-  },
-
   // Features
   features: {
     whyChoose: 'Why Choose Us',

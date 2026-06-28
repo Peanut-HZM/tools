@@ -132,7 +132,7 @@ function HomePage() {
       setCategories(Array.from(new Set(catNames)));
     } catch (e) {
       console.error("Failed to load categories", e);
-      // Fallback to default if failed? Or keep "全部工具"
+      setError(t.errors.categoryLoadFailed);
     }
   };
 

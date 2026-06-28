@@ -1,8 +1,6 @@
 import { CategoryTabsProps } from '../../types';
-import { useI18n } from '../../i18n';
 
 export default function CategoryTabs({ categories, activeCategory, onCategoryChange }: CategoryTabsProps) {
-  const { t } = useI18n();
 
   // 当只有一个分类（"全部工具"）时，不显示分类筛选区域
   if (categories.length <= 1) {
@@ -19,7 +17,7 @@ export default function CategoryTabs({ categories, activeCategory, onCategoryCha
             activeCategory === category ? 'active' : ''
           }`}
         >
-          {t.categories[category as keyof typeof t.categories] || category}
+          {category}
         </button>
       ))}
     </div>
