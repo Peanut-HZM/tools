@@ -59,6 +59,11 @@ class ImageQuota(Base):
 
 
 class ImageDownloaderService:
+    # 针对需要 Referer 绕过防盗链的站点
+    REFERER_MAP = {
+        'pic.netbian.com': 'https://pic.netbian.com',
+    }
+
     def __init__(self, db_session=None):
         self.db_session = db_session
         self._ensure_image_history_table()
@@ -85,6 +90,12 @@ class ImageDownloaderService:
             return None
 
         return urljoin(page_url, img_url.strip())
+
+    def _get_referer(self, url: str) -> Optional[str]:
+        """根据 URL 域名返回合适的 Referer，帮助绕过防盗链"""
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower()
+        return self.REFERER_MAP.get(domain)
 
     def _get_db(self):
         """获取数据库连接"""
@@ -437,6 +448,10 @@ class ImageDownloaderService:
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
+
+            referer = self._get_referer(url)
+            if referer:
+                headers['Referer'] = referer
 
             response = requests.get(url, headers=headers, stream=True, timeout=30)
             response.raise_for_status()
