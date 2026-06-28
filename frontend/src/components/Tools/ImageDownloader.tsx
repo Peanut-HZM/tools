@@ -6,6 +6,8 @@ interface ImageInfo {
   url: string;
   alt: string;
   index: number;
+  width?: number;
+  height?: number;
 }
 
 export default function ImageDownloader() {
@@ -286,6 +288,11 @@ export default function ImageDownloader() {
                   <div className="p-4">
                     <p className="text-sm text-slate-400 mb-3 truncate" title={image.alt || `图片 ${index + 1}`}>
                       {image.alt || `图片 ${index + 1}`}
+                      {(image.width && image.height) && (
+                        <span className="ml-2 text-xs text-slate-500">
+                          {image.width} × {image.height}
+                        </span>
+                      )}
                     </p>
                     <div className="flex gap-2">
                       <button
