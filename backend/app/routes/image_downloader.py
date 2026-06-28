@@ -49,6 +49,9 @@ async def proxy_image(url: str):
         raise HTTPException(status_code=502, detail=f"获取图片失败：{str(e)}")
 
     content_type = response.headers.get("content-type", "image/jpeg")
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="仅支持图片资源")
+
     return StreamingResponse(
         response.iter_content(chunk_size=8192),
         media_type=content_type,
