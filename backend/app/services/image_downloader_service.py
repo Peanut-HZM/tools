@@ -64,6 +64,28 @@ class ImageDownloaderService:
         self._ensure_image_history_table()
         self._ensure_image_quota_table()
 
+    def _get_img_url(self, img_tag, page_url: str) -> Optional[str]:
+        """从 img 标签及其父级 a 标签中提取最佳图片 URL"""
+        candidates = [
+            img_tag.get('data-pic'),
+            img_tag.get('data-original'),
+            img_tag.get('data-src'),
+            img_tag.get('src'),
+        ]
+
+        # 如果 img 自身没有 data-pic，检查父级 a 标签
+        parent_a = img_tag.find_parent('a')
+        if parent_a:
+            parent_data_pic = parent_a.get('data-pic')
+            if parent_data_pic:
+                candidates.insert(0, parent_data_pic)
+
+        img_url = next((url for url in candidates if url), None)
+        if not img_url:
+            return None
+
+        return urljoin(page_url, img_url.strip())
+
     def _get_db(self):
         """获取数据库连接"""
         if self.db_session:
@@ -161,12 +183,10 @@ class ImageDownloaderService:
             img_tags = soup.find_all('img')
 
             for index, img in enumerate(img_tags):
-                img_url = img.get('src') or img.get('data-src') or img.get('data-original')
+                absolute_url = self._get_img_url(img, url)
 
-                if not img_url:
+                if not absolute_url:
                     continue
-
-                absolute_url = urljoin(url, img_url)
 
                 parsed = urlparse(absolute_url)
                 if not parsed.scheme or not parsed.netloc:
