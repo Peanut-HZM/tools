@@ -135,8 +135,16 @@ def _health_check_enabled() -> bool:
 
 def get_pooled_db_connection():
     """从连接池获取连接，若连接已失效则重取一次（健康检查可配置）"""
+    import time
+    wait_start = time.time()
     pool = get_connection_pool()
-    conn = pool.getconn()
+    try:
+        # 设置获取连接的超时，避免连接池耗尽时无限阻塞
+        conn = pool.getconn(key=None)
+    except Exception as e:
+        wait_time = time.time() - wait_start
+        logger.error(f"从连接池获取连接失败（等待 {wait_time:.2f}s）: {e}")
+        raise ConnectionError(f"数据库连接池繁忙，请稍后重试: {e}")
 
     if not _health_check_enabled():
         return conn
@@ -158,7 +166,7 @@ def get_pooled_db_connection():
                     conn.close()
             except Exception:
                 pass
-        conn = pool.getconn()
+        conn = pool.getconn(key=None)
         try:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
@@ -197,7 +205,7 @@ def release_db_connection(conn):
             pass
         return
     try:
-        pool.putconn(conn)
+        pool.putconn(conn, key=None)
     except Exception as e:
         logger.warning(f"释放数据库连接回池失败: {e}")
         try:

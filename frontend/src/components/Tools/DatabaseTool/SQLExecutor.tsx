@@ -192,7 +192,11 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
         page_size: pageSize
       });
       setResult(res);
-      await refreshHistory();
+      if (!res.success) {
+        toast.error(res.error_message || t.errors.executionFailed || 'Execution failed');
+      } else {
+        await refreshHistory();
+      }
     } catch (error: any) {
       toast.error(error.message || t.errors.executionFailed || 'Execution failed');
     } finally {

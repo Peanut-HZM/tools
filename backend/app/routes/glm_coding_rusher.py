@@ -21,6 +21,7 @@ from app.services.glm_coding_rusher_service import (
     close_payment_window,
     next_sale_time, format_countdown,
     list_task_records, get_task_logs_from_db,
+    open_verified_browser,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,15 @@ def login_status():
         state_file_exists=True,
         message=result["message"],
     )
+
+
+@router.post("/open-browser")
+def open_browser():
+    """用当前登录态打开浏览器窗口，让用户肉眼确认登录是否有效"""
+    result = open_verified_browser()
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return result
 
 
 @router.post("/config", response_model=RusherConfigResponse)

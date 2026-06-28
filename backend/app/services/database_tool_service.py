@@ -110,19 +110,73 @@ class DatabaseToolService:
     @staticmethod
     def _decrypt_password(password_encrypted: str, config_id: str = "") -> tuple[str | None, str | None]:
         """
-        解密数据库配置密码。
-        返回 (password, error_message)。
-        解密失败时返回 (None, 错误描述)，不会抛异常。
+        解密数据库配置密码。支持多密钥自动迁移：
+        1. 优先用数据库存储的密钥解密
+        2. 失败则尝试 .env 中的密钥
+        3. 再失败则尝试默认开发密钥
+        成功则自动用新密钥重新加密并更新数据库
+        返回 (password, error_message)。解密失败时返回 (None, 错误描述)，不会抛异常。
         """
         if not password_encrypted:
             return None, "数据库配置密码为空"
+
+        def _try_decrypt_with_key(key: str) -> str | None:
+            try:
+                from cryptography.fernet import Fernet
+                import base64 as _base64, hashlib as _hashlib
+                try:
+                    suite = Fernet(key)
+                except ValueError:
+                    m = _hashlib.sha256()
+                    m.update(key.encode("utf-8"))
+                    suite = Fernet(_base64.urlsafe_b64encode(m.digest()))
+                return suite.decrypt(password_encrypted.encode("utf-8")).decode("utf-8")
+            except Exception:
+                return None
+
+        # 优先使用数据库中的密钥
         try:
             password = EncryptionUtils.decrypt(password_encrypted)
             return password, None
+        except Exception:
+            pass
+
+        # 尝试各种旧密钥
+        from app.config.config import settings as _settings
+        fallback_keys = [
+            _settings.DB_ENCRYPTION_KEY,
+            "dev-db-encryption-change-me",
+        ]
+        for key in fallback_keys:
+            password = _try_decrypt_with_key(key)
+            if password is not None:
+                # 用新密钥重新加密并更新数据库
+                try:
+                    new_encrypted = EncryptionUtils.encrypt(password)
+                    DatabaseToolService._re_encrypt_password(config_id, new_encrypted)
+                    logger.info(f"配置 {config_id} 密码已从旧密钥迁移到新密钥")
+                except Exception as e:
+                    logger.warning(f"配置 {config_id} 密码迁移到新密钥失败: {e}")
+                return password, None
+
+        logger.error(f"数据库配置 {config_id} 密码解密失败（所有密钥尝试均失败）")
+        return None, "密码解密失败，请编辑该连接重新保存密码"
+
+    @staticmethod
+    def _re_encrypt_password(config_id: str, new_encrypted: str):
+        """用新密钥更新数据库中存储的加密密码"""
+        conn = get_pooled_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE db_configs SET password_encrypted = %s, updated_at = NOW() WHERE id = %s",
+                    (new_encrypted, config_id),
+                )
+                conn.commit()
         except Exception as e:
-            msg = str(e) or f"{type(e).__name__}"
-            logger.error(f"数据库配置 {config_id} 密码解密失败: {msg}")
-            return None, f"密码解密失败: {msg}，请编辑该连接重新保存密码"
+            logger.error(f"更新配置 {config_id} 加密密码失败: {e}")
+        finally:
+            release_db_connection(conn)
 
     @staticmethod
     def generate_ddl(
@@ -1021,15 +1075,32 @@ class DatabaseToolService:
         try:
             with conn.cursor() as cursor:
                 history_id = str(uuid.uuid4())
+                # 限制 result_data 大小，避免历史记录表膨胀和接口变慢（最大 100KB）
+                MAX_RESULT_DATA_SIZE = 100 * 1024
+                result_data_str = None
+                result_size = 0
+                if result.result_data:
+                    result_data_str = json.dumps(result.result_data)
+                    result_size = len(result_data_str)
+                    if result_size > MAX_RESULT_DATA_SIZE:
+                        truncated = result.result_data[:100] if isinstance(result.result_data, list) else result.result_data
+                        result_data_str = json.dumps({
+                            "__truncated__": True,
+                            "original_size_bytes": result_size,
+                            "message": "结果数据超过 100KB，仅保存摘要",
+                            "preview": truncated,
+                        })
+                        result_size = len(result_data_str)
+
                 cursor.execute(
                     """
                     INSERT INTO sql_execution_history (
-                        id, user_id, db_config_id, sql_statement, sql_type, 
-                        execution_status, affected_rows, execution_time_ms, 
+                        id, user_id, db_config_id, sql_statement, sql_type,
+                        execution_status, affected_rows, execution_time_ms,
                         error_message, result_data, result_size, created_at
                     ) VALUES (
-                        %s, %s, %s, %s, %s, 
-                        %s, %s, %s, 
+                        %s, %s, %s, %s, %s,
+                        %s, %s, %s,
                         %s, %s, %s, %s
                     )
                     """,
@@ -1043,10 +1114,8 @@ class DatabaseToolService:
                         result.affected_rows,
                         int(result.execution_time_ms),
                         result.error_message,
-                        json.dumps(result.result_data) if result.result_data else None,
-                        len(json.dumps(result.result_data))
-                        if result.result_data
-                        else 0,
+                        result_data_str,
+                        result_size,
                         datetime.now(),
                     ),
                 )

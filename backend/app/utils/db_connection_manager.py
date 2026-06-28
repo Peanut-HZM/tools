@@ -61,8 +61,8 @@ class DBConnectionManager:
             # If db_name is empty, connect to default 'postgres' database
             target_db = db_name if db_name else "postgres"
             url = f"postgresql://{encoded_user}:{encoded_password}@{host}:{port}/{target_db}"
-            # PostgreSQL 超时配置
-            connect_timeout = config.get("connect_timeout", 10)
+            # PostgreSQL 超时配置：connect_timeout 对不可达连接快速失败
+            connect_timeout = config.get("connect_timeout", 5)
             if connect_timeout:
                 connect_args["connect_timeout"] = connect_timeout
 
@@ -72,10 +72,11 @@ class DBConnectionManager:
             target_db = f"/{db_name}" if db_name else ""
             url = f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}:{port}{target_db}?charset={charset}"
             # PyMySQL 超时配置（通过 connect_args 传递）
-            connect_timeout = config.get("connect_timeout", 10)
+            # 连接超时：对不可达连接快速失败，避免前端长时间等待
+            connect_timeout = config.get("connect_timeout", 5)
             if connect_timeout:
                 connect_args["connect_timeout"] = connect_timeout
-            # 读写超时：防止查询执行过程中卡死（默认 30 秒）
+            # 读写超时：防止查询执行过程中卡死
             connect_args["read_timeout"] = config.get("read_timeout", 30)
             connect_args["write_timeout"] = config.get("write_timeout", 30)
             logger.info(
@@ -106,14 +107,15 @@ class DBConnectionManager:
             raise ValueError(f"Unsupported database type: {db_type}")
 
         try:
-            # 连接池配置
-            pool_size = config.get("max_pool_size", 10)
+            # 连接池配置：工具类连接池不需要太大，避免耗尽 PostgreSQL 连接
+            # 每个数据库配置最多保留 2 个常驻连接，高峰期最多 4 个
+            pool_size = config.get("max_pool_size", 2)
             pool_recycle = 300  # 5 分钟回收连接，避免云数据库/本地 PG 空闲超时后复用失效连接
             max_overflow = config.get(
-                "max_overflow", 20
+                "max_overflow", 2
             )  # 允许超出 pool_size 的最大连接数
             pool_timeout = config.get(
-                "pool_timeout", 30
+                "pool_timeout", 10
             )  # 从连接池获取连接的等待超时（秒）
 
             logger.info(

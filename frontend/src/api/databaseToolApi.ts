@@ -29,6 +29,27 @@ export type { BackupResponse, BackupRecord, BackupListResponse, BackupRequest };
 
 const BASE_URL = `${API_BASE_URL}/database-tool`;
 
+/** 带超时的 fetch 封装 */
+async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}) {
+  const { timeout = 15000, ...rest } = options;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...rest,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error(`请求超时（${timeout / 1000} 秒）`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: response.statusText }));
@@ -47,8 +68,9 @@ export async function getDatabases(includePassword = false): Promise<DatabaseCon
   }
 
   const query = includePassword ? '?include_password=true' : '';
-  const response = await fetch(`${BASE_URL}/databases${query}`, {
-    headers: getAuthHeaders()
+  const response = await fetchWithTimeout(`${BASE_URL}/databases${query}`, {
+    headers: getAuthHeaders(),
+    timeout: 30000
   });
   const data = await handleResponse<DatabaseConfig[]>(response);
 
@@ -59,7 +81,7 @@ export async function getDatabases(includePassword = false): Promise<DatabaseCon
 }
 
 export async function createDatabase(data: CreateDatabaseRequest): Promise<DatabaseConfig> {
-  const response = await fetch(`${BASE_URL}/databases`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data)
@@ -72,14 +94,14 @@ export async function createDatabase(data: CreateDatabaseRequest): Promise<Datab
 
 export async function getDatabase(id: string, includePassword = false): Promise<DatabaseConfig> {
   const query = includePassword ? '?include_password=true' : '';
-  const response = await fetch(`${BASE_URL}/databases/${id}${query}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}${query}`, {
     headers: getAuthHeaders()
   });
   return handleResponse<DatabaseConfig>(response);
 }
 
 export async function decryptPassword(id: string): Promise<string> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/decrypt-password`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/decrypt-password`, {
     method: 'POST',
     headers: getAuthHeaders()
   });
@@ -88,7 +110,7 @@ export async function decryptPassword(id: string): Promise<string> {
 }
 
 export async function updateDatabase(id: string, data: UpdateDatabaseRequest): Promise<DatabaseConfig> {
-  const response = await fetch(`${BASE_URL}/databases/${id}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(data)
@@ -102,7 +124,7 @@ export async function updateDatabase(id: string, data: UpdateDatabaseRequest): P
 }
 
 export async function deleteDatabase(id: string): Promise<void> {
-  const response = await fetch(`${BASE_URL}/databases/${id}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
@@ -114,18 +136,20 @@ export async function deleteDatabase(id: string): Promise<void> {
 }
 
 export async function testConnection(data: TestConnectionRequest): Promise<ConnectionTestResult> {
-  const response = await fetch(`${BASE_URL}/databases/test`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/test`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    timeout: 20000
   });
   return handleResponse<ConnectionTestResult>(response);
 }
 
 export async function testConnectionById(id: string): Promise<ConnectionTestResult> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/test`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/test`, {
     method: 'POST',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    timeout: 20000
   });
   return handleResponse<ConnectionTestResult>(response);
 }
@@ -148,8 +172,9 @@ export async function getDatabasesList(id: string, skipCache = false): Promise<s
   const requestPromise = (async () => {
     try {
       const query = skipCache ? '?skip_cache=true' : '';
-      const response = await fetch(`${BASE_URL}/databases/${id}/databases${query}`, {
-        headers: getAuthHeaders()
+      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/databases${query}`, {
+        headers: getAuthHeaders(),
+        timeout: 20000
       });
       const data = await handleResponse<string[]>(response);
       await DBCache.set(cacheKey, data, 'databases');
@@ -182,9 +207,9 @@ export async function getSchemasList(
   const requestPromise = (async () => {
     try {
       const skipParam = skipCache ? '&skip_cache=true' : '';
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${BASE_URL}/databases/${id}/schemas?database_name=${encodeURIComponent(databaseName)}${skipParam}`,
-        { headers: getAuthHeaders() }
+        { headers: getAuthHeaders(), timeout: 20000 }
       );
       const data = await handleResponse<string[]>(response);
       await DBCache.set(cacheKey, data, 'schemas');
@@ -216,8 +241,9 @@ export async function getAllSchemas(
   const requestPromise = (async () => {
     try {
       const query = skipCache ? '?skip_cache=true' : '';
-      const response = await fetch(`${BASE_URL}/databases/${id}/all-schemas${query}`, {
-        headers: getAuthHeaders()
+      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/all-schemas${query}`, {
+        headers: getAuthHeaders(),
+        timeout: 30000
       });
       const data = await handleResponse<Record<string, string[]>>(response);
       await DBCache.set(cacheKey, data, 'databases');
@@ -234,7 +260,7 @@ export async function getAllSchemas(
 // Database Administration (DDL)
 
 export async function createDatabaseInstance(id: string, name: string, charset?: string): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/databases`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/databases`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ name, charset })
@@ -245,7 +271,7 @@ export async function createDatabaseInstance(id: string, name: string, charset?:
 }
 
 export async function dropDatabaseInstance(id: string, name: string): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/databases/${encodeURIComponent(name)}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/databases/${encodeURIComponent(name)}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
@@ -257,7 +283,7 @@ export async function dropDatabaseInstance(id: string, name: string): Promise<bo
 
 export async function dropTableInstance(id: string, table: string, databaseName: string, schemaName?: string): Promise<boolean> {
   const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
@@ -267,7 +293,7 @@ export async function dropTableInstance(id: string, table: string, databaseName:
 }
 
 export async function truncateTableInstance(id: string, table: string, databaseName: string, schemaName?: string): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/truncate`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/truncate`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ database_name: databaseName, schema_name: schemaName })
@@ -312,8 +338,9 @@ export async function getDatabaseStructure(id: string, databaseName: string, sch
 
   const requestPromise = (async () => {
     try {
-      const response = await fetch(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
-        headers: getAuthHeaders()
+      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
+        headers: getAuthHeaders(),
+        timeout: 20000
       });
       const data = await handleResponse<DatabaseStructure>(response);
       await DBCache.set(cacheKey, data, 'structure');
@@ -335,8 +362,9 @@ function revalidateStructureInBackground(cacheKey: string, id: string, databaseN
   (async () => {
     try {
       const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
-      const response = await fetch(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
-        headers: getAuthHeaders()
+      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
+        headers: getAuthHeaders(),
+        timeout: 20000
       });
       const data = await handleResponse<DatabaseStructure>(response);
       await DBCache.set(cacheKey, data, 'structure');
@@ -353,14 +381,14 @@ function revalidateStructureInBackground(cacheKey: string, id: string, databaseN
 
 export async function getTableDDL(id: string, table: string, databaseName: string, schemaName?: string): Promise<string> {
   const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/ddl?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/ddl?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
     headers: getAuthHeaders()
   });
   return handleResponse<string>(response);
 }
 
 export async function modifyTableStructure(id: string, request: TableModificationRequest): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables/modify`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/tables/modify`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(request)
@@ -372,7 +400,7 @@ export async function modifyTableStructure(id: string, request: TableModificatio
 }
 
 export async function deleteAllTables(id: string, databaseName: string): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/all-tables?database_name=${encodeURIComponent(databaseName)}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/all-tables?database_name=${encodeURIComponent(databaseName)}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
@@ -382,7 +410,7 @@ export async function deleteAllTables(id: string, databaseName: string): Promise
 }
 
 export async function truncateAllTables(id: string, databaseName: string): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/truncate-all-tables`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/truncate-all-tables`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ database_name: databaseName })
@@ -393,7 +421,7 @@ export async function truncateAllTables(id: string, databaseName: string): Promi
 }
 
 export async function getDatabaseDDL(id: string, databaseName: string): Promise<string> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/ddl?database_name=${encodeURIComponent(databaseName)}`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/ddl?database_name=${encodeURIComponent(databaseName)}`, {
     headers: getAuthHeaders()
   });
   return handleResponse<string>(response);
@@ -411,10 +439,11 @@ export async function queryTableData(
     page_size?: number
   }
 ): Promise<SQLExecutionResult> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables/${table}/data`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/tables/${table}/data`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(params)
+    body: JSON.stringify(params),
+    timeout: 30000
   });
   return handleResponse<SQLExecutionResult>(response);
 }
@@ -425,7 +454,7 @@ export async function getTableSchema(id: string, table: string, databaseName?: s
   if (schemaName) params.set('schema_name', schemaName);
   const qs = params.toString();
   const url = `${BASE_URL}/databases/${id}/tables/${table}/schema${qs ? '?' + qs : ''}`;
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: getAuthHeaders()
   });
   return handleResponse<TableSchema>(response);
@@ -434,17 +463,19 @@ export async function getTableSchema(id: string, table: string, databaseName?: s
 // SQL Execution
 
 export async function executeSQL(data: SQLExecutionRequest): Promise<SQLExecutionResult> {
-  const response = await fetch(`${BASE_URL}/execute`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/execute`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    timeout: 30000
   });
   return handleResponse<SQLExecutionResult>(response);
 }
 
 export async function getHistory(limit: number = 50, offset: number = 0): Promise<ExecutionHistory[]> {
-  const response = await fetch(`${BASE_URL}/history?limit=${limit}&offset=${offset}`, {
-    headers: getAuthHeaders()
+  const response = await fetchWithTimeout(`${BASE_URL}/history?limit=${limit}&offset=${offset}`, {
+    headers: getAuthHeaders(),
+    timeout: 30000
   });
   return handleResponse<ExecutionHistory[]>(response);
 }
@@ -452,7 +483,7 @@ export async function getHistory(limit: number = 50, offset: number = 0): Promis
 // Schema Browsing
 
 export async function getTables(id: string): Promise<string[]> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/tables`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/tables`, {
     headers: getAuthHeaders()
   });
   return handleResponse<string[]>(response);
@@ -478,19 +509,20 @@ export async function batchDeleteRows(
   table: string,
   params: BatchDeleteRequest
 ): Promise<BatchDeleteResult> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/batch-delete`,
     {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(params)
+      body: JSON.stringify(params),
+      timeout: 30000
     }
   );
   return handleResponse<BatchDeleteResult>(response);
 }
 
 export async function searchTables(id: string, keyword: string): Promise<{database: string, table: string, type: string}[]> {
-  const response = await fetch(`${BASE_URL}/databases/${id}/search`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/search`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ keyword })
@@ -503,12 +535,13 @@ export async function insertRow(
   table: string,
   params: InsertRowRequest
 ): Promise<RowOperationResult> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/insert-row`,
     {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(params)
+      body: JSON.stringify(params),
+      timeout: 30000
     }
   );
   return handleResponse<RowOperationResult>(response);
@@ -519,12 +552,13 @@ export async function updateRow(
   table: string,
   params: UpdateRowRequest
 ): Promise<RowOperationResult> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/update-row`,
     {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(params)
+      body: JSON.stringify(params),
+      timeout: 30000
     }
   );
   return handleResponse<RowOperationResult>(response);
@@ -539,7 +573,7 @@ export async function getTableDetail(
   schemaName?: string
 ): Promise<TableDetailResponse> {
   const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/detail?database_name=${encodeURIComponent(databaseName)}${schemaParam}`,
     { headers: getAuthHeaders() }
   );
@@ -553,7 +587,7 @@ export async function getTableRowCount(
   schemaName?: string
 ): Promise<{ table_name: string; row_count: number }> {
   const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${BASE_URL}/databases/${id}/tables/${encodeURIComponent(table)}/row-count?database_name=${encodeURIComponent(databaseName)}${schemaParam}`,
     { headers: getAuthHeaders() }
   );
@@ -566,12 +600,13 @@ export async function backupDatabase(
   id: string,
   params: BackupRequest
 ): Promise<BackupResponse> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${BASE_URL}/configs/${id}/backup`,
     {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(params)
+      body: JSON.stringify(params),
+      timeout: 60000
     }
   );
   return handleResponse<BackupResponse>(response);
@@ -587,12 +622,12 @@ export async function listBackups(
   if (databaseName) {
     url += `&database_name=${encodeURIComponent(databaseName)}`;
   }
-  const response = await fetch(url, { headers: getAuthHeaders() });
+  const response = await fetchWithTimeout(url, { headers: getAuthHeaders() });
   return handleResponse<BackupListResponse>(response);
 }
 
 export async function deleteBackup(backupId: string): Promise<{ message: string }> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${BASE_URL}/backups/${backupId}`,
     {
       method: 'DELETE',
@@ -609,7 +644,7 @@ export function getBackupDownloadUrl(backupId: string): string {
 // ============ 显示偏好 API ============
 
 export async function getDisplayPreferences(): Promise<DisplayPreferences> {
-  const response = await fetch(`${BASE_URL}/preferences`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/preferences`, {
     headers: getAuthHeaders()
   });
   return handleResponse<DisplayPreferences>(response);
@@ -618,7 +653,7 @@ export async function getDisplayPreferences(): Promise<DisplayPreferences> {
 export async function saveDisplayPreferences(
   prefs: DisplayPreferences
 ): Promise<DisplayPreferences> {
-  const response = await fetch(`${BASE_URL}/preferences`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/preferences`, {
     method: 'PUT',
     headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({

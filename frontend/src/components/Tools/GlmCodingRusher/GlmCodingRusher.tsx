@@ -3,7 +3,7 @@ import {
   getLoginStatus, getConfig, saveConfig,
   startLogin, startRush, stopRush,
   getStatus, getLogs, getPaymentInfo, closePaymentBrowser,
-  getTasks, getTaskLogs,
+  getTasks, getTaskLogs, openBrowser,
   RusherConfig, LoginStatus, RusherStatus, RusherLog, PaymentInfo, TaskSummary,
 } from '../../../api/glmCodingRusherApi';
 
@@ -51,6 +51,7 @@ export default function GlmCodingRusher() {
   const [justStarted, setJustStarted] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successPaymentUrl, setSuccessPaymentUrl] = useState<string | null>(null);
+  const [openingBrowser, setOpeningBrowser] = useState(false);
 
   // 轮询状态和日志
   const poll = useCallback(async () => {
@@ -186,6 +187,24 @@ export default function GlmCodingRusher() {
     }
   };
 
+  const handleOpenBrowser = async () => {
+    setOpeningBrowser(true);
+    setError(null);
+    try {
+      const res = await openBrowser();
+      if (!res.success) {
+        setError(res.message);
+        // 登录态失效 → 刷新登录状态
+        const ls = await getLoginStatus();
+        setLoginStatus(ls);
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setOpeningBrowser(false);
+    }
+  };
+
   const openPaymentWindow = (url?: string | null) => {
     if (!url) {
       return;
@@ -234,6 +253,23 @@ export default function GlmCodingRusher() {
                     <p className="text-slate-500 text-xs mt-1">{loginStatus.message}</p>
                   )}
                 </div>
+                <button
+                  onClick={handleOpenBrowser}
+                  disabled={!loginStatus?.logged_in || openingBrowser}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                >
+                  {openingBrowser ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin" />
+                      打开中...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-external-link-alt" />
+                      打开网站验证
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 

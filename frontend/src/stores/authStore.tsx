@@ -50,19 +50,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  // 登录/已认证后触发 Token 数据同步（静默，不影响主流程）
+  // 登录/已认证后触发 Token 数据同步（fire-and-forget，不阻塞主流程）
   const syncInProgressRef = useRef(false);
 
-  const triggerTokenSync = async () => {
+  const triggerTokenSync = () => {
     if (syncInProgressRef.current) return;
     syncInProgressRef.current = true;
-    try {
-      await apiSyncTokenUsage();
-    } catch {
-      // 同步失败不影响认证流程，用户可手动点击"同步数据"
-    } finally {
-      syncInProgressRef.current = false;
-    }
+    // 不等待返回，后台同步不影响首页加载
+    apiSyncTokenUsage()
+      .then(() => {
+        console.log('[TokenSync] 后台同步已触发');
+      })
+      .catch(() => {
+        // 同步失败不影响认证流程，用户可手动点击"同步数据"
+      })
+      .finally(() => {
+        syncInProgressRef.current = false;
+      });
   };
 
   const checkAuth = async () => {

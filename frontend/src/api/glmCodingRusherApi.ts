@@ -143,3 +143,8 @@ export async function getTasks(limit = 50): Promise<TaskListResponse> {
 export async function getTaskLogs(taskId: string, limit = 500): Promise<LogListResponse> {
   return request(`/tasks/${taskId}/logs?limit=${limit}`);
 }
+
+/** 用当前登录态打开浏览器验证 */
+export async function openBrowser(): Promise<{ success: boolean; message: string }> {
+  return request('/open-browser', { method: 'POST' });
+}

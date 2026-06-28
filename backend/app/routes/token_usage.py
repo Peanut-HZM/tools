@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import threading
 import time
 import uuid
 from collections import defaultdict
@@ -1131,7 +1132,7 @@ async def refresh_ccusage_endpoint(
 async def sync_token_usage_endpoint(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
-    """手动触发 Token Usage 同步到数据库（异步线程执行，带锁防并发）"""
+    """手动触发 Token Usage 同步到数据库（后台线程执行，立即返回）"""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
     try:
@@ -1141,15 +1142,30 @@ async def sync_token_usage_endpoint(
 
     lock = get_sync_lock()
     if lock.locked():
-        raise HTTPException(status_code=429, detail="同步进行中，请稍后重试")
+        return {
+            "success": True,
+            "message": "同步进行中",
+            "background": True,
+            "started": False,
+        }
 
-    invalidate_user_query_cache(user_id)
-    try:
-        # 将同步阻塞的 CLI 调用丢到线程池执行，避免阻塞事件循环
-        result = await asyncio.to_thread(sync_token_usage, user_id=user_id, days=90)
-    finally:
-        invalidate_user_query_cache(user_id)
-    return result
+    def _run_sync():
+        """在后台线程中执行同步，不阻塞 HTTP 响应"""
+        try:
+            invalidate_user_query_cache(user_id)
+            sync_token_usage(user_id=user_id, days=90)
+        finally:
+            invalidate_user_query_cache(user_id)
+
+    thread = threading.Thread(target=_run_sync, daemon=True)
+    thread.start()
+
+    return {
+        "success": True,
+        "message": "后台同步已开始",
+        "background": True,
+        "started": True,
+    }
 
 
 @router.post("/devices/alias")

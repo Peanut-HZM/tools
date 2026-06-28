@@ -287,6 +287,83 @@ def check_login_valid() -> dict:
         return {"valid": False, "message": f"校验失败: {str(e)}"}
 
 
+def open_verified_browser() -> dict:
+    """
+    用当前登录态打开一个可见浏览器窗口，让用户肉眼确认登录是否有效
+
+    流程：
+    1. 启动 headless 浏览器加载 state.json，访问目标页面
+    2. 检测登录态，如果失效则返回错误
+    3. 如果有效，保存刷新后的 state
+    4. 在独立线程中启动 headed 浏览器打开目标页面
+
+    Returns:
+        {"success": bool, "message": str}
+    """
+    if not state_file_exists():
+        return {"success": False, "message": "未登录，请先完成登录"}
+
+    try:
+        _setup_playwright_browsers_path()
+
+        from playwright.sync_api import sync_playwright
+
+        # 第一步：headless 刷新 cookie 并验证登录态
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(storage_state=str(get_state_path()))
+            page = context.new_page()
+            page.goto(TARGET_URL, wait_until="networkidle", timeout=30000)
+
+            is_logged_in = _check_login_state(page)
+
+            if not is_logged_in:
+                browser.close()
+                return {"success": False, "message": "登录态已失效，请重新登录"}
+
+            # 登录有效，保存刷新后的 state
+            STATE_DIR.mkdir(parents=True, exist_ok=True)
+            context.storage_state(path=str(get_state_path()))
+            logger.info("登录态有效，state 已刷新保存")
+            browser.close()
+
+        # 第二步：在独立线程中启动 headed 浏览器
+        def _open_headed():
+            try:
+                _setup_playwright_browsers_path()
+                from playwright.sync_api import sync_playwright
+
+                with sync_playwright() as p:
+                    browser = p.chromium.launch(headless=False)
+                    context = browser.new_context(storage_state=str(get_state_path()))
+                    page = context.new_page()
+                    page.goto(TARGET_URL, wait_until="networkidle", timeout=30000)
+                    # 保持浏览器打开，等待用户关闭
+                    try:
+                        while True:
+                            page.wait_for_timeout(1000)
+                            try:
+                                page.title()
+                            except Exception:
+                                break
+                    except Exception:
+                        pass
+                    try:
+                        browser.close()
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.error(f"打开验证浏览器异常: {e}")
+
+        thread = threading.Thread(target=_open_headed, daemon=True)
+        thread.start()
+
+        return {"success": True, "message": "浏览器窗口已打开，请在窗口中确认登录状态"}
+    except Exception as e:
+        logger.error(f"打开验证浏览器失败: {e}")
+        return {"success": False, "message": f"打开失败: {str(e)}"}
+
+
 # Pro 套餐按钮选择器
 # 策略 1: 通过 Pro 套餐卡片定位（最可靠）
 # 策略 2: 定位所有"特惠订阅"按钮，取第 3 个（Pro 套餐）

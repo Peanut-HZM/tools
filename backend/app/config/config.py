@@ -67,8 +67,8 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "sqlite:///./data/tools.db"
-    DB_PSYCOPG_POOL_MIN_CONN: int = 5      # 从 1 增加到 5，避免并发请求时连接池耗尽
-    DB_PSYCOPG_POOL_MAX_CONN: int = 20     # 从 3 增加到 20，支持更多并发
+    DB_PSYCOPG_POOL_MIN_CONN: int = 5      # 保持最小连接数
+    DB_PSYCOPG_POOL_MAX_CONN: int = 50     # 增大最大连接数，避免并发请求时连接池耗尽
     DB_SQLALCHEMY_POOL_SIZE: int = 10      # 从 5 增加到 10
     DB_SQLALCHEMY_MAX_OVERFLOW: int = 10   # 保持不变
     DB_SQLALCHEMY_POOL_TIMEOUT: int = 10   # 保持不变
