@@ -157,6 +157,82 @@ class ToolsService:
             if conn:
                 release_db_connection(conn)
 
+        # --- 独立事务：分类清洗 + 校验 ---
+        wash_conn = None
+        try:
+            wash_conn = get_pooled_db_connection()
+            self._normalize_category_variants(wash_conn)
+            self._validate_tool_category_refs(wash_conn)
+            wash_conn.commit()
+        except Exception as e:
+            logger.error("分类清洗/校验事务失败（不阻止启动）: %s", e)
+            if wash_conn:
+                wash_conn.rollback()
+        finally:
+            if wash_conn:
+                release_db_connection(wash_conn)
+
+    def _normalize_category_variants(self, conn) -> None:
+        """合并 tool_categories 中的空格变体（在传入的连接事务内执行）"""
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id, name, sort_order FROM tool_categories")
+                all_cats = cur.fetchall()
+
+                groups: Dict[str, List[dict]] = {}
+                for row in all_cats:
+                    key = row["name"].replace(" ", "")
+                    groups.setdefault(key, []).append(dict(row))
+
+                merged_info = []
+                for _key, members in groups.items():
+                    if len(members) <= 1:
+                        continue
+                    members.sort(key=lambda r: r["sort_order"])
+                    canonical_name = members[0]["name"]
+                    drop_names = [m["name"] for m in members[1:]]
+                    drop_ids = [m["id"] for m in members[1:]]
+                    if drop_names:
+                        cur.execute(
+                            "UPDATE tools SET category = %s WHERE category = ANY(%s)",
+                            (canonical_name, drop_names),
+                        )
+                        affected = cur.rowcount
+                        cur.execute(
+                            "DELETE FROM tool_categories WHERE id = ANY(%s)",
+                            (drop_ids,),
+                        )
+                        merged_info.append({
+                            "canonical": canonical_name,
+                            "dropped": drop_names,
+                            "affected_tools": affected,
+                        })
+                if merged_info:
+                    logger.info("启动清洗：合并分类变体 %s", merged_info)
+                else:
+                    logger.info("启动清洗：无需合并的分类变体")
+        except Exception as e:
+            logger.error("启动清洗失败（不阻止启动）: %s", e)
+
+    def _validate_tool_category_refs(self, conn) -> None:
+        """校验 tools.category 是否都有 tool_categories 记录；悬空引用记 ERROR 日志"""
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT t.category
+                    FROM tools t
+                    WHERE t.category IS NOT NULL
+                      AND t.category NOT IN (SELECT name FROM tool_categories)
+                """)
+                dangling = [row["category"] for row in cur.fetchall()]
+                if dangling:
+                    for cat in dangling:
+                        logger.error("启动校验：工具引用了不存在的分类: category=%s", cat)
+                else:
+                    logger.info("启动校验通过：所有 tools.category 均有对应 tool_categories 记录")
+        except Exception as e:
+            logger.error("启动校验失败（不阻止启动）: %s", e)
+
     def get_all_tools(self, include_offline: bool = False) -> List[Tool]:
         """Get all tools from database"""
         conn = None
