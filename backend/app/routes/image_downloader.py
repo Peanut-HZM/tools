@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, HttpUrl
 from typing import List, Dict, Any
+from urllib.parse import urlparse
 import io
 import os
 import uuid
@@ -18,6 +19,40 @@ from app.services.oss_service import oss_service
 from app.middleware.auth_middleware import get_current_user_id
 
 router = APIRouter(prefix="/image-downloader", tags=["图片下载器"])
+
+
+@router.get("/proxy")
+async def proxy_image(url: str):
+    """
+    公开代理端点：透传远端图片，不需要认证。
+    用于前端预览和下载原图，避免 JWT 认证无法通过 window.open / a[download] 传递。
+    """
+    import requests as req
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="仅支持 http/https URL")
+    if not parsed.netloc:
+        raise HTTPException(status_code=400, detail="URL 不合法")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    referer = image_downloader_service._get_referer(url)
+    if referer:
+        headers["Referer"] = referer
+
+    try:
+        response = req.get(url, headers=headers, stream=True, timeout=30)
+        response.raise_for_status()
+    except req.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"获取图片失败：{str(e)}")
+
+    content_type = response.headers.get("content-type", "image/jpeg")
+    return StreamingResponse(
+        response.iter_content(chunk_size=8192),
+        media_type=content_type,
+    )
 
 
 @router.post("/extract-images", response_model=ImageExtractResponse)
