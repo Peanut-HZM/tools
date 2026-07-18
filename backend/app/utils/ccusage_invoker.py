@@ -206,6 +206,40 @@ def _make_node_not_found_error() -> CcusageError:
     )
 
 
+def _sanitize_env(env: dict) -> tuple[dict, list[tuple[str, str]]]:
+    """净化环境变量字典，确保所有值都是字符串。
+
+    Python 3.9+ 的 subprocess.run 严格要求 env 值都是字符串类型。
+    Linux 服务器的 systemd/Docker 可能注入 bytes/None/int 等非字符串值，
+    此函数负责清洗这些异常值，并返回被跳过的 key 列表供日志记录。
+
+    Returns:
+        (sanitized_env, skipped_keys) — sanitized_env 是只含 str 值的 dict，
+        skipped_keys 是 [(key, type_description), ...] 列表。
+    """
+    sanitized = {}
+    skipped_keys = []
+    for key, value in env.items():
+        if value is None:
+            skipped_keys.append((key, "None"))
+            continue
+        if isinstance(value, bytes):
+            try:
+                sanitized[key] = value.decode("utf-8", errors="replace")
+            except Exception:
+                skipped_keys.append((key, f"{type(value).__name__}"))
+                continue
+        elif not isinstance(value, str):
+            try:
+                sanitized[key] = str(value)
+            except Exception:
+                skipped_keys.append((key, f"{type(value).__name__}"))
+                continue
+        else:
+            sanitized[key] = value
+    return sanitized, skipped_keys
+
+
 def _execute_and_parse(cmd: list[str], cli_name: str, timeout: int) -> dict:
     """执行命令并解析 JSON 输出的通用 helper"""
     try:
@@ -221,6 +255,14 @@ def _execute_and_parse(cmd: list[str], cli_name: str, timeout: int) -> dict:
             node_path = find_node()
             if node_path:
                 env["PATH"] = os.path.dirname(node_path) + ";" + env.get("PATH", "")
+
+        env, skipped_keys = _sanitize_env(env)
+        if skipped_keys:
+            logger.warning(
+                "[ccusage-invoker] env 净化：跳过 %d 个非字符串值: %s",
+                len(skipped_keys),
+                ", ".join(f"{k}({t})" for k, t in skipped_keys),
+            )
 
         result = subprocess.run(
             cmd,
@@ -257,6 +299,16 @@ def _execute_and_parse(cmd: list[str], cli_name: str, timeout: int) -> dict:
                 message=f"找不到命令：{cmd[0]}",
                 remediation=f"请确认 {cli_name} 已正确安装",
                 details={"error": str(e)},
+            ),
+        }
+    except TypeError as e:
+        return {
+            "ok": False,
+            "error": CcusageError(
+                code=ErrorCode.CLI_EXECUTION_ERROR,
+                message=f"{cli_name} 环境变量构造失败: {e}",
+                remediation="请联系管理员检查服务器环境变量配置",
+                details={"error": str(e), "env_keys_sample": list(env.keys())[:10]},
             ),
         }
     except Exception as e:
