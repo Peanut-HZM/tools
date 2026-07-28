@@ -1,5 +1,6 @@
 import re
 from typing import Dict, Any, List, Optional
+from decimal import Decimal
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 from app.utils.db_connection_manager import DBConnectionManager
@@ -130,6 +131,8 @@ class SQLExecutor:
                         for k, v in row.items():
                             if isinstance(v, (datetime.datetime, datetime.date)):
                                 new_row[k] = v.isoformat()
+                            elif isinstance(v, Decimal):
+                                new_row[k] = float(v)
                             elif isinstance(v, int) and abs(v) > 9007199254740991:
                                 new_row[k] = str(v)
                             else:
