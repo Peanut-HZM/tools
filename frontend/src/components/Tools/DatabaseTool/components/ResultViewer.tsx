@@ -378,6 +378,22 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
     return strValue;
   };
 
+  /**
+   * 格式化数值显示。金额/数值字段默认保留两位小数，
+   * 如果实际小数位数超过两位则完整显示。
+   */
+  const formatNumericValue = (value: any): string => {
+    if (typeof value !== 'number' || !isFinite(value)) return String(value);
+    // 整数或小数位数 ≤ 2 的，统一显示两位小数
+    const str = value.toString();
+    const dotIndex = str.indexOf('.');
+    if (dotIndex === -1 || str.length - dotIndex - 1 <= 2) {
+      return value.toFixed(2);
+    }
+    // 小数位数 > 2 的，完整显示
+    return str;
+  };
+
   const totalChanges = cellEdits.size + newRows.length;
 
   if (!result) {
@@ -510,7 +526,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         {displayValue === null ? (
           <span className="text-slate-600 italic">NULL</span>
         ) : (
-          <TruncatedText text={formatDateTimeValue(displayValue, colDef)} />
+          <TruncatedText text={typeof displayValue === 'number' ? formatNumericValue(displayValue) : formatDateTimeValue(displayValue, colDef)} />
         )}
       </span>
     );
