@@ -331,6 +331,17 @@ export const enUS = {
       failed: 'Connection Failed',
       hiddenByFilter: 'All databases hidden by filter',
     },
+    errors: {
+      CONNECTION_TIMEOUT: 'Connection timed out. Please check host and port, or network reachability',
+      CONNECTION_REFUSED: 'Connection refused. The target server may not be running or the port is not listening',
+      HOST_NOT_FOUND: 'Cannot resolve host. Please check the hostname',
+      ACCESS_DENIED: 'Access denied. Username or password may be incorrect, or the user is not allowed to connect',
+      DATABASE_NOT_FOUND: 'The specified database does not exist',
+      SSL_ERROR: 'SSL/TLS connection failed. Please check SSL configuration or certificate path',
+      TOO_MANY_CONNECTIONS: 'Too many connections. The server has reached its maximum connection limit',
+      NETWORK_ERROR: 'Network error. Connection lost or server closed the connection',
+      UNKNOWN_ERROR: 'Connection failed',
+    },
     executor: {
       title: 'SQL Executor',
       run: 'Run',

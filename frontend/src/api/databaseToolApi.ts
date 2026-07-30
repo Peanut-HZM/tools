@@ -53,7 +53,11 @@ async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || 'Request failed');
+    // 保留 detail 原始结构（对象不被 String 化）
+    const err = new Error(typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail));
+    (err as any).detail = error.detail;
+    (err as any).response = { detail: error.detail };
+    throw err;
   }
   return response.json();
 }

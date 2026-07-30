@@ -88,6 +88,7 @@ export interface TestConnectionRequest {
 export interface ConnectionTestResult {
   success: boolean;
   message: string;
+  error_code?: string;
   elapsed_ms?: number;
   version?: string;
 }

@@ -332,6 +332,17 @@ export const zhCN = {
       failed: '连接失败',
       hiddenByFilter: '所有数据库已被筛选隐藏',
     },
+    errors: {
+      CONNECTION_TIMEOUT: '连接超时，请检查主机地址和端口是否正确，或网络是否可达',
+      CONNECTION_REFUSED: '连接被拒绝，目标服务器可能未启动或端口未监听',
+      HOST_NOT_FOUND: '无法解析主机地址，请检查主机名是否正确',
+      ACCESS_DENIED: '访问被拒绝，用户名或密码可能错误，或该用户无权连接此数据库',
+      DATABASE_NOT_FOUND: '指定的数据库不存在',
+      SSL_ERROR: 'SSL/TLS 连接失败，请检查 SSL 配置或证书路径',
+      TOO_MANY_CONNECTIONS: '连接数过多，服务器已达最大连接数限制',
+      NETWORK_ERROR: '网络异常，连接中断或服务器关闭了连接',
+      UNKNOWN_ERROR: '连接失败',
+    },
     executor: {
       title: 'SQL 执行器',
       run: '执行',

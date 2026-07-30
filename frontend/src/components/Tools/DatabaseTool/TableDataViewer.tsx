@@ -3,6 +3,7 @@ import { useDatabaseTool } from '../../../contexts/DatabaseToolContext';
 import { SQLExecutionResult, TableSchema } from '../../../types/databaseTool';
 import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
+import { useI18n } from '../../../i18n';
 import ResultViewer from './components/ResultViewer';
 
 interface TableDataViewerProps {
@@ -14,6 +15,7 @@ interface TableDataViewerProps {
 
 const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseName, tableName, schemaName }) => {
   const toast = useToast();
+  const { t } = useI18n();
   
   // State for query params
   const [whereClause, setWhereClause] = useState('');
@@ -51,10 +53,19 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       setPage(pageNum);
 
       if (!data.success) {
-        toast.error(data.error_message || "Failed to load data");
+        // error_message 可能包含后端传来的中文文案，直接展示
+        toast.error(data.error_message || t.database.executor.noResults);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Request failed");
+    } catch (error: unknown) {
+      // HTTPException.detail 可能是 {error_code, message, raw} 对象
+      const err = error as { message?: string; response?: { detail?: { error_code?: string; message?: string } | string } };
+      const detail = err?.response?.detail;
+      const errorMsg = (typeof detail === 'object' && detail?.error_code && t.database.errors[detail.error_code as keyof typeof t.database.errors])
+        || (typeof detail === 'object' && detail?.message)
+        || (typeof detail === 'string' && detail)
+        || err?.message
+        || t.database.status.failed;
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

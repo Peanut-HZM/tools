@@ -78,7 +78,10 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
       if (result.success) {
         toast.success(`${t.database.status.success} (${result.elapsed_ms?.toFixed(0)}ms)`);
       } else {
-        toast.error(`${t.database.status.failed}: ${result.message}`);
+        // 优先使用 error_code 对应的本地化文案，fallback 到后端返回的 message
+        const errorMsg = (result.error_code && t.database.errors[result.error_code as keyof typeof t.database.errors])
+          || result.message;
+        toast.error(`${t.database.status.failed}: ${errorMsg}`);
       }
     } catch (error) {
       toast.error(t.database.status.failed);
