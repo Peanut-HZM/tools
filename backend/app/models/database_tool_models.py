@@ -82,6 +82,7 @@ class TestConnectionRequest(BaseModel):
 class ConnectionTestResult(BaseModel):
     success: bool
     message: str
+    error_code: Optional[str] = None  # 错误分类码，供前端 i18n 精确匹配
     elapsed_ms: Optional[float] = None
     version: Optional[str] = None
 

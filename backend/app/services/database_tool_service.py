@@ -8,6 +8,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from app.config.database import get_pooled_db_connection, release_db_connection
+from app.utils.db_error_mapper import map_connection_error
 from app.models.database_tool_models import (
     DatabaseConfigBase,
     CreateDatabaseRequest,
@@ -901,8 +902,12 @@ class DatabaseToolService:
             )
         except Exception as e:
             elapsed = (datetime.now() - start_time).total_seconds() * 1000
+            error_code, zh_msg = map_connection_error(str(e))
             return ConnectionTestResult(
-                success=False, message=str(e), elapsed_ms=elapsed
+                success=False,
+                message=zh_msg,
+                error_code=error_code,
+                elapsed_ms=elapsed,
             )
 
     @staticmethod
@@ -957,8 +962,12 @@ class DatabaseToolService:
             )
         except Exception as e:
             elapsed = (datetime.now() - start_time).total_seconds() * 1000
+            error_code, zh_msg = map_connection_error(str(e))
             return ConnectionTestResult(
-                success=False, message=str(e), elapsed_ms=elapsed
+                success=False,
+                message=zh_msg,
+                error_code=error_code,
+                elapsed_ms=elapsed,
             )
 
     # --------------------------------------------------------------------------
