@@ -5,6 +5,7 @@ import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import ResultViewer from './components/ResultViewer';
+import { resolveDefaultSort } from '../../../utils/defaultSortResolver';
 
 interface TableDataViewerProps {
   configId: string;
@@ -28,23 +29,29 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
   const [result, setResult] = useState<SQLExecutionResult | null>(null);
   const [schema, setSchema] = useState<TableSchema | null>(null);
 
-  const fetchSchema = useCallback(async () => {
+  const fetchSchema = useCallback(async (): Promise<TableSchema | null> => {
     try {
       const s = await api.getTableSchema(configId, tableName, databaseName, schemaName);
       setSchema(s);
+      return s;
     } catch (error) {
       console.error("Failed to fetch table schema", error);
+      return null;
     }
-  }, [configId, tableName, databaseName]);
+  }, [configId, tableName, databaseName, schemaName]);
 
-  const fetchData = useCallback(async (pageNum: number, newPageSize?: number) => {
+  const fetchData = useCallback(async (
+    pageNum: number,
+    newPageSize?: number,
+    overrideOrderBy?: string,
+  ) => {
     setLoading(true);
     try {
       const data = await api.queryTableData(configId, tableName, {
         database_name: databaseName,
         schema_name: schemaName,
         where: whereClause,
-        order_by: orderByClause,
+        order_by: overrideOrderBy !== undefined ? overrideOrderBy : orderByClause,
         page: pageNum,
         page_size: newPageSize ?? pageSize
       });
@@ -73,13 +80,32 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
 
   // Reset page when table changes
   useEffect(() => {
-    setPage(1);
-    setWhereClause('');
-    setOrderByClause('');
-    setResult(null);
-    setSchema(null);
-    fetchSchema();
-    fetchData(1);
+    let cancelled = false;
+
+    const init = async () => {
+      setPage(1);
+      setWhereClause('');
+      setOrderByClause('');
+      setResult(null);
+      setSchema(null);
+
+      // 先获取 schema,计算默认排序,再发起数据查询
+      const s = await fetchSchema();
+      if (cancelled) return;
+
+      const defaultSort = s ? resolveDefaultSort(s) : '';
+      setOrderByClause(defaultSort);
+
+      // 注意:fetchData 依赖 orderByClause state,但 setState 是异步的。
+      // 由于 fetchData 内部通过闭包读取 orderByClause,
+      // 我们需要把 defaultSort 直接传给 fetchData 而不是等 state 更新。
+      // 见 Step 4 对 fetchData 的改造。
+      fetchData(1, undefined, defaultSort);
+    };
+
+    init();
+
+    return () => { cancelled = true; };
   }, [configId, databaseName, tableName, schemaName]);
 
   const handleExecute = () => {
