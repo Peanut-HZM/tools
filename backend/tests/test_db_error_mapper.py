@@ -108,6 +108,11 @@ class TestMapConnectionError:
         )
         assert code == "NETWORK_ERROR"
 
+    def test_network_error_connection_closed_bare(self):
+        """裸 'connection closed'（不含 server）应映射为 NETWORK_ERROR，不落入 UNKNOWN_ERROR"""
+        code, _ = map_connection_error("connection closed")
+        assert code == "NETWORK_ERROR"
+
     def test_unknown_error_fallback(self):
         code, msg = map_connection_error(
             "Some completely unknown error happened"

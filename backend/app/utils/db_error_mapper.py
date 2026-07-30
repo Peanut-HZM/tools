@@ -75,6 +75,7 @@ _RULES: list[tuple[str, list[str]]] = [
         "NETWORK_ERROR",
         [
             "connection lost",
+            "connection closed",
             "broken pipe",
             "connection reset",
             "server closed",
