@@ -46,8 +46,22 @@ from app.models.database_tool_models import (
 from fastapi.responses import FileResponse
 from pathlib import Path
 from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE, _LIST_CACHE
+from app.utils.db_error_mapper import map_connection_error
 
 router = APIRouter(prefix="/database-tool", tags=["database-tool"])
+
+
+def _raise_connection_error(e: Exception) -> None:
+    """将连接相关异常转为带 error_code 的 HTTPException。
+
+    仅用于路由层 except Exception 分支，保持 HTTP detail 结构统一。
+    """
+    error_code, zh_msg = map_connection_error(str(e))
+    raise HTTPException(
+        status_code=500,
+        detail={"error_code": error_code, "message": zh_msg, "raw": str(e)},
+    ) from e
+
 
 # --------------------------------------------------------------------------
 # Database Configs
@@ -192,7 +206,7 @@ async def get_databases_list(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.get("/databases/{id}/schemas", response_model=List[str])
@@ -210,7 +224,7 @@ async def get_schemas_list(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.get("/databases/{id}/all-schemas", response_model=Dict[str, List[str]])
@@ -225,7 +239,7 @@ async def get_all_schemas(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.get("/databases/{id}/structure", response_model=Dict[str, List[Dict[str, Any]]])
@@ -239,7 +253,7 @@ async def get_database_structure(
     try:
         return DatabaseToolService.get_database_structure(user_id, id, database_name, schema_name)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.get("/databases/{id}/tables/{table}/ddl", response_model=str)
@@ -254,7 +268,7 @@ async def get_table_ddl(
     try:
         return DatabaseToolService.generate_ddl(user_id, id, table, database_name, schema_name)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post("/databases/{id}/tables/modify", response_model=bool)
@@ -271,7 +285,7 @@ async def modify_table_structure(
             _STRUCTURE_CACHE.invalidate(f"{id}:{request.database_name}{schema_suffix}")
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.delete("/databases/{id}/all-tables", response_model=bool)
@@ -287,7 +301,7 @@ async def delete_all_tables(
             _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post("/databases/{id}/truncate-all-tables", response_model=bool)
@@ -306,7 +320,7 @@ async def truncate_all_tables(
             _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.get("/databases/{id}/ddl", response_model=str)
@@ -319,7 +333,7 @@ async def get_database_ddl(
     try:
         return DatabaseToolService.generate_all_tables_ddl(user_id, id, database_name)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post("/databases/{id}/search", response_model=List[Dict[str, str]])
@@ -364,7 +378,7 @@ async def create_database_instance(
             _LIST_CACHE.invalidate_prefix(f"all_schemas:{id}")
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.delete("/databases/{id}/databases/{name}", response_model=bool)
@@ -383,7 +397,7 @@ async def drop_database_instance(
             _LIST_CACHE.invalidate_prefix(f"all_schemas:{id}")
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.delete("/databases/{id}/tables/{table}", response_model=bool)
@@ -402,7 +416,7 @@ async def drop_table_instance(
             _STRUCTURE_CACHE.invalidate(f"{id}:{database_name}")
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post("/databases/{id}/tables/{table}/truncate", response_model=bool)
@@ -426,21 +440,7 @@ async def truncate_table_instance(
     except HTTPException:
         raise
     except Exception as e:
-        # 提供用户友好的错误信息
-        error_msg = str(e).lower()
-        if any(keyword in error_msg for keyword in [
-            "server closed the connection",
-            "connection closed",
-            "connection refused",
-            "lost connection",
-            "broken pipe",
-            "connection reset",
-        ]):
-            raise HTTPException(
-                status_code=503,
-                detail="数据库连接已断开，请稍后重试。如问题持续，请检查数据库服务状态。",
-            )
-        raise HTTPException(status_code=500, detail=f"清空表失败: {str(e)}")
+        _raise_connection_error(e)
 
 
 # --------------------------------------------------------------------------
@@ -453,8 +453,10 @@ async def execute_sql(
     request: SQLExecutionRequest, user_id: str = Depends(get_current_user_id)
 ):
     """Execute SQL statement"""
-    result = DatabaseToolService.execute_sql(user_id, request)
-    return result
+    try:
+        return DatabaseToolService.execute_sql(user_id, request)
+    except Exception as e:
+        _raise_connection_error(e)
 
 
 @router.get("/history", response_model=List[ExecutionHistory])
@@ -483,7 +485,7 @@ async def get_tables(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.get("/databases/{id}/tables/{table}/schema", response_model=TableSchema)
@@ -500,7 +502,7 @@ async def get_table_schema(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post("/databases/{id}/tables/{table}/data", response_model=SQLExecutionResult)
@@ -526,7 +528,7 @@ async def query_table_data(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 数据导入导出 API ============
@@ -544,7 +546,7 @@ async def export_data(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post("/configs/{id}/import", response_model=ImportDataResponse)
@@ -559,7 +561,7 @@ async def import_data(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 执行计划分析 API ============
@@ -575,7 +577,7 @@ async def explain_plan(
     try:
         return DatabaseToolService.explain_plan(user_id, id, request)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 表数据预览 API ============
@@ -594,7 +596,7 @@ async def table_preview(
     try:
         return DatabaseToolService.table_preview(user_id, id, request)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ SQL 自动补全 API ============
@@ -610,7 +612,7 @@ async def auto_complete(
     try:
         return DatabaseToolService.auto_complete(user_id, id, request)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 数据库备份恢复 API ============
@@ -626,7 +628,7 @@ async def backup_database(
     try:
         return DatabaseToolService.backup_database(user_id, id, request)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post("/configs/{id}/restore", response_model=RestoreDatabaseResponse)
@@ -639,7 +641,7 @@ async def restore_database(
     try:
         return DatabaseToolService.restore_database(user_id, id, request)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 批量删除 API ============
@@ -660,7 +662,7 @@ async def batch_delete_rows(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 行数据插入/更新 API ============
@@ -681,7 +683,7 @@ async def insert_table_row(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.post(
@@ -699,7 +701,7 @@ async def update_table_row(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 表详情 API ============
@@ -719,7 +721,7 @@ async def get_table_detail(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 @router.get("/databases/{id}/tables/{table}/row-count")
@@ -737,7 +739,7 @@ async def get_table_row_count(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_connection_error(e)
 
 
 # ============ 备份文件下载 API ============
