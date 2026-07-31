@@ -14,6 +14,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Header, Body, Response
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import func, or_
+from sqlalchemy.orm import Session
 
 from app.config.config import settings
 from app.utils.usage_fetcher import UsageFetcher
@@ -683,6 +684,20 @@ class ChartSeriesItem(BaseModel):
     cache_tokens: int = 0
 
 
+class SummaryRequest(BaseModel):
+    """summary 端点的请求参数模型，供 _build_summary_payload 复用聚合口径。"""
+    source: str = Field(default="all", description="claude | opencode | all")
+    type: str = Field(default="daily", description="daily | weekly | monthly")
+    days: Optional[int] = Field(default=30, description="查询天数")
+    start_date: Optional[date] = Field(default=None, description="开始日期")
+    group_by: str = Field(default="none", description="none | device | tool | model")
+    device_id: Optional[str] = None
+    tool_id: Optional[str] = None
+    model: Optional[str] = None
+    sort_by: str = Field(default="date")
+    sort_order: str = Field(default="desc")
+
+
 class SummaryUsageSummary(BaseModel):
     """summary 端点专用的汇总结构（比 UsageSummary 多了 cache 拆分）"""
     total_input_tokens: int
@@ -731,6 +746,100 @@ class DetailsResponse(BaseModel):
     cached: bool = False
 
 
+def _build_summary_payload(
+    db: Session, user_id: str, req: SummaryRequest
+) -> Optional[dict]:
+    """
+    从 DB 聚合 summary 数据并构建完整 payload。
+    返回 None 表示该用户无数据（调用方可据此返回空 summary 或跳过缓存写入）。
+
+    与 /summary 路由共用同一份聚合口径，确保：
+      - /summary 路由读 DB 时调用本函数；
+      - warm_query_cache 预热时也调用本函数，输出结构完全一致。
+    """
+    from app.utils.device_name_resolver import load_alias_map
+
+    # 1. 计算日期范围
+    days = req.days if req.days and req.days > 0 else 30
+    if req.start_date:
+        since_date = datetime.combine(req.start_date, datetime.min.time())
+    else:
+        since_date = datetime.now() - timedelta(days=days)
+
+    # 2. 构建基础过滤条件（复用 /summary、/details 共用的口径，保证同名设备等联动一致）
+    alias_map = load_alias_map(db, user_id)
+    base_filters = _build_record_filters(
+        user_id=user_id,
+        req=req,
+        since_date=since_date,
+        alias_map=alias_map,
+        db=db,
+    )
+
+    # 3. 主聚合查询（单次 GROUP BY 拿到所有维度汇总）
+    summary_query = (
+        db.query(
+            TokenUsageRecord.record_date.label("usage_date"),
+            TokenUsageRecord.model.label("model"),
+            TokenUsageRecord.source.label("source"),
+            func.sum(TokenUsageRecord.input_tokens).label("sum_input_tokens"),
+            func.sum(TokenUsageRecord.output_tokens).label("sum_output_tokens"),
+            func.sum(TokenUsageRecord.cache_creation_tokens).label("sum_cache_creation_tokens"),
+            func.sum(TokenUsageRecord.cache_read_tokens).label("sum_cache_read_tokens"),
+            func.sum(TokenUsageRecord.total_cost).label("sum_cost"),
+        )
+        .filter(*base_filters)
+        .group_by(
+            TokenUsageRecord.record_date,
+            TokenUsageRecord.model,
+            TokenUsageRecord.source,
+        )
+    )
+
+    rows = summary_query.all()
+    if not rows:
+        return None
+
+    # 4. 在 Python 内存中聚合为 summary 总览（/summary 不需要按日拆分）
+    total_input_tokens = 0
+    total_output_tokens = 0
+    total_cache_creation_tokens = 0
+    total_cache_read_tokens = 0
+    total_cost = 0.0
+    dates_set: set = set()
+
+    for r in rows:
+        total_input_tokens += int(r.sum_input_tokens or 0)
+        total_output_tokens += int(r.sum_output_tokens or 0)
+        total_cache_creation_tokens += int(r.sum_cache_creation_tokens or 0)
+        total_cache_read_tokens += int(r.sum_cache_read_tokens or 0)
+        total_cost += float(r.sum_cost or 0.0)
+        if r.usage_date:
+            dates_set.add(r.usage_date)
+
+    total_tokens = (
+        total_input_tokens
+        + total_output_tokens
+        + total_cache_creation_tokens
+        + total_cache_read_tokens
+    )
+    days_count = max(len(dates_set), 1)
+    avg_daily_cost = round(total_cost / days_count, 4)
+
+    return {
+        "summary": {
+            "total_input_tokens": total_input_tokens,
+            "total_output_tokens": total_output_tokens,
+            "total_cache_creation_tokens": total_cache_creation_tokens,
+            "total_cache_read_tokens": total_cache_read_tokens,
+            "total_tokens": total_tokens,
+            "total_cost": round(total_cost, 4),
+            "days_count": days_count,
+            "avg_daily_cost": avg_daily_cost,
+        }
+    }
+
+
 @router.get("/summary", response_model=SummaryResponse)
 async def get_token_usage_summary(
     source: str = "all",
@@ -777,7 +886,7 @@ async def get_token_usage_summary(
 
         alias_map = load_alias_map(db, user_id)
 
-        req = SimpleNamespace(
+        req = SummaryRequest(
             source=source,
             type=type,
             days=days,
@@ -789,13 +898,11 @@ async def get_token_usage_summary(
             sort_order="desc",
         )
 
-        has_data = (
-            db.query(TokenUsageRecord)
-            .filter(TokenUsageRecord.user_id == user_id)
-            .first()
-            is not None
-        )
-        if not has_data:
+        since_date = datetime.now() - timedelta(days=days)
+
+        # summary 聚合：复用公共函数，确保 /summary 与 warm_query_cache 口径一致
+        summary_payload = _build_summary_payload(db, user_id, req)
+        if summary_payload is None:
             return SummaryResponse(
                 summary=SummaryUsageSummary(
                     total_input_tokens=0,
@@ -809,40 +916,7 @@ async def get_token_usage_summary(
                 )
             )
 
-        since_date = datetime.now() - timedelta(days=days)
-        
-        # 优化：使用数据库聚合替代 Python 内存聚合
-        agg_result = (
-            db.query(
-                func.sum(TokenUsageRecord.input_tokens).label("total_input"),
-                func.sum(TokenUsageRecord.output_tokens).label("total_output"),
-                func.sum(TokenUsageRecord.cache_creation_tokens).label("total_cc"),
-                func.sum(TokenUsageRecord.cache_read_tokens).label("total_cr"),
-                func.sum(TokenUsageRecord.total_cost).label("total_cost"),
-                func.count(func.distinct(TokenUsageRecord.record_date)).label("days_count"),
-            )
-            .filter(*_build_record_filters(user_id, req, since_date, alias_map, db=db))
-            .first()
-        )
-        
-        total_input = int(agg_result.total_input or 0)
-        total_output = int(agg_result.total_output or 0)
-        total_cc = int(agg_result.total_cc or 0)
-        total_cr = int(agg_result.total_cr or 0)
-        total_tokens = total_input + total_output + total_cc + total_cr
-        total_cost = float(agg_result.total_cost or 0)
-        days_count = int(agg_result.days_count or 0)
-
-        summary = SummaryUsageSummary(
-            total_input_tokens=total_input,
-            total_output_tokens=total_output,
-            total_cache_creation_tokens=total_cc,
-            total_cache_read_tokens=total_cr,
-            total_tokens=total_tokens,
-            total_cost=round(total_cost, 4),
-            days_count=days_count,
-            avg_daily_cost=round(total_cost / max(days_count, 1), 4),
-        )
+        summary = SummaryUsageSummary(**summary_payload["summary"])
 
         dimension_rows, filter_options = _query_dimension_data(
             db, user_id, req, since_date, alias_map
