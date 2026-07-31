@@ -123,7 +123,6 @@ def run_background_sync_once(days: int, max_users: int) -> dict[str, list[str]]:
         try:
             sync_result = sync_token_usage(user_id=user_id, days=days)
             invalidate_user_query_cache(user_id)
-            warm_query_cache(user_id)
             result["synced_users"].append(user_id)
             user_elapsed_ms = int((time.perf_counter() - user_started) * 1000)
             logger.info(
@@ -144,6 +143,11 @@ def run_background_sync_once(days: int, max_users: int) -> dict[str, list[str]]:
                 exc_info=True,
             )
         finally:
+            # 无论 sync 成功或异常，都尝试用当前 DB 数据预热缓存：
+            # - 成功路径：拿新数据，避免下次冷查询
+            # - 异常路径：sync 失败但 DB 中仍有上一次同步的数据，预热"上一版"快照
+            #   比冷查询更友好；warm_query_cache 内部已 try/except 静默失败
+            warm_query_cache(user_id)
             release_refresh_lock(user_id, owner)
 
     elapsed_ms = int((time.perf_counter() - started_at) * 1000)
