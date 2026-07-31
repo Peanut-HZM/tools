@@ -250,6 +250,14 @@ export interface SyncTokenUsageResponse {
   fingerprint_match?: FingerprintMatch | null;
 }
 
+/** 后端 /sync 路由立即返回的结构（后台线程异步执行同步）。 */
+export interface SyncStartResponse {
+  success: boolean;
+  message: string;
+  background: boolean;
+  started: boolean;
+}
+
 async function readError(response: Response, fallback: string): Promise<Error> {
   const error = await response.json().catch(() => ({ detail: response.statusText }));
   return new Error(error.detail || fallback);
@@ -326,7 +334,7 @@ export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageRes
   return response.json();
 }
 
-export async function syncTokenUsage(): Promise<SyncTokenUsageResponse> {
+export async function syncTokenUsage(): Promise<SyncStartResponse> {
   const response = await fetch(`${BASE_URL}/sync`, {
     method: 'POST',
     headers: {
@@ -335,7 +343,7 @@ export async function syncTokenUsage(): Promise<SyncTokenUsageResponse> {
     },
   });
   if (!response.ok) {
-    throw await readError(response, '同步失败');
+    throw await readError(response, '同步启动失败');
   }
   return response.json();
 }

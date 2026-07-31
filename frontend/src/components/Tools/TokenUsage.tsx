@@ -34,6 +34,7 @@ import {
   mergeDevices,
   refreshTokenUsage,
   renameDevice,
+  syncTokenUsage,
   type DbUsageItem,
   type DeviceInfo,
   type FingerprintMatch,
@@ -52,7 +53,6 @@ import { useDebouncedValue } from './hooks/useDebouncedValue';
 import { useTokenUsageSummary } from './hooks/useTokenUsageSummary';
 import { useTokenUsageDetails } from './hooks/useTokenUsageDetails';
 import { useTokenUsagePolling } from './hooks/useTokenUsagePolling';
-import { getAuthToken } from '../../api/authApi';
 import DimensionPieCard, { type PieSlice } from './TokenUsage/DimensionPieCard';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -303,21 +303,11 @@ export default function TokenUsage() {
     setSyncing(true);
     setSyncError(null);
     try {
-      const token = getAuthToken() || '';
-      const res = await fetch('/api/token-usage/refresh-ccusage', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      await Promise.all([summary.refresh(), details.refresh()]);
-      await loadDevices();
-      showToast(`同步完成: ${data.synced_records} 条`, 'success', 3000);
+      const result = await syncTokenUsage();
+      showToast(result.message || '后台同步已启动', 'success', 3000);
+      // 不再 await 同步完成，30 秒轮询自动刷新
     } catch (e: any) {
-      setSyncError(e.message || '同步失败');
+      setSyncError(e.message || '同步启动失败');
     } finally {
       setSyncing(false);
     }
