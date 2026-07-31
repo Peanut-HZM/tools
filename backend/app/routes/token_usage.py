@@ -826,18 +826,61 @@ def _build_summary_payload(
     days_count = max(len(dates_set), 1)
     avg_daily_cost = round(total_cost / days_count, 4)
 
-    return {
-        "summary": {
-            "total_input_tokens": total_input_tokens,
-            "total_output_tokens": total_output_tokens,
-            "total_cache_creation_tokens": total_cache_creation_tokens,
-            "total_cache_read_tokens": total_cache_read_tokens,
-            "total_tokens": total_tokens,
-            "total_cost": round(total_cost, 4),
-            "days_count": days_count,
-            "avg_daily_cost": avg_daily_cost,
-        }
-    }
+    summary = SummaryUsageSummary(
+        total_input_tokens=total_input_tokens,
+        total_output_tokens=total_output_tokens,
+        total_cache_creation_tokens=total_cache_creation_tokens,
+        total_cache_read_tokens=total_cache_read_tokens,
+        total_tokens=total_tokens,
+        total_cost=round(total_cost, 4),
+        days_count=days_count,
+        avg_daily_cost=avg_daily_cost,
+    )
+
+    # 5. 维度汇总（复用 /summary、/details 共用口径，保证同名设备等联动一致）
+    dimension_rows, filter_options = _query_dimension_data(
+        db, user_id, req, since_date, alias_map
+    )
+
+    # 6. 模型汇总
+    model_rows = _execute_model_summary_query(db, user_id, req, since_date, alias_map)
+    model_summary = _rows_to_model_summary(model_rows)
+
+    # 7. 设备列表
+    device_names = _load_device_names(db, user_id)
+    devices = [{"id": did, "name": name} for did, name in device_names.items()]
+
+    # 8. 图表数据（单独查询，只取必要字段，避免全列扫描）
+    chart_records = (
+        db.query(
+            TokenUsageRecord.record_date,
+            TokenUsageRecord.input_tokens,
+            TokenUsageRecord.output_tokens,
+            TokenUsageRecord.cache_creation_tokens,
+            TokenUsageRecord.cache_read_tokens,
+            TokenUsageRecord.total_tokens,
+            TokenUsageRecord.total_cost,
+        )
+        .filter(*_build_record_filters(user_id, req, since_date, alias_map, db=db))
+        .all()
+    )
+    chart_series = build_chart_series(chart_records, req.group_by)
+
+    # 9. 同步元信息
+    sync_meta = _get_sync_meta(db, user_id, req, None)
+
+    # 10. 组装完整 payload（与 /summary 路由返回结构一致，排除 cached 字段）
+    payload = SummaryResponse(
+        summary=summary,
+        dimension_summaries=_to_dimension_summaries(dimension_rows),
+        model_summary=model_summary,
+        filter_options=_to_filter_options(filter_options),
+        sync_meta=_to_sync_meta(sync_meta),
+        chart_series=[ChartSeriesItem(**s) for s in chart_series],
+        devices=devices,
+    ).model_dump(exclude={"cached"})
+
+    return payload
 
 
 @router.get("/summary", response_model=SummaryResponse)
@@ -882,10 +925,6 @@ async def get_token_usage_summary(
 
     db = SessionLocal()
     try:
-        from app.utils.device_name_resolver import load_alias_map
-
-        alias_map = load_alias_map(db, user_id)
-
         req = SummaryRequest(
             source=source,
             type=type,
@@ -898,11 +937,9 @@ async def get_token_usage_summary(
             sort_order="desc",
         )
 
-        since_date = datetime.now() - timedelta(days=days)
-
-        # summary 聚合：复用公共函数，确保 /summary 与 warm_query_cache 口径一致
-        summary_payload = _build_summary_payload(db, user_id, req)
-        if summary_payload is None:
+        # 完整 payload 构建：复用公共函数，确保 /summary 与 warm_query_cache 口径一致
+        payload = _build_summary_payload(db, user_id, req)
+        if payload is None:
             return SummaryResponse(
                 summary=SummaryUsageSummary(
                     total_input_tokens=0,
@@ -915,46 +952,6 @@ async def get_token_usage_summary(
                     avg_daily_cost=0.0,
                 )
             )
-
-        summary = SummaryUsageSummary(**summary_payload["summary"])
-
-        dimension_rows, filter_options = _query_dimension_data(
-            db, user_id, req, since_date, alias_map
-        )
-
-        model_rows = _execute_model_summary_query(db, user_id, req, since_date, alias_map)
-        model_summary = _rows_to_model_summary(model_rows)
-
-        device_names = _load_device_names(db, user_id)
-        devices = [{"id": did, "name": name} for did, name in device_names.items()]
-
-        # 优化：单独查询用于图表的数据（只取必要字段）
-        chart_records = (
-            db.query(
-                TokenUsageRecord.record_date,
-                TokenUsageRecord.input_tokens,
-                TokenUsageRecord.output_tokens,
-                TokenUsageRecord.cache_creation_tokens,
-                TokenUsageRecord.cache_read_tokens,
-                TokenUsageRecord.total_tokens,
-                TokenUsageRecord.total_cost,
-            )
-            .filter(*_build_record_filters(user_id, req, since_date, alias_map, db=db))
-            .all()
-        )
-        chart_series = build_chart_series(chart_records, group_by)
-
-        sync_meta = _get_sync_meta(db, user_id, req, None)
-
-        payload = SummaryResponse(
-            summary=summary,
-            dimension_summaries=_to_dimension_summaries(dimension_rows),
-            model_summary=model_summary,
-            filter_options=_to_filter_options(filter_options),
-            sync_meta=_to_sync_meta(sync_meta),
-            chart_series=[ChartSeriesItem(**s) for s in chart_series],
-            devices=devices,
-        ).model_dump(exclude={"cached"})
 
         # 写入 Redis 缓存
         set_query_cached_data(
