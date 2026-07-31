@@ -10,6 +10,17 @@ import shutil
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 为 PostgreSQL 专属类型注册 SQLite 编译器，使全量建表 fixture（Base.metadata.create_all）
+# 能在 SQLite 测试库上运行。仅影响 SQLite 测试库 DDL 编译，不触碰生产 PostgreSQL 模型。
+from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy.ext.compiler import compiles
+
+
+@compiles(INET, "sqlite")
+def _compile_inet_for_sqlite(element, compiler, **kw):
+    """SQLite 无 INET 类型，降级为 VARCHAR(45)（足以容纳 IPv6 地址）。"""
+    return "VARCHAR(45)"
+
 
 @pytest.fixture(scope="session")
 def test_user_id():
