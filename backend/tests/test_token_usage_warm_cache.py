@@ -2,7 +2,7 @@
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
-from app.routes import token_usage
+from app.services import token_usage_cache
 
 
 def _make_full_payload():
@@ -32,9 +32,9 @@ def test_warm_returns_false_when_user_has_no_data():
     fake_db = MagicMock()
     fake_db.query.return_value.filter.return_value.first.return_value = None
 
-    with patch("app.routes.token_usage.SessionLocal", return_value=fake_db):
-        with patch("app.routes.token_usage.set_query_cached_data") as mock_set:
-            result = token_usage.warm_query_cache("user-empty")
+    with patch("app.models.base.SessionLocal", return_value=fake_db):
+        with patch("app.services.token_usage_cache.set_query_cached_data") as mock_set:
+            result = token_usage_cache.warm_query_cache("user-empty")
 
     assert result is False
     mock_set.assert_not_called()
@@ -47,16 +47,16 @@ def test_warm_writes_cache_when_user_has_data():
 
     fake_payload = _make_full_payload()
 
-    with patch("app.routes.token_usage.SessionLocal", return_value=fake_db):
+    with patch("app.models.base.SessionLocal", return_value=fake_db):
         with patch(
             "app.routes.token_usage._build_summary_payload",
             return_value=fake_payload,
         ) as mock_build:
             with patch(
-                "app.routes.token_usage.set_query_cached_data",
+                "app.services.token_usage_cache.set_query_cached_data",
                 return_value=True,
             ) as mock_set:
-                result = token_usage.warm_query_cache("user-1")
+                result = token_usage_cache.warm_query_cache("user-1")
 
     assert result is True
     mock_build.assert_called_once()
@@ -77,16 +77,16 @@ def test_warm_returns_false_when_redis_unavailable():
     fake_db = MagicMock()
     fake_db.query.return_value.filter.return_value.first.return_value = MagicMock()
 
-    with patch("app.routes.token_usage.SessionLocal", return_value=fake_db):
+    with patch("app.models.base.SessionLocal", return_value=fake_db):
         with patch(
             "app.routes.token_usage._build_summary_payload",
             return_value=_make_full_payload(),
         ):
             with patch(
-                "app.routes.token_usage.set_query_cached_data",
+                "app.services.token_usage_cache.set_query_cached_data",
                 return_value=False,
             ):
-                result = token_usage.warm_query_cache("user-1")
+                result = token_usage_cache.warm_query_cache("user-1")
 
     assert result is False
 
@@ -96,13 +96,13 @@ def test_warm_returns_false_when_build_payload_returns_none():
     fake_db = MagicMock()
     fake_db.query.return_value.filter.return_value.first.return_value = MagicMock()
 
-    with patch("app.routes.token_usage.SessionLocal", return_value=fake_db):
+    with patch("app.models.base.SessionLocal", return_value=fake_db):
         with patch(
             "app.routes.token_usage._build_summary_payload",
             return_value=None,
         ):
-            with patch("app.routes.token_usage.set_query_cached_data") as mock_set:
-                result = token_usage.warm_query_cache("user-1")
+            with patch("app.services.token_usage_cache.set_query_cached_data") as mock_set:
+                result = token_usage_cache.warm_query_cache("user-1")
 
     assert result is False
     mock_set.assert_not_called()
@@ -113,9 +113,9 @@ def test_warm_returns_false_on_exception():
     fake_db = MagicMock()
     fake_db.query.return_value.filter.return_value.first.side_effect = RuntimeError("db down")
 
-    with patch("app.routes.token_usage.SessionLocal", return_value=fake_db):
-        with patch("app.routes.token_usage.set_query_cached_data") as mock_set:
-            result = token_usage.warm_query_cache("user-1")
+    with patch("app.models.base.SessionLocal", return_value=fake_db):
+        with patch("app.services.token_usage_cache.set_query_cached_data") as mock_set:
+            result = token_usage_cache.warm_query_cache("user-1")
 
     assert result is False
     mock_set.assert_not_called()

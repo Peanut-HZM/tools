@@ -5,6 +5,7 @@ import logging
 import threading
 import time
 from datetime import datetime
+from types import SimpleNamespace
 from typing import Optional
 import redis
 from app.config.config import settings
@@ -421,3 +422,72 @@ def release_refresh_lock(user_id: str, owner: str) -> None:
             client.delete(key)
     except Exception as e:
         logger.warning(f"Token Usage 刷新锁释放失败: {e}")
+
+
+def warm_query_cache(user_id: str) -> bool:
+    """同步完成后预热常用 summary 查询缓存，避免首屏冷查询。
+
+    只预热 daily / 30 天 / source=all / 无筛选 这一最常用组合；
+    其他组合仍走正常"未命中 -> DB -> 回写"路径。
+    用户无数据、Redis 不可用、构建失败、异常时静默返回 False，不影响同步主流程。
+
+    注意：此函数构造完整 payload（与 /summary 路由缓存写入结构一致）。
+    使用 app.models.token_usage_models.TokenUsageRecord 与 DB ORM；
+    复用 _build_summary_payload 同口径的聚合 SQL（函数内延迟导入避免循环依赖）。
+    """
+    from app.models.base import SessionLocal
+    from app.models.token_usage_models import TokenUsageRecord
+    from app.routes.token_usage import _build_summary_payload
+
+    db = SessionLocal()
+    try:
+        has_data = (
+            db.query(TokenUsageRecord)
+            .filter(TokenUsageRecord.user_id == user_id)
+            .first()
+            is not None
+        )
+        if not has_data:
+            logger.info(f"warm_query_cache 跳过: user={user_id} 无数据")
+            return False
+
+        # 构造与 /summary 默认参数一致的 req（10 字段全部包含）
+        req = SimpleNamespace(
+            source="all",
+            type="daily",
+            days=30,
+            start_date=None,
+            group_by="none",
+            device_id=None,
+            tool_id=None,
+            model=None,
+            sort_by="date",
+            sort_order="desc",
+        )
+
+        payload = _build_summary_payload(db, user_id, req)
+        if payload is None:
+            logger.info(f"warm_query_cache 跳过: user={user_id} payload 为空")
+            return False
+
+        written = set_query_cached_data(
+            source="all",
+            report_type="daily",
+            days=30,
+            group_by="none",
+            user_id=user_id,
+            device_id="",
+            tool_id="",
+            model="",
+            sort_by="date",
+            sort_order="desc",
+            data=payload,
+        )
+        if written:
+            logger.info(f"warm_query_cache 预热成功: user={user_id}")
+        return bool(written)
+    except Exception as e:
+        logger.warning(f"warm_query_cache 预热失败: user={user_id}, error={e}")
+        return False
+    finally:
+        db.close()

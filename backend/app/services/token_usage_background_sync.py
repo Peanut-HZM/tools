@@ -19,6 +19,7 @@ from app.services.token_usage_cache import (
     acquire_refresh_lock,
     invalidate_user_query_cache,
     release_refresh_lock,
+    warm_query_cache,
 )
 from app.services.token_usage_sync_service import sync_token_usage
 from app.utils.device_id import get_device_id
@@ -122,6 +123,7 @@ def run_background_sync_once(days: int, max_users: int) -> dict[str, list[str]]:
         try:
             sync_result = sync_token_usage(user_id=user_id, days=days)
             invalidate_user_query_cache(user_id)
+            warm_query_cache(user_id)
             result["synced_users"].append(user_id)
             user_elapsed_ms = int((time.perf_counter() - user_started) * 1000)
             logger.info(

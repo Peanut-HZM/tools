@@ -27,6 +27,7 @@ from app.services.token_usage_cache import (
     invalidate_device_query_cache,
     acquire_refresh_lock,
     release_refresh_lock,
+    warm_query_cache,
 )
 from app.models.base import SessionLocal
 from app.models.token_usage_models import (
@@ -882,69 +883,6 @@ def _build_summary_payload(
     ).model_dump(exclude={"cached"})
 
     return payload
-
-
-def warm_query_cache(user_id: str) -> bool:
-    """同步完成后预热常用 summary 查询缓存，避免首屏冷查询。
-
-    只预热 daily / 30 天 / source=all / 无筛选 这个最常用组合；
-    其他组合仍走正常"未命中 -> DB -> 回写"路径。
-    用户无数据、Redis 不可用、构建失败、异常时静默返回 False，不影响同步主流程。
-    """
-    db = SessionLocal()
-    try:
-        # 仅当该用户有数据时才预热，避免空查询浪费
-        has_data = (
-            db.query(TokenUsageRecord)
-            .filter(TokenUsageRecord.user_id == user_id)
-            .first()
-            is not None
-        )
-        if not has_data:
-            logger.info(f"warm_query_cache 跳过: user={user_id} 无数据")
-            return False
-
-        # 构造与 /summary 默认参数一致的 req（含全部 SummaryRequest 字段）
-        req = SimpleNamespace(
-            source="all",
-            type="daily",
-            days=30,
-            start_date=None,
-            group_by="none",
-            device_id=None,
-            tool_id=None,
-            model=None,
-            sort_by="date",
-            sort_order="desc",
-        )
-
-        payload = _build_summary_payload(db, user_id, req)
-        if payload is None:
-            logger.info(f"warm_query_cache 跳过: user={user_id} payload 为空")
-            return False
-
-        written = set_query_cached_data(
-            source="all",
-            report_type="daily",
-            days=30,
-            group_by="none",
-            user_id=user_id,
-            device_id="",
-            tool_id="",
-            model="",
-            sort_by="date",
-            sort_order="desc",
-            data=payload,
-        )
-        if written:
-            logger.info(f"warm_query_cache 预热成功: user={user_id}")
-        return bool(written)
-    except Exception as e:
-        # 预热失败不影响同步主流程，仅记日志
-        logger.warning(f"warm_query_cache 预热失败: user={user_id}, error={e}")
-        return False
-    finally:
-        db.close()
 
 
 @router.get("/summary", response_model=SummaryResponse)
