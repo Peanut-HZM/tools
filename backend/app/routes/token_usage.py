@@ -1451,12 +1451,13 @@ async def sync_token_usage_endpoint(
         }
 
     def _run_sync():
-        """在后台线程中执行同步，不阻塞 HTTP 响应"""
+        """在后台线程中执行同步，不阻塞 HTTP 响应。完成后预热 summary 缓存。"""
         try:
             invalidate_user_query_cache(user_id)
             sync_token_usage(user_id=user_id, days=90)
         finally:
             invalidate_user_query_cache(user_id)
+            warm_query_cache(user_id)
 
     thread = threading.Thread(target=_run_sync, daemon=True)
     thread.start()
