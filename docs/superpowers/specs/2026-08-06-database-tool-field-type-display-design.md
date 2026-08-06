@@ -84,7 +84,7 @@ export function formatCellValue(value: unknown, colDef?: ColumnTypeInfo | null):
      - `numeric(8,4)` → scale = 4
      - `decimal` / `numeric`（无括号）→ scale = 2
      - `decimal(10)`（仅 precision）→ scale = 2（fallback）
-     - 调用 `value.toFixed(scale)`
+     - 调用 `value.toFixed(scale)`（JS toFixed 行为：四舍五入到 scale 位）
    - 其他类型（含 `undefined`）→ `value.toString()`（不动用 `toFixed`）
 
 ### scale 解析正则
@@ -122,7 +122,7 @@ function extractScale(type: string | undefined): number | null {
 
 - `formatCellValue` 内部整合日期与数值两类格式化
 - 移除 `ResultViewer.tsx` 内 `formatNumericValue` 函数（约 11 行）
-- 保留 `formatDateTimeValue` 不删除（不在范围内，避免无意义改动）；后续若确认无用再清理
+- 删除 `formatDateTimeValue` 函数（约 17 行），其逻辑已并入 `formatCellValue`
 
 ### 数据流
 
@@ -196,6 +196,7 @@ Vitest，覆盖矩阵：
 2. 新建 `frontend/src/utils/cellFormatter.test.ts`
 3. 修改 `frontend/src/components/Tools/DatabaseTool/components/ResultViewer.tsx`
    - 删除 `formatNumericValue` 函数
+   - 删除 `formatDateTimeValue` 函数（逻辑已并入新函数）
    - 引入 `formatCellValue` 并替换 `renderCell` 内的调用
 4. 运行 `pnpm vitest run cellFormatter.test.ts` 验证单测
 5. 浏览器 E2E 验证
@@ -203,4 +204,4 @@ Vitest，覆盖矩阵：
 ## 不在本设计的关联项
 
 - `SQLExecutor.tsx` 中如果有相同展示问题，留作 follow-up（本次扫描未发现 `formatNumericValue` 的复用，但 SQLExecutor 自有展示代码可能存在）
-- `ResultViewer` 内的 `formatDateTimeValue` 暂保留，避免不必要改动
+- `ResultViewer` 内的 `formatDateTimeValue` 删除（已并入 `formatCellValue`）
