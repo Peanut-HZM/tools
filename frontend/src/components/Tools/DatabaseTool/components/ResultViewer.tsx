@@ -4,6 +4,7 @@ import { useI18n, interpolate } from '../../../../i18n';
 import { TruncatedText } from '../../../Common/TruncatedText';
 import JsonViewModal from './JsonViewModal';
 import { generateInsertStatements, generateUpdateStatements } from '../../../../utils/sqlGenerator';
+import { formatCellValue } from '../../../../utils/cellFormatter';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
 import ColumnSelector from './ColumnSelector';
@@ -357,43 +358,6 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
     return 'text';
   };
 
-  /**
-   * 格式化日期时间值。对于日期/时间类型的列，将 ISO 格式字符串转为可读的本地化格式。
-   */
-  const formatDateTimeValue = (value: any, colDef: any): string => {
-    if (value === null || value === undefined) return '';
-    const strValue = String(value);
-    // 仅对日期/时间类型的列进行格式化
-    if (colDef?.type) {
-      const type = colDef.type.toLowerCase();
-      const isDateTime = type === 'date' || type === 'datetime' || type.includes('timestamp');
-      if (isDateTime) {
-        // 尝试解析为 Date 对象，如果解析失败则返回原始值
-        const date = new Date(strValue);
-        if (!isNaN(date.getTime())) {
-          return date.toLocaleString('zh-CN');
-        }
-      }
-    }
-    return strValue;
-  };
-
-  /**
-   * 格式化数值显示。金额/数值字段默认保留两位小数，
-   * 如果实际小数位数超过两位则完整显示。
-   */
-  const formatNumericValue = (value: any): string => {
-    if (typeof value !== 'number' || !isFinite(value)) return String(value);
-    // 整数或小数位数 ≤ 2 的，统一显示两位小数
-    const str = value.toString();
-    const dotIndex = str.indexOf('.');
-    if (dotIndex === -1 || str.length - dotIndex - 1 <= 2) {
-      return value.toFixed(2);
-    }
-    // 小数位数 > 2 的，完整显示
-    return str;
-  };
-
   const totalChanges = cellEdits.size + newRows.length;
 
   if (!result) {
@@ -526,7 +490,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         {displayValue === null ? (
           <span className="text-slate-600 italic">NULL</span>
         ) : (
-          <TruncatedText text={typeof displayValue === 'number' ? formatNumericValue(displayValue) : formatDateTimeValue(displayValue, colDef)} />
+          <TruncatedText text={formatCellValue(displayValue, colDef)} />
         )}
       </span>
     );
