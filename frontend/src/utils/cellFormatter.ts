@@ -57,15 +57,15 @@ export function formatCellValue(value: unknown, colDef?: ColumnTypeInfo | null):
   const type = colDef?.type?.toLowerCase();
   if (!type) return value.toString();
 
-  // 整数类型
-  if (/int/.test(type)) return value.toString();
+  // 整数类型（精确匹配，避免误匹配 point/polygon/interval 等）
+  if (/\b(?:tiny|small|medium|big)?int(?:eger)?\b/i.test(type)) return value.toString();
 
   // 浮点类型
   if (/float|double|real/.test(type)) return value.toString();
 
   // decimal / numeric
   if (/decimal|numeric/.test(type)) {
-    const scale = extractScale(colDef?.type) ?? 2;
+    const scale = extractScale(type) ?? 2;
     return value.toFixed(scale);
   }
 
