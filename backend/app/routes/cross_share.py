@@ -116,13 +116,8 @@ def get_oss_download_url(oss_key: str, expires: int = 3600) -> str:
         # 前端应检查该 URL 是否指向本地代理，并给出友好提示
         return f"/api/cross-share/files/by-key/{oss_key}/proxy"
 
-    # 生成签名 URL
+    # 生成签名 URL（公网 endpoint client 直接生成 https，无需事后改 scheme）
     download_url = oss_service.sign_url('GET', oss_key, expires)
-
-    # 根据 Minio 配置决定是否强制 HTTPS
-    if settings.MINIO_SECURE and download_url.startswith('http://'):
-        download_url = 'https://' + download_url[7:]
-
     return download_url
 
 
