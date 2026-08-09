@@ -2,7 +2,6 @@
 
 import logging
 import os
-import shutil
 import time
 from datetime import datetime, timedelta
 from typing import Optional
@@ -47,9 +46,6 @@ class UsageFetcher:
         """调用 ccusage 获取 Claude Code token 统计"""
         if _DESKTOP_MODE:
             return {"error": "Token Usage CLI 功能在桌面模式下不可用"}
-
-        if shutil.which("ccusage") is None:
-            return {"error": "CLI 未安装: ccusage"}
 
         cache_key = f"claude:{report_type}:{since}:{until}:{breakdown}"
         cached = _get_from_cache(cache_key)
