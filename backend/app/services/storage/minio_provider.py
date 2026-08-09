@@ -24,6 +24,12 @@ class MinioProvider(StorageProvider):
             secret_key=settings.MINIO_SECRET_KEY,
             secure=not is_internal and settings.MINIO_SECURE,
         )
+        self._public_client = Minio(
+            settings.MINIO_ENDPOINT,
+            access_key=settings.MINIO_ACCESS_KEY,
+            secret_key=settings.MINIO_SECRET_KEY,
+            secure=settings.MINIO_SECURE,
+        )
         self._public_endpoint = (
             f"https://{settings.MINIO_ENDPOINT}"
             if settings.MINIO_SECURE
@@ -122,11 +128,11 @@ class MinioProvider(StorageProvider):
         from datetime import timedelta
 
         if method.upper() == "GET":
-            return self._client.presigned_get_object(
+            return self._public_client.presigned_get_object(
                 self._bucket_name, object_name, expires=timedelta(seconds=expires)
             )
         elif method.upper() == "PUT":
-            return self._client.presigned_put_object(
+            return self._public_client.presigned_put_object(
                 self._bucket_name, object_name, expires=timedelta(seconds=expires)
             )
         else:
