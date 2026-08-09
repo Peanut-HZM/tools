@@ -4,19 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 快速开始
 
-### 使用 dev_services.py 管理服务（推荐）
+### 使用 dev-services.py 管理服务（推荐）
 
 ```bash
 # 启动前后端服务
-python dev_services.py
+python dev-services.py
 
 # 其他子命令
-python dev_services.py status      # 查看服务状态
-python dev_services.py restart     # 重启前后端服务
-python dev_services.py stop        # 停止前后端服务
-python dev_services.py kill all    # 强制终止所有服务
-python dev_services.py logs backend  # 查看后端实时日志
-python dev_services.py logs frontend # 查看前端实时日志
+python dev-services.py status      # 查看服务状态
+python dev-services.py restart     # 重启前后端服务
+python dev-services.py stop        # 停止前后端服务
+python dev-services.py kill all    # 强制终止所有服务
+python dev-services.py logs backend  # 查看后端实时日志
+python dev-services.py logs frontend # 查看前端实时日志
 ```
 
 访问 http://localhost:5178
@@ -108,7 +108,7 @@ tools/
 3. **最小变更**: 只修改必要的代码，不改动已正常的业务逻辑
 4. **编译验证**: 修改后必须验证能正常编译
 5. **日志**: 后端关键代码必须包含日志记录
-6. **服务重启**: 完成代码修改后，必须使用 `dev_services.py` 脚本重启相关模块以应用变更
+6. **服务重启**: 完成代码修改后，必须使用 `dev-services.py` 脚本重启相关模块以应用变更
 
 ### 服务重启规则
 
@@ -116,19 +116,19 @@ tools/
 
 ```bash
 # 重启前后端服务
-python dev_services.py restart
+python dev-services.py restart
 
 # 或仅重启后端（只修改了后端代码时）
-python dev_services.py restart backend
+python dev-services.py restart backend
 
 # 或仅重启前端（只修改了前端代码时）
-python dev_services.py restart frontend
+python dev-services.py restart frontend
 
 # 确认服务状态
-python dev_services.py status
+python dev-services.py status
 ```
 
-**注意**: 不要手动使用 `uvicorn` 或 `npm run dev` 重启服务，统一通过 `dev_services.py` 管理。
+**注意**: 不要手动使用 `uvicorn` 或 `npm run dev` 重启服务，统一通过 `dev-services.py` 管理。
 
 ## 配置
 

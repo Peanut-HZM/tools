@@ -35,24 +35,24 @@
 
 ### 一键启动
 
-**推荐使用 dev_services.py 管理服务（最简单）：**
+**推荐使用 dev-services.py 管理服务（最简单）：**
 
 ```bash
 # 启动前后端服务
-python dev_services.py
+python dev-services.py
 
 # 查看服务状态
-python dev_services.py status
+python dev-services.py status
 
 # 重启服务
-python dev_services.py restart
+python dev-services.py restart
 
 # 停止服务
-python dev_services.py stop
+python dev-services.py stop
 
 # 查看实时日志
-python dev_services.py logs backend
-python dev_services.py logs frontend
+python dev-services.py logs backend
+python dev-services.py logs frontend
 ```
 
 **传统方式（手动启动）：**

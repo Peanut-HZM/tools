@@ -59,24 +59,24 @@ Python 3.10+ (后端), TypeScript/React 18 (前端): 遵循标准规范
 
 ### 2. 热重载规范
 
-**核心原则：优先使用 `dev_services.py` 管理服务，脚本已内置热重载支持。**
+**核心原则：优先使用 `dev-services.py` 管理服务，脚本已内置热重载支持。**
 
 #### 2.1 服务管理脚本
 
-项目根目录提供 `dev_services.py` 脚本，**所有服务启停操作必须使用该脚本**：
+项目根目录提供 `dev-services.py` 脚本，**所有服务启停操作必须使用该脚本**：
 
 ```bash
-python dev_services.py                  # 启动前后端服务（默认）
-python dev_services.py status           # 查看服务状态
-python dev_services.py restart          # 重启前后端服务
-python dev_services.py stop             # 停止前后端服务
-python dev_services.py kill backend     # 强制终止后端
-python dev_services.py kill all         # 强制终止所有服务
-python dev_services.py logs backend     # 查看后端实时日志
-python dev_services.py logs frontend    # 查看前端实时日志
-python dev_services.py start -f         # 前台模式启动（调试用）
-python dev_services.py start --backend-only  # 只启动后端
-python dev_services.py start --frontend-only # 只启动前端
+python dev-services.py                  # 启动前后端服务（默认）
+python dev-services.py status           # 查看服务状态
+python dev-services.py restart          # 重启前后端服务
+python dev-services.py stop             # 停止前后端服务
+python dev-services.py kill backend     # 强制终止后端
+python dev-services.py kill all         # 强制终止所有服务
+python dev-services.py logs backend     # 查看后端实时日志
+python dev-services.py logs frontend    # 查看前端实时日志
+python dev-services.py start -f         # 前台模式启动（调试用）
+python dev-services.py start --backend-only  # 只启动后端
+python dev-services.py start --frontend-only # 只启动前端
 ```
 
 **脚本特性：**
@@ -120,7 +120,7 @@ python dev_services.py start --frontend-only # 只启动前端
 用户请求修改代码
     ↓
 判断：是否影响运行时配置？
-    ├─ 是 → 使用 dev_services.py restart 重启
+    ├─ 是 → 使用 dev-services.py restart 重启
     └─ 否 → 使用热重载，通知用户无需重启
 ```
 

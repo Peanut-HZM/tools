@@ -5,7 +5,7 @@ starlette>=0.27.0,<0.28.0
 anyio>=3.7.1,<4.0.0
 
 # Data validation
-pydantic==2.5.0
+pydantic>=2.5.0
 pydantic[email]>=2.5.0
 email-validator>=2.1.0
 pydantic-settings>=2.0.0
@@ -31,7 +31,7 @@ slowapi>=0.1.9
 
 # Web scraping
 beautifulsoup4==4.12.2
-lxml==4.9.3
+lxml>=4.9.3
 
 # Media processing
 yt-dlp>=2023.12.30
@@ -39,7 +39,7 @@ imageio-ffmpeg>=0.4.9
 
 # OCR & ASR
 opencv-python-headless>=4.8.0
-numpy>=1.24.0,<2.0.0
+numpy>=1.26.0
 pypdfium2>=4.24.0
 qrcode>=7.4.2
 

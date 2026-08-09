@@ -156,7 +156,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"数据库连接池初始化失败（将按需懒加载）: {e}")
 
-    # 打印启动完成信号（dev_services.py 检测此关键字）
+    # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")
 
     # 启动 ccusage 调度器

@@ -65,7 +65,7 @@ DEFAULT_PORTS = {
     "taro": 5173,
     "next": 3000,
     "node-backend": 3000,
-    "python": 8000,
+    "python": 19092,
     "spring-boot": 8080,
     "spring-boot-gradle": 8080,
 }
