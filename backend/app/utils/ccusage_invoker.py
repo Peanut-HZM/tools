@@ -180,8 +180,15 @@ def build_cmd(args: list[str]) -> list[str]:
         if not node_path:
             return []
         npm_dir = os.path.dirname(ccusage_path)
-        js_path = os.path.join(npm_dir, "node_modules", "ccusage", "dist", "cli.js")
-        if not os.path.exists(js_path):
+        # 同时支持老版 (dist/cli.js) 与新版 (src/cli.js) 布局
+        js_candidates = [
+            os.path.join(npm_dir, "node_modules", "ccusage", "dist", "cli.js"),
+            os.path.join(npm_dir, "node_modules", "ccusage", "dist", "index.js"),
+            os.path.join(npm_dir, "node_modules", "ccusage", "src", "cli.js"),
+            os.path.join(npm_dir, "node_modules", "ccusage", "src", "index.js"),
+        ]
+        js_path = next((p for p in js_candidates if os.path.exists(p)), None)
+        if js_path is None:
             return []
         return [node_path, js_path] + list(args)
 
@@ -406,17 +413,24 @@ def run_generic_cli(cli_name: str, args: list[str], timeout: int = 180) -> dict:
 
 
 def _build_cli_cmd(cli_path: str, args: list[str]) -> list[str]:
-    """为 CLI 工具构造执行命令，Windows 下尝试 node 直接调用 JS 入口"""
+    """为 CLI 工具构造执行命令，Windows 下尝试 node 直接调用 JS 入口
+
+    同时支持老版 (dist/cli.js) 与新版 (src/cli.js) 布局。
+    """
     if os.name == "nt" and cli_path.lower().endswith((".cmd", ".ps1")):
         node_path = find_node()
         if not node_path:
             return [cli_path] + list(args)
         npm_dir = os.path.dirname(cli_path)
         pkg_name = os.path.basename(cli_path).replace(".cmd", "").replace(".ps1", "")
-        js_path = os.path.join(npm_dir, "node_modules", pkg_name, "dist", "cli.js")
-        if not os.path.exists(js_path):
-            js_path = os.path.join(npm_dir, "node_modules", pkg_name, "dist", "index.js")
-        if not os.path.exists(js_path):
+        js_candidates = [
+            os.path.join(npm_dir, "node_modules", pkg_name, "dist", "cli.js"),
+            os.path.join(npm_dir, "node_modules", pkg_name, "dist", "index.js"),
+            os.path.join(npm_dir, "node_modules", pkg_name, "src", "cli.js"),
+            os.path.join(npm_dir, "node_modules", pkg_name, "src", "index.js"),
+        ]
+        js_path = next((p for p in js_candidates if os.path.exists(p)), None)
+        if js_path is None:
             return [cli_path] + list(args)
         return [node_path, js_path] + list(args)
     return [cli_path] + list(args)
