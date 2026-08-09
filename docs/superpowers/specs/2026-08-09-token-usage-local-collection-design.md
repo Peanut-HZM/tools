@@ -17,7 +17,7 @@ date: 2026-08-09
 
 ## 改动
 
-### `backend/app/utils/usage_fetcher.py` `fetch_claude`
+### A. `backend/app/utils/usage_fetcher.py` `fetch_claude`
 
 删除：
 ```python
@@ -27,7 +27,11 @@ date: 2026-08-09
 
 直接调用 `run_ccusage(args, timeout=180)`；找不到 ccusage 由 `run_ccusage` 返回 `{"ok": False, "error": CcusageError}`，自然走到下面的 `error` 分支返回结构化错误。
 
-`shutil` import 若不再使用可一并删除（仅此处用到）。
+`shutil` import 若不再使用一并删除。
+
+### B. `backend/app/utils/ccusage_invoker.py` `build_cmd` + `_build_cli_cmd`
+
+Windows 下 `.cmd` 入口探测 js_path 仅查 `dist/cli.js`，但新版 ccusage 包布局是 `src/cli.js`（`package.json bin: {'ccusage': './src/cli.js'}`）。扩展候选路径：`dist/cli.js` → `dist/index.js` → `src/cli.js` → `src/index.js`，按存在性顺序回退。
 
 ## 不动
 
