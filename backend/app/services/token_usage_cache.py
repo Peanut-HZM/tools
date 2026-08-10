@@ -369,6 +369,15 @@ def set_query_cached_data(
     )
     try:
         payload = dict(data or {})
+        # 避免空结果污染缓存（之前 DB 失败时被错误写入 total=0，命中后端持续返回 0）
+        summary_tokens = 0
+        if isinstance(payload.get("summary"), dict):
+            summary_tokens = payload.get("summary", {}).get("total_tokens", 0) or 0
+        total = payload.get("total", 0) or 0
+        items = payload.get("items", [])
+        if (summary_tokens == 0) and (total == 0) and (not items):
+            logger.info(f"查询缓存跳过(空结果): {key}")
+            return False
         payload.setdefault("cache_written_at", datetime.now().isoformat())
         client.setex(
             key,
