@@ -31,6 +31,18 @@ export const enUS = {
     edit: 'Edit',
   },
 
+  // Workspace
+  workspace: {
+    home: 'Go Home',
+    toolList: 'Tool List',
+    closeTab: 'Close Tab',
+    collapseSidebar: 'Collapse Sidebar',
+    expandSidebar: 'Expand Sidebar',
+    welcome: 'Get Started',
+    welcomeHint: 'Select a tool from the sidebar or use quick access below',
+    unknownTool: 'Unknown Tool',
+  },
+
   // Navigation
   nav: {
     home: 'Home',

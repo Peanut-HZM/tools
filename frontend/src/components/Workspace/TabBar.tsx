@@ -1,7 +1,9 @@
 import React from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { useI18n } from '../../i18n';
 
 export const TabBar: React.FC = () => {
+  const { t } = useI18n();
   const { tabs, activeTabId, setActiveTab, removeTab } = useWorkspaceStore();
 
   if (tabs.length === 0) return null;
@@ -31,7 +33,7 @@ export const TabBar: React.FC = () => {
                 e.stopPropagation();
                 removeTab(tab.id);
               }}
-              title="关闭标签"
+              title={t.workspace.closeTab}
             >
               ×
             </button>

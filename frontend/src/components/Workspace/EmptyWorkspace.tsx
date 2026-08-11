@@ -1,5 +1,6 @@
 import React from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { useI18n } from '../../i18n';
 import type { Tool } from '../../types';
 
 interface Props {
@@ -17,11 +18,12 @@ const FEATURED_TOOL_IDS = [
 ];
 
 export const EmptyWorkspace: React.FC<Props> = ({ tools }: Props) => {
+  const { t } = useI18n();
   const { addTab } = useWorkspaceStore();
 
   const featuredTools = FEATURED_TOOL_IDS
-    .map((id) => tools.find((t) => t.id === id))
-    .filter((t): t is Tool => t !== undefined);
+    .map((id) => tools.find((tool) => tool.id === id))
+    .filter((tool): tool is Tool => tool !== undefined);
 
   const handleOpenTool = (tool: Tool) => {
     addTab({ id: tool.id, title: tool.title, icon: tool.icon });
@@ -31,9 +33,9 @@ export const EmptyWorkspace: React.FC<Props> = ({ tools }: Props) => {
     <div className="flex-1 flex items-center justify-center bg-slate-900">
       <div className="text-center max-w-md">
         <i className="fas fa-tools text-6xl text-slate-600 mb-6"></i>
-        <h2 className="text-2xl font-bold text-slate-200 mb-2">开始使用</h2>
+        <h2 className="text-2xl font-bold text-slate-200 mb-2">{t.workspace.welcome}</h2>
         <p className="text-slate-400 mb-8">
-          从左侧工具列表选择一个工具，或点击下方快捷入口
+          {t.workspace.welcomeHint}
         </p>
         {featuredTools.length > 0 && (
           <div className="grid grid-cols-3 gap-3">

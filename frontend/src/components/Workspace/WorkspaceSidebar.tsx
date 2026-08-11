@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { useI18n } from '../../i18n';
 import type { Tool } from '../../types';
 
 interface Props {
@@ -11,6 +12,7 @@ const SIDEBAR_COLLAPSED_KEY = 'workspace-sidebar-collapsed';
 
 export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { tabs, addTab } = useWorkspaceStore();
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
@@ -36,7 +38,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
         <button
           onClick={() => setCollapsed(false)}
           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-colors"
-          title="展开侧边栏"
+          title={t.workspace.expandSidebar}
         >
           <i className="fas fa-chevron-right text-xs"></i>
         </button>
@@ -53,7 +55,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-sm font-medium transition-colors"
         >
           <i className="fas fa-home"></i>
-          <span>返回首页</span>
+          <span>{t.workspace.home}</span>
         </button>
       </div>
 
@@ -62,7 +64,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
         <button
           onClick={() => setCollapsed(true)}
           className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-700 rounded transition-colors"
-          title="折叠侧边栏"
+          title={t.workspace.collapseSidebar}
         >
           <i className="fas fa-chevron-left text-xs"></i>
         </button>
@@ -71,7 +73,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
       {/* 工具列表 */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
         <div className="text-[10px] text-slate-500 uppercase font-semibold tracking-wider px-2 mb-2">
-          工具列表
+          {t.workspace.toolList}
         </div>
         <div className="space-y-0.5">
           {tools.map((tool) => {

@@ -31,6 +31,18 @@ export const zhCN = {
     edit: '编辑',
   },
 
+  // Workspace
+  workspace: {
+    home: '返回首页',
+    toolList: '工具列表',
+    closeTab: '关闭标签',
+    collapseSidebar: '折叠侧边栏',
+    expandSidebar: '展开侧边栏',
+    welcome: '开始使用',
+    welcomeHint: '从左侧工具列表选择一个工具，或点击下方快捷入口',
+    unknownTool: '未知工具',
+  },
+
   // Navigation
   nav: {
     home: '首页',
