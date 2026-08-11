@@ -13,11 +13,16 @@ export const WorkspacePage: React.FC = () => {
   const { tabs, addTab } = useWorkspaceStore();
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTools('pc')
       .then((data) => setTools(data))
-      .catch((err) => console.error('Failed to fetch tools:', err))
+      .catch((err) => {
+        const message =
+          err instanceof Error ? err.message : '加载工具列表失败，请稍后重试';
+        setError(message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,6 +43,17 @@ export const WorkspacePage: React.FC = () => {
     return (
       <div className="h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-slate-400">加载中...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center text-slate-400">
+          <i className="fas fa-exclamation-triangle text-4xl mb-4 text-amber-500"></i>
+          <p>{error}</p>
+        </div>
       </div>
     );
   }

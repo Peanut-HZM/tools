@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { toolComponentMap } from './toolComponents';
+import { useI18n } from '../../i18n';
 
 /**
  * 标签面板容器
@@ -9,6 +10,7 @@ import { toolComponentMap } from './toolComponents';
  */
 export const TabPanels: React.FC = () => {
   const { tabs, activeTabId } = useWorkspaceStore();
+  const { t } = useI18n();
 
   if (tabs.length === 0) return null;
 
@@ -26,7 +28,7 @@ export const TabPanels: React.FC = () => {
             >
               <div className="text-center">
                 <i className="fas fa-exclamation-triangle text-4xl mb-4"></i>
-                <p>未知工具: {tab.toolId}</p>
+                <p>{t.workspace.unknownTool}: {tab.toolId}</p>
               </div>
             </div>
           );

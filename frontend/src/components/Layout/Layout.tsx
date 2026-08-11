@@ -7,7 +7,9 @@ export default function Layout() {
   const { searchValue, debouncedValue, handleSearchChange, handleSearch } = useSearch();
   const navigate = useNavigate();
   const location = useLocation();
-  const isToolPage = location.pathname.startsWith('/tools/');
+  const isImmersion =
+    location.pathname.startsWith('/tools/') ||
+    location.pathname === '/workspace';
 
   const onSearch = () => {
     handleSearch();
@@ -25,7 +27,7 @@ export default function Layout() {
   
   return (
     <div className={`bg-slate-900 text-slate-100 ${
-      isToolPage ? 'h-screen overflow-hidden' : 'min-h-screen'
+      isImmersion ? 'h-screen overflow-hidden' : 'min-h-screen'
     } flex flex-col`}>
       <Header
         searchValue={searchValue}
@@ -33,11 +35,11 @@ export default function Layout() {
         onSearch={onSearch}
       />
       <main className={`flex-1 flex flex-col ${
-        isToolPage ? 'min-h-0 overflow-hidden' : ''
+        isImmersion ? 'min-h-0 overflow-hidden' : ''
       }`}>
         <Outlet context={{ searchValue, debouncedValue, handleSearchChange, handleSearch }} />
       </main>
-      {!isToolPage && <Footer />}
+      {!isImmersion && <Footer />}
     </div>
   );
 }
