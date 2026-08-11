@@ -17,7 +17,7 @@ interface SelectedResource {
 }
 
 /** 资源标签页标识 */
-interface ResourceTab {
+export interface ResourceTab {
   /** 唯一标识：{type}-{namespace}-{name} */
   id: string;
   /** 资源类型：'pod' | 'deployment' | ... */

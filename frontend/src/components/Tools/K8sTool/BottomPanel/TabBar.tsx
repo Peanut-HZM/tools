@@ -3,15 +3,7 @@
  * 显示所有打开的资源标签，支持切换和关闭
  */
 import React from 'react';
-import { useK8sStore } from '../../../../stores/k8sStore';
-
-/** 资源标签页数据类型（从 store 中提取） */
-interface ResourceTab {
-  id: string;
-  type: string;
-  namespace: string;
-  name: string;
-}
+import { useK8sStore, type ResourceTab } from '../../../../stores/k8sStore';
 
 /**
  * 根据资源类型返回对应的状态指示图标
