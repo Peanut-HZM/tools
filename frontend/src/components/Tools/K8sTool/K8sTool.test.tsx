@@ -49,9 +49,11 @@ vi.mock('../../../hooks/useToast', () => ({
 vi.mock('../../../i18n', () => ({
   useI18n: () => ({
     t: {
-      'k8s-tool': {
-        connection: { deleteConfirm: '确认删除 {name}？' },
-        deleteSuccess: '删除成功',
+      tools: {
+        'k8s-tool': {
+          connection: { deleteConfirm: '确认删除 {name}？' },
+          deleteSuccess: '删除成功',
+        },
       },
       common: { error: '错误' },
     },
