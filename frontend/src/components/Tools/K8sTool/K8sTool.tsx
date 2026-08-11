@@ -71,6 +71,15 @@ const K8sTool: React.FC = () => {
     }
   };
 
+  /** 拖动排序结束后更新后端排序 */
+  const handleSortEnd = async (configIds: string[]) => {
+    try {
+      await api.updateK8sConfigSort(configIds);
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '排序更新失败', 'error');
+    }
+  };
+
   /** 模态框关闭后重新加载列表 */
   const handleModalClose = () => {
     setShowModal(false);
@@ -119,6 +128,7 @@ const K8sTool: React.FC = () => {
           onAdd={handleAddConfig}
           onEdit={handleEditConfig}
           onDelete={handleDeleteConfig}
+          onSortEnd={handleSortEnd}
         />
       </div>
 

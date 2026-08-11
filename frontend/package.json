@@ -13,7 +13,11 @@
     "cleanup": "./scripts/cleanup-all-vite.sh"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@monaco-editor/react": "^4.7.0",
+    "@tanstack/react-query": "^5.101.4",
     "axios": "^1.13.5",
     "diff-match-patch": "^1.0.5",
     "docx": "^8.5.0",
@@ -24,8 +28,10 @@
     "markdown-it": "^14.1.0",
     "mermaid": "^10.6.0",
     "monaco-editor": "^0.55.1",
+    "prism-react-renderer": "^2.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-dropzone": "^20.1.0",
     "react-is": "^19.2.5",
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.4.1",
