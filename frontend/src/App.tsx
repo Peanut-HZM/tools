@@ -39,6 +39,7 @@ import TokenUsage from './components/Tools/TokenUsage';
 import GlmCodingRusher from './components/Tools/GlmCodingRusher/GlmCodingRusher';
 import OpenClawChat from './components/Tools/OpenClawChat/OpenClawChat';
 import K8sTool from './components/Tools/K8sTool/K8sTool';
+import { WorkspacePage } from './components/Workspace/WorkspacePage';
 import OpenClawManagement from './components/Admin/OpenClawManagement';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
@@ -50,7 +51,7 @@ import { AuthProvider, AuthContext, useAuth } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
 import { Tool } from './types';
-import { useI18n, interpolate } from './i18n';
+import { useI18n } from './i18n';
 import { I18nProvider } from './i18n/I18nProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './contexts/ToastContext';
@@ -230,39 +231,8 @@ function HomePage() {
       return;
     }
 
-    const toolRoutes: Record<string, string> = {
-      'image-downloader': '/tools/image-downloader',
-      'video-downloader': '/tools/video-downloader',
-      'json-formatter': '/tools/json-formatter',
-      'calendar': '/tools/calendar',
-      'ai-assistant': '/tools/ai-assistant',
-      'key-generator': '/tools/key-generator',
-      'markdown-editor': '/tools/markdown-editor',
-      'markitdown-converter': '/tools/markitdown-converter',
-      'ocr-tool': '/tools/ocr',
-      'asr-tool': '/tools/asr',
-      'database-tool': '/tools/database-tool',
-      'redis-tool': '/tools/redis-tool',
-      'ssh-tool': '/tools/ssh-tool',
-      'product-manager': '/tools/product-manager',
-      'learning-share': '/tools/learning-share',
-      'cross-share': '/tools/cross-share',
-      'course-platform': '/courses',
-      'cursor-history': '/tools/cursor-history',
-      'http-api-client': '/tools/http-api-client',
-      'system-monitor': '/tools/system-monitor',
-      'token-usage': '/tools/token-usage',
-      'glm-coding-rusher': '/tools/glm-coding-rusher',
-      'openclaw': '/tools/openclaw',
-      'k8s-tool': '/tools/k8s-tool',
-    };
-
-    const route = toolRoutes[toolId];
-    if (route) {
-      navigate(route);
-    } else {
-      alert(interpolate(t.errors.toolNotImplemented, { toolId }));
-    }
+    // 跳转到工作区，由工作区 Store 管理标签
+    navigate('/workspace', { state: { openToolId: toolId } });
   };
 
   return (
@@ -303,6 +273,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/workspace" element={<WorkspacePage />} />
               <Route path="/account-settings" element={<AccountSettings />} />
               <Route path="/courses" element={<CoursesPage />} />
               <Route path="/courses/:slug" element={<CourseDetailPage />} />

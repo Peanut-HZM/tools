@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { TabBar } from './TabBar';
@@ -8,7 +9,8 @@ import type { Tool } from '../../types';
 import { fetchTools } from '../../services/api';
 
 export const WorkspacePage: React.FC = () => {
-  const { tabs } = useWorkspaceStore();
+  const location = useLocation();
+  const { tabs, addTab } = useWorkspaceStore();
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,6 +20,19 @@ export const WorkspacePage: React.FC = () => {
       .catch((err) => console.error('Failed to fetch tools:', err))
       .finally(() => setLoading(false));
   }, []);
+
+  // 处理从首页跳转过来时传递的工具 ID
+  useEffect(() => {
+    const state = location.state as { openToolId?: string } | null;
+    if (state?.openToolId && tools.length > 0) {
+      const tool = tools.find((t) => t.id === state.openToolId);
+      if (tool) {
+        addTab({ id: tool.id, title: tool.title, icon: tool.icon });
+      }
+      // 清除 state，避免刷新后重复触发
+      window.history.replaceState({}, '');
+    }
+  }, [location.state, tools, addTab]);
 
   if (loading) {
     return (
