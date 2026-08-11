@@ -65,15 +65,15 @@ class K8sToolService:
                 "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_deleted "
                 "ON k8s_connections(user_id, deleted)"
             )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_sort "
-                "ON k8s_connections(user_id, sort_order, name)"
-            )
-            # 兼容已存在的表：添加 sort_order 字段
+            # 兼容已存在的表：添加 sort_order 字段（必须在引用该列的索引之前）
             cursor.execute("""
                 ALTER TABLE k8s_connections
                 ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0
             """)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_sort "
+                "ON k8s_connections(user_id, sort_order, name)"
+            )
             conn.commit()
         except Exception:
             conn.rollback()

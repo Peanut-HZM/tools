@@ -139,7 +139,8 @@ async def update_config_sort(
         K8sToolService.update_sort_order(user_id, request.config_ids)
         return {"message": "排序已更新"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("更新排序失败: %s", e)
+        raise HTTPException(status_code=500, detail="排序更新失败，请稍后重试")
 
 
 # ============ 连通性测试 / 健康状态 ============
