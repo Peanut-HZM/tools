@@ -4,8 +4,8 @@
  * 替代原有的右侧 PodDetail 抽屉
  * 支持同时打开多个资源的详情，每个标签页独立
  *
- * 注意：当前 PodDetail 尚未接受 tabId prop（将在 Task 3 中实现）
- * 目前仅根据 activeTabId 决定是否渲染 PodDetail
+ * 将 activeTabId 作为 tabId 传给 PodDetail，
+ * PodDetail 从 store 的 openedTabs 中读取对应资源信息
  */
 import React, { useState } from 'react';
 import { useK8sStore } from '../../../../stores/k8sStore';
@@ -63,7 +63,7 @@ export const BottomPanel: React.FC = () => {
 
       {/* 内容区域 */}
       <div className="flex-1 overflow-hidden">
-        {activeTabId && <PodDetail />}
+        {activeTabId && <PodDetail tabId={activeTabId} />}
       </div>
     </div>
   );
