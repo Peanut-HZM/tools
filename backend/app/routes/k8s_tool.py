@@ -5,6 +5,7 @@
 """
 import json
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
 from typing import List, Optional
@@ -14,6 +15,7 @@ from app.models.k8s_tool_models import (
     CreateK8sManualRequest,
     CreateK8sPasteRequest,
     DeleteK8sRequest,
+    K8sApiException,
     K8sConfigResponse,
     K8sConnectionHealth,
     UpdateK8sRequest,
@@ -184,7 +186,8 @@ async def test_connection(
 
             return K8sConnectionHealth(
                 reachable=True,
-                server_version=server_version
+                server_version=server_version,
+                tested_at=datetime.now(),
             )
     except Exception as e:
         error_msg = str(e)
@@ -216,6 +219,14 @@ from app.services.k8s_client_factory import build_client
 from app.services.k8s_resource_service import K8sResourceService
 
 
+def _k8s_api_error_to_http(e: K8sApiException) -> HTTPException:
+    """K8sApiException → HTTPException（保留结构化错误码）"""
+    return HTTPException(
+        status_code=e.error.status_code or 500,
+        detail={"code": e.error.code, "message": e.error.message},
+    )
+
+
 @router.get("/{config_id}/namespaces")
 async def list_namespaces(
     config_id: str,
@@ -225,8 +236,11 @@ async def list_namespaces(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_namespaces(bundle)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_namespaces(bundle)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/nodes")
@@ -238,8 +252,11 @@ async def list_nodes(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_nodes(bundle)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_nodes(bundle)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/nodes/{name}")
@@ -252,8 +269,11 @@ async def get_node(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.get_node(bundle, name)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.get_node(bundle, name)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 # ============ 资源查询（Pod） ============
@@ -269,8 +289,11 @@ async def list_pods(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_pods(bundle, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_pods(bundle, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/pods/{name}")
@@ -284,8 +307,11 @@ async def get_pod(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.get_pod_detail(bundle, name, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.get_pod_detail(bundle, name, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/pods/{name}/yaml")
@@ -299,10 +325,13 @@ async def get_pod_yaml(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        yaml_dict = await K8sResourceService.get_pod_yaml(bundle, name, namespace)
-        import yaml
-        return {"yaml": yaml.safe_dump(yaml_dict, default_flow_style=False)}
+    try:
+        async with build_client(config) as bundle:
+            yaml_dict = await K8sResourceService.get_pod_yaml(bundle, name, namespace)
+            import yaml
+            return {"yaml": yaml.safe_dump(yaml_dict, default_flow_style=False)}
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/pods/{name}/events")
@@ -316,11 +345,14 @@ async def get_pod_events(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        # 先获取 pod UID
-        pod = await bundle.core_v1.read_namespaced_pod(name, namespace)
-        field_selector = f"involvedObject.uid={pod.metadata.uid}"
-        return await K8sResourceService.list_events(bundle, namespace, field_selector)
+    try:
+        async with build_client(config) as bundle:
+            # 先获取 pod UID
+            pod = await bundle.core_v1.read_namespaced_pod(name, namespace)
+            field_selector = f"involvedObject.uid={pod.metadata.uid}"
+            return await K8sResourceService.list_events(bundle, namespace, field_selector)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 # ============ 资源查询（工作负载控制器） ============
@@ -336,8 +368,11 @@ async def list_deployments(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_deployments(bundle, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_deployments(bundle, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/deployments/{name}")
@@ -351,8 +386,11 @@ async def get_deployment(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.get_deployment_detail(bundle, name, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.get_deployment_detail(bundle, name, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/replicasets")
@@ -365,8 +403,11 @@ async def list_replicasets(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_replicasets(bundle, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_replicasets(bundle, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/statefulsets")
@@ -379,8 +420,11 @@ async def list_statefulsets(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_statefulsets(bundle, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_statefulsets(bundle, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/daemonsets")
@@ -393,8 +437,11 @@ async def list_daemonsets(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_daemonsets(bundle, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_daemonsets(bundle, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/jobs")
@@ -407,8 +454,11 @@ async def list_jobs(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_jobs(bundle, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_jobs(bundle, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/cronjobs")
@@ -421,8 +471,11 @@ async def list_cronjobs(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_cronjobs(bundle, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_cronjobs(bundle, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 # ============ 资源查询（Events + ConfigMap / Secret / PVC） ============
@@ -439,8 +492,11 @@ async def list_events(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.list_events(bundle, namespace, field_selector)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.list_events(bundle, namespace, field_selector)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/configmaps/{name}")
@@ -454,8 +510,11 @@ async def get_configmap(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.get_configmap(bundle, name, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.get_configmap(bundle, name, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/secrets/{name}")
@@ -469,8 +528,11 @@ async def get_secret(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.get_secret(bundle, name, namespace, user_id)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.get_secret(bundle, name, namespace, user_id)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 @router.get("/{config_id}/pvcs/{name}")
@@ -484,8 +546,11 @@ async def get_pvc(
     config = K8sToolService.get_config_by_id(user_id, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
-    async with build_client(config) as bundle:
-        return await K8sResourceService.get_pvc(bundle, name, namespace)
+    try:
+        async with build_client(config) as bundle:
+            return await K8sResourceService.get_pvc(bundle, name, namespace)
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
 
 
 # ============ Pod 日志 WebSocket 流（Task 11） ============
