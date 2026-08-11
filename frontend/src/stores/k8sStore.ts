@@ -42,6 +42,8 @@ interface K8sStore {
   // 多标签页管理
   openedTabs: ResourceTab[];
   activeTabId: string | null;
+  /** 每个标签页的活跃子 Tab（key: tabId, value: subTabKey） */
+  activeSubTabs: Record<string, string>;
 
   // 操作
   setConnections: (c: K8sConnection[]) => void;
@@ -62,6 +64,8 @@ interface K8sStore {
   closeResourceTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   clearAllTabs: () => void;
+  /** 设置指定标签页的活跃子 Tab */
+  setActiveSubTab: (tabId: string, subTabKey: string) => void;
 }
 
 export const useK8sStore = create<K8sStore>()((set) => ({
@@ -74,6 +78,7 @@ export const useK8sStore = create<K8sStore>()((set) => ({
   selectedResource: null,
   openedTabs: [],
   activeTabId: null,
+  activeSubTabs: {},
 
   // 操作实现
   setConnections: (c) => set({ connections: c }),
@@ -89,6 +94,7 @@ export const useK8sStore = create<K8sStore>()((set) => ({
         // 切换连接时清空已打开的资源标签，避免上一个集群的标签泄漏到新集群视图
         openedTabs: [],
         activeTabId: null,
+        activeSubTabs: {},
       };
     }),
 
@@ -109,9 +115,10 @@ export const useK8sStore = create<K8sStore>()((set) => ({
       selectedNamespaces: ['default'],
       resourceType: 'pods',
       selectedResource: null,
-      // 重置连接上下文时同步清理标签页和当前激活标签
+      // 重置连接上下文时同步清理标签页、当前激活标签和子 Tab 状态
       openedTabs: [],
       activeTabId: null,
+      activeSubTabs: {},
     }),
 
   // 多标签页操作实现
@@ -136,6 +143,8 @@ export const useK8sStore = create<K8sStore>()((set) => ({
   closeResourceTab: (tabId) =>
     set((s) => {
       const newTabs = s.openedTabs.filter((t) => t.id !== tabId);
+      // 同步清理该标签页对应的子 Tab 记录
+      const { [tabId]: _, ...remainingSubTabs } = s.activeSubTabs;
       const newActiveId =
         s.activeTabId === tabId
           ? newTabs.length > 0
@@ -145,10 +154,16 @@ export const useK8sStore = create<K8sStore>()((set) => ({
       return {
         openedTabs: newTabs,
         activeTabId: newActiveId,
+        activeSubTabs: remainingSubTabs,
       };
     }),
 
   setActiveTab: (tabId) => set({ activeTabId: tabId }),
 
-  clearAllTabs: () => set({ openedTabs: [], activeTabId: null }),
+  clearAllTabs: () => set({ openedTabs: [], activeTabId: null, activeSubTabs: {} }),
+
+  setActiveSubTab: (tabId, subTabKey) =>
+    set((s) => ({
+      activeSubTabs: { ...s.activeSubTabs, [tabId]: subTabKey },
+    })),
 }));

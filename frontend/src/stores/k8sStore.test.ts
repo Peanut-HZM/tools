@@ -6,7 +6,7 @@
  * 注意：Zustand 的 getState() 返回状态快照，
  * 每次 action 调用后必须重新 getState() 获取最新状态再做断言。
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, test } from 'vitest';
 import { useK8sStore } from './k8sStore';
 
 /** 构造一个 ResourceTab 测试数据 */
@@ -219,5 +219,41 @@ describe('k8sStore 多标签页状态管理', () => {
       expect(useK8sStore.getState().openedTabs.length).toBe(0);
       expect(useK8sStore.getState().activeTabId).toBeNull();
     });
+  });
+});
+
+describe('activeSubTabs 子 Tab 持久化', () => {
+  beforeEach(() => {
+    useK8sStore.getState().clearAllTabs();
+  });
+
+  test('setActiveSubTab 存储指定标签的子 Tab', () => {
+    const { setActiveSubTab } = useK8sStore.getState();
+    setActiveSubTab('tab-1', 'logs');
+    expect(useK8sStore.getState().activeSubTabs['tab-1']).toBe('logs');
+  });
+
+  test('不同标签的子 Tab 状态独立', () => {
+    const { setActiveSubTab } = useK8sStore.getState();
+    setActiveSubTab('tab-1', 'logs');
+    setActiveSubTab('tab-2', 'terminal');
+    expect(useK8sStore.getState().activeSubTabs['tab-1']).toBe('logs');
+    expect(useK8sStore.getState().activeSubTabs['tab-2']).toBe('terminal');
+  });
+
+  test('closeResourceTab 清理对应的 activeSubTabs 条目', () => {
+    const { openResourceTab, setActiveSubTab, closeResourceTab } = useK8sStore.getState();
+    openResourceTab({ id: 'tab-1', type: 'pod', namespace: 'default', name: 'a' });
+    setActiveSubTab('tab-1', 'logs');
+    closeResourceTab('tab-1');
+    expect(useK8sStore.getState().activeSubTabs['tab-1']).toBeUndefined();
+  });
+
+  test('clearAllTabs 清空所有 activeSubTabs', () => {
+    const { setActiveSubTab, clearAllTabs } = useK8sStore.getState();
+    setActiveSubTab('tab-1', 'logs');
+    setActiveSubTab('tab-2', 'terminal');
+    clearAllTabs();
+    expect(useK8sStore.getState().activeSubTabs).toEqual({});
   });
 });
