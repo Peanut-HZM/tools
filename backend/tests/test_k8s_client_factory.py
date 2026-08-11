@@ -60,7 +60,7 @@ async def test_build_client_missing_auth_raises(mock_config):
 
 @pytest.mark.asyncio
 async def test_build_client_bearer_token_sets_api_key_correctly(mock_config):
-    """验证 bearer_token 模式下 api_key 字典使用 BearerToken key"""
+    """验证 bearer_token 模式下 api_key 和 api_key_prefix 被正确设置"""
     with patch("app.services.k8s_client_factory.EncryptionUtils") as mock_enc, \
          patch("app.services.k8s_client_factory.k8s_client") as mock_k8s:
 
@@ -76,6 +76,7 @@ async def test_build_client_bearer_token_sets_api_key_correctly(mock_config):
             # 验证 Configuration 被正确构造
             config_call = mock_k8s.Configuration.return_value
             assert config_call.api_key == {"BearerToken": "my-token"}
+            assert config_call.api_key_prefix == {"BearerToken": "Bearer"}
             assert config_call.host == mock_config["server"]
 
 

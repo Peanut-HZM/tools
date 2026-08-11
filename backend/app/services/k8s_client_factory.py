@@ -112,8 +112,10 @@ async def build_client(config: dict):
             if not token:
                 raise ValueError("auth_type=bearer_token 但 token 字段为空")
             # kubernetes_asyncio 的 auth_settings() 方法只识别 key 为 "BearerToken" 的项，
-            # 识别后会自动构造 Authorization: Bearer <token> header
+            # 识别后会自动构造 Authorization header
+            # 需要同时设置 api_key 和 api_key_prefix，才能生成 "Bearer <token>" 格式
             k8s_config.api_key = {"BearerToken": token}
+            k8s_config.api_key_prefix = {"BearerToken": "Bearer"}
             logger.debug("使用 bearer_token 认证模式")
 
         elif auth_type == "client_cert":
