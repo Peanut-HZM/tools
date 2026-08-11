@@ -86,6 +86,9 @@ export const useK8sStore = create<K8sStore>()((set) => ({
         activeConnectionId: id,
         selectedNamespaces: ['default'],
         selectedResource: null,
+        // 切换连接时清空已打开的资源标签，避免上一个集群的标签泄漏到新集群视图
+        openedTabs: [],
+        activeTabId: null,
       };
     }),
 
@@ -106,6 +109,9 @@ export const useK8sStore = create<K8sStore>()((set) => ({
       selectedNamespaces: ['default'],
       resourceType: 'pods',
       selectedResource: null,
+      // 重置连接上下文时同步清理标签页和当前激活标签
+      openedTabs: [],
+      activeTabId: null,
     }),
 
   // 多标签页操作实现

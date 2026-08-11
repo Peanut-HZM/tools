@@ -207,4 +207,17 @@ describe('k8sStore 多标签页状态管理', () => {
       expect(state().activeTabId).toBeNull();
     });
   });
+
+  // ---------- setActiveConnection（连接切换） ----------
+
+  describe('setActiveConnection', () => {
+    it('切换连接清空已打开的标签页', () => {
+      useK8sStore.getState().openResourceTab({ id: 'pod-ns-a', type: 'pod', namespace: 'default', name: 'a' });
+      useK8sStore.getState().openResourceTab({ id: 'pod-ns-b', type: 'pod', namespace: 'default', name: 'b' });
+      expect(useK8sStore.getState().openedTabs.length).toBe(2);
+      useK8sStore.getState().setActiveConnection('connection-2');
+      expect(useK8sStore.getState().openedTabs.length).toBe(0);
+      expect(useK8sStore.getState().activeTabId).toBeNull();
+    });
+  });
 });

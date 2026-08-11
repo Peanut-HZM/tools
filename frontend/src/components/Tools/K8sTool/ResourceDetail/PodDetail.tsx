@@ -6,7 +6,7 @@
  *
  * 数据来源：api.getPodDetail()
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
@@ -71,6 +71,12 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
   const currentTab = openedTabs.find((t) => t.id === currentTabId);
 
   const [activeTab, setActiveTab] = useState<string>('overview');
+
+  // 切换 Pod（currentTabId 变化）时，重置子 Tab 到 overview，
+  // 避免上一个 Pod 选择的子 Tab（例如 Logs / Terminal）误显示在新 Pod 上
+  useEffect(() => {
+    setActiveTab('overview');
+  }, [currentTabId]);
 
   // 获取 Pod 详情（使用 currentTab 的 namespace 和 name）
   const {
