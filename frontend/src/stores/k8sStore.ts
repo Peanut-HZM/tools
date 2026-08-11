@@ -33,6 +33,10 @@ interface K8sStore {
   namespaces: string[];
   selectedNamespaces: string[];
   resourceType: ResourceType;
+  /**
+   * @deprecated 已废弃：当前仅作兼容性保留。请使用 `openedTabs` 和 `activeTabId` 替代，
+   * 配合 `openResourceTab` 打开资源标签。新组件应避免直接读写此字段。
+   */
   selectedResource: SelectedResource | null;
 
   // 多标签页管理
@@ -45,6 +49,10 @@ interface K8sStore {
   setNamespaces: (ns: string[]) => void;
   setSelectedNamespaces: (ns: string[]) => void;
   setResourceType: (t: ResourceType) => void;
+  /**
+   * @deprecated 已废弃：当前仅作兼容性保留。请使用 `openResourceTab` 替代，
+   * 新组件（WorkloadList / NodeList / EventsList）后续将逐步迁移到多标签 API。
+   */
   setSelectedResource: (r: SelectedResource | null) => void;
   /** 切换连接时重置命名空间和资源选择 */
   resetOnConnectionChange: () => void;
@@ -88,6 +96,8 @@ export const useK8sStore = create<K8sStore>()((set) => ({
   setResourceType: (t) =>
     set({ resourceType: t, selectedResource: null }),
 
+  // 迁移路径：setSelectedResource 已废弃，调用方应改用 openResourceTab / closeResourceTab / setActiveTab，
+  // 通过 openedTabs + activeTabId 驱动底部面板的多标签 UI。
   setSelectedResource: (r) => set({ selectedResource: r }),
 
   resetOnConnectionChange: () =>
