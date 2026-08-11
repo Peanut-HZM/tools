@@ -124,6 +124,13 @@ export const deleteK8sConfig = (id: string) =>
     body: JSON.stringify({ id }),
   });
 
+/** 更新连接配置的排序顺序 */
+export const updateK8sConfigSort = (configIds: string[]) =>
+  request<{ message: string }>(`${K8S_API_URL}/configs/sort`, {
+    method: 'POST',
+    body: JSON.stringify({ config_ids: configIds }),
+  });
+
 /** 测试连接是否可达 */
 export const testK8sConnection = (configId: string) =>
   request<TestK8sConnectionResponse>(
