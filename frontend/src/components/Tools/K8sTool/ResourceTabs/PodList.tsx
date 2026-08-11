@@ -13,11 +13,10 @@ import { formatAge, getStatusColor, getStatusIcon } from './utils';
 export const PodList: React.FC = () => {
   const { t } = useI18n();
   const k8sT = t.tools['k8s-tool'];
-  const { activeConnectionId, selectedNamespaces, openResourceTab } = useK8sStore();
+  const { activeConnectionId, selectedNamespaces, namespaces, openResourceTab } = useK8sStore();
   const [searchText, setSearchText] = useState('');
 
-  // 查询命名空间列表（空数组表示"所有"，此时使用 store 中的全部 namespaces）
-  const { namespaces } = useK8sStore();
+  // 有效命名空间：空数组表示"所有"，此时使用 store 中的全部 namespaces
   const effectiveNamespaces = selectedNamespaces.length === 0 ? namespaces : selectedNamespaces;
   const { data: pods = [], isLoading, error } = useK8sPods(activeConnectionId, effectiveNamespaces);
   const isError = !!error;
@@ -48,7 +47,7 @@ export const PodList: React.FC = () => {
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="搜索 Pod 名称..."
+            placeholder={k8sT.podList.searchPlaceholder}
             className="flex-1 px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded focus:outline-none focus:border-blue-500 placeholder-slate-600"
           />
           {searchText && (
@@ -81,7 +80,7 @@ export const PodList: React.FC = () => {
             <tr>
               <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
-                Loading...
+                {t.common.loading}
               </td>
             </tr>
           )}
@@ -100,7 +99,7 @@ export const PodList: React.FC = () => {
           {!isLoading && !isError && filteredPods.length === 0 && (
             <tr>
               <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
-                {searchText ? `未找到匹配的 Pod: "${searchText}"` : k8sT.podList.noPods}
+                {searchText ? k8sT.podList.noMatch.replace('{text}', searchText) : k8sT.podList.noPods}
               </td>
             </tr>
           )}
