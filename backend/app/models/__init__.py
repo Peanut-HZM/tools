@@ -52,3 +52,6 @@ from app.models.contact_message import (
 
 # Password Audit Log 密码审计日志模型
 from app.models.password_log_models import PasswordAuditLog
+
+# K8s 控制台工具模型
+from app.models.k8s_tool_models import *

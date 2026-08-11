@@ -129,13 +129,14 @@ class ToolsService:
                     # IMPORTANT: ON CONFLICT does NOT update title/description to preserve admin edits
                     cur.execute(
                         """
-                        INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating, custom_icon_url, show_pc, show_mobile)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, TRUE, TRUE)
+                        INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating, custom_icon_url, show_pc, show_mobile, require_login)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, TRUE, TRUE, %s)
                         ON CONFLICT (id) DO UPDATE SET
                             icon = EXCLUDED.icon,
                             icon_color = EXCLUDED.icon_color,
                             category = EXCLUDED.category,
-                            rating = EXCLUDED.rating
+                            rating = EXCLUDED.rating,
+                            require_login = EXCLUDED.require_login
                     """,
                         (
                             tool.id,
@@ -146,6 +147,7 @@ class ToolsService:
                             tool.category,
                             0,
                             tool.rating,
+                            tool.require_login,
                         ),
                     )
 

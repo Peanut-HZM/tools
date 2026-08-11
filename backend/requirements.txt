@@ -91,3 +91,6 @@ websockets>=12.0
 # System monitoring
 psutil>=5.9.0
 apscheduler>=3.10,<4.0
+
+# K8s console tool
+kubernetes_asyncio==29.0.0

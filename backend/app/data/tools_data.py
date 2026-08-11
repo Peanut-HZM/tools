@@ -234,6 +234,17 @@ TOOLS_DATA = [
         category="AI工具",
         require_login=True,
     ),
+    Tool(
+        id="k8s-tool",
+        icon="fa-dharmachakra",
+        iconColor="bg-blue-600",
+        title="K8s 控制台",
+        description="Kubernetes 集群管理工具，支持多连接管理、资源浏览、YAML 查看和终端操作",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具",
+        require_login=True,
+    ),
 ]
 
 

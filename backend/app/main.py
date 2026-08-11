@@ -19,6 +19,7 @@ from app.routes import (
     database_tool,
     redis_tool,
     ssh_tool,
+    k8s_tool,
     json_tool,
     resource_management,
     token_usage,
@@ -302,6 +303,9 @@ app.include_router(redis_tool.router, prefix="/api")
 
 # SSH Tool router
 app.include_router(ssh_tool.router, prefix="/api")
+
+# K8s Tool router
+app.include_router(k8s_tool.router, prefix="/api")
 
 # JSON Tool router
 app.include_router(json_tool.router, prefix="/api")
