@@ -38,6 +38,7 @@ import SystemMonitor from './components/Tools/SystemMonitor';
 import TokenUsage from './components/Tools/TokenUsage';
 import GlmCodingRusher from './components/Tools/GlmCodingRusher/GlmCodingRusher';
 import OpenClawChat from './components/Tools/OpenClawChat/OpenClawChat';
+import K8sTool from './components/Tools/K8sTool/K8sTool';
 import OpenClawManagement from './components/Admin/OpenClawManagement';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
@@ -51,9 +52,23 @@ import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fet
 import { Tool } from './types';
 import { useI18n, interpolate } from './i18n';
 import { I18nProvider } from './i18n/I18nProvider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './contexts/ToastContext';
+import { ErrorBoundary } from './components/Common/ErrorMessages';
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
+
+// React Query 客户端实例（进程级别单例）
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // K8s 工具页面相关的合理默认值
+      staleTime: 30_000,       // 30s 内视为新鲜数据
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 interface LayoutContext {
   searchValue: string;
@@ -239,6 +254,7 @@ function HomePage() {
       'token-usage': '/tools/token-usage',
       'glm-coding-rusher': '/tools/glm-coding-rusher',
       'openclaw': '/tools/openclaw',
+      'k8s-tool': '/tools/k8s-tool',
     };
 
     const route = toolRoutes[toolId];
@@ -279,9 +295,10 @@ function HomePage() {
 function App() {
   return (
     <AuthProvider>
-      <I18nProvider>
-        <ToastProvider>
-          <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <ToastProvider>
+            <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<Layout />}>
@@ -317,6 +334,7 @@ function App() {
               <Route path="/tools/token-usage" element={<TokenUsage />} />
               <Route path="/tools/glm-coding-rusher" element={<GlmCodingRusher />} />
               <Route path="/tools/openclaw" element={<OpenClawChat />} />
+              <Route path="/tools/k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
             </Route>
 
             {/* Admin Routes */}
@@ -337,7 +355,8 @@ function App() {
           </Routes>
         </BrowserRouter>
         </ToastProvider>
-      </I18nProvider>
+        </I18nProvider>
+      </QueryClientProvider>
     </AuthProvider>
   );
 }
