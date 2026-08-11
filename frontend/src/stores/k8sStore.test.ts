@@ -59,6 +59,55 @@ describe('k8sStore 多标签页状态管理', () => {
       // activeTabId 切换到已存在的 tab-1
       expect(state().activeTabId).toBe('tab-1');
     });
+
+    it('标签数量达到 10 个上限时，阻止新增标签', () => {
+      // 打开 10 个标签
+      for (let i = 1; i <= 10; i++) {
+        useK8sStore.getState().openResourceTab(makeTab(`tab-${i}`));
+      }
+      expect(state().openedTabs).toHaveLength(10);
+
+      // 尝试打开第 11 个标签
+      useK8sStore.getState().openResourceTab(makeTab('tab-11'));
+
+      // 标签数量仍为 10
+      expect(state().openedTabs).toHaveLength(10);
+      // activeTabId 不应变更（仍为 tab-10）
+      expect(state().activeTabId).toBe('tab-10');
+    });
+
+    it('标签数量达到上限时，打开已存在的标签仍可切换 activeTabId', () => {
+      // 打开 10 个标签
+      for (let i = 1; i <= 10; i++) {
+        useK8sStore.getState().openResourceTab(makeTab(`tab-${i}`));
+      }
+      expect(state().activeTabId).toBe('tab-10');
+
+      // 切换到已存在的 tab-1（不应被限制）
+      useK8sStore.getState().openResourceTab(makeTab('tab-1'));
+
+      // 标签数量不变
+      expect(state().openedTabs).toHaveLength(10);
+      // activeTabId 切换到 tab-1
+      expect(state().activeTabId).toBe('tab-1');
+    });
+
+    it('关闭标签后再新增标签，可以正常打开', () => {
+      // 打开 10 个标签
+      for (let i = 1; i <= 10; i++) {
+        useK8sStore.getState().openResourceTab(makeTab(`tab-${i}`));
+      }
+      expect(state().openedTabs).toHaveLength(10);
+
+      // 关闭一个标签
+      useK8sStore.getState().closeResourceTab('tab-10');
+      expect(state().openedTabs).toHaveLength(9);
+
+      // 新增标签应该成功
+      useK8sStore.getState().openResourceTab(makeTab('tab-11'));
+      expect(state().openedTabs).toHaveLength(10);
+      expect(state().activeTabId).toBe('tab-11');
+    });
   });
 
   // ---------- closeResourceTab ----------

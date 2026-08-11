@@ -6,6 +6,9 @@
  * - 点击标签触发 setActiveTab
  * - 点击关闭按钮触发 closeResourceTab
  * - 无标签时显示占位提示文案
+ * - 每个标签渲染状态指示图标
+ * - 激活标签和非激活标签样式差异
+ * - 关闭按钮激活态与非激活态颜色差异
  */
 import React from 'react';
 import { render, fireEvent, screen, cleanup } from '@testing-library/react';
@@ -103,9 +106,58 @@ describe('TabBar', () => {
     // 激活标签的父元素应包含蓝色样式类
     const activeTab = screen.getByText('nginx').closest('div');
     expect(activeTab?.className).toContain('bg-blue-600/20');
+    expect(activeTab?.className).toContain('text-blue-300');
+    expect(activeTab?.className).toContain('border-blue-500/40');
 
     // 非激活标签应包含 slate 样式类
     const inactiveTab = screen.getByText('redis').closest('div');
     expect(inactiveTab?.className).toContain('bg-slate-700/50');
+    expect(inactiveTab?.className).toContain('text-slate-400');
+  });
+
+  it('每个标签渲染状态指示图标（fas fa-cube）', () => {
+    mockStoreState.openedTabs = [
+      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'nginx' },
+      { id: 'tab-2', type: 'deployment', namespace: 'default', name: 'api-server' },
+    ];
+    mockStoreState.activeTabId = 'tab-1';
+
+    const { container } = render(<TabBar />);
+
+    // 应渲染 2 个状态图标
+    const icons = container.querySelectorAll('i.fas.fa-cube');
+    expect(icons.length).toBe(2);
+  });
+
+  it('激活标签的关闭按钮为蓝色，非激活标签的关闭按钮为灰色', () => {
+    mockStoreState.openedTabs = [
+      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'nginx' },
+      { id: 'tab-2', type: 'pod', namespace: 'default', name: 'redis' },
+    ];
+    mockStoreState.activeTabId = 'tab-1';
+
+    render(<TabBar />);
+
+    // 所有关闭按钮
+    const closeButtons = screen.getAllByTitle('关闭标签');
+    expect(closeButtons.length).toBe(2);
+
+    // 激活标签的关闭按钮应为蓝色
+    expect(closeButtons[0].className).toContain('text-blue-400');
+    // 非激活标签的关闭按钮应为灰色
+    expect(closeButtons[1].className).toContain('text-slate-500');
+  });
+
+  it('标签具有 min-w 和 max-w 约束', () => {
+    mockStoreState.openedTabs = [
+      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'nginx' },
+    ];
+    mockStoreState.activeTabId = 'tab-1';
+
+    render(<TabBar />);
+
+    const tab = screen.getByText('nginx').closest('div');
+    expect(tab?.className).toContain('min-w-[120px]');
+    expect(tab?.className).toContain('max-w-[200px]');
   });
 });

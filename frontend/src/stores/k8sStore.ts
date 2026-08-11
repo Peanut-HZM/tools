@@ -101,9 +101,15 @@ export const useK8sStore = create<K8sStore>()((set) => ({
   // 多标签页操作实现
   openResourceTab: (resource) =>
     set((s) => {
+      // 已存在的标签直接激活，不占额外名额
       const exists = s.openedTabs.find((t) => t.id === resource.id);
       if (exists) {
         return { activeTabId: resource.id };
+      }
+      // 限制最多 10 个标签，达到上限后阻止新增
+      if (s.openedTabs.length >= 10) {
+        console.warn('标签页数量已达上限（10 个），请先关闭部分标签');
+        return {};
       }
       return {
         openedTabs: [...s.openedTabs, resource],
