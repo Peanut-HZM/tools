@@ -9,23 +9,15 @@
  */
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { PodDetail } from './PodDetail';
 
 // ---------- Mock 子模块 ----------
 
-/** 模拟 useK8sStore 返回对象（每个测试可覆盖） */
-const mockStoreState = {
-  activeConnectionId: 'conn-1',
-  openedTabs: [] as Array<{ id: string; type: string; namespace: string; name: string }>,
-  activeTabId: null as string | null,
-};
-
-vi.mock('../../../../stores/k8sStore', () => ({
-  useK8sStore: () => mockStoreState,
-}));
+// 直接使用真实的 k8sStore，避免 mock 引发的 React 重渲染问题
+import { useK8sStore } from '../../../../stores/k8sStore';
 
 /** 模拟 useI18n */
 vi.mock('../../../../i18n', () => ({
@@ -119,10 +111,10 @@ const renderWithProviders = (ui: React.ReactElement) => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  // 重置 store mock 状态
-  mockStoreState.openedTabs = [];
-  mockStoreState.activeTabId = null;
-  mockStoreState.activeConnectionId = 'conn-1';
+  // 重置真实 store 状态
+  const store = useK8sStore.getState();
+  store.clearAllTabs();
+  useK8sStore.setState({ activeConnectionId: 'conn-1' });
   // 重置 query mock
   mockQueryResult = { data: undefined, isLoading: true, isError: false };
 });
@@ -130,9 +122,19 @@ afterEach(() => {
 // ---------- 测试用例 ----------
 
 describe('PodDetail', () => {
+  /**
+   * 工具函数：向 store 中注入测试用的打开标签
+   */
+  const setupOpenTab = (tabs: Array<{ id: string; type: string; namespace: string; name: string }>, activeId: string | null = tabs[0]?.id ?? null) => {
+    useK8sStore.setState((state) => ({
+      ...state,
+      openedTabs: tabs,
+      activeTabId: activeId,
+    }));
+  };
+
   it('当 currentTab 为 null 时不渲染任何内容', () => {
-    mockStoreState.openedTabs = [];
-    mockStoreState.activeTabId = null;
+    setupOpenTab([]);
 
     const { container } = renderWithProviders(<PodDetail />);
     // 容器应为空
@@ -140,10 +142,7 @@ describe('PodDetail', () => {
   });
 
   it('当传入不存在的 tabId 时不渲染任何内容', () => {
-    mockStoreState.openedTabs = [
-      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'nginx' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    setupOpenTab([{ id: 'tab-1', type: 'pod', namespace: 'default', name: 'nginx' }], 'tab-1');
 
     const { container } = renderWithProviders(
       <PodDetail tabId="non-existent-id" />
@@ -152,10 +151,7 @@ describe('PodDetail', () => {
   });
 
   it('当 currentTab 存在时正确渲染 Pod 名称和命名空间', () => {
-    mockStoreState.openedTabs = [
-      { id: 'tab-1', type: 'pod', namespace: 'production', name: 'my-app-pod' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    setupOpenTab([{ id: 'tab-1', type: 'pod', namespace: 'production', name: 'my-app-pod' }]);
     mockQueryResult = { data: undefined, isLoading: true, isError: false };
 
     renderWithProviders(<PodDetail />);
@@ -165,11 +161,10 @@ describe('PodDetail', () => {
   });
 
   it('使用 tabId prop 而非 activeTabId 查找标签', () => {
-    mockStoreState.openedTabs = [
+    setupOpenTab([
       { id: 'tab-1', type: 'pod', namespace: 'ns-a', name: 'pod-a' },
       { id: 'tab-2', type: 'pod', namespace: 'ns-b', name: 'pod-b' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    ], 'tab-1');
     mockQueryResult = { data: undefined, isLoading: true, isError: false };
 
     // 传入 tab-2，应显示 pod-b/ns-b
@@ -182,10 +177,7 @@ describe('PodDetail', () => {
   });
 
   it('Pod 加载完成后显示 phase 状态', () => {
-    mockStoreState.openedTabs = [
-      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'running-pod' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    setupOpenTab([{ id: 'tab-1', type: 'pod', namespace: 'default', name: 'running-pod' }]);
     mockQueryResult = {
       data: {
         name: 'running-pod',
@@ -207,10 +199,7 @@ describe('PodDetail', () => {
   });
 
   it('非 pod 类型显示暂未实现提示', () => {
-    mockStoreState.openedTabs = [
-      { id: 'tab-1', type: 'deployment', namespace: 'default', name: 'my-deploy' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    setupOpenTab([{ id: 'tab-1', type: 'deployment', namespace: 'default', name: 'my-deploy' }]);
     mockQueryResult = { data: undefined, isLoading: false, isError: false };
 
     renderWithProviders(<PodDetail />);
@@ -219,10 +208,7 @@ describe('PodDetail', () => {
   });
 
   it('子 Tab 切换功能正常', () => {
-    mockStoreState.openedTabs = [
-      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'test-pod' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    setupOpenTab([{ id: 'tab-1', type: 'pod', namespace: 'default', name: 'test-pod' }]);
     mockQueryResult = {
       data: {
         name: 'test-pod',
@@ -245,18 +231,18 @@ describe('PodDetail', () => {
 
     // 点击 YAML tab
     fireEvent.click(screen.getByText('YAML'));
+    // 验证 store 中的 activeSubTabs 已更新为 yaml
+    expect(useK8sStore.getState().activeSubTabs['tab-1']).toBe('yaml');
     expect(screen.getByTestId('yaml-panel')).toBeTruthy();
 
     // 点击事件 tab
     fireEvent.click(screen.getByText('事件'));
+    expect(useK8sStore.getState().activeSubTabs['tab-1']).toBe('events');
     expect(screen.getByTestId('events-panel')).toBeTruthy();
   });
 
   it('加载状态时显示加载中提示', () => {
-    mockStoreState.openedTabs = [
-      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'loading-pod' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    setupOpenTab([{ id: 'tab-1', type: 'pod', namespace: 'default', name: 'loading-pod' }]);
     mockQueryResult = { data: undefined, isLoading: true, isError: false };
 
     renderWithProviders(<PodDetail />);
@@ -265,10 +251,7 @@ describe('PodDetail', () => {
   });
 
   it('查询出错时显示资源未找到', () => {
-    mockStoreState.openedTabs = [
-      { id: 'tab-1', type: 'pod', namespace: 'default', name: 'error-pod' },
-    ];
-    mockStoreState.activeTabId = 'tab-1';
+    setupOpenTab([{ id: 'tab-1', type: 'pod', namespace: 'default', name: 'error-pod' }]);
     mockQueryResult = { data: undefined, isLoading: false, isError: true };
 
     renderWithProviders(<PodDetail />);

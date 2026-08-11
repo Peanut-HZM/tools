@@ -6,7 +6,7 @@
  *
  * 数据来源：api.getPodDetail()
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
@@ -62,7 +62,13 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
   const k8sT = t.tools['k8s-tool'];
   const tabT = k8sT.resourceDetail.tabs;
 
-  const { activeConnectionId, openedTabs, activeTabId } = useK8sStore();
+  const {
+    activeConnectionId,
+    openedTabs,
+    activeTabId,
+    activeSubTabs,
+    setActiveSubTab,
+  } = useK8sStore();
 
   // 如果未传 tabId，使用 store 中的 activeTabId
   const currentTabId = tabId || activeTabId;
@@ -70,13 +76,8 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
   // 从 openedTabs 中查找当前标签
   const currentTab = openedTabs.find((t) => t.id === currentTabId);
 
-  const [activeTab, setActiveTab] = useState<string>('overview');
-
-  // 切换 Pod（currentTabId 变化）时，重置子 Tab 到 overview，
-  // 避免上一个 Pod 选择的子 Tab（例如 Logs / Terminal）误显示在新 Pod 上
-  useEffect(() => {
-    setActiveTab('overview');
-  }, [currentTabId]);
+  // 子 Tab 状态从 store 读取，按 tabId 维度持久化，跨 Pod 切换不会丢失
+  const activeTab = activeSubTabs[currentTabId || ''] || 'overview';
 
   // 获取 Pod 详情（使用 currentTab 的 namespace 和 name）
   const {
@@ -248,7 +249,11 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                if (currentTabId) {
+                  setActiveSubTab(currentTabId, tab.key);
+                }
+              }}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 whitespace-nowrap transition-colors ${
                 isActive
                   ? 'border-blue-500 text-blue-400'
