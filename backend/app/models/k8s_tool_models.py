@@ -59,6 +59,11 @@ class UpdateK8sAuthRequest(BaseModel):
     ca_cert: Optional[str] = None  # 所有类型通用
 
 
+class UpdateConfigSortRequest(BaseModel):
+    """更新连接配置排序请求"""
+    config_ids: List[str] = Field(..., min_length=1)
+
+
 # ============ 响应 ============
 
 class K8sConfigResponse(BaseModel):

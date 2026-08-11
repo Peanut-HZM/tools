@@ -52,6 +52,7 @@ class K8sToolService:
                     last_test_error TEXT,
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    sort_order INTEGER DEFAULT 0,
                     deleted BOOLEAN DEFAULT FALSE,
                     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
                 )
@@ -64,6 +65,15 @@ class K8sToolService:
                 "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_deleted "
                 "ON k8s_connections(user_id, deleted)"
             )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_sort "
+                "ON k8s_connections(user_id, sort_order, name)"
+            )
+            # 兼容已存在的表：添加 sort_order 字段
+            cursor.execute("""
+                ALTER TABLE k8s_connections
+                ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0
+            """)
             conn.commit()
         except Exception:
             conn.rollback()
@@ -84,11 +94,35 @@ class K8sToolService:
             cursor.execute(
                 "SELECT * FROM k8s_connections "
                 "WHERE user_id = %s AND deleted = FALSE "
-                "ORDER BY created_at DESC",
+                "ORDER BY sort_order ASC, name ASC",
                 (user_id,),
             )
             rows = cursor.fetchall()
             return [K8sToolService._row_to_response(row) for row in rows]
+        finally:
+            cursor.close()
+            release_db_connection(conn)
+
+    @staticmethod
+    def update_sort_order(
+        user_id: str, config_ids: List[str]
+    ) -> None:
+        """批量更新连接配置的排序顺序"""
+        K8sToolService._ensure_table()
+        conn = get_pooled_db_connection()
+        cursor = conn.cursor()
+        try:
+            for idx, config_id in enumerate(config_ids):
+                cursor.execute(
+                    "UPDATE k8s_connections "
+                    "SET sort_order = %s, updated_at = %s "
+                    "WHERE id = %s AND user_id = %s AND deleted = FALSE",
+                    (idx, datetime.now(), config_id, user_id),
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             cursor.close()
             release_db_connection(conn)

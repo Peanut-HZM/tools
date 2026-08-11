@@ -18,6 +18,7 @@ from app.models.k8s_tool_models import (
     K8sConnectionHealth,
     UpdateK8sRequest,
     UpdateK8sAuthRequest,
+    UpdateConfigSortRequest,
 )
 from app.services.k8s_tool_service import K8sToolService
 from app.config.config import settings
@@ -126,6 +127,19 @@ async def delete_config(
     if not success:
         raise HTTPException(status_code=404, detail="Config not found")
     return {"message": "Config deleted successfully"}
+
+
+@router.post("/configs/sort")
+async def update_config_sort(
+    request: UpdateConfigSortRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """批量更新连接配置的排序顺序"""
+    try:
+        K8sToolService.update_sort_order(user_id, request.config_ids)
+        return {"message": "排序已更新"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============ 连通性测试 / 健康状态 ============
