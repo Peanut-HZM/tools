@@ -346,9 +346,17 @@ def _api_exception_to_k8s_error(e: ApiException) -> K8sApiException:
     logger.error(
         f"K8s API 异常: status={e.status}, reason={e.reason}, body={e.body}"
     )
+
+    # 检测是否是 namespace 权限不足
+    is_namespace_forbidden = (
+        e.status == 403
+        and e.body
+        and "namespaces is forbidden" in str(e.body)
+    )
+
     return K8sApiException(K8sError(
-        code=code_map.get(e.status, "CONNECTION_FAILED"),
-        message=f"K8s API 错误: {e.reason}",
+        code="NAMESPACE_FORBIDDEN" if is_namespace_forbidden else code_map.get(e.status, "CONNECTION_FAILED"),
+        message=f"K8s API 错误：{e.reason}",
         k8s_reason=str(e.body) if e.body else "",
         status_code=e.status,
     ))
