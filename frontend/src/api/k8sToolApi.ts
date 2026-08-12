@@ -227,6 +227,30 @@ export const buildLogsWebSocketUrl = (
   return `${toWsBase()}/k8s-tool/${encodeURIComponent(configId)}/ws/pods/${encodeURIComponent(podName)}/logs?${params}`;
 };
 
+/** 下载容器完整日志 */
+export const downloadPodLogs = async (
+  configId: string,
+  podName: string,
+  namespace: string,
+  container?: string,
+  tailLines: number = 10000,
+): Promise<string> => {
+  const params = new URLSearchParams({
+    namespace,
+    tail_lines: String(tailLines),
+  });
+  if (container) params.append('container', container);
+
+  const response = await fetch(
+    `${K8S_API_URL}/${encodeURIComponent(configId)}/pods/${encodeURIComponent(podName)}/logs/download?${params}`,
+    { headers: getAuthHeaders() }
+  );
+  if (!response.ok) {
+    throw new Error(`下载日志失败: ${response.status}`);
+  }
+  return response.text();
+};
+
 /** 构造 Pod Exec WebSocket 连接 URL */
 export const buildExecWebSocketUrl = (
   configId: string,
