@@ -29,11 +29,13 @@ export default function Layout() {
     <div className={`bg-slate-900 text-slate-100 ${
       isImmersion ? 'h-screen overflow-hidden' : 'min-h-screen'
     } flex flex-col`}>
-      <Header
-        searchValue={searchValue}
-        onSearchChange={handleSearchChange}
-        onSearch={onSearch}
-      />
+      {!isImmersion && (
+        <Header
+          searchValue={searchValue}
+          onSearchChange={handleSearchChange}
+          onSearch={onSearch}
+        />
+      )}
       <main className={`flex-1 flex flex-col ${
         isImmersion ? 'min-h-0 overflow-hidden' : ''
       }`}>
