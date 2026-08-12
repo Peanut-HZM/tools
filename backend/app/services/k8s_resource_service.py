@@ -259,6 +259,50 @@ class K8sResourceService:
         except ApiException as e:
             raise _api_exception_to_k8s_error(e)
 
+    @staticmethod
+    async def get_pod_logs(
+        bundle,
+        name: str,
+        namespace: str,
+        container: Optional[str] = None,
+        tail_lines: int = 10000,
+        previous: bool = False,
+    ) -> str:
+        """获取 pod 完整日志（非 follow，一次性读取）
+
+        Args:
+            bundle: K8s 客户端 bundle
+            name: Pod 名称
+            namespace: 命名空间
+            container: 容器名（多容器 pod 时使用）
+            tail_lines: 返回末尾行数
+            previous: 是否读取上一个已终止容器的日志
+
+        Returns:
+            日志文本（utf-8 解码）
+
+        Raises:
+            K8sApiException: K8s API 错误
+        """
+        try:
+            kwargs = {
+                "name": name,
+                "namespace": namespace,
+                "tail_lines": tail_lines,
+                "follow": False,
+                "previous": previous,
+            }
+            if container:
+                kwargs["container"] = container
+
+            response = await bundle.core_v1.read_namespaced_pod_log(**kwargs)
+            content = await response.read()
+            if isinstance(content, bytes):
+                return content.decode("utf-8", errors="replace")
+            return content
+        except ApiException as e:
+            raise _api_exception_to_k8s_error(e)
+
 
 # ============ 内部辅助函数 ============
 

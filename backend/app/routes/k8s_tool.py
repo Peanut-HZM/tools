@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Response, UploadFile, WebSocket, WebSocketDisconnect
 from typing import List, Optional
 
 from app.middleware.auth_middleware import get_current_user_id
@@ -551,6 +551,39 @@ async def get_pvc(
             return await K8sResourceService.get_pvc(bundle, name, namespace)
     except K8sApiException as e:
         raise _k8s_api_error_to_http(e)
+
+
+# ============ Pod 日志下载（Task 1） ============
+
+
+@router.get("/{config_id}/pods/{name}/logs/download")
+async def download_pod_logs(
+    config_id: str,
+    name: str,
+    namespace: str = Query(..., description="命名空间"),
+    container: Optional[str] = Query(None, description="容器名"),
+    tail_lines: int = Query(10000, ge=1, le=1000000, description="返回末尾行数"),
+    previous: bool = Query(False, description="是否读取上一个已终止容器的日志"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """下载容器完整日志（不 follow）"""
+    config = K8sToolService.get_config_by_id(user_id, config_id)
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+    try:
+        async with build_client(config) as bundle:
+            text = await K8sResourceService.get_pod_logs(
+                bundle, name, namespace, container, tail_lines, previous
+            )
+    except K8sApiException as e:
+        raise _k8s_api_error_to_http(e)
+
+    filename = f"{name}-{container or 'all'}-logs.txt"
+    return Response(
+        content=text,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ============ Pod 日志 WebSocket 流（Task 11） ============

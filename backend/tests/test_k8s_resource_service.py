@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from kubernetes_asyncio.client import ApiException
 from app.services.k8s_resource_service import K8sResourceService, _api_exception_to_k8s_error
+from app.models.k8s_tool_models import K8sApiException
 
 
 @pytest.mark.asyncio
@@ -372,3 +373,70 @@ def test_api_exception_to_k8s_error_other_codes():
     exc_500.body = "internal error"
     result_500 = _api_exception_to_k8s_error(exc_500)
     assert result_500.error.code == "CONNECTION_FAILED"  # 默认值
+
+
+# ============ Pod 日志下载测试 ============
+
+
+@pytest.mark.asyncio
+async def test_get_pod_logs():
+    """获取 pod 完整日志"""
+    mock_bundle = MagicMock()
+    mock_response = MagicMock()
+    mock_response.read = AsyncMock(return_value=b"line1\nline2\nline3\n")
+    mock_bundle.core_v1.read_namespaced_pod_log = AsyncMock(return_value=mock_response)
+
+    result = await K8sResourceService.get_pod_logs(
+        mock_bundle, "nginx-pod", "default", tail_lines=1000
+    )
+    assert result == "line1\nline2\nline3\n"
+    mock_bundle.core_v1.read_namespaced_pod_log.assert_called_once()
+    call_kwargs = mock_bundle.core_v1.read_namespaced_pod_log.call_args.kwargs
+    assert call_kwargs["name"] == "nginx-pod"
+    assert call_kwargs["namespace"] == "default"
+    assert call_kwargs["follow"] is False
+    assert call_kwargs["tail_lines"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_get_pod_logs_with_container():
+    """获取 pod 指定容器日志"""
+    mock_bundle = MagicMock()
+    mock_response = MagicMock()
+    mock_response.read = AsyncMock(return_value=b"container log\n")
+    mock_bundle.core_v1.read_namespaced_pod_log = AsyncMock(return_value=mock_response)
+
+    result = await K8sResourceService.get_pod_logs(
+        mock_bundle, "nginx-pod", "default", container="nginx"
+    )
+    assert result == "container log\n"
+    call_kwargs = mock_bundle.core_v1.read_namespaced_pod_log.call_args.kwargs
+    assert call_kwargs["container"] == "nginx"
+
+
+@pytest.mark.asyncio
+async def test_get_pod_logs_string_response():
+    """获取 pod 日志：响应为字符串时直接返回"""
+    mock_bundle = MagicMock()
+    mock_response = MagicMock()
+    mock_response.read = AsyncMock(return_value="already decoded string\n")
+    mock_bundle.core_v1.read_namespaced_pod_log = AsyncMock(return_value=mock_response)
+
+    result = await K8sResourceService.get_pod_logs(
+        mock_bundle, "nginx-pod", "default"
+    )
+    assert result == "already decoded string\n"
+
+
+@pytest.mark.asyncio
+async def test_get_pod_logs_api_error():
+    """获取 pod 日志：K8s API 异常转换为 K8sApiException"""
+    mock_bundle = MagicMock()
+    exc = ApiException(status=404, reason="Not Found")
+    exc.body = "pod not found"
+    mock_bundle.core_v1.read_namespaced_pod_log = AsyncMock(side_effect=exc)
+
+    with pytest.raises(K8sApiException):
+        await K8sResourceService.get_pod_logs(
+            mock_bundle, "nonexistent-pod", "default"
+        )
