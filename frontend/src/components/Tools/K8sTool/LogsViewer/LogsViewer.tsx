@@ -121,8 +121,6 @@ export const LogsViewer: React.FC<Props> = ({
     };
   }, [configId, podName, namespace, selectedContainer, tailLines, flushBuffer]);
 
-  const reconnect = useCallback(() => connect(), [connect]);
-
   useEffect(() => {
     setLines([]);
     connect();
