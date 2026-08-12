@@ -65,4 +65,18 @@ describe('TabBar', () => {
 
     expect(useWorkspaceStore.getState().tabs).toHaveLength(0);
   });
+
+  it('should render tool icons with fas prefix', () => {
+    useWorkspaceStore.setState({
+      tabs: [
+        { id: '1', toolId: 'database-tool', toolName: '数据库', toolIcon: 'fa-database', openedAt: Date.now() },
+      ],
+      activeTabId: '1',
+    });
+
+    render(<TabBar />);
+    const icon = document.querySelector('[data-tab-id="1"] i');
+    expect(icon?.className).toContain('fas');
+    expect(icon?.className).toContain('fa-database');
+  });
 });

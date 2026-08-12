@@ -25,7 +25,7 @@ export const TabBar: React.FC = () => {
             ].join(' ')}
             onClick={() => setActiveTab(tab.id)}
           >
-            <i className={[tab.toolIcon, 'text-xs flex-shrink-0'].join(' ')}></i>
+            <i className={['fas', tab.toolIcon, 'text-xs flex-shrink-0'].join(' ')}></i>
             <span className="truncate">{tab.toolName}</span>
             <button
               className="ml-1 text-slate-500 hover:text-slate-200 hover:bg-slate-600 rounded px-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
