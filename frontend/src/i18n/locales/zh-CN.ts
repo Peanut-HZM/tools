@@ -38,6 +38,7 @@ export const zhCN = {
     closeTab: '关闭标签',
     collapseSidebar: '折叠侧边栏',
     expandSidebar: '展开侧边栏',
+    searchPlaceholder: '搜索工具...',
     welcome: '开始使用',
     welcomeHint: '从左侧工具列表选择一个工具，或点击下方快捷入口',
     unknownTool: '未知工具',

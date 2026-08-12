@@ -17,12 +17,18 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
   }, [collapsed]);
 
   const openedToolIds = new Set(tabs.map((t) => t.toolId));
+
+  // 按名称过滤工具
+  const filteredTools = tools.filter((tool) =>
+    tool.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleToolClick = (tool: Tool) => {
     addTab({ id: tool.id, title: tool.title, icon: tool.icon });
@@ -59,6 +65,20 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
         </button>
       </div>
 
+      {/* 搜索框 */}
+      <div className="px-3 py-2 border-b border-slate-700">
+        <div className="relative">
+          <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t.workspace.searchPlaceholder}
+            className="w-full bg-slate-900 border border-slate-700 rounded-md pl-7 pr-2 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-slate-600"
+          />
+        </div>
+      </div>
+
       {/* 折叠按钮 */}
       <div className="flex justify-end px-2 pt-2">
         <button
@@ -76,7 +96,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
           {t.workspace.toolList}
         </div>
         <div className="space-y-0.5">
-          {tools.map((tool) => {
+          {filteredTools.map((tool) => {
             const isOpened = openedToolIds.has(tool.id);
             return (
               <div
@@ -91,7 +111,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
                 ].join(' ')}
                 onClick={() => handleToolClick(tool)}
               >
-                <i className={[tool.icon, 'text-xs w-4 text-center flex-shrink-0'].join(' ')}></i>
+                <i className={['fas', tool.icon, 'text-xs w-4 text-center flex-shrink-0'].join(' ')}></i>
                 <span className="truncate">{tool.title}</span>
               </div>
             );

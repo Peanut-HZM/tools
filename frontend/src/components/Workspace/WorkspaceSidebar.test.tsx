@@ -8,6 +8,24 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 
+// Mock useI18n — searchPlaceholder 将在 Task 3 添加到 zh-CN.ts，此处先提供测试用值
+vi.mock('../../i18n', () => ({
+  useI18n: () => ({
+    t: {
+      workspace: {
+        home: '返回首页',
+        toolList: '工具列表',
+        collapseSidebar: '折叠侧边栏',
+        expandSidebar: '展开侧边栏',
+        searchPlaceholder: '搜索工具...',
+      },
+    },
+    language: 'zh-CN',
+    setLanguage: vi.fn(),
+    toggleLanguage: vi.fn(),
+  }),
+}));
+
 describe('WorkspaceSidebar', () => {
   const mockTools = [
     { id: 'k8s-tool', title: 'K8s', icon: 'fas fa-server', description: '', rating: 0, usageCount: '0', category: 'dev', iconColor: '' },
@@ -63,5 +81,30 @@ describe('WorkspaceSidebar', () => {
     fireEvent.click(toggle);
     // After collapse, tool names should be hidden
     expect(screen.queryByText('K8s')).toBeNull();
+  });
+
+  it('should render search input', () => {
+    render(<WorkspaceSidebar tools={mockTools} />);
+    const searchInput = screen.getByPlaceholderText('搜索工具...');
+    expect(searchInput).toBeTruthy();
+  });
+
+  it('should filter tools by search query', () => {
+    render(<WorkspaceSidebar tools={mockTools} />);
+    const searchInput = screen.getByPlaceholderText('搜索工具...');
+    fireEvent.change(searchInput, { target: { value: 'K8s' } });
+
+    // Only K8s should be visible
+    expect(screen.queryByText('SSH')).toBeNull();
+  });
+
+  it('should show all tools when search is cleared', () => {
+    render(<WorkspaceSidebar tools={mockTools} />);
+    const searchInput = screen.getByPlaceholderText('搜索工具...');
+    fireEvent.change(searchInput, { target: { value: 'K8s' } });
+    fireEvent.change(searchInput, { target: { value: '' } });
+
+    expect(screen.getByText('K8s')).toBeTruthy();
+    expect(screen.getByText('SSH')).toBeTruthy();
   });
 });

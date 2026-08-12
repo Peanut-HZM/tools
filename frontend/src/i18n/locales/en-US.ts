@@ -38,6 +38,7 @@ export const enUS = {
     closeTab: 'Close Tab',
     collapseSidebar: 'Collapse Sidebar',
     expandSidebar: 'Expand Sidebar',
+    searchPlaceholder: 'Search tools...',
     welcome: 'Get Started',
     welcomeHint: 'Select a tool from the sidebar or use quick access below',
     unknownTool: 'Unknown Tool',
