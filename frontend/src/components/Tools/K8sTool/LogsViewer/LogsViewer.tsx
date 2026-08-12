@@ -8,7 +8,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
-import { buildLogsWebSocketUrl } from '../../../../api/k8sToolApi';
+import { buildLogsWebSocketUrl, downloadPodLogs } from '../../../../api/k8sToolApi';
 import type { K8sContainerInfo } from '../types';
 
 interface Props {
@@ -20,6 +20,20 @@ interface Props {
 
 // 最多保留日志行数防止内存溢出
 const MAX_LINES = 10000;
+
+// 重连延迟（毫秒）
+const RECONNECT_DELAY = 2000;
+
+/** 检测是否为日志流错误帧 */
+function isLogStreamError(text: string): boolean {
+  if (!text.startsWith('{"type":"error"')) return false;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.code === 'LOG_STREAM_ERROR';
+  } catch {
+    return false;
+  }
+}
 
 export const LogsViewer: React.FC<Props> = ({
   configId, podName, namespace, containers,
@@ -36,12 +50,15 @@ export const LogsViewer: React.FC<Props> = ({
   const [follow, setFollow] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [tailLines, setTailLines] = useState(1000);  // 默认显示 1000 行
+  const [downloading, setDownloading] = useState(false);
 
   // Refs
   const socketRef = useRef<WebSocket | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const bufferRef = useRef<string[]>([]);
   const rafIdRef = useRef<number | null>(null);
+  const followRef = useRef(follow);
+  useEffect(() => { followRef.current = follow; }, [follow]);
 
   // 使用 requestAnimationFrame 批量追加日志，避免高频 setState
   const flushBuffer = useCallback(() => {
@@ -57,18 +74,16 @@ export const LogsViewer: React.FC<Props> = ({
     });
   }, []);
 
-  // 当容器切换时重连
-  useEffect(() => {
-    // 关闭旧 socket
+  // 连接 WebSocket
+  const connect = useCallback(() => {
     socketRef.current?.close();
-    setLines([]);
 
     const wsUrl = buildLogsWebSocketUrl(
       configId,
       podName,
       namespace,
       selectedContainer || undefined,
-      tailLines,  // 使用可配置的 tailLines
+      tailLines,
       true, // follow
     );
 
@@ -77,33 +92,49 @@ export const LogsViewer: React.FC<Props> = ({
 
     socket.onmessage = (event) => {
       const text = typeof event.data === 'string' ? event.data : '';
+      // 过滤 LOG_STREAM_ERROR 错误帧，不显示为日志
+      if (isLogStreamError(text)) {
+        console.warn('Log stream error:', text);
+        return;
+      }
       const newLines = text.split('\n');
       bufferRef.current.push(...newLines);
-      // 调度下一帧刷新
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(flushBuffer);
       }
     };
 
-    socket.onerror = () => {
-      // 错误由 onclose 统一处理
-    };
+    socket.onerror = () => {};
 
     socket.onclose = () => {
       if (socketRef.current === socket) {
         socketRef.current = null;
+        // follow 模式下自动重连
+        if (followRef.current) {
+          setTimeout(() => {
+            if (followRef.current && socketRef.current === null) {
+              connect();
+            }
+          }, RECONNECT_DELAY);
+        }
       }
     };
+  }, [configId, podName, namespace, selectedContainer, tailLines, flushBuffer]);
 
+  const reconnect = useCallback(() => connect(), [connect]);
+
+  useEffect(() => {
+    setLines([]);
+    connect();
     return () => {
-      socket.close();
+      socketRef.current?.close();
       socketRef.current = null;
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
       }
     };
-  }, [configId, podName, namespace, selectedContainer, tailLines, flushBuffer]);
+  }, [connect]);
 
   // follow 模式：自动滚动到底部
   useEffect(() => {
@@ -170,15 +201,25 @@ export const LogsViewer: React.FC<Props> = ({
   );
 
   /** 下载日志 */
-  const handleDownload = () => {
-    const text = lines.join('\n');
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${podName}-${selectedContainer || 'all'}-logs.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const text = await downloadPodLogs(
+        configId, podName, namespace, selectedContainer || undefined, tailLines
+      );
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${podName}-${selectedContainer || 'all'}-logs.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      addToast(lt.downloadError || '下载失败', 'error');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   /** 清空显示 */
@@ -245,11 +286,11 @@ export const LogsViewer: React.FC<Props> = ({
         {/* 下载按钮 */}
         <button
           onClick={handleDownload}
-          disabled={lines.length === 0}
+          disabled={downloading}
           className="flex items-center gap-1 px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-400 rounded hover:bg-slate-700 hover:text-slate-200 disabled:opacity-50 transition-colors"
           title={lt.download}
         >
-          <i className="fas fa-download text-xs"></i>
+          <i className={`fas ${downloading ? 'fa-spinner fa-spin' : 'fa-download'} text-xs`}></i>
         </button>
 
         {/* 清空按钮 */}

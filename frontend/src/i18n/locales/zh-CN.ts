@@ -302,6 +302,7 @@ export const zhCN = {
         previous: '上一容器日志',
         search: '搜索日志（支持正则）',
         download: '下载日志',
+        downloadError: '下载日志失败',
         clear: '清空显示',
         noLogs: '暂无日志',
       },

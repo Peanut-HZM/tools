@@ -302,6 +302,7 @@ export const enUS = {
         previous: 'Previous container logs',
         search: 'Search logs (regex supported)',
         download: 'Download logs',
+        downloadError: 'Failed to download logs',
         clear: 'Clear',
         noLogs: 'No logs',
       },
