@@ -2078,7 +2078,7 @@ class DatabaseToolService:
             with engine.connect() as conn:
                 result = conn.execute(text(request.sql))
                 rows = result.fetchall()
-                columns = result.keys()
+                columns = list(result.keys())
 
                 if request.format == ExportFormat.CSV:
                     output = io.StringIO()
@@ -2157,7 +2157,14 @@ class DatabaseToolService:
 
                 elif request.format == ExportFormat.SQL:
                     # 生成 INSERT 语句
-                    db_type = config_row["db_type"]
+                    import re
+                    # 从 SQL 中提取表名（支持大小写）
+                    table_match = re.search(
+                        r'FROM\s+([`"\']?\w+[`"\']?(?:\.[`"\']?\w+[`"\']?)?)',
+                        request.sql, re.IGNORECASE
+                    )
+                    table_name = table_match.group(1) if table_match else "exported_data"
+
                     statements = []
                     for row in rows:
                         values = []
@@ -2165,13 +2172,14 @@ class DatabaseToolService:
                             if val is None:
                                 values.append("NULL")
                             elif isinstance(val, str):
-                                values.append(f"'{val.replace("'", "''")}'")
+                                values.append(f"'{val.replace(chr(39), chr(39)+chr(39))}'")
                             elif isinstance(val, (datetime,)):
                                 values.append(f"'{val}'")
                             else:
                                 values.append(str(val))
+                        col_list = ", ".join(columns)
                         statements.append(
-                            f"INSERT INTO {request.sql.split('FROM')[1].strip().split()[0]} VALUES ({', '.join(values)})"
+                            f"INSERT INTO {table_name} ({col_list}) VALUES ({', '.join(values)})"
                         )
 
                     content = ";\n".join(statements) + ";" if statements else ""
