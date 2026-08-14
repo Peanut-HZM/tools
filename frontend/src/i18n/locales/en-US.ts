@@ -341,6 +341,7 @@ export const enUS = {
         noPods: 'No pods found',
         searchPlaceholder: 'Search pod name...',
         noMatch: 'No matching Pod found: "{text}"',
+        actions: 'Actions',
       },
       // Workload list
       workloadList: {

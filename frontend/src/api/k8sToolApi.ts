@@ -233,12 +233,8 @@ export const downloadPodLogs = async (
   podName: string,
   namespace: string,
   container?: string,
-  tailLines: number = 10000,
 ): Promise<string> => {
-  const params = new URLSearchParams({
-    namespace,
-    tail_lines: String(tailLines),
-  });
+  const params = new URLSearchParams({ namespace });
   if (container) params.append('container', container);
 
   const response = await fetch(
@@ -246,7 +242,7 @@ export const downloadPodLogs = async (
     { headers: getAuthHeaders() }
   );
   if (!response.ok) {
-    throw new Error(`下载日志失败: ${response.status}`);
+    throw new Error(`下载日志失败：${response.status}`);
   }
   return response.text();
 };

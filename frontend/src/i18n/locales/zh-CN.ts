@@ -341,6 +341,7 @@ export const zhCN = {
         noPods: '暂无容器',
         searchPlaceholder: '搜索 Pod 名称...',
         noMatch: '未找到匹配的 Pod: "{text}"',
+        actions: '操作',
       },
       // 工作负载列表
       workloadList: {

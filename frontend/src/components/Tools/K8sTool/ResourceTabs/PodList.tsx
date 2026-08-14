@@ -8,12 +8,15 @@ import React, { useState } from 'react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sPods } from '../../../../hooks/useK8sClient';
 import { useI18n } from '../../../../i18n';
+import { useToast } from '../../../../hooks/useToast';
+import { downloadPodLogs } from '../../../../api/k8sToolApi';
 import { formatAge, getStatusColor, getStatusIcon } from './utils';
 
 export const PodList: React.FC = () => {
   const { t } = useI18n();
   const k8sT = t.tools['k8s-tool'];
   const { activeConnectionId, selectedNamespaces, namespaces, openResourceTab } = useK8sStore();
+  const { addToast } = useToast();
   const [searchText, setSearchText] = useState('');
 
   // 有效命名空间：空数组表示"所有"，此时使用 store 中的全部 namespaces
@@ -35,6 +38,24 @@ export const PodList: React.FC = () => {
       namespace: pod.namespace,
       name: pod.name,
     });
+  };
+
+  /** 下载 Pod 完整日志 */
+  const handleDownloadLogs = async (podName: string, namespace: string) => {
+    try {
+      const text = await downloadPodLogs(activeConnectionId, podName, namespace);
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${podName}-logs.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      addToast('日志下载成功', 'success');
+    } catch (error) {
+      console.error('Download logs failed:', error);
+      addToast('下载日志失败', 'error');
+    }
   };
 
   return (
@@ -72,13 +93,14 @@ export const PodList: React.FC = () => {
             <th className="text-left px-3 py-2 font-medium">{k8sT.podList.age}</th>
             <th className="text-left px-3 py-2 font-medium">{k8sT.podList.node}</th>
             <th className="text-left px-3 py-2 font-medium">{k8sT.podList.ip}</th>
+            <th className="text-left px-3 py-2 font-medium">{k8sT.podList.actions || '操作'}</th>
           </tr>
         </thead>
         <tbody>
           {/* 加载中 */}
           {isLoading && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+              <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
                 {t.common.loading}
               </td>
@@ -88,7 +110,7 @@ export const PodList: React.FC = () => {
           {/* 请求出错 */}
           {isError && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-red-400">
+              <td colSpan={7} className="px-3 py-8 text-center text-red-400">
                 <i className="fas fa-exclamation-triangle mr-2"></i>
                 {errorMessage}
               </td>
@@ -98,7 +120,7 @@ export const PodList: React.FC = () => {
           {/* 空数据 */}
           {!isLoading && !isError && filteredPods.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+              <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
                 {searchText ? k8sT.podList.noMatch.replace('{text}', searchText) : k8sT.podList.noPods}
               </td>
             </tr>
@@ -151,6 +173,20 @@ export const PodList: React.FC = () => {
               {/* IP */}
               <td className="px-3 py-2 text-slate-400 font-mono text-xs">
                 {pod.pod_ip || '-'}
+              </td>
+
+              {/* 操作：下载日志 */}
+              <td className="px-3 py-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadLogs(pod.name, pod.namespace);
+                  }}
+                  className="text-slate-400 hover:text-blue-400 transition-colors"
+                  title="下载日志"
+                >
+                  <i className="fas fa-download text-xs"></i>
+                </button>
               </td>
             </tr>
           ))}
