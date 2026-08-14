@@ -29,6 +29,10 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
   const [result, setResult] = useState<SQLExecutionResult | null>(null);
   const [schema, setSchema] = useState<TableSchema | null>(null);
 
+  // Export state
+  const [exporting, setExporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
   const fetchSchema = useCallback(async (): Promise<TableSchema | null> => {
     try {
       const s = await api.getTableSchema(configId, tableName, databaseName, schemaName);
@@ -108,6 +112,85 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     return () => { cancelled = true; };
   }, [configId, databaseName, tableName, schemaName]);
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handleClick = () => setShowExportMenu(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showExportMenu]);
+
+  /** 导出数据 */
+  const handleExport = useCallback(async (format: 'csv' | 'excel' | 'json' | 'sql') => {
+    if (!result?.success || !tableName) {
+      toast.error(t.database.export.noData);
+      return;
+    }
+
+    setExporting(true);
+    setShowExportMenu(false);
+
+    try {
+      const fullTableName = schemaName
+        ? `${schemaName}.${tableName}`
+        : tableName;
+      const sql = [
+        'SELECT *',
+        `FROM ${fullTableName}`,
+        whereClause ? `WHERE ${whereClause}` : '',
+        orderByClause ? `ORDER BY ${orderByClause}` : '',
+      ].filter(Boolean).join(' ');
+
+      const response = await api.exportTableData(configId, {
+        sql,
+        format,
+        database_name: databaseName,
+      });
+
+      let blob: Blob;
+      if (format === 'excel') {
+        const byteChars = atob(response.content || '');
+        const byteNums = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNums[i] = byteChars.charCodeAt(i);
+        }
+        blob = new Blob([byteNums], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+      } else {
+        const mimeType = format === 'csv'
+          ? 'text/csv;charset=utf-8'
+          : format === 'json'
+            ? 'application/json;charset=utf-8'
+            : 'text/plain;charset=utf-8';
+        blob = new Blob([response.content || ''], { type: mimeType });
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.file_name;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(t.database.export.success.replace('{count}', String(response.row_count)));
+    } catch (error: unknown) {
+      const err = error as { detail?: { message?: string } | string; message?: string };
+      const detail = err?.detail;
+      const errorMsg = (typeof detail === 'object' && detail?.message)
+        || (typeof detail === 'string' && detail)
+        || err?.message
+        || t.database.export.failed;
+      toast.error(errorMsg);
+    } finally {
+      setExporting(false);
+    }
+  }, [configId, tableName, databaseName, schemaName, whereClause, orderByClause, result, toast, t]);
+
+  const handleQuickExport = useCallback(() => {
+    handleExport('csv');
+  }, [handleExport]);
+
   const handleExecute = () => {
     setPage(1);
     fetchData(1);
@@ -160,6 +243,50 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              >
                <i className="fas fa-sync-alt"></i>
              </button>
+
+             {/* Quick Export button */}
+             <button
+               onClick={handleQuickExport}
+               disabled={exporting || !result?.success}
+               className="bg-slate-700 text-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-600 disabled:opacity-50 flex items-center space-x-1"
+               title={t.database.export.quickExport}
+             >
+               {exporting ? (
+                 <><i className="fas fa-spinner fa-spin text-xs"></i><span>{t.database.export.exporting}</span></>
+               ) : (
+                 <><i className="fas fa-download text-xs"></i><span>{t.database.export.quickExport}</span></>
+               )}
+             </button>
+
+             {/* Advanced Export dropdown */}
+             <div className="relative">
+               <button
+                 onClick={() => setShowExportMenu(!showExportMenu)}
+                 disabled={exporting || !result?.success}
+                 className="bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-sm hover:bg-slate-600 disabled:opacity-50"
+                 title={t.database.export.advancedExport}
+               >
+                 <i className="fas fa-chevron-down text-xs"></i>
+               </button>
+
+               {showExportMenu && (
+                 <div className="absolute right-0 mt-1 w-32 bg-slate-800 rounded shadow-lg border border-slate-600 py-1 z-50">
+                   <div className="px-3 py-1 text-xs text-slate-500 border-b border-slate-700">
+                     {t.database.export.format}
+                   </div>
+                   {(['csv', 'excel', 'json', 'sql'] as const).map((fmt) => (
+                     <button
+                       key={fmt}
+                       onClick={() => handleExport(fmt)}
+                       disabled={exporting}
+                       className="block w-full text-left px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50"
+                     >
+                       {fmt.toUpperCase()}
+                     </button>
+                   ))}
+                 </div>
+               )}
+             </div>
            </div>
         </div>
 
