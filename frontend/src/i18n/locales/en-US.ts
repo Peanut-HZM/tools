@@ -378,6 +378,7 @@ export const enUS = {
         NOT_FOUND: 'Resource not found',
         METRICS_UNAVAILABLE: 'Metrics Server is not installed in this cluster, monitoring metrics unavailable',
         TIMEOUT: 'Request timed out',
+        PERMISSION_DENIED: 'Current account does not have cluster-level permissions. Please configure namespace_filter in the connection settings',
       },
       // Resource detail drawer
       resourceDetail: {

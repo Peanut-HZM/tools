@@ -378,6 +378,7 @@ export const zhCN = {
         NOT_FOUND: '资源不存在',
         METRICS_UNAVAILABLE: '该集群未安装 Metrics Server，监控指标不可用',
         TIMEOUT: '请求超时',
+        PERMISSION_DENIED: '当前账号没有集群级权限，请在连接配置中设置 namespace_filter',
       },
       // 资源详情抽屉
       resourceDetail: {
