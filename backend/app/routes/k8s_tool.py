@@ -158,13 +158,26 @@ async def test_connection(
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
 
+    # 解析 namespace_filter，决定使用 namespace 级还是集群级 API
+    ns_filter_raw = config.get("namespace_filter", "[]")
+    try:
+        ns_list = json.loads(ns_filter_raw) if isinstance(ns_filter_raw, str) else []
+    except (json.JSONDecodeError, TypeError):
+        ns_list = []
+
     try:
         async with build_client(config) as bundle:
-            # 尝试列出 namespaces 来测试连通性
-            namespaces = await bundle.core_v1.list_namespace()
-            server_version = None
+            # 根据是否有 namespace_filter 选择不同的测试方式
+            if ns_list:
+                # 有 namespace_filter：使用 namespace 级操作（兼容 namespace-scoped RBAC）
+                test_namespace = ns_list[0]
+                await bundle.core_v1.list_namespaced_pod(test_namespace)
+            else:
+                # 无 namespace_filter：使用集群级操作
+                await bundle.core_v1.list_namespace()
 
             # 尝试获取 server 版本（非关键操作，失败不影响结果）
+            server_version = None
             try:
                 version_info = await bundle.core_v1.api_client.call_api(
                     '/version', 'GET',
@@ -181,7 +194,7 @@ async def test_connection(
                 config_id,
                 success=True,
                 error=None,
-                metrics_available=True  # 如果能列出 namespace，通常 metrics 也可用
+                metrics_available=True,
             )
 
             return K8sConnectionHealth(
@@ -193,13 +206,27 @@ async def test_connection(
         error_msg = str(e)
         logger.error(f"连接测试失败 (config_id={config_id}): {error_msg}", exc_info=True)
 
+        # 检查是否是权限问题
+        is_permission_error = "403" in error_msg or "forbidden" in error_msg.lower()
+
         # 更新测试结果到数据库
         K8sToolService.update_test_result(
             config_id,
             success=False,
             error=error_msg,
-            metrics_available=False
+            metrics_available=False,
         )
+
+        # 如果是权限问题且没有配置 namespace_filter，给出友好提示
+        if is_permission_error and not ns_list:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error_code": "PERMISSION_DENIED",
+                    "message": "当前账号没有集群级权限，请在连接配置中设置 namespace_filter",
+                    "raw": error_msg,
+                },
+            )
 
         raise HTTPException(status_code=500, detail=f"连接失败: {error_msg}")
 
