@@ -589,7 +589,7 @@ async def download_pod_logs(
     name: str,
     namespace: str = Query(..., description="命名空间"),
     container: Optional[str] = Query(None, description="容器名"),
-    tail_lines: int = Query(10000, ge=1, le=1000000, description="返回末尾行数"),
+    tail_lines: Optional[int] = Query(None, ge=1, le=1000000, description="返回末尾行数（不传则返回全部）"),
     previous: bool = Query(False, description="是否读取上一个已终止容器的日志"),
     user_id: str = Depends(get_current_user_id),
 ):
