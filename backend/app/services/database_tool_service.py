@@ -2041,7 +2041,7 @@ class DatabaseToolService:
     ) -> ExportDataResponse:
         """导出数据为指定格式"""
         config_row = DatabaseToolService._get_config_with_password(
-            request.db_config_id, user_id
+            config_id, user_id
         )
         if not config_row:
             raise ValueError("Configuration not found")
