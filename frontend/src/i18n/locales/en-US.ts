@@ -631,6 +631,15 @@ export const enUS = {
       saveFailed: 'Save failed: {error}',
       newRow: 'New',
     },
+    export: {
+      quickExport: 'Quick Export',
+      advancedExport: 'Advanced Export',
+      exporting: 'Exporting...',
+      success: 'Exported: {count} rows',
+      failed: 'Export failed',
+      format: 'Export Format',
+      noData: 'No data to export. Please run a query first',
+    },
     schema: {
       title: 'Schema',
       tables: 'Tables',

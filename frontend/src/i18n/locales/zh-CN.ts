@@ -631,6 +631,15 @@ export const zhCN = {
       saveFailed: '保存失败: {error}',
       newRow: '新',
     },
+    export: {
+      quickExport: '快速导出',
+      advancedExport: '高级导出',
+      exporting: '导出中...',
+      success: '导出成功：{count} 行',
+      failed: '导出失败',
+      format: '导出格式',
+      noData: '没有可导出的数据，请先执行查询',
+    },
     schema: {
       title: '表结构',
       tables: '数据表',
