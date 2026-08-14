@@ -27,6 +27,18 @@ import { DBCache } from '../utils/dbCache';
 // Re-export types for use in components
 export type { BackupResponse, BackupRecord, BackupListResponse, BackupRequest };
 
+/** 导出数据响应 */
+export interface ExportDataResponse {
+  file_name: string;
+  file_size: number;
+  content: string | null;
+  download_url: string | null;
+  row_count: number;
+}
+
+/** 导出格式 */
+export type ExportFormat = 'csv' | 'excel' | 'json' | 'sql';
+
 const BASE_URL = `${API_BASE_URL}/database-tool`;
 
 /** 带超时的 fetch 封装 */
@@ -450,6 +462,27 @@ export async function queryTableData(
     timeout: 30000
   });
   return handleResponse<SQLExecutionResult>(response);
+}
+
+/** 导出表数据（按筛选条件导出全部数据） */
+export async function exportTableData(
+  id: string,
+  request: {
+    sql: string;
+    format: ExportFormat;
+    database_name?: string;
+  }
+): Promise<ExportDataResponse> {
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/configs/${encodeURIComponent(id)}/export`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(request),
+      timeout: 120000, // 2 minutes for large exports
+    }
+  );
+  return handleResponse<ExportDataResponse>(response);
 }
 
 export async function getTableSchema(id: string, table: string, databaseName?: string, schemaName?: string): Promise<TableSchema> {
