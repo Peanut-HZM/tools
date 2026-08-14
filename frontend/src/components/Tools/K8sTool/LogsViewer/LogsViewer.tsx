@@ -203,7 +203,7 @@ export const LogsViewer: React.FC<Props> = ({
     setDownloading(true);
     try {
       const text = await downloadPodLogs(
-        configId, podName, namespace, selectedContainer || undefined, tailLines
+        configId, podName, namespace, selectedContainer || undefined
       );
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);

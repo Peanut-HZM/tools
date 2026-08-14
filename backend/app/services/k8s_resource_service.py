@@ -265,7 +265,7 @@ class K8sResourceService:
         name: str,
         namespace: str,
         container: Optional[str] = None,
-        tail_lines: int = 10000,
+        tail_lines: Optional[int] = None,
         previous: bool = False,
     ) -> str:
         """获取 pod 完整日志（非 follow，一次性读取）
@@ -275,7 +275,7 @@ class K8sResourceService:
             name: Pod 名称
             namespace: 命名空间
             container: 容器名（多容器 pod 时使用）
-            tail_lines: 返回末尾行数
+            tail_lines: 返回末尾行数（None 表示返回全部日志）
             previous: 是否读取上一个已终止容器的日志
 
         Returns:
@@ -285,21 +285,29 @@ class K8sResourceService:
             K8sApiException: K8s API 错误
         """
         try:
-            kwargs = {
+            kwargs: dict = {
                 "name": name,
                 "namespace": namespace,
-                "tail_lines": tail_lines,
                 "follow": False,
                 "previous": previous,
             }
             if container:
                 kwargs["container"] = container
+            if tail_lines is not None:
+                kwargs["tail_lines"] = tail_lines
 
             response = await bundle.core_v1.read_namespaced_pod_log(**kwargs)
-            content = await response.read()
-            if isinstance(content, bytes):
-                return content.decode("utf-8", errors="replace")
-            return content
+            # kubernetes_asyncio 在 follow=False 时直接返回 str，而不是流式响应对象
+            if isinstance(response, str):
+                return response
+            # 如果是响应对象（设置了 _preload_content=False），需要读取内容
+            if hasattr(response, 'read'):
+                content = await response.read()
+                if isinstance(content, bytes):
+                    return content.decode("utf-8", errors="replace")
+                return content
+            # 兜底：尝试转换为字符串
+            return str(response)
         except ApiException as e:
             raise _api_exception_to_k8s_error(e)
 
