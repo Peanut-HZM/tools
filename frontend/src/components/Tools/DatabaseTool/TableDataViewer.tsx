@@ -259,7 +259,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              </button>
 
              {/* Advanced Export dropdown */}
-             <div className="relative">
+             <div className="relative" onClick={(e) => e.stopPropagation()}>
                <button
                  onClick={() => setShowExportMenu(!showExportMenu)}
                  disabled={exporting || !result?.success}
@@ -277,7 +277,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                    {(['csv', 'excel', 'json', 'sql'] as const).map((fmt) => (
                      <button
                        key={fmt}
-                       onClick={() => handleExport(fmt)}
+                       onClick={(e) => { e.stopPropagation(); handleExport(fmt); }}
                        disabled={exporting}
                        className="block w-full text-left px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50"
                      >

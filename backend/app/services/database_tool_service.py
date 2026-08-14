@@ -2040,6 +2040,7 @@ class DatabaseToolService:
         user_id: str, config_id: str, request: ExportDataRequest
     ) -> ExportDataResponse:
         """导出数据为指定格式"""
+        logger.info(f"Export request: config_id={config_id}, format={request.format}, sql={request.sql[:200]}")
         config_row = DatabaseToolService._get_config_with_password(
             config_id, user_id
         )
