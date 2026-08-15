@@ -23,7 +23,8 @@ passlib[bcrypt]>=1.7.4
 bcrypt>=4.0.0,<5.0.0
 
 # HTTP client
-httpx>=0.25.0
+# httpx>=0.28 与 starlette 0.27 的 TestClient 不兼容（TestClient 构造会抛 TypeError），故设上限
+httpx>=0.25.0,<0.28
 requests==2.31.0
 
 # Rate limiting
