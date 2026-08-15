@@ -12,8 +12,8 @@ import paramiko
 from app.config.database import get_pooled_db_connection, release_db_connection
 from app.utils.encryption import EncryptionUtils
 from app.models.monitor_models import (
-    CreateMonitorServerRequest, UpdateMonitorServerRequest, MonitorServerResponse,
-    ImportSSHRequest, TestMonitorServerRequest, MonitorSettings,
+    CreateMonitorServerRequest, UpdateMonitorServerRequest,
+    TestMonitorServerRequest, MonitorSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -257,8 +257,9 @@ class MonitorServerService:
         cursor = conn.cursor()
         try:
             values.append(server_id)
+            values.append(user_id)
             cursor.execute(
-                f"UPDATE monitor_servers SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+                f"UPDATE monitor_servers SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP WHERE id = %s AND user_id = %s",
                 values,
             )
             conn.commit()
@@ -283,8 +284,8 @@ class MonitorServerService:
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "UPDATE monitor_servers SET deleted = TRUE, status = 'disabled', updated_at = CURRENT_TIMESTAMP WHERE id = %s",
-                (server_id,),
+                "UPDATE monitor_servers SET deleted = TRUE, status = 'disabled', updated_at = CURRENT_TIMESTAMP WHERE id = %s AND user_id = %s",
+                (server_id, user_id),
             )
             conn.commit()
             logger.info("监控服务器删除: user=%s id=%s", user_id, server_id)

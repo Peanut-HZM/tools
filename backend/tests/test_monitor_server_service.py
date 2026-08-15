@@ -44,9 +44,12 @@ class FakeConn:
         self.commits = 0
         self.rollbacks = 0
         self._results = results
+        self.cursors = []
 
     def cursor(self):
-        return FakeCursor(self, self._results)
+        cur = FakeCursor(self, self._results)
+        self.cursors.append(cur)
+        return cur
 
     def commit(self):
         self.commits += 1
@@ -74,12 +77,24 @@ def test_create_server_encrypts_password(monkeypatch, fake_db):
                                  "username": "root", "group_name": None, "status": "enabled",
                                  "last_error": None, "last_seen_at": None,
                                  "created_at": __import__("datetime").datetime(2026, 1, 1)}]
+    # 加密函数返回哨兵值，便于断言 INSERT 写入的是加密结果而非明文
+    monkeypatch.setattr(server_service.EncryptionUtils, "encrypt",
+                        staticmethod(lambda v: f"ENC-SENTINEL:{v}"))
     created = MonitorServerService.create_server("u1", req)
     assert created["id"] == "srv-1"
-    # 确认写入的是加密后的密码
-    insert_sql = fake_db["conn"].cursor().executed[0][0] if fake_db["conn"].cursor().executed else ""
-    # cursor 每次调用是新对象，直接断言结果即可
     assert created["name"] == "web1"
+    # 从 FakeConn 记录的游标中取出 INSERT 参数，断言密码列写入加密哨兵值
+    insert_params = next(
+        (params for cur in fake_db["conn"].cursors
+         for sql, params in cur.executed if "INSERT INTO monitor_servers" in sql),
+        None,
+    )
+    assert insert_params is not None
+    # INSERT 参数顺序：id, user_id, name, host, port, username, password_encrypted,
+    # private_key_encrypted, passphrase_encrypted, group_name
+    assert insert_params[6] == "ENC-SENTINEL:p@ss"
+    assert insert_params[7] is None
+    assert insert_params[8] is None
 
 
 def test_get_servers_returns_metric(monkeypatch, fake_db):
