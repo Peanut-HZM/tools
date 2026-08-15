@@ -4,6 +4,7 @@
 """
 import asyncio
 import logging
+import re
 import subprocess
 import time
 from typing import Dict, List, Optional
@@ -161,6 +162,9 @@ async def get_processes(
         processes.sort(key=key_fn, reverse=reverse)
 
     total = len(processes)
+    # 分页边界防护：page 最小为 1，page_size 最小为 1（防 page=0 偏移错误、page_size=0 除零）
+    page = max(1, page)
+    page_size = max(1, page_size)
     offset = (page - 1) * page_size
     return {
         "processes": processes[offset:offset + page_size],
@@ -174,6 +178,12 @@ async def get_processes(
 async def kill_process(server: Dict, pid: int) -> bool:
     """结束远程进程（先 TERM 后 KILL）"""
     try:
+        # 运行时校验 pid 为整数，防注入（如字符串拼接命令）
+        pid = int(pid)
+    except (TypeError, ValueError):
+        logger.warning("非法 pid 参数: %r", pid)
+        return False
+    try:
         await _run_on_server(server, f"kill {pid}", timeout=10)
         return True
     except Exception:
@@ -181,6 +191,7 @@ async def kill_process(server: Dict, pid: int) -> bool:
             await _run_on_server(server, f"kill -9 {pid}", timeout=10)
             return True
         except Exception:
+            logger.warning("进程结束失败: pid=%s server=%s", pid, server.get("name"))
             return False
 
 
@@ -227,6 +238,13 @@ async def get_services(server: Dict) -> List[Dict]:
 
 async def service_action(server: Dict, unit: str, action: str) -> Dict:
     """执行服务启停（优先 sudo -n，失败回退直接 systemctl）"""
+    # 参数白名单校验，防 shell 注入（unit/action 会拼入 shell 命令执行）
+    allowed_actions = {"start", "stop", "restart", "reload", "enable", "disable"}
+    if action not in allowed_actions:
+        return {"success": False, "message": f"非法参数: {action}"}
+    # unit 须符合 systemd 单元名规范（仅字母数字、点、下划线、连字符，且以 .service 结尾）
+    if not re.fullmatch(r"[A-Za-z0-9._-]+\.service", unit):
+        return {"success": False, "message": f"非法参数: {unit}"}
     for cmd in (f"sudo -n systemctl {action} {unit}", f"systemctl {action} {unit}"):
         try:
             await _run_on_server(server, cmd, timeout=20)
