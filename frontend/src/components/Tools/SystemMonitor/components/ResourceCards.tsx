@@ -3,6 +3,8 @@ import type { MetricPoint } from '../../../../api/monitorApi';
 
 function fmtBytes(v: number | null | undefined): string {
   if (v === null || v === undefined) return '-';
+  // 0 是正常业务值（空闲网卡/无磁盘 IO），直接短路避免 Math.log(0) = -Infinity 产生 NaN
+  if (v === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.min(units.length - 1, Math.floor(Math.log(v) / Math.log(1024)));
   return `${(v / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
