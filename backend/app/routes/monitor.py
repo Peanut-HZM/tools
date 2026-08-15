@@ -1,7 +1,6 @@
 """
 监控模块 API 路由
 """
-import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,15 +9,13 @@ from app.middleware.auth_middleware import get_current_user_id
 from app.models.monitor_models import (
     CreateMonitorServerRequest, UpdateMonitorServerRequest, MonitorServerResponse,
     ImportSSHRequest, TestMonitorServerRequest, AlertRuleCreateRequest,
-    AlertRuleUpdateRequest, AlertRuleResponse, AlertLogResponse,
+    AlertRuleUpdateRequest, AlertRuleResponse,
     MonitorSettings, ServiceActionRequest,
 )
 from app.services.monitor import alert_engine, remote_ops
 from app.services.monitor.collector import monitor_collector
 from app.services.monitor.metric_repo import get_latest_metric, query_metrics
 from app.services.monitor.server_service import MonitorServerService
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/monitor", tags=["monitor"])
 

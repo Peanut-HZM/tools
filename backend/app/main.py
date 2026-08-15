@@ -215,12 +215,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"监控采集引擎停止异常: {e}")
 
-    # 停止监控指标清理任务
-    try:
+    # 停止监控指标清理任务（初始化失败时为 None，跳过取消）
+    if monitor_cleanup_task is not None:
         monitor_cleanup_task.cancel()
-        await monitor_cleanup_task
-    except (asyncio.CancelledError, NameError, UnboundLocalError):
-        pass
+        try:
+            await monitor_cleanup_task
+        except asyncio.CancelledError:
+            pass
 
     cleanup_task.cancel()
     try:
