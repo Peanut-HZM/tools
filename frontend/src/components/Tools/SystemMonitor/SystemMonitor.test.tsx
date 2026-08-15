@@ -3,10 +3,15 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import SystemMonitor from './index';
 import * as monitorApi from '../../../api/monitorApi';
 
+// 任务 15 起总览/历史页为真实实现，补齐其 API mock，默认值保证渲染路径安全
 vi.mock('../../../api/monitorApi', () => ({
   getServers: vi.fn(),
   getAlertLogs: vi.fn(),
   markAlertLogsRead: vi.fn(),
+  getSystemInfo: vi.fn().mockResolvedValue({}),
+  getPartitions: vi.fn().mockResolvedValue({ partitions: [] }),
+  getOverview: vi.fn().mockResolvedValue({ server: null, metric: null }),
+  getMetrics: vi.fn().mockResolvedValue({ server_id: '', range: '', points: [] }),
 }));
 
 afterEach(() => {
