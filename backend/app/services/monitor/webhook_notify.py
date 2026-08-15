@@ -2,7 +2,6 @@
 Webhook 推送 - 兼容钉钉/企业微信/飞书机器人 markdown 格式
 """
 import logging
-from datetime import datetime
 
 import httpx
 

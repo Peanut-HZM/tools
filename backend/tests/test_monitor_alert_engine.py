@@ -49,7 +49,6 @@ class FakeCursor:
 
     def execute(self, sql, params=None):
         self.executed.append((sql, params))
-        import re
         if "INSERT INTO monitor_alert_logs" in sql:
             # 模拟返回插入 id
             self._results = [{"id": 1}]
@@ -82,7 +81,6 @@ def fake_db_with_rules(monkeypatch, fake_db):
 
 def test_evaluate_fires_after_duration(monkeypatch, fake_db_with_rules):
     """连续 2 次超过阈值后触发告警"""
-    notified = {"n": 0}
     monkeypatch.setattr(webhook_notify, "send_webhook", lambda *a, **k: True)
     monkeypatch.setattr(alert_engine, "_insert_log", lambda **k: {"id": 1})
     monkeypatch.setattr(alert_engine, "_get_webhook_url", lambda uid: "http://hook")
@@ -104,7 +102,6 @@ def test_evaluate_no_fire_when_below_threshold(monkeypatch, fake_db_with_rules):
 
 def test_firing_does_not_notify_twice(monkeypatch, fake_db_with_rules):
     """触发态中不再重复通知"""
-    sends = {"n": 0}
     monkeypatch.setattr(webhook_notify, "send_webhook", lambda *a, **k: True)
     monkeypatch.setattr(alert_engine, "_insert_log", lambda **k: {"id": 1})
     monkeypatch.setattr(alert_engine, "_get_webhook_url", lambda uid: "http://hook")

@@ -1,7 +1,6 @@
 """
 告警引擎 - 规则 CRUD、采样后评估、触发去重与恢复、站内通知记录
 """
-import json
 import logging
 import uuid
 from datetime import datetime
@@ -297,7 +296,12 @@ def evaluate(server: Dict, m: Dict) -> None:
     except Exception as e:
         logger.error("加载告警规则失败: server=%s 错误=%s", server.get("id"), str(e))
         return
-    webhook_url = _get_webhook_url(server["user_id"])
+    try:
+        webhook_url = _get_webhook_url(server["user_id"])
+    except Exception as e:
+        # 设置读取失败时降级为空串，不中断采样评估（与 get_rules 降级一致）
+        logger.warning("获取 Webhook 设置失败: server=%s 错误=%s", server.get("id"), str(e))
+        webhook_url = ""
     for rule in rules:
         if not rule["enabled"]:
             continue
