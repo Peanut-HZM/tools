@@ -16,7 +16,7 @@ export default function SystemInfoCards({ info, server }: SystemInfoCardsProps) 
     { icon: 'fa-network-wired', label: '地址', value: server.host || '本机' },
     { icon: 'fa-user', label: '用户', value: server.username || '-' },
     { icon: 'fa-tag', label: '类型', value: server.server_type === 'local' ? '本机' : 'SSH 远程' },
-    { icon: 'fa-bolt', label: '状态', value: server.status === 'online' ? '在线' : server.status === 'offline' ? '离线' : '已禁用' },
+    { icon: 'fa-bolt', label: '状态', value: server.status === 'online' ? '在线' : server.status === 'offline' ? '离线' : server.status === 'error' ? '异常' : '待采集' },
   ];
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

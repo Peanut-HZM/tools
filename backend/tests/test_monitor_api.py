@@ -127,3 +127,31 @@ def test_settings_save_and_get(client, auth_headers):
 def test_metrics_requires_auth(client):
     response = client.get("/api/monitor/servers")
     assert response.status_code == 401
+
+
+def test_get_enabled_servers_includes_collected_server(client, auth_headers):
+    """采集引擎过滤：采集一轮后 status 变为 online，get_enabled_servers 仍须返回该服务器"""
+    from datetime import datetime
+
+    from app.services.auth_service import get_auth_service
+
+    # 从登录 token 解析 user_id（集成测试真实用户）
+    token = auth_headers["Authorization"][7:]
+    user_id = get_auth_service().verify_token_data(token).user_id
+
+    create_response = client.post("/api/monitor/servers", json={
+        "name": "采集过滤测试", "host": "192.168.1.101", "port": 22,
+        "username": "root", "password": "secret",
+    }, headers=auth_headers)
+    assert create_response.status_code == 200
+    server_id = create_response.json()["id"]
+
+    try:
+        # 模拟采集引擎一轮后写入健康状态（enabled 仅作为新建初始态）
+        MonitorServerService.update_status(server_id, "online", None, datetime.now())
+        enabled_servers = MonitorServerService.get_enabled_servers()
+        assert any(s["id"] == server_id for s in enabled_servers), \
+            "采集后状态为 online 的服务器应出现在采集列表中"
+    finally:
+        # 清理测试数据，避免影响其他用例
+        MonitorServerService.delete_server(user_id, server_id)

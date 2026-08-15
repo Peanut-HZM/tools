@@ -3,7 +3,7 @@
 """
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from app.middleware.auth_middleware import get_current_user_id
 from app.models.monitor_models import (
@@ -166,7 +166,9 @@ async def get_processes(
 
 @router.post("/servers/{server_id}/processes/{pid}/kill")
 async def kill_process(
-    server_id: str, pid: int, user_id: str = Depends(get_current_user_id),
+    server_id: str,
+    pid: int = Path(..., ge=1),  # pid 必须为正整数，防止负数/零误杀进程组
+    user_id: str = Depends(get_current_user_id),
 ):
     """结束进程"""
     server = MonitorServerService.get_server(user_id, server_id)

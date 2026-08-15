@@ -183,6 +183,10 @@ async def kill_process(server: Dict, pid: int) -> bool:
     except (TypeError, ValueError):
         logger.warning("非法 pid 参数: %r", pid)
         return False
+    # pid 必须为正整数，负数/零会误杀进程组，直接拒绝
+    if pid <= 0:
+        logger.warning("拒绝非法 pid（必须为正整数）: %s", pid)
+        return False
     try:
         await _run_on_server(server, f"kill {pid}", timeout=10)
         return True

@@ -376,13 +376,14 @@ class MonitorServerService:
 
     @staticmethod
     def get_enabled_servers() -> List[Dict]:
-        """获取所有用户的启用监控服务器（含解密凭据，供采集引擎使用）"""
+        """获取所有启用（未被禁用）的监控服务器（含解密凭据，供采集引擎使用）"""
         conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
                 """SELECT * FROM monitor_servers
-                   WHERE status = 'enabled' AND deleted = FALSE""",
+                   -- 采集后状态为 online/offline/error，enabled 仅作为新建服务器初始态，需一并采集
+                   WHERE status <> 'disabled' AND deleted = FALSE""",
             )
             rows = cursor.fetchall()
         finally:
