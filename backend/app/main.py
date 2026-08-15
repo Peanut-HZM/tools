@@ -25,6 +25,7 @@ from app.routes import (
     token_usage,
 )
 from app.routes import auth, contact_message
+from app.routes import monitor as monitor_router
 from app.routes import markdown_editor
 from app.routes import cross_share
 from app.routes import course_platform
@@ -108,6 +109,32 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Token Usage 数据库表创建失败: {e}")
 
+    # 初始化监控模块（建表 + 启动采集引擎）
+    monitor_cleanup_task = None
+    try:
+        from app.services.monitor.server_service import MonitorServerService
+        from app.services.monitor import metric_repo, alert_engine
+        from app.services.monitor.collector import monitor_collector
+        MonitorServerService.ensure_tables()
+        metric_repo.ensure_tables()
+        alert_engine.ensure_tables()
+
+        async def monitor_cleanup_loop():
+            """每 6 小时清理过期监控指标"""
+            from app.services.monitor.metric_repo import delete_expired_metrics
+            while True:
+                await asyncio.sleep(6 * 3600)
+                try:
+                    delete_expired_metrics(7 * 24 * 3600)
+                except Exception as e:
+                    logger.warning(f"监控指标清理失败: {e}")
+        monitor_cleanup_task = asyncio.create_task(monitor_cleanup_loop())
+
+        await monitor_collector.start()
+        logger.info("监控模块初始化完成")
+    except Exception as e:
+        logger.error(f"监控模块初始化失败: {e}")
+
     # 启动后台清理任务
     manager = get_manager()
     cleanup_task = asyncio.create_task(manager.start_cleanup_task())
@@ -180,6 +207,20 @@ async def lifespan(app: FastAPI):
         await openclaw_service.stop()
     except Exception as e:
         logger.error(f"OpenClaw 关闭异常: {e}")
+
+    # 停止监控采集引擎
+    try:
+        from app.services.monitor.collector import monitor_collector
+        await monitor_collector.stop()
+    except Exception as e:
+        logger.warning(f"监控采集引擎停止异常: {e}")
+
+    # 停止监控指标清理任务
+    try:
+        monitor_cleanup_task.cancel()
+        await monitor_cleanup_task
+    except (asyncio.CancelledError, NameError, UnboundLocalError):
+        pass
 
     cleanup_task.cancel()
     try:
@@ -355,6 +396,9 @@ app.include_router(contact_message.router)
 # Cursor History router
 app.include_router(cursor_history.router, prefix="/api")
 
+
+# Monitor router（服务器监控）
+app.include_router(monitor_router.router, prefix="/api")
 
 # OpenClaw router
 from app.routes import openclaw as openclaw_router
