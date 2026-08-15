@@ -1,6 +1,7 @@
 """
 监控指标存储 - PostgreSQL 时序表写入/查询/聚合/清理
 """
+import json
 import logging
 from typing import Dict, List, Optional
 
@@ -48,6 +49,10 @@ def ensure_tables() -> None:
             "CREATE INDEX IF NOT EXISTS idx_monitor_metrics_server_time ON monitor_metrics(server_id, collected_at)"
         )
         conn.commit()
+    except Exception as e:
+        conn.rollback()
+        logger.error("监控指标建表失败: 错误=%s", str(e))
+        raise
     finally:
         cursor.close()
         release_db_connection(conn)
@@ -78,8 +83,8 @@ def insert_metric(server_id: str, m: Dict) -> None:
             """,
             (
                 server_id, m["cpu_percent"],
-                __import__("json").dumps(m["cpu_per_core"]),
-                __import__("json").dumps(m["load_avg"]),
+                json.dumps(m["cpu_per_core"]),
+                json.dumps(m["load_avg"]),
                 m["mem_total"], m["mem_used"], m["mem_percent"],
                 m["swap_total"], m["swap_used"], m["swap_percent"],
                 m["disk_total"], m["disk_used"], m["disk_percent"],
@@ -175,7 +180,7 @@ def query_metrics(server_id: str, range_key: str) -> List[Dict]:
                     "net_sent_rate": r["net_sent_rate"],
                     "disk_read_rate": r["disk_read_rate"],
                     "disk_write_rate": r["disk_write_rate"],
-                    "load_avg": [r["load1"]],
+                    "load_avg": [r["load1"]] if r["load1"] is not None else None,
                 }
                 for r in rows
             ]
@@ -211,7 +216,7 @@ def delete_expired_metrics(seconds: int = 604800) -> int:
     except Exception as e:
         conn.rollback()
         logger.error("监控指标清理失败: %s", str(e))
-        return 0
+        raise
     finally:
         cursor.close()
         release_db_connection(conn)
