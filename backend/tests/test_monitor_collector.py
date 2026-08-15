@@ -4,14 +4,12 @@
 import os
 import sys
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import pytest
 from app.services.monitor import collector
 from app.services.monitor.collector import MonitorCollector, local_metrics
-from app.services.monitor.script import BASH_SCRIPT
 from app.services.monitor.ssh_client import SSHCommandError
 
 LOCAL_SERVER = {"id": "srv-local", "user_id": "u1", "server_type": "local", "name": "本机",

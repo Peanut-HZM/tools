@@ -13,7 +13,7 @@ from app.services.monitor import alert_engine
 from app.services.monitor.metric_repo import insert_metric
 from app.services.monitor.script import BASH_SCRIPT, parse_script_output
 from app.services.monitor.server_service import MonitorServerService
-from app.services.monitor.ssh_client import pool, SSHCommandError
+from app.services.monitor.ssh_client import pool
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +111,10 @@ class MonitorCollector:
     async def _loop(self) -> None:
         """后台循环：按全局间隔执行采集周期"""
         while self._running:
-            interval = max(10, MonitorServerService.get_global_interval())
+            interval = DEFAULT_INTERVAL  # 默认间隔，DB 异常时兜底
             cycle_start = time.monotonic()
             try:
+                interval = max(10, MonitorServerService.get_global_interval())
                 await self.collect_all()
             except Exception as e:
                 logger.error("采集周期异常: %s", str(e), exc_info=True)
@@ -138,7 +139,10 @@ class MonitorCollector:
             return_exceptions=True,
         )
         success = sum(1 for r in results if isinstance(r, dict))
-        await asyncio.to_thread(pool.close_idle_connections)
+        try:
+            await asyncio.to_thread(pool.close_idle_connections)
+        except Exception as e:
+            logger.error("关闭空闲连接失败: %s", str(e))
         logger.info("采集周期完成: 共 %d 台，成功 %d 台", len(servers), success)
         return success
 
