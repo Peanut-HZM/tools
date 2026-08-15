@@ -20,7 +20,6 @@ grep '^cpu' /proc/stat > "$prev_file"
 sleep "$interval"
 grep '^cpu' /proc/stat > "$curr_file"
 cpu_info=$(awk -v itv="$interval" '
-BEGIN { printf "%.1f", 0 }
 NR==FNR {
   if ($1 ~ /^cpu[0-9]+$/) {
     key=$1; n[key]=NF
@@ -52,9 +51,10 @@ NR==FNR {
     if (totald <= 0) { total = 0 } else { total = 100 * (1 - idled / totald) }
     if (total < 0) total = 0
     if (total > 100) total = 100
-    printf "TOTAL:%.1f", total
+    total_out = sprintf("TOTAL:%.1f", total)
   }
-}' "$prev_file" "$curr_file")
+}
+END { printf "%s", total_out }' "$prev_file" "$curr_file")
 rm -f "$prev_file" "$curr_file"
 
 # --- 内存 / 交换分区，基于 /proc/meminfo ---
@@ -109,7 +109,7 @@ proc_count=$(ls /proc 2>/dev/null | grep -cE '^[0-9]+$')
 
 echo "${BEGIN}$(cat <<JSON
 {"cpu_percent": $(echo "$cpu_info" | sed -n 's/.*TOTAL:\([0-9.]*\)$/\1/p'),
- "cpu_per_core": [$(echo "$cpu_info" | grep -oE '^cpu[0-9]+:[0-9.]+' | sed 's/^cpu[0-9]*://' | paste -sd, -)],
+ "cpu_per_core": [$(echo "$cpu_info" | grep -oE 'cpu[0-9]+:[0-9.]+' | sed 's/^cpu[0-9]*://' | paste -sd, -)],
  "load_avg": [$(echo "$load_info" | awk -F'|' '{print $1", "$2", "$3}')],
  "mem_total": $(echo "$mem_info" | cut -d'|' -f1),
  "mem_used": $(echo "$mem_info" | cut -d'|' -f2),
