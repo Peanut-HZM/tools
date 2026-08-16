@@ -141,3 +141,13 @@ frontend/.turbo/
 # Temporary files
 *.tmp
 *.temp
+
+# ========================================
+# 真实配置文件（绝不提交）
+# ========================================
+backend/.env
+mini-program/.env
+mini-program/.env.*.local
+
+# 部署配置文件（包含服务器 IP/密钥，绝不提交）
+deploy.env
