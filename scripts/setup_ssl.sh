@@ -12,6 +12,19 @@ if [ -z "${DOMAIN}" ]; then
     exit 1
 fi
 
+# 验证域名格式（只允许字母、数字、点和连字符）
+if [[ ! "${DOMAIN}" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]]; then
+    echo "错误: 无效的域名格式: ${DOMAIN}"
+    echo "域名只能包含字母、数字、点和连字符"
+    exit 1
+fi
+
+# 验证邮箱格式（基本检查）
+if [[ ! "${ADMIN_EMAIL}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    echo "错误: 无效的邮箱格式: ${ADMIN_EMAIL}"
+    exit 1
+fi
+
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
 CONFIG_FILE="${NGINX_SITES_AVAILABLE}/${DOMAIN}"
@@ -55,7 +68,7 @@ systemctl reload nginx
 
 # 获取SSL证书
 echo "获取SSL证书..."
-certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email ${ADMIN_EMAIL}
+certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos --email "${ADMIN_EMAIL}"
 
 if [ $? -eq 0 ]; then
     echo "SSL证书配置成功！"
