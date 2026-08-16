@@ -7,48 +7,9 @@
 set -e
 
 # ==============================================================================
-# 配置常量
+# 颜色输出（提前定义，供加载配置时的日志使用）
 # ==============================================================================
 
-# 项目路径（自动检测脚本所在目录）
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${SCRIPT_DIR}"
-FRONTEND_SRC="${PROJECT_ROOT}/frontend"
-BACKEND_SRC="${PROJECT_ROOT}/backend"
-
-# 部署目标路径
-FRONTEND_DEPLOY="/data/www/tools"
-BACKEND_DEPLOY="/data/programs/tools"
-
-# 后端 systemd 服务名
-BACKEND_SERVICE="tools-backend.service"
-
-# 域名（用于验证）
-DOMAIN="tools.peanuthzm.com.cn"
-
-# 前端构建环境变量
-FRONTEND_API_BASE_URL="https://${DOMAIN}/api"
-
-# 后端排除模式（与 deploy.py 保持一致）
-BACKEND_EXCLUDE=(
-    "__pycache__"
-    "*.pyc"
-    ".pytest_cache"
-    "venv"
-    "*.db"
-    "*.log"
-    "temp"
-    "tests"
-    ".DS_Store"
-    "*.egg-info"
-    ".mypy_cache"
-)
-
-# 备份配置
-BACKUP_DIR="/tmp/tools_backend_backups"
-MAX_BACKUPS=5
-
-# 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -56,10 +17,6 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
-
-# ==============================================================================
-# 辅助函数
-# ==============================================================================
 
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -86,6 +43,65 @@ log_section() {
 log_step() {
     echo -e "${CYAN}  ▶ $1${NC}"
 }
+
+# ==============================================================================
+# 配置常量
+# ==============================================================================
+
+# 项目路径（自动检测脚本所在目录）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="${SCRIPT_DIR}"
+FRONTEND_SRC="${PROJECT_ROOT}/frontend"
+BACKEND_SRC="${PROJECT_ROOT}/backend"
+
+# 加载 deploy.env（必须存在）
+if [ -f "${PROJECT_ROOT}/deploy.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "${PROJECT_ROOT}/deploy.env"
+    set +a
+else
+    log_error "未找到 deploy.env，请先复制模板并填入配置:"
+    log_error "  cp deploy.env.example deploy.env"
+    exit 1
+fi
+
+# 从 deploy.env 读取配置，提供默认值
+FRONTEND_DEPLOY="${FRONTEND_DEPLOY_PATH:-/data/www/tools}"
+BACKEND_DEPLOY="${BACKEND_DEPLOY_PATH:-/data/programs/tools}"
+BACKEND_SERVICE="${BACKEND_SERVICE:-tools-backend.service}"
+DOMAIN="${DOMAIN:-localhost}"
+
+# 域名校验
+if [ -z "${DOMAIN}" ] || [ "${DOMAIN}" = "localhost" ]; then
+    log_warn "DOMAIN 未配置或为 localhost，前端构建可能不正确"
+fi
+
+# 前端构建环境变量
+FRONTEND_API_BASE_URL="https://${DOMAIN}/api"
+
+# 后端排除模式（与 deploy.py 保持一致）
+BACKEND_EXCLUDE=(
+    "__pycache__"
+    "*.pyc"
+    ".pytest_cache"
+    "venv"
+    "*.db"
+    "*.log"
+    "temp"
+    "tests"
+    ".DS_Store"
+    "*.egg-info"
+    ".mypy_cache"
+)
+
+# 备份配置
+BACKUP_DIR="/tmp/tools_backend_backups"
+MAX_BACKUPS=5
+
+# ==============================================================================
+# 辅助函数
+# ==============================================================================
 
 # 检查命令是否存在
 check_command() {
