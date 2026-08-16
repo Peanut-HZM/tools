@@ -9,6 +9,7 @@ import sys
 import subprocess
 import shutil
 import argparse
+import shlex
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -39,6 +40,24 @@ FRONTEND_DIR = PROJECT_ROOT / "frontend"
 BACKEND_DIR = PROJECT_ROOT / "backend"
 
 
+def _ssh_cmd(remote_cmd: str) -> str:
+    """构建 SSH 命令，所有变量均经 shlex.quote() 转义，防止命令注入"""
+    return (
+        f"ssh -o ConnectTimeout=5 -p {shlex.quote(str(SERVER_PORT))} "
+        f"{shlex.quote(SERVER_USER)}@{shlex.quote(SERVER_HOST)} "
+        f"{shlex.quote(remote_cmd)}"
+    )
+
+
+def _scp_cmd(local: str, remote: str) -> str:
+    """构建 SCP 上传命令，所有变量均经 shlex.quote() 转义，防止命令注入"""
+    return (
+        f"scp -P {shlex.quote(str(SERVER_PORT))} "
+        f"{shlex.quote(local)} "
+        f"{shlex.quote(SERVER_USER)}@{shlex.quote(SERVER_HOST)}:{shlex.quote(remote)}"
+    )
+
+
 def run_command(cmd, check=True, cwd=None, env=None):
     """执行命令"""
     print(f"执行命令: {cmd}")
@@ -61,7 +80,9 @@ def run_command(cmd, check=True, cwd=None, env=None):
 def check_ssh_connection():
     """检查SSH连接"""
     print("检查SSH连接...")
-    cmd = f"ssh -o ConnectTimeout=5 -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && echo OK\""
+    cmd = _ssh_cmd(
+        "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && echo OK"
+    )
     result = run_command(cmd, check=False)
     if result.returncode != 0:
         print(f"无法连接到服务器 {SERVER_HOST}")
@@ -105,31 +126,35 @@ def deploy_frontend():
         temp_archive.unlink()
     
     run_command(
-        f"tar -czf {temp_archive} -C {FRONTEND_DIR} dist",
+        f"tar -czf {shlex.quote(str(temp_archive))} -C {shlex.quote(str(FRONTEND_DIR))} dist",
         cwd=PROJECT_ROOT
     )
-    
+
     # 上传到服务器
     print(f"\n上传前端文件到服务器 {FRONTEND_DEPLOY_PATH}...")
     run_command(
-        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && mkdir -p {FRONTEND_DEPLOY_PATH}\""
+        _ssh_cmd(
+            f"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
+            f"mkdir -p {shlex.quote(FRONTEND_DEPLOY_PATH)}"
+        )
     )
 
     run_command(
-        f"scp -P {SERVER_PORT} {temp_archive} {SERVER_USER}@{SERVER_HOST}:/tmp/frontend_deploy.tar.gz"
+        _scp_cmd(str(temp_archive), "/tmp/frontend_deploy.tar.gz")
     )
 
     # 解压并部署
     print("\n在服务器上部署前端文件...")
     run_command(
-        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
-        f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
-        f"cd {FRONTEND_DEPLOY_PATH} && "
-        f"rm -rf * && "
-        f"tar -xzf /tmp/frontend_deploy.tar.gz && "
-        f"mv dist/* . && "
-        f"rm -rf dist && "
-        f"rm -f /tmp/frontend_deploy.tar.gz\""
+        _ssh_cmd(
+            f"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
+            f"cd {shlex.quote(FRONTEND_DEPLOY_PATH)} && "
+            f"rm -rf * && "
+            f"tar -xzf /tmp/frontend_deploy.tar.gz && "
+            f"mv dist/* . && "
+            f"rm -rf dist && "
+            f"rm -f /tmp/frontend_deploy.tar.gz"
+        )
     )
     
     # 清理临时文件
@@ -189,46 +214,51 @@ def deploy_backend():
         temp_archive.unlink()
     
     run_command(
-        f"tar -czf {temp_archive} -C {PROJECT_ROOT} backend_deploy",
+        f"tar -czf {shlex.quote(str(temp_archive))} -C {shlex.quote(str(PROJECT_ROOT))} backend_deploy",
         cwd=PROJECT_ROOT
     )
-    
+
     # 上传到服务器
     print(f"\n上传后端文件到服务器 {BACKEND_DEPLOY_PATH}...")
     run_command(
-        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && mkdir -p {BACKEND_DEPLOY_PATH}\""
+        _ssh_cmd(
+            f"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
+            f"mkdir -p {shlex.quote(BACKEND_DEPLOY_PATH)}"
+        )
     )
 
     run_command(
-        f"scp -P {SERVER_PORT} {temp_archive} {SERVER_USER}@{SERVER_HOST}:/tmp/backend_deploy.tar.gz"
+        _scp_cmd(str(temp_archive), "/tmp/backend_deploy.tar.gz")
     )
 
     # 解压并部署
     print("\n在服务器上部署后端文件...")
     run_command(
-        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
-        f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
-        f"cd {BACKEND_DEPLOY_PATH} && "
-        f"cp -f /root/.tools/device_id /tmp/tools_device_id.bak 2>/dev/null || true && "
-        f"rm -rf app alembic data utils middleware models routes services bin migrations && "
-        f"tar -xzf /tmp/backend_deploy.tar.gz && "
-        f"cp -r backend_deploy/* . && "
-        f"rm -rf backend_deploy && "
-        f"rm -f /tmp/backend_deploy.tar.gz && "
-        f"mkdir -p /root/.tools && "
-        f"mv -f /tmp/tools_device_id.bak /root/.tools/device_id 2>/dev/null || true\""
+        _ssh_cmd(
+            f"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
+            f"cd {shlex.quote(BACKEND_DEPLOY_PATH)} && "
+            f"cp -f /root/.tools/device_id /tmp/tools_device_id.bak 2>/dev/null || true && "
+            f"rm -rf app alembic data utils middleware models routes services bin migrations && "
+            f"tar -xzf /tmp/backend_deploy.tar.gz && "
+            f"cp -r backend_deploy/* . && "
+            f"rm -rf backend_deploy && "
+            f"rm -f /tmp/backend_deploy.tar.gz && "
+            f"mkdir -p /root/.tools && "
+            f"mv -f /tmp/tools_device_id.bak /root/.tools/device_id 2>/dev/null || true"
+        )
     )
-    
+
     # 在服务器上安装依赖
     print("\n在服务器上安装Python依赖...")
     run_command(
-        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
-        f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
-        f"cd {BACKEND_DEPLOY_PATH} && "
-        f"python3 -m venv venv 2>/dev/null || true && "
-        f"source venv/bin/activate && "
-        f"pip install --upgrade pip && "
-        f"pip install -r requirements.txt\""
+        _ssh_cmd(
+            f"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
+            f"cd {shlex.quote(BACKEND_DEPLOY_PATH)} && "
+            f"python3 -m venv venv 2>/dev/null || true && "
+            f"source venv/bin/activate && "
+            f"pip install --upgrade pip && "
+            f"pip install -r requirements.txt"
+        )
     )
     
     # 清理临时文件
@@ -242,9 +272,10 @@ def restart_backend_service():
     """重启后端服务"""
     print("\n重启后端服务...")
     run_command(
-        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
-        f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
-        f"systemctl restart tools-backend.service || echo 服务可能未配置\""
+        _ssh_cmd(
+            f"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
+            f"systemctl restart tools-backend.service || echo 服务可能未配置"
+        )
     )
     print("后端服务重启完成")
 
