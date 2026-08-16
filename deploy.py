@@ -10,12 +10,28 @@ import subprocess
 import shutil
 import argparse
 from pathlib import Path
+from dotenv import load_dotenv
 
-# 服务器配置
-SERVER_HOST = "39.107.229.30"
-SERVER_USER = "root"  # 根据实际情况修改
-FRONTEND_DEPLOY_PATH = "/data/www/tools"
-BACKEND_DEPLOY_PATH = "/data/programs/tools"
+# 加载 deploy.env（可选，不存在则使用环境变量）
+_deploy_env = Path(__file__).parent / "deploy.env"
+if _deploy_env.exists():
+    load_dotenv(_deploy_env)
+
+# 服务器配置（从 deploy.env 或环境变量读取）
+SERVER_HOST = os.getenv("SERVER_HOST", "")
+SERVER_USER = os.getenv("SERVER_USER", "root")
+SERVER_PORT = int(os.getenv("SERVER_PORT", "22"))
+FRONTEND_DEPLOY_PATH = os.getenv("FRONTEND_DEPLOY_PATH", "/data/www/tools")
+BACKEND_DEPLOY_PATH = os.getenv("BACKEND_DEPLOY_PATH", "/data/programs/tools")
+DOMAIN = os.getenv("DOMAIN", "localhost")
+
+# 部署校验：必须配置 SERVER_HOST
+if not SERVER_HOST:
+    print("错误: SERVER_HOST 未配置")
+    print("请复制 deploy.env.example 为 deploy.env 并填入配置:")
+    print("  cp deploy.env.example deploy.env")
+    print("  然后编辑 deploy.env 填入你的服务器 IP")
+    sys.exit(1)
 
 # 项目路径
 PROJECT_ROOT = Path(__file__).parent
@@ -45,7 +61,7 @@ def run_command(cmd, check=True, cwd=None, env=None):
 def check_ssh_connection():
     """检查SSH连接"""
     print("检查SSH连接...")
-    cmd = f"ssh -o ConnectTimeout=5 {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && echo OK\""
+    cmd = f"ssh -o ConnectTimeout=5 -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && echo OK\""
     result = run_command(cmd, check=False)
     if result.returncode != 0:
         print(f"无法连接到服务器 {SERVER_HOST}")
@@ -73,7 +89,7 @@ def deploy_frontend():
     print("\n构建前端项目...")
     # 设置生产环境API地址
     env = os.environ.copy()
-    env["VITE_API_BASE_URL"] = "https://tools.peanuthzm.com.cn/api"
+    env["VITE_API_BASE_URL"] = f"https://{DOMAIN}/api"
     run_command("npm run build", cwd=FRONTEND_DIR, env=env)
     
     # 检查构建结果
@@ -96,17 +112,17 @@ def deploy_frontend():
     # 上传到服务器
     print(f"\n上传前端文件到服务器 {FRONTEND_DEPLOY_PATH}...")
     run_command(
-        f"ssh {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && mkdir -p {FRONTEND_DEPLOY_PATH}\""
+        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && mkdir -p {FRONTEND_DEPLOY_PATH}\""
     )
-    
+
     run_command(
-        f"scp {temp_archive} {SERVER_USER}@{SERVER_HOST}:/tmp/frontend_deploy.tar.gz"
+        f"scp -P {SERVER_PORT} {temp_archive} {SERVER_USER}@{SERVER_HOST}:/tmp/frontend_deploy.tar.gz"
     )
-    
+
     # 解压并部署
     print("\n在服务器上部署前端文件...")
     run_command(
-        f"ssh {SERVER_USER}@{SERVER_HOST} "
+        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
         f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
         f"cd {FRONTEND_DEPLOY_PATH} && "
         f"rm -rf * && "
@@ -180,17 +196,17 @@ def deploy_backend():
     # 上传到服务器
     print(f"\n上传后端文件到服务器 {BACKEND_DEPLOY_PATH}...")
     run_command(
-        f"ssh {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && mkdir -p {BACKEND_DEPLOY_PATH}\""
+        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} \"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && mkdir -p {BACKEND_DEPLOY_PATH}\""
     )
-    
+
     run_command(
-        f"scp {temp_archive} {SERVER_USER}@{SERVER_HOST}:/tmp/backend_deploy.tar.gz"
+        f"scp -P {SERVER_PORT} {temp_archive} {SERVER_USER}@{SERVER_HOST}:/tmp/backend_deploy.tar.gz"
     )
-    
+
     # 解压并部署
     print("\n在服务器上部署后端文件...")
     run_command(
-        f"ssh {SERVER_USER}@{SERVER_HOST} "
+        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
         f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
         f"cd {BACKEND_DEPLOY_PATH} && "
         f"cp -f /root/.tools/device_id /tmp/tools_device_id.bak 2>/dev/null || true && "
@@ -206,7 +222,7 @@ def deploy_backend():
     # 在服务器上安装依赖
     print("\n在服务器上安装Python依赖...")
     run_command(
-        f"ssh {SERVER_USER}@{SERVER_HOST} "
+        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
         f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
         f"cd {BACKEND_DEPLOY_PATH} && "
         f"python3 -m venv venv 2>/dev/null || true && "
@@ -226,7 +242,7 @@ def restart_backend_service():
     """重启后端服务"""
     print("\n重启后端服务...")
     run_command(
-        f"ssh {SERVER_USER}@{SERVER_HOST} "
+        f"ssh -p {SERVER_PORT} {SERVER_USER}@{SERVER_HOST} "
         f"\"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
         f"systemctl restart tools-backend.service || echo 服务可能未配置\""
     )
@@ -269,8 +285,8 @@ def main():
     print("\n" + "="*50)
     print("部署完成！")
     print("="*50)
-    print(f"\n前端访问地址: https://tools.peanuthzm.com.cn")
-    print(f"后端API地址: https://tools.peanuthzm.com.cn/api")
+    print(f"\n前端访问地址: https://{DOMAIN}")
+    print(f"后端API地址: https://{DOMAIN}/api")
 
 
 if __name__ == "__main__":
