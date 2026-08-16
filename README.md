@@ -25,6 +25,38 @@
 - 🔐 **用户认证** - JWT认证系统，支持用户注册和登录
 - 👤 **用户隔离** - 每个用户拥有独立的文件存储空间
 
+## 🔧 配置（首次运行必读）
+
+### 1. 复制配置文件
+
+```bash
+# 后端配置（必须）
+cd backend
+cp .env.example .env
+# 编辑 .env，按需填入 JWT 密钥、数据库、存储等配置
+
+# 前端配置（可选，开发环境使用默认值即可）
+cd ../frontend
+cp .env.example .env
+```
+
+### 2. 生成安全密钥（生产环境必须）
+
+```bash
+cd backend
+python scripts/generate_keys.py
+# 将生成的密钥填入 backend/.env 的 JWT_SECRET_KEY 和 DB_ENCRYPTION_KEY
+```
+
+### 3. 启动服务
+
+```bash
+cd ..
+python dev-services.py
+```
+
+> **提示**: 默认配置下服务可以启动，但未配置的存储服务（OSS/MinIO）、OCR、ASR 等功能将不可用。
+
 ## 🚀 快速开始
 
 ### 前置要求
