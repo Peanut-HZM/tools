@@ -1,7 +1,17 @@
 #!/bin/bash
 # SSL证书配置脚本
+# 用法: ./setup_ssl.sh <域名> [邮箱]
+# 示例: ./setup_ssl.sh example.com admin@example.com
 
-DOMAIN="tools.peanuthzm.com.cn"
+DOMAIN="${1:-}"
+ADMIN_EMAIL="${2:-admin@example.com}"
+
+if [ -z "${DOMAIN}" ]; then
+    echo "用法: $0 <域名> [邮箱]"
+    echo "示例: $0 example.com admin@example.com"
+    exit 1
+fi
+
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
 CONFIG_FILE="${NGINX_SITES_AVAILABLE}/${DOMAIN}"
@@ -45,7 +55,7 @@ systemctl reload nginx
 
 # 获取SSL证书
 echo "获取SSL证书..."
-certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email admin@peanuthzm.com.cn
+certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email ${ADMIN_EMAIL}
 
 if [ $? -eq 0 ]; then
     echo "SSL证书配置成功！"
