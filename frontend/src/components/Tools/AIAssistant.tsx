@@ -1,5 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 
+// AI 助手外部地址，从构建时环境变量注入（见 .env.example）
+// 未在 .env 中配置时不展示"新窗口打开"入口，iframe 也改为空白占位提示。
+const AI_ASSISTANT_URL = (import.meta.env.VITE_AI_ASSISTANT_URL as string | undefined) || '';
+
 export default function AIAssistant() {
   const navigate = useNavigate();
 
@@ -22,26 +26,41 @@ export default function AIAssistant() {
             <h1 className="text-lg font-bold">AI助手</h1>
           </div>
         </div>
-        
-        <a
-          href="https://ai-assistant.peanuthzm.com.cn/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm"
-        >
-          <i className="fas fa-external-link-alt"></i>
-          <span className="hidden sm:inline">新窗口打开</span>
-        </a>
+
+        {AI_ASSISTANT_URL && (
+          <a
+            href={AI_ASSISTANT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm"
+          >
+            <i className="fas fa-external-link-alt"></i>
+            <span className="hidden sm:inline">新窗口打开</span>
+          </a>
+        )}
       </div>
 
       {/* iframe 嵌入 AI 助手 */}
       <div className="flex-1 overflow-hidden">
-        <iframe
-          src="https://ai-assistant.peanuthzm.com.cn/"
-          className="w-full h-full border-0"
-          title="AI助手"
-          allow="microphone; camera; clipboard-read; clipboard-write"
-        />
+        {AI_ASSISTANT_URL ? (
+          <iframe
+            src={AI_ASSISTANT_URL}
+            className="w-full h-full border-0"
+            title="AI助手"
+            allow="microphone; camera; clipboard-read; clipboard-write"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-400">
+            <div className="text-center">
+              <i className="fas fa-info-circle text-3xl mb-3"></i>
+              <p>AI 助手未配置</p>
+              <p className="text-xs mt-2 text-slate-500">
+                请在 <code className="text-pink-400">.env</code> 中设置{' '}
+                <code className="text-pink-400">VITE_AI_ASSISTANT_URL</code>
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

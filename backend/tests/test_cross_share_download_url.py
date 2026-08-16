@@ -8,7 +8,7 @@ def test_get_oss_download_url_returns_sign_url_as_is(monkeypatch):
 
     monkeypatch.setattr(cross_share.settings, "MINIO_SECURE", True)
 
-    signed = "https://minio.peanuthzm.com.cn/tools-files/x?sig=abc"
+    signed = "https://minio.example.com/tools-files/x?sig=abc"
     with patch.object(oss_service, "is_available", return_value=True), \
          patch.object(oss_service, "sign_url", return_value=signed):
         url = cross_share.get_oss_download_url("x", expires=3600)
@@ -22,7 +22,7 @@ def test_get_oss_download_url_does_not_force_https_on_http(monkeypatch):
 
     monkeypatch.setattr(cross_share.settings, "MINIO_SECURE", True)
 
-    signed = "http://minio.peanuthzm.com.cn/tools-files/y?sig=def"
+    signed = "http://minio.example.com/tools-files/y?sig=def"
     with patch.object(oss_service, "is_available", return_value=True), \
          patch.object(oss_service, "sign_url", return_value=signed):
         url = cross_share.get_oss_download_url("y", expires=3600)

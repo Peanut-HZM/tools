@@ -39,17 +39,19 @@ def test_public_client_uses_public_endpoint(monkeypatch):
 
 
 def test_sign_url_get_returns_public_endpoint(monkeypatch):
+    monkeypatch.setattr(settings, "MINIO_ENDPOINT", "minio.example.com")
     provider, _ = _build_provider_with_fake_minio(monkeypatch)
     url = provider.sign_url("GET", "cross_share/test/file.txt", expires=3600)
-    assert url.startswith("https://minio.peanuthzm.com.cn/")
+    assert url.startswith("https://minio.example.com/")
     assert "127.0.0.1" not in url
     assert "sig=GET" in url
 
 
 def test_sign_url_put_returns_public_endpoint(monkeypatch):
+    monkeypatch.setattr(settings, "MINIO_ENDPOINT", "minio.example.com")
     provider, _ = _build_provider_with_fake_minio(monkeypatch)
     url = provider.sign_url("PUT", "cross_share/test/file.txt", expires=3600)
-    assert url.startswith("https://minio.peanuthzm.com.cn/")
+    assert url.startswith("https://minio.example.com/")
     assert "127.0.0.1" not in url
     assert "sig=PUT" in url
 

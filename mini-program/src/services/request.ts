@@ -1,6 +1,17 @@
 import Taro from '@tarojs/taro';
 
-const API_BASE_URL = process.env.TARO_APP_API_URL || 'https://tools.peanuthzm.com.cn/api';
+// API 地址必须通过 TARO_APP_API_URL 环境变量注入（见 .env.development / .env.production / .env.test）
+// 不再内置默认域名，避免泄露部署方信息。
+const API_BASE_URL =
+  process.env.TARO_APP_API_URL && process.env.TARO_APP_API_URL !== 'https://your-domain.com/api'
+    ? process.env.TARO_APP_API_URL
+    : '';
+
+if (!API_BASE_URL) {
+  // 仅在开发期/启动时提示一次；生产环境请确保 TARO_APP_API_URL 已正确配置
+  // eslint-disable-next-line no-console
+  console.warn('[mini-program] TARO_APP_API_URL 未配置，请在 .env 中设置');
+}
 
 /**
  * 获取请求头（包含认证 token）

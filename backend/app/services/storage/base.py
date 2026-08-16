@@ -44,7 +44,7 @@ class StorageProvider(ABC):
         """获取文件完整内容（便捷方法）
 
         参数可以是 object_key（如 `uploads/user1/file.png`）
-        也可以是完整 URL（如 `https://minio.peanuthzm.com.cn/tools-files/uploads/user1/file.png`）
+        也可以是完整 URL（如 `https://minio.example.com/tools-files/uploads/user1/file.png`）
         内部会自动提取 object_key 后调用 get_object().read()"""
         object_key = self._extract_key(object_name_or_url)
         return self.get_object(object_key).read()

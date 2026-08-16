@@ -20,16 +20,21 @@ try:
     # 尝试作为 hex 解码
     MASTER_KEY = bytes.fromhex(MASTER_KEY_HEX)
 except ValueError:
-    # 如果不是 hex，尝试作为 base64 解码
-    MASTER_KEY = base64.b64decode(MASTER_KEY_HEX)
+    try:
+        # 如果不是 hex，尝试作为 base64 解码
+        MASTER_KEY = base64.b64decode(MASTER_KEY_HEX, validate=True)
+    except (base64.binascii.Error, ValueError):
+        # 既非 hex 也非 base64（例如 .env.example 占位符）——退化为 UTF-8 字节，
+        # 后续会通过 PBKDF2 哈希到 32 字节，仅用于开发环境启动。
+        MASTER_KEY = MASTER_KEY_HEX.encode("utf-8")
 
 # 确保密钥长度为 32 字节
 if len(MASTER_KEY) != 32:
     # 使用 SHA256 哈希密钥到 32 字节
     from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-    kdf = PBKDF2(
+    kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
         salt=b"product-manager-agent-salt",

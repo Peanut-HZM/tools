@@ -769,7 +769,9 @@ Run:
 ```bash
 cd backend
 source venv/bin/activate
-psql "postgresql://postgres:Peanut2817%2A%23@39.107.229.30:5432/tools" -f app/db/migrate_password_audit.sql
+psql "$DATABASE_URL" -f app/db/migrate_password_audit.sql
+# 或（替换为实际用户名/主机）：
+# psql "postgresql://<user>:<password>@<host>:5432/tools" -f app/db/migrate_password_audit.sql
 ```
 
 Expected: 成功执行，无报错

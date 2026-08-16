@@ -21,10 +21,10 @@
 ### 配置信息
 
 Redis 配置（已提供）：
-- Host: 39.107.229.30
+- Host: <redis-host>
 - Port: 6379
 - Database: 0
-- 密码: RabbitQ0127*#
+- 密码: <redis-password>
 
 ---
 
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # ... 现有配置保持不变 ...
     
     # Redis Cache for Token Usage
-    CACHE_REDIS_HOST: str = "39.107.229.30"
+    CACHE_REDIS_HOST: str = "<redis-host>"
     CACHE_REDIS_PORT: int = 6379
     CACHE_REDIS_DB: int = 0
     CACHE_REDIS_PASSWORD: str = ""
@@ -52,15 +52,15 @@ class Settings(BaseSettings):
 
 在 `.env` 中添加：
 ```env
-CACHE_REDIS_HOST=39.107.229.30
+CACHE_REDIS_HOST=<redis-host>
 CACHE_REDIS_PORT=6379
 CACHE_REDIS_DB=0
-CACHE_REDIS_PASSWORD=RabbitQ0127*#
+CACHE_REDIS_PASSWORD=<redis-password>
 CACHE_REDIS_TOKEN_USAGE_TTL=3600
 ```
 
 Run: `cd backend && python -c "from app.config.config import settings; print(settings.CACHE_REDIS_HOST)"`
-Expected: 输出 `39.107.229.30`
+Expected: 输出 `<redis-host>`
 
 Commit:
 ```bash

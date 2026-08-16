@@ -121,8 +121,8 @@ logs/*.log.*
 .playwright-mcp/
 .omc/
 
-# Design baselines (auto-generated)
-docs/superpowers/baselines/
+# Design baselines (auto-generated) 以及历史 planning / spec 文档（含敏感部署信息，不应公开）
+docs/superpowers/
 
 # Python caches
 .mypy_cache/

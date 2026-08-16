@@ -760,7 +760,7 @@ if sys.platform == "darwin":
         coll,
         name="ToolBox.app",
         icon="assets/icon.icns",
-        bundle_identifier="com.peanuthzm.toolbox",
+        bundle_identifier="com.example.toolbox",
         info_plist={
             "CFBundleName": "ToolBox",
             "CFBundleDisplayName": "工具箱",

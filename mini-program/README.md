@@ -96,8 +96,8 @@ npm install
 | 文件 | 环境 | API 地址 | 说明 |
 |------|------|----------|------|
 | `.env.development` | 开发 | `http://localhost:19092/api` | 本地后端 |
-| `.env.test` | 测试 | `https://tools.peanuthzm.com.cn/api` | 测试服务器 |
-| `.env.production` | 生产 | `https://tools.peanuthzm.com.cn/api` | 线上服务器 |
+| `.env.test` | 测试 | `https://test.your-domain.com/api` | 测试服务器 |
+| `.env.production` | 生产 | `https://your-domain.com/api` | 线上服务器 |
 
 > 文件默认不存在，需要手动创建（见下方环境变量说明）。
 
@@ -113,8 +113,8 @@ npm install
 # .env.development（本地开发）
 TARO_APP_API_URL=http://localhost:19092/api
 
-# .env.production（线上）
-TARO_APP_API_URL=https://tools.peanuthzm.com.cn/api
+# .env.production（线上，按实际域名修改）
+TARO_APP_API_URL=https://your-domain.com/api
 ```
 
 ### 开发命令
