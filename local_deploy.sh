@@ -54,12 +54,26 @@ PROJECT_ROOT="${SCRIPT_DIR}"
 FRONTEND_SRC="${PROJECT_ROOT}/frontend"
 BACKEND_SRC="${PROJECT_ROOT}/backend"
 
-# 加载 deploy.env（必须存在）
+# 安全加载 deploy.env（逐行解析，拒绝命令注入）
 if [ -f "${PROJECT_ROOT}/deploy.env" ]; then
-    set -a
-    # shellcheck disable=SC1091
-    source "${PROJECT_ROOT}/deploy.env"
-    set +a
+    while IFS='=' read -r key value; do
+        # 跳过空行和注释
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        # 去除前后空格
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        # 移除引号
+        value="${value%\"}"
+        value="${value#\"}"
+        value="${value%\'}"
+        value="${value#\'}"
+        # 验证 key 只包含字母数字和下划线
+        if [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            export "$key=$value"
+        else
+            log_warn "deploy.env 中发现无效的配置项: $key（已跳过）"
+        fi
+    done < "${PROJECT_ROOT}/deploy.env"
 else
     log_error "未找到 deploy.env，请先复制模板并填入配置:"
     log_error "  cp deploy.env.example deploy.env"
