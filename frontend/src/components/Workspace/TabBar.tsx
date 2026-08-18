@@ -4,12 +4,21 @@ import { useI18n } from '../../i18n';
 
 export const TabBar: React.FC = () => {
   const { t } = useI18n();
-  const { tabs, activeTabId, setActiveTab, removeTab } = useWorkspaceStore();
-
-  if (tabs.length === 0) return null;
+  const { tabs, activeTabId, setActiveTab, removeTab, isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
 
   return (
     <div className="flex items-end bg-slate-800 border-b border-slate-700 h-10 px-2 gap-0.5 overflow-x-auto">
+      {/* 工具列表展开/折叠按钮 */}
+      <button
+        onClick={toggleToolSidebar}
+        className="self-center p-1.5 mr-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-colors flex-shrink-0"
+        title={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
+        aria-label={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
+      >
+        <i className={`fas ${isToolSidebarVisible ? 'fa-chevron-left' : 'fa-chevron-right'} text-xs`}></i>
+      </button>
+      {/* 标签页分隔线 */}
+      <div className="self-stretch w-px bg-slate-700 mr-1"></div>
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
         return (

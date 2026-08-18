@@ -8,7 +8,6 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 
-// Mock useI18n — searchPlaceholder 将在 Task 3 添加到 zh-CN.ts，此处先提供测试用值
 vi.mock('../../i18n', () => ({
   useI18n: () => ({
     t: {
@@ -38,11 +37,9 @@ describe('WorkspaceSidebar', () => {
   });
 
   beforeEach(() => {
-    // 清除 localStorage（包括 persist 中间件和 sidebar collapsed 状态）
     localStorage.clear();
-    // 重置 store 到初始状态
     act(() => {
-      useWorkspaceStore.setState({ tabs: [], activeTabId: null });
+      useWorkspaceStore.setState({ tabs: [], activeTabId: null, isToolSidebarVisible: true });
     });
   });
 
@@ -73,14 +70,6 @@ describe('WorkspaceSidebar', () => {
 
     expect(useWorkspaceStore.getState().tabs).toHaveLength(1);
     expect(useWorkspaceStore.getState().tabs[0].toolId).toBe('k8s-tool');
-  });
-
-  it('should be collapsible', () => {
-    render(<WorkspaceSidebar tools={mockTools} />);
-    const toggle = screen.getByTitle('折叠侧边栏');
-    fireEvent.click(toggle);
-    // After collapse, tool names should be hidden
-    expect(screen.queryByText('K8s')).toBeNull();
   });
 
   it('should render search input', () => {

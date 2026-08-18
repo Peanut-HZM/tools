@@ -36,7 +36,6 @@ import CursorHistory from './components/Tools/CursorHistory/CursorHistory';
 import HttpApiClient from './components/Tools/HttpApiClient/HttpApiClient';
 import SystemMonitor from './components/Tools/SystemMonitor';
 import TokenUsage from './components/Tools/TokenUsage';
-import GlmCodingRusher from './components/Tools/GlmCodingRusher/GlmCodingRusher';
 import OpenClawChat from './components/Tools/OpenClawChat/OpenClawChat';
 import K8sTool from './components/Tools/K8sTool/K8sTool';
 import { WorkspacePage } from './components/Workspace/WorkspacePage';
@@ -303,7 +302,6 @@ function App() {
               <Route path="/tools/http-api-client" element={<HttpApiClient />} />
               <Route path="/tools/system-monitor" element={<SystemMonitor />} />
               <Route path="/tools/token-usage" element={<TokenUsage />} />
-              <Route path="/tools/glm-coding-rusher" element={<GlmCodingRusher />} />
               <Route path="/tools/openclaw" element={<OpenClawChat />} />
               <Route path="/tools/k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
             </Route>

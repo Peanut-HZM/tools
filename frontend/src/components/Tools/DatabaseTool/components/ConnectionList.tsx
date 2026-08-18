@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDatabaseTool } from '../../../../contexts/DatabaseToolContext';
+import { useWorkspaceStore } from '../../../../stores/workspaceStore';
 import { DatabaseConfig, Environment, DatabaseStructure, TableItem, TableDetailResponse } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
@@ -28,6 +29,7 @@ interface ConnectionListProps {
 
 const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConfig, onSelectTable, onOpenSqlConsole, activeConfigId, activeDatabaseName, activeSchemaName, onConnectionSelect }) => {
   const { configs, currentConfig, selectConfigById, setCurrentDatabase, refreshConfigs, isLoading } = useDatabaseTool();
+  const { isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
   const { t } = useI18n();
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,6 +110,13 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
         <div className="flex justify-between items-center">
             <h2 className="font-semibold text-slate-100">{t.database.connections}</h2>
             <div className="flex space-x-1">
+            <button
+                onClick={toggleToolSidebar}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                title={isToolSidebarVisible ? '隐藏工具列表' : '展开工具列表'}
+            >
+                <i className={`fas ${isToolSidebarVisible ? 'fa-right-to-bracket' : 'fa-left-to-bracket'}`}></i>
+            </button>
             <button
                 onClick={() => setShowDisplaySettings(true)}
                 className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"

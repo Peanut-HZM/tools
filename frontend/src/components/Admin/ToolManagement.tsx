@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { listToolsPaginated, updateToolStatus, updateTool, uploadToolIcon, deleteToolIcon, Tool, listCategories, createCategory, updateCategory, deleteCategory, ToolCategory, ToolsListParams } from '../../api/adminApi';
+import { listToolsPaginated, updateToolStatus, updateTool, uploadToolIcon, deleteToolIcon, deleteTool, batchUpdateToolStatus, batchDeleteTools, Tool, listCategories, createCategory, updateCategory, deleteCategory, ToolCategory, ToolsListParams } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
@@ -30,6 +30,9 @@ export default function ToolManagement() {
   const [showPcFilter, setShowPcFilter] = useState<string>('all');
   const [showMobileFilter, setShowMobileFilter] = useState<string>('all');
   const [requireLoginFilter, setRequireLoginFilter] = useState<string>('all');
+
+  // 批量选择状态
+  const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set());
 
   // Category Form State
   const [isEditingCategory, setIsEditingCategory] = useState(false);
@@ -198,6 +201,95 @@ export default function ToolManagement() {
     }
   };
 
+
+  // 行删除
+  const handleDeleteTool = async (toolId: string) => {
+    if (!confirm('确定要删除此工具吗？删除后不可恢复。')) return;
+    try {
+      await deleteTool(toolId);
+      success('工具已删除');
+      await fetchData();
+    } catch (e) {
+      error('删除失败');
+    }
+  };
+
+  // 行启用/停用
+  const handleRowStatusChange = async (toolId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'online' ? 'offline' : 'online';
+    try {
+      await updateToolStatus(toolId, newStatus);
+      setTools(tools.map(t => t.id === toolId ? { ...t, status: newStatus } : t));
+      success(`工具已${newStatus === 'online' ? '启用' : '停用'}`);
+    } catch (e) {
+      error('状态更新失败');
+    }
+  };
+
+  // 批量操作
+  const handleBatchEnable = async () => {
+    const ids = Array.from(selectedToolIds);
+    if (ids.length === 0) return;
+    try {
+      const result = await batchUpdateToolStatus(ids, 'online');
+      success(`已启用 ${result.success_count} 个工具`);
+      setSelectedToolIds(new Set());
+      await fetchData();
+    } catch (e) {
+      error('批量启用失败');
+    }
+  };
+
+  const handleBatchDisable = async () => {
+    const ids = Array.from(selectedToolIds);
+    if (ids.length === 0) return;
+    try {
+      const result = await batchUpdateToolStatus(ids, 'offline');
+      success(`已停用 ${result.success_count} 个工具`);
+      setSelectedToolIds(new Set());
+      await fetchData();
+    } catch (e) {
+      error('批量停用失败');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    const ids = Array.from(selectedToolIds);
+    if (ids.length === 0) return;
+    if (!confirm(`确定要删除选中的 ${ids.length} 个工具吗？删除后不可恢复。`)) return;
+    try {
+      const result = await batchDeleteTools(ids);
+      success(`已删除 ${result.success_count} 个工具`);
+      setSelectedToolIds(new Set());
+      await fetchData();
+    } catch (e) {
+      error('批量删除失败');
+    }
+  };
+
+  // 选择相关
+  const toggleToolSelection = (toolId: string) => {
+    setSelectedToolIds(prev => {
+      const next = new Set(prev);
+      if (next.has(toolId)) {
+        next.delete(toolId);
+      } else {
+        next.add(toolId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedToolIds.size === tools.length) {
+      setSelectedToolIds(new Set());
+    } else {
+      setSelectedToolIds(new Set(tools.map(t => t.id)));
+    }
+  };
+
+  const clearSelection = () => setSelectedToolIds(new Set());
+
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -353,6 +445,40 @@ export default function ToolManagement() {
             </div>
           )}
 
+          {/* 批量操作栏 */}
+          {selectedToolIds.size > 0 && (
+            <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-blue-300">
+                  已选择 <strong className="text-blue-200">{selectedToolIds.size}</strong> 个工具
+                </span>
+                <button onClick={clearSelection} className="text-xs text-slate-400 hover:text-slate-300 cursor-pointer">
+                  取消选择
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleBatchEnable}
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-sm rounded-md transition-colors cursor-pointer"
+                >
+                  <i className="fas fa-check-circle mr-1"></i>批量启用
+                </button>
+                <button
+                  onClick={handleBatchDisable}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-md transition-colors cursor-pointer"
+                >
+                  <i className="fas fa-pause-circle mr-1"></i>批量停用
+                </button>
+                <button
+                  onClick={handleBatchDelete}
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm rounded-md transition-colors cursor-pointer"
+                >
+                  <i className="fas fa-trash-alt mr-1"></i>批量删除
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* 筛选工具栏 */}
           <div className="bg-slate-800/50 p-3 rounded-xl mb-4 border border-slate-700/50">
             <div className="flex flex-wrap gap-2 items-center">
@@ -467,6 +593,25 @@ export default function ToolManagement() {
           <table className="w-full text-left text-slate-300">
             <thead className="bg-slate-700 text-slate-100 uppercase text-xs">
               <tr>
+                <th className="px-6 py-3 w-[40px]">
+                  <input
+                    type="checkbox"
+                    checked={tools.length > 0 && selectedToolIds.size === tools.length}
+                    onChange={toggleSelectAll}
+                    className="sr-only peer"
+                  />
+                  <label className="flex items-center justify-center cursor-pointer">
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                      tools.length > 0 && selectedToolIds.size === tools.length
+                        ? 'bg-blue-500 border-blue-500'
+                        : 'border-slate-500 hover:border-slate-400'
+                    }`}>
+                      {tools.length > 0 && selectedToolIds.size === tools.length && (
+                        <i className="fas fa-check text-white text-[10px]"></i>
+                      )}
+                    </div>
+                  </label>
+                </th>
                 <th className="px-6 py-3">工具名称</th>
                 <th className="px-6 py-3">分类</th>
                 <th className="px-6 py-3 text-center w-[100px]">使用次数</th>
@@ -479,7 +624,26 @@ export default function ToolManagement() {
             </thead>
             <tbody className="divide-y divide-slate-700">
               {tools.map((tool) => (
-                <tr key={tool.id} className="hover:bg-slate-700/50">
+                <tr key={tool.id} className={`hover:bg-slate-700/50 ${selectedToolIds.has(tool.id) ? 'bg-blue-600/5' : ''}`}>
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedToolIds.has(tool.id)}
+                      onChange={() => toggleToolSelection(tool.id)}
+                      className="sr-only peer"
+                    />
+                    <label className="flex items-center justify-center cursor-pointer">
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                        selectedToolIds.has(tool.id)
+                          ? 'bg-blue-500 border-blue-500'
+                          : 'border-slate-500 hover:border-slate-400'
+                      }`}>
+                        {selectedToolIds.has(tool.id) && (
+                          <i className="fas fa-check text-white text-[10px]"></i>
+                        )}
+                      </div>
+                    </label>
+                  </td>
                   <td className="px-6 py-4 flex items-center">
                     {tool.custom_icon_url ? (
                       <img src={tool.custom_icon_url} alt={tool.title} className="w-8 h-8 rounded object-contain mr-3 bg-slate-600" />
@@ -560,12 +724,33 @@ export default function ToolManagement() {
 
                   {/* 操作 */}
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => handleEditTool(tool)}
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
-                    >
-                      编辑
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditTool(tool)}
+                        className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
+                        title="编辑"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      <button
+                        onClick={() => handleRowStatusChange(tool.id, tool.status)}
+                        className={`text-sm font-medium transition-colors cursor-pointer ${
+                          tool.status === 'online'
+                            ? 'text-amber-400 hover:text-amber-300'
+                            : 'text-green-400 hover:text-green-300'
+                        }`}
+                        title={tool.status === 'online' ? '停用' : '启用'}
+                      >
+                        <i className={`fas ${tool.status === 'online' ? 'fa-pause-circle' : 'fa-check-circle'}`}></i>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTool(tool.id)}
+                        className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors cursor-pointer"
+                        title="删除"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

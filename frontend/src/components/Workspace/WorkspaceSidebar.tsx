@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useI18n } from '../../i18n';
@@ -8,24 +8,14 @@ interface Props {
   tools: Tool[];
 }
 
-const SIDEBAR_COLLAPSED_KEY = 'workspace-sidebar-collapsed';
-
 export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const { tabs, addTab } = useWorkspaceStore();
-  const [collapsed, setCollapsed] = useState(() => {
-    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
-  });
+  const { tabs, addTab, isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
-  }, [collapsed]);
 
   const openedToolIds = new Set(tabs.map((t) => t.toolId));
 
-  // 按名称过滤工具
   const filteredTools = tools.filter((tool) =>
     tool.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -38,18 +28,8 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
     navigate('/');
   };
 
-  if (collapsed) {
-    return (
-      <div className="w-12 bg-slate-800 border-r border-slate-700 flex flex-col items-center py-2">
-        <button
-          onClick={() => setCollapsed(false)}
-          className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-colors"
-          title={t.workspace.expandSidebar}
-        >
-          <i className="fas fa-chevron-right text-xs"></i>
-        </button>
-      </div>
-    );
+  if (!isToolSidebarVisible) {
+    return null;
   }
 
   return (
@@ -77,17 +57,6 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
             className="w-full bg-slate-900 border border-slate-700 rounded-md pl-7 pr-2 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-slate-600"
           />
         </div>
-      </div>
-
-      {/* 折叠按钮 */}
-      <div className="flex justify-end px-2 pt-2">
-        <button
-          onClick={() => setCollapsed(true)}
-          className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-700 rounded transition-colors"
-          title={t.workspace.collapseSidebar}
-        >
-          <i className="fas fa-chevron-left text-xs"></i>
-        </button>
       </div>
 
       {/* 工具列表 */}

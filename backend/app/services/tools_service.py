@@ -243,10 +243,10 @@ class ToolsService:
             conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 if include_offline:
-                    cur.execute("SELECT * FROM tools ORDER BY category, title")
+                    cur.execute("SELECT * FROM tools WHERE deleted = FALSE ORDER BY category, title")
                 else:
                     cur.execute(
-                        "SELECT * FROM tools WHERE status = 'online' ORDER BY category, title"
+                        "SELECT * FROM tools WHERE status = 'online' AND deleted = FALSE ORDER BY category, title"
                     )
 
                 rows = cur.fetchall()
@@ -291,11 +291,11 @@ class ToolsService:
             with conn.cursor() as cur:
                 if category == "全部工具":
                     cur.execute(
-                        "SELECT * FROM tools WHERE status = 'online' ORDER BY usage_count DESC, title ASC"
+                        "SELECT * FROM tools WHERE status = 'online' AND deleted = FALSE ORDER BY usage_count DESC, title ASC"
                     )
                 else:
                     cur.execute(
-                        "SELECT * FROM tools WHERE status = 'online' AND category = %s ORDER BY usage_count DESC, title ASC",
+                        "SELECT * FROM tools WHERE status = 'online' AND deleted = FALSE AND category = %s ORDER BY usage_count DESC, title ASC",
                         (category,),
                     )
 
@@ -318,7 +318,7 @@ class ToolsService:
                 cur.execute(
                     """
                     SELECT * FROM tools 
-                    WHERE status = 'online' 
+                    WHERE status = 'online' AND deleted = FALSE 
                     AND (LOWER(title) LIKE LOWER(%s) OR LOWER(description) LIKE LOWER(%s))
                 """,
                     (search_term, search_term),
@@ -501,7 +501,10 @@ class ToolsService:
                     conditions.append("require_login = %s")
                     params.append(require_login)
 
-                where_clause = " AND ".join(conditions) if conditions else "1=1"
+                # 过滤已删除的工具
+                conditions.append("deleted = FALSE")
+
+                where_clause = " AND ".join(conditions) if conditions else "deleted = FALSE"
 
                 # 排序字段白名单
                 sort_column = {
@@ -633,7 +636,7 @@ class ToolsService:
         try:
             conn = get_pooled_db_connection()
             with conn.cursor() as cur:
-                base_sql = "SELECT * FROM tools WHERE status = 'online'"
+                base_sql = "SELECT * FROM tools WHERE status = 'online' AND deleted = FALSE"
                 params: list = []
 
                 if platform == "pc":
@@ -706,7 +709,7 @@ class ToolsService:
                     SELECT DISTINCT c.*
                     FROM tool_categories c
                     JOIN tools t ON t.category = c.name
-                    WHERE t.status = 'online'
+                    WHERE t.status = 'online' AND t.deleted = FALSE
                     ORDER BY c.sort_order ASC, c.name ASC
                 """)
                 rows = cur.fetchall()
@@ -729,7 +732,7 @@ class ToolsService:
                 cur.execute("""
                     SELECT c.*, COUNT(t.id) AS tool_count
                     FROM tool_categories c
-                    LEFT JOIN tools t ON t.category = c.name AND t.status = 'online'
+                    LEFT JOIN tools t ON t.category = c.name AND t.status = 'online' AND t.deleted = FALSE
                     WHERE c.deleted = FALSE
                     GROUP BY c.id
                     ORDER BY c.sort_order ASC, c.name ASC
@@ -986,5 +989,103 @@ class ToolsService:
         )
 
 
+    def batch_update_status(self, tool_ids: list, status: str) -> dict:
+        """批量更新工具状态"""
+        conn = None
+        success_count = 0
+        failed_ids = []
+        try:
+            conn = get_pooled_db_connection()
+            with conn.cursor() as cur:
+                for tool_id in tool_ids:
+                    try:
+                        cur.execute(
+                            "UPDATE tools SET status = %s WHERE id = %s",
+                            (status, tool_id)
+                        )
+                        if cur.rowcount > 0:
+                            success_count += 1
+                        else:
+                            failed_ids.append(tool_id)
+                    except Exception as e:
+                        logger.error(f"Error updating status for tool {tool_id}: {e}")
+                        failed_ids.append(tool_id)
+                conn.commit()
+            if success_count > 0:
+                _tools_cache.invalidate("used_categories")
+                _tools_cache.invalidate_prefix("tools:")
+            return {"success_count": success_count, "failed_count": len(failed_ids), "failed_ids": failed_ids}
+        except Exception as e:
+            logger.error(f"Error in batch_update_status: {e}")
+            if conn:
+                conn.rollback()
+            return {"success_count": success_count, "failed_count": len(tool_ids) - success_count, "failed_ids": failed_ids}
+        finally:
+            if conn:
+                release_db_connection(conn)
+
+    def batch_delete_tools(self, tool_ids: list) -> dict:
+        """批量删除工具（软删除）"""
+        conn = None
+        success_count = 0
+        failed_ids = []
+        try:
+            conn = get_pooled_db_connection()
+            with conn.cursor() as cur:
+                for tool_id in tool_ids:
+                    try:
+                        cur.execute(
+                            "UPDATE tools SET deleted = TRUE WHERE id = %s",
+                            (tool_id,)
+                        )
+                        if cur.rowcount > 0:
+                            success_count += 1
+                        else:
+                            failed_ids.append(tool_id)
+                    except Exception as e:
+                        logger.error(f"Error deleting tool {tool_id}: {e}")
+                        failed_ids.append(tool_id)
+                conn.commit()
+            if success_count > 0:
+                _tools_cache.invalidate("used_categories")
+                _tools_cache.invalidate_prefix("tools:")
+            return {"success_count": success_count, "failed_count": len(failed_ids), "failed_ids": failed_ids}
+        except Exception as e:
+            logger.error(f"Error in batch_delete_tools: {e}")
+            if conn:
+                conn.rollback()
+            return {"success_count": success_count, "failed_count": len(tool_ids) - success_count, "failed_ids": failed_ids}
+        finally:
+            if conn:
+                release_db_connection(conn)
+
+    def delete_tool(self, tool_id: str) -> bool:
+        """删除单个工具（软删除）"""
+        conn = None
+        try:
+            conn = get_pooled_db_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE tools SET deleted = TRUE WHERE id = %s",
+                    (tool_id,)
+                )
+                conn.commit()
+                success = cur.rowcount > 0
+                if success:
+                    _tools_cache.invalidate("used_categories")
+                    _tools_cache.invalidate_prefix("tools:")
+                return success
+        except Exception as e:
+            logger.error(f"Error deleting tool {tool_id}: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if conn:
+                release_db_connection(conn)
+
+
+
 # Singleton instance
+
 tools_service = ToolsService()

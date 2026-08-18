@@ -68,17 +68,9 @@ export const WorkspacePage: React.FC = () => {
 
         {/* 右侧内容区 */}
         <div className="flex-1 flex flex-col min-w-0">
-          {hasTabs ? (
-            <>
-              {/* 标签栏 */}
-              <TabBar />
-              {/* 标签面板 */}
-              <TabPanels />
-            </>
-          ) : (
-            /* 空工作区欢迎页 */
-            <EmptyWorkspace tools={tools} />
-          )}
+          {/* 标签栏始终渲染，空状态保留工具列表切换入口 */}
+          <TabBar />
+          {hasTabs ? <TabPanels /> : <EmptyWorkspace tools={tools} />}
         </div>
       </div>
     </div>

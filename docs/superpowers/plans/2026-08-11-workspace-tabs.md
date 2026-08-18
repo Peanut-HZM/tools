@@ -432,7 +432,6 @@ import CursorHistory from '../Tools/CursorHistory/CursorHistory';
 import HttpApiClient from '../Tools/HttpApiClient/HttpApiClient';
 import SystemMonitor from '../Tools/SystemMonitor';
 import TokenUsage from '../Tools/TokenUsage';
-import GlmCodingRusher from '../Tools/GlmCodingRusher/GlmCodingRusher';
 import OpenClawChat from '../Tools/OpenClawChat/OpenClawChat';
 import ImageDownloader from '../Tools/ImageDownloader';
 import VideoDownloader from '../Tools/VideoDownloader';
@@ -461,7 +460,6 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'http-api-client': HttpApiClient,
   'system-monitor': SystemMonitor,
   'token-usage': TokenUsage,
-  'glm-coding-rusher': GlmCodingRusher,
   'openclaw': OpenClawChat,
   'image-downloader': ImageDownloader,
   'video-downloader': VideoDownloader,

@@ -222,6 +222,47 @@ export async function updateToolStatus(toolId: string, status: string): Promise<
     return response.json();
 }
 
+export async function deleteTool(toolId: string): Promise<boolean> {
+    const response = await fetch(`${API_BASE_URL}/tools/${toolId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('删除工具失败');
+    return response.json();
+}
+
+export async function batchUpdateToolStatus(toolIds: string[], status: string): Promise<{ success_count: number; failed_count: number; failed_ids: string[] }> {
+    const response = await fetch(`${API_BASE_URL}/tools/batch/status`, {
+        method: 'PUT',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tool_ids: toolIds, status })
+    });
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || '批量更新状态失败');
+    }
+    return response.json();
+}
+
+export async function batchDeleteTools(toolIds: string[]): Promise<{ success_count: number; failed_count: number; failed_ids: string[] }> {
+    const response = await fetch(`${API_BASE_URL}/tools/batch/delete`, {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tool_ids: toolIds })
+    });
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || '批量删除失败');
+    }
+    return response.json();
+}
+
 export async function getDashboardStats(): Promise<DashboardStats> {
     const response = await fetch(`${API_BASE_URL}/stats`, {
         headers: getAuthHeaders()

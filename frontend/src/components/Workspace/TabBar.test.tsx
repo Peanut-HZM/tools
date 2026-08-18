@@ -19,8 +19,11 @@ describe('TabBar', () => {
   });
 
   it('should render nothing when no tabs', () => {
-    const { container } = render(<TabBar />);
-    expect(container.firstChild).toBeNull();
+    render(<TabBar />);
+    // 无标签时只渲染工具列表切换按钮，不渲染任何标签
+    const tabs = document.querySelectorAll('[data-tab-id]');
+    expect(tabs).toHaveLength(0);
+    expect(screen.getByTitle('展开侧边栏')).toBeTruthy();
   });
 
   it('should render tabs', () => {

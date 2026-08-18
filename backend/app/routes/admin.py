@@ -345,6 +345,44 @@ async def update_tool_status(
     return result
 
 
+
+@router.delete("/tools/{tool_id}", response_model=bool)
+async def delete_tool_route(
+    tool_id: str,
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """删除单个工具（软删除）"""
+    result = tools_service.delete_tool(tool_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="工具不存在")
+    return result
+
+
+@router.put("/tools/batch/status", response_model=dict)
+async def batch_update_tool_status(
+    tool_ids: list = Body(..., description="工具 ID 列表"),
+    status: str = Body(..., description="目标状态: online 或 offline"),
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """批量更新工具状态"""
+    if status not in ("online", "offline"):
+        raise HTTPException(status_code=400, detail="状态值必须为 online 或 offline")
+    if not tool_ids:
+        raise HTTPException(status_code=400, detail="工具 ID 列表不能为空")
+    return tools_service.batch_update_status(tool_ids, status)
+
+
+@router.post("/tools/batch/delete", response_model=dict)
+async def batch_delete_tools_route(
+    tool_ids: list = Body(..., description="工具 ID 列表"),
+    admin_user: UserResponse = Depends(get_admin_user),
+):
+    """批量删除工具（软删除）"""
+    if not tool_ids:
+        raise HTTPException(status_code=400, detail="工具 ID 列表不能为空")
+    return tools_service.batch_delete_tools(tool_ids)
+
+
 # ==================== Category Management ====================
 
 @router.get("/categories", response_model=List[Dict[str, Any]])

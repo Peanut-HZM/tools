@@ -18,10 +18,12 @@ interface ToolInfo {
 interface WorkspaceState {
   tabs: WorkspaceTab[];
   activeTabId: string | null;
+  isToolSidebarVisible: boolean;
 
   addTab: (tool: ToolInfo) => void;
   removeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
+  toggleToolSidebar: () => void;
 }
 
 /** 生成唯一 ID */
@@ -34,6 +36,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     (set, get) => ({
       tabs: [],
       activeTabId: null,
+      isToolSidebarVisible: true,
 
       addTab: (tool: ToolInfo) => {
         const { tabs } = get();
@@ -84,12 +87,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setActiveTab: (tabId: string) => {
         set({ activeTabId: tabId });
       },
+
+      toggleToolSidebar: () => {
+        set({ isToolSidebarVisible: !get().isToolSidebarVisible });
+      },
     }),
     {
       name: 'workspace-tabs',
       partialize: (state) => ({
         tabs: state.tabs,
         activeTabId: state.activeTabId,
+        isToolSidebarVisible: state.isToolSidebarVisible,
       }),
     }
   )
