@@ -5,6 +5,26 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import { getAuthToken } from '../api/authApi';
+import { registerAuthFailureHandler } from '../api/http';
+
+// 注册全局 axios 401 拦截器
+// 当任何 axios 请求返回 401 时，触发登录弹窗
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      // 复用 http.ts 中注册的回调（清除 token + 弹登录窗）
+      // 触发方式：发一个 401 响应给 authedFetch 的检测逻辑
+      // 这里直接通过 registerAuthFailureHandler 注册的 handler 处理
+      // 为避免循环，仅在客户端有 token 时触发
+      if (getAuthToken()) {
+        const handler = (window as any).__authFailureHandler;
+        if (handler) handler();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 const httpClient = axios.create({
   baseURL: `${API_BASE_URL}/http-client`,
@@ -94,6 +114,15 @@ export interface SendRequestResponse {
   body: string;
   response_time: number;
   content_type?: string;
+}
+
+/** Form-data 条目定义 */
+export interface FormDataEntry {
+  key: string;
+  value: string;
+  type: 'text' | 'file';
+  file?: File;
+  description?: string;
 }
 
 // ============= Collection APIs =============
