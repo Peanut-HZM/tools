@@ -522,7 +522,11 @@ export default function HttpApiClient() {
                   setCollectionContextMenu({ x: e.clientX, y: e.clientY, collection });
                 }}
                 onRequestRename={handleRequestRename}
-                onRequestDelete={(request) => handleDeleteRequest(request.id)}
+                onRequestDelete={(request) => {
+                  if (confirm(`确定删除请求 "${request.name}" 吗？`)) {
+                    handleDeleteRequest(request.id);
+                  }
+                }}
                 renameTrigger={renameRequestTrigger}
               />
             )}
