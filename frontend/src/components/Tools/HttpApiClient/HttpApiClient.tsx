@@ -381,6 +381,7 @@ export default function HttpApiClient() {
                 }}
                 onSend={() => handleSendRequest(activeTab.request)}
                 sending={sendingRequest}
+                envVariables={activeEnvironment?.variables || {}}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-slate-500">

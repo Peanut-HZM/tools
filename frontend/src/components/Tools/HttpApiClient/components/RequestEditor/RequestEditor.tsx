@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { HttpRequest, FormDataEntry } from '../../../../../services/httpClientApi';
 import FormDataEditor from '../FormDataEditor/FormDataEditor';
+import ScriptEditor from '../ScriptEditor/ScriptEditor';
 
 interface RequestEditorProps {
   request: HttpRequest;
@@ -8,6 +9,8 @@ interface RequestEditorProps {
   onUpdate: (updatedRequest: Partial<HttpRequest>) => void;
   onSend: () => void;
   sending: boolean;
+  /** 环境变量，用于 URL/Headers/Params 中的 {{变量}} 高亮与补全 */
+  envVariables?: Record<string, string>;
 }
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
@@ -18,6 +21,7 @@ export default function RequestEditor({
   onUpdate,
   onSend,
   sending,
+  envVariables = {},
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'docs'>('params');
 
@@ -29,48 +33,8 @@ export default function RequestEditor({
     onUpdate({ url });
   };
 
-  const handleHeaderChange = (key: string, value: string, index: number) => {
-    const newHeaders = { ...request.headers };
-    if (key) {
-      newHeaders[key] = value;
-    }
-    onUpdate({ headers: newHeaders });
-  };
-
-  const handleParamChange = (key: string, value: string, index: number) => {
-    const newParams = { ...request.params };
-    if (key) {
-      newParams[key] = value;
-    }
-    onUpdate({ params: newParams });
-  };
-
   const handleBodyChange = (body: string) => {
     onUpdate({ body });
-  };
-
-  const handleAddParam = () => {
-    const key = `param_${Date.now()}`;
-    const newParams = { ...request.params, [key]: '' };
-    onUpdate({ params: newParams });
-  };
-
-  const handleRemoveParam = (key: string) => {
-    const newParams = { ...request.params };
-    delete newParams[key];
-    onUpdate({ params: newParams });
-  };
-
-  const handleAddHeader = () => {
-    const key = `header_${Date.now()}`;
-    const newHeaders = { ...request.headers, [key]: '' };
-    onUpdate({ headers: newHeaders });
-  };
-
-  const handleRemoveHeader = (key: string) => {
-    const newHeaders = { ...request.headers };
-    delete newHeaders[key];
-    onUpdate({ headers: newHeaders });
   };
 
   const getMethodColor = (method: string) => {
@@ -106,15 +70,17 @@ export default function RequestEditor({
             ))}
           </select>
 
-          {/* URL 输入框 */}
-          <input
-            type="text"
-            value={request.url}
-            onChange={(e) => handleUrlChange(e.target.value)}
-            placeholder="输入请求 URL"
-            className="flex-1 bg-slate-700 text-white px-4 py-2 rounded-lg text-sm
-                       border border-slate-600 focus:border-purple-500 focus:outline-none"
-          />
+          {/* URL 输入框（支持 {{变量}} 高亮） */}
+          <div className="flex-1">
+            <ScriptEditor
+              value={request.url}
+              onChange={handleUrlChange}
+              language="plaintext"
+              variables={envVariables}
+              height="40px"
+              placeholder="输入请求 URL，支持 {{变量}} 语法"
+            />
+          </div>
 
           {/* 发送按钮 */}
           <button
@@ -217,17 +183,15 @@ export default function RequestEditor({
         {activeTab === 'params' && (
           <ParamsPanel
             params={request.params}
-            onChange={handleParamChange}
-            onAdd={handleAddParam}
-            onRemove={handleRemoveParam}
+            onChange={(params) => onUpdate({ params })}
+            envVariables={envVariables}
           />
         )}
         {activeTab === 'headers' && (
           <HeadersPanel
             headers={request.headers}
-            onChange={handleHeaderChange}
-            onAdd={handleAddHeader}
-            onRemove={handleRemoveHeader}
+            onChange={(headers) => onUpdate({ headers })}
+            envVariables={envVariables}
           />
         )}
         {activeTab === 'body' && (
@@ -263,106 +227,80 @@ export default function RequestEditor({
 
 interface ParamsPanelProps {
   params: Record<string, string>;
-  onChange: (key: string, value: string, index: number) => void;
-  onAdd: () => void;
-  onRemove: (key: string) => void;
+  onChange: (params: Record<string, string>) => void;
+  envVariables: Record<string, string>;
 }
 
-function ParamsPanel({ params, onChange, onAdd, onRemove }: ParamsPanelProps) {
-  const entries = Object.entries(params);
+/**
+ * 参数面板：使用 ScriptEditor 支持 {{变量}} 高亮
+ * 每行一个参数，格式：key=value
+ */
+function ParamsPanel({ params, onChange, envVariables }: ParamsPanelProps) {
+  const text = Object.entries(params).map(([k, v]) => `${k}=${v}`).join('\n');
 
   return (
     <div className="space-y-2">
-      {entries.length === 0 ? (
-        <div className="text-slate-500 text-sm text-center py-8">
-          暂无参数，点击下方按钮添加
-        </div>
-      ) : (
-        entries.map(([key, value], index) => (
-          <div key={index} className="flex items-center gap-2">
-            <input
-              type="text"
-              value={key}
-              onChange={(e) => onChange(e.target.value, value, index)}
-              placeholder="参数名"
-              className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
-            />
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => onChange(key, e.target.value, index)}
-              placeholder="参数值"
-              className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
-            />
-            <button
-              onClick={() => onRemove(key)}
-              className="text-slate-500 hover:text-red-400 transition-colors"
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-        ))
-      )}
-      <button
-        onClick={onAdd}
-        className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
-      >
-        <i className="fas fa-plus mr-2"></i>
-        添加参数
-      </button>
+      <ScriptEditor
+        value={text}
+        onChange={(newText) => {
+          const newParams = newText.split('\n').reduce((acc, line) => {
+            const eqIndex = line.indexOf('=');
+            if (eqIndex > 0) {
+              const key = line.slice(0, eqIndex).trim();
+              const value = line.slice(eqIndex + 1).trim();
+              if (key) {
+                acc[key] = value;
+              }
+            }
+            return acc;
+          }, {} as Record<string, string>);
+          onChange(newParams);
+        }}
+        language="plaintext"
+        variables={envVariables}
+        height="150px"
+        placeholder="每行一个参数，格式：key=value（支持 {{变量}}）"
+      />
     </div>
   );
 }
 
 interface HeadersPanelProps {
   headers: Record<string, string>;
-  onChange: (key: string, value: string, index: number) => void;
-  onAdd: () => void;
-  onRemove: (key: string) => void;
+  onChange: (headers: Record<string, string>) => void;
+  envVariables: Record<string, string>;
 }
 
-function HeadersPanel({ headers, onChange, onAdd, onRemove }: HeadersPanelProps) {
-  const entries = Object.entries(headers);
+/**
+ * Headers 面板：使用 ScriptEditor 支持 {{变量}} 高亮
+ * 每行一个 header，格式：key: value
+ */
+function HeadersPanel({ headers, onChange, envVariables }: HeadersPanelProps) {
+  const text = Object.entries(headers).map(([k, v]) => `${k}: ${v}`).join('\n');
 
   return (
     <div className="space-y-2">
-      {entries.length === 0 ? (
-        <div className="text-slate-500 text-sm text-center py-8">
-          暂无 Header，点击下方按钮添加
-        </div>
-      ) : (
-        entries.map(([key, value], index) => (
-          <div key={index} className="flex items-center gap-2">
-            <input
-              type="text"
-              value={key}
-              onChange={(e) => onChange(e.target.value, value, index)}
-              placeholder="Header 名"
-              className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
-            />
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => onChange(key, e.target.value, index)}
-              placeholder="Header 值"
-              className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
-            />
-            <button
-              onClick={() => onRemove(key)}
-              className="text-slate-500 hover:text-red-400 transition-colors"
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-        ))
-      )}
-      <button
-        onClick={onAdd}
-        className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
-      >
-        <i className="fas fa-plus mr-2"></i>
-        添加 Header
-      </button>
+      <ScriptEditor
+        value={text}
+        onChange={(newText) => {
+          const newHeaders = newText.split('\n').reduce((acc, line) => {
+            const colonIndex = line.indexOf(':');
+            if (colonIndex > 0) {
+              const key = line.slice(0, colonIndex).trim();
+              const value = line.slice(colonIndex + 1).trim();
+              if (key) {
+                acc[key] = value;
+              }
+            }
+            return acc;
+          }, {} as Record<string, string>);
+          onChange(newHeaders);
+        }}
+        language="plaintext"
+        variables={envVariables}
+        height="150px"
+        placeholder="每行一个 Header，格式：key: value（支持 {{变量}}）"
+      />
     </div>
   );
 }
