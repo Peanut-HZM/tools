@@ -1004,6 +1004,7 @@ async def get_token_usage_details(
             model="",
             sort_by=req.sort_by or "date",
             sort_order=req.sort_order or "desc",
+            query_type="details",
         )
     
     if cache_payload:
@@ -1143,6 +1144,7 @@ async def get_token_usage_details(
                     sort_by=req.sort_by or "date",
                     sort_order=req.sort_order or "desc",
                     data=payload_dict,
+                    query_type="details",
                 )
                 logger.info(f"details 缓存已写入: user={user_id}")
             except Exception:

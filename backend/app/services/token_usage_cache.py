@@ -258,10 +258,16 @@ def _build_query_cache_key(
     model: str = "",
     sort_by: str = "date",
     sort_order: str = "desc",
+    query_type: str = "summary",
 ) -> str:
-    """构建用户维度的查询缓存 Key"""
+    """构建用户维度的查询缓存 Key
+
+    Args:
+        query_type: 缓存类型，"summary" 或 "details"，用于区分概览和明细的缓存
+    """
     parts = [
         "token_usage:query",
+        query_type,
         source,
         report_type,
         str(days),
@@ -287,6 +293,7 @@ def get_query_cached_data(
     model: str = "",
     sort_by: str = "date",
     sort_order: str = "desc",
+    query_type: str = "summary",
 ) -> Optional[dict]:
     """从 Redis 获取用户维度的查询缓存"""
     client = get_redis_client()
@@ -295,7 +302,7 @@ def get_query_cached_data(
 
     key = _build_query_cache_key(
         source, report_type, days, group_by, user_id, device_id,
-        tool_id, model, sort_by, sort_order
+        tool_id, model, sort_by, sort_order, query_type=query_type
     )
     try:
         data = client.get(key)
@@ -320,6 +327,7 @@ def get_query_cached_payload(
     model: str = "",
     sort_by: str = "date",
     sort_order: str = "desc",
+    query_type: str = "summary",
 ) -> Optional[dict]:
     """读取查询缓存，同时返回 Redis 剩余 TTL。"""
     client = get_redis_client()
@@ -328,7 +336,7 @@ def get_query_cached_payload(
 
     key = _build_query_cache_key(
         source, report_type, days, group_by, user_id, device_id,
-        tool_id, model, sort_by, sort_order
+        tool_id, model, sort_by, sort_order, query_type=query_type
     )
     try:
         data = client.get(key)
@@ -357,6 +365,7 @@ def set_query_cached_data(
     sort_by: str = "date",
     sort_order: str = "desc",
     data: dict = None,
+    query_type: str = "summary",
 ) -> bool:
     """将用户维度的查询数据写入 Redis 缓存，附带写入时间戳"""
     client = get_redis_client()
@@ -365,7 +374,7 @@ def set_query_cached_data(
 
     key = _build_query_cache_key(
         source, report_type, days, group_by, user_id, device_id,
-        tool_id, model, sort_by, sort_order
+        tool_id, model, sort_by, sort_order, query_type=query_type
     )
     try:
         payload = dict(data or {})
