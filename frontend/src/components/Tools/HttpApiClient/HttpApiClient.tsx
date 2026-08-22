@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHttpClientStore } from '../../../stores/httpClientStore';
-import { Collection, HttpRequest, Environment, createRequest, createCollection, FormDataEntry } from '../../../services/httpClientApi';
+import { Collection, HttpRequest, Environment, createRequest, createCollection, updateCollection, deleteCollection, FormDataEntry } from '../../../services/httpClientApi';
 import { useToast } from '../../../contexts/ToastContext';
 
 /** Form-data 单文件大小上限（25MB），防止前端 base64 编码耗尽内存 */
@@ -31,6 +31,7 @@ import EnvironmentSelector from './components/EnvironmentSelector';
 import ImportExportModal from './components/ImportExportModal';
 import HistoryPanel from './components/HistoryPanel';
 import RequestContextMenu from './components/RequestContextMenu';
+import CollectionContextMenu from './components/CollectionContextMenu';
 
 export default function HttpApiClient() {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ export default function HttpApiClient() {
     replayFromHistory,
     duplicateRequest,
     deleteRequest,
+    saveRequest,
     history,
   } = useHttpClientStore();
 
@@ -69,6 +71,15 @@ export default function HttpApiClient() {
   const [newRequestCollectionId, setNewRequestCollectionId] = useState<string>('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [collectionModal, setCollectionModal] = useState<
+    | { mode: 'create' }
+    | { mode: 'rename'; collection: Collection }
+    | null
+  >(null);
+  const [collectionModalName, setCollectionModalName] = useState('');
+  const [collectionContextMenu, setCollectionContextMenu] = useState<{
+    x: number; y: number; collection: Collection;
+  } | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number; y: number; request: HttpRequest;
   } | null>(null);
@@ -88,6 +99,9 @@ export default function HttpApiClient() {
 
   // 获取当前激活的标签页
   const activeTab = openTabs.find(tab => tab.requestId === activeTabId);
+
+  // 历史回放标签页（requestId 以 history_ 开头）不支持保存/删除
+  const isHistoryReplay = activeTab ? activeTab.requestId.startsWith('history_') : false;
 
   // 处理新建集合
   const handleCreateCollection = async () => {
@@ -149,6 +163,81 @@ export default function HttpApiClient() {
   // 处理集合选择
   const handleCollectionSelect = (collection: Collection | null) => {
     setSelectedCollectionId(collection?.id || null);
+  };
+
+  // 集合弹窗提交（新建/重命名共用）
+  const handleCollectionModalSubmit = async () => {
+    const name = collectionModalName.trim();
+    if (!name || !collectionModal) return;
+    try {
+      if (collectionModal.mode === 'create') {
+        await createCollection({ name, workspace_id: 'default' });
+        toast.success('集合创建成功');
+      } else {
+        await updateCollection(collectionModal.collection.id, { name });
+        toast.success('集合已重命名');
+      }
+      setCollectionModal(null);
+      setCollectionModalName('');
+      loadCollections();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || error?.message || '操作失败');
+    }
+  };
+
+  // 删除集合：确认后级联删除，并关闭该集合下已打开的请求标签页
+  const handleCollectionDelete = async (collection: Collection) => {
+    if (!confirm(`确定删除集合 "${collection.name}"？其中的所有请求将一并删除。`)) return;
+    try {
+      await deleteCollection(collection.id);
+      toast.success('集合已删除');
+      openTabs
+        .filter(tab => tab.request.collection_id === collection.id)
+        .forEach(tab => closeTab(tab.requestId));
+      if (selectedCollectionId === collection.id) {
+        setSelectedCollectionId(null);
+      }
+      setCollectionContextMenu(null);
+      loadCollections();
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || error?.message || '删除失败');
+    }
+  };
+
+  // 保存当前激活请求
+  const handleSaveActiveRequest = async () => {
+    if (!activeTabId) return;
+    try {
+      await saveRequest(activeTabId);
+      toast.success('保存成功');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || error?.message || '保存失败');
+    }
+  };
+
+  // 删除当前激活请求：确认后删除并关闭标签页
+  const handleDeleteActiveRequest = async () => {
+    if (!activeTab) return;
+    if (!confirm(`确定删除请求 "${activeTab.request.name}" 吗？`)) return;
+    try {
+      await deleteRequest(activeTab.requestId, '');
+      closeTab(activeTab.requestId);
+      toast.success('请求已删除');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || error?.message || '删除失败');
+    }
+  };
+
+  // 关闭标签页拦截：有未保存修改时二次确认
+  const handleTabClose = (requestId: string) => {
+    const tab = openTabs.find(t => t.requestId === requestId);
+    if (tab?.isModified && !confirm('有未保存的修改，确定关闭？')) {
+      return;
+    }
+    closeTab(requestId);
   };
 
   // 处理请求打开
@@ -250,6 +339,22 @@ export default function HttpApiClient() {
       toast.error(error?.message || '删除失败');
     }
   }, [deleteRequest, toast]);
+
+  // Ctrl+S / Cmd+S 保存当前请求
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        const tab = openTabs.find(t => t.requestId === activeTabId);
+        if (tab?.isModified) {
+          handleSaveActiveRequest();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabId, openTabs]);
 
   // 拖拽调整侧边栏宽度
   const handleSidebarResize = (e: React.MouseEvent) => {
@@ -362,12 +467,8 @@ export default function HttpApiClient() {
               className="text-slate-400 hover:text-white transition-colors text-xs"
               title="新建集合"
               onClick={() => {
-                const name = prompt('输入集合名称:');
-                if (name) {
-                  createCollection({ name, workspace_id: 'default' }).then(() => {
-                    loadCollections();
-                  });
-                }
+                setCollectionModal({ mode: 'create' });
+                setCollectionModalName('');
               }}
             >
               <i className="fas fa-plus"></i>
@@ -393,6 +494,15 @@ export default function HttpApiClient() {
                 onRequestOpen={handleRequestOpen}
                 onRequestContextMenu={handleContextMenu}
                 refreshTrigger={refreshTrigger}
+                onCollectionRename={(collection) => {
+                  setCollectionModal({ mode: 'rename', collection });
+                  setCollectionModalName(collection.name);
+                }}
+                onCollectionDelete={handleCollectionDelete}
+                onCollectionContextMenu={(e, collection) => {
+                  e.preventDefault();
+                  setCollectionContextMenu({ x: e.clientX, y: e.clientY, collection });
+                }}
               />
             )}
           </div>
@@ -411,8 +521,9 @@ export default function HttpApiClient() {
             openTabs={openTabs}
             activeTabId={activeTabId}
             onTabClick={setActiveTab}
-            onTabClose={closeTab}
+            onTabClose={handleTabClose}
             onCreateNewRequest={() => setShowNewRequestForm(true)}
+            onRename={(requestId, name) => updateTabRequest(requestId, { name })}
           />
 
           {/* 请求编辑器 */}
@@ -427,6 +538,8 @@ export default function HttpApiClient() {
                 onSend={() => handleSendRequest(activeTab.request)}
                 sending={sendingRequest}
                 envVariables={activeEnvironment?.variables || {}}
+                onSave={isHistoryReplay ? undefined : handleSaveActiveRequest}
+                onDelete={isHistoryReplay ? undefined : handleDeleteActiveRequest}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-slate-500">
@@ -501,6 +614,68 @@ export default function HttpApiClient() {
           onDuplicate={handleDuplicateRequest}
           onDelete={handleDeleteRequest}
           onClose={handleCloseContextMenu}
+        />
+      )}
+
+      {/* 集合新建/重命名弹窗 */}
+      {collectionModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-lg w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold mb-4">
+              {collectionModal.mode === 'create' ? '新建集合' : '重命名集合'}
+            </h3>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">集合名称</label>
+              <input
+                type="text"
+                value={collectionModalName}
+                onChange={(e) => setCollectionModalName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCollectionModalSubmit();
+                }}
+                placeholder="例如：Glodon-SAP"
+                className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setCollectionModal(null)}
+                className="px-4 py-2 text-slate-400 hover:text-white"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleCollectionModalSubmit}
+                disabled={!collectionModalName.trim()}
+                className={`
+                  px-6 py-2 rounded-lg font-medium
+                  ${!collectionModalName.trim()
+                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                    : 'bg-purple-500 hover:bg-purple-600 text-white'
+                  }
+                `}
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 集合右键菜单 */}
+      {collectionContextMenu && (
+        <CollectionContextMenu
+          collection={collectionContextMenu.collection}
+          x={collectionContextMenu.x}
+          y={collectionContextMenu.y}
+          onRename={(collection) => {
+            setCollectionContextMenu(null);
+            setCollectionModal({ mode: 'rename', collection });
+            setCollectionModalName(collection.name);
+          }}
+          onDelete={handleCollectionDelete}
+          onClose={() => setCollectionContextMenu(null)}
         />
       )}
 
