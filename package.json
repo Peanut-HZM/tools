@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@opencode-ai/plugin": "^1.18.18",
+    "ecc-universal": "^2.1.0",
     "recharts": "^3.8.0"
   }
 }
