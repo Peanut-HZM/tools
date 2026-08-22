@@ -265,6 +265,13 @@ export const duplicateRequest = async (
   request: HttpRequest,
   targetCollectionId: string,
 ): Promise<HttpRequest> => {
+  // 序列化 form_data：去除 File 对象（不可 JSON 序列化），仅保留可序列化字段
+  const serializedFormData = request.form_data?.map((entry) => ({
+    key: entry.key,
+    value: entry.type === 'file' ? entry.file?.name || entry.value : entry.value,
+    type: entry.type,
+    description: entry.description,
+  }));
   const response = await httpClient.post('/requests', {
     collection_id: targetCollectionId,
     name: `${request.name} (副本)`,
@@ -274,6 +281,7 @@ export const duplicateRequest = async (
     params: request.params,
     body_type: request.body_type,
     body: request.body,
+    form_data: serializedFormData,
     auth_type: request.auth_type,
     auth_config: request.auth_config,
     description: request.description || '',

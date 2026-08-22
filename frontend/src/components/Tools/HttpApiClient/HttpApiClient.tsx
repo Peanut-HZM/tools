@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHttpClientStore } from '../../../stores/httpClientStore';
-import { Collection, HttpRequest, Environment, createRequest, createCollection } from '../../../services/httpClientApi';
+import { Collection, HttpRequest, Environment, createRequest, createCollection, FormDataEntry } from '../../../services/httpClientApi';
 import { useToast } from '../../../contexts/ToastContext';
+
+/** 将 File 对象读取为 base64 data URL（用于通过 JSON 传递文件） */
+const fileToDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('FileReader error'));
+    reader.readAsDataURL(file);
+  });
 import CollectionTree from './components/CollectionTree';
 import RequestTabs from './components/RequestTabs';
 import RequestEditor from './components/RequestEditor/RequestEditor';
@@ -139,6 +148,30 @@ export default function HttpApiClient() {
   // 处理发送请求
   const handleSendRequest = async (request: HttpRequest) => {
     try {
+      // form-data 类型：将 File 对象转换为 base64 data URL，以便通过 JSON 发送给后端
+      let formDataPayload: FormDataEntry[] | undefined = request.form_data;
+      if (request.body_type === 'form-data' && request.form_data?.length) {
+        formDataPayload = await Promise.all(
+          request.form_data.map(async (entry): Promise<FormDataEntry> => {
+            if (entry.type === 'file' && entry.file) {
+              const dataUrl = await fileToDataUrl(entry.file);
+              return {
+                key: entry.key,
+                value: dataUrl,
+                type: 'file',
+                description: entry.description,
+              };
+            }
+            return {
+              key: entry.key,
+              value: entry.value,
+              type: entry.type,
+              description: entry.description,
+            };
+          })
+        );
+      }
+
       const response = await sendRequest({
         method: request.method,
         url: request.url,
@@ -146,6 +179,7 @@ export default function HttpApiClient() {
         params: request.params,
         body_type: request.body_type,
         body: request.body,
+        form_data: formDataPayload,
         timeout: 30000,
         follow_redirects: true,
       });
