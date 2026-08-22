@@ -48,6 +48,8 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
     if (ct.includes('html')) return 'html';
     if (ct.startsWith('image/')) return 'image';
     if (ct.startsWith('text/')) return 'text';
+    // 显式二进制类型（如 application/octet-stream、application/pdf）走 binary 分支
+    if (ct.includes('octet-stream') || ct.includes('application/pdf') || ct.includes('application/zip')) return 'binary';
     if (response.body.startsWith('{') || response.body.startsWith('[')) return 'json';
     return 'text';
   };
@@ -55,6 +57,30 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
   const contentType = detectContentType();
   const isJson = contentType === 'json';
   const formattedBody = isJson ? formatJson(response.body) : contentType === 'xml' ? formatXml(response.body) : response.body;
+
+  // 安全地将字符串编码为 base64。
+  // - btoa() 本身仅接受码点 < 256 的 latin-1 字符串，传入中文/UTF-8 字符会抛出 InvalidCharacterError，
+  //   在没有 ErrorBoundary 的情况下会直接导致 HTTP API Client 工具页面白屏。
+  // - 这里先通过 TextEncoder 转成 UTF-8 字节再逐字节生成 binary string，绕过 btoa 的限制。
+  // - 仍用 try/catch 兜底（例如 body 含代理对等极端情况），失败时返回 null，由调用方降级。
+  const encodeBase64Safe = (input: string): string | null => {
+    try {
+      const bytes = new TextEncoder().encode(input);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    } catch {
+      return null;
+    }
+  };
+
+  // 图片响应转 base64。
+  // 协议假设：后端将图片字节以原始二进制形式序列化进 response.body（字符串），
+  // 这里再做一次 base64 编码以组装 data URL。若后续 Task 9/10 明确后端已返回 base64 字符串，
+  // 需要去掉这次编码直接透传，避免出现"双重 base64"。
+  const imageBase64 = contentType === 'image' ? encodeBase64Safe(response.body) : null;
 
   // 计算状态码颜色
   const getStatusColor = (status: number) => {
@@ -289,13 +315,19 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
         {activeTab === 'preview' && (
           <div className="p-4 h-full">
             {contentType === 'html' && <HtmlPreview html={response.body} />}
-            {contentType === 'image' && (
+            {contentType === 'image' && imageBase64 !== null && (
               <ImagePreview
-                base64Data={btoa(response.body)}
+                base64Data={imageBase64}
                 contentType={response.content_type || 'image/png'}
               />
             )}
-            {(contentType === 'json' || contentType === 'xml' || contentType === 'text') && (
+            {contentType === 'image' && imageBase64 === null && (
+              <div className="text-slate-500 text-sm text-center py-8">
+                <i className="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                <p>图片数据编码失败，无法预览，请切换到 Body 标签查看</p>
+              </div>
+            )}
+            {(contentType === 'json' || contentType === 'xml' || contentType === 'text' || contentType === 'binary') && (
               <div className="text-slate-500 text-sm text-center py-8">
                 <i className="fas fa-info-circle text-2xl mb-2"></i>
                 <p>此响应类型不支持预览，请切换到 Body 标签查看</p>
