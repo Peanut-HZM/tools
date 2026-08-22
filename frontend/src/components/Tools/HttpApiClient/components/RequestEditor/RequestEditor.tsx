@@ -11,6 +11,10 @@ interface RequestEditorProps {
   sending: boolean;
   /** 环境变量，用于 URL/Headers/Params 中的 {{变量}} 高亮与补全 */
   envVariables?: Record<string, string>;
+  /** 保存回调（历史回放标签页不传，隐藏保存按钮） */
+  onSave?: () => void;
+  /** 删除回调（历史回放标签页不传，隐藏删除按钮） */
+  onDelete?: () => void;
 }
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
@@ -22,6 +26,8 @@ export default function RequestEditor({
   onSend,
   sending,
   envVariables = {},
+  onSave,
+  onDelete,
 }: RequestEditorProps) {
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'docs'>('params');
 
@@ -106,6 +112,38 @@ export default function RequestEditor({
               </>
             )}
           </button>
+
+          {/* 保存按钮（有修改时高亮可点） */}
+          {onSave && (
+            <button
+              onClick={onSave}
+              disabled={!isModified}
+              title="保存"
+              className={`
+                px-4 py-2 rounded-lg font-medium text-sm transition-colors
+                ${isModified
+                  ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                }
+              `}
+            >
+              <i className="fas fa-save mr-1"></i>
+              保存
+            </button>
+          )}
+
+          {/* 删除按钮 */}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              title="删除"
+              className="px-4 py-2 rounded-lg font-medium text-sm transition-colors
+                         bg-red-500/20 text-red-400 border border-red-500 hover:bg-red-500/30"
+            >
+              <i className="fas fa-trash mr-1"></i>
+              删除
+            </button>
+          )}
         </div>
       </div>
 
