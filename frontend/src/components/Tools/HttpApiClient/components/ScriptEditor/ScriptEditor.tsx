@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import Editor from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { useVariableHighlighter } from './VariableHighlighter';
@@ -33,18 +33,19 @@ export default function ScriptEditor({
   readOnly = false,
   placeholder,
 }: ScriptEditorProps) {
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  // 使用 state 持有编辑器实例，确保设置后触发重新渲染
+  const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   // 使用变量高亮 Hook
-  useVariableHighlighter(editorRef.current, variables);
+  useVariableHighlighter(editor, variables);
 
   // 编辑器挂载完成回调
-  const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
-    editorRef.current = editor;
+  const handleEditorDidMount = (editorInstance: monaco.editor.IStandaloneCodeEditor) => {
+    setEditor(editorInstance);
   };
 
   return (
-    <div className="border border-slate-600 rounded-lg overflow-hidden">
+    <div className="relative border border-slate-600 rounded-lg overflow-hidden">
       <Editor
         height={height}
         language={language}
