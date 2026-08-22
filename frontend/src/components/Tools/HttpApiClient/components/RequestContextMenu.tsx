@@ -10,6 +10,7 @@ interface ContextMenuProps {
   collections: Collection[];
   x: number;
   y: number;
+  onRename?: (request: HttpRequest) => void;
   onDuplicate: (request: HttpRequest, targetCollectionId: string) => void;
   onDelete: (requestId: string) => void;
   onClose: () => void;
@@ -20,6 +21,7 @@ export default function RequestContextMenu({
   collections,
   x,
   y,
+  onRename,
   onDuplicate,
   onDelete,
   onClose,
@@ -68,6 +70,21 @@ export default function RequestContextMenu({
         className="fixed z-[9999] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 min-w-[160px]"
         style={{ left: x, top: y }}
       >
+        {/* 重命名请求 */}
+        {onRename && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRename(request);
+              onClose();
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 flex items-center"
+          >
+            <i className="fas fa-pencil mr-2 text-slate-500"></i>
+            重命名
+          </button>
+        )}
+
         {/* 复制请求 */}
         <div className="relative">
           <button
