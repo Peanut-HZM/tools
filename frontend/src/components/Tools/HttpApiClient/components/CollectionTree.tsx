@@ -8,6 +8,12 @@ interface CollectionTreeProps {
   onRequestOpen: (request: HttpRequest) => void;
   onRequestContextMenu?: (e: React.MouseEvent, request: HttpRequest) => void;
   refreshTrigger?: number;
+  /** 集合重命名（行内悬停按钮/右键菜单） */
+  onCollectionRename?: (collection: Collection) => void;
+  /** 集合删除（行内悬停按钮/右键菜单） */
+  onCollectionDelete?: (collection: Collection) => void;
+  /** 集合右键菜单回调 */
+  onCollectionContextMenu?: (e: React.MouseEvent, collection: Collection) => void;
 }
 
 export default function CollectionTree({
@@ -16,6 +22,9 @@ export default function CollectionTree({
   onCollectionSelect,
   onRequestOpen,
   onRequestContextMenu,
+  onCollectionRename,
+  onCollectionDelete,
+  onCollectionContextMenu,
   refreshTrigger = 0,
 }: CollectionTreeProps) {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
@@ -113,7 +122,7 @@ export default function CollectionTree({
       <div key={collection.id}>
         <div
           className={`
-            flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors text-sm
+            group flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors text-sm
             ${isSelected
               ? 'bg-purple-500/20 border border-purple-500 text-purple-400'
               : 'hover:bg-slate-700/50 border border-transparent text-slate-300'
@@ -121,8 +130,13 @@ export default function CollectionTree({
           `}
           style={{ paddingLeft: level * 16 + 12 }}
           onClick={() => handleCollectionClick(collection)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            onCollectionContextMenu?.(e, collection);
+          }}
         >
           <button
+            title="展开/折叠"
             onClick={(e) => {
               e.stopPropagation();
               handleCollectionClick(collection);
@@ -136,7 +150,31 @@ export default function CollectionTree({
             ></i>
           </button>
           <i className="fas fa-folder text-slate-500 text-xs"></i>
-          <span className="truncate">{collection.name}</span>
+          <span className="truncate flex-1">{collection.name}</span>
+          {onCollectionRename && (
+            <button
+              title="重命名"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCollectionRename(collection);
+              }}
+              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 transition-opacity text-xs flex-shrink-0"
+            >
+              <i className="fas fa-pencil"></i>
+            </button>
+          )}
+          {onCollectionDelete && (
+            <button
+              title="删除"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCollectionDelete(collection);
+              }}
+              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity text-xs flex-shrink-0"
+            >
+              <i className="fas fa-trash"></i>
+            </button>
+          )}
         </div>
 
         {/* 请求列表 */}

@@ -100,8 +100,8 @@ describe('CollectionTree', () => {
       />
     );
 
-    // 行内唯一 button 即箭头按钮
-    fireEvent.click(screen.getByRole('button'));
+    // 通过 title 定位箭头按钮（行内另有重命名/删除按钮，getByRole 会产生歧义）
+    fireEvent.click(screen.getByTitle('展开/折叠'));
 
     await waitFor(() => {
       expect(screen.getByText('获取SAP数据')).toBeTruthy();
@@ -109,5 +109,66 @@ describe('CollectionTree', () => {
     // stopPropagation 生效：不会因冒泡二次触发
     expect(onCollectionSelect).toHaveBeenCalledTimes(1);
     expect(onCollectionSelect).toHaveBeenCalledWith(mockCollection);
+  });
+
+  it('点击行内重命名按钮应触发 onCollectionRename 且不触发行展开与选中', () => {
+    const onCollectionRename = vi.fn();
+    const onCollectionSelect = vi.fn();
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={onCollectionSelect}
+        onRequestOpen={vi.fn()}
+        onCollectionRename={onCollectionRename}
+      />
+    );
+
+    fireEvent.click(screen.getByTitle('重命名'));
+
+    expect(onCollectionRename).toHaveBeenCalledWith(mockCollection);
+    // stopPropagation 生效：不触发行点击（不选中、不加载请求）
+    expect(onCollectionSelect).not.toHaveBeenCalled();
+    expect(fetchRequests).not.toHaveBeenCalled();
+  });
+
+  it('点击行内删除按钮应触发 onCollectionDelete 且不触发行展开与选中', () => {
+    const onCollectionDelete = vi.fn();
+    const onCollectionSelect = vi.fn();
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={onCollectionSelect}
+        onRequestOpen={vi.fn()}
+        onCollectionDelete={onCollectionDelete}
+      />
+    );
+
+    fireEvent.click(screen.getByTitle('删除'));
+
+    expect(onCollectionDelete).toHaveBeenCalledWith(mockCollection);
+    expect(onCollectionSelect).not.toHaveBeenCalled();
+    expect(fetchRequests).not.toHaveBeenCalled();
+  });
+
+  it('集合行右键应触发 onCollectionContextMenu 并 preventDefault', () => {
+    const onCollectionContextMenu = vi.fn();
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={vi.fn()}
+        onRequestOpen={vi.fn()}
+        onCollectionContextMenu={onCollectionContextMenu}
+      />
+    );
+
+    fireEvent.contextMenu(screen.getByText('Glodon-SAP'));
+
+    expect(onCollectionContextMenu).toHaveBeenCalledTimes(1);
+    const [e, collection] = onCollectionContextMenu.mock.calls[0];
+    expect(collection).toBe(mockCollection);
+    expect(e.defaultPrevented).toBe(true);
   });
 });
