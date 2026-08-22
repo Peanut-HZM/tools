@@ -63,6 +63,7 @@ interface HttpClientState {
   closeTab: (requestId: string) => void;
   updateTabRequest: (requestId: string, request: Partial<HttpRequest>) => void;
   saveRequest: (requestId: string) => Promise<HttpRequest>;
+  renameRequest: (requestId: string, name: string) => Promise<HttpRequest>;
   sendRequest: (payload: SendRequestPayload) => Promise<SendRequestResponse>;
   clearResponse: () => void;
   loadHistory: () => Promise<void>;
@@ -185,6 +186,24 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
       return updated;
     } catch (error) {
       console.error('Failed to save request:', error);
+      throw error;
+    }
+  },
+
+  // Rename request（树内改名：直接持久化，不标记未保存）
+  renameRequest: async (requestId: string, name: string) => {
+    try {
+      const updated = await updateRequest(requestId, { name });
+      const { openTabs: latestTabs } = get();
+      const newTabs = latestTabs.map(t =>
+        t.requestId === requestId
+          ? { ...t, request: { ...t.request, name: updated.name } }
+          : t
+      );
+      set({ openTabs: newTabs });
+      return updated;
+    } catch (error) {
+      console.error('Failed to rename request:', error);
       throw error;
     }
   },

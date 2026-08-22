@@ -94,3 +94,41 @@ describe('httpClientStore.saveRequest', () => {
     expect(tab?.request.url).toBe('https://example.com/during');
   });
 });
+
+describe('httpClientStore.renameRequest', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useHttpClientStore.setState({ openTabs: [], activeTabId: null });
+  });
+
+  it('改名成功后 tab 的 request.name 更新且 isModified 保持 false', async () => {
+    const request = makeRequest('req-1');
+    useHttpClientStore.getState().openTab(request);
+
+    vi.mocked(updateRequest).mockResolvedValue({
+      ...request,
+      name: '新名字',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
+
+    await useHttpClientStore.getState().renameRequest('req-1', '新名字');
+
+    const tab = useHttpClientStore.getState().openTabs.find(t => t.requestId === 'req-1');
+    expect(tab?.request.name).toBe('新名字');
+    expect(tab?.isModified).toBe(false);
+    expect(updateRequest).toHaveBeenCalledWith('req-1', { name: '新名字' });
+  });
+
+  it('改名失败时抛出异常且 tab 状态不变', async () => {
+    const request = makeRequest('req-2');
+    useHttpClientStore.getState().openTab(request);
+
+    vi.mocked(updateRequest).mockRejectedValue(new Error('网络错误'));
+
+    await expect(useHttpClientStore.getState().renameRequest('req-2', '新名字')).rejects.toThrow('网络错误');
+
+    const tab = useHttpClientStore.getState().openTabs.find(t => t.requestId === 'req-2');
+    expect(tab?.request.name).toBe('测试请求');
+    expect(tab?.isModified).toBe(false);
+  });
+});
