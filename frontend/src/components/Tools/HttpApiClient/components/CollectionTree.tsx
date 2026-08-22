@@ -76,6 +76,7 @@ export default function CollectionTree({
 
   const handleCollectionClick = (collection: Collection) => {
     onCollectionSelect(collection);
+    toggleExpand(collection.id);
   };
 
   const handleRequestClick = (request: HttpRequest) => {
@@ -124,7 +125,7 @@ export default function CollectionTree({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              toggleExpand(collection.id);
+              handleCollectionClick(collection);
             }}
             className="text-slate-500 hover:text-slate-300 transition-colors"
           >
