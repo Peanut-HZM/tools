@@ -17,6 +17,7 @@ import {
   clearHistory,
   duplicateRequest as apiDuplicateRequest,
   deleteRequestById as apiDeleteRequest,
+  updateRequest,
   SendRequestPayload,
   SendRequestResponse,
 } from '../services/httpClientApi';
@@ -61,6 +62,7 @@ interface HttpClientState {
   openTab: (request: HttpRequest) => void;
   closeTab: (requestId: string) => void;
   updateTabRequest: (requestId: string, request: Partial<HttpRequest>) => void;
+  saveRequest: (requestId: string) => Promise<HttpRequest>;
   sendRequest: (payload: SendRequestPayload) => Promise<SendRequestResponse>;
   clearResponse: () => void;
   loadHistory: () => Promise<void>;
@@ -161,6 +163,28 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
         : tab
     );
     set({ openTabs: newTabs });
+  },
+
+  // Save request（持久化到后端）
+  saveRequest: async (requestId: string) => {
+    const { openTabs } = get();
+    const tab = openTabs.find(t => t.requestId === requestId);
+    if (!tab) {
+      throw new Error('标签页不存在');
+    }
+    try {
+      const updated = await updateRequest(requestId, { ...tab.request });
+      const newTabs = openTabs.map(t =>
+        t.requestId === requestId
+          ? { ...t, request: updated, isModified: false }
+          : t
+      );
+      set({ openTabs: newTabs });
+      return updated;
+    } catch (error) {
+      console.error('Failed to save request:', error);
+      throw error;
+    }
   },
 
   // Send HTTP request
