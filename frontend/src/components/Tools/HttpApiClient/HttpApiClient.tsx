@@ -60,6 +60,7 @@ export default function HttpApiClient() {
     duplicateRequest,
     deleteRequest,
     saveRequest,
+    renameRequest,
     history,
   } = useHttpClientStore();
 
@@ -82,6 +83,10 @@ export default function HttpApiClient() {
   } | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number; y: number; request: HttpRequest;
+  } | null>(null);
+  const [renameRequestTrigger, setRenameRequestTrigger] = useState<{
+    request: HttpRequest;
+    nonce: number;
   } | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -330,15 +335,28 @@ export default function HttpApiClient() {
     }
   }, [duplicateRequest, toast]);
 
+  // 树内改名：直接持久化并刷新集合树
+  const handleRequestRename = useCallback(async (request: HttpRequest, name: string) => {
+    try {
+      await renameRequest(request.id, name);
+      toast.success('请求已重命名');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || error?.message || '重命名失败');
+    }
+  }, [renameRequest, toast]);
+
   const handleDeleteRequest = useCallback(async (requestId: string) => {
     try {
       await deleteRequest(requestId, '');
+      // 同步关闭已打开的同请求标签页，避免残留失效页
+      closeTab(requestId);
       toast.success('请求已删除');
       setRefreshTrigger(prev => prev + 1);
     } catch (error: any) {
       toast.error(error?.message || '删除失败');
     }
-  }, [deleteRequest, toast]);
+  }, [deleteRequest, closeTab, toast]);
 
   // Ctrl+S / Cmd+S 保存当前请求
   useEffect(() => {
@@ -503,6 +521,9 @@ export default function HttpApiClient() {
                   e.preventDefault();
                   setCollectionContextMenu({ x: e.clientX, y: e.clientY, collection });
                 }}
+                onRequestRename={handleRequestRename}
+                onRequestDelete={(request) => handleDeleteRequest(request.id)}
+                renameTrigger={renameRequestTrigger}
               />
             )}
           </div>
@@ -611,6 +632,9 @@ export default function HttpApiClient() {
           collections={collections}
           x={contextMenu.x}
           y={contextMenu.y}
+          onRename={(request) => {
+            setRenameRequestTrigger({ request, nonce: Date.now() });
+          }}
           onDuplicate={handleDuplicateRequest}
           onDelete={handleDeleteRequest}
           onClose={handleCloseContextMenu}
