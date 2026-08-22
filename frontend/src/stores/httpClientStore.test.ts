@@ -64,4 +64,33 @@ describe('httpClientStore.saveRequest', () => {
     expect(tab?.isModified).toBe(true);
     expect(tab?.request.url).toBe('https://example.com/changed');
   });
+
+  it('保存进行中继续编辑不会被旧快照覆盖（竞态回归测试）', async () => {
+    const request = makeRequest('req-1');
+    useHttpClientStore.getState().openTab(request);
+
+    // 手动控制 updateRequest 的完成时机
+    let resolveUpdate!: (value: HttpRequest) => void;
+    const deferred = new Promise<HttpRequest>(resolve => {
+      resolveUpdate = resolve;
+    });
+    vi.mocked(updateRequest).mockReturnValue(deferred);
+
+    // 不等待保存完成，模拟保存期间用户继续编辑
+    const savePromise = useHttpClientStore.getState().saveRequest('req-1');
+    useHttpClientStore.getState().updateTabRequest('req-1', { url: 'https://example.com/during' });
+
+    // 服务端返回保存时的快照内容（不包含保存期间的编辑）
+    resolveUpdate({
+      ...request,
+      url: 'https://example.com/api',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
+
+    await savePromise;
+
+    const tab = useHttpClientStore.getState().openTabs.find(t => t.requestId === 'req-1');
+    expect(tab?.isModified).toBe(false);
+    expect(tab?.request.url).toBe('https://example.com/during');
+  });
 });

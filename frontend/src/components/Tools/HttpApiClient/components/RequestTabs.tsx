@@ -82,6 +82,7 @@ export default function RequestTabs({
                 if (e.key === 'Escape') {
                   e.stopPropagation();
                   setEditingId(null);
+                  setEditingName('');
                 }
               }}
               className="flex-1 bg-slate-900 text-white text-sm px-1 py-0.5 rounded

@@ -174,9 +174,11 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
     }
     try {
       const updated = await updateRequest(requestId, { ...tab.request });
-      const newTabs = openTabs.map(t =>
+      // 保存期间用户可能继续编辑，重新读取最新状态，避免旧快照覆盖新编辑
+      const { openTabs: latestTabs } = get();
+      const newTabs = latestTabs.map(t =>
         t.requestId === requestId
-          ? { ...t, request: updated, isModified: false }
+          ? { ...t, request: { ...updated, ...t.request }, isModified: false }
           : t
       );
       set({ openTabs: newTabs });

@@ -61,6 +61,7 @@ describe('RequestTabs 内联改名', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
 
     expect(onRename).toHaveBeenCalledWith('req-1', '新名称');
+    expect(onRename).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.getByText('旧名称')).toBeTruthy();
   });

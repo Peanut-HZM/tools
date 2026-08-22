@@ -346,7 +346,7 @@ export default function HttpApiClient() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         const tab = openTabs.find(t => t.requestId === activeTabId);
-        if (tab?.isModified) {
+        if (tab?.isModified && !isHistoryReplay) {
           handleSaveActiveRequest();
         }
       }
@@ -354,7 +354,7 @@ export default function HttpApiClient() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTabId, openTabs]);
+  }, [activeTabId, openTabs, isHistoryReplay]);
 
   // 拖拽调整侧边栏宽度
   const handleSidebarResize = (e: React.MouseEvent) => {

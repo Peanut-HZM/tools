@@ -158,7 +158,7 @@ export default function CollectionTree({
                 e.stopPropagation();
                 onCollectionRename(collection);
               }}
-              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 transition-opacity text-xs flex-shrink-0"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-slate-300 transition-opacity text-xs flex-shrink-0"
             >
               <i className="fas fa-pencil"></i>
             </button>
@@ -170,7 +170,7 @@ export default function CollectionTree({
                 e.stopPropagation();
                 onCollectionDelete(collection);
               }}
-              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-opacity text-xs flex-shrink-0"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-red-400 transition-opacity text-xs flex-shrink-0"
             >
               <i className="fas fa-trash"></i>
             </button>
