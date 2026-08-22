@@ -1,6 +1,7 @@
 import { getAuthHeaders } from './authApi';
 import { UserResponse } from './authApi';
 import { AUTH_API_BASE_URL } from '../config/api';
+import { authedFetch } from './http';
 
 const API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '/admin');
 const PUBLIC_API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '');
@@ -17,7 +18,7 @@ export interface ToolCategory {
 }
 
 export async function listCategories(): Promise<ToolCategory[]> {
-    const response = await fetch(`${API_BASE_URL}/categories`, {
+    const response = await authedFetch(`${API_BASE_URL}/categories`, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to list categories');
@@ -25,7 +26,7 @@ export async function listCategories(): Promise<ToolCategory[]> {
 }
 
 export async function createCategory(data: Partial<ToolCategory>): Promise<ToolCategory> {
-    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories`, {
+    const response = await authedFetch(`${PUBLIC_API_BASE_URL}/categories`, {
         method: 'POST',
         headers: {
             ...getAuthHeaders(),
@@ -38,7 +39,7 @@ export async function createCategory(data: Partial<ToolCategory>): Promise<ToolC
 }
 
 export async function updateCategory(id: string, data: Partial<ToolCategory>, cascade: boolean = false): Promise<ToolCategory> {
-    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories/${id}?cascade=${cascade}`, {
+    const response = await authedFetch(`${PUBLIC_API_BASE_URL}/categories/${id}?cascade=${cascade}`, {
         method: 'PUT',
         headers: {
             ...getAuthHeaders(),
@@ -54,7 +55,7 @@ export async function updateCategory(id: string, data: Partial<ToolCategory>, ca
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-    const response = await fetch(`${PUBLIC_API_BASE_URL}/categories/${id}`, {
+    const response = await authedFetch(`${PUBLIC_API_BASE_URL}/categories/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
     });
@@ -79,7 +80,7 @@ export interface OssFile {
 // ...
 
 export async function listOssFiles(): Promise<OssFile[]> {
-    const response = await fetch(`${API_BASE_URL}/oss/files`, {
+    const response = await authedFetch(`${API_BASE_URL}/oss/files`, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to list OSS files');
@@ -87,7 +88,7 @@ export async function listOssFiles(): Promise<OssFile[]> {
 }
 
 export async function deleteOssFile(path: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/oss/files/${encodeURIComponent(path)}`, {
+    const response = await authedFetch(`${API_BASE_URL}/oss/files/${encodeURIComponent(path)}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
     });
@@ -161,7 +162,7 @@ export async function listToolsPaginated(params?: ToolsListParams): Promise<Tool
     const queryString = searchParams.toString();
     const url = queryString ? `${API_BASE_URL}/tools?${queryString}` : `${API_BASE_URL}/tools`;
 
-    const response = await fetch(url, {
+    const response = await authedFetch(url, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to list tools');
@@ -169,7 +170,7 @@ export async function listToolsPaginated(params?: ToolsListParams): Promise<Tool
 }
 
 export async function updateTool(toolId: string, data: Partial<Tool>): Promise<Tool> {
-    const response = await fetch(`${API_BASE_URL}/tools/${toolId}`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools/${toolId}`, {
         method: 'PUT',
         headers: {
             ...getAuthHeaders(),
@@ -185,7 +186,7 @@ export async function uploadToolIcon(toolId: string, file: File): Promise<{ url:
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}/tools/${toolId}/icon`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools/${toolId}/icon`, {
         method: 'POST',
         headers: {
             'Authorization': getAuthHeaders()['Authorization'] || ''
@@ -197,7 +198,7 @@ export async function uploadToolIcon(toolId: string, file: File): Promise<{ url:
 }
 
 export async function deleteToolIcon(toolId: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/tools/${toolId}/icon`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools/${toolId}/icon`, {
         method: 'DELETE',
         headers: getAuthHeaders()
     });
@@ -206,7 +207,7 @@ export async function deleteToolIcon(toolId: string): Promise<boolean> {
 }
 
 export async function listAllTools(): Promise<Tool[]> {
-    const response = await fetch(`${API_BASE_URL}/tools`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools`, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to list tools');
@@ -214,7 +215,7 @@ export async function listAllTools(): Promise<Tool[]> {
 }
 
 export async function updateToolStatus(toolId: string, status: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/tools/${toolId}/status?status=${status}`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools/${toolId}/status?status=${status}`, {
         method: 'PUT',
         headers: getAuthHeaders()
     });
@@ -223,7 +224,7 @@ export async function updateToolStatus(toolId: string, status: string): Promise<
 }
 
 export async function deleteTool(toolId: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/tools/${toolId}`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools/${toolId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
     });
@@ -232,7 +233,7 @@ export async function deleteTool(toolId: string): Promise<boolean> {
 }
 
 export async function batchUpdateToolStatus(toolIds: string[], status: string): Promise<{ success_count: number; failed_count: number; failed_ids: string[] }> {
-    const response = await fetch(`${API_BASE_URL}/tools/batch/status`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools/batch/status`, {
         method: 'PUT',
         headers: {
             ...getAuthHeaders(),
@@ -248,7 +249,7 @@ export async function batchUpdateToolStatus(toolIds: string[], status: string): 
 }
 
 export async function batchDeleteTools(toolIds: string[]): Promise<{ success_count: number; failed_count: number; failed_ids: string[] }> {
-    const response = await fetch(`${API_BASE_URL}/tools/batch/delete`, {
+    const response = await authedFetch(`${API_BASE_URL}/tools/batch/delete`, {
         method: 'POST',
         headers: {
             ...getAuthHeaders(),
@@ -264,7 +265,7 @@ export async function batchDeleteTools(toolIds: string[]): Promise<{ success_cou
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-    const response = await fetch(`${API_BASE_URL}/stats`, {
+    const response = await authedFetch(`${API_BASE_URL}/stats`, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to get dashboard stats');
@@ -272,7 +273,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export async function recordToolVisit(toolId: string, toolName: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/stats/visit`, {
+    const response = await authedFetch(`${API_BASE_URL}/stats/visit`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -291,7 +292,7 @@ export interface SystemSettings {
 }
 
 export async function getSystemSettings(): Promise<SystemSettings> {
-    const response = await fetch(`${API_BASE_URL}/settings`, {
+    const response = await authedFetch(`${API_BASE_URL}/settings`, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to get settings');
@@ -299,7 +300,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
 }
 
 export async function updateSystemSettings(settings: Partial<SystemSettings>): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/settings`, {
+    const response = await authedFetch(`${API_BASE_URL}/settings`, {
         method: 'PUT',
         headers: {
             ...getAuthHeaders() as Record<string, string>,
@@ -312,7 +313,7 @@ export async function updateSystemSettings(settings: Partial<SystemSettings>): P
 }
 
 export async function createUser(data: { username: string; email: string; role: string }): Promise<{ username: string; password: string; message: string }> {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+    const response = await authedFetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
             ...getAuthHeaders() as Record<string, string>,
@@ -348,7 +349,7 @@ export interface AdminPasswordResetResponse {
 }
 
 export async function resetUserPassword(userId: string, data: AdminPasswordResetRequest): Promise<AdminPasswordResetResponse> {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/reset-password`, {
+    const response = await authedFetch(`${API_BASE_URL}/users/${userId}/reset-password`, {
         method: 'POST',
         headers: {
             ...getAuthHeaders() as Record<string, string>,
@@ -381,7 +382,7 @@ export async function listUsers(params?: UserListParams): Promise<UserListRespon
     const queryString = searchParams.toString();
     const url = queryString ? `${API_BASE_URL}/users?${queryString}` : `${API_BASE_URL}/users`;
 
-    const response = await fetch(url, {
+    const response = await authedFetch(url, {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to list users');
@@ -389,7 +390,7 @@ export async function listUsers(params?: UserListParams): Promise<UserListRespon
 }
 
 export async function batchDeleteUsers(userIds: string[]): Promise<{ success_count: number; failed_count: number; errors: string[] }> {
-    const response = await fetch(`${API_BASE_URL}/users/batch-delete`, {
+    const response = await authedFetch(`${API_BASE_URL}/users/batch-delete`, {
         method: 'POST',
         headers: {
             ...getAuthHeaders() as Record<string, string>,
@@ -406,7 +407,7 @@ export async function batchDeleteUsers(userIds: string[]): Promise<{ success_cou
 }
 
 export async function batchUpdateUserRole(userIds: string[], role: string): Promise<{ success_count: number; failed_count: number; errors: string[] }> {
-    const response = await fetch(`${API_BASE_URL}/users/batch-update-role`, {
+    const response = await authedFetch(`${API_BASE_URL}/users/batch-update-role`, {
         method: 'POST',
         headers: {
             ...getAuthHeaders() as Record<string, string>,
@@ -423,7 +424,7 @@ export async function batchUpdateUserRole(userIds: string[], role: string): Prom
 }
 
 export async function updateUserRole(userId: string, role: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/role`, {
+    const response = await authedFetch(`${API_BASE_URL}/users/${userId}/role`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ role })
@@ -433,7 +434,7 @@ export async function updateUserRole(userId: string, role: string): Promise<bool
 }
 
 export async function deleteUser(userId: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    const response = await authedFetch(`${API_BASE_URL}/users/${userId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
     });

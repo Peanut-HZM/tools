@@ -16,6 +16,7 @@ import type {
 } from '../types/markdownEditor';
 
 import { MARKDOWN_EDITOR_API_BASE_URL } from '../config/api';
+import { authedFetch } from './http';
 
 const API_BASE_URL = MARKDOWN_EDITOR_API_BASE_URL;
 
@@ -36,7 +37,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
  * Get the user's root directory path
  */
 export async function getRootPath(): Promise<RootPathResponse> {
-  const response = await fetch(`${API_BASE_URL}/files/root`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/root`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -47,7 +48,7 @@ export async function getRootPath(): Promise<RootPathResponse> {
  * Update the user's root directory path
  */
 export async function updateRootPath(path: string): Promise<RootPathResponse> {
-  const response = await fetch(`${API_BASE_URL}/files/root`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/root`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -65,7 +66,7 @@ export async function getDirectoryTree(root: string = ''): Promise<FileNode> {
   const params = new URLSearchParams();
   if (root) params.append('root', root);
   
-  const response = await fetch(`${API_BASE_URL}/files/tree?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/tree?${params}`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -78,7 +79,7 @@ export async function getDirectoryTree(root: string = ''): Promise<FileNode> {
 export async function readFile(path: string): Promise<FileContent> {
   const params = new URLSearchParams({ path });
   
-  const response = await fetch(`${API_BASE_URL}/files/read?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/read?${params}`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -89,7 +90,7 @@ export async function readFile(path: string): Promise<FileContent> {
  * Save file content
  */
 export async function saveFile(path: string, content: string): Promise<SaveResult> {
-  const response = await fetch(`${API_BASE_URL}/files/save`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/save`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ path, content })
@@ -115,7 +116,7 @@ export async function uploadMarkdownFile(file: File, path: string = ''): Promise
     formData.append('path', path);
   }
 
-  const response = await fetch(`${API_BASE_URL}/files/upload?path=${encodeURIComponent(path)}`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/upload?path=${encodeURIComponent(path)}`, {
     method: 'POST',
     headers: {
       'Authorization': (getAuthHeaders() as Record<string, string>)['Authorization'] || ''
@@ -131,7 +132,7 @@ export async function uploadMarkdownFile(file: File, path: string = ''): Promise
  * Create a new file
  */
 export async function createFile(path: string, content: string = ''): Promise<CreateResult> {
-  const response = await fetch(`${API_BASE_URL}/files/create`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/create`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ path, content })
@@ -145,7 +146,7 @@ export async function createFile(path: string, content: string = ''): Promise<Cr
 export async function deleteFile(path: string): Promise<DeleteResult> {
   const params = new URLSearchParams({ path });
   
-  const response = await fetch(`${API_BASE_URL}/files/delete?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/delete?${params}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
@@ -156,7 +157,7 @@ export async function deleteFile(path: string): Promise<DeleteResult> {
  * Rename a file
  */
 export async function renameFile(oldPath: string, newPath: string): Promise<RenameResult> {
-  const response = await fetch(`${API_BASE_URL}/files/rename`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/rename`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ old_path: oldPath, new_path: newPath })
@@ -170,7 +171,7 @@ export async function renameFile(oldPath: string, newPath: string): Promise<Rena
 export async function createDirectory(path: string): Promise<CreateResult> {
   const params = new URLSearchParams({ path });
   
-  const response = await fetch(`${API_BASE_URL}/files/directory/create?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/directory/create?${params}`, {
     method: 'POST',
     headers: getAuthHeaders()
   });
@@ -183,7 +184,7 @@ export async function createDirectory(path: string): Promise<CreateResult> {
 export async function deleteDirectory(path: string, recursive: boolean = false): Promise<DeleteResult> {
   const params = new URLSearchParams({ path, recursive: String(recursive) });
   
-  const response = await fetch(`${API_BASE_URL}/files/directory/delete?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/files/directory/delete?${params}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
@@ -196,7 +197,7 @@ export async function deleteDirectory(path: string, recursive: boolean = false):
  * Get user configuration
  */
 export async function getConfig(): Promise<EditorConfig> {
-  const response = await fetch(`${API_BASE_URL}/config`, {
+  const response = await authedFetch(`${API_BASE_URL}/config`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -207,7 +208,7 @@ export async function getConfig(): Promise<EditorConfig> {
  * Save user configuration
  */
 export async function saveConfig(config: EditorConfig): Promise<EditorConfig> {
-  const response = await fetch(`${API_BASE_URL}/config`, {
+  const response = await authedFetch(`${API_BASE_URL}/config`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(config)
@@ -223,7 +224,7 @@ export async function saveConfig(config: EditorConfig): Promise<EditorConfig> {
 export async function searchFiles(keyword: string): Promise<FileSearchResult[]> {
   const params = new URLSearchParams({ keyword });
   
-  const response = await fetch(`${API_BASE_URL}/search/files?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/search/files?${params}`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -244,7 +245,7 @@ export async function searchContent(
     case_sensitive: String(caseSensitive)
   });
   
-  const response = await fetch(`${API_BASE_URL}/search/content?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/search/content?${params}`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -295,7 +296,7 @@ export async function uploadMarkdownToOss(file: File): Promise<OssUploadMarkdown
   const headers = getAuthHeaders() as Record<string, string>;
   delete headers['Content-Type'];
 
-  const response = await fetch(`${API_BASE_URL}/oss/upload`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/upload`, {
     method: 'POST',
     headers: {
       ...headers,
@@ -312,7 +313,7 @@ export async function uploadMarkdownToOss(file: File): Promise<OssUploadMarkdown
 export async function readMarkdownFromOss(filePath: string): Promise<OssReadMarkdownResponse> {
   const params = new URLSearchParams({ file_path: filePath });
   
-  const response = await fetch(`${API_BASE_URL}/oss/read?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/read?${params}`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -327,7 +328,7 @@ export async function saveMarkdownToOssLegacy(
   filePath: string,
   content: string
 ): Promise<OssSaveMarkdownResponse> {
-  const response = await fetch(`${API_BASE_URL}/oss/save`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/save`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ file_path: filePath, content })
@@ -340,7 +341,7 @@ export async function saveMarkdownToOssLegacy(
  * List all Markdown files in OSS for the current user
  */
 export async function listOssMarkdownFiles(): Promise<OssFileInfo[]> {
-  const response = await fetch(`${API_BASE_URL}/oss/list`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/list`, {
     method: 'GET',
     headers: getAuthHeaders()
   });

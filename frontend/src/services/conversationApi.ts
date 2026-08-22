@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getAuthToken } from '../api/authApi';
+import { authedFetch } from '../api/http';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -133,7 +134,7 @@ export const conversationApi = {
     const token = getAuthToken();
     const url = `${API_BASE_URL}/conversations/${conversationId}/chat/stream`;
     
-    fetch(url, {
+    authedFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

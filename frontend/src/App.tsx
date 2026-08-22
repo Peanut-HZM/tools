@@ -55,8 +55,11 @@ import { I18nProvider } from './i18n/I18nProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './contexts/ToastContext';
 import { ErrorBoundary } from './components/Common/ErrorMessages';
+import LoginModal from './components/Common/LoginModal';
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
+import { registerAuthFailureHandler } from './api/http';
+import { removeAuthToken } from './api/authApi';
 
 // React Query 客户端实例（进程级别单例）
 const queryClient = new QueryClient({
@@ -261,6 +264,26 @@ function HomePage() {
   );
 }
 
+function GlobalAuthHandler() {
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
+  useEffect(() => {
+    registerAuthFailureHandler(() => {
+      // 清除失效 token，更新认证状态
+      removeAuthToken();
+      // 打开登录弹窗
+      setLoginModalOpen(true);
+    });
+  }, []);
+
+  return (
+    <LoginModal
+      isOpen={loginModalOpen}
+      onClose={() => setLoginModalOpen(false)}
+    />
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -268,7 +291,8 @@ function App() {
         <I18nProvider>
           <ToastProvider>
             <BrowserRouter>
-          <Routes>
+              <GlobalAuthHandler />
+              <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />

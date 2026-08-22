@@ -5,6 +5,7 @@
  */
 import { getAuthHeaders } from './authApi';
 import { MARKDOWN_EDITOR_API_BASE_URL } from '../config/api';
+import { authedFetch } from './http';
 
 const API_BASE_URL = MARKDOWN_EDITOR_API_BASE_URL;
 
@@ -60,7 +61,7 @@ export async function listFileVersions(
     offset: offset.toString(),
   });
 
-  const response = await fetch(`${API_BASE_URL}/oss/versions?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/versions?${params}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -77,7 +78,7 @@ export async function readFileVersion(
     version_id: versionId,
   });
 
-  const response = await fetch(`${API_BASE_URL}/oss/versions/read?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/versions/read?${params}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -89,7 +90,7 @@ export async function rollbackToVersion(
   filePath: string,
   versionId: string
 ): Promise<RollbackResponse> {
-  const response = await fetch(`${API_BASE_URL}/oss/versions/rollback`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/versions/rollback`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({
@@ -110,7 +111,7 @@ export async function deleteFileVersion(
     version_id: versionId,
   });
 
-  const response = await fetch(`${API_BASE_URL}/oss/versions/delete?${params}`, {
+  const response = await authedFetch(`${API_BASE_URL}/oss/versions/delete?${params}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });

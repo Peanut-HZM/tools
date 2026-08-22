@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../config/api';
 import { parseError } from '../utils/errorHandler';
 import { getAuthHeaders } from './authApi';
+import { authedFetch } from './http';
 
 export interface OCRResult {
     text: string;
@@ -22,7 +23,7 @@ export const ocrApi = {
     predict: async (image: string, lang: string = 'ch'): Promise<OCRResult> => {
         try {
             const headers = getAuthHeaders() as Record<string, string>;
-            const response = await fetch(`${API_BASE_URL}/tools/ocr/predict`, {
+            const response = await authedFetch(`${API_BASE_URL}/tools/ocr/predict`, {
                 method: 'POST',
                 headers: {
                     ...headers,
@@ -53,7 +54,7 @@ export const ocrApi = {
                 authHeader['Authorization'] = headers['Authorization'];
             }
 
-            const response = await fetch(`${API_BASE_URL}/tools/ocr/pdf`, {
+            const response = await authedFetch(`${API_BASE_URL}/tools/ocr/pdf`, {
                 method: 'POST',
                 headers: authHeader,
                 body: formData,
@@ -73,7 +74,7 @@ export const ocrApi = {
     scanQrcode: async (image: string): Promise<QRCodeResult> => {
         try {
             const headers = getAuthHeaders() as Record<string, string>;
-            const response = await fetch(`${API_BASE_URL}/tools/ocr/qrcode`, {
+            const response = await authedFetch(`${API_BASE_URL}/tools/ocr/qrcode`, {
                 method: 'POST',
                 headers: {
                     ...headers,

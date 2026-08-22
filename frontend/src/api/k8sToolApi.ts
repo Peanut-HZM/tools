@@ -7,6 +7,7 @@
 
 import { API_BASE_URL } from '../config/api';
 import { getAuthHeaders, getAuthToken } from './authApi';
+import { authedFetch } from './http';
 import type {
   K8sConnection,
   CreateK8sManualRequest,
@@ -39,7 +40,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     delete headers['Content-Type'];
   }
 
-  const response = await fetch(url, { ...options, headers: headers as HeadersInit });
+  const response = await authedFetch(url, { ...options, headers: headers as HeadersInit });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
@@ -237,7 +238,7 @@ export const downloadPodLogs = async (
   const params = new URLSearchParams({ namespace });
   if (container) params.append('container', container);
 
-  const response = await fetch(
+  const response = await authedFetch(
     `${K8S_API_URL}/${encodeURIComponent(configId)}/pods/${encodeURIComponent(podName)}/logs/download?${params}`,
     { headers: getAuthHeaders() }
   );

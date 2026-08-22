@@ -1,5 +1,6 @@
 import { getAuthHeaders } from './authApi';
 import { AUTH_API_BASE_URL } from '../config/api';
+import { authedFetch } from './http';
 
 const API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '');
 
@@ -21,7 +22,7 @@ export async function chatStream(
   onError?: (error: string) => void
 ): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/openclaw/chat`, {
+    const response = await authedFetch(`${API_BASE_URL}/openclaw/chat`, {
       method: 'POST',
       headers: {
         ...getAuthHeaders(),
@@ -83,7 +84,7 @@ export async function chatStream(
 
 /** 获取会话历史 */
 export async function loadHistory(sessionKey: string = 'main', limit: number = 50) {
-  const response = await fetch(`${API_BASE_URL}/openclaw/history`, {
+  const response = await authedFetch(`${API_BASE_URL}/openclaw/history`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -98,7 +99,7 @@ export async function loadHistory(sessionKey: string = 'main', limit: number = 5
 
 /** 中止生成 */
 export async function abortChat(sessionKey: string = 'main') {
-  const response = await fetch(`${API_BASE_URL}/openclaw/abort`, {
+  const response = await authedFetch(`${API_BASE_URL}/openclaw/abort`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -112,7 +113,7 @@ export async function abortChat(sessionKey: string = 'main') {
 
 /** 重置会话 */
 export async function resetSession(sessionKey: string = 'main') {
-  const response = await fetch(`${API_BASE_URL}/openclaw/reset?session_key=${sessionKey}`, {
+  const response = await authedFetch(`${API_BASE_URL}/openclaw/reset?session_key=${sessionKey}`, {
     method: 'POST',
     headers: getAuthHeaders(),
   });
@@ -122,7 +123,7 @@ export async function resetSession(sessionKey: string = 'main') {
 
 /** 获取状态 */
 export async function getStatus() {
-  const response = await fetch(`${API_BASE_URL}/openclaw/status`, {
+  const response = await authedFetch(`${API_BASE_URL}/openclaw/status`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) throw new Error('获取状态失败');
@@ -146,7 +147,7 @@ export interface OpenClawConfig {
 
 /** 获取配置 */
 export async function getOpenClawConfig(): Promise<OpenClawConfig> {
-  const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/config`, {
+  const response = await authedFetch(`${ADMIN_API_BASE_URL}/openclaw/config`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) throw new Error('获取配置失败');
@@ -155,7 +156,7 @@ export async function getOpenClawConfig(): Promise<OpenClawConfig> {
 
 /** 更新配置 */
 export async function updateOpenClawConfig(data: Partial<OpenClawConfig>): Promise<any> {
-  const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/config`, {
+  const response = await authedFetch(`${ADMIN_API_BASE_URL}/openclaw/config`, {
     method: 'PUT',
     headers: {
       ...getAuthHeaders(),
@@ -172,7 +173,7 @@ export async function updateOpenClawConfig(data: Partial<OpenClawConfig>): Promi
 
 /** 获取状态 */
 export async function getOpenClawStatus() {
-  const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/status`, {
+  const response = await authedFetch(`${ADMIN_API_BASE_URL}/openclaw/status`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) throw new Error('获取状态失败');
@@ -181,7 +182,7 @@ export async function getOpenClawStatus() {
 
 /** 手动重连 */
 export async function reconnectOpenClaw() {
-  const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/reconnect`, {
+  const response = await authedFetch(`${ADMIN_API_BASE_URL}/openclaw/reconnect`, {
     method: 'POST',
     headers: getAuthHeaders(),
   });
@@ -200,7 +201,7 @@ export async function testOpenClawConnection(data: {
   password?: string;
   token?: string;
 }) {
-  const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/test-connection`, {
+  const response = await authedFetch(`${ADMIN_API_BASE_URL}/openclaw/test-connection`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -217,7 +218,7 @@ export async function testOpenClawConnection(data: {
 
 /** 断开连接 */
 export async function disconnectOpenClaw() {
-  const response = await fetch(`${ADMIN_API_BASE_URL}/openclaw/disconnect`, {
+  const response = await authedFetch(`${ADMIN_API_BASE_URL}/openclaw/disconnect`, {
     method: 'POST',
     headers: getAuthHeaders(),
   });

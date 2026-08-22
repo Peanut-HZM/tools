@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../config/api';
 import { parseError } from '../utils/errorHandler';
 import { getAuthHeaders } from './authApi';
+import { authedFetch } from './http';
 
 export interface ASRResult {
     text: string;
@@ -23,7 +24,7 @@ export const asrApi = {
                 authHeader['Authorization'] = headers['Authorization'];
             }
             
-            const response = await fetch(`${API_BASE_URL}/tools/asr/predict`, {
+            const response = await authedFetch(`${API_BASE_URL}/tools/asr/predict`, {
                 method: 'POST',
                 headers: authHeader,
                 body: formData,

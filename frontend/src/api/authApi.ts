@@ -3,6 +3,7 @@
  */
 
 import { AUTH_API_BASE_URL } from '../config/api';
+import { authedFetch } from './http';
 
 const API_BASE_URL = AUTH_API_BASE_URL;
 
@@ -93,7 +94,7 @@ export function getAuthHeaders(): HeadersInit {
  * Register a new user
  */
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/register`, {
+  const response = await authedFetch(`${API_BASE_URL}/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -115,7 +116,7 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
  * Send verification code
  */
 export async function sendVerificationCode(target: string, type: 'email' | 'phone'): Promise<boolean> {
-  const response = await fetch(`${API_BASE_URL}/send-code`, {
+  const response = await authedFetch(`${API_BASE_URL}/send-code`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -135,7 +136,7 @@ export async function sendVerificationCode(target: string, type: 'email' | 'phon
  * Login a user
  */
 export async function login(data: LoginRequest): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/login`, {
+  const response = await authedFetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -160,7 +161,7 @@ export async function logout(): Promise<void> {
   const token = getAuthToken();
   if (token) {
     try {
-      await fetch(`${API_BASE_URL}/logout`, {
+      await authedFetch(`${API_BASE_URL}/logout`, {
         method: 'POST',
         headers: getAuthHeaders()
       });
@@ -175,7 +176,7 @@ export async function logout(): Promise<void> {
  * Get the current user's information
  */
 export async function getCurrentUser(): Promise<UserResponse> {
-  const response = await fetch(`${API_BASE_URL}/me`, {
+  const response = await authedFetch(`${API_BASE_URL}/me`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -198,7 +199,7 @@ export async function verifyToken(): Promise<boolean> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/verify`, {
+    const response = await authedFetch(`${API_BASE_URL}/verify`, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -212,7 +213,7 @@ export async function verifyToken(): Promise<boolean> {
  * Change user password
  */
 export async function changePassword(data: UserPasswordChangeRequest): Promise<UserPasswordChangeResponse> {
-  const response = await fetch(`${API_BASE_URL}/password`, {
+  const response = await authedFetch(`${API_BASE_URL}/password`, {
     method: 'PUT',
     headers: {
       ...getAuthHeaders(),

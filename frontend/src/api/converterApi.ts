@@ -1,5 +1,6 @@
 import { getAuthHeaders } from './authApi';
 import { CONVERTER_API_BASE_URL } from '../config/api';
+import { authedFetch } from './http';
 
 const API_BASE_URL = CONVERTER_API_BASE_URL;
 
@@ -26,7 +27,7 @@ export async function convertDocument(file: File): Promise<ConvertResponse> {
   const headers = getAuthHeaders() as Record<string, string>;
   delete headers['Content-Type'];
 
-  const response = await fetch(`${API_BASE_URL}/convert`, {
+  const response = await authedFetch(`${API_BASE_URL}/convert`, {
     method: 'POST',
     headers: {
       ...headers,
@@ -52,7 +53,7 @@ export async function convertDocument(file: File): Promise<ConvertResponse> {
 export async function getHistory(): Promise<HistoryItem[]> {
   const headers = getAuthHeaders() as Record<string, string>;
   
-  const response = await fetch(`${API_BASE_URL}/history`, {
+  const response = await authedFetch(`${API_BASE_URL}/history`, {
     method: 'GET',
     headers: {
       ...headers,
@@ -74,7 +75,7 @@ export async function getHistory(): Promise<HistoryItem[]> {
 export async function deleteHistory(id: string): Promise<void> {
   const headers = getAuthHeaders() as Record<string, string>;
   
-  const response = await fetch(`${API_BASE_URL}/history/${id}`, {
+  const response = await authedFetch(`${API_BASE_URL}/history/${id}`, {
     method: 'DELETE',
     headers: {
       ...headers,

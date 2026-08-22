@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../config/api';
 import { getAuthHeaders } from './authApi';
+import { authedFetch } from './http';
 
 const BASE_URL = `${API_BASE_URL}/token-usage`;
 
@@ -273,7 +274,7 @@ export async function getTokenUsageSummary(params: DbQueryParams): Promise<Token
   if (params.tool_id) search.set('tool_id', params.tool_id);
   if (params.model) search.set('model', params.model);
 
-  const response = await fetch(`${BASE_URL}/summary?${search.toString()}`, {
+  const response = await authedFetch(`${BASE_URL}/summary?${search.toString()}`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -283,7 +284,7 @@ export async function getTokenUsageSummary(params: DbQueryParams): Promise<Token
 }
 
 export async function getTokenUsageDetails(params: TokenUsageDetailsParams): Promise<TokenUsageDetailsResponse> {
-  const response = await fetch(`${BASE_URL}/details`, {
+  const response = await authedFetch(`${BASE_URL}/details`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -310,7 +311,7 @@ export async function getTokenUsageDetails(params: TokenUsageDetailsParams): Pro
 }
 
 export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageResponse> {
-  const response = await fetch(`${BASE_URL}/query`, {
+  const response = await authedFetch(`${BASE_URL}/query`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -335,7 +336,7 @@ export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageRes
 }
 
 export async function syncTokenUsage(): Promise<SyncStartResponse> {
-  const response = await fetch(`${BASE_URL}/sync`, {
+  const response = await authedFetch(`${BASE_URL}/sync`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -353,7 +354,7 @@ export async function refreshTokenUsage(params?: {
   background?: boolean;
   reason?: 'manual' | 'stale';
 }): Promise<SyncTokenUsageResponse> {
-  const response = await fetch(`${BASE_URL}/refresh`, {
+  const response = await authedFetch(`${BASE_URL}/refresh`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -376,7 +377,7 @@ export async function clearTokenUsageData(): Promise<{
   records_deleted: number;
   sync_logs_deleted: number;
 }> {
-  const response = await fetch(`${BASE_URL}/clear-data`, {
+  const response = await authedFetch(`${BASE_URL}/clear-data`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -393,7 +394,7 @@ export async function renameDevice(
   deviceId: string,
   name: string
 ): Promise<{ device_id: string; display_name: string | null }> {
-  const response = await fetch(`${BASE_URL}/devices/${deviceId}/rename`, {
+  const response = await authedFetch(`${BASE_URL}/devices/${deviceId}/rename`, {
     method: 'PUT',
     headers: {
       ...getAuthHeaders(),
@@ -408,7 +409,7 @@ export async function renameDevice(
 }
 
 export async function getUserDevices(): Promise<{ devices: DeviceInfo[] }> {
-  const response = await fetch(`${BASE_URL}/devices`, {
+  const response = await authedFetch(`${BASE_URL}/devices`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -421,7 +422,7 @@ export async function createDeviceAlias(
   aliasDeviceId: string,
   canonicalDeviceId: string
 ): Promise<{ alias_device_id: string; canonical_device_id: string; record_count: number }> {
-  const response = await fetch(`${BASE_URL}/devices/alias`, {
+  const response = await authedFetch(`${BASE_URL}/devices/alias`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -442,7 +443,7 @@ export async function mergeDevices(
   sourceDeviceIds: string[],
   targetDeviceId: string
 ): Promise<{ merged: number; target_device_id: string; total_record_count: number }> {
-  const response = await fetch(`${BASE_URL}/devices/merge`, {
+  const response = await authedFetch(`${BASE_URL}/devices/merge`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
@@ -460,7 +461,7 @@ export async function mergeDevices(
 }
 
 export async function deleteDeviceAlias(aliasDeviceId: string): Promise<{ alias_device_id: string; removed: boolean }> {
-  const response = await fetch(`${BASE_URL}/devices/alias/${encodeURIComponent(aliasDeviceId)}`, {
+  const response = await authedFetch(`${BASE_URL}/devices/alias/${encodeURIComponent(aliasDeviceId)}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });

@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../config/api';
 import { getAuthHeaders } from './authApi';
+import { authedFetch } from './http';
 
 const SSH_API_URL = `${API_BASE_URL}/ssh-tool`;
 
@@ -51,7 +52,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     ...options.headers,
   } as HeadersInit;
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await authedFetch(url, { ...options, headers });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
