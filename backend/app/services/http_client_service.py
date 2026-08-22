@@ -790,11 +790,11 @@ class HttpClientService:
         files_payload: Optional[Dict[str, Tuple[str, bytes, str]]] = None
         is_form_data = request.body_type == "form-data"
 
-        if is_form_data and request.form_data:
+        if is_form_data:
             files_payload = {}
             data_payload: Dict[str, str] = {}
             total_file_bytes = 0
-            for entry in request.form_data:
+            for entry in (request.form_data or []):
                 # 防御 \r\n / " 注入：清洗 key；不合法则跳过
                 safe_key = sanitize_multipart_field_name(entry.key)
                 if not safe_key:
