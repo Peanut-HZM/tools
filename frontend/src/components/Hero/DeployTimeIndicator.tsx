@@ -13,8 +13,8 @@ export default function DeployTimeIndicator() {
       })
       .then((data) => {
         if (data.timestamp) {
-          // 将 ISO 时间转换为本地时间显示
-          const date = new Date(data.timestamp + 'Z');
+          // ISO 时间已包含时区信息，直接解析
+          const date = new Date(data.timestamp);
           const formatted = date.toLocaleString('zh-CN', {
             year: 'numeric',
             month: '2-digit',

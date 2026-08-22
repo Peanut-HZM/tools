@@ -4,12 +4,35 @@
 部署脚本 - 用于部署前后端项目到服务器
 """
 
+# ============ 依赖自举：缺包自动安装 ============
+import importlib
+import subprocess as _subprocess
+import sys as _sys
+
+_REQUIRED_PACKAGES = {
+    "dotenv": "python-dotenv",
+}
+
+_missing = []
+for _mod, _pip_name in _REQUIRED_PACKAGES.items():
+    try:
+        importlib.import_module(_mod)
+    except ImportError:
+        _missing.append(_pip_name)
+
+if _missing:
+    print(f"[deploy] 正在安装缺失依赖: {', '.join(_missing)}")
+    _subprocess.check_call([_sys.executable, "-m", "pip", "install", *_missing])
+    print("[deploy] 依赖安装完成，继续执行\n")
+
+# ============ 正式导入 ============
 import os
 import sys
 import subprocess
 import shutil
 import argparse
 import shlex
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -25,6 +48,7 @@ SERVER_PORT = int(os.getenv("SERVER_PORT", "22"))
 FRONTEND_DEPLOY_PATH = os.getenv("FRONTEND_DEPLOY_PATH", "/data/www/tools")
 BACKEND_DEPLOY_PATH = os.getenv("BACKEND_DEPLOY_PATH", "/data/programs/tools")
 DOMAIN = os.getenv("DOMAIN", "localhost")
+BACKEND_SERVICE = os.getenv("BACKEND_SERVICE", "tools-backend.service")
 
 # 部署校验：必须配置 SERVER_HOST
 if not SERVER_HOST:
@@ -40,39 +64,47 @@ FRONTEND_DIR = PROJECT_ROOT / "frontend"
 BACKEND_DIR = PROJECT_ROOT / "backend"
 
 
-def _ssh_cmd(remote_cmd: str) -> str:
-    """构建 SSH 命令，所有变量均经 shlex.quote() 转义，防止命令注入"""
-    return (
-        f"ssh -o ConnectTimeout=5 -p {shlex.quote(str(SERVER_PORT))} "
-        f"{shlex.quote(SERVER_USER)}@{shlex.quote(SERVER_HOST)} "
-        f"{shlex.quote(remote_cmd)}"
-    )
+def _ssh_cmd(remote_cmd: str) -> list:
+    """构建 SSH 命令列表，直接用列表传参避免 shell 引号嵌套问题"""
+    return [
+        "ssh", "-o", "ConnectTimeout=5",
+        "-p", str(SERVER_PORT),
+        f"{SERVER_USER}@{SERVER_HOST}",
+        remote_cmd,
+    ]
 
 
-def _scp_cmd(local: str, remote: str) -> str:
-    """构建 SCP 上传命令，所有变量均经 shlex.quote() 转义，防止命令注入"""
-    return (
-        f"scp -P {shlex.quote(str(SERVER_PORT))} "
-        f"{shlex.quote(local)} "
-        f"{shlex.quote(SERVER_USER)}@{shlex.quote(SERVER_HOST)}:{shlex.quote(remote)}"
-    )
+def _scp_cmd(local: str, remote: str) -> list:
+    """构建 SCP 命令列表，直接用列表传参避免 shell 引号嵌套问题"""
+    return [
+        "scp", "-P", str(SERVER_PORT),
+        local,
+        f"{SERVER_USER}@{SERVER_HOST}:{remote}",
+    ]
 
 
 def run_command(cmd, check=True, cwd=None, env=None):
-    """执行命令"""
-    print(f"执行命令: {cmd}")
+    """执行命令（自动识别列表或字符串，列表时 shell=False 避免引号问题）"""
+    is_list = isinstance(cmd, list)
+    if is_list:
+        print(f"执行命令: {' '.join(cmd)}")
+    else:
+        print(f"执行命令: {cmd}")
     if cwd:
         print(f"工作目录: {cwd}")
     result = subprocess.run(
         cmd,
-        shell=True,
+        shell=not is_list,
         check=check,
         cwd=cwd,
         env=env,
         capture_output=False
     )
     if result.returncode != 0 and check:
-        print(f"命令执行失败: {cmd}")
+        if is_list:
+            print(f"命令执行失败: {' '.join(cmd)}")
+        else:
+            print(f"命令执行失败: {cmd}")
         sys.exit(1)
     return result
 
@@ -124,9 +156,9 @@ def deploy_frontend():
     temp_archive = PROJECT_ROOT / "frontend_deploy.tar.gz"
     if temp_archive.exists():
         temp_archive.unlink()
-    
+
     run_command(
-        f"tar -czf {shlex.quote(str(temp_archive))} -C {shlex.quote(str(FRONTEND_DIR))} dist",
+        ["tar", "-czf", str(temp_archive), "-C", str(FRONTEND_DIR), "dist"],
         cwd=PROJECT_ROOT
     )
 
@@ -212,9 +244,9 @@ def deploy_backend():
     temp_archive = PROJECT_ROOT / "backend_deploy.tar.gz"
     if temp_archive.exists():
         temp_archive.unlink()
-    
+
     run_command(
-        f"tar -czf {shlex.quote(str(temp_archive))} -C {shlex.quote(str(PROJECT_ROOT))} backend_deploy",
+        ["tar", "-czf", str(temp_archive), "-C", str(PROJECT_ROOT), "backend_deploy"],
         cwd=PROJECT_ROOT
     )
 
@@ -274,10 +306,21 @@ def restart_backend_service():
     run_command(
         _ssh_cmd(
             f"export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && "
-            f"systemctl restart tools-backend.service || echo 服务可能未配置"
+            f"systemctl restart {shlex.quote(BACKEND_SERVICE)} || echo 服务可能未配置"
         )
     )
     print("后端服务重启完成")
+
+
+def write_deploy_timestamp():
+    """部署完成后写入 UTC 时间戳到服务器"""
+    from datetime import datetime, timezone
+    timestamp = datetime.now(timezone.utc).isoformat()
+    json_data = json.dumps({"timestamp": timestamp})
+    print(f"\n写入部署时间戳: {timestamp}")
+    run_command(
+        _ssh_cmd(f"echo '{json_data}' > {shlex.quote(BACKEND_DEPLOY_PATH)}/.deploy_timestamp")
+    )
 
 
 def main():
@@ -312,7 +355,10 @@ def main():
         deploy_backend()
         if not args.no_restart:
             restart_backend_service()
-    
+
+    # 写入部署时间戳
+    write_deploy_timestamp()
+
     print("\n" + "="*50)
     print("部署完成！")
     print("="*50)
