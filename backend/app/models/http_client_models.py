@@ -156,8 +156,12 @@ class SendRequestRequest(BaseModel):
     url: str = Field(..., description="目标 URL")
     headers: Dict[str, str] = Field(default_factory=dict, description="请求头")
     params: Dict[str, str] = Field(default_factory=dict, description="查询参数")
-    body_type: str = Field(default="none", description="请求体类型")
+    body_type: str = Field(default="none", description="请求体类型：json|form|form-data|raw|none")
     body: Optional[str] = Field(None, description="请求体")
+    form_data: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="form-data 条目列表，每项为 {key, value, type, description}；type=file 时 value 为 data:URL",
+    )
     timeout: int = Field(default=30000, description="超时时间（毫秒）")
     follow_redirects: bool = Field(default=True, description="是否跟随重定向")
     workspace_id: str = Field(default="default", description="工作区 ID")

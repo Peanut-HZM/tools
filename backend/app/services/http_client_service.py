@@ -11,7 +11,8 @@ import random
 import shlex
 import ipaddress
 import socket
-from typing import List, Optional, Dict, Any
+import base64
+from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -61,6 +62,24 @@ def is_safe_url(url: str) -> bool:
     except Exception as e:
         logger.error(f"URL safety check failed for {url}: {e}")
         return False
+
+
+def parse_data_url(data_url: str) -> Optional[Tuple[str, bytes, str]]:
+    """解析 data:URL，格式：data:<mime>;base64,<data>"""
+    try:
+        match = re.match(r'^data:([^;]+);base64,(.+)$', data_url, re.DOTALL)
+        if not match:
+            return None
+        mime_type = match.group(1)
+        raw_b64 = match.group(2)
+        content = base64.b64decode(raw_b64)
+        # 根据 mime 推断文件名后缀（使用通用名称）
+        ext = mime_type.split('/')[-1] if '/' in mime_type else 'bin'
+        filename = f"upload.{ext}"
+        return (filename, content, mime_type)
+    except Exception as e:
+        logger.error(f"Failed to parse data URL: {e}")
+        return None
 
 
 class HttpClientService:
@@ -695,7 +714,39 @@ class HttpClientService:
 
         # 处理请求体
         body = None
-        if request.body and request.body_type != "none":
+        # form-data 类型：使用 httpx 的 files + data 参数（multipart/form-data）
+        files_payload: Optional[Dict[str, Tuple[str, bytes, str]]] = None
+        is_form_data = request.body_type == "form-data"
+
+        if is_form_data and request.form_data:
+            files_payload = {}
+            data_payload: Dict[str, str] = {}
+            for entry in request.form_data:
+                key = entry.get("key")
+                value = entry.get("value", "")
+                entry_type = entry.get("type", "text")
+                if not key:
+                    continue
+                # 变量替换
+                resolved_key = self.resolve_variables(key, variables)
+                if entry_type == "file" and isinstance(value, str) and value.startswith("data:"):
+                    parsed = parse_data_url(value)
+                    if parsed:
+                        filename, content, mime = parsed
+                        files_payload[resolved_key] = (filename, content, mime)
+                    else:
+                        # data:URL 解析失败，作为文本发送
+                        data_payload[resolved_key] = self.resolve_variables(value, variables)
+                else:
+                    data_payload[resolved_key] = self.resolve_variables(str(value), variables)
+            # 让 httpx 自动设置 multipart Content-Type（不要手动覆盖）
+            body = None
+            # 用于 httpx.request 参数
+            request_kwargs: Dict[str, Any] = {
+                "data": data_payload,
+                "files": files_payload if files_payload else None,
+            }
+        elif request.body and request.body_type != "none":
             resolved_body = self.resolve_variables(request.body, variables)
             if request.body_type == "json":
                 headers["Content-Type"] = "application/json"
@@ -709,6 +760,9 @@ class HttpClientService:
                     body = resolved_body
             else:  # raw
                 body = resolved_body
+            request_kwargs = {"content": body if body else None}
+        else:
+            request_kwargs = {"content": None}
 
         try:
             async with httpx.AsyncClient(
@@ -722,7 +776,7 @@ class HttpClientService:
                     url=url,
                     headers=headers,
                     params=params,
-                    content=body if body else None,
+                    **request_kwargs,
                 )
 
                 # 计算响应时间
