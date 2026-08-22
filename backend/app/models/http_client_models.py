@@ -3,7 +3,7 @@ HTTP Client 数据模型 - 支持完整的 API 工作区功能
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Literal
 from datetime import datetime
 
 
@@ -150,6 +150,14 @@ class RequestHistory(RequestHistoryBase):
 
 # ============= Send Request Models =============
 
+class FormDataEntry(BaseModel):
+    """Form-data 单条目（强类型校验，防止 header-injection 和 DoS）"""
+    key: str = Field(..., min_length=1, max_length=256, description="字段名（不可包含 \\r\\n\\\"）")
+    value: Optional[str] = Field(default=None, max_length=35_000_000, description="字段值；file 类型时为 base64 data URL")
+    type: Literal['text', 'file'] = Field(default='text', description="条目类型")
+    description: Optional[str] = Field(default=None, max_length=500, description="描述")
+
+
 class SendRequestRequest(BaseModel):
     """发送请求请求体"""
     method: str = Field(..., max_length=10, description="HTTP 方法")
@@ -158,9 +166,10 @@ class SendRequestRequest(BaseModel):
     params: Dict[str, str] = Field(default_factory=dict, description="查询参数")
     body_type: str = Field(default="none", description="请求体类型：json|form|form-data|raw|none")
     body: Optional[str] = Field(None, description="请求体")
-    form_data: Optional[List[Dict[str, Any]]] = Field(
+    form_data: Optional[List[FormDataEntry]] = Field(
         default=None,
-        description="form-data 条目列表，每项为 {key, value, type, description}；type=file 时 value 为 data:URL",
+        max_length=100,
+        description="form-data 条目列表，最多 100 项；file 类型 value 为 base64 data URL",
     )
     timeout: int = Field(default=30000, description="超时时间（毫秒）")
     follow_redirects: bool = Field(default=True, description="是否跟随重定向")

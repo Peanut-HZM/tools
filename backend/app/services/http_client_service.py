@@ -64,17 +64,89 @@ def is_safe_url(url: str) -> bool:
         return False
 
 
+# ============= form-data 安全常量 =============
+
+# 单条目文件大小上限（25MB 解码后字节数），超过即拒绝
+MAX_FILE_BYTES = 25 * 1024 * 1024
+# 所有 file 条目累计大小上限（50MB），超过即拒绝
+MAX_TOTAL_FILE_BYTES = 50 * 1024 * 1024
+# base64 字符串长度上限（25MB → ~33.4MB base64），用于解码前快速拒绝超大请求
+MAX_BASE64_CHARS = 35_000_000
+
+# mime 类型白名单正则（type/subtype 仅允许字母数字和 .+-），防止 header-injection
+MIME_PATTERN = re.compile(r'^[a-zA-Z0-9.+-]+/[a-zA-Z0-9.+-]+$')
+
+# 硬编码扩展名映射（不信任 mime 后缀），避免攻击者构造 `text/html` 等危险类型并伪造扩展名
+MIME_TO_EXT: Dict[str, str] = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+    'image/bmp': 'bmp',
+    'text/plain': 'txt',
+    'text/csv': 'csv',
+    'text/html': 'html',
+    'text/xml': 'xml',
+    'application/json': 'json',
+    'application/xml': 'xml',
+    'application/pdf': 'pdf',
+    'application/zip': 'zip',
+    'application/octet-stream': 'bin',
+}
+
+
+def sanitize_multipart_field_name(name: str) -> Optional[str]:
+    """清洗 multipart 字段名：拒绝包含 \\r \\n \" 的字符，防止注入 boundary/header
+
+    httpx 会用字段名构造 Content-Disposition: form-data; name="<key>"
+    若 key 含 \r\n 或引号，可破坏 multipart 结构或注入额外 header
+    """
+    if not isinstance(name, str):
+        return None
+    if any(c in name for c in ('\r', '\n', '"')):
+        return None
+    # 限制长度，避免超长 key 撑爆 header
+    if len(name) > 256:
+        return None
+    return name
+
+
 def parse_data_url(data_url: str) -> Optional[Tuple[str, bytes, str]]:
-    """解析 data:URL，格式：data:<mime>;base64,<data>"""
+    """解析 data:URL，格式：data:<mime>;base64,<data>
+
+    安全校验：
+    - mime 必须匹配白名单正则 ^[a-zA-Z0-9.+-]+/[a-zA-Z0-9.+-]+$
+    - 文件大小不能超过 MAX_FILE_BYTES（25MB）
+    - base64 字符串长度不能超过 MAX_BASE64_CHARS（避免先构造再解码造成的 DoS）
+    - 文件名扩展名使用硬编码映射（不信任 mime 自带后缀）
+    """
     try:
+        if not isinstance(data_url, str):
+            return None
+        # 先用 \r\n 防御：拒绝任何包含控制字符的 data URL（防止 header-injection）
+        if any(c in data_url for c in ('\r', '\n')):
+            return None
         match = re.match(r'^data:([^;]+);base64,(.+)$', data_url, re.DOTALL)
         if not match:
             return None
-        mime_type = match.group(1)
+        mime_type = match.group(1).strip().lower()
         raw_b64 = match.group(2)
-        content = base64.b64decode(raw_b64)
-        # 根据 mime 推断文件名后缀（使用通用名称）
-        ext = mime_type.split('/')[-1] if '/' in mime_type else 'bin'
+        # mime 白名单校验
+        if not MIME_PATTERN.match(mime_type):
+            logger.warning(f"Rejected data URL with invalid mime type: {mime_type!r}")
+            return None
+        # base64 长度上限（解码前快速拒绝）
+        if len(raw_b64) > MAX_BASE64_CHARS:
+            logger.warning(f"Rejected data URL: base64 length {len(raw_b64)} exceeds {MAX_BASE64_CHARS}")
+            return None
+        content = base64.b64decode(raw_b64, validate=True)
+        # 解码后字节数上限
+        if len(content) > MAX_FILE_BYTES:
+            logger.warning(f"Rejected data URL: decoded size {len(content)} exceeds {MAX_FILE_BYTES}")
+            return None
+        # 使用硬编码扩展名映射（不信任 mime 后缀）
+        ext = MIME_TO_EXT.get(mime_type, 'bin')
         filename = f"upload.{ext}"
         return (filename, content, mime_type)
     except Exception as e:
@@ -721,22 +793,32 @@ class HttpClientService:
         if is_form_data and request.form_data:
             files_payload = {}
             data_payload: Dict[str, str] = {}
+            total_file_bytes = 0
             for entry in request.form_data:
-                key = entry.get("key")
-                value = entry.get("value", "")
-                entry_type = entry.get("type", "text")
-                if not key:
+                # 防御 \r\n / " 注入：清洗 key；不合法则跳过
+                safe_key = sanitize_multipart_field_name(entry.key)
+                if not safe_key:
+                    logger.warning(f"Skipping form-data entry with unsafe key: {entry.key!r}")
                     continue
                 # 变量替换
-                resolved_key = self.resolve_variables(key, variables)
+                resolved_key = self.resolve_variables(safe_key, variables)
+                value = entry.value or ""
+                entry_type = entry.type
                 if entry_type == "file" and isinstance(value, str) and value.startswith("data:"):
                     parsed = parse_data_url(value)
                     if parsed:
+                        # 累计文件大小（防止 DoS：单条已限 25MB，整体限 50MB）
+                        total_file_bytes += len(parsed[1])
+                        if total_file_bytes > MAX_TOTAL_FILE_BYTES:
+                            raise ValueError(
+                                f"form-data 文件总大小超过上限 {MAX_TOTAL_FILE_BYTES // (1024*1024)}MB"
+                            )
                         filename, content, mime = parsed
                         files_payload[resolved_key] = (filename, content, mime)
                     else:
-                        # data:URL 解析失败，作为文本发送
-                        data_payload[resolved_key] = self.resolve_variables(value, variables)
+                        # data:URL 解析失败（如 mime 黑名单、过大、含控制字符）直接跳过，避免原样转发敏感数据
+                        logger.warning(f"Dropping form-data file entry: parse failed or rejected")
+                        continue
                 else:
                     data_payload[resolved_key] = self.resolve_variables(str(value), variables)
             # 让 httpx 自动设置 multipart Content-Type（不要手动覆盖）
