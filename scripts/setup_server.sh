@@ -41,27 +41,27 @@ if ! command -v certbot &> /dev/null; then
     apt-get install -y certbot python3-certbot-nginx
 fi
 
-# 配置systemd服务
+# 配置systemd服务（环境变量从 /data/programs/tools/.env 加载，无需在此硬编码）
 echo "配置systemd服务..."
 cat > /etc/systemd/system/tools-backend.service <<'EOF'
 [Unit]
 Description=Tools Backend Service
-After=network.target postgresql.service
+After=network.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/data/programs/tools
+
+# 从 .env 文件加载环境变量（JWT_SECRET_KEY、DATABASE_URL 等全部在此文件中配置）
+EnvironmentFile=/data/programs/tools/.env
+
+# 激活虚拟环境并启动 Uvicorn
 Environment="PATH=/data/programs/tools/venv/bin"
 ExecStart=/data/programs/tools/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 19092
+
 Restart=always
 RestartSec=10
-
-# 环境变量（需要根据实际情况修改）
-Environment="JWT_SECRET_KEY=your-secret-key-change-in-production"
-Environment="JWT_EXPIRE_MINUTES=1440"
-Environment="USERS_DATA_PATH=/data/programs/tools/data/users"
-Environment="DATABASE_URL=postgresql://tools_user:YOUR_PASSWORD@localhost:5432/tools_db"
 
 # 日志
 StandardOutput=journal
