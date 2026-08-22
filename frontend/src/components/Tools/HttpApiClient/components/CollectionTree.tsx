@@ -14,6 +14,12 @@ interface CollectionTreeProps {
   onCollectionDelete?: (collection: Collection) => void;
   /** 集合右键菜单回调 */
   onCollectionContextMenu?: (e: React.MouseEvent, collection: Collection) => void;
+  /** 请求重命名（行内编辑确认后回调） */
+  onRequestRename?: (request: HttpRequest, name: string) => void;
+  /** 请求删除（行内悬停按钮） */
+  onRequestDelete?: (request: HttpRequest) => void;
+  /** 外部触发的重命名目标（右键菜单"重命名"路径），值变化即进入编辑态 */
+  renameTrigger?: { request: HttpRequest; nonce: number } | null;
 }
 
 export default function CollectionTree({
@@ -25,11 +31,16 @@ export default function CollectionTree({
   onCollectionRename,
   onCollectionDelete,
   onCollectionContextMenu,
+  onRequestRename,
+  onRequestDelete,
+  renameTrigger,
   refreshTrigger = 0,
 }: CollectionTreeProps) {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [collectionRequests, setCollectionRequests] = useState<Record<string, HttpRequest[]>>({});
   const [loadingRequests, setLoadingRequests] = useState<Set<string>>(new Set());
+  const [editingRequest, setEditingRequest] = useState<HttpRequest | null>(null);
+  const [editingRequestName, setEditingRequestName] = useState('');
 
   // 当 refreshTrigger 变化时，清除已展开集合的缓存并重新加载
   useEffect(() => {
@@ -54,6 +65,14 @@ export default function CollectionTree({
       }
     });
   }, [refreshTrigger]);
+
+  // 外部触发改名（右键菜单路径）：进入编辑态
+  useEffect(() => {
+    if (renameTrigger) {
+      setEditingRequest(renameTrigger.request);
+      setEditingRequestName(renameTrigger.request.name);
+    }
+  }, [renameTrigger]);
 
   const toggleExpand = async (collectionId: string) => {
     const newExpanded = new Set(expandedCollections);
@@ -90,6 +109,18 @@ export default function CollectionTree({
 
   const handleRequestClick = (request: HttpRequest) => {
     onRequestOpen(request);
+  };
+
+  // 确认请求改名：非空才回调父组件
+  const handleConfirmRequestRename = () => {
+    if (editingRequest) {
+      const trimmed = editingRequestName.trim();
+      if (trimmed) {
+        onRequestRename?.(editingRequest, trimmed);
+      }
+    }
+    setEditingRequest(null);
+    setEditingRequestName('');
   };
 
   // 构建层级结构
@@ -194,7 +225,7 @@ export default function CollectionTree({
                 {requests.map(request => (
                   <div
                     key={request.id}
-                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer
+                    className="group flex items-center gap-2 px-3 py-1.5 cursor-pointer
                                hover:bg-slate-700/50 rounded text-xs text-slate-400"
                     onClick={() => handleRequestClick(request)}
                     onContextMenu={(e) => {
@@ -204,7 +235,7 @@ export default function CollectionTree({
                     }}
                   >
                     <span className={`
-                      font-mono font-bold w-12
+                      font-mono font-bold w-12 flex-shrink-0
                       ${request.method === 'GET' ? 'text-green-400' :
                         request.method === 'POST' ? 'text-blue-400' :
                         request.method === 'PUT' ? 'text-yellow-400' :
@@ -213,7 +244,57 @@ export default function CollectionTree({
                     `}>
                       {request.method}
                     </span>
-                    <span className="truncate">{request.name}</span>
+                    {editingRequest?.id === request.id ? (
+                      <input
+                        autoFocus
+                        value={editingRequestName}
+                        onChange={(e) => setEditingRequestName(e.target.value)}
+                        onBlur={handleConfirmRequestRename}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.stopPropagation();
+                            handleConfirmRequestRename();
+                          }
+                          if (e.key === 'Escape') {
+                            e.stopPropagation();
+                            setEditingRequest(null);
+                            setEditingRequestName('');
+                          }
+                        }}
+                        className="flex-1 bg-slate-900 text-white text-xs px-1 py-0.5 rounded
+                                   border border-purple-500 focus:outline-none min-w-0"
+                      />
+                    ) : (
+                      <>
+                        <span className="truncate flex-1">{request.name}</span>
+                        {onRequestRename && (
+                          <button
+                            title="重命名"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingRequest(request);
+                              setEditingRequestName(request.name);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-slate-300 transition-opacity text-xs flex-shrink-0"
+                          >
+                            <i className="fas fa-pencil"></i>
+                          </button>
+                        )}
+                        {onRequestDelete && (
+                          <button
+                            title="删除"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRequestDelete(request);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-red-400 transition-opacity text-xs flex-shrink-0"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

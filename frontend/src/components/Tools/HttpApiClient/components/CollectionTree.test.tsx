@@ -171,4 +171,138 @@ describe('CollectionTree', () => {
     expect(collection).toBe(mockCollection);
     expect(e.defaultPrevented).toBe(true);
   });
+
+  it('点击请求行铅笔进入编辑态并显示当前名称', async () => {
+    const onRequestOpen = vi.fn();
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={vi.fn()}
+        onRequestOpen={onRequestOpen}
+        onRequestRename={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByText('Glodon-SAP'));
+    await waitFor(() => {
+      expect(screen.getByText('获取SAP数据')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTitle('重命名'));
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    expect(input.value).toBe('获取SAP数据');
+    expect(onRequestOpen).not.toHaveBeenCalled();
+  });
+
+  it('回车确认应回调 onRequestRename 并退出编辑态', async () => {
+    const onRequestRename = vi.fn();
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={vi.fn()}
+        onRequestOpen={vi.fn()}
+        onRequestRename={onRequestRename}
+      />
+    );
+    fireEvent.click(screen.getByText('Glodon-SAP'));
+    await waitFor(() => {
+      expect(screen.getByText('获取SAP数据')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTitle('重命名'));
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '新名字' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onRequestRename).toHaveBeenCalledTimes(1);
+    expect(onRequestRename).toHaveBeenCalledWith(mockRequests[0], '新名字');
+    expect(screen.queryByRole('textbox')).toBeNull();
+  });
+
+  it('Esc 取消应不回调 onRequestRename', async () => {
+    const onRequestRename = vi.fn();
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={vi.fn()}
+        onRequestOpen={vi.fn()}
+        onRequestRename={onRequestRename}
+      />
+    );
+    fireEvent.click(screen.getByText('Glodon-SAP'));
+    await waitFor(() => {
+      expect(screen.getByText('获取SAP数据')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTitle('重命名'));
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape' });
+
+    expect(onRequestRename).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox')).toBeNull();
+  });
+
+  it('点击请求行删除按钮应回调 onRequestDelete 且不触发行点击', async () => {
+    const onRequestDelete = vi.fn();
+    const onRequestOpen = vi.fn();
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={vi.fn()}
+        onRequestOpen={onRequestOpen}
+        onRequestDelete={onRequestDelete}
+      />
+    );
+    fireEvent.click(screen.getByText('Glodon-SAP'));
+    await waitFor(() => {
+      expect(screen.getByText('获取SAP数据')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTitle('删除'));
+
+    expect(onRequestDelete).toHaveBeenCalledWith(mockRequests[0]);
+    expect(onRequestOpen).not.toHaveBeenCalled();
+  });
+
+  it('未传 onRequestRename/onRequestDelete 时不渲染请求行操作按钮', async () => {
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={vi.fn()}
+        onRequestOpen={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByText('Glodon-SAP'));
+    await waitFor(() => {
+      expect(screen.getByText('获取SAP数据')).toBeTruthy();
+    });
+
+    expect(screen.queryByTitle('重命名')).toBeNull();
+    expect(screen.queryByTitle('删除')).toBeNull();
+  });
+
+  it('renameTrigger 变化应进入对应请求的编辑态', async () => {
+    render(
+      <CollectionTree
+        collections={[mockCollection]}
+        selectedCollectionId={null}
+        onCollectionSelect={vi.fn()}
+        onRequestOpen={vi.fn()}
+        onRequestRename={vi.fn()}
+        renameTrigger={{ request: mockRequests[0], nonce: 1 }}
+      />
+    );
+    fireEvent.click(screen.getByText('Glodon-SAP'));
+    // renameTrigger 使该请求行以编辑态（输入框）渲染，名称显示在 input.value 中
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeTruthy();
+    });
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    expect(input.value).toBe('获取SAP数据');
+  });
 });
