@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { OpenTab } from '../../../../stores/httpClientStore';
-import { HttpRequest } from '../../../../services/httpClientApi';
 
 interface RequestTabsProps {
   openTabs: OpenTab[];
@@ -7,6 +7,8 @@ interface RequestTabsProps {
   onTabClick: (tabId: string) => void;
   onTabClose: (tabId: string) => void;
   onCreateNewRequest?: () => void;
+  /** 重命名回调（父组件 updateTabRequest({ name })） */
+  onRename?: (requestId: string, name: string) => void;
 }
 
 export default function RequestTabs({
@@ -15,7 +17,22 @@ export default function RequestTabs({
   onTabClick,
   onTabClose,
   onCreateNewRequest,
+  onRename,
 }: RequestTabsProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+
+  // 确认改名：非空时回调父组件
+  const handleConfirmRename = () => {
+    if (editingId) {
+      const trimmed = editingName.trim();
+      if (trimmed) {
+        onRename?.(editingId, trimmed);
+      }
+    }
+    setEditingId(null);
+  };
+
   if (openTabs.length === 0) {
     return (
       <div className="flex items-center bg-slate-800 border-b border-slate-700 px-4 py-2 flex-shrink-0">
@@ -50,7 +67,44 @@ export default function RequestTabs({
               tab.requestId === activeTabId ? 'text-purple-400' : 'text-slate-500'
             }`}
           ></i>
-          <span className="truncate flex-1">{tab.request.name}</span>
+          {editingId === tab.requestId ? (
+            <input
+              autoFocus
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              onBlur={handleConfirmRename}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.stopPropagation();
+                  handleConfirmRename();
+                }
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setEditingId(null);
+                }
+              }}
+              className="flex-1 bg-slate-900 text-white text-sm px-1 py-0.5 rounded
+                         border border-purple-500 focus:outline-none min-w-0"
+            />
+          ) : (
+            <>
+              <span className="truncate flex-1">{tab.request.name}</span>
+              {onRename && (
+                <button
+                  title="重命名"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingId(tab.requestId);
+                    setEditingName(tab.request.name);
+                  }}
+                  className="text-slate-500 hover:text-slate-300 transition-colors text-xs"
+                >
+                  <i className="fas fa-pencil"></i>
+                </button>
+              )}
+            </>
+          )}
           {tab.isModified && (
             <span className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"></span>
           )}
