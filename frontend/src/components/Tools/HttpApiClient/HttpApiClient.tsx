@@ -4,14 +4,25 @@ import { useHttpClientStore } from '../../../stores/httpClientStore';
 import { Collection, HttpRequest, Environment, createRequest, createCollection, FormDataEntry } from '../../../services/httpClientApi';
 import { useToast } from '../../../contexts/ToastContext';
 
-/** 将 File 对象读取为 base64 data URL（用于通过 JSON 传递文件） */
-const fileToDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
+/** Form-data 单文件大小上限（25MB），防止前端 base64 编码耗尽内存 */
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+
+/** 将 File 对象读取为 base64 data URL（用于通过 JSON 传递文件）
+ *  在编码前先检查大小，超出阈值立即抛出，避免占用大量内存
+ */
+const fileToDataUrl = (file: File): Promise<string> => {
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return Promise.reject(
+      new Error(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），单文件上限 ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`),
+    );
+  }
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ''));
     reader.onerror = () => reject(reader.error || new Error('FileReader error'));
     reader.readAsDataURL(file);
   });
+};
 import CollectionTree from './components/CollectionTree';
 import RequestTabs from './components/RequestTabs';
 import RequestEditor from './components/RequestEditor/RequestEditor';
