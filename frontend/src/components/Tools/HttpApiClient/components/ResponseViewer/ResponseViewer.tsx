@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { SendRequestResponse, HttpRequest } from '../../../../../services/httpClientApi';
 import { generateSnippet } from '../../../../../utils/codeSnippetGenerator';
+import HtmlPreview from '../ResponsePreview/HtmlPreview';
+import ImagePreview from '../ResponsePreview/ImagePreview';
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 
@@ -11,7 +13,7 @@ interface ResponseViewerProps {
 }
 
 export default function ResponseViewer({ response, request, envVariables = {} }: ResponseViewerProps) {
-  const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'code'>('body');
+  const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'code' | 'preview'>('body');
   const [bodyView, setBodyView] = useState<'raw' | 'formatted' | 'tree'>('formatted');
   const [snippetLang, setSnippetLang] = useState<'curl' | 'python' | 'javascript' | 'go'>('curl');
 
@@ -177,6 +179,19 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
             Code
           </button>
         )}
+        <button
+          onClick={() => setActiveTab('preview')}
+          className={`
+            px-4 py-2 text-sm transition-colors border-b-2
+            ${activeTab === 'preview'
+              ? 'text-purple-400 border-purple-500'
+              : 'text-slate-400 border-transparent hover:text-slate-300'
+            }
+          `}
+        >
+          <i className="fas fa-eye mr-2"></i>
+          Preview
+        </button>
       </div>
 
       {/* 内容区域 */}
@@ -268,6 +283,24 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
             <pre className="font-mono text-sm text-slate-300 bg-slate-900/50 p-4 rounded-lg overflow-x-auto whitespace-pre">
               {codeSnippet}
             </pre>
+          </div>
+        )}
+
+        {activeTab === 'preview' && (
+          <div className="p-4 h-full">
+            {contentType === 'html' && <HtmlPreview html={response.body} />}
+            {contentType === 'image' && (
+              <ImagePreview
+                base64Data={btoa(response.body)}
+                contentType={response.content_type || 'image/png'}
+              />
+            )}
+            {(contentType === 'json' || contentType === 'xml' || contentType === 'text') && (
+              <div className="text-slate-500 text-sm text-center py-8">
+                <i className="fas fa-info-circle text-2xl mb-2"></i>
+                <p>此响应类型不支持预览，请切换到 Body 标签查看</p>
+              </div>
+            )}
           </div>
         )}
       </div>
