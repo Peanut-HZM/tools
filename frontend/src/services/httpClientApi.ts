@@ -63,8 +63,9 @@ export interface HttpRequest {
   url: string;
   headers: Record<string, string>;
   params: Record<string, string>;
-  body_type: 'json' | 'form' | 'raw' | 'none';
+  body_type: 'json' | 'form' | 'form-data' | 'raw' | 'none';
   body?: string;
+  form_data?: FormDataEntry[];
   auth_type: 'bearer' | 'basic' | 'apikey' | 'none';
   auth_config: Record<string, any>;
   description?: string;
@@ -101,8 +102,9 @@ export interface SendRequestPayload {
   url: string;
   headers: Record<string, string>;
   params: Record<string, string>;
-  body_type?: 'json' | 'form' | 'raw' | 'none';
+  body_type?: 'json' | 'form' | 'form-data' | 'raw' | 'none';
   body?: string;
+  form_data?: FormDataEntry[];
   timeout?: number;
   follow_redirects?: boolean;
   workspace_id?: string;

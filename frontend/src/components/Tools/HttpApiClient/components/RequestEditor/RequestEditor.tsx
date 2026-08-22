@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { HttpRequest } from '../../../../../services/httpClientApi';
+import { HttpRequest, FormDataEntry } from '../../../../../services/httpClientApi';
+import FormDataEditor from '../FormDataEditor/FormDataEditor';
 
 interface RequestEditorProps {
   request: HttpRequest;
@@ -233,8 +234,10 @@ export default function RequestEditor({
           <BodyPanel
             bodyType={request.body_type}
             body={request.body}
+            formData={request.form_data}
             onBodyTypeChange={(bodyType) => onUpdate({ body_type: bodyType as any })}
             onBodyChange={handleBodyChange}
+            onFormDataChange={(entries) => onUpdate({ form_data: entries })}
           />
         )}
         {activeTab === 'auth' && (
@@ -367,18 +370,42 @@ function HeadersPanel({ headers, onChange, onAdd, onRemove }: HeadersPanelProps)
 interface BodyPanelProps {
   bodyType: string;
   body?: string;
+  formData?: FormDataEntry[];
   onBodyTypeChange: (type: string) => void;
   onBodyChange: (body: string) => void;
+  onFormDataChange?: (entries: FormDataEntry[]) => void;
 }
 
 const BODY_TYPES = [
   { value: 'none', label: 'none' },
   { value: 'json', label: 'JSON' },
   { value: 'form', label: 'Form' },
+  { value: 'form-data', label: 'Form-data' },
   { value: 'raw', label: 'Raw' },
 ];
 
-function BodyPanel({ bodyType, body, onBodyTypeChange, onBodyChange }: BodyPanelProps) {
+function BodyPanel({
+  bodyType,
+  body,
+  formData,
+  onBodyTypeChange,
+  onBodyChange,
+  onFormDataChange,
+}: BodyPanelProps) {
+  // form-data 类型：将 FormDataEntry[] 转换为 JSON 字符串存到 body
+  const handleFormDataChange = (entries: FormDataEntry[]) => {
+    // 通知父组件更新 form_data 字段
+    if (onFormDataChange) {
+      onFormDataChange(entries);
+    }
+    // 将 FormDataEntry[] 转换为后端格式
+    const formDataObj = entries.reduce((acc, entry) => {
+      acc[entry.key] = entry.type === 'file' ? entry.file?.name || '' : entry.value;
+      return acc;
+    }, {} as Record<string, any>);
+    onBodyChange(JSON.stringify(formDataObj));
+  };
+
   return (
     <div className="space-y-3">
       {/* Body 类型选择 */}
@@ -400,8 +427,16 @@ function BodyPanel({ bodyType, body, onBodyTypeChange, onBodyChange }: BodyPanel
         ))}
       </div>
 
-      {/* Body 编辑器 */}
-      {bodyType !== 'none' && (
+      {/* form-data 编辑器 */}
+      {bodyType === 'form-data' && (
+        <FormDataEditor
+          formData={formData || []}
+          onChange={handleFormDataChange}
+        />
+      )}
+
+      {/* 其他类型 Body 编辑器 */}
+      {bodyType !== 'none' && bodyType !== 'form-data' && (
         <textarea
           value={body || ''}
           onChange={(e) => onBodyChange(e.target.value)}
