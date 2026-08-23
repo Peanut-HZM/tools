@@ -2,6 +2,7 @@
  * ImageUploader — 拖拽上传 + 点击上传 + 预览 + 10MB 校验
  */
 import { useCallback, useRef, useState } from 'react';
+import { useI18n } from '../../../../i18n';
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -13,7 +14,11 @@ interface Props {
   error?: string;
 }
 
-export default function ImageUploader({ label = '参考图片', file, preview, onChange, error: externalError }: Props) {
+export default function ImageUploader({ label, file, preview, onChange, error: externalError }: Props) {
+  const { t } = useI18n();
+  const igT = t.imageGeneration;
+  const defaultLabel = label ?? igT.form.referenceImage;
+
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -21,18 +26,18 @@ export default function ImageUploader({ label = '参考图片', file, preview, o
   const validateAndSet = useCallback((f: File) => {
     setError(null);
     if (!f.type.startsWith('image/')) {
-      setError('请上传图片文件');
+      setError(igT.form.invalidImageType);
       return;
     }
     if (f.size > MAX_SIZE) {
-      setError(`文件过大（${(f.size / 1024 / 1024).toFixed(1)}MB），上限 10MB`);
+      setError(igT.form.fileTooLarge.replace('{size}', (f.size / 1024 / 1024).toFixed(1)));
       return;
     }
     const url = URL.createObjectURL(f);
     // 清理旧的 URL
     if (preview) URL.revokeObjectURL(preview);
     onChange(f, url);
-  }, [onChange, preview]);
+  }, [onChange, preview, igT.form.invalidImageType, igT.form.fileTooLarge]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -67,20 +72,20 @@ export default function ImageUploader({ label = '参考图片', file, preview, o
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-300">{label}</label>
+      <label className="text-sm font-medium text-slate-300">{defaultLabel}</label>
 
       {preview ? (
         <div className="relative group rounded-lg overflow-hidden border border-slate-600 bg-slate-800">
           <img
             src={preview}
-            alt="预览"
+            alt={igT.form.preview}
             className="w-full max-h-48 object-contain"
           />
           <button
             onClick={handleClear}
             className="absolute top-2 right-2 px-2 py-1 text-xs bg-red-600/80 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            移除
+            {igT.form.remove}
           </button>
         </div>
       ) : (
@@ -102,10 +107,10 @@ export default function ImageUploader({ label = '参考图片', file, preview, o
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span className="text-sm text-slate-400">
-            拖拽或点击上传
+            {igT.form.uploadHint}
           </span>
           <span className="text-xs text-slate-500">
-            PNG / JPG / WEBP，最大 10MB
+            {igT.form.uploadFormat}
           </span>
         </div>
       )}

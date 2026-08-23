@@ -4,14 +4,23 @@
  */
 import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import ImageUploader from '../components/ImageUploader';
+import { useI18n } from '../../../../i18n';
 
-const EDIT_TYPES = [
-  { value: 'upscale', label: '超分辨率放大' },
-  { value: 'denoise', label: '降噪增强' },
-  { value: 'relight', label: '重新打光' },
-  { value: 'style_transfer', label: '风格迁移' },
-  { value: 'background_remove', label: '去除背景' },
-];
+const EDIT_TYPE_KEYS = [
+  'upscale',
+  'denoise',
+  'relight',
+  'style_transfer',
+  'background_remove',
+] as const;
+
+const EDIT_TYPE_LABELS: Record<string, string> = {
+  upscale: 'editTypeUpscale',
+  denoise: 'editTypeDenoise',
+  relight: 'editTypeRelight',
+  style_transfer: 'editTypeStyleTransfer',
+  background_remove: 'editTypeBackgroundRemove',
+};
 
 interface Props {
   onPolish: () => void;
@@ -19,6 +28,8 @@ interface Props {
 }
 
 export default function UploadEditForm({ onPolish, polishing }: Props) {
+  const { t } = useI18n();
+  const igT = t.imageGeneration;
   const prompt = useImageGenStore((s) => s.prompt);
   const setPrompt = useImageGenStore((s) => s.setPrompt);
   const params = useImageGenStore((s) => s.params);
@@ -31,7 +42,7 @@ export default function UploadEditForm({ onPolish, polishing }: Props) {
     <div className="space-y-4">
       {/* 上传图片 */}
       <ImageUploader
-        label="待编辑图片"
+        label={igT.form.editImage}
         file={referenceImage}
         preview={referenceImagePreview}
         onChange={setReferenceImage}
@@ -39,14 +50,16 @@ export default function UploadEditForm({ onPolish, polishing }: Props) {
 
       {/* 编辑类型 */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-slate-300">编辑类型</label>
+        <label className="text-sm font-medium text-slate-300">{igT.form.editType}</label>
         <select
           value={params.edit_type}
           onChange={(e) => setParams({ edit_type: e.target.value as any })}
           className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
         >
-          {EDIT_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
+          {EDIT_TYPE_KEYS.map((k) => (
+            <option key={k} value={k}>
+              {igT.form[EDIT_TYPE_LABELS[k] as keyof typeof igT.form] as string}
+            </option>
           ))}
         </select>
       </div>
@@ -54,21 +67,21 @@ export default function UploadEditForm({ onPolish, polishing }: Props) {
       {/* 可选提示词 */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-300">补充描述（可选）</label>
+          <label className="text-sm font-medium text-slate-300">{igT.form.uploadEditPrompt}</label>
           <button
             type="button"
             onClick={onPolish}
             disabled={polishing}
             className="px-2.5 py-1 text-xs bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded transition-colors disabled:opacity-50"
           >
-            {polishing ? '润色中...' : '✨ 润色'}
+            {polishing ? igT.form.polishing : `✨ ${igT.form.polishShort}`}
           </button>
         </div>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={2}
-          placeholder="对编辑效果的额外描述..."
+          placeholder={igT.form.placeholder.uploadEdit}
           className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
         />
       </div>

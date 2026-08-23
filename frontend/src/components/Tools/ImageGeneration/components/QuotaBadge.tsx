@@ -2,14 +2,17 @@
  * QuotaBadge — 显示今日/本月剩余配额
  */
 import { useImageGenQuota } from '../../../../hooks/useImageGenQuota';
+import { useI18n } from '../../../../i18n';
 
 export default function QuotaBadge() {
+  const { t } = useI18n();
+  const igT = t.imageGeneration;
   const { quota } = useImageGenQuota();
 
   if (!quota) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700/50 text-slate-400 text-sm">
-        <span className="animate-pulse">加载中...</span>
+        <span className="animate-pulse">{igT.admin.loading}</span>
       </div>
     );
   }
@@ -27,7 +30,7 @@ export default function QuotaBadge() {
     <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-700/50">
       {/* 日配额 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-400">今日</span>
+        <span className="text-xs text-slate-400">{igT.quota.daily}</span>
         <div className="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${barColor}`}
@@ -41,7 +44,7 @@ export default function QuotaBadge() {
 
       {/* 月配额 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-400">本月</span>
+        <span className="text-xs text-slate-400">{igT.quota.monthly}</span>
         <span className="text-sm font-medium text-slate-200 tabular-nums">
           {quota.monthly_remaining}/{quota.monthly_limit}
         </span>

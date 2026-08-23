@@ -2,6 +2,7 @@
  * MaskUploader — 拖拽上传黑白蒙版图
  */
 import { useCallback, useRef, useState } from 'react';
+import { useI18n } from '../../../../i18n';
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function MaskUploader({ file, preview, onChange }: Props) {
+  const { t } = useI18n();
+  const igT = t.imageGeneration;
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -19,17 +22,17 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
   const validateAndSet = useCallback((f: File) => {
     setError(null);
     if (!f.type.startsWith('image/')) {
-      setError('请上传图片文件');
+      setError(igT.form.invalidImageType);
       return;
     }
     if (f.size > MAX_SIZE) {
-      setError(`文件过大（${(f.size / 1024 / 1024).toFixed(1)}MB），上限 10MB`);
+      setError(igT.form.fileTooLarge.replace('{size}', (f.size / 1024 / 1024).toFixed(1)));
       return;
     }
     const url = URL.createObjectURL(f);
     if (preview) URL.revokeObjectURL(preview);
     onChange(f, url);
-  }, [onChange, preview]);
+  }, [onChange, preview, igT.form.invalidImageType, igT.form.fileTooLarge]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -46,23 +49,23 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-300">蒙版图片</label>
+      <label className="text-sm font-medium text-slate-300">{igT.form.maskImage}</label>
       <p className="text-xs text-slate-500">
-        白色区域为需要修改的部分，黑色为保留区域
+        {igT.form.uploadMaskHint}
       </p>
 
       {preview ? (
         <div className="relative group rounded-lg overflow-hidden border border-slate-600 bg-slate-800">
           <img
             src={preview}
-            alt="蒙版预览"
+            alt={igT.form.maskImage}
             className="w-full max-h-48 object-contain"
           />
           <button
             onClick={handleClear}
             className="absolute top-2 right-2 px-2 py-1 text-xs bg-red-600/80 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            移除
+            {igT.form.remove}
           </button>
         </div>
       ) : (
@@ -83,8 +86,8 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
           <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          <span className="text-sm text-slate-400">拖拽或点击上传蒙版</span>
-          <span className="text-xs text-slate-500">黑白图片，白色 = 修改区域</span>
+          <span className="text-sm text-slate-400">{igT.form.uploadHintMask}</span>
+          <span className="text-xs text-slate-500">{igT.form.uploadFormatMask}</span>
         </div>
       )}
 

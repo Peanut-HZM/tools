@@ -6,20 +6,23 @@ import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import { useImageGenHistory } from '../../../../hooks/useImageGenHistory';
 import { useImageGenerate } from '../../../../hooks/useImageGenerate';
 import { getResultUrl } from '../../../../api/imageGenerationApi';
+import { useI18n } from '../../../../i18n';
 import type { HistoryItem } from '../../../../api/imageGenerationApi';
 
-const OPERATION_LABELS: Record<string, string> = {
-  text2img: '文生图',
-  img2img: '图生图',
-  inpaint: '局部重绘',
-  upload_edit: '上传编辑',
-};
-
 function HistoryCard({ item }: { item: HistoryItem }) {
+  const { t } = useI18n();
+  const igT = t.imageGeneration;
   const currentResult = useImageGenStore((s) => s.currentResult);
   const setCurrentResult = useImageGenStore((s) => s.setCurrentResult);
   const deleteHistory = useImageGenStore((s) => s.deleteHistory);
   const setHistoryDrawerOpen = useImageGenStore((s) => s.setHistoryDrawerOpen);
+
+  const operationLabels: Record<string, string> = {
+    text2img: igT.tabs.text2img,
+    img2img: igT.tabs.img2img,
+    inpaint: igT.tabs.inpaint,
+    upload_edit: igT.tabs.uploadEdit,
+  };
 
   const handleView = useCallback(async () => {
     // 构建一个 GenerateResponse 来复用 ResultPanel 逻辑
@@ -63,21 +66,21 @@ function HistoryCard({ item }: { item: HistoryItem }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-1.5 py-0.5 text-[10px] bg-slate-700 text-slate-300 rounded">
-              {OPERATION_LABELS[item.operation] || item.operation}
+              {operationLabels[item.operation] || item.operation}
             </span>
             <span className={`text-xs ${statusColor}`}>{statusIcon}</span>
           </div>
           <p className="text-xs text-slate-400 truncate">{item.prompt}</p>
           {item.created_at && (
             <p className="text-[10px] text-slate-600 mt-1">
-              {new Date(item.created_at).toLocaleString('zh-CN')}
+              {new Date(item.created_at).toLocaleString()}
             </p>
           )}
         </div>
         <button
           onClick={handleDelete}
           className="p-1 text-slate-500 hover:text-red-400 transition-colors"
-          title="删除"
+          title={igT.history.delete}
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -89,6 +92,8 @@ function HistoryCard({ item }: { item: HistoryItem }) {
 }
 
 export default function HistoryDrawer() {
+  const { t } = useI18n();
+  const igT = t.imageGeneration;
   const historyDrawerOpen = useImageGenStore((s) => s.historyDrawerOpen);
   const setHistoryDrawerOpen = useImageGenStore((s) => s.setHistoryDrawerOpen);
   const { history, historyTotal, historyLoading, page, totalPages, goNext, goPrev, refresh } = useImageGenHistory();
@@ -112,7 +117,7 @@ export default function HistoryDrawer() {
       <div className="fixed right-0 top-0 h-full w-80 bg-slate-900 border-l border-slate-700 z-50 flex flex-col shadow-2xl">
         {/* 头部 */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700">
-          <h3 className="text-lg font-medium text-slate-200">生成历史</h3>
+          <h3 className="text-lg font-medium text-slate-200">{igT.history.title}</h3>
           <button
             onClick={() => setHistoryDrawerOpen(false)}
             className="p-1 text-slate-400 hover:text-slate-200 transition-colors"
@@ -131,7 +136,7 @@ export default function HistoryDrawer() {
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-8 text-slate-500 text-sm">
-              暂无历史记录
+              {igT.history.empty}
             </div>
           ) : (
             history.map((item) => <HistoryCard key={item.id} item={item} />)
@@ -146,7 +151,7 @@ export default function HistoryDrawer() {
               disabled={page === 0}
               className="px-3 py-1 text-sm rounded bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 transition-colors"
             >
-              上一页
+              {igT.history.prevPage}
             </button>
             <span className="text-xs text-slate-500">
               {page + 1} / {totalPages}
@@ -156,7 +161,7 @@ export default function HistoryDrawer() {
               disabled={(page + 1) >= totalPages}
               className="px-3 py-1 text-sm rounded bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 transition-colors"
             >
-              下一页
+              {igT.history.nextPage}
             </button>
           </div>
         )}

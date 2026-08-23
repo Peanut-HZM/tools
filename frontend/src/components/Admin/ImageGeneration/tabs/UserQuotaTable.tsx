@@ -10,11 +10,14 @@ import {
   QuotaUser,
   QuotaUserListResponse,
 } from '../../../../api/adminImageGenerationApi';
+import { useI18n } from '../../../../i18n';
 import GrantQuotaDialog from '../GrantQuotaDialog';
 
 const PAGE_SIZE = 20;
 
 export default function UserQuotaTable() {
+  const { t } = useI18n();
+  const igT = t.imageGeneration.admin;
   const [data, setData] = useState<QuotaUserListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -39,7 +42,7 @@ export default function UserQuotaTable() {
       const result = await listQuotaUsers(page * PAGE_SIZE, PAGE_SIZE, search || undefined);
       setData(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败');
+      setError(e instanceof Error ? e.message : igT.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -56,7 +59,7 @@ export default function UserQuotaTable() {
       setDialogExisting(user);
     } else {
       // 新分配：需要 userId 输入
-      const userId = prompt('请输入用户ID：');
+      const userId = prompt(igT.promptUserId);
       if (!userId) return;
       setDialogUserId(userId);
       setDialogExisting(null);
@@ -65,26 +68,26 @@ export default function UserQuotaTable() {
   };
 
   const handleRevoke = async (userId: string) => {
-    if (!confirm(`确认撤销用户 ${userId} 的配额？此操作不可恢复。`)) return;
+    if (!confirm(igT.revokeConfirm.replace('{userId}', userId))) return;
     try {
       setMessage(null);
       await revokeQuota(userId);
-      setMessage({ type: 'success', text: '配额已撤销' });
+      setMessage({ type: 'success', text: igT.granted });
       await loadData();
     } catch (e) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : '撤销失败' });
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : igT.revokeFailed });
     }
   };
 
   const handleReset = async (userId: string) => {
-    if (!confirm(`确认重置用户 ${userId} 的计数器？`)) return;
+    if (!confirm(igT.resetConfirm.replace('{userId}', userId))) return;
     try {
       setMessage(null);
       await resetCounters(userId);
-      setMessage({ type: 'success', text: '计数器已重置' });
+      setMessage({ type: 'success', text: igT.counterReset });
       await loadData();
     } catch (e) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : '重置失败' });
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : igT.resetFailed });
     }
   };
 
@@ -117,20 +120,20 @@ export default function UserQuotaTable() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="按用户ID搜索"
+          placeholder={igT.enterUserId}
           className="flex-1 bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
         />
         <button
           onClick={handleSearch}
           className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded-lg transition-colors"
         >
-          搜索
+          {igT.search}
         </button>
         <button
           onClick={() => handleOpenGrantDialog()}
           className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
         >
-          分配配额
+          {igT.grantQuota}
         </button>
       </div>
 
@@ -140,32 +143,32 @@ export default function UserQuotaTable() {
           <table className="w-full">
             <thead className="bg-slate-700">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">用户ID</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.userId}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">
-                  每日配额
+                  {igT.dailyQuota}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">
-                  每月配额
+                  {igT.monthlyQuota}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">有效期</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">状态</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.validity}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.status}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">
-                  备注
+                  {igT.notes}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">操作</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                    加载中...
+                    {igT.loading}
                   </td>
                 </tr>
               ) : !data || data.items.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                    暂无数据
+                    {igT.noData}
                   </td>
                 </tr>
               ) : (
@@ -177,7 +180,7 @@ export default function UserQuotaTable() {
                         {user.daily_used} / {user.daily_limit}
                       </div>
                       <div className="text-xs text-slate-400">
-                        剩余 {user.daily_remaining}
+                        {t.imageGeneration.quota.remaining.replace('{count}', String(user.daily_remaining))}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -185,29 +188,29 @@ export default function UserQuotaTable() {
                         {user.monthly_used} / {user.monthly_limit}
                       </div>
                       <div className="text-xs text-slate-400">
-                        剩余 {user.monthly_remaining}
+                        {t.imageGeneration.quota.remaining.replace('{count}', String(user.monthly_remaining))}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-300">
                       {user.valid_from ? (
-                        <div>{new Date(user.valid_from).toLocaleDateString('zh-CN')}</div>
+                        <div>{new Date(user.valid_from).toLocaleDateString()}</div>
                       ) : (
                         <div className="text-slate-500">-</div>
                       )}
                       {user.valid_until ? (
-                        <div>~ {new Date(user.valid_until).toLocaleDateString('zh-CN')}</div>
+                        <div>~ {new Date(user.valid_until).toLocaleDateString()}</div>
                       ) : (
-                        <div className="text-slate-500">~ 永久</div>
+                        <div className="text-slate-500">{igT.permanent}</div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {user.is_valid ? (
                         <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
-                          有效
+                          {igT.valid}
                         </span>
                       ) : (
                         <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
-                          无效
+                          {igT.invalid}
                         </span>
                       )}
                     </td>
@@ -219,21 +222,21 @@ export default function UserQuotaTable() {
                         <button
                           onClick={() => handleOpenGrantDialog(user)}
                           className="text-cyan-400 hover:text-cyan-300 transition-colors"
-                          title="编辑"
+                          title={igT.edit}
                         >
                           <i className="fas fa-edit"></i>
                         </button>
                         <button
                           onClick={() => handleReset(user.user_id)}
                           className="text-orange-400 hover:text-orange-300 transition-colors"
-                          title="重置计数器"
+                          title={igT.resetCounters}
                         >
                           <i className="fas fa-redo"></i>
                         </button>
                         <button
                           onClick={() => handleRevoke(user.user_id)}
                           className="text-red-400 hover:text-red-300 transition-colors"
-                          title="撤销配额"
+                          title={igT.revokeQuota}
                         >
                           <i className="fas fa-trash"></i>
                         </button>
@@ -251,7 +254,10 @@ export default function UserQuotaTable() {
       {data && data.total > 0 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-400">
-            共 {data.total} 条记录，第 {page + 1} / {totalPages || 1} 页
+            {t.imageGeneration.history.total
+              .replace('{count}', String(data.total))
+              .replace('{current}', String(page + 1))
+              .replace('{total}', String(totalPages || 1))}
           </div>
           <div className="flex gap-2">
             <button
@@ -259,14 +265,14 @@ export default function UserQuotaTable() {
               disabled={page === 0 || loading}
               className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors"
             >
-              上一页
+              {t.imageGeneration.history.prevPage}
             </button>
             <button
               onClick={() => setPage(page + 1)}
               disabled={page + 1 >= totalPages || loading}
               className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors"
             >
-              下一页
+              {t.imageGeneration.history.nextPage}
             </button>
           </div>
         </div>

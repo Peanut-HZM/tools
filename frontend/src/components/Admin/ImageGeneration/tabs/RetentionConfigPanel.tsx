@@ -9,8 +9,11 @@ import {
   triggerRetentionCleanup,
   RetentionStatus,
 } from '../../../../api/adminImageGenerationApi';
+import { useI18n } from '../../../../i18n';
 
 export default function RetentionConfigPanel() {
+  const { t } = useI18n();
+  const igT = t.imageGeneration.admin;
   const [config, setConfig] = useState<RetentionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,7 +42,7 @@ export default function RetentionConfigPanel() {
       setNDays(data.n_days);
       setCleanupCron(data.cleanup_cron);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '加载保留策略失败');
+      setError(e instanceof Error ? e.message : igT.loadRetentionFailed);
     } finally {
       setLoading(false);
     }
@@ -55,24 +58,24 @@ export default function RetentionConfigPanel() {
         cleanup_cron: cleanupCron,
       });
       setConfig(updated);
-      setMessage({ type: 'success', text: '保留策略已保存' });
+      setMessage({ type: 'success', text: igT.saveRetentionSuccess });
     } catch (e) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : '保存失败' });
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : igT.saveFailed });
     } finally {
       setSaving(false);
     }
   };
 
   const handleTrigger = async () => {
-    if (!confirm('确认手动触发清理任务？')) return;
+    if (!confirm(igT.triggerCleanupConfirm)) return;
     try {
       setTriggering(true);
       setMessage(null);
       await triggerRetentionCleanup();
-      setMessage({ type: 'success', text: '清理任务已触发' });
+      setMessage({ type: 'success', text: igT.cleanupTriggered });
       await loadConfig();
     } catch (e) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : '触发失败' });
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : igT.triggerFailed });
     } finally {
       setTriggering(false);
     }
@@ -82,7 +85,7 @@ export default function RetentionConfigPanel() {
     return (
       <div className="text-center py-16">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
-        <p className="mt-4 text-slate-400">加载保留策略中...</p>
+        <p className="mt-4 text-slate-400">{igT.loadRetentionLoading}</p>
       </div>
     );
   }
@@ -110,14 +113,14 @@ export default function RetentionConfigPanel() {
       {/* OSS 用量 */}
       {config && (
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">OSS 用量</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">{igT.ossUsage}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-slate-700 rounded-lg p-4">
-              <div className="text-slate-400 text-xs mb-1">总文件数</div>
+              <div className="text-slate-400 text-xs mb-1">{igT.totalFiles}</div>
               <div className="text-lg font-bold text-white">{config.total_files}</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-4">
-              <div className="text-slate-400 text-xs mb-1">总大小</div>
+              <div className="text-slate-400 text-xs mb-1">{igT.totalSize}</div>
               <div className="text-lg font-bold text-white">
                 {config.total_size_mb.toFixed(2)} MB
               </div>
@@ -128,23 +131,23 @@ export default function RetentionConfigPanel() {
 
       {/* 策略配置 */}
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-white">保留策略配置</h3>
+        <h3 className="text-lg font-semibold text-white">{igT.retentionConfig}</h3>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">清理模式</label>
+          <label className="block text-sm text-slate-300 mb-2">{igT.cleanupMode}</label>
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as typeof mode)}
             className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
           >
-            <option value="keep_forever">永久保留</option>
-            <option value="delete_after_n_days">N 天后删除</option>
-            <option value="delete_if_unused_for_n_days">N 天未访问则删除</option>
+            <option value="keep_forever">{igT.cleanupModeKeepForever}</option>
+            <option value="delete_after_n_days">{igT.cleanupModeDeleteAfterDays}</option>
+            <option value="delete_if_unused_for_n_days">{igT.cleanupModeDeleteIfUnused}</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">保留天数</label>
+          <label className="block text-sm text-slate-300 mb-2">{igT.retentionDays}</label>
           <input
             type="number"
             min="1"
@@ -153,19 +156,19 @@ export default function RetentionConfigPanel() {
             onChange={(e) => setNDays(Number(e.target.value))}
             className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
           />
-          <p className="text-xs text-slate-500 mt-1">范围：1 ~ 3650 天</p>
+          <p className="text-xs text-slate-500 mt-1">{igT.retentionDaysRange}</p>
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">定时任务（Cron 表达式）</label>
+          <label className="block text-sm text-slate-300 mb-2">{igT.cleanupCron}</label>
           <input
             type="text"
             value={cleanupCron}
             onChange={(e) => setCleanupCron(e.target.value)}
-            placeholder="0 2 * * *"
+            placeholder={igT.cleanupCronPlaceholder}
             className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
           />
-          <p className="text-xs text-slate-500 mt-1">例如：0 2 * * * 表示每天凌晨 2 点</p>
+          <p className="text-xs text-slate-500 mt-1">{igT.cleanupCronExample}</p>
         </div>
 
         <div className="flex gap-3 pt-4">
@@ -174,14 +177,14 @@ export default function RetentionConfigPanel() {
             disabled={saving}
             className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
           >
-            {saving ? '保存中...' : '保存配置'}
+            {saving ? igT.saving : igT.saveConfig}
           </button>
           <button
             onClick={handleTrigger}
             disabled={triggering}
             className="bg-orange-600 hover:bg-orange-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
           >
-            {triggering ? '触发中...' : '手动触发清理'}
+            {triggering ? igT.triggering : igT.triggerCleanup}
           </button>
         </div>
       </div>

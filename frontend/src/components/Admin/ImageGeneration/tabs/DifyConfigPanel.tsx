@@ -10,8 +10,11 @@ import {
   DifyConfig,
   UpdateDifyConfigRequest,
 } from '../../../../api/adminImageGenerationApi';
+import { useI18n } from '../../../../i18n';
 
 export default function DifyConfigPanel() {
+  const { t } = useI18n();
+  const igT = t.imageGeneration.admin;
   const [config, setConfig] = useState<DifyConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,7 +49,7 @@ export default function DifyConfigPanel() {
       setUploadEditWorkflowId(data.workflow_upload_edit || '');
       setTimeoutSeconds(data.default_timeout || 30);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '加载配置失败');
+      setError(e instanceof Error ? e.message : igT.loadConfigFailed);
     } finally {
       setLoading(false);
     }
@@ -71,9 +74,9 @@ export default function DifyConfigPanel() {
       const updated = await updateDifyConfig(updates);
       setConfig(updated);
       setAppApiKey(''); // 清空输入框
-      setMessage({ type: 'success', text: '配置已保存' });
+      setMessage({ type: 'success', text: igT.saveSuccess });
     } catch (e) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : '保存失败' });
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : igT.saveFailed });
     } finally {
       setSaving(false);
     }
@@ -86,10 +89,12 @@ export default function DifyConfigPanel() {
       const result = await testDifyConnection();
       setMessage({
         type: result.success ? 'success' : 'error',
-        text: result.success ? `连接成功：${result.message}` : `连接失败：${result.message}`,
+        text: result.success
+          ? igT.connectionResultSuccess.replace('{message}', result.message)
+          : igT.connectionResultFailed.replace('{message}', result.message),
       });
     } catch (e) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : '测试失败' });
+      setMessage({ type: 'error', text: e instanceof Error ? e.message : igT.testFailed });
     } finally {
       setTesting(false);
     }
@@ -99,7 +104,7 @@ export default function DifyConfigPanel() {
     return (
       <div className="text-center py-16">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
-        <p className="mt-4 text-slate-400">加载配置中...</p>
+        <p className="mt-4 text-slate-400">{igT.loadConfigLoading}</p>
       </div>
     );
   }
@@ -127,37 +132,37 @@ export default function DifyConfigPanel() {
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-4">
         <div>
           <label className="block text-sm text-slate-300 mb-2">
-            Dify API URL
+            {igT.apiUrl}
             <span className="text-red-400 ml-1">*</span>
           </label>
           <input
             type="text"
             value={apiUrl}
             onChange={(e) => setApiUrl(e.target.value)}
-            placeholder="https://api.dify.ai/v1"
+            placeholder={igT.apiUrlPlaceholder}
             className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
           />
         </div>
 
         <div>
           <label className="block text-sm text-slate-300 mb-2">
-            App API Key
+            {igT.apiKey}
             <span className="text-slate-500 ml-2 text-xs">
-              {config?.is_api_key_set ? '（已设置，留空保持不变）' : '（未设置）'}
+              {config?.is_api_key_set ? igT.apiKeySet : igT.apiKeyUnset}
             </span>
           </label>
           <input
             type="password"
             value={appApiKey}
             onChange={(e) => setAppApiKey(e.target.value)}
-            placeholder="app-xxxxxxxxxxxxxxxx"
+            placeholder={igT.apiKeyPlaceholder}
             className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-2">文生图 Workflow ID</label>
+            <label className="block text-sm text-slate-300 mb-2">{igT.text2imgWorkflowId}</label>
             <input
               type="text"
               value={text2imgWorkflowId}
@@ -166,7 +171,7 @@ export default function DifyConfigPanel() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-2">图生图 Workflow ID</label>
+            <label className="block text-sm text-slate-300 mb-2">{igT.img2imgWorkflowId}</label>
             <input
               type="text"
               value={img2imgWorkflowId}
@@ -175,7 +180,7 @@ export default function DifyConfigPanel() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-2">局部重绘 Workflow ID</label>
+            <label className="block text-sm text-slate-300 mb-2">{igT.inpaintWorkflowId}</label>
             <input
               type="text"
               value={inpaintWorkflowId}
@@ -184,7 +189,7 @@ export default function DifyConfigPanel() {
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-2">上传编辑 Workflow ID</label>
+            <label className="block text-sm text-slate-300 mb-2">{igT.uploadEditWorkflowId}</label>
             <input
               type="text"
               value={uploadEditWorkflowId}
@@ -195,7 +200,7 @@ export default function DifyConfigPanel() {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">超时时间（秒）</label>
+          <label className="block text-sm text-slate-300 mb-2">{igT.timeoutSeconds}</label>
           <input
             type="number"
             min="5"
@@ -204,7 +209,7 @@ export default function DifyConfigPanel() {
             onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
             className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
           />
-          <p className="text-xs text-slate-500 mt-1">范围：5 ~ 300 秒</p>
+          <p className="text-xs text-slate-500 mt-1">{igT.timeoutRange}</p>
         </div>
 
         <div className="flex gap-3 pt-4">
@@ -213,14 +218,14 @@ export default function DifyConfigPanel() {
             disabled={saving}
             className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
           >
-            {saving ? '保存中...' : '保存配置'}
+            {saving ? igT.saving : igT.saveConfig}
           </button>
           <button
             onClick={handleTest}
             disabled={testing}
             className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors border border-slate-600"
           >
-            {testing ? '测试中...' : '测试连通性'}
+            {testing ? igT.testing : igT.testConnection}
           </button>
         </div>
       </div>

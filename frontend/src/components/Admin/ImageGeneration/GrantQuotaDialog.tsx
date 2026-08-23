@@ -2,12 +2,13 @@
  * 分配/编辑配额对话框 — Task 12.1
  * daily_limit, monthly_limit, valid_from, valid_until, notes
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   grantQuota,
   GrantQuotaRequest,
   QuotaUser,
 } from '../../../api/adminImageGenerationApi';
+import { useI18n } from '../../../i18n';
 
 interface GrantQuotaDialogProps {
   userId: string;
@@ -22,6 +23,8 @@ export default function GrantQuotaDialog({
   onClose,
   onSuccess,
 }: GrantQuotaDialogProps) {
+  const { t } = useI18n();
+  const igT = t.imageGeneration.admin;
   const [dailyLimit, setDailyLimit] = useState(existing?.daily_limit ?? 10);
   const [monthlyLimit, setMonthlyLimit] = useState(existing?.monthly_limit ?? 200);
   const [validFrom, setValidFrom] = useState(
@@ -50,7 +53,7 @@ export default function GrantQuotaDialog({
       onSuccess();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : '操作失败');
+      setError(e instanceof Error ? e.message : t.imageGeneration.errors.defaultError);
     } finally {
       setSubmitting(false);
     }
@@ -60,11 +63,11 @@ export default function GrantQuotaDialog({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full">
         <h3 className="text-xl font-bold text-white mb-4">
-          {existing ? '编辑配额' : '分配配额'}
+          {existing ? igT.editQuota : igT.grantQuota}
         </h3>
 
         <div className="mb-4">
-          <div className="text-sm text-slate-400 mb-1">用户ID</div>
+          <div className="text-sm text-slate-400 mb-1">{igT.userId}</div>
           <div className="text-white font-mono text-sm bg-slate-700 px-3 py-2 rounded">
             {userId}
           </div>
@@ -78,7 +81,7 @@ export default function GrantQuotaDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-2">每日调用上限</label>
+            <label className="block text-sm text-slate-300 mb-2">{igT.dailyLimit}</label>
             <input
               type="number"
               min="0"
@@ -88,11 +91,11 @@ export default function GrantQuotaDialog({
               required
               className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
             />
-            <p className="text-xs text-slate-500 mt-1">范围：0 ~ 10000</p>
+            <p className="text-xs text-slate-500 mt-1">{igT.dailyLimitRange}</p>
           </div>
 
           <div>
-            <label className="block text-sm text-slate-300 mb-2">每月调用上限</label>
+            <label className="block text-sm text-slate-300 mb-2">{igT.monthlyLimit}</label>
             <input
               type="number"
               min="0"
@@ -102,12 +105,12 @@ export default function GrantQuotaDialog({
               required
               className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
             />
-            <p className="text-xs text-slate-500 mt-1">范围：0 ~ 300000</p>
+            <p className="text-xs text-slate-500 mt-1">{igT.monthlyLimitRange}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-slate-300 mb-2">生效开始时间</label>
+              <label className="block text-sm text-slate-300 mb-2">{igT.validFrom}</label>
               <input
                 type="datetime-local"
                 value={validFrom}
@@ -116,7 +119,7 @@ export default function GrantQuotaDialog({
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-300 mb-2">生效结束时间</label>
+              <label className="block text-sm text-slate-300 mb-2">{igT.validUntil}</label>
               <input
                 type="datetime-local"
                 value={validUntil}
@@ -127,13 +130,13 @@ export default function GrantQuotaDialog({
           </div>
 
           <div>
-            <label className="block text-sm text-slate-300 mb-2">备注</label>
+            <label className="block text-sm text-slate-300 mb-2">{igT.notes}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               maxLength={200}
               rows={3}
-              placeholder="选填，最多 200 字符"
+              placeholder={igT.notesPlaceholder}
               className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500 resize-none"
             />
           </div>
@@ -144,7 +147,7 @@ export default function GrantQuotaDialog({
               disabled={submitting}
               className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
             >
-              {submitting ? '提交中...' : '确认'}
+              {submitting ? igT.submitting : igT.confirm}
             </button>
             <button
               type="button"
@@ -152,7 +155,7 @@ export default function GrantQuotaDialog({
               disabled={submitting}
               className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white px-4 py-2 rounded-lg transition-colors border border-slate-600"
             >
-              取消
+              {igT.cancel}
             </button>
           </div>
         </form>
