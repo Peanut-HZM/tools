@@ -48,3 +48,16 @@ class QuotaExceeded(Exception):
     def __init__(self, reason: str):
         super().__init__(reason)
         self.reason = reason
+
+
+class ServiceDegraded(Exception):
+    """
+    服务降级中，拒绝新请求。
+
+    当 DegradationService.is_degraded() 返回 True 时抛出，
+    通知上层跳过所有下游调用（Dify / OSS 等）。
+    """
+
+    def __init__(self, message: str = "图像生成服务降级中，请稍后再试"):
+        super().__init__(message)
+        self.message = message
