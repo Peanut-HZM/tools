@@ -275,3 +275,47 @@ export async function getResultUrl(historyId: string): Promise<ResultResponse> {
   }
   return response.json();
 }
+
+/* ================================================================
+ * 对话式生成（Task 9 stub — Task 10 将替换实现）
+ * ================================================================ */
+
+/** 对话式生成请求参数 */
+export interface ChatParams {
+  size?: ImageSize;
+  n?: number;
+  style?: string;
+  strength?: number;
+  model_preference?: ModelPreference;
+  polish_prompt?: boolean;
+  edit_type?: EditType;
+  referenceImage?: File | null;
+  maskImage?: File | null;
+}
+
+/** 对话式生成响应 */
+export interface ChatResult {
+  conversation_id: string;
+  answer: string;
+  image_urls: string[];
+  status: 'asking' | 'generated';
+  history_id?: string;
+  model_used?: string;
+}
+
+/**
+ * 对话式生成 — POST /image-generation/chat
+ *
+ * 注意：当前为 stub 实现，Task 10 将替换为真实 API 调用。
+ */
+export async function chatGenerate(
+  _operation: Operation,
+  _prompt: string,
+  _conversationId: string | null,
+  _params?: ChatParams,
+  _referenceImage?: File | null,
+  _maskImage?: File | null,
+): Promise<ChatResult> {
+  // TODO: Task 10 实现真实的 chat API 调用
+  throw new Error('chatGenerate API 尚未实现（Task 10 待完成）');
+}

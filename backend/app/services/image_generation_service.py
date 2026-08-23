@@ -20,12 +20,12 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import DifyError, QuotaExceeded, ServiceDegraded
-from app.services.dify_client import DifyClient, DifyRunResult
+from app.services.dify_client import DifyClient, DifyRunResult, ChatRunResult
 from app.services.image_gen_history_service import ImageGenHistoryService
 from app.services.image_gen_quota_service import ImageGenQuotaService
 from app.utils.image_gen_constants import (
@@ -188,6 +188,154 @@ class ImageGenService:
             )
             self.quota_svc.release()
             logger.info("请求被取消: user=%s op=%s", user_id, operation)
+            raise
+
+    # ------------------------------------------------------------------
+    # 多轮对话生成入口
+    # ------------------------------------------------------------------
+
+    async def chat_generate(
+        self,
+        user_id: str,
+        operation: str,
+        prompt: str,
+        conversation_id: Optional[str],
+        params: Dict[str, Any],
+        reference_bytes: Optional[bytes] = None,
+        mask_bytes: Optional[bytes] = None,
+        edit_type: Optional[str] = None,
+    ) -> ChatRunResult:
+        """
+        多轮对话生成入口。
+
+        流程：
+          1. 降级检查（同 generate）
+          2. 上传参考图/蒙版 → 生成签名 URL
+          3. 调对应 chat_* 方法
+          4. 若 LLM 触发 <<GENERATE>> 且有图片 → 走完整 OSS + 历史 + 配额流程
+          5. 若仅为追问 → 仅返回 answer + conversation_id
+        """
+        start_time = time.monotonic()
+
+        # ---- 1. 降级检查 ----
+        if self.degradation_svc is not None and self.degradation_svc.is_degraded():
+            logger.warning("服务降级中，拒绝对话请求: user=%s op=%s", user_id, operation)
+            raise ServiceDegraded()
+
+        # ---- 2. 上传参考图/蒙版 ----
+        reference_oss_key = None
+        mask_oss_key = None
+        reference_url = None
+        mask_url = None
+
+        if reference_bytes is not None:
+            reference_oss_key = self._upload_to_oss(reference_bytes, OSS_PREFIX_REF, "image/png")
+            reference_url = self.oss_svc.sign_url("GET", reference_oss_key, SIGNED_URL_EXPIRES_REF)
+
+        if mask_bytes is not None:
+            mask_oss_key = self._upload_to_oss(mask_bytes, OSS_PREFIX_MASK, "image/png")
+            mask_url = self.oss_svc.sign_url("GET", mask_oss_key, SIGNED_URL_EXPIRES_REF)
+
+        # ---- 3. 调对应 chat_* 方法 ----
+        if operation == OPERATION_TEXT2IMG:
+            dify_result = await self.dify_client.chat_text2img(
+                prompt=prompt,
+                conversation_id=conversation_id,
+                size=params["size"],
+                n=params.get("n", 1),
+                style=params.get("style"),
+                model_preference=params.get("model_preference", "auto"),
+                user_id=user_id,
+            )
+        elif operation == OPERATION_IMG2IMG:
+            dify_result = await self.dify_client.chat_img2img(
+                prompt=prompt,
+                reference_url=reference_url,
+                conversation_id=conversation_id,
+                strength=params.get("strength", 0.6),
+                size=params["size"],
+                model_preference=params.get("model_preference", "auto"),
+                user_id=user_id,
+            )
+        elif operation == OPERATION_INPAINT:
+            dify_result = await self.dify_client.chat_inpaint(
+                prompt=prompt,
+                image_url=reference_url,
+                mask_url=mask_url,
+                conversation_id=conversation_id,
+                size=params["size"],
+                model_preference=params.get("model_preference", "auto"),
+                user_id=user_id,
+            )
+        elif operation == OPERATION_UPLOAD_EDIT:
+            dify_result = await self.dify_client.chat_upload_edit(
+                image_url=reference_url,
+                edit_type=edit_type or "upscale",
+                conversation_id=conversation_id,
+                prompt=prompt,
+                user_id=user_id,
+            )
+        else:
+            raise DifyError(f"未知操作类型: {operation}", kind="config_error")
+
+        # ---- 4. 判断是否触发生成 ----
+        has_generate_marker = "<<GENERATE>>" in dify_result.answer
+        has_images = len(dify_result.image_urls) > 0
+
+        if not (has_generate_marker and has_images):
+            # 仅追问：返回 answer + conversation_id（不扣配额、不写历史）
+            logger.info(
+                "对话追问: user=%s op=%s conv=%s",
+                user_id, operation, dify_result.conversation_id,
+            )
+            return dify_result
+
+        # ---- 5. 触发生成：走完整流程 ----
+        self.quota_svc.check_and_reserve(user_id, operation, dify_result.image_urls and 1)
+
+        try:
+            # 下载结果图 → 上传 OSS
+            result_oss_keys = []
+            for idx, img_url in enumerate(dify_result.image_urls):
+                img_bytes = await self._download_image(img_url)
+                oss_key = self._upload_to_oss(img_bytes, OSS_PREFIX_RESULT, "image/png")
+                result_oss_keys.append(oss_key)
+            primary_result_key = result_oss_keys[0] if result_oss_keys else ""
+
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            history = self.history_svc.create_record(
+                user_id=user_id,
+                operation=operation,
+                status=STATUS_SUCCESS,
+                result_oss_key=primary_result_key,
+                prompt=prompt,
+                params=params,
+                reference_oss_key=reference_oss_key,
+                mask_oss_key=mask_oss_key,
+                model_used=dify_result.model_used,
+                duration_ms=duration_ms,
+                conversation_id=dify_result.conversation_id,
+            )
+            self.quota_svc.commit()
+            if self.degradation_svc is not None:
+                self.degradation_svc.reset_failure_count()
+
+            # 生成签名 URL 返回
+            signed_urls = [
+                self.oss_svc.sign_url("GET", key, SIGNED_URL_EXPIRES_RESULT)
+                for key in result_oss_keys
+            ]
+
+            # 覆盖 result 的 image_urls 为签名 URL
+            dify_result.image_urls = signed_urls
+            logger.info(
+                "对话生成成功: user=%s op=%s history=%s conv=%s",
+                user_id, operation, history.id, dify_result.conversation_id,
+            )
+            return dify_result
+
+        except DifyError:
+            self.quota_svc.release()
             raise
 
     # ------------------------------------------------------------------

@@ -14,6 +14,8 @@ import type {
   GenerateResponse,
   HistoryItem,
   QuotaInfo,
+  ChatParams,
+  ChatResult,
 } from '../api/imageGenerationApi';
 
 /* ================================================================
@@ -60,6 +62,16 @@ interface ImageGenState {
 
   // 选中历史项（查看详情）
   selectedHistory: HistoryItem | null;
+
+  // 对话相关
+  conversationId: string | null;
+  conversationHistory: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: number;
+  }>;
+  chatAnswer: string | null;
+  chatStatus: 'idle' | 'asking' | 'generated';
 }
 
 interface ImageGenActions {
@@ -86,6 +98,13 @@ interface ImageGenActions {
 
   /** 将一张已有图片 URL 设为参考图（"以此图为参考"功能） */
   useImageAsReference: (imageUrl: string) => Promise<void>;
+
+  /** 对话式生成 */
+  chatGenerate: (operation: Operation, prompt: string, params: ChatParams) => Promise<ChatResult>;
+  /** 重置对话状态 */
+  resetConversation: () => void;
+  /** 设置对话回答 */
+  setChatAnswer: (answer: string | null) => void;
 }
 
 /* ================================================================
@@ -121,6 +140,10 @@ const INITIAL_STATE: ImageGenState = {
   abortController: null,
   historyDrawerOpen: false,
   selectedHistory: null,
+  conversationId: null,
+  conversationHistory: [],
+  chatAnswer: null,
+  chatStatus: 'idle',
 };
 
 /* ================================================================
@@ -298,5 +321,69 @@ export const useImageGenStore = create<ImageGenState & ImageGenActions>()((set, 
     } catch (err: any) {
       set({ error: '加载参考图失败' });
     }
+  },
+
+  chatGenerate: async (operation, prompt, params) => {
+    set({
+      loading: true,
+      error: null,
+      chatStatus: 'asking',
+      conversationHistory: [
+        ...get().conversationHistory,
+        { role: 'user', content: prompt, timestamp: Date.now() },
+      ],
+    });
+    try {
+      const result = await api.chatGenerate(
+        operation,
+        prompt,
+        get().conversationId,
+        params,
+        params.referenceImage,
+        params.maskImage,
+      );
+      const convId = result.conversation_id;
+      const answer = result.answer || '';
+      const imageUrls = result.image_urls || [];
+      const status = result.status === 'generated' ? 'generated' : 'asking';
+
+      set({
+        conversationId: convId,
+        chatAnswer: answer,
+        chatStatus: status,
+        conversationHistory: [
+          ...get().conversationHistory,
+          { role: 'assistant', content: answer, timestamp: Date.now() },
+        ],
+        currentResult: imageUrls.length > 0
+          ? {
+              history_id: result.history_id || '',
+              image_urls: imageUrls,
+              model_used: result.model_used || '',
+              duration_ms: 0,
+              operation,
+              prompt,
+            }
+          : get().currentResult,
+        loading: false,
+      });
+      return { conversation_id: convId, answer, image_urls: imageUrls, status };
+    } catch (err: any) {
+      set({ error: err.message || '对话失败', loading: false, chatStatus: 'idle' });
+      throw err;
+    }
+  },
+
+  resetConversation: () => {
+    set({
+      conversationId: null,
+      conversationHistory: [],
+      chatAnswer: null,
+      chatStatus: 'idle',
+    });
+  },
+
+  setChatAnswer: (answer) => {
+    set({ chatAnswer: answer });
   },
 }));
