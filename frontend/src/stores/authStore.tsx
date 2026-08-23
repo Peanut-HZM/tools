@@ -18,6 +18,8 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  /** 认证状态代际：登录/登出/401 时递增，页面据此自动重载数据 */
+  authVersion: number;
 }
 
 export interface AuthActions {
@@ -33,6 +35,8 @@ export interface AuthActions {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
+  /** 401 失效处理：清除 token 与用户态；仅在"已登录→未登录"转变时递增 authVersion */
+  markUnauthorized: () => void;
 }
 
 export type AuthContextType = AuthState & AuthActions;
@@ -44,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authVersion, setAuthVersion] = useState(0);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -109,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: response.role || 'user'
       });
       setIsAuthenticated(true);
+      setAuthVersion(v => v + 1);
       triggerTokenSync();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed');
@@ -144,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: response.role || 'user'
       });
       setIsAuthenticated(true);
+      setAuthVersion(v => v + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Registration failed');
       throw e;
@@ -159,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setIsAuthenticated(false);
+      setAuthVersion(v => v + 1);
       setIsLoading(false);
     }
   };
@@ -167,16 +175,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   };
 
+  const markUnauthorized = () => {
+    authApi.removeAuthToken();
+    setUser(null);
+    if (isAuthenticated) {
+      setAuthVersion(v => v + 1);
+    }
+    setIsAuthenticated(false);
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
     isLoading,
     error,
+    authVersion,
     login,
     register,
     logout,
     checkAuth,
-    clearError
+    clearError,
+    markUnauthorized
   };
 
   return (
