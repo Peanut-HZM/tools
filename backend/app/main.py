@@ -199,7 +199,23 @@ async def lifespan(app: FastAPI):
     from app.services.ccusage_scheduler import init_scheduler, shutdown_scheduler
     init_scheduler()
 
+    # 启动 image-gen OSS 保留策略调度器
+    try:
+        from app.services.image_gen_retention_scheduler import (
+            init_retention_scheduler,
+            shutdown_retention_scheduler,
+        )
+        init_retention_scheduler()
+    except Exception as e:
+        logger.warning(f"image-gen retention scheduler 启动失败: {e}")
+
     yield
+
+    # 关闭 image-gen OSS 保留策略调度器
+    try:
+        shutdown_retention_scheduler()
+    except Exception as e:
+        logger.warning(f"image-gen retention scheduler 关闭失败: {e}")
 
     # 关闭 ccusage 调度器
     try:

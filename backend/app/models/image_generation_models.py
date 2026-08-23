@@ -86,5 +86,6 @@ class ImageGenRetentionConfig(Base):
     mode = Column(String(64), nullable=False, default="keep_forever")
     n_days = Column(Integer, nullable=False, default=30)
     cleanup_cron = Column(String(32), nullable=False, default="0 3 * * *")
+    enabled = Column(Boolean, nullable=False, default=True)
     updated_by = Column(String(64), nullable=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
