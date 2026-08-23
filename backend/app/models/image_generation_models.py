@@ -48,6 +48,8 @@ class ImageGenHistory(Base):
     result_height = Column(Integer, nullable=True)
     model_used = Column(String(128), nullable=True)
     status = Column(String(32), nullable=False)
+    backend = Column(String(16), default="dify", nullable=False, index=True)
+    """生成后端：'dify' | 'selfdev'"""
     error_message = Column(Text, nullable=True)
     duration_ms = Column(Integer, nullable=True)
     is_deleted = Column(Boolean, nullable=False, default=False, index=True)
