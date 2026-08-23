@@ -1,13 +1,45 @@
 """图像生成工具 - Pydantic 请求/响应模型"""
+import re
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.utils.image_gen_constants import (
     MAX_N_IMAGES,
     OPERATION_TEXT2IMG,
+    VALID_EDIT_TYPES,
+    VALID_MODEL_PREFERENCES,
+    VALID_OPERATIONS,
+    VALID_SIZES,
+    RETENTION_MODE_KEEP_FOREVER,
+    RETENTION_MODE_DELETE_AFTER_N_DAYS,
+    RETENTION_MODE_DELETE_IF_UNUSED_FOR_N_DAYS,
 )
+
+# 允许的保留策略模式（来自常量文件，避免硬编码）
+VALID_RETENTION_MODES = {
+    RETENTION_MODE_KEEP_FOREVER,
+    RETENTION_MODE_DELETE_AFTER_N_DAYS,
+    RETENTION_MODE_DELETE_IF_UNUSED_FOR_N_DAYS,
+}
+
+# cron 表达式单个字段的合法字符（数字、* / , -）
+_CRON_FIELD_PATTERN = re.compile(r"^[\d*/,\-]+$")
+
+
+def _validate_size(v: str) -> str:
+    """校验尺寸在白名单内"""
+    if v not in VALID_SIZES:
+        raise ValueError(f"无效的尺寸: {v}，允许值: {sorted(VALID_SIZES)}")
+    return v
+
+
+def _validate_model_preference(v: str) -> str:
+    """校验模型偏好在白名单内"""
+    if v not in VALID_MODEL_PREFERENCES:
+        raise ValueError(f"无效的模型偏好: {v}，允许值: {sorted(VALID_MODEL_PREFERENCES)}")
+    return v
 
 
 # ==================== 用户侧请求 ====================
@@ -20,6 +52,9 @@ class Text2ImgRequest(BaseModel):
     style: Optional[str] = None
     model_preference: str = Field(default="auto")
 
+    _check_size = field_validator("size")(_validate_size)
+    _check_model_preference = field_validator("model_preference")(_validate_model_preference)
+
 
 class Img2ImgRequest(BaseModel):
     """图生图请求"""
@@ -28,6 +63,9 @@ class Img2ImgRequest(BaseModel):
     strength: float = Field(default=0.6, ge=0.0, le=1.0)
     model_preference: str = Field(default="auto")
 
+    _check_size = field_validator("size")(_validate_size)
+    _check_model_preference = field_validator("model_preference")(_validate_model_preference)
+
 
 class InpaintRequest(BaseModel):
     """局部重绘请求"""
@@ -35,17 +73,36 @@ class InpaintRequest(BaseModel):
     size: str = Field(default="1024x1024")
     model_preference: str = Field(default="auto")
 
+    _check_size = field_validator("size")(_validate_size)
+    _check_model_preference = field_validator("model_preference")(_validate_model_preference)
+
 
 class UploadEditRequest(BaseModel):
     """上传图片编辑请求"""
     edit_type: str
     prompt: Optional[str] = Field(default=None, max_length=2000)
 
+    @field_validator("edit_type")
+    @classmethod
+    def _check_edit_type(cls, v: str) -> str:
+        """校验编辑类型在白名单内"""
+        if v not in VALID_EDIT_TYPES:
+            raise ValueError(f"无效的编辑类型: {v}，允许值: {sorted(VALID_EDIT_TYPES)}")
+        return v
+
 
 class PolishPromptRequest(BaseModel):
     """提示词润色请求"""
     prompt: str = Field(..., min_length=1, max_length=2000)
     target_operation: str = OPERATION_TEXT2IMG
+
+    @field_validator("target_operation")
+    @classmethod
+    def _check_target_operation(cls, v: str) -> str:
+        """校验目标操作类型在白名单内"""
+        if v not in VALID_OPERATIONS:
+            raise ValueError(f"无效的操作类型: {v}，允许值: {sorted(VALID_OPERATIONS)}")
+        return v
 
 
 # ==================== 响应 ====================
@@ -104,11 +161,19 @@ class HistoryListResponse(BaseModel):
 
 class GrantQuotaRequest(BaseModel):
     """管理员授予配额请求"""
-    daily_limit: int = Field(..., ge=1)
-    monthly_limit: int = Field(..., ge=1)
+    daily_limit: int = Field(..., ge=1, le=10000)
+    monthly_limit: int = Field(..., ge=1, le=100000)
     valid_from: Optional[datetime] = None
     valid_until: Optional[datetime] = None
     notes: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _check_valid_period(self) -> "GrantQuotaRequest":
+        """校验有效期顺序：同时设置时 valid_until 必须晚于 valid_from"""
+        if self.valid_from is not None and self.valid_until is not None:
+            if self.valid_until <= self.valid_from:
+                raise ValueError("valid_until 必须晚于 valid_from")
+        return self
 
 
 class QuotaRecord(BaseModel):
@@ -144,7 +209,7 @@ class DifyConfigUpdate(BaseModel):
     workflow_img2img: Optional[str] = None
     workflow_inpaint: Optional[str] = None
     workflow_upload_edit: Optional[str] = None
-    default_timeout: Optional[float] = None
+    default_timeout: Optional[float] = Field(default=None, gt=0, le=600)
 
 
 class DegradationConfigView(BaseModel):
@@ -160,8 +225,8 @@ class DegradationConfigView(BaseModel):
 class DegradationConfigUpdate(BaseModel):
     """降级配置更新请求"""
     enabled: Optional[bool] = None
-    failure_threshold: Optional[int] = None
-    degrade_duration_seconds: Optional[int] = None
+    failure_threshold: Optional[int] = Field(default=None, ge=1)
+    degrade_duration_seconds: Optional[int] = Field(default=None, ge=1, le=86400)
 
 
 class RetentionConfigView(BaseModel):
@@ -176,5 +241,27 @@ class RetentionConfigView(BaseModel):
 class RetentionConfigUpdate(BaseModel):
     """保留策略配置更新请求"""
     mode: Optional[str] = None
-    n_days: Optional[int] = None
+    n_days: Optional[int] = Field(default=None, ge=1, le=3650)
     cleanup_cron: Optional[str] = None
+
+    @field_validator("mode")
+    @classmethod
+    def _check_mode(cls, v: Optional[str]) -> Optional[str]:
+        """校验保留策略模式在白名单内"""
+        if v is not None and v not in VALID_RETENTION_MODES:
+            raise ValueError(f"无效的保留策略模式: {v}，允许值: {sorted(VALID_RETENTION_MODES)}")
+        return v
+
+    @field_validator("cleanup_cron")
+    @classmethod
+    def _check_cleanup_cron(cls, v: Optional[str]) -> Optional[str]:
+        """轻量校验 cron 格式：5 个空白分隔字段，每字段仅含数字和 * / , -"""
+        if v is None:
+            return v
+        fields = v.split()
+        if len(fields) != 5:
+            raise ValueError("cron 表达式必须恰好包含 5 个字段")
+        for f in fields:
+            if not _CRON_FIELD_PATTERN.match(f):
+                raise ValueError(f"cron 字段包含非法字符: {f}")
+        return v
