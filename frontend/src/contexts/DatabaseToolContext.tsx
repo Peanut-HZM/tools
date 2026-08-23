@@ -26,7 +26,7 @@ export const DatabaseToolProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [history, setHistory] = useState<ExecutionHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, authVersion } = useAuth();
 
   const refreshConfigs = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -82,7 +82,9 @@ export const DatabaseToolProvider: React.FC<{ children: ReactNode }> = ({ childr
       setCurrentConfig(null);
       setCurrentDatabase(null);
     }
-  }, [isAuthenticated]);
+    // authVersion：登录成功/401 失效后自动重载
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authVersion]);
 
   return (
     <DatabaseToolContext.Provider
