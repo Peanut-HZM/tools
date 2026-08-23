@@ -1034,3 +1034,48 @@ ERROR [image-gen-retention] 清理失败 record_id=xxx: xxx
 - `backend/app/services/image_downloader_service.py`（ImageDownloader 配额模型参考）
 - `frontend/src/components/Tools/ImageDownloader.tsx`（图片工具参考）
 - `frontend/src/i18n/locales/zh-CN.ts` / `en-US.ts`（国际化 key）
+
+## 附录 C：Dify 部署现状（2026-08-23 实测）
+
+实施前需先确认 Dify 工作空间已就绪。实测情况：
+
+### C.1 基础设施（✅ 就绪）
+
+| 项 | 详情 |
+|---|---|
+| Dify 版本 | 1.14.2 |
+| 访问域名 | `https://dify.peanuthzm.com.cn`（SSL, letsencrypt） |
+| API 端点 | `https://dify.peanuthzm.com.cn/v1`（返回 401 = 端点正常） |
+| 部署路径 | `/data/programs/dify/current/` |
+| systemd 服务 | `dify-api/web/worker/beat/plugin-daemon/weaviate`（全 active） |
+| PostgreSQL | `dify` DB, user=postgres, 本地 5432 |
+| Redis | 本地 6379, DB 3 |
+| Weaviate | 本地 18180（向量） |
+| MinIO | `https://minio.peanuthzm.com.cn`, bucket `dify-files`（Dify 文件存储） |
+| nginx 上传限制 | `client_max_body_size 100M` |
+| nginx 代理超时 | `proxy_read_timeout 120s`, `proxy_send_timeout 120s`（图像生成够用，但 SDXL 大图如超 120s 需调整） |
+| 管理员账号 | `peanut_hzm@163.com` |
+| 租户 | "Dify Workspace" |
+
+### C.2 工作空间（❌ 待初始化）
+
+| 项 | 状态 | 实施前必须完成 |
+|---|---|---|
+| Apps/Workflows | 0 个 | 创建 4 个工作流（text2img/img2img/inpaint/upload_edit） |
+| 模型供应商 | 0 个 | 在 Dify 后台添加模型（豆包/通义万相/DALL-E/SDXL 等） |
+| API Token | 0 个 | 生成 1 个 App API Key 配到本项目的 `.env` |
+
+### C.3 实施前置步骤（实施 plan 阶段 0）
+
+1. 登录 Dify 管理后台：`https://dify.peanuthzm.com.cn`
+2. 在「模型供应商」中添加所需的图像生成模型（API Key 来自各厂商）
+3. 按 §4 设计创建 4 个工作流，每个工作流配置 input/output 变量与业务节点
+4. 在 Dify「应用 API」生成 App API Key
+5. 把 Key + Workflow ID 配到本项目的 `.env`（或管理后台）
+6. 测试 `/v1/info` 鉴权通过（即 API 可达）
+
+### C.4 性能边界备忘
+
+- nginx `proxy_read_timeout=120s` 是图像生成硬上限；如某模型常态超 120s，需调整 nginx
+- Dify 工作流内部节点级超时建议设为 60s，工作流整体超时由本应用 `DIFY_WORKFLOW_TIMEOUT` 控制（默认 60s，后台可调）
+- 单文件上传上限 10MB（应用层限制），OSS 签名 URL 300s 有效（Dify 需在此时间内拉取参考图）
