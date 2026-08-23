@@ -8,6 +8,17 @@ import { useToast } from '../../../hooks/useToast';
 import ModelDialog from './ModelDialog';
 import DeleteConfirmModal from './DeleteConfirmModal';
 
+/**
+ * 按 priority 升序排序模型列表；priority 相同时按 id 字典序稳定排序
+ * priority 为 null/undefined 时兜底为 100
+ */
+export function sortModelsByPriority(models: LLMModel[]): LLMModel[] {
+  return [...models].sort((a, b) => {
+    const p = (a.priority ?? 100) - (b.priority ?? 100);
+    return p !== 0 ? p : a.id.localeCompare(b.id);
+  });
+}
+
 export default function ModelsTab() {
   const [models, setModels] = useState<LLMModel[]>([]);
   const [providers, setProviders] = useState<LLMProvider[]>([]);
@@ -109,7 +120,9 @@ export default function ModelsTab() {
       ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
       : 'bg-blue-500/20 text-blue-400 border-blue-500/30';
 
-  const filtered = categoryFilter === 'all' ? models : models.filter((m) => m.category === categoryFilter);
+  const filtered = sortModelsByPriority(
+    categoryFilter === 'all' ? models : models.filter((m) => m.category === categoryFilter)
+  );
 
   return (
     <div>
@@ -163,6 +176,7 @@ export default function ModelsTab() {
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">模型标识</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">供应商</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">分类</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">优先级</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">默认</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">状态</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">操作</th>
@@ -189,6 +203,9 @@ export default function ModelsTab() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(m.category)}`}>
                       {getCategoryLabel(m.category)}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-mono text-sm text-amber-300">{m.priority ?? 100}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
