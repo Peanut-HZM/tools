@@ -50,6 +50,7 @@ interface ImageGenState {
 
   // 配额
   quota: QuotaInfo | null;
+  quotaLoadError: boolean;
 
   // UI 状态
   loading: boolean;
@@ -114,6 +115,7 @@ const INITIAL_STATE: ImageGenState = {
   historyTotal: 0,
   historyLoading: false,
   quota: null,
+  quotaLoadError: false,
   loading: false,
   error: null,
   abortController: null,
@@ -258,9 +260,10 @@ export const useImageGenStore = create<ImageGenState & ImageGenActions>()((set, 
   loadQuota: async () => {
     try {
       const quota = await api.getMyQuota();
-      set({ quota });
+      set({ quota, quotaLoadError: false });
     } catch {
-      // 配额加载失败不阻塞主流程
+      // 配额加载失败不阻塞主流程，标记错误以便 QuotaBadge 隐藏
+      set({ quotaLoadError: true });
     }
   },
 

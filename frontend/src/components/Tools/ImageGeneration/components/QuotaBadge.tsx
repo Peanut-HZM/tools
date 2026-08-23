@@ -2,19 +2,25 @@
  * QuotaBadge — 显示今日/本月剩余配额
  */
 import { useImageGenQuota } from '../../../../hooks/useImageGenQuota';
+import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import { useI18n } from '../../../../i18n';
 
 export default function QuotaBadge() {
   const { t } = useI18n();
   const igT = t.imageGeneration;
   const { quota } = useImageGenQuota();
+  const quotaLoadError = useImageGenStore((s) => s.quotaLoadError);
 
-  if (!quota) {
+  if (!quota && !quotaLoadError) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700/50 text-slate-400 text-sm">
         <span className="animate-pulse">{igT.admin.loading}</span>
       </div>
     );
+  }
+
+  if (!quota || quotaLoadError) {
+    return null;
   }
 
   const dailyPct = quota.daily_limit > 0
