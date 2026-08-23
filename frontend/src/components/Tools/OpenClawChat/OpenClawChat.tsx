@@ -122,7 +122,6 @@ export default function OpenClawChat() {
     }
   }, [sessionKey]);
 
-  // 登录后自动建立连接并加载历史消息
   useEffect(() => {
     if (!isAuthenticated) return;
     checkConnection();
