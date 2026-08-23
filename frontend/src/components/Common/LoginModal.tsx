@@ -1,29 +1,28 @@
 /**
  * 登录弹窗组件
- * 当 API 返回 401 时弹出，让用户在当前页面直接登录
+ * 当 API 返回 401 或未登录访问受保护页面时弹出，让用户在当前页面直接登录
+ * 打开状态由 loginModalStore 全局管理
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../stores/authStore';
+import { useLoginModalStore } from '../../stores/loginModalStore';
 import { useI18n } from '../../i18n';
 import LoginForm from '../Auth/LoginForm';
 import RegisterForm from '../Auth/RegisterForm';
 
-interface LoginModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+export default function LoginModal() {
   const { isAuthenticated } = useAuth();
+  const isOpen = useLoginModalStore((state) => state.isOpen);
+  const closeLoginModal = useLoginModalStore((state) => state.closeLoginModal);
   const [showRegister, setShowRegister] = useState(false);
   const { t } = useI18n();
 
-  // 登录后自动关闭（由 LoginForm 内部 showSuccess 提示）
+  // 登录后自动关闭
   useEffect(() => {
     if (isOpen && isAuthenticated) {
-      onClose();
+      closeLoginModal();
     }
-  }, [isAuthenticated, isOpen, onClose]);
+  }, [isAuthenticated, isOpen, closeLoginModal]);
 
   // 打开弹窗时重置状态
   useEffect(() => {
@@ -31,18 +30,6 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setShowRegister(false);
     }
   }, [isOpen]);
-
-  const handleLoginSuccess = useCallback(() => {
-    // 由上面的 useEffect 统一处理
-  }, []);
-
-  const handleSwitchToRegister = useCallback(() => {
-    setShowRegister(true);
-  }, []);
-
-  const handleSwitchToLogin = useCallback(() => {
-    setShowRegister(false);
-  }, []);
 
   if (!isOpen) return null;
 
@@ -54,7 +41,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             {t.auth.loginTitle}
           </h2>
           <button
-            onClick={onClose}
+            onClick={closeLoginModal}
             className="text-slate-400 hover:text-white transition-colors cursor-pointer"
             title="关闭"
           >
@@ -64,13 +51,13 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         {showRegister ? (
           <RegisterForm
-            onSuccess={handleLoginSuccess}
-            onSwitchToLogin={handleSwitchToLogin}
+            onSuccess={() => {}}
+            onSwitchToLogin={() => setShowRegister(false)}
           />
         ) : (
           <LoginForm
-            onSuccess={handleLoginSuccess}
-            onSwitchToRegister={handleSwitchToRegister}
+            onSuccess={() => {}}
+            onSwitchToRegister={() => setShowRegister(true)}
           />
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
 import Hero from './components/Hero/Hero';
@@ -59,7 +59,7 @@ import LoginModal from './components/Common/LoginModal';
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
 import { registerAuthFailureHandler } from './api/http';
-import { removeAuthToken } from './api/authApi';
+import { useLoginModalStore } from './stores/loginModalStore';
 
 // React Query 客户端实例（进程级别单例）
 const queryClient = new QueryClient({
@@ -265,23 +265,24 @@ function HomePage() {
 }
 
 function GlobalAuthHandler() {
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const openLoginModal = useLoginModalStore((state) => state.openLoginModal);
+  const { markUnauthorized } = useAuth();
+  // 用 ref 保存最新函数引用，避免空依赖 useEffect 捕获过期闭包
+  const markUnauthorizedRef = useRef(markUnauthorized);
+  markUnauthorizedRef.current = markUnauthorized;
+  const openLoginModalRef = useRef(openLoginModal);
+  openLoginModalRef.current = openLoginModal;
 
   useEffect(() => {
     registerAuthFailureHandler(() => {
-      // 清除失效 token，更新认证状态
-      removeAuthToken();
-      // 打开登录弹窗
-      setLoginModalOpen(true);
+      // 401：清除失效 token 与用户态（仅已登录时递增 authVersion）
+      markUnauthorizedRef.current();
+      // 打开登录弹框（store 幂等：已打开时不重复触发）
+      openLoginModalRef.current();
     });
   }, []);
 
-  return (
-    <LoginModal
-      isOpen={loginModalOpen}
-      onClose={() => setLoginModalOpen(false)}
-    />
-  );
+  return <LoginModal />;
 }
 
 function App() {
