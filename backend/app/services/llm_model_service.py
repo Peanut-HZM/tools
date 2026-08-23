@@ -202,16 +202,14 @@ class LLMModelService:
     # ------------------------------------------------------------------
 
     def _unset_default_models(self) -> None:
-        """把所有模型的全局 is_default 清为 False"""
+        """把所有模型的全局 is_default 清为 False（由外层统一 commit）"""
         self.db.query(LLMModel).filter(
             LLMModel.is_default == True  # noqa: E712
         ).update({"is_default": False})
-        self.db.commit()
 
     def _unset_category_defaults(self, category: str) -> None:
-        """把指定分类下的 is_default_for_category 清为 False"""
+        """把指定分类下的 is_default_for_category 清为 False（由外层统一 commit）"""
         self.db.query(LLMModel).filter(
             LLMModel.category == category,
             LLMModel.is_default_for_category == True,  # noqa: E712
         ).update({"is_default_for_category": False})
-        self.db.commit()

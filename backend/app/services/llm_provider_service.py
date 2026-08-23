@@ -5,6 +5,7 @@
 供 Task 1.5.4 的 admin API 以及前端页面调用。
 """
 
+import hashlib
 import logging
 import time
 import uuid as _uuid_mod
@@ -29,6 +30,11 @@ def _to_uuid(value: ID_LIKE) -> _uuid_mod.UUID:
     return _uuid_mod.UUID(str(value))
 
 
+def _hash_api_key(plaintext: str) -> bytes:
+    """计算明文 API Key 的 SHA-256 摘要（32 字节），用于幂等检索"""
+    return hashlib.sha256(plaintext.encode("utf-8")).digest()
+
+
 class LLMProviderService:
     """LLM 供应商服务"""
 
@@ -50,6 +56,19 @@ class LLMProviderService:
         """按 ID 查询单个供应商"""
         return self.db.query(LLMProvider).filter(LLMProvider.id == _to_uuid(provider_id)).first()
 
+    def get_by_api_key(self, api_key: str) -> Optional[LLMProvider]:
+        """
+        按明文 API Key 查找供应商（幂等，通过 SHA-256 hash 匹配）。
+        AES-GCM 每次加密 IV 随机，无法直接比对密文，必须走 hash。
+        """
+        return self.db.query(LLMProvider).filter(
+            LLMProvider.api_key_hash == _hash_api_key(api_key)
+        ).first()
+
+    def exists_by_api_key(self, api_key: str) -> bool:
+        """检查该 API Key 是否已被某个供应商使用（admin API 创建前去重）"""
+        return self.get_by_api_key(api_key) is not None
+
     # ------------------------------------------------------------------
     # 创建 / 更新
     # ------------------------------------------------------------------
@@ -66,14 +85,20 @@ class LLMProviderService:
         """
         新建供应商。
         api_key 以明文传入，内部加密后存入 api_key_encrypted 字段；
-        同时记录 api_key_suffix（末 4 位）便于人工识别。
+        同时记录 api_key_suffix（末 4 位）便于人工识别；
+        并写入 api_key_hash（SHA-256）用于幂等检索 / 去重。
+        若同一 api_key 已存在，抛 ValueError。
         """
+        if self.exists_by_api_key(api_key):
+            raise ValueError("provider with this api_key already exists")
+
         p = LLMProvider(
             name=name,
             provider_type=provider_type,
             base_url=base_url,
             api_key_encrypted=encrypt_api_key(api_key),
             api_key_suffix=api_key[-4:] if len(api_key) >= 4 else api_key,
+            api_key_hash=_hash_api_key(api_key),
             notes=notes,
             is_active=is_active,
         )
@@ -86,17 +111,18 @@ class LLMProviderService:
     def update_provider(self, provider_id: ID_LIKE, **kwargs) -> Optional[LLMProvider]:
         """
         更新供应商字段。
-        若 kwargs 包含 `api_key`（明文），则同步更新加密字段和 suffix。
+        若 kwargs 包含 `api_key`（明文），则同步更新加密字段、suffix 和 hash。
         """
         p = self.get_provider(provider_id)
         if not p:
             return None
 
-        # 单独处理 api_key：明文 → 加密 + suffix
+        # 单独处理 api_key：明文 → 加密 + suffix + hash
         if "api_key" in kwargs:
             api_key = kwargs.pop("api_key")
             kwargs["api_key_encrypted"] = encrypt_api_key(api_key)
             kwargs["api_key_suffix"] = api_key[-4:] if len(api_key) >= 4 else api_key
+            kwargs["api_key_hash"] = _hash_api_key(api_key)
 
         for k, v in kwargs.items():
             if hasattr(p, k):

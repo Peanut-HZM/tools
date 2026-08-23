@@ -7,7 +7,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Boolean, DateTime, Text
+from sqlalchemy import Column, String, Boolean, DateTime, Text, LargeBinary
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -29,6 +29,15 @@ class LLMProvider(Base):
     api_key_encrypted = Column(Text, nullable=False)
     # API Key 最后 4 位，仅用于人工识别
     api_key_suffix = Column(String(4), nullable=True)
+    # 明文 API Key 的 SHA-256 摘要，用于幂等检索 / 去重
+    # AES-GCM 每次加密 IV 随机，密文不幂等，因此需要单独存 hash
+    api_key_hash = Column(
+        LargeBinary(32),
+        nullable=True,
+        index=True,
+        unique=True,
+        comment="SHA256 of plaintext api_key, for idempotent lookup",
+    )
     notes = Column(String(500), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(

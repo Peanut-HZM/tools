@@ -19,6 +19,7 @@ llm_configs → llm_providers + llm_models 一次性数据迁移脚本
     python scripts/migrate_llm_configs.py --apply
 """
 
+import hashlib
 import sys
 import os
 import json
@@ -55,6 +56,11 @@ def _group_key(config) -> tuple:
         )
         plaintext_key = config.api_key_encrypted
     return (config.provider_type, config.base_url or "", plaintext_key)
+
+
+def _hash_api_key(plaintext: str) -> bytes:
+    """计算明文 API Key 的 SHA-256 摘要（32 字节）"""
+    return hashlib.sha256(plaintext.encode("utf-8")).digest()
 
 
 def _build_provider_name(provider_type: str, api_key_suffix: str) -> str:
@@ -103,12 +109,15 @@ def run_migration(apply: bool = False) -> dict:
 
         for key, cfgs in groups.items():
             first = cfgs[0]
+            # key = (provider_type, base_url, plaintext_api_key)
+            _, _, plaintext_api_key = key
             provider = LLMProvider(
                 name=_build_provider_name(first.provider_type, first.api_key_suffix),
                 provider_type=first.provider_type,
                 base_url=first.base_url or "",
                 api_key_encrypted=first.api_key_encrypted,
                 api_key_suffix=first.api_key_suffix,
+                api_key_hash=_hash_api_key(plaintext_api_key),
                 notes=f"自动迁移自 llm_configs（包含 {len(cfgs)} 个模型）",
                 is_active=first.is_active if first.is_active is not None else True,
             )

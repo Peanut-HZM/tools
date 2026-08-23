@@ -6,6 +6,10 @@ Task 1.5.3 — LLMProviderService 单元测试
   ✓ 创建 / 查询 / 列表 / 更新 / 删除
   ✓ api_key 加密存储 + reveal 解密
   ✓ api_key_suffix 自动记录
+  ✓ api_key_hash 存储（SHA-256 32 字节）
+  ✓ get_by_api_key 幂等检索
+  ✓ exists_by_api_key 去重查询
+  ✓ create_provider 重复 api_key 抛 ValueError
   ✓ set_active 启用 / 禁用
   ✓ delete_provider 有子记录时拒绝
   ✓ list_providers active_only 过滤
@@ -29,7 +33,7 @@ BACKEND_DIR = Path(__file__).parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from app.services.llm_provider_service import LLMProviderService
+from app.services.llm_provider_service import LLMProviderService, _hash_api_key
 
 
 @pytest.fixture
@@ -95,6 +99,61 @@ class TestCreateAndListProvider:
         assert len(all_list) == 2
         assert len(active_list) == 1
         assert active_list[0].name == "active"
+
+    def test_create_provider_stores_hash(self, db_session):
+        """创建后 api_key_hash 是 32 字节 SHA-256"""
+        svc = LLMProviderService(db_session)
+        p = svc.create_provider(
+            name="X", provider_type="openai",
+            base_url="https://api.example.com/v1", api_key="sk-test-key",
+        )
+        assert p.api_key_hash is not None
+        assert isinstance(p.api_key_hash, bytes)
+        assert len(p.api_key_hash) == 32
+        # 与直接计算 SHA-256 一致
+        assert p.api_key_hash == _hash_api_key("sk-test-key")
+
+    def test_get_by_api_key_finds_existing(self, db_session):
+        """明文 key 通过 hash 检索能找到"""
+        svc = LLMProviderService(db_session)
+        p = svc.create_provider(
+            name="X", provider_type="openai",
+            base_url="https://api.example.com/v1", api_key="sk-find-me",
+        )
+        found = svc.get_by_api_key("sk-find-me")
+        assert found is not None
+        assert found.id == p.id
+
+    def test_get_by_api_key_returns_none_for_missing(self, db_session):
+        """不存在的 key 返回 None"""
+        svc = LLMProviderService(db_session)
+        svc.create_provider(
+            name="X", provider_type="openai",
+            base_url="https://api.example.com/v1", api_key="sk-exists",
+        )
+        assert svc.get_by_api_key("sk-does-not-exist") is None
+
+    def test_exists_by_api_key_true_and_false(self, db_session):
+        svc = LLMProviderService(db_session)
+        svc.create_provider(
+            name="X", provider_type="openai",
+            base_url="https://api.example.com/v1", api_key="sk-dup",
+        )
+        assert svc.exists_by_api_key("sk-dup") is True
+        assert svc.exists_by_api_key("sk-other") is False
+
+    def test_create_provider_duplicate_api_key_raises(self, db_session):
+        """重复 api_key 创建应抛 ValueError"""
+        svc = LLMProviderService(db_session)
+        svc.create_provider(
+            name="first", provider_type="openai",
+            base_url="https://api.example.com/v1", api_key="sk-same-key",
+        )
+        with pytest.raises(ValueError, match="already exists"):
+            svc.create_provider(
+                name="second", provider_type="openai",
+                base_url="https://api.example.com/v1", api_key="sk-same-key",
+            )
 
 
 # ============================================================
