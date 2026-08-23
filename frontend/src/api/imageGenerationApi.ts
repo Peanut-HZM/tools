@@ -8,6 +8,7 @@
 import { API_BASE_URL } from '../config/api';
 import { getAuthHeaders } from './authApi';
 import { authedFetch } from './http';
+import { getBackend } from '../components/Tools/ImageGeneration/BackendSwitch';
 
 const BASE_URL = `${API_BASE_URL}/image-generation`;
 
@@ -316,6 +317,8 @@ export async function chatGenerate(
   const formData = new FormData();
   formData.append('operation', operation);
   formData.append('prompt', prompt);
+  // 自动附带当前后端选择（selfdev / dify），由 BackendSwitch 写入 localStorage
+  formData.append('backend', getBackend());
   if (conversationId) formData.append('conversation_id', conversationId);
   if (params?.size) formData.append('size', params.size);
   if (params?.n) formData.append('n', String(params.n));
