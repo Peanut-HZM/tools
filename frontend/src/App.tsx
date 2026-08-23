@@ -38,6 +38,7 @@ import SystemMonitor from './components/Tools/SystemMonitor';
 import TokenUsage from './components/Tools/TokenUsage';
 import OpenClawChat from './components/Tools/OpenClawChat/OpenClawChat';
 import K8sTool from './components/Tools/K8sTool/K8sTool';
+import ImageGeneration from './components/Tools/ImageGeneration';
 import { WorkspacePage } from './components/Workspace/WorkspacePage';
 import OpenClawManagement from './components/Admin/OpenClawManagement';
 import CourseLearnPage from './pages/CourseLearnPage';
@@ -328,6 +329,7 @@ function App() {
               <Route path="/tools/token-usage" element={<TokenUsage />} />
               <Route path="/tools/openclaw" element={<OpenClawChat />} />
               <Route path="/tools/k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
+              <Route path="/tools/image-generation" element={<ImageGeneration />} />
             </Route>
 
             {/* Admin Routes */}
