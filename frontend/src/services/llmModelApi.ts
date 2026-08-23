@@ -13,7 +13,15 @@ const getAuthHeaders = () => {
 };
 
 /** 模型分类 */
-export type ModelCategory = 'chat' | 'code';
+export type ModelCategory =
+  | 'chat'
+  | 'code'
+  | 'voice'
+  | 'vision'
+  | 'multimodal'
+  | 'embedding'
+  | 'image_polish'
+  | 'image_gen';
 
 /** 模型 */
 export interface LLMModel {
@@ -30,6 +38,8 @@ export interface LLMModel {
   is_active: boolean;
   created_at: string;
   updated_at?: string;
+  /** 兜底链优先级，越小越优先 */
+  priority: number;
 }
 
 /** 创建模型请求 */
@@ -43,6 +53,7 @@ export interface CreateModelRequest {
   is_default_for_category?: boolean;
   notes?: string;
   is_active?: boolean;
+  priority?: number;
 }
 
 /** 更新模型请求 */
@@ -56,6 +67,7 @@ export interface UpdateModelRequest {
   is_default_for_category?: boolean;
   notes?: string;
   is_active?: boolean;
+  priority?: number;
 }
 
 export const llmModelApi = {
