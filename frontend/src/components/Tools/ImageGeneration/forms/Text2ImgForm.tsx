@@ -92,7 +92,12 @@ export default function Text2ImgForm() {
           </div>
           <div className="flex gap-2 mt-2">
             <button
-              onClick={() => window.open(currentResult.image_urls[0])}
+              onClick={() => {
+                const imageUrl = currentResult.image_urls[0];
+                if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+                  window.open(imageUrl, '_blank');
+                }
+              }}
               className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
             >
               {igT.result.download}
