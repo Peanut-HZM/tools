@@ -6,20 +6,25 @@
 import { useQuery } from '@tanstack/react-query';
 import * as api from '../api/k8sToolApi';
 import { useK8sStore } from '../stores/k8sStore';
+import { useAuth } from '../stores/authStore';
 
 /**
  * 获取当前用户所有 K8s 连接配置列表
  * 30 秒轮询刷新，自动同步到 zustand store
+ * 未登录时禁用（不发请求）；登录成功后 authVersion 变化触发重新请求
  */
 export const useK8sConnections = () => {
   const { setConnections } = useK8sStore();
+  const { isAuthenticated, authVersion } = useAuth();
   return useQuery({
-    queryKey: ['k8s', 'connections'],
+    // authVersion 加入 queryKey：登录成功/401 后自动以新 key 重新请求
+    queryKey: ['k8s', 'connections', authVersion],
     queryFn: async () => {
       const data = await api.getK8sConfigs();
       setConnections(data);
       return data;
     },
+    enabled: isAuthenticated,
     refetchInterval: 30_000,
   });
 };

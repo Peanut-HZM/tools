@@ -42,6 +42,11 @@ vi.mock('./BottomPanel/BottomPanel', () => ({
 }));
 
 // ---- Mock hooks ----
+vi.mock('../../../stores/authStore', () => ({
+  // 模拟已登录场景：isAuthenticated: true、authVersion: 0
+  useAuth: () => ({ isAuthenticated: true, authVersion: 0 }),
+}));
+
 vi.mock('../../../hooks/useToast', () => ({
   useToast: () => ({ addToast: vi.fn() }),
 }));

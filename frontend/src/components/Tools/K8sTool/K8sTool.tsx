@@ -16,12 +16,15 @@ import { ResourceTabs } from './ResourceTabs';
 import { BottomPanel } from './BottomPanel/BottomPanel';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n, interpolate } from '../../../i18n';
+import { useAuth } from '../../../stores/authStore';
+import RequireAuthNotice from '../../Common/RequireAuthNotice';
 import type { K8sConnection } from './types';
 import * as api from '../../../api/k8sToolApi';
 
 const K8sTool: React.FC = () => {
   const { addToast } = useToast();
   const { t } = useI18n();
+  const { isAuthenticated } = useAuth();
   const { connections, activeConnectionId, setActiveConnection, setConnections } = useK8sStore();
 
   const [showModal, setShowModal] = useState(false);
@@ -116,6 +119,11 @@ const K8sTool: React.FC = () => {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging]);
+
+  // 未登录：不发请求，显示登录提示
+  if (!isAuthenticated) {
+    return <RequireAuthNotice />;
+  }
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-slate-900 overflow-hidden">
