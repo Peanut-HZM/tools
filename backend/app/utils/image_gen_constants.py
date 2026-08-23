@@ -1,0 +1,80 @@
+"""图像生成工具常量"""
+
+# 操作类型
+OPERATION_TEXT2IMG = "text2img"
+OPERATION_IMG2IMG = "img2img"
+OPERATION_INPAINT = "inpaint"
+OPERATION_UPLOAD_EDIT = "upload_edit"
+
+VALID_OPERATIONS = {
+    OPERATION_TEXT2IMG,
+    OPERATION_IMG2IMG,
+    OPERATION_INPAINT,
+    OPERATION_UPLOAD_EDIT,
+}
+
+# 上传编辑类型
+EDIT_TYPE_UPSCALE = "upscale"
+EDIT_TYPE_DENOISE = "denoise"
+EDIT_TYPE_RELIGHT = "relight"
+EDIT_TYPE_STYLE_TRANSFER = "style_transfer"
+EDIT_TYPE_BACKGROUND_REMOVE = "background_remove"
+
+VALID_EDIT_TYPES = {
+    EDIT_TYPE_UPSCALE,
+    EDIT_TYPE_DENOISE,
+    EDIT_TYPE_RELIGHT,
+    EDIT_TYPE_STYLE_TRANSFER,
+    EDIT_TYPE_BACKGROUND_REMOVE,
+}
+
+# 尺寸枚举
+VALID_SIZES = {
+    "1024x1024",
+    "1024x1792",
+    "1792x1024",
+    "512x512",
+    "768x768",
+}
+
+# 模型偏好枚举
+VALID_MODEL_PREFERENCES = {
+    "auto",
+    "doubao_seedream",
+    "qwen_image",
+    "dall_e_3",
+    "sdxl",
+}
+
+# OSS 前缀
+OSS_PREFIX_REF = "image-gen/ref"
+OSS_PREFIX_MASK = "image-gen/mask"
+OSS_PREFIX_RESULT = "image-gen/result"
+
+# 文件限制
+MAX_REFERENCE_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_N_IMAGES = 4
+SIGNED_URL_EXPIRES_REF = 300    # 5 分钟（Dify 用）
+SIGNED_URL_EXPIRES_RESULT = 3600  # 1 小时（前端用）
+
+# 默认配额
+DEFAULT_DAILY_LIMIT = 20
+DEFAULT_MONTHLY_LIMIT = 300
+
+# 默认降级配置
+DEFAULT_DEGRADATION_ENABLED = True
+DEFAULT_FAILURE_THRESHOLD = 3
+DEFAULT_DEGRADE_DURATION_SECONDS = 300
+
+# 默认保留策略
+RETENTION_MODE_KEEP_FOREVER = "keep_forever"
+RETENTION_MODE_DELETE_AFTER_N_DAYS = "delete_after_n_days"
+RETENTION_MODE_DELETE_IF_UNUSED_FOR_N_DAYS = "delete_if_unused_for_n_days"
+DEFAULT_RETENTION_MODE = RETENTION_MODE_KEEP_FOREVER
+DEFAULT_RETENTION_N_DAYS = 30
+DEFAULT_CLEANUP_CRON = "0 3 * * *"
+
+# 历史状态
+STATUS_SUCCESS = "success"
+STATUS_FAILED = "failed"
+STATUS_CANCELLED = "cancelled"
