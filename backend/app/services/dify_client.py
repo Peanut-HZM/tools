@@ -270,6 +270,113 @@ class DifyClient:
             timeout=timeout or config.default_timeout,
         )
 
+    async def chat_img2img(
+        self,
+        prompt: str,
+        reference_url: str,
+        conversation_id: Optional[str],
+        strength: float,
+        size: str,
+        model_preference: str,
+        user_id: str,
+        timeout: Optional[float] = None,
+    ) -> ChatRunResult:
+        """调用 img2img-chat Chatflow"""
+        config = self._get_config()
+        if not config.workflow_img2img:
+            raise DifyError("img2img Chatflow 未配置", kind="config_error")
+
+        inputs = {
+            "reference_url": reference_url,
+            "strength": strength,
+            "size": size,
+            "model_preference": model_preference,
+        }
+        payload = {
+            "inputs": inputs,
+            "query": prompt,
+            "response_mode": "blocking",
+            "user": user_id or "anonymous",
+            "conversation_id": conversation_id or "",
+        }
+        return await self._call_chat(
+            config=config,
+            endpoint="/chat-messages",
+            payload=payload,
+            user_id=user_id,
+            timeout=timeout or config.default_timeout,
+        )
+
+    async def chat_inpaint(
+        self,
+        prompt: str,
+        image_url: str,
+        mask_url: str,
+        conversation_id: Optional[str],
+        size: str,
+        model_preference: str,
+        user_id: str,
+        timeout: Optional[float] = None,
+    ) -> ChatRunResult:
+        """调用 inpaint-chat Chatflow"""
+        config = self._get_config()
+        if not config.workflow_inpaint:
+            raise DifyError("inpaint Chatflow 未配置", kind="config_error")
+
+        inputs = {
+            "image_url": image_url,
+            "mask_url": mask_url,
+            "size": size,
+            "model_preference": model_preference,
+        }
+        payload = {
+            "inputs": inputs,
+            "query": prompt,
+            "response_mode": "blocking",
+            "user": user_id or "anonymous",
+            "conversation_id": conversation_id or "",
+        }
+        return await self._call_chat(
+            config=config,
+            endpoint="/chat-messages",
+            payload=payload,
+            user_id=user_id,
+            timeout=timeout or config.default_timeout,
+        )
+
+    async def chat_upload_edit(
+        self,
+        image_url: str,
+        edit_type: str,
+        conversation_id: Optional[str],
+        prompt: Optional[str],
+        user_id: str,
+        timeout: Optional[float] = None,
+    ) -> ChatRunResult:
+        """调用 upload-edit-chat Chatflow"""
+        config = self._get_config()
+        if not config.workflow_upload_edit:
+            raise DifyError("upload_edit Chatflow 未配置", kind="config_error")
+
+        inputs = {
+            "image_url": image_url,
+            "edit_type": edit_type,
+        }
+        payload = {
+            "inputs": inputs,
+            "query": prompt or "",
+            "response_mode": "blocking",
+            "user": user_id or "anonymous",
+            "conversation_id": conversation_id or "",
+        }
+        return await self._call_chat(
+            config=config,
+            endpoint="/chat-messages",
+            payload=payload,
+            user_id=user_id,
+            timeout=timeout or config.default_timeout,
+        )
+
     async def _call_chat(
         self,
         config: "DifyConfig",
