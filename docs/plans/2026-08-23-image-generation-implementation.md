@@ -90,71 +90,155 @@ Phase 13: i18n + 集成测试 + 文档
 
 ---
 
-## Phase 0: Dify 工作空间初始化（手动运维）
+## Phase 0: Dify 工作空间初始化（手动 + 服务端前置）
 
 **目标**：让 Dify 具备 4 个可调用的工作流 + 1 个 App API Key
 
-**执行人**：用户本人（需要 Dify 管理后台账号）
+**执行人**：用户本人（登录 Dify）+ 开发者（服务端 SSH）
 
 **前置条件**：
-- Dify 管理员账号 `peanut_hzm@163.com`（密码自管）
-- 至少一个图像生成模型的 API Key（豆包/通义万相/DALL-E 等）
+- Dify 管理员账号 `peanut_hzm@163.com`（密码自管，初始密码在 `Dify@2026` 之后用户重设）
+- 服务器 SSH 免密（已配置）
+- 各厂商图像生成 API Key（豆包/通义万相/MiniMax 等）
 
-**任务清单**：
+### Part A: 服务端前置（开发者 SSH 操作）
 
-- [ ] **Step 1: 登录 Dify**
-  - 访问 `https://dify.peanuthzm.com.cn`
-  - 用 `peanut_hzm@163.com` + 密码登录
-  - 进入 "Dify Workspace"
+**Step A1: 安装 uv（Dify 插件依赖）**
 
-- [ ] **Step 2: 配置模型供应商**
-  - 进入 "工作室" → "模型供应商"
-  - 添加至少 1 个图像生成模型（如阿里通义万相 / 豆包 / OpenAI）
-  - 填入厂商 API Key
-  - 测试连接成功
+```bash
+ssh root@39.107.229.30
+curl -LsSf https://astral.sh/uv/install.sh | sh
+ln -sf /root/.local/bin/uv /usr/local/bin/uv
+uv --version
+```
 
-- [ ] **Step 3: 创建 text2img 工作流**
-  - 新建应用 → 选 "工作流" → 命名 "text2img"
-  - 配置 Start 节点：`prompt (string)`, `size (enum)`, `n (int)`, `style (enum optional)`, `model_preference (enum)`
-  - 配置条件分支（按 model_preference 路由）
-  - 配置 HTTP/工具节点调用图像模型
-  - 配置 End 节点输出 `image_urls (array<string>)`, `model_used (string)`
-  - 测试运行通过
+**Step A2: 修正 Dify DB 连接池配置（防 500 错误）**
 
-- [ ] **Step 4: 创建 img2img / inpaint / upload_edit 工作流**
-  - 按 spec §4.2-4.4 设计，逐个创建并测试
+实测发现：Dify 1.14.2 默认连接池配置会在高并发下打满 PostgreSQL `max_connections=100`，导致 `FATAL: too many clients already`。**必须修复**：
 
-- [ ] **Step 5: 获取 App API Key**
-  - 进入任一应用的 "访问 API" 页面
-  - 生成 API Key，格式形如 `app-xxxxxxxxxxxx`
-  - 记录 4 个 workflow 的 ID（在 URL 或应用设置里）
+```bash
+# 追加到 /data/programs/dify/conf/api.env 末尾
+cat >> /data/programs/dify/conf/api.env << 'EOF'
 
-- [ ] **Step 6: 记录到 .env**
-  - 在 `backend/.env` 增加：
-    ```bash
-    DIFY_API_URL=https://dify.peanuthzm.com.cn/v1
-    DIFY_APP_API_KEY=app-xxxxxxxxxxxx
-    DIFY_WORKFLOW_TEXT2IMG=wf_xxx
-    DIFY_WORKFLOW_IMG2IMG=wf_yyy
-    DIFY_WORKFLOW_INPAINT=wf_zzz
-    DIFY_WORKFLOW_UPLOAD_EDIT=wf_aaa
-    ```
+# 数据库连接池优化（防止连接数溢出）
+DB_PSYCOPG_POOL_MIN_CONN=2
+DB_PSYCOPG_POOL_MAX_CONN=15
+DB_PSYCOPG_POOL_TIMEOUT=10
+DB_SQLALCHEMY_POOL_SIZE=5
+DB_SQLALCHEMY_MAX_OVERFLOW=5
+DB_SQLALCHEMY_POOL_TIMEOUT=10
+DB_HEALTH_CHECK=true
+EOF
 
-- [ ] **Step 7: 测试 Dify API 可达**
-  ```bash
-  curl -X POST https://dify.peanuthzm.com.cn/v1/workflows/run \
-    -H "Authorization: Bearer app-xxxxxxxxxxxx" \
-    -H "Content-Type: application/json" \
-    -d '{"inputs": {"prompt": "a cat", "size": "1024x1024", "n": 1, "model_preference": "auto"}, "response_mode": "blocking", "user": "test"}'
-  ```
-  期望：返回 JSON 包含 `task_id` 和 `workflow_run_id`
+# 必须直接重启 dify-api（dify.target 有时不杀掉 gunicorn）
+systemctl restart dify-api
+sleep 12
+
+# 验证
+DBPWD=$(grep ^DB_PASSWORD /data/programs/dify/conf/api.env | cut -d= -f2-)
+export PGPASSWORD="$DBPWD"
+psql -h 127.0.0.1 -U postgres -d dify -c "SELECT count(*) FROM pg_stat_activity WHERE datname='dify';"
+# 期望：< 15（不再是 90+）
+```
+
+**Step A3: 修正插件安装超时**
+
+```bash
+# 默认 15s 太短，下载依赖时会超时
+sed -i 's/^PLUGIN_INSTALL_TIMEOUT=15$/PLUGIN_INSTALL_TIMEOUT=300/' \
+    /data/programs/dify-plugin-daemon-src/.env
+systemctl restart dify-plugin-daemon
+```
+
+**Step A4: 安装国内常用插件（开发者可批量执行）**
+
+通过 plugin daemon API 批量安装，**用 marketplace API 的 `latest_package_identifier`（不是文件 sha256）**：
+
+```bash
+# 详见 spec §C.6 插件清单
+# 用 ssh + curl 触发（示例为 tongyi）
+ssh root@39.107.229.30 'curl -s -X POST -H "X-Api-Key: inner-api-key" -H "Content-Type: application/json" \
+  "http://127.0.0.1:15002/plugin/4a57b927-c09c-4463-ba1b-0fbc5b2de16e/management/install/identifiers" \
+  -d "{\"plugin_unique_identifiers\":[\"langgenius/tongyi:0.2.14@da713345c5587cecafa266cc98db84b9194c30b3c98070c2dbfaae8a8ed92e76\"],\"source\":\"marketplace\",\"metas\":[{}]}"'
+
+# 等安装完成（每个插件需要建 venv + 装依赖，约 1-2 分钟/个）
+# 验证
+ssh root@39.107.229.30 'curl -s -H "X-Api-Key: inner-api-key" \
+  "http://127.0.0.1:15002/plugin/4a57b927-c09c-4463-ba1b-0fbc5b2de16e/management/list?page=1&page_size=256&response_type=paged" | \
+  python3 -c "import sys,json;d=json.load(sys.stdin);print(len(d[\"data\"][\"list\"]),\"plugins installed\")"'
+```
+
+> **重要**：插件会出现在 Dify UI 的「工具」页面，**不是「模型供应商」**。需要在「工具」页面单独为每个插件授权 API Key。
+
+---
+
+### Part B: 用户手动操作
+
+**Step B1: 登录 Dify**
+
+- 访问 `https://dify.peanuthzm.com.cn`
+- 用管理员账号登录
+
+**Step B2: 在「工具」页面配置 API Key**
+
+- 进入「工具」页面（不是「模型供应商」）
+- 为每个图像生成插件配置 API Key：
+  - **豆包 Seedream**：火山引擎 ARK API Key
+  - **通义 AIGC**：阿里云 DashScope API Key
+  - **海螺 Hailuo**：MiniMax API Key
+
+> **注意**：LLM 类插件（tongyi/deepseek/moonshot/zhipuai 等）在「模型供应商」配置 API Key。
+
+**Step B3: 创建 4 个工作流**
+
+按 `docs/plans/2026-08-23-image-generation-workflow-design.md` 设计：
+
+- 新建工作流 → 命名 `image_gen_text2img` / `image_gen_img2img` / `image_gen_inpaint` / `image_gen_upload_edit`
+- 配置节点：开始 → 条件分支 → 工具节点（插件的 `text_2_image` / `image_2_image` / inpaint / edit 方法）→ 代码解析 → 结束
+- 输出变量统一：`image_urls (array[string>)`, `model_used (string)`
+
+**Step B4: 获取 App API Key + Workflow IDs**
+
+- 进入任一应用「访问 API」→ 生成 API Key（形如 `app-xxxxxxxxxxxx`）
+- 记录 4 个 workflow ID（在 URL 或应用设置里）
+
+**Step B5: 写入 `.env`**
+
+```bash
+# backend/.env 增加：
+DIFY_API_URL=https://dify.peanuthzm.com.cn/v1
+DIFY_APP_API_KEY=app-xxxxxxxxxxxx
+DIFY_WORKFLOW_TEXT2IMG=wf_xxx
+DIFY_WORKFLOW_IMG2IMG=wf_yyy
+DIFY_WORKFLOW_INPAINT=wf_zzz
+DIFY_WORKFLOW_UPLOAD_EDIT=wf_aaa
+```
+
+**Step B6: 测试 API 可达**
+
+```bash
+curl -X POST https://dify.peanuthzm.com.cn/v1/workflows/run \
+  -H "Authorization: Bearer app-xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": {"prompt": "a cat", "size": "1024x1024", "n": 1, "model_preference": "auto"}, "response_mode": "blocking", "user": "test"}'
+```
+
+期望：返回 JSON 含 `task_id` + `workflow_run_id`。
+
+---
 
 **验收标准**：
+- ✅ uv 已装（`uv --version` 可用）
+- ✅ DB 连接池配置生效（pg_stat_activity idle < 15）
+- ✅ 插件安装超时改 300s
+- ✅ 至少 25 个国内常用插件安装成功
 - ✅ 4 个工作流可独立运行
 - ✅ 用 App API Key 能调通至少一个工作流
 - ✅ `.env` 已配置
 
-**预估工时**：2-4 小时
+**预估工时**：
+- Part A（服务端）：30-60 分钟
+- Part B（用户手动）：1-2 小时
 
 ---
 
