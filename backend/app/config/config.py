@@ -123,6 +123,18 @@ class Settings(BaseSettings):
     K8S_WS_IDLE_TIMEOUT: int = 1800       # 30 分钟 WebSocket 空闲超时（秒）
     K8S_DEFAULT_REFETCH_INTERVAL: int = 10  # 前端默认轮询间隔（秒）
 
+    # Dify 图像生成（默认值，可被 DB 后台覆盖）
+    DIFY_API_URL: str = ""
+    DIFY_APP_API_KEY: str = ""  # 敏感字段，建议放 .env
+    DIFY_WORKFLOW_TEXT2IMG: str = ""
+    DIFY_WORKFLOW_IMG2IMG: str = ""
+    DIFY_WORKFLOW_INPAINT: str = ""
+    DIFY_WORKFLOW_UPLOAD_EDIT: str = ""
+    DIFY_DEFAULT_TIMEOUT: float = 60.0
+
+    # 图像生成全局开关
+    IMAGE_GENERATION_ENABLED: bool = True
+
     class Config:
         env_file = str(PROJECT_ROOT / ".env")
         env_file_encoding = "utf-8"
