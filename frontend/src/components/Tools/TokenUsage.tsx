@@ -13,6 +13,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../stores/authStore';
+import RequireAuthNotice from '../Common/RequireAuthNotice';
 import {
   Bar,
   CartesianGrid,
@@ -79,6 +81,7 @@ function formatDateTime(value?: string | null): string {
 
 export default function TokenUsage() {
   const { showToast } = useToast();
+  const { isAuthenticated, authVersion } = useAuth();
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [reportType, setReportType] = useState<TokenUsageReportType>('daily');
   const [days, setDays] = useState(30);
@@ -162,7 +165,7 @@ export default function TokenUsage() {
     device_id: debouncedDevice || undefined,
     tool_id: debouncedTool || undefined,
     model: debouncedModel || undefined,
-  });
+  }, isAuthenticated);
 
   const details = useTokenUsageDetails({
     type: reportType,
@@ -176,16 +179,17 @@ export default function TokenUsage() {
     sort_order: 'desc',
     limit: PAGE_SIZE,
     offset: (currentPage - 1) * PAGE_SIZE,
-  });
+  }, isAuthenticated);
 
   useTokenUsagePolling(async (opts) => {
     await summary.refresh(opts);
-  });
+  }, 30_000, isAuthenticated);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     void loadDevices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthenticated, authVersion]);
 
   const toolNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -529,6 +533,11 @@ export default function TokenUsage() {
       : groupBy === 'tool'
         ? '工具消耗对比'
         : '模型消耗分析';
+
+  // 未登录：不发请求，显示登录提示（登录成功后 authVersion 变化自动重载）
+  if (!isAuthenticated) {
+    return <RequireAuthNotice />;
+  }
 
   return (
     <div className="min-h-0 overflow-y-auto bg-slate-950 p-6 text-slate-100">

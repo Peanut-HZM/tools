@@ -2,15 +2,19 @@ import { useEffect, useRef } from 'react';
 
 export function useTokenUsagePolling(
   fetchSummary: (opts: { silent: boolean }) => Promise<void>,
-  intervalMs: number = 30_000
+  intervalMs: number = 30_000,
+  enabled: boolean = true
 ): void {
   const inFlightRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const cancelledRef = useRef(false);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const fetchRef = useRef(fetchSummary);
   fetchRef.current = fetchSummary;
 
   useEffect(() => {
+    if (!enabled) return;
     cancelledRef.current = false;
 
     const clear = () => {
@@ -28,6 +32,10 @@ export function useTokenUsagePolling(
 
     const run = async () => {
       if (cancelledRef.current) return;
+      if (!enabledRef.current) {
+        schedule(intervalMs);
+        return;
+      }
       if (document.hidden) {
         schedule(intervalMs);
         return;
@@ -61,5 +69,5 @@ export function useTokenUsagePolling(
       clear();
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [intervalMs]);
+  }, [intervalMs, enabled]);
 }

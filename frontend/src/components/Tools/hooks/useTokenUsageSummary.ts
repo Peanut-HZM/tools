@@ -40,15 +40,21 @@ export interface UseTokenUsageSummaryResult {
   refresh: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
-export function useTokenUsageSummary(params: DbQueryParams): UseTokenUsageSummaryResult {
+export function useTokenUsageSummary(
+  params: DbQueryParams,
+  enabled: boolean = true
+): UseTokenUsageSummaryResult {
   const [data, setData] = useState<TokenUsageSummaryResponse>(EMPTY);
   const [loading, setLoading] = useState(false);
   const [silentLoading, setSilentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reqIdRef = useRef(0);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
 
   const refresh = useCallback(
     async (opts?: { silent?: boolean }) => {
+      if (!enabledRef.current) return;   // 未登录时不发请求
       const silent = Boolean(opts?.silent);
       const reqId = ++reqIdRef.current;
       if (!silent) {
@@ -85,8 +91,9 @@ export function useTokenUsageSummary(params: DbQueryParams): UseTokenUsageSummar
   );
 
   useEffect(() => {
+    if (!enabled) return;
     void refresh();
-  }, [refresh]);
+  }, [refresh, enabled]);
 
   return { data, loading, silentLoading, error, refresh };
 }

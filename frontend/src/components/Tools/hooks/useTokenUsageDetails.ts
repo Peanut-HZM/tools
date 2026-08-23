@@ -22,14 +22,18 @@ export interface UseTokenUsageDetailsResult {
 }
 
 export function useTokenUsageDetails(
-  params: TokenUsageDetailsParams
+  params: TokenUsageDetailsParams,
+  enabled: boolean = true
 ): UseTokenUsageDetailsResult {
   const [data, setData] = useState<TokenUsageDetailsResponse>(EMPTY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reqIdRef = useRef(0);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
 
   const refresh = useCallback(async () => {
+    if (!enabledRef.current) return;   // 未登录时不发请求
     const reqId = ++reqIdRef.current;
     setLoading(true);
     setError(null);
@@ -59,8 +63,9 @@ export function useTokenUsageDetails(
   ]);
 
   useEffect(() => {
+    if (!enabled) return;
     void refresh();
-  }, [refresh]);
+  }, [refresh, enabled]);
 
   return { data, loading, error, refresh };
 }
