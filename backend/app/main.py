@@ -399,6 +399,12 @@ from app.api.routes import agents as agents_router
 
 app.include_router(agents_router.router, prefix="/api/v1")
 
+# LLM 供应商 / 模型管理 router（Task 1.5.4）
+from app.api.routes import admin_llm_providers, admin_llm_models
+
+app.include_router(admin_llm_providers.router, prefix="/api/v1")
+app.include_router(admin_llm_models.router, prefix="/api/v1")
+
 # Contact Message router
 app.include_router(contact_message.router)
 
