@@ -1,16 +1,20 @@
 """
-Task 8.1 — ImageGenPromptPolisher 单元测试
+Task 8.1 / Task 14 — ImageGenPromptPolisher 单元测试
 
-覆盖范围（9 个用例）：
+Task 14 起润色器迁移到 OrderedLLMGateway，本文件改为 mock 网关，
+行为覆盖与迁移前保持一致：
+
   1. test_polish_returns_optimized_prompt — 成功路径返回润色后内容
   2. test_polish_uses_image_polish_category_first — 优先选 image_polish 类别
   3. test_polish_falls_back_to_chat_when_no_image_polish_model — 兜底 chat 类别
   4. test_polish_returns_original_when_no_model_found — 两类都无 → 原 prompt + warning
-  5. test_polish_returns_original_when_fallback_fails — fallback 抛异常 → 原 prompt + warning
-  6. test_polish_returns_original_when_fallback_returns_empty — fallback 返回 None/"" → 原 prompt
+  5. test_polish_returns_original_when_gateway_fails — 网关抛异常 → 原 prompt + warning
+  6. test_polish_returns_original_when_gateway_returns_empty — 返回 None/"" → 原 prompt
   7. test_polish_returns_original_when_provider_config_incomplete — provider 字段缺失 → 原 prompt
   8. test_polish_system_prompt_includes_operation_and_model — 验证 system_msg 包含 operation 和 model_name
   9. test_polish_returns_original_when_model_missing_model_name — model 缺 model_name → 原 prompt
+  10. test_polish_cross_category_fallback_on_all_unavailable — image_polish 链全失败 → 降级 chat
+  11. test_polish_accepts_generation_result — 兼容 GenerationResult（.content）返回形态
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.services.image_gen_prompt_polisher import ImageGenPromptPolisher
+from app.services.llm.exceptions import AllModelsUnavailableError
 
 
 # ============================================================
@@ -84,20 +89,20 @@ def mock_model_svc():
 
 
 @pytest.fixture
-def mock_fallback_svc():
-    """模拟 LLMFallbackService"""
-    svc = AsyncMock()
-    svc.generate_with_fallback = AsyncMock()
-    return svc
+def mock_gateway():
+    """模拟 OrderedLLMGateway"""
+    gw = AsyncMock()
+    gw.generate = AsyncMock()
+    return gw
 
 
-def _build_polisher(mock_model_svc, mock_fallback_svc) -> ImageGenPromptPolisher:
+def _build_polisher(mock_model_svc, mock_gateway) -> ImageGenPromptPolisher:
     """构建 ImageGenPromptPolisher，注入 mock 依赖"""
     # 直接构造，绕过 __init__ 中的真实 LLMModelService 实例化
     polisher = ImageGenPromptPolisher.__new__(ImageGenPromptPolisher)
     polisher._db = MagicMock()
     polisher._model_svc = mock_model_svc
-    polisher._fallback_svc = mock_fallback_svc
+    polisher._gateway = mock_gateway
     return polisher
 
 
@@ -106,20 +111,20 @@ def _build_polisher(mock_model_svc, mock_fallback_svc) -> ImageGenPromptPolisher
 # ============================================================
 
 @pytest.mark.asyncio
-async def test_polish_returns_optimized_prompt(mock_model_svc, mock_fallback_svc):
-    """正常路径：image_polish 模型存在 → 调用 LLM → 返回润色后的内容"""
+async def test_polish_returns_optimized_prompt(mock_model_svc, mock_gateway):
+    """正常路径：image_polish 模型存在 → 调用网关 → 返回润色后的内容"""
     model = _make_model()
     mock_model_svc.get_default_model.return_value = model
-    mock_fallback_svc.generate_with_fallback.return_value = (
+    mock_gateway.generate.return_value = (
         "a majestic cat sitting on a windowsill, golden hour lighting"
     )
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
     result = await polisher.polish("一只可爱的猫", user_id="user-1")
 
     assert result == "a majestic cat sitting on a windowsill, golden hour lighting"
     mock_model_svc.get_default_model.assert_called_once_with(category="image_polish")
-    mock_fallback_svc.generate_with_fallback.assert_called_once()
+    mock_gateway.generate.assert_called_once()
 
 
 # ============================================================
@@ -127,21 +132,21 @@ async def test_polish_returns_optimized_prompt(mock_model_svc, mock_fallback_svc
 # ============================================================
 
 @pytest.mark.asyncio
-async def test_polish_uses_image_polish_category_first(mock_model_svc, mock_fallback_svc):
+async def test_polish_uses_image_polish_category_first(mock_model_svc, mock_gateway):
     """image_polish 存在时，不调用 chat 类别"""
     polish_model = _make_model(category="image_polish", model_name="dalle-3")
     mock_model_svc.get_default_model.return_value = polish_model
-    mock_fallback_svc.generate_with_fallback.return_value = "polished prompt"
+    mock_gateway.generate.return_value = "polished prompt"
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
     result = await polisher.polish("test", user_id="user-1")
 
     assert result == "polished prompt"
     # 只调用一次 get_default_model（image_polish 命中，不查 chat）
     mock_model_svc.get_default_model.assert_called_once_with(category="image_polish")
-    # 验证 fallback 用的 model id
-    call_kwargs = mock_fallback_svc.generate_with_fallback.call_args.kwargs
-    assert call_kwargs["primary_config_id"] == "model-id-5678"
+    # 验证网关走 image_polish 分类
+    call_kwargs = mock_gateway.generate.call_args.kwargs
+    assert call_kwargs["category"] == "image_polish"
 
 
 # ============================================================
@@ -150,24 +155,24 @@ async def test_polish_uses_image_polish_category_first(mock_model_svc, mock_fall
 
 @pytest.mark.asyncio
 async def test_polish_falls_back_to_chat_when_no_image_polish_model(
-    mock_model_svc, mock_fallback_svc
+    mock_model_svc, mock_gateway
 ):
     """image_polish 类别无默认 → 查 chat 类别"""
     chat_model = _make_model(category="chat", model_name="gpt-4o", model_id="chat-model-id")
     # 第一次（image_polish）返回 None，第二次（chat）返回 chat_model
     mock_model_svc.get_default_model.side_effect = [None, chat_model]
-    mock_fallback_svc.generate_with_fallback.return_value = "chat-fallback polish"
+    mock_gateway.generate.return_value = "chat-fallback polish"
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
     result = await polisher.polish("test", user_id="user-1")
 
     assert result == "chat-fallback polish"
     assert mock_model_svc.get_default_model.call_count == 2
     mock_model_svc.get_default_model.assert_any_call(category="image_polish")
     mock_model_svc.get_default_model.assert_any_call(category="chat")
-    # fallback 用 chat model id
-    call_kwargs = mock_fallback_svc.generate_with_fallback.call_args.kwargs
-    assert call_kwargs["primary_config_id"] == "chat-model-id"
+    # 网关走 chat 分类
+    call_kwargs = mock_gateway.generate.call_args.kwargs
+    assert call_kwargs["category"] == "chat"
 
 
 # ============================================================
@@ -176,36 +181,37 @@ async def test_polish_falls_back_to_chat_when_no_image_polish_model(
 
 @pytest.mark.asyncio
 async def test_polish_returns_original_when_no_model_found(
-    mock_model_svc, mock_fallback_svc, caplog
+    mock_model_svc, mock_gateway, caplog
 ):
     """image_polish + chat 均无默认 → 返回原 prompt，记 warning"""
     mock_model_svc.get_default_model.side_effect = [None, None]
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
 
     with caplog.at_level(logging.WARNING, logger="app.services.image_gen_prompt_polisher"):
         result = await polisher.polish("original prompt", user_id="user-1")
 
     assert result == "original prompt"
-    mock_fallback_svc.generate_with_fallback.assert_not_called()
+    mock_gateway.generate.assert_not_called()
     # 验证 warning 日志
     assert any("无可用默认模型" in rec.message for rec in caplog.records)
 
 
 # ============================================================
-# 5. fallback 抛异常 → 原 prompt + warning
+# 5. 网关抛异常 → 原 prompt + warning
 # ============================================================
 
 @pytest.mark.asyncio
-async def test_polish_returns_original_when_fallback_fails(
-    mock_model_svc, mock_fallback_svc, caplog
+async def test_polish_returns_original_when_gateway_fails(
+    mock_model_svc, mock_gateway, caplog
 ):
-    """LLMFallbackService 抛异常 → 不冒泡，返回原 prompt + warning"""
-    model = _make_model()
-    mock_model_svc.get_default_model.return_value = model
-    mock_fallback_svc.generate_with_fallback.side_effect = RuntimeError("LLM service down")
+    """OrderedLLMGateway 抛异常 → 不冒泡，返回原 prompt + warning"""
+    model = _make_model(category="chat")
+    # 直接命中 chat 分类，避免 image_polish → chat 的二次重试干扰
+    mock_model_svc.get_default_model.side_effect = [None, model]
+    mock_gateway.generate.side_effect = RuntimeError("LLM service down")
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
 
     with caplog.at_level(logging.WARNING, logger="app.services.image_gen_prompt_polisher"):
         result = await polisher.polish("original prompt", user_id="user-1")
@@ -215,20 +221,20 @@ async def test_polish_returns_original_when_fallback_fails(
 
 
 # ============================================================
-# 6. fallback 返回 None / 空字符串 → 原 prompt
+# 6. 网关返回 None / 空字符串 → 原 prompt
 # ============================================================
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("empty_value", [None, ""])
-async def test_polish_returns_original_when_fallback_returns_empty(
-    mock_model_svc, mock_fallback_svc, empty_value, caplog
+async def test_polish_returns_original_when_gateway_returns_empty(
+    mock_model_svc, mock_gateway, empty_value, caplog
 ):
     """LLM 返回 None 或空字符串 → 返回原 prompt + warning"""
     model = _make_model()
     mock_model_svc.get_default_model.return_value = model
-    mock_fallback_svc.generate_with_fallback.return_value = empty_value
+    mock_gateway.generate.return_value = empty_value
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
 
     with caplog.at_level(logging.WARNING, logger="app.services.image_gen_prompt_polisher"):
         result = await polisher.polish("original prompt", user_id="user-1")
@@ -252,12 +258,12 @@ async def test_polish_returns_original_when_fallback_returns_empty(
 )
 async def test_polish_returns_original_when_provider_config_incomplete(
     mock_model_svc,
-    mock_fallback_svc,
+    mock_gateway,
     missing_field,
     provider_kwargs,
     caplog,
 ):
-    """provider 字段缺失 → 返回原 prompt + warning，不调 LLM"""
+    """provider 字段缺失 → 返回原 prompt + warning，不调网关"""
     if missing_field == "provider=None":
         model = _make_model(provider=None)
     else:
@@ -266,13 +272,13 @@ async def test_polish_returns_original_when_provider_config_incomplete(
 
     mock_model_svc.get_default_model.return_value = model
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
 
     with caplog.at_level(logging.WARNING, logger="app.services.image_gen_prompt_polisher"):
         result = await polisher.polish("original prompt", user_id="user-1")
 
     assert result == "original prompt"
-    mock_fallback_svc.generate_with_fallback.assert_not_called()
+    mock_gateway.generate.assert_not_called()
     assert any("返回原提示词" in rec.message for rec in caplog.records)
 
 
@@ -282,33 +288,35 @@ async def test_polish_returns_original_when_provider_config_incomplete(
 
 @pytest.mark.asyncio
 async def test_polish_system_prompt_includes_operation_and_model(
-    mock_model_svc, mock_fallback_svc
+    mock_model_svc, mock_gateway
 ):
     """验证构造的 system_msg 包含 target_operation 和 model.model_name"""
     model = _make_model(model_name="dall-e-3-xl")
     mock_model_svc.get_default_model.return_value = model
-    mock_fallback_svc.generate_with_fallback.return_value = "polished"
+    mock_gateway.generate.return_value = "polished"
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
     await polisher.polish(
         "一只可爱的猫咪", user_id="user-1", target_operation="img2img"
     )
 
-    # 提取传给 generate_with_fallback 的 context
-    call_kwargs = mock_fallback_svc.generate_with_fallback.call_args.kwargs
-    context = call_kwargs["context"]
-    assert len(context) == 1
-    system_msg = context[0]["content"]
+    # 提取传给网关的 messages
+    call_kwargs = mock_gateway.generate.call_args.kwargs
+    messages = call_kwargs["messages"]
+    assert len(messages) == 2
+    system_msg = messages[0].content
 
     # system_msg 必须包含：operation、model_name、原始 prompt
+    assert messages[0].role == "system"
     assert "img2img" in system_msg
     assert "dall-e-3-xl" in system_msg
     assert "一只可爱的猫咪" in system_msg
     assert "图像生成提示词优化专家" in system_msg
 
-    # 同时验证 prompt 和 primary_config_id 正确传递
-    assert call_kwargs["prompt"] == "一只可爱的猫咪"
-    assert call_kwargs["primary_config_id"] == "model-id-5678"
+    # 同时验证 user 消息与分类正确传递
+    assert messages[1].role == "user"
+    assert messages[1].content == "一只可爱的猫咪"
+    assert call_kwargs["category"] == "image_polish"
 
 
 # ============================================================
@@ -317,17 +325,79 @@ async def test_polish_system_prompt_includes_operation_and_model(
 
 @pytest.mark.asyncio
 async def test_polish_returns_original_when_model_missing_model_name(
-    mock_model_svc, mock_fallback_svc, caplog
+    mock_model_svc, mock_gateway, caplog
 ):
     """model.model_name 为空 → 返回原 prompt + warning"""
     model = _make_model(model_name="")
     mock_model_svc.get_default_model.return_value = model
 
-    polisher = _build_polisher(mock_model_svc, mock_fallback_svc)
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
 
     with caplog.at_level(logging.WARNING, logger="app.services.image_gen_prompt_polisher"):
         result = await polisher.polish("original prompt", user_id="user-1")
 
     assert result == "original prompt"
-    mock_fallback_svc.generate_with_fallback.assert_not_called()
+    mock_gateway.generate.assert_not_called()
     assert any("model_name" in rec.message for rec in caplog.records)
+
+
+# ============================================================
+# 10. image_polish 兜底链整体不可用 → 降级 chat 分类
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_polish_cross_category_fallback_on_all_unavailable(
+    mock_model_svc, mock_gateway
+):
+    """image_polish 链全部失败（AllModelsUnavailableError）→ 降级 chat 链重试"""
+    model = _make_model(category="image_polish")
+    mock_model_svc.get_default_model.return_value = model
+    mock_gateway.generate.side_effect = [
+        AllModelsUnavailableError([("m1", "down")]),
+        "polished via chat",
+    ]
+
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
+    result = await polisher.polish("test", user_id="user-1")
+
+    assert result == "polished via chat"
+    assert mock_gateway.generate.call_count == 2
+    assert mock_gateway.generate.call_args_list[0].kwargs["category"] == "image_polish"
+    assert mock_gateway.generate.call_args_list[1].kwargs["category"] == "chat"
+
+
+@pytest.mark.asyncio
+async def test_polish_returns_original_when_both_categories_unavailable(
+    mock_model_svc, mock_gateway, caplog
+):
+    """image_polish 与 chat 链均不可用 → 返回原 prompt + warning"""
+    model = _make_model(category="image_polish")
+    mock_model_svc.get_default_model.return_value = model
+    mock_gateway.generate.side_effect = AllModelsUnavailableError([("m1", "down")])
+
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
+
+    with caplog.at_level(logging.WARNING, logger="app.services.image_gen_prompt_polisher"):
+        result = await polisher.polish("original prompt", user_id="user-1")
+
+    assert result == "original prompt"
+    assert any("润色失败" in rec.message for rec in caplog.records)
+
+
+# ============================================================
+# 11. 兼容 GenerationResult 返回形态
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_polish_accepts_generation_result(mock_model_svc, mock_gateway):
+    """网关返回 GenerationResult（.content）时，提取 content 返回"""
+    model = _make_model()
+    mock_model_svc.get_default_model.return_value = model
+    mock_gateway.generate.return_value = SimpleNamespace(
+        content="polished content", usage={}, model="gpt-4o"
+    )
+
+    polisher = _build_polisher(mock_model_svc, mock_gateway)
+    result = await polisher.polish("test", user_id="user-1")
+
+    assert result == "polished content"

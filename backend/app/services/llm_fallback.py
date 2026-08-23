@@ -2,7 +2,11 @@
 LLM 故障回退服务
 当主 LLM 配置失败时，自动切换到备用配置
 
+@deprecated: 请使用 app.services.llm.ordered_gateway.OrderedLLMGateway
+本类仅保留作为过渡期兼容，新代码不应再调用。
+
 v1 起已迁移到 LLMProvider + LLMModel（原 llm_configs 表仅保留用于回滚过渡）。
+Task 14：image_gen_prompt_polisher / agent_service 已迁移至 OrderedLLMGateway。
 """
 
 from typing import Optional, Dict, Any, List

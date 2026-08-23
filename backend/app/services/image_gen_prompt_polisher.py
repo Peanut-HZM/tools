@@ -1,19 +1,21 @@
 """
 Task 8.1 — ImageGenPromptPolisher 提示词润色服务
+Task 14 — 迁移到 OrderedLLMGateway（替代已废弃的 LLMFallbackService）
 
-通过复用既有的 LLMFallbackService + LLMModelService，
-把用户输入的原始提示词通过 LLM 转换为更适合图像生成模型的英文提示词。
+通过 OrderedLLMGateway 按 category 兜底链调用 LLM，
+把用户输入的原始提示词转换为更适合图像生成模型的英文提示词。
 
 依赖：
-- LLMModelService.get_default_model(category) — 取指定类别的默认模型
-- LLMFallbackService.generate_with_fallback(prompt, primary_config_id, context)
+- LLMModelService.get_default_model(category) — 取指定类别的默认模型（仅用于
+  前置校验、system prompt 措辞与分类选择；实际调用顺序由网关按 priority 决定）
+- OrderedLLMGateway.generate(category, messages) — 按 priority 兜底链调用
 
 失败语义（graceful degradation）：
 - 找不到润色模型（image_polish / chat 均无默认） → 返回原 prompt + warning
 - provider 配置不完整（缺 api_key / base_url） → 返回原 prompt + warning
 - model 缺 model_name → 返回原 prompt + warning
-- LLM 调用失败（任何异常） → 返回原 prompt + warning
-- LLM 返回空字符串 → 返回原 prompt
+- LLM 调用失败（任何异常，含 AllModelsUnavailableError） → 返回原 prompt + warning
+- LLM 返回空内容 → 返回原 prompt
 
 注意：所有失败路径绝不抛异常，外层 ImageGenService 可无脑调用。
 """
@@ -25,7 +27,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.services.llm_fallback import LLMFallbackService
+from app.constants.llm_categories import LLMCategory
+from app.services.llm.base import Message
+from app.services.llm.exceptions import AllModelsUnavailableError
+from app.services.llm.ordered_gateway import OrderedLLMGateway
 from app.services.llm_model_service import LLMModelService
 
 logger = logging.getLogger(__name__)
@@ -34,18 +39,18 @@ logger = logging.getLogger(__name__)
 class ImageGenPromptPolisher:
     """图像生成提示词润色器
 
-    通过注入的 LLM 服务把用户原始中文/短提示词润色为英文、
+    通过 OrderedLLMGateway 把用户原始中文/短提示词润色为英文、
     更适合目标图像模型理解的高质量 prompt。
     """
 
     def __init__(
         self,
         db: Session,
-        fallback_svc: Optional[LLMFallbackService] = None,
+        gateway: Optional[OrderedLLMGateway] = None,
     ):
         self._db = db
         self._model_svc = LLMModelService(db)
-        self._fallback_svc = fallback_svc or LLMFallbackService(db)
+        self._gateway = gateway or OrderedLLMGateway(db)
 
     async def polish(
         self,
@@ -65,9 +70,12 @@ class ImageGenPromptPolisher:
             润色后的提示词；任何失败都返回原 prompt（不抛异常）
         """
         # 1. 找润色模型：image_polish 类别 → chat 类别兜底
-        model = self._model_svc.get_default_model(category="image_polish")
+        #    （仅用于前置校验与 system prompt 措辞；实际兜底链由网关按 priority 驱动）
+        model = self._model_svc.get_default_model(category=LLMCategory.IMAGE_POLISH)
+        category = LLMCategory.IMAGE_POLISH
         if not model:
-            model = self._model_svc.get_default_model(category="chat")
+            model = self._model_svc.get_default_model(category=LLMCategory.CHAT)
+            category = LLMCategory.CHAT
         if not model:
             logger.warning("[image-gen-polish] 无可用默认模型（image_polish/chat），返回原提示词")
             return prompt
@@ -94,17 +102,30 @@ class ImageGenPromptPolisher:
             f"返回英文版本。原始提示：{prompt}"
         )
 
-        # 4. 调用 LLM（通过 fallback 链路）
+        # 4. 调用 OrderedLLMGateway 兜底链
+        messages = [
+            Message(role="system", content=system_msg),
+            Message(role="user", content=prompt),
+        ]
         try:
-            result = await self._fallback_svc.generate_with_fallback(
-                prompt=prompt,
-                primary_config_id=str(model.id),
-                context=[{"role": "system", "content": system_msg}],
-            )
-            if not result:
+            try:
+                result = await self._gateway.generate(category=category, messages=messages)
+            except AllModelsUnavailableError:
+                # image_polish 兜底链整体不可用时，降级到 chat 兜底链（保持旧的跨类别兜底语义）
+                if category == LLMCategory.IMAGE_POLISH:
+                    logger.warning("[image-gen-polish] image_polish 兜底链不可用，降级 chat 分类重试")
+                    result = await self._gateway.generate(
+                        category=LLMCategory.CHAT, messages=messages
+                    )
+                else:
+                    raise
+
+            # 兼容 GenerationResult（.content）与纯字符串两种返回形态
+            content = getattr(result, "content", result)
+            if not content:
                 logger.warning("[image-gen-polish] LLM 返回空结果，返回原提示词")
                 return prompt
-            return result
+            return content
         except Exception as e:
             logger.warning("[image-gen-polish] 润色失败: %s，返回原提示词", e)
             return prompt
