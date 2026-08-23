@@ -4,7 +4,6 @@
  * 顶部 QuotaBadge，左侧操作 Tab + 表单，右侧结果面板
  * HistoryDrawer 从右侧滑出
  */
-import { useState, useCallback } from 'react';
 import { useImageGenStore } from '../../../stores/imageGenerationStore';
 import { useImageGenerate } from '../../../hooks/useImageGenerate';
 import { useAuth } from '../../../stores/authStore';
@@ -49,16 +48,6 @@ export default function ImageGeneration() {
   const reset = useImageGenStore((s) => s.reset);
 
   const { generate, abort, loading, error, setError } = useImageGenerate();
-  const [polishing, setPolishing] = useState(false);
-
-  const handlePolish = useCallback(async () => {
-    setPolishing(true);
-    try {
-      await useImageGenStore.getState().polishPrompt();
-    } finally {
-      setPolishing(false);
-    }
-  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -140,9 +129,9 @@ export default function ImageGeneration() {
           {/* 表单 */}
           <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
             {operation === 'text2img' && <Text2ImgForm />}
-            {operation === 'img2img' && <Img2ImgForm onPolish={handlePolish} polishing={polishing} />}
-            {operation === 'inpaint' && <InpaintForm onPolish={handlePolish} polishing={polishing} />}
-            {operation === 'upload_edit' && <UploadEditForm onPolish={handlePolish} polishing={polishing} />}
+            {operation === 'img2img' && <Img2ImgForm />}
+            {operation === 'inpaint' && <InpaintForm />}
+            {operation === 'upload_edit' && <UploadEditForm />}
           </div>
 
           {/* 生成按钮 */}
