@@ -45,7 +45,7 @@ def db_session():
 def test_conversation_creation(db_session):
     """能创建并落盘"""
     conv = ImageGenSelfDevConversation(
-        user_id=uuid.uuid4(),
+        user_id=str(uuid.uuid4()),
         conversation_id=str(uuid.uuid4()),
         operation="text2img",
         messages=[{"role": "user", "content": "hello"}],
@@ -64,13 +64,13 @@ def test_conversation_unique(db_session):
     """conversation_id 唯一"""
     cid = str(uuid.uuid4())
     c1 = ImageGenSelfDevConversation(
-        user_id=uuid.uuid4(),
+        user_id=str(uuid.uuid4()),
         conversation_id=cid,
         operation="text2img",
         messages=[],
     )
     c2 = ImageGenSelfDevConversation(
-        user_id=uuid.uuid4(),
+        user_id=str(uuid.uuid4()),
         conversation_id=cid,
         operation="text2img",
         messages=[],

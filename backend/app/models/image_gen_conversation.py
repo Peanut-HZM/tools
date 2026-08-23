@@ -25,8 +25,8 @@ class ImageGenSelfDevConversation(Base):
     # 注意：users.id 为 String(64)（见 app/models/user.py），类型与 UUID 不一致，
     # 在 PostgreSQL 上无法建立外键约束；参照 app/models/conversation.py 的先例，
     # 此处不使用外键，改在应用层校验用户归属。
-    user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    """对话所属用户（用于权限校验）"""
+    user_id = Column(String(64), index=True, nullable=False)
+    """对话所属用户（用于权限校验）；与 users.id 的 String(64) 保持一致，便于直接比较"""
 
     conversation_id = Column(String(64), unique=True, index=True, nullable=False)
     """对外暴露的对话 UUID 字符串"""
