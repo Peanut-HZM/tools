@@ -64,9 +64,20 @@ class QwenImageAdapter(ImageGenAdapter):
         async with httpx.AsyncClient(timeout=30) as client:
             for _ in range(60):  # 最多 60 次 * 5s = 300s
                 status_url = f"{self._base_url}/api/v1/tasks/{task_id}"
-                s_resp = await client.get(status_url, headers=headers)
-                if s_resp.status_code != 200:
-                    raise RecoverableFailure(f"poll failed: {s_resp.status_code}")
+                try:
+                    s_resp = await client.get(status_url, headers=headers)
+                except (httpx.ConnectError, httpx.TimeoutException) as e:
+                    raise RecoverableFailure(f"poll network error: {e}")
+
+                # 轮询端点也需按状态码分类，避免 401/403 被当作可恢复错误
+                if s_resp.status_code in (401, 403):
+                    raise UnrecoverableFailure(f"poll auth failed: {s_resp.text}")
+                if s_resp.status_code == 429:
+                    raise RecoverableFailure(f"poll rate limited: {s_resp.text}")
+                if s_resp.status_code >= 500:
+                    raise RecoverableFailure(f"poll server error: {s_resp.status_code}")
+                if s_resp.status_code >= 400:
+                    raise UnrecoverableFailure(f"poll bad request: {s_resp.text}")
 
                 s_data = s_resp.json()
                 task_status = s_data.get("output", {}).get("task_status")
@@ -77,9 +88,12 @@ class QwenImageAdapter(ImageGenAdapter):
                         raise RecoverableFailure("no urls in result")
                     images = []
                     for u in urls:
-                        r = await client.get(u)
-                        r.raise_for_status()
-                        images.append(r.content)
+                        try:
+                            r = await client.get(u)
+                            r.raise_for_status()
+                            images.append(r.content)
+                        except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
+                            raise RecoverableFailure(f"download failed: {e}")
                     return images
                 if task_status in ("FAILED", "CANCELED"):
                     raise RecoverableFailure(f"task {task_status}")

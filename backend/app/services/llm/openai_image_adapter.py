@@ -59,9 +59,12 @@ class OpenAIImageAdapter(ImageGenAdapter):
         async with httpx.AsyncClient(timeout=60) as client:
             images = []
             for u in urls:
-                r = await client.get(u)
-                r.raise_for_status()
-                images.append(r.content)
+                try:
+                    r = await client.get(u)
+                    r.raise_for_status()
+                    images.append(r.content)
+                except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
+                    raise RecoverableFailure(f"download failed: {e}")
         return images
 
     async def test_connection(self) -> tuple[bool, str]:

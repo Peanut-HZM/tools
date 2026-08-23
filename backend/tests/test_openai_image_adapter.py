@@ -77,3 +77,27 @@ async def test_unsupported_operation():
 
     with pytest.raises(OperationNotSupportedError):
         await a.generate("img2img", "a cat")
+
+
+@pytest.mark.asyncio
+async def test_download_failure_is_recoverable():
+    """测试 POST 成功后下载图片失败应抛出 RecoverableFailure（Finding 2）"""
+    import httpx as _httpx
+
+    a = OpenAIImageAdapter(api_key="x", base_url="https://x.com", model="dall-e-3")
+
+    mock_post = AsyncMock()
+    mock_post.status_code = 200
+    mock_post.json = lambda: {"data": [{"url": "https://oss/dalle.png"}]}
+
+    with patch("httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_post)
+        mock_client.get = AsyncMock(
+            side_effect=_httpx.TimeoutException("CDN timeout")
+        )
+        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with pytest.raises(RecoverableFailure):
+            await a.generate("text2img", "a cat")

@@ -68,3 +68,27 @@ async def test_auth_error_is_unrecoverable():
 
         with pytest.raises(UnrecoverableFailure):
             await a.generate("text2img", "x")
+
+
+@pytest.mark.asyncio
+async def test_download_failure_is_recoverable():
+    """测试 POST 成功后下载图片失败应抛出 RecoverableFailure（Finding 2）"""
+    import httpx as _httpx
+
+    a = DoubaoSeedreamAdapter(api_key="x", base_url="https://x.com", model="m")
+
+    mock_post = AsyncMock()
+    mock_post.status_code = 200
+    mock_post.json = lambda: {"data": [{"url": "https://oss/a.png"}]}
+
+    with patch("httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_post)
+        mock_client.get = AsyncMock(
+            side_effect=_httpx.ConnectError("CDN unreachable")
+        )
+        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with pytest.raises(RecoverableFailure):
+            await a.generate("text2img", "a cat")

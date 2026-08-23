@@ -81,3 +81,88 @@ async def test_auth_error_is_unrecoverable():
 
         with pytest.raises(UnrecoverableFailure):
             await a.generate("text2img", "x")
+
+
+@pytest.mark.asyncio
+async def test_poll_auth_error_is_unrecoverable():
+    """测试轮询端点返回 401 时应抛出 UnrecoverableFailure（Finding 1）"""
+    import httpx as _httpx
+
+    a = QwenImageAdapter(api_key="x", base_url="https://x.com", model="m")
+
+    mock_post_resp = AsyncMock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json = lambda: {"output": {"task_id": "task-123"}}
+
+    mock_poll_resp = AsyncMock()
+    mock_poll_resp.status_code = 401
+    mock_poll_resp.text = "token expired"
+
+    with patch("httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_post_resp)
+        mock_client.get = AsyncMock(return_value=mock_poll_resp)
+        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with pytest.raises(UnrecoverableFailure):
+            await a.generate("text2img", "x")
+
+
+@pytest.mark.asyncio
+async def test_poll_network_error_is_recoverable():
+    """测试轮询时网络连接异常应抛出 RecoverableFailure（Finding 3）"""
+    import httpx as _httpx
+
+    a = QwenImageAdapter(api_key="x", base_url="https://x.com", model="m")
+
+    mock_post_resp = AsyncMock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json = lambda: {"output": {"task_id": "task-123"}}
+
+    with patch("httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_post_resp)
+        mock_client.get = AsyncMock(side_effect=_httpx.ConnectError("connection refused"))
+        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with pytest.raises(RecoverableFailure):
+            await a.generate("text2img", "x")
+
+
+@pytest.mark.asyncio
+async def test_download_failure_is_recoverable():
+    """测试轮询成功后下载图片失败应抛出 RecoverableFailure（Finding 2）"""
+    import httpx as _httpx
+
+    a = QwenImageAdapter(api_key="x", base_url="https://x.com", model="m")
+
+    mock_post_resp = AsyncMock()
+    mock_post_resp.status_code = 200
+    mock_post_resp.json = lambda: {"output": {"task_id": "task-123"}}
+
+    mock_poll_resp = AsyncMock()
+    mock_poll_resp.status_code = 200
+    mock_poll_resp.json = lambda: {
+        "output": {
+            "task_status": "SUCCEEDED",
+            "results": [{"url": "https://oss/qwen.png"}],
+        }
+    }
+
+    with patch("httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_post_resp)
+        # 轮询成功，但下载图片时抛出 HTTPStatusError
+        mock_client.get = AsyncMock(
+            side_effect=[
+                mock_poll_resp,
+                _httpx.HTTPStatusError("500 CDN error", request=None, response=AsyncMock()),
+            ]
+        )
+        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with pytest.raises(RecoverableFailure):
+            await a.generate("text2img", "x")
