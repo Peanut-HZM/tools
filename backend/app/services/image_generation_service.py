@@ -320,6 +320,9 @@ class ImageGenService:
             if self.degradation_svc is not None:
                 self.degradation_svc.reset_failure_count()
 
+            # 记录 history_id，供上层 /chat 端点透传
+            dify_result.history_id = history.id
+
             # 生成签名 URL 返回
             signed_urls = [
                 self.oss_svc.sign_url("GET", key, SIGNED_URL_EXPIRES_RESULT)

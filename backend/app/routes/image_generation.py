@@ -266,6 +266,77 @@ async def generate(
     }
 
 
+@router.post("/chat")
+async def chat(
+    operation: str = Form(...),
+    prompt: str = Form(...),
+    conversation_id: Optional[str] = Form(None),
+    size: str = Form("1024x1024"),
+    n: int = Form(1),
+    style: Optional[str] = Form(None),
+    strength: float = Form(0.6),
+    model_preference: str = Form("auto"),
+    edit_type: Optional[str] = Form(None),
+    reference_image: Optional[UploadFile] = File(None),
+    mask_image: Optional[UploadFile] = File(None),
+    current_user: dict = Depends(get_current_user),
+    svc: ImageGenService = Depends(get_image_gen_service),
+):
+    """
+    多轮对话入口（multipart/form-data）。
+
+    追问时返回 status=asking；
+    生成完成时返回 status=generated + image_urls + history_id。
+    """
+    user_id = _extract_user_id(current_user)
+
+    # 参数校验
+    _validate_operation(operation)
+    _validate_size(size)
+    _validate_n(n)
+    _validate_edit_type(operation, edit_type)
+
+    # 读取上传文件
+    ref_bytes = await _read_upload_file(reference_image)
+    mask_bytes = await _read_upload_file(mask_image)
+
+    params = {
+        "size": size,
+        "n": n,
+        "style": style,
+        "strength": strength,
+        "model_preference": model_preference,
+    }
+
+    try:
+        result = await svc.chat_generate(
+            user_id=user_id,
+            operation=operation,
+            prompt=prompt,
+            conversation_id=conversation_id,
+            params=params,
+            reference_bytes=ref_bytes,
+            mask_bytes=mask_bytes,
+            edit_type=edit_type,
+        )
+    except (QuotaExceeded, DifyError, ServiceDegraded) as exc:
+        raise _map_service_exception(exc)
+
+    response = {
+        "conversation_id": result.conversation_id,
+        "answer": result.answer,
+        "model_used": result.model_used,
+        "polish_prompt": result.polish_prompt,
+        "status": "generated" if result.image_urls else "asking",
+    }
+    if result.image_urls:
+        response["image_urls"] = result.image_urls
+    if result.history_id:
+        response["history_id"] = result.history_id
+
+    return response
+
+
 @router.post("/polish-prompt")
 async def polish_prompt(
     prompt: str = Form(...),

@@ -49,6 +49,7 @@ class ChatRunResult:
     image_urls: List[str] = field(default_factory=list)  # 生成的图片（<<GENERATE>> 触发后才有值）
     model_used: str = ""             # 实际调用的模型
     polish_prompt: str = ""          # 润色后的英文图像生成提示词
+    history_id: Optional[str] = None  # 触发生成时写入的历史记录 ID
     raw_response: Dict[str, Any] = field(default_factory=dict)
 
 
