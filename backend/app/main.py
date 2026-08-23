@@ -12,6 +12,7 @@ from app.routes import (
     oss,
     admin,
     deploy,
+    image_generation,
 )
 from app.routes import (
     ocr_routes,
@@ -410,6 +411,9 @@ app.include_router(contact_message.router)
 
 # Cursor History router
 app.include_router(cursor_history.router, prefix="/api")
+
+# Image Generation router (Task 6.1)
+app.include_router(image_generation.router, prefix="/api")
 
 
 # Monitor router（服务器监控）
