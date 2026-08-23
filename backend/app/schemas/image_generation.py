@@ -42,6 +42,13 @@ def _validate_model_preference(v: str) -> str:
     return v
 
 
+def _validate_operation(v: str) -> str:
+    """校验操作类型在白名单内"""
+    if v not in VALID_OPERATIONS:
+        raise ValueError(f"无效的操作类型: {v}，允许值: {sorted(VALID_OPERATIONS)}")
+    return v
+
+
 # ==================== 用户侧请求 ====================
 
 class Text2ImgRequest(BaseModel):
@@ -102,6 +109,31 @@ class PolishPromptRequest(BaseModel):
         """校验目标操作类型在白名单内"""
         if v not in VALID_OPERATIONS:
             raise ValueError(f"无效的操作类型: {v}，允许值: {sorted(VALID_OPERATIONS)}")
+        return v
+
+
+class ChatGenerateRequest(BaseModel):
+    """多轮对话生成请求"""
+    operation: str
+    prompt: str = Field(..., min_length=1, max_length=2000)
+    conversation_id: Optional[str] = Field(default=None, max_length=64)
+    size: str = Field(default="1024x1024")
+    n: int = Field(default=1, ge=1, le=MAX_N_IMAGES)
+    style: Optional[str] = None
+    strength: float = Field(default=0.6, ge=0.0, le=1.0)
+    model_preference: str = Field(default="auto")
+    edit_type: Optional[str] = None
+
+    _check_operation = field_validator("operation")(_validate_operation)
+    _check_size = field_validator("size")(_validate_size)
+    _check_model_preference = field_validator("model_preference")(_validate_model_preference)
+
+    @field_validator("edit_type")
+    @classmethod
+    def _check_edit_type(cls, v: Optional[str]) -> Optional[str]:
+        """校验编辑类型在白名单内"""
+        if v is not None and v not in VALID_EDIT_TYPES:
+            raise ValueError(f"无效的编辑类型: {v}，允许值: {sorted(VALID_EDIT_TYPES)}")
         return v
 
 
