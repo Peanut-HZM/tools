@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../stores/authStore';
-import { useNavigate } from 'react-router-dom';
+import { useLoginModalStore } from '../../../stores/loginModalStore';
 import {
   chatStream,
   loadHistory,
@@ -19,7 +19,7 @@ interface Message {
 
 export default function OpenClawChat() {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const openLoginModal = useLoginModalStore((state) => state.openLoginModal);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -122,10 +122,12 @@ export default function OpenClawChat() {
     }
   }, [sessionKey]);
 
+  // 登录后自动建立连接并加载历史消息
   useEffect(() => {
+    if (!isAuthenticated) return;
     checkConnection();
     loadMessages();
-  }, [checkConnection, loadMessages]);
+  }, [checkConnection, loadMessages, isAuthenticated]);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -240,10 +242,10 @@ export default function OpenClawChat() {
           <p className="text-xl mb-4 text-white">OpenClaw AI 对话</p>
           <p className="mb-4">需要登录后才能使用此功能</p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={openLoginModal}
             className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
           >
-            前往登录
+            登录
           </button>
         </div>
       </div>

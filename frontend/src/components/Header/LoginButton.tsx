@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../../stores/authStore';
-import LoginForm from '../Auth/LoginForm';
-import RegisterForm from '../Auth/RegisterForm';
+import { useLoginModalStore } from '../../stores/loginModalStore';
 import { useI18n } from '../../i18n';
 import { useNavigate } from 'react-router-dom';
 import ChangePasswordModal from '../Common/ChangePasswordModal';
 
 export default function LoginButton() {
   const { isAuthenticated, user, logout, isLoading } = useAuth();
-  const [showModal, setShowModal] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
+  const openLoginModal = useLoginModalStore((state) => state.openLoginModal);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const { t } = useI18n();
@@ -17,11 +15,6 @@ export default function LoginButton() {
 
   const handleLogout = async () => {
     await logout();
-  };
-
-  const handleLoginSuccess = () => {
-    setShowModal(false);
-    setShowRegister(false);
   };
 
   if (isLoading) {
@@ -90,40 +83,11 @@ export default function LoginButton() {
   }
 
   return (
-    <>
-      <button
-        onClick={() => setShowModal(true)}
-        className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
-      >
-        {t.auth.login}
-      </button>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowModal(false);
-                setShowRegister(false);
-              }}
-              className="absolute -top-2 -right-2 w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded-full flex items-center justify-center text-white z-10 cursor-pointer"
-            >
-              ×
-            </button>
-            {showRegister ? (
-              <RegisterForm
-                onSuccess={handleLoginSuccess}
-                onSwitchToLogin={() => setShowRegister(false)}
-              />
-            ) : (
-              <LoginForm
-                onSuccess={handleLoginSuccess}
-                onSwitchToRegister={() => setShowRegister(true)}
-              />
-            )}
-          </div>
-        </div>
-      )}
-    </>
+    <button
+      onClick={openLoginModal}
+      className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
+    >
+      {t.auth.login}
+    </button>
   );
 }
