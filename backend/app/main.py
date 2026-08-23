@@ -109,6 +109,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Token Usage 数据库表创建失败: {e}")
 
+    # 自动创建数据库表（图像生成相关模型，5 张表）
+    try:
+        from app.models import image_generation_models  # noqa: F401
+        Base.metadata.create_all(bind=engine)
+        logger.info("图像生成数据库表创建成功")
+    except Exception as e:
+        logger.warning(f"图像生成数据库表创建失败: {e}")
+
     # 初始化监控模块（建表 + 启动采集引擎）
     monitor_cleanup_task = None
     try:
