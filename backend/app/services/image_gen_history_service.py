@@ -75,6 +75,7 @@ class ImageGenHistoryService:
         error_message: Optional[str] = None,
         duration_ms: Optional[int] = None,
         conversation_id: Optional[str] = None,
+        backend: Optional[str] = None,
     ) -> ImageGenHistory:
         """
         创建一条历史记录。
@@ -92,6 +93,7 @@ class ImageGenHistoryService:
             error_message: 错误信息（失败时）
             duration_ms: 耗时（毫秒）
             conversation_id: 关联的多轮对话 ID（对话生成时写入）
+            backend: 后端标识（"dify" / "selfdev" 等），M7 自研路径接入时写入
         """
         record = ImageGenHistory(
             id=_gen_uuid(),
@@ -107,6 +109,7 @@ class ImageGenHistoryService:
             error_message=error_message,
             duration_ms=duration_ms,
             conversation_id=conversation_id,
+            backend=backend or "dify",
         )
         self.db.add(record)
         # 立即 flush 以便调用方拿到 id（事务尚未 commit）

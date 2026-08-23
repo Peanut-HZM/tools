@@ -682,6 +682,75 @@ class ImageGenService:
         return await backend_impl.run(ctx)
 
     # ------------------------------------------------------------------
+    # 带 quota + history 的 dispatch 入口（M7 自研路径接入）
+    # ------------------------------------------------------------------
+
+    async def chat_generate_dispatch_with_quota(
+        self,
+        backend: str,
+        user_id: uuid.UUID,
+        operation: str,
+        query: str,
+        conversation_id: Optional[str],
+        reference_image: Optional[bytes],
+        mask_image: Optional[bytes],
+        size: str,
+        n: int,
+        strength: Optional[float] = None,
+        edit_type: Optional[str] = None,
+    ):
+        """按 backend 分发 + quota / history 共享逻辑
+
+        流程：
+          1. check_and_reserve（预留 quota）
+          2. 调用 chat_generate_dispatch 执行实际生成
+          3. 若 result.image_urls 非空 → commit quota + 写 history
+          4. 若 image_urls 为空 → release quota
+          5. 任何异常 → release quota 并抛出
+        """
+        # 1. 预留 quota（无论后续是否生成）
+        self.quota_svc.check_and_reserve(user_id=user_id, operation=operation)
+
+        try:
+            # 2. 走 dispatch
+            result = await self.chat_generate_dispatch(
+                backend=backend,
+                user_id=user_id,
+                operation=operation,
+                query=query,
+                conversation_id=conversation_id,
+                reference_image=reference_image,
+                mask_image=mask_image,
+                size=size,
+                n=n,
+                strength=strength,
+                edit_type=edit_type,
+            )
+
+            # 3. quota commit or release
+            if result.image_urls:
+                self.quota_svc.commit(user_id=user_id)
+                # 4. 写历史记录（带 backend 字段）
+                self.history_svc.create_record(
+                    user_id=str(user_id),
+                    operation=operation,
+                    status=STATUS_SUCCESS,
+                    prompt=query,
+                    model_used=result.model_used,
+                    conversation_id=result.conversation_id,
+                    backend=result.backend,
+                )
+            else:
+                # image_urls 为空 → 释放预留
+                self.quota_svc.release(user_id=user_id)
+
+            return result
+        except Exception:
+            # 任何异常都必须释放预留配额
+            self.quota_svc.release(user_id=user_id)
+            raise
+
+    # ------------------------------------------------------------------
     # 委托方法 — 历史查询
     # ------------------------------------------------------------------
 
