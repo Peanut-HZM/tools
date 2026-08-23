@@ -14,6 +14,7 @@ Task 6.1 — 图像生成用户 API 路由
 from __future__ import annotations
 
 import logging
+import uuid
 from dataclasses import asdict
 from typing import Optional
 
@@ -25,6 +26,7 @@ from app.core.exceptions import DifyError, QuotaExceeded, ServiceDegraded
 from app.models.base import get_db
 from app.services.dify_client import DifyClient
 from app.services.dify_config_service import DifyConfigService
+from app.services.image_gen.backends import BackendNotConfiguredError
 from app.services.image_gen_history_service import ImageGenHistoryService
 from app.services.image_gen_quota_service import ImageGenQuotaService
 from app.services.image_generation_service import ImageGenService
@@ -270,6 +272,7 @@ async def generate(
 async def chat(
     operation: str = Form(...),
     prompt: str = Form(...),
+    backend: str = Form("selfdev"),
     conversation_id: Optional[str] = Form(None),
     size: str = Form("1024x1024"),
     n: int = Form(1),
@@ -286,9 +289,19 @@ async def chat(
     多轮对话入口（multipart/form-data）。
 
     追问时返回 status=asking；
-    生成完成时返回 status=generated + image_urls + history_id。
+    生成完成时返回 status=generated + image_urls + backend。
+
+    新增（Task 24）：
+      - backend Form 参数，默认 selfdev
+      - 通过 chat_generate_dispatch_with_quota 分发
     """
-    user_id = _extract_user_id(current_user)
+    user_id_str = _extract_user_id(current_user)
+    # chat_generate_dispatch_with_quota 接收 uuid.UUID；
+    # JWT sub 通常已是 UUID 字符串；测试场景用普通字符串则用 uuid5 兜底，保证幂等
+    try:
+        user_id = uuid.UUID(user_id_str)
+    except (ValueError, AttributeError):
+        user_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(user_id_str))
 
     # 参数校验
     _validate_operation(operation)
@@ -300,39 +313,36 @@ async def chat(
     ref_bytes = await _read_upload_file(reference_image)
     mask_bytes = await _read_upload_file(mask_image)
 
-    params = {
-        "size": size,
-        "n": n,
-        "style": style,
-        "strength": strength,
-        "model_preference": model_preference,
-    }
-
+    # 调用 with-quota dispatch（Task 23：quota reserve / dispatch / commit-release 都在 service 内）
     try:
-        result = await svc.chat_generate(
+        result = await svc.chat_generate_dispatch_with_quota(
+            backend=backend,
             user_id=user_id,
             operation=operation,
-            prompt=prompt,
+            query=prompt,
             conversation_id=conversation_id,
-            params=params,
-            reference_bytes=ref_bytes,
-            mask_bytes=mask_bytes,
+            reference_image=ref_bytes,
+            mask_image=mask_bytes,
+            size=size,
+            n=n,
+            strength=strength,
             edit_type=edit_type,
         )
+    except BackendNotConfiguredError as exc:
+        # 后端未注册 → 503
+        raise HTTPException(status_code=503, detail=str(exc))
     except (QuotaExceeded, DifyError, ServiceDegraded) as exc:
         raise _map_service_exception(exc)
 
     response = {
         "conversation_id": result.conversation_id,
-        "answer": result.answer,
+        "answer": result.answer_text,
         "model_used": result.model_used,
-        "polish_prompt": result.polish_prompt,
+        "backend": result.backend,
         "status": "generated" if result.image_urls else "asking",
     }
     if result.image_urls:
         response["image_urls"] = result.image_urls
-    if result.history_id:
-        response["history_id"] = result.history_id
 
     return response
 
