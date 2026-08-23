@@ -1,19 +1,55 @@
 """
 LLM 服务
 用于调用大模型生成回复
+
+v1 起已迁移到 LLMProvider + LLMModel（原 llm_configs 表仅保留用于回滚过渡）。
 """
 
 import logging
+import json
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from app.services.llm_config_service import LLMConfigService
 from app.services.llm.factory import get_provider
 from app.services.llm.base import Message, GenerationConfig
 from app.services.conversation_service import MessageService
+from app.models.llm_model import LLMModel
+from app.models.llm_provider import LLMProvider
 from app.core.security import decrypt_api_key
 
 logger = logging.getLogger(__name__)
+
+
+def _get_default_model(db: Session) -> Optional[LLMModel]:
+    """
+    获取默认 LLM 模型（is_default=True 且活跃）。
+    若 provider 已停用则不会返回。
+    """
+    return (
+        db.query(LLMModel)
+        .options(joinedload(LLMModel.provider))
+        .filter(
+            LLMModel.is_default == True,
+            LLMModel.is_active == True,
+            LLMProvider.is_active == True,
+        )
+        .first()
+    )
+
+
+def _parse_request_params(raw: Any) -> Dict[str, Any]:
+    """解析 request_params（Text 形式的 JSON 字符串）。"""
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {}
+        except (json.JSONDecodeError, ValueError):
+            return {}
+    return {}
 
 
 async def generate_agent_response(
@@ -29,28 +65,35 @@ async def generate_agent_response(
         db: 数据库会话
         conversation_id: 对话 ID
         user_message: 用户消息内容
-        llm_config_id: 指定的 LLM 配置 ID，为空则使用默认配置
+        llm_config_id: 指定的 LLM 模型 ID，为空则使用默认模型（参数名保留兼容旧接口）
 
     Returns:
         AI 生成的回复内容
     """
     try:
-        # 1. 获取 LLM 配置
-        config_service = LLMConfigService(db)
-
+        # 1. 获取 LLM 模型
         if llm_config_id:
-            config = config_service.get_config(llm_config_id)
-            if not config:
-                logger.warning(f"指定的 LLM 配置 {llm_config_id} 不存在，使用默认配置")
-                config = config_service.get_default_config()
+            model = (
+                db.query(LLMModel)
+                .options(joinedload(LLMModel.provider))
+                .filter(LLMModel.id == llm_config_id)
+                .first()
+            )
+            if not model:
+                logger.warning(
+                    f"指定的 LLM 模型 {llm_config_id} 不存在，使用默认模型"
+                )
+                model = _get_default_model(db)
         else:
-            config = config_service.get_default_config()
+            model = _get_default_model(db)
 
-        if not config:
-            logger.error("没有可用的 LLM 配置")
+        if not model:
+            logger.error("没有可用的 LLM 模型")
             return "抱歉，系统尚未配置 AI 模型，请联系管理员配置。"
 
-        logger.info(f"使用 LLM 配置: {config.name} ({config.provider_type})")
+        logger.info(
+            f"使用 LLM 模型: {model.name} ({model.provider.provider_type})"
+        )
 
         # 2. 获取对话历史
         msg_service = MessageService(db)
@@ -60,13 +103,14 @@ async def generate_agent_response(
         messages = _build_messages(history, user_message)
 
         # 4. 解密 API Key 并创建 provider
-        api_key = decrypt_api_key(config.api_key_encrypted)
+        api_key = decrypt_api_key(model.provider.api_key_encrypted)
+        request_params = _parse_request_params(model.request_params)
         provider = get_provider(
-            provider_type=config.provider_type,
+            provider_type=model.provider.provider_type,
             api_key=api_key,
-            base_url=config.base_url,
-            model=config.model_name,
-            **(config.request_params or {}),
+            base_url=model.provider.base_url,
+            model=model.model_name,
+            **request_params,
         )
 
         # 5. 生成回复

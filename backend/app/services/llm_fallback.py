@@ -1,16 +1,39 @@
 """
 LLM 故障回退服务
 当主 LLM 配置失败时，自动切换到备用配置
+
+v1 起已迁移到 LLMProvider + LLMModel（原 llm_configs 表仅保留用于回滚过渡）。
 """
 
 from typing import Optional, Dict, Any, List
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+import json
 import logging
 
 from app.services.llm.factory import get_provider
-from app.models import LLMConfig
+from app.models.llm_model import LLMModel
+from app.models.llm_provider import LLMProvider
+from app.core.security import decrypt_api_key
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_request_params(raw: Any) -> Dict[str, Any]:
+    """
+    解析 request_params。
+    新表 LLMModel.request_params 为 Text（JSON 字符串），需要时解析为 dict。
+    """
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {}
+        except (json.JSONDecodeError, ValueError):
+            return {}
+    return {}
 
 
 class LLMFallbackService:
@@ -33,29 +56,39 @@ class LLMFallbackService:
 
         Args:
             prompt: 提示词
-            primary_config_id: 主配置 ID
+            primary_config_id: 主模型 ID（参数名保留兼容旧接口）
             context: 对话上下文
             **kwargs: 其他参数
 
         Returns:
             生成的响应文本
         """
-        # 获取可用的 LLM 配置列表
-        configs = self._get_available_configs(primary_config_id)
+        # 获取可用的 LLM 模型列表
+        models = self._get_available_models(primary_config_id)
 
-        if not configs:
+        if not models:
             raise ValueError("没有可用的 LLM 配置")
 
         last_error = None
 
-        # 依次尝试每个配置
-        for config in configs:
+        # 依次尝试每个模型
+        for model in models:
             try:
                 logger.info(
-                    f"尝试使用 LLM 配置：{config.name} ({config.provider_type})"
+                    f"尝试使用 LLM 模型：{model.name} ({model.provider.provider_type})"
                 )
 
-                provider = get_provider(config.provider_type)
+                # 解密 API Key 并创建 provider
+                api_key = decrypt_api_key(model.provider.api_key_encrypted)
+                request_params = _parse_request_params(model.request_params)
+
+                provider = get_provider(
+                    provider_type=model.provider.provider_type,
+                    api_key=api_key,
+                    base_url=model.provider.base_url,
+                    model=model.model_name,
+                    **request_params,
+                )
 
                 # 构建消息
                 messages = self._build_messages(prompt, context)
@@ -63,55 +96,60 @@ class LLMFallbackService:
                 # 调用 LLM
                 response = await provider.generate(
                     messages=messages,
-                    model_name=config.model_name,
-                    **config.params,
+                    model_name=model.model_name,
                     **kwargs,
                 )
 
-                logger.info(f"LLM 配置 {config.name} 调用成功")
+                logger.info(f"LLM 模型 {model.name} 调用成功")
                 return response
 
             except Exception as e:
                 logger.warning(
-                    f"LLM 配置 {config.name} 调用失败：{str(e)}. 尝试下一个配置..."
+                    f"LLM 模型 {model.name} 调用失败：{str(e)}. 尝试下一个模型..."
                 )
                 last_error = e
                 continue
 
-        # 所有配置都失败
-        error_msg = f"所有 LLM 配置都失败。最后错误：{str(last_error)}"
+        # 所有模型都失败
+        error_msg = f"所有 LLM 模型都失败。最后错误：{str(last_error)}"
         logger.error(error_msg)
         raise RuntimeError(error_msg)
 
-    def _get_available_configs(
-        self, primary_config_id: Optional[str] = None
-    ) -> List[LLMConfig]:
+    def _get_available_models(
+        self, primary_model_id: Optional[str] = None
+    ) -> List[LLMModel]:
         """
-        获取可用的 LLM 配置列表
+        获取可用的 LLM 模型列表
 
         优先级：
-        1. 指定的主配置
-        2. 默认配置
-        3. 其他活跃配置
+        1. 指定的主模型
+        2. 默认模型
+        3. 其他活跃模型
         """
-        configs = (
-            self.db.query(LLMConfig)
-            .filter(LLMConfig.is_active == True)
-            .order_by(LLMConfig.is_default.desc(), LLMConfig.id)
-            .all()
+        query = (
+            self.db.query(LLMModel)
+            .options(joinedload(LLMModel.provider))
+            .filter(
+                LLMModel.is_active == True,
+                LLMProvider.is_active == True,
+            )
+            .order_by(LLMModel.is_default.desc(), LLMModel.id)
         )
+        models = query.all()
 
-        if not configs:
+        if not models:
             return []
 
-        # 如果指定了主配置，将其移到列表前面
-        if primary_config_id:
-            primary = next((c for c in configs if str(c.id) == primary_config_id), None)
+        # 如果指定了主模型，将其移到列表前面
+        if primary_model_id:
+            primary = next(
+                (m for m in models if str(m.id) == primary_model_id), None
+            )
             if primary:
-                configs.remove(primary)
-                configs.insert(0, primary)
+                models.remove(primary)
+                models.insert(0, primary)
 
-        return configs
+        return models
 
     def _build_messages(
         self, prompt: str, context: Optional[List[Dict[str, Any]]] = None
@@ -149,14 +187,14 @@ class LLMFallbackService:
 
     async def test_all_configs(self) -> Dict[str, Any]:
         """
-        测试所有 LLM 配置的可用性
+        测试所有 LLM 模型的可用性
 
         Returns:
-            测试结果
+            测试结果字典
         """
-        configs = self._get_available_configs()
+        models = self._get_available_models()
         results = {
-            "total": len(configs),
+            "total": len(models),
             "available": 0,
             "unavailable": 0,
             "details": [],
@@ -164,22 +202,31 @@ class LLMFallbackService:
 
         test_prompt = "Hello"
 
-        for config in configs:
+        for model in models:
             try:
-                provider = get_provider(config.provider_type)
+                api_key = decrypt_api_key(model.provider.api_key_encrypted)
+                request_params = _parse_request_params(model.request_params)
+
+                provider = get_provider(
+                    provider_type=model.provider.provider_type,
+                    api_key=api_key,
+                    base_url=model.provider.base_url,
+                    model=model.model_name,
+                    **request_params,
+                )
                 messages = [{"role": "user", "content": test_prompt}]
 
                 # 简单测试（不等待完整响应）
                 await provider.generate(
-                    messages=messages, model_name=config.model_name, max_tokens=10
+                    messages=messages, model_name=model.model_name, max_tokens=10
                 )
 
                 results["available"] += 1
                 results["details"].append(
                     {
-                        "id": str(config.id),
-                        "name": config.name,
-                        "provider": config.provider_type,
+                        "id": str(model.id),
+                        "name": model.name,
+                        "provider": model.provider.provider_type,
                         "status": "available",
                     }
                 )
@@ -188,9 +235,9 @@ class LLMFallbackService:
                 results["unavailable"] += 1
                 results["details"].append(
                     {
-                        "id": str(config.id),
-                        "name": config.name,
-                        "provider": config.provider_type,
+                        "id": str(model.id),
+                        "name": model.name,
+                        "provider": model.provider.provider_type,
                         "status": "unavailable",
                         "error": str(e),
                     }
