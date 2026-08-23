@@ -305,17 +305,36 @@ export interface ChatResult {
 
 /**
  * 对话式生成 — POST /image-generation/chat
- *
- * 注意：当前为 stub 实现，Task 10 将替换为真实 API 调用。
  */
 export async function chatGenerate(
-  _operation: Operation,
-  _prompt: string,
-  _conversationId: string | null,
-  _params?: ChatParams,
-  _referenceImage?: File | null,
-  _maskImage?: File | null,
+  operation: Operation,
+  prompt: string,
+  conversationId: string | null,
+  params?: ChatParams,
+  referenceImage?: File | null,
+  maskImage?: File | null,
 ): Promise<ChatResult> {
-  // TODO: Task 10 实现真实的 chat API 调用
-  throw new Error('chatGenerate API 尚未实现（Task 10 待完成）');
+  const formData = new FormData();
+  formData.append('operation', operation);
+  formData.append('prompt', prompt);
+  if (conversationId) formData.append('conversation_id', conversationId);
+  if (params?.size) formData.append('size', params.size);
+  if (params?.n) formData.append('n', String(params.n));
+  if (params?.style) formData.append('style', params.style);
+  if (params?.strength !== undefined) formData.append('strength', String(params.strength));
+  if (params?.model_preference) formData.append('model_preference', params.model_preference);
+  if (params?.edit_type) formData.append('edit_type', params.edit_type);
+  if (referenceImage) formData.append('reference_image', referenceImage);
+  if (maskImage) formData.append('mask_image', maskImage);
+
+  const response = await authedFetch(`${BASE_URL}/chat`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw await readError(response, '对话失败');
+  }
+  return response.json();
 }
