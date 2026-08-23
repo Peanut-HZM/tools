@@ -338,6 +338,10 @@ app.include_router(oss.router)
 # Admin router
 app.include_router(admin.router)
 
+# Admin image-generation router (Task 7.1)
+from app.routes import admin_image_generation  # noqa: E402
+app.include_router(admin_image_generation.router)
+
 # Deploy info router
 app.include_router(deploy.router, prefix="/api")
 

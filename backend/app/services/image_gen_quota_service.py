@@ -282,13 +282,26 @@ class ImageGenQuotaService:
             self.db.commit()
             logger.info("配额 reset_counters: user=%s", user_id)
 
-    def list_users(self, skip: int = 0, limit: int = 50) -> List[QuotaInfo]:
-        """列出所有有配额的用户"""
-        quotas = (
-            self.db.query(ImageGenQuota)
-            .order_by(ImageGenQuota.user_id)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+    def list_users(
+        self, skip: int = 0, limit: int = 50, search: Optional[str] = None
+    ) -> List[QuotaInfo]:
+        """
+        列出有配额的用户。
+
+        - skip/limit：标准分页
+        - search：模糊匹配 user_id（None 时返回全部）
+        """
+        q = self.db.query(ImageGenQuota)
+        if search:
+            pattern = f"%{search}%"
+            q = q.filter(ImageGenQuota.user_id.like(pattern))
+        quotas = q.order_by(ImageGenQuota.user_id).offset(skip).limit(limit).all()
         return [_quota_to_info(q) for q in quotas]
+
+    def count_users(self, search: Optional[str] = None) -> int:
+        """统计有配额的用户数量（与 list_users 同语义 search）"""
+        q = self.db.query(ImageGenQuota)
+        if search:
+            pattern = f"%{search}%"
+            q = q.filter(ImageGenQuota.user_id.like(pattern))
+        return q.count()
