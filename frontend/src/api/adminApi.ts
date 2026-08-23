@@ -2,6 +2,7 @@ import { getAuthHeaders } from './authApi';
 import { UserResponse } from './authApi';
 import { AUTH_API_BASE_URL } from '../config/api';
 import { authedFetch } from './http';
+import { clearToolsCache } from '../utils/cache';
 
 const API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '/admin');
 const PUBLIC_API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '');
@@ -229,6 +230,8 @@ export async function deleteTool(toolId: string): Promise<boolean> {
         headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('删除工具失败');
+    // 删除成功后清除前端工具缓存，确保首页数据新鲜
+    clearToolsCache();
     return response.json();
 }
 

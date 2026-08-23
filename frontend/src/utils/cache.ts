@@ -3,7 +3,7 @@
  * TTL 默认 5 分钟，用于减少重复 API 请求
  */
 
-const DEFAULT_TTL = 5 * 60 * 1000; // 5 分钟
+const DEFAULT_TTL = 30 * 1000; // 30 秒
 
 interface CacheEntry<T> {
   data: T;

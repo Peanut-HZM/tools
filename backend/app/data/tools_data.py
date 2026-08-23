@@ -234,6 +234,16 @@ TOOLS_DATA = [
         category="开发工具",
         require_login=True,
     ),
+    Tool(
+        id="image-generation",
+        icon="fa-image",
+        iconColor="bg-purple-500",
+        title="图像生成",
+        description="AI 图像生成工具，支持文生图、图生图、局部重绘和上传编辑",
+        rating=5.0,
+        usageCount="New",
+        category="AI工具",
+    ),
 ]
 
 
