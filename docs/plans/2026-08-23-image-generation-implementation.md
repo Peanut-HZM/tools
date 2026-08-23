@@ -674,6 +674,689 @@ git commit -m "feat(image-gen): 数据库迁移 - 5 张新表"
 
 ---
 
+## Phase 1.5: 大模型配置重构（v1 必需，见 spec §16）
+
+**目标**：把现有扁平 `llm_configs` 表拆为 `llm_providers` + `llm_models`，Alembic 迁移现有数据，4 个消费方改读新表，前端 LLMConfigsPage 拆为 2 tabs。
+
+**Files:**
+- Create: `backend/app/models/llm_provider.py`
+- Create: `backend/app/models/llm_model.py`
+- Modify: `backend/app/models/__init__.py`（导出新 models）
+- Modify: `backend/app/models/llm_config.py`（头部加 DEPRECATED 注释）
+- Create: `backend/alembic/versions/xxxx_split_llm_configs_into_providers_and_models.py`
+- Create: `backend/app/services/llm_provider_service.py`
+- Create: `backend/app/services/llm_model_service.py`
+- Modify: `backend/app/services/llm_fallback.py`（改读 LLMModel+provider）
+- Modify: `backend/app/services/agent_service.py`
+- Modify: `backend/app/api/routes/chat_stream.py`
+- Modify: `backend/app/api/routes/conversations.py`
+- Create: `backend/app/api/routes/admin_llm_providers.py`
+- Create: `backend/app/api/routes/admin_llm_models.py`
+- Modify: `frontend/src/components/Admin/LLMConfigsPage.tsx`（拆 2 tabs）
+- Create: `frontend/src/components/Admin/LLMConfigs/ProvidersTab.tsx`
+- Create: `frontend/src/components/Admin/LLMConfigs/ModelsTab.tsx`
+- Create: `frontend/src/components/Admin/LLMConfigs/ProviderDialog.tsx`
+- Create: `frontend/src/components/Admin/LLMConfigs/ModelDialog.tsx`
+- Modify: `frontend/src/components/Admin/LLMStats.tsx`（更新统计维度）
+- Create: `frontend/src/services/llmProviderApi.ts`
+- Create: `frontend/src/services/llmModelApi.ts`
+- Tests: `backend/tests/test_llm_provider_service.py`, `test_llm_model_service.py`, `test_llm_config_migration.py`
+
+**Consumes:** Phase 1（DB + models 基础）
+**Produces:** `LLMProviderService` / `LLMModelService` / 2 个前端 tabs / 4 个消费方改读新表
+
+### Task 1.5.1: 新建 LLMProvider / LLMModel models + Alembic 迁移
+
+- [ ] **Step 1: 创建 `backend/app/models/llm_provider.py`**
+
+```python
+"""大模型供应商 model（spec §16.3）"""
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, Boolean, DateTime, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+from .base import Base
+
+
+class LLMProvider(Base):
+    __tablename__ = "llm_providers"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False)
+    provider_type = Column(String(50), nullable=False)  # openai/anthropic/azure_openai/baidu/aliyun/doubao_seedream/qwen_image/other
+    base_url = Column(String(500), nullable=False)
+    api_key_encrypted = Column(Text, nullable=False)
+    api_key_suffix = Column(String(4), nullable=True)
+    notes = Column(String(500), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=True)
+```
+
+- [ ] **Step 2: 创建 `backend/app/models/llm_model.py`**
+
+```python
+"""大模型 model（spec §16.3）"""
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
+from .base import Base
+
+
+class LLMModel(Base):
+    __tablename__ = "llm_models"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False)
+    model_name = Column(String(100), nullable=False)
+    provider_id = Column(UUID(as_uuid=True), ForeignKey("llm_providers.id"), nullable=False, index=True)
+    request_params = Column(Text, nullable=True)  # JSON 字符串
+    category = Column(String(20), nullable=False, default="chat", index=True)
+    is_default = Column(Boolean, nullable=False, default=False, index=True)
+    is_default_for_category = Column(Boolean, nullable=False, default=False)
+    notes = Column(String(500), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=True)
+
+    provider = relationship("LLMProvider", lazy="joined")
+```
+
+- [ ] **Step 3: 在 `backend/app/models/__init__.py` 导出**
+
+```python
+from .llm_provider import LLMProvider  # noqa
+from .llm_model import LLMModel  # noqa
+```
+
+- [ ] **Step 4: 标记 `llm_config.py` deprecated**
+
+文件头部加：
+```python
+"""
+LLM 配置 model - DEPRECATED
+
+v1 起请使用 LLMProvider + LLMModel（见 backend/app/models/llm_provider.py 和 llm_model.py）。
+保留本表仅用于回滚过渡。
+"""
+```
+
+- [ ] **Step 5: 生成 Alembic 迁移**
+
+```bash
+cd backend
+alembic revision -m "split llm_configs into providers and models"
+```
+
+生成的迁移文件编辑内容（关键步骤）：
+
+```python
+"""split llm_configs into providers and models
+
+Revision ID: xxxx
+Revises: <previous_revision>
+Create Date: ...
+"""
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+
+revision = 'xxxx'
+down_revision = '<previous_revision>'
+
+def upgrade():
+    # 1. 建新表
+    op.create_table(
+        'llm_providers',
+        sa.Column('id', UUID(as_uuid=True), primary_key=True),
+        sa.Column('name', sa.String(100), nullable=False),
+        sa.Column('provider_type', sa.String(50), nullable=False),
+        sa.Column('base_url', sa.String(500), nullable=False),
+        sa.Column('api_key_encrypted', sa.Text, nullable=False),
+        sa.Column('api_key_suffix', sa.String(4), nullable=True),
+        sa.Column('notes', sa.String(500), nullable=True),
+        sa.Column('is_active', sa.Boolean, nullable=False, server_default=sa.true()),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    )
+    op.create_table(
+        'llm_models',
+        sa.Column('id', UUID(as_uuid=True), primary_key=True),
+        sa.Column('name', sa.String(100), nullable=False),
+        sa.Column('model_name', sa.String(100), nullable=False),
+        sa.Column('provider_id', UUID(as_uuid=True), sa.ForeignKey('llm_providers.id'), nullable=False),
+        sa.Column('request_params', sa.Text, nullable=True),
+        sa.Column('category', sa.String(20), nullable=False, server_default='chat'),
+        sa.Column('is_default', sa.Boolean, nullable=False, server_default=sa.false()),
+        sa.Column('is_default_for_category', sa.Boolean, nullable=False, server_default=sa.false()),
+        sa.Column('notes', sa.String(500), nullable=True),
+        sa.Column('is_active', sa.Boolean, nullable=False, server_default=sa.true()),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True),
+    )
+    op.create_index('idx_llm_models_provider_id', 'llm_models', ['provider_id'])
+    op.create_index('idx_llm_models_category', 'llm_models', ['category'])
+    op.create_index('idx_llm_models_is_default', 'llm_models', ['is_default'])
+
+    # 2. Backfill providers（按 4 字段 GROUP BY）
+    op.execute("""
+        INSERT INTO llm_providers (id, name, provider_type, base_url, api_key_encrypted, api_key_suffix, is_active, created_at, updated_at)
+        SELECT
+            gen_random_uuid(),
+            'Migrated: ' || provider_type || '-' || COALESCE(api_key_suffix, '????'),
+            provider_type,
+            base_url,
+            api_key_encrypted,
+            api_key_suffix,
+            is_active,
+            MIN(created_at),
+            MIN(updated_at)
+        FROM llm_configs
+        GROUP BY provider_type, base_url, api_key_encrypted, api_key_suffix, is_active
+    """)
+
+    # 3. Backfill models
+    op.execute("""
+        INSERT INTO llm_models (id, name, model_name, provider_id, request_params, category, is_default, is_active, created_at, updated_at)
+        SELECT
+            gen_random_uuid(),
+            c.name,
+            c.model_name,
+            p.id,
+            c.request_params::text,
+            c.category,
+            c.is_default,
+            c.is_active,
+            c.created_at,
+            c.updated_at
+        FROM llm_configs c
+        JOIN llm_providers p
+          ON c.provider_type = p.provider_type
+         AND c.base_url = p.base_url
+         AND c.api_key_encrypted = p.api_key_encrypted
+         AND COALESCE(c.api_key_suffix, '') = COALESCE(p.api_key_suffix, '')
+    """)
+
+    # 4. 标记 llm_configs deprecated（保留数据）
+    op.execute("COMMENT ON TABLE llm_configs IS 'DEPRECATED: see llm_providers + llm_models'")
+
+
+def downgrade():
+    op.execute("DELETE FROM llm_models")
+    op.execute("DELETE FROM llm_providers")
+    op.drop_index('idx_llm_models_is_default', table_name='llm_models')
+    op.drop_index('idx_llm_models_category', table_name='llm_models')
+    op.drop_index('idx_llm_models_provider_id', table_name='llm_models')
+    op.drop_table('llm_models')
+    op.drop_table('llm_providers')
+```
+
+- [ ] **Step 6: 跑迁移**
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+- [ ] **Step 7: 验证 backfill 正确**
+
+```bash
+cd backend
+python -c "
+from app.db.database import SessionLocal
+from sqlalchemy import text
+with SessionLocal() as db:
+    n_old = db.execute(text('SELECT COUNT(*) FROM llm_configs')).scalar()
+    n_providers = db.execute(text('SELECT COUNT(*) FROM llm_providers')).scalar()
+    n_models = db.execute(text('SELECT COUNT(*) FROM llm_models')).scalar()
+    print(f'老配置: {n_old}, 新供应商: {n_providers}, 新模型: {n_models}')
+"
+```
+
+期望：`新模型 == 老配置`，`新供应商 <= 老配置`（按 Key 去重）。
+
+- [ ] **Step 8: 写迁移测试 `backend/tests/test_llm_config_migration.py`**
+
+```python
+"""验证迁移正确性：构造 3 条老配置（2 条共用 Key），跑迁移，断言供应商去重 + 模型全量"""
+import pytest
+from sqlalchemy import text
+from app.models.llm_config import LLMConfig
+from app.core.security import encrypt_api_key
+
+
+def test_migration_dedupes_providers(db_session):
+    # 构造 3 条老配置：2 条共享同一 API key
+    same_key = encrypt_api_key("sk-same123")
+    db_session.add_all([
+        LLMConfig(name="A", provider_type="openai", base_url="https://api.openai.com/v1",
+                  api_key_encrypted=same_key, api_key_suffix="3123", model_name="gpt-4o",
+                  category="chat", is_active=True),
+        LLMConfig(name="B", provider_type="openai", base_url="https://api.openai.com/v1",
+                  api_key_encrypted=same_key, api_key_suffix="3123", model_name="gpt-4o-mini",
+                  category="chat", is_active=True),
+        LLMConfig(name="C", provider_type="openai", base_url="https://api.openai.com/v1",
+                  api_key_encrypted=encrypt_api_key("sk-diff999"), api_key_suffix="d999",
+                  model_name="o1", category="chat", is_active=True),
+    ])
+    db_session.commit()
+
+    # 跑迁移（调用 alembic upgrade 或者手动 SQL）
+    from alembic.config import Config
+    from alembic import command
+    cfg = Config("alembic.ini")
+    command.upgrade(cfg, "head")
+
+    # 验证
+    n_providers = db_session.execute(text("SELECT COUNT(*) FROM llm_providers")).scalar()
+    n_models = db_session.execute(text("SELECT COUNT(*) FROM llm_models")).scalar()
+    assert n_providers == 2  # 去重后 2 个供应商
+    assert n_models == 3      # 3 条模型
+```
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add backend/app/models/llm_provider.py backend/app/models/llm_model.py backend/app/models/__init__.py backend/app/models/llm_config.py backend/alembic/versions/xxxx_split_llm_configs_into_providers_and_models.py backend/tests/test_llm_config_migration.py
+git commit -m "feat(llm): 拆分 llm_configs 为 llm_providers + llm_models，含数据迁移"
+```
+
+### Task 1.5.2: 消费方迁移（4 个文件）
+
+- [ ] **Step 1: 改 `backend/app/services/llm_fallback.py`**
+
+原 `_get_available_configs()` 改读 `LLMModel` + `LLMProvider`：
+
+```python
+def _get_available_models(self, primary_model_id=None):
+    """获取可用模型列表（按优先级排序）"""
+    from app.models.llm_model import LLMModel
+    from app.models.llm_provider import LLMProvider
+    from sqlalchemy.orm import joinedload
+
+    query = self.db.query(LLMModel).options(joinedload(LLMModel.provider)).filter(LLMModel.is_active == True, LLMProvider.is_active == True)
+    if primary_model_id:
+        primary = query.filter(LLMModel.id == primary_model_id).first()
+        if primary:
+            others = query.filter(LLMModel.id != primary_model_id).all()
+            return [primary] + others
+    return query.all()
+```
+
+循环逻辑保持不变，只把 `config.provider_type/api_key/base_url/model_name/request_params` 替换成 `model.provider.provider_type / model.provider.api_key / model.provider.base_url / model.model_name / model.request_params`。
+
+- [ ] **Step 2: 改 `agent_service.py` / `chat_stream.py` / `conversations.py`**
+
+按相同模式：把 `LLMConfig` 读改成 `LLMModel + LLMProvider` join 读。函数签名不变（保持外部接口稳定）。
+
+- [ ] **Step 3: 跑现有 chat 相关测试，确认行为不变**
+
+```bash
+cd backend
+pytest tests/test_chat_stream.py tests/test_agent_service.py -v
+```
+
+期望：所有测试通过（接口语义未变）。
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add backend/app/services/llm_fallback.py backend/app/services/agent_service.py backend/app/api/routes/chat_stream.py backend/app/api/routes/conversations.py
+git commit -m "refactor(llm): 4 个消费方改读 LLMProvider + LLMModel"
+```
+
+### Task 1.5.3: 新建 LLMProviderService / LLMModelService
+
+- [ ] **Step 1: 写失败测试 `backend/tests/test_llm_provider_service.py`**
+
+```python
+import pytest
+from app.services.llm_provider_service import LLMProviderService
+from app.services.llm_model_service import LLMModelService
+
+
+def test_create_and_list_provider(db_session):
+    svc = LLMProviderService(db_session)
+    p = svc.create_provider(name="OpenAI", provider_type="openai",
+                            base_url="https://api.openai.com/v1", api_key="sk-xxx")
+    assert p.id is not None
+    assert svc.list_providers()[0].name == "OpenAI"
+
+
+def test_delete_provider_with_linked_models_fails(db_session):
+    """有模型关联时不允许删除"""
+    p_svc = LLMProviderService(db_session)
+    m_svc = LLMModelService(db_session)
+    p = p_svc.create_provider(name="X", provider_type="openai",
+                              base_url="https://api.openai.com/v1", api_key="sk-x")
+    m_svc.create_model(name="gpt-4o", model_name="gpt-4o", provider_id=p.id, category="chat")
+    with pytest.raises(ValueError, match="存在关联模型"):
+        p_svc.delete_provider(p.id)
+
+
+def test_get_default_model_by_category(db_session):
+    p_svc = LLMProviderService(db_session)
+    m_svc = LLMModelService(db_session)
+    p = p_svc.create_provider(name="Y", provider_type="openai",
+                              base_url="https://api.openai.com/v1", api_key="sk-y")
+    m = m_svc.create_model(name="polish", model_name="qwen-turbo", provider_id=p.id,
+                           category="image_polish", is_default_for_category=True)
+    found = m_svc.get_default_model("image_polish")
+    assert found.id == m.id
+```
+
+- [ ] **Step 2: 跑测试，确认失败**
+
+```bash
+cd backend
+pytest tests/test_llm_provider_service.py -v
+```
+预期：`ModuleNotFoundError`
+
+- [ ] **Step 3: 实现 `backend/app/services/llm_provider_service.py`**
+
+```python
+"""供应商服务（spec §16.5）"""
+from typing import List, Optional, Tuple
+from sqlalchemy.orm import Session
+from app.models.llm_provider import LLMProvider
+from app.core.security import encrypt_api_key, decrypt_api_key
+from app.services.llm.factory import get_provider
+
+
+class LLMProviderService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def list_providers(self, active_only: bool = False) -> List[LLMProvider]:
+        q = self.db.query(LLMProvider)
+        if active_only:
+            q = q.filter(LLMProvider.is_active == True)
+        return q.all()
+
+    def get_provider(self, provider_id: str) -> Optional[LLMProvider]:
+        return self.db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
+
+    def create_provider(self, name, provider_type, base_url, api_key, notes=None, is_active=True) -> LLMProvider:
+        p = LLMProvider(
+            name=name, provider_type=provider_type, base_url=base_url,
+            api_key_encrypted=encrypt_api_key(api_key),
+            api_key_suffix=api_key[-4:] if len(api_key) >= 4 else api_key,
+            notes=notes, is_active=is_active,
+        )
+        self.db.add(p)
+        self.db.commit()
+        self.db.refresh(p)
+        return p
+
+    def update_provider(self, provider_id, **kwargs) -> Optional[LLMProvider]:
+        p = self.get_provider(provider_id)
+        if not p:
+            return None
+        if "api_key" in kwargs:
+            api_key = kwargs.pop("api_key")
+            kwargs["api_key_encrypted"] = encrypt_api_key(api_key)
+            kwargs["api_key_suffix"] = api_key[-4:] if len(api_key) >= 4 else api_key
+        for k, v in kwargs.items():
+            if hasattr(p, k):
+                setattr(p, k, v)
+        self.db.commit()
+        self.db.refresh(p)
+        return p
+
+    def delete_provider(self, provider_id) -> bool:
+        from app.models.llm_model import LLMModel
+        linked = self.db.query(LLMModel).filter(LLMModel.provider_id == provider_id).count()
+        if linked > 0:
+            raise ValueError(f"存在关联模型 {linked} 条，请先删除/迁移")
+        p = self.get_provider(provider_id)
+        if not p:
+            return False
+        self.db.delete(p)
+        self.db.commit()
+        return True
+
+    def test_connection(self, provider_id) -> Tuple[bool, str, int]:
+        p = self.get_provider(provider_id)
+        if not p:
+            return False, "供应商不存在", 0
+        try:
+            api_key = decrypt_api_key(p.api_key_encrypted)
+        except Exception as e:
+            return False, f"API Key 解密失败: {e}", 0
+        import time
+        try:
+            provider = get_provider(p.provider_type, api_key, p.base_url, "test-model")
+            start = time.time()
+            ok, err = await provider.test_connection()  # 注意：get_provider 是同步，test_connection 异步
+            latency = int((time.time() - start) * 1000)
+            return ok, err, latency
+        except Exception as e:
+            return False, str(e), 0
+
+    def reveal_api_key(self, provider_id) -> Optional[str]:
+        p = self.get_provider(provider_id)
+        if not p:
+            return None
+        return decrypt_api_key(p.api_key_encrypted)
+```
+
+注意：上面的 `test_connection` 在 async 上下文需要用 `async def`。请按项目实际模式调整（同步测试或异步测试）。
+
+- [ ] **Step 4: 实现 `backend/app/services/llm_model_service.py`**
+
+```python
+"""模型服务（spec §16.5）"""
+from typing import List, Optional
+from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
+from app.models.llm_model import LLMModel
+from app.models.llm_provider import LLMProvider
+
+
+class LLMModelService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def list_models(self, category=None, provider_id=None, active_only=False) -> List[LLMModel]:
+        q = self.db.query(LLMModel)
+        if active_only:
+            q = q.filter(LLMModel.is_active == True)
+        if category:
+            q = q.filter(LLMModel.category == category)
+        if provider_id:
+            q = q.filter(LLMModel.provider_id == provider_id)
+        return q.all()
+
+    def get_model(self, model_id) -> Optional[LLMModel]:
+        return self.db.query(LLMModel).filter(LLMModel.id == model_id).first()
+
+    def get_default_model(self, category=None) -> Optional[LLMModel]:
+        q = self.db.query(LLMModel).filter(LLMModel.is_active == True)
+        if category:
+            q = q.filter(and_(LLMModel.category == category,
+                              LLMModel.is_default_for_category == True))
+        else:
+            q = q.filter(LLMModel.is_default == True)
+        return q.first()
+
+    def create_model(self, name, model_name, provider_id, request_params=None,
+                     category="chat", is_default=False, is_default_for_category=False,
+                     notes=None, is_active=True) -> LLMModel:
+        m = LLMModel(
+            name=name, model_name=model_name, provider_id=provider_id,
+            request_params=request_params, category=category,
+            is_default=is_default, is_default_for_category=is_default_for_category,
+            notes=notes, is_active=is_active,
+        )
+        if is_default:
+            self._unset_default_models()
+        if is_default_for_category:
+            self._unset_category_defaults(category)
+        self.db.add(m)
+        self.db.commit()
+        self.db.refresh(m)
+        return m
+
+    def update_model(self, model_id, **kwargs) -> Optional[LLMModel]:
+        m = self.get_model(model_id)
+        if not m:
+            return None
+        if kwargs.get("is_default"):
+            self._unset_default_models()
+        if kwargs.get("is_default_for_category"):
+            self._unset_category_defaults(m.category)
+        for k, v in kwargs.items():
+            if hasattr(m, k):
+                setattr(m, k, v)
+        self.db.commit()
+        self.db.refresh(m)
+        return m
+
+    def delete_model(self, model_id) -> bool:
+        m = self.get_model(model_id)
+        if not m:
+            return False
+        self.db.delete(m)
+        self.db.commit()
+        return True
+
+    def set_default(self, model_id, category=None) -> bool:
+        m = self.get_model(model_id)
+        if not m:
+            return False
+        if category:
+            self._unset_category_defaults(category)
+            m.is_default_for_category = True
+            m.category = category
+        else:
+            self._unset_default_models()
+            m.is_default = True
+        self.db.commit()
+        return True
+
+    def _unset_default_models(self):
+        self.db.query(LLMModel).filter(LLMModel.is_default == True).update({"is_default": False})
+        self.db.commit()
+
+    def _unset_category_defaults(self, category):
+        self.db.query(LLMModel).filter(
+            LLMModel.category == category, LLMModel.is_default_for_category == True
+        ).update({"is_default_for_category": False})
+        self.db.commit()
+```
+
+- [ ] **Step 5: 跑测试，确认通过**
+
+```bash
+cd backend
+pytest tests/test_llm_provider_service.py -v
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add backend/app/services/llm_provider_service.py backend/app/services/llm_model_service.py backend/tests/test_llm_provider_service.py
+git commit -m "feat(llm): LLMProviderService + LLMModelService"
+```
+
+### Task 1.5.4: 管理 API + 前端 UI 重构
+
+- [ ] **Step 1: 创建 `backend/app/api/routes/admin_llm_providers.py`**
+
+端点：`GET/POST /admin/llm-providers`, `GET/PUT/DELETE /admin/llm-providers/{id}`, `POST /admin/llm-providers/{id}/test`, `POST /admin/llm-providers/{id}/reveal`
+
+按项目现有 admin 路由模式（鉴权中间件 + JSON body）实现，调用 `LLMProviderService` 对应方法。
+
+- [ ] **Step 2: 创建 `backend/app/api/routes/admin_llm_models.py`**
+
+端点：`GET/POST /admin/llm-models`, `GET/PUT/DELETE /admin/llm-models/{id}`, `POST /admin/llm-models/{id}/set-default`
+
+- [ ] **Step 3: 注册路由到 `backend/app/api/router.py`**
+
+```python
+from app.api.routes.admin_llm_providers import router as admin_llm_providers_router
+from app.api.routes.admin_llm_models import router as admin_llm_models_router
+
+api_router.include_router(admin_llm_providers_router, prefix="/api", tags=["admin-llm-providers"])
+api_router.include_router(admin_llm_models_router, prefix="/api", tags=["admin-llm-models"])
+```
+
+- [ ] **Step 4: 创建 `frontend/src/services/llmProviderApi.ts` + `llmModelApi.ts`**
+
+按 spec §16.8 端点封装 fetch 调用。
+
+- [ ] **Step 5: 重构 `frontend/src/components/Admin/LLMConfigsPage.tsx`**
+
+从单列表 → 顶部 2 tabs：
+- 引入 `ProvidersTab` + `ModelsTab`
+- 移除原 `ConfigModal` 引用
+
+```tsx
+import { Tabs } from 'antd';
+import ProvidersTab from './LLMConfigs/ProvidersTab';
+import ModelsTab from './LLMConfigs/ModelsTab';
+
+export default function LLMConfigsPage() {
+  return (
+    <Tabs
+      items={[
+        { key: 'providers', label: '模型供应商', children: <ProvidersTab /> },
+        { key: 'models', label: '模型配置', children: <ModelsTab /> },
+      ]}
+    />
+  );
+}
+```
+
+- [ ] **Step 6: 实现 `ProvidersTab.tsx`**
+
+- 表格：名称 / 厂商 / base URL / key 末4 / 启用 / 操作
+- 「新建供应商」按钮 → 打开 `ProviderDialog`
+- 操作列：编辑 / 测试连通性 / 显示 Key / 删除
+
+- [ ] **Step 7: 实现 `ModelsTab.tsx`**
+
+- 表格：名称 / model_name / 供应商 / category / 默认 / 启用 / 操作
+- 「新建模型」按钮 → 打开 `ModelDialog`（含 provider 下拉 + category + 默认开关）
+- 操作列：编辑 / 设为默认 / 删除
+
+- [ ] **Step 8: 更新 `frontend/src/components/Admin/LLMStats.tsx`**
+
+统计维度改为按 `provider_type` / `category` 聚合。
+
+- [ ] **Step 9: i18n 更新**
+
+`frontend/src/i18n/locales/zh-CN.ts` + `en-US.ts` 新增 `llm.providersTab` / `llm.modelsTab` 等 key。
+
+- [ ] **Step 10: 前端测试**
+
+```bash
+cd frontend
+npm run test
+```
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add backend/app/api/routes/admin_llm_providers.py backend/app/api/routes/admin_llm_models.py backend/app/api/router.py frontend/src/services/llmProviderApi.ts frontend/src/services/llmModelApi.ts frontend/src/components/Admin/LLMConfigsPage.tsx frontend/src/components/Admin/LLMConfigs/ frontend/src/components/Admin/LLMStats.tsx frontend/src/i18n/locales/zh-CN.ts frontend/src/i18n/locales/en-US.ts
+git commit -m "feat(llm): 2 tabs UI + provider/model 管理 API"
+```
+
+**Phase 1.5 验收标准**：
+- ✅ `llm_providers` + `llm_models` 表已建，老数据已迁移
+- ✅ 老 LLMConfig 数据 0 丢失（去重后供应商数 ≤ 老配置数，模型数 == 老配置数）
+- ✅ `LLMProviderService` / `LLMModelService` CRUD 全可用
+- ✅ 4 个老消费方（llm_fallback / agent_service / chat_stream / conversations）改读新表，行为不变
+- ✅ 前端 LLMConfigsPage 拆为 2 tabs
+- ✅ 新增 / 编辑 / 删除供应商 + 模型 UI 全可用
+
+---
+
 ## Phase 2: DifyConfigService（分层配置管理）
 
 **Files:**
@@ -1000,15 +1683,66 @@ class DifyClient:
 ### Phase 8: PromptPolisher
 
 **核心要点：**
-- 复用 `LLMFallbackService` + 现有 `LLMConfig` 表
-- 寻找标签为 "image_gen_polish" 的 LLMConfig（不存在则用默认最小模型）
+- 复用 `LLMFallbackService` + 新的 `LLMModelService` / `LLMProviderService`（见 Phase 1.5）
+- 通过 `LLMModelService.get_default_model(category="image_polish")` 找到默认润色模型，不存在则兜底 `category="chat"` 的默认模型
+- 从 `model.provider` 拿到 (provider_type, api_key, base_url, model_name)，调 `LLMFallbackService.generate_with_fallback`
 - 系统提示：「你是图像生成提示词优化专家。根据用户目标 ({operation}) 优化以下提示词，使其更适合 {model_family} 类模型。返回英文版本。原始提示：{prompt}」
-- 失败：返回原 prompt（不抛异常）
-- 测试：mock LLM，验证优化结果返回；失败时返回原值
+- 失败：返回原 prompt（不抛异常），写日志
+- 测试：mock LLMModelService / LLMProviderService / LLMFallbackService，验证优化结果返回；失败时返回原值
+
+**关键接口定义：**
+
+```python
+# backend/app/services/image_gen_prompt_polisher.py
+
+from typing import Optional
+from app.services.llm_model_service import LLMModelService
+from app.services.llm_fallback import LLMFallbackService
+
+
+class ImageGenPromptPolisher:
+    def __init__(self, db, fallback_svc: Optional[LLMFallbackService] = None):
+        self._model_svc = LLMModelService(db)
+        self._fallback_svc = fallback_svc or LLMFallbackService(db)
+
+    async def polish(
+        self, prompt: str, user_id: str, target_operation: str = "text2img"
+    ) -> str:
+        """
+        返回优化后的提示词。失败时返回原 prompt。
+        """
+        model = self._model_svc.get_default_model(category="image_polish")
+        if not model:
+            model = self._model_svc.get_default_model(category="chat")
+        if not model:
+            logger.warning("[image-gen-polish] 无可用默认模型，返回原提示词")
+            return prompt
+
+        provider = model.provider
+        # 构造 system prompt
+        system_msg = (
+            f"你是图像生成提示词优化专家。根据用户目标 ({target_operation}) "
+            f"优化以下提示词，使其更适合 {model.model_name} 类模型。"
+            f"返回英文版本。原始提示：{prompt}"
+        )
+
+        try:
+            result = await self._fallback_svc.generate_with_fallback(
+                prompt=prompt,
+                primary_config_id=str(model.id),  # 复用 llm_fallback 的接口（已支持）
+                context=[{"role": "system", "content": system_msg}],
+            )
+            return result if result else prompt
+        except Exception as e:
+            logger.warning(f"[image-gen-polish] 润色失败: {e}")
+            return prompt
+```
 
 **文件：**
 - Create: `backend/app/services/image_gen_prompt_polisher.py`
 - Create: `backend/tests/test_image_gen_prompt_polisher.py`
+
+**注意**：Phase 8 依赖 Phase 1.5 完成的 `LLMModelService` 和 `LLMFallbackService`（已改读新表）。
 
 ### Phase 9: DegradationService
 
@@ -1112,9 +1846,8 @@ class DifyClient:
 
 ```
 Phase 0 ─┐
-         ├─▶ Phase 1 ─┐
-         │            ├─▶ Phase 2 ─┬─▶ Phase 3 ─┐
-         │            │            │            ├─▶ Phase 5 ─┬─▶ Phase 6 ─┬─▶ Phase 11 ─┐
+         ├─▶ Phase 1 ─▶ Phase 1.5 ─┬─▶ Phase 2 ─�─▶ Phase 3 ─┐
+         │            (LLM 拆分)    │            │            ├─▶ Phase 5 ─┬─▶ Phase 6 ─�─▶ Phase 11 ─┐
          │            │            │            │            │           │              │
          │            │            │            └─▶ Phase 4 ─┘           ├─▶ Phase 13
          │            │            │                                      │
@@ -1126,6 +1859,11 @@ Phase 0 ─┐
          │            │                                                   │
          │            └─▶ Phase 7 ──────────────────────────▶ Phase 12 ──┘
 ```
+
+**关键依赖**：
+- **Phase 1.5 必须在 Phase 2 之前**（其他工具的 LLM 消费方在 Phase 1.5.2 切换；Phase 8 引用 Phase 1.5.3 的新 LLMModelService）
+- **Phase 1.5 是平台级重构**，可独立于图像生成 Phase 0 进行（但要在 Phase 1 之后）
+- Phase 8（提示词润色）显式依赖 Phase 1.5 的 LLMModelService
 
 ---
 
@@ -1145,6 +1883,7 @@ Phase 0 ─┐
 
 1. **强推荐 Subagent-Driven 模式**：每个 phase 派一个 subagent，review 后再下一个
 2. **Phase 0 必须用户本人完成**：Dify 后台操作无法自动化
-3. **Phase 1-3 是基石**：必须一次过
-4. **Phase 11（前端用户）工作量最大**：建议拆 3 个 subagent（API+Store / 表单 / 公共组件）
-5. **Phase 13 留足缓冲**：集成测试容易有坑
+3. **Phase 1 + 1.5 是基石**：必须先做 LLM 拆分，其他工具依赖新表
+4. **Phase 1.5 拆 3 个 subagent**：建议 (a) models + 迁移，(b) 4 个消费方切换，(c) UI 重构
+5. **Phase 11（前端用户）工作量最大**：建议拆 3 个 subagent（API+Store / 表单 / 公共组件）
+6. **Phase 13 留足缓冲**：集成测试容易有坑
