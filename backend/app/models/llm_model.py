@@ -7,7 +7,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -40,6 +40,8 @@ class LLMModel(Base):
     is_default = Column(Boolean, nullable=False, default=False, index=True)
     # 所属分类下的默认模型
     is_default_for_category = Column(Boolean, nullable=False, default=False)
+    # 兜底链迭代顺序，越小越优先；同 priority 内按 id 稳定排序
+    priority = Column(Integer, default=100, nullable=False, index=False)
     notes = Column(String(500), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(
