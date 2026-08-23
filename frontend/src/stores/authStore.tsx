@@ -50,6 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [authVersion, setAuthVersion] = useState(0);
 
+  // 同步追踪 isAuthenticated 的真实值，避免同一渲染内连续 markUnauthorized
+  // 重复递增 authVersion（setState 是异步批处理的）
+  const isAuthenticatedRef = useRef(false);
+
   // Check authentication status on mount
   useEffect(() => {
     checkAuth();
@@ -87,15 +91,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: userData.role || 'user'
         });
         setIsAuthenticated(true);
+        isAuthenticatedRef.current = true;
         triggerTokenSync();
       } else {
         setUser(null);
         setIsAuthenticated(false);
+        isAuthenticatedRef.current = false;
         authApi.removeAuthToken();
       }
     } catch (e) {
       setUser(null);
       setIsAuthenticated(false);
+      isAuthenticatedRef.current = false;
       authApi.removeAuthToken();
     } finally {
       setIsLoading(false);
@@ -114,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: response.role || 'user'
       });
       setIsAuthenticated(true);
+      isAuthenticatedRef.current = true;
       setAuthVersion(v => v + 1);
       triggerTokenSync();
     } catch (e) {
@@ -150,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: response.role || 'user'
       });
       setIsAuthenticated(true);
+      isAuthenticatedRef.current = true;
       setAuthVersion(v => v + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Registration failed');
@@ -166,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setIsAuthenticated(false);
+      isAuthenticatedRef.current = false;
       setAuthVersion(v => v + 1);
       setIsLoading(false);
     }
@@ -178,9 +188,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const markUnauthorized = () => {
     authApi.removeAuthToken();
     setUser(null);
-    if (isAuthenticated) {
+    // 基于 ref 判断：同一渲染内连续 401 只递增一次 authVersion
+    if (isAuthenticatedRef.current) {
       setAuthVersion(v => v + 1);
     }
+    isAuthenticatedRef.current = false;
     setIsAuthenticated(false);
   };
 

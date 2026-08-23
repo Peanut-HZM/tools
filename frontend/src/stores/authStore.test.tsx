@@ -98,4 +98,19 @@ describe('markUnauthorized', () => {
 
     expect(result.current.authVersion).toBe(0);
   });
+
+  it('同一渲染内连续两次 markUnauthorized 只递增一次 authVersion', async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await result.current.login('tester', 'password');
+    });
+
+    act(() => {
+      result.current.markUnauthorized();
+      result.current.markUnauthorized();
+    });
+
+    expect(result.current.authVersion).toBe(2);
+  });
 });
