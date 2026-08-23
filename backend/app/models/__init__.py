@@ -30,6 +30,9 @@ from app.models.message import Message
 from app.models.prd import PRDDocument
 from app.models.competitor import CompetitorAnalysis
 from app.models.llm_config import LLMConfig
+# v1 起新增：供应商 / 模型拆分（详见 spec §16.3）
+from app.models.llm_provider import LLMProvider
+from app.models.llm_model import LLMModel
 from app.models.agent import Agent
 
 # CrossShare 跨设备共享模型

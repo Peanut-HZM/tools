@@ -1,5 +1,8 @@
 """
-LLM配置模型
+LLM 配置 model - DEPRECATED
+
+v1 起请使用 LLMProvider + LLMModel（见 backend/app/models/llm_provider.py 和 llm_model.py）。
+保留本表仅用于回滚过渡，新业务逻辑不应再读写 llm_configs。
 """
 
 from enum import Enum
