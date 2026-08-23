@@ -51,6 +51,7 @@ class ImageGenHistory(Base):
     error_message = Column(Text, nullable=True)
     duration_ms = Column(Integer, nullable=True)
     is_deleted = Column(Boolean, nullable=False, default=False, index=True)
+    conversation_id = Column(String(64), nullable=True, index=True)  # 关联多轮对话 ID
     last_accessed_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
 
