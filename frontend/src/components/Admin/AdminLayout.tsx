@@ -41,6 +41,7 @@ export default function AdminLayout() {
     { path: '/admin/llm-configs', label: '大模型配置', icon: 'fa-brain' },
     { path: '/admin/course', label: '课程管理', icon: 'fa-graduation-cap' },
     { path: '/admin/openclaw', label: 'OpenClaw 管理', icon: 'fa-comments' },
+    { path: '/admin/image-generation', label: '图像生成管理', icon: 'fa-image' },
   ];
 
   return (

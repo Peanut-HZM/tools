@@ -41,6 +41,7 @@ import K8sTool from './components/Tools/K8sTool/K8sTool';
 import ImageGeneration from './components/Tools/ImageGeneration';
 import { WorkspacePage } from './components/Workspace/WorkspacePage';
 import OpenClawManagement from './components/Admin/OpenClawManagement';
+import ImageGenerationAdmin from './components/Admin/ImageGeneration';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
@@ -346,6 +347,7 @@ function App() {
               <Route path="course" element={<CourseManagement />} />
               <Route path="course/:id" element={<CourseDetail />} />
               <Route path="openclaw" element={<OpenClawManagement />} />
+              <Route path="image-generation" element={<ImageGenerationAdmin />} />
             </Route>
           </Routes>
         </BrowserRouter>
