@@ -31,7 +31,8 @@ def _get_default_model(db: Session) -> Optional[LLMModel]:
     """获取默认 LLM 模型（is_default=True 且活跃）。"""
     return (
         db.query(LLMModel)
-        .options(joinedload(LLMModel.provider))
+        .join(LLMModel.provider)  # INNER JOIN：用于 is_active 过滤，避免笛卡尔积
+        .options(joinedload(LLMModel.provider))  # LEFT OUTER JOIN：一次取回 provider 字段
         .filter(
             LLMModel.is_default == True,
             LLMModel.is_active == True,

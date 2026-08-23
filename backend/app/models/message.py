@@ -30,9 +30,11 @@ class Message(Base):
     prompt_tokens = Column(Integer, default=0)  # 输入token数
     completion_tokens = Column(Integer, default=0)  # 输出token数
     total_tokens = Column(Integer, default=0)  # 总token数
-    llm_config_id = Column(
-        UUID(as_uuid=True), ForeignKey("llm_configs.id"), nullable=True
-    )  # 使用的模型配置
+    # 历史原因列名保留，实际存储 LLMModel.id（v1 起已迁移到 llm_models 表）。
+    # 移除原 ForeignKey("llm_configs.id") 约束：旧 llm_configs 表仅保留用于回滚过渡，
+    # 新写入的 ID 指向 llm_models.id，不再受 FK 约束；项目使用 create_all 不做 schema migration，
+    # 数据库层面若已存在旧 FK 约束需 DBA 手动 DROP，ORM 层面已解除。
+    llm_config_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     llm_model_name = Column(String(100), nullable=True)  # 使用的模型名称
 
     def __repr__(self):

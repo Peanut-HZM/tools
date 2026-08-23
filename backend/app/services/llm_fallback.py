@@ -128,7 +128,8 @@ class LLMFallbackService:
         """
         query = (
             self.db.query(LLMModel)
-            .options(joinedload(LLMModel.provider))
+            .join(LLMModel.provider)  # INNER JOIN：用于 is_active 过滤，避免笛卡尔积
+            .options(joinedload(LLMModel.provider))  # LEFT OUTER JOIN：一次取回 provider 字段
             .filter(
                 LLMModel.is_active == True,
                 LLMProvider.is_active == True,
