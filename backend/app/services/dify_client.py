@@ -17,7 +17,7 @@ Dify 工作流 HTTP 客户端，封装 4 个 operation 的调用。
 import json
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
 import httpx
@@ -39,6 +39,17 @@ class DifyRunResult:
     model_used: str                 # 实际调用的模型（从工作流节点传递）
     raw_response: Dict[str, Any]    # 原始响应（用于调试/审计）
     elapsed_seconds: float          # 总耗时（秒）
+
+
+@dataclass
+class ChatRunResult:
+    """Chatflow 多轮对话调用的标准化结果"""
+    conversation_id: str             # 多轮对话 ID（首次创建时 Dify 返回，后续轮次回传）
+    answer: str                      # LLM 回复文本（追问问题 or 生成说明）
+    image_urls: List[str] = field(default_factory=list)  # 生成的图片（<<GENERATE>> 触发后才有值）
+    model_used: str = ""             # 实际调用的模型
+    polish_prompt: str = ""          # 润色后的英文图像生成提示词
+    raw_response: Dict[str, Any] = field(default_factory=dict)
 
 
 # ============================================================
