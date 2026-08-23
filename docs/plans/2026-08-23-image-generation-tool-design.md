@@ -1014,6 +1014,218 @@ ERROR [image-gen-retention] 清理失败 record_id=xxx: xxx
 
 ---
 
+## 16. 大模型配置重构（v1 必需，Phase 1.5）
+
+### 16.1 背景
+
+现有 `llm_configs` 表是扁平设计：每条记录绑定一个 (provider, base_url, api_key, model) 四元组。问题：
+- 同一厂商多模型需要重复存储 API Key 和 base_url（明文风险 × 重复次数）
+- 增删模型时改 Key 不便
+- 「类目默认」（如 `image_polish` 默认模型）语义缺失
+
+本次重构把 `llm_configs` 拆为 `llm_providers` + `llm_models` 两张表，是图像生成工具（Phase 8 提示词润色）以及其他工具（Product Manager Agent / chat_stream / conversations）的**前置依赖**。
+
+### 16.2 决策记录
+
+| # | 决策点 | 选择 | 理由 |
+|---|---|---|---|
+| R1 | 拆分方式 | 拆 2 张表（Provider + Model） | 经典归一化，1 个 Key 配 N 模型只存 1 份 |
+| R2 | 老数据迁移 | 保留 `llm_configs` 表不删，标记 deprecated | 可回滚；Alembic 迁移 backfill 到新表 |
+| R3 | 默认模型 | 全局默认 + 类目默认双开关 | 灵活；不同工具（chat/code/image_polish）可独立默认 |
+| R4 | 消费方迁移 | 一次性切换到新表，老服务标记 deprecated | 集中一次回归测试优于双轨运行 |
+| R5 | 厂商枚举 | 增加 `doubao_seedream` 等图像生成厂商 | 图像生成会用到豆包 |
+| R6 | UI | LLMConfigsPage 拆为「供应商」+「模型」2 tabs | 与后端 2 张表对应 |
+
+### 16.3 新 Schema
+
+#### `llm_providers`
+
+```python
+class LLMProvider(Base):
+    __tablename__ = "llm_providers"
+    id            = UUID, PK, default=uuid.uuid4
+    name          = String(100), NOT NULL          # 展示名，如 "OpenAI 主力"
+    provider_type = String(50), NOT NULL           # openai/anthropic/azure_openai/baidu/aliyun/doubao_seedream/qwen_image/other
+    base_url      = String(500), NOT NULL
+    api_key_encrypted = Text, NOT NULL
+    api_key_suffix = String(4), nullable            # 末 4 位识别
+    notes         = String(500), nullable
+    is_active     = Boolean, default=True
+    created_at    = DateTime, server_default=now()
+    updated_at    = DateTime, onupdate=now()
+```
+
+#### `llm_models`
+
+```python
+class LLMModel(Base):
+    __tablename__ = "llm_models"
+    id            = UUID, PK, default=uuid.uuid4
+    name          = String(100), NOT NULL          # 展示名，如 "GPT-4o 视觉"
+    model_name    = String(100), NOT NULL          # API model 名，如 "gpt-4o"
+    provider_id   = UUID, FK → llm_providers.id, NOT NULL
+    request_params = JSON, nullable                 # {temperature, max_tokens, timeout}
+    category      = String(20), NOT NULL, default="chat"   # chat / code / image_polish
+    is_default    = Boolean, default=False         # 全局默认
+    is_default_for_category = Boolean, default=False  # 类目默认
+    notes         = String(500), nullable
+    is_active     = Boolean, default=True
+    created_at    = DateTime, server_default=now()
+    updated_at    = DateTime, onupdate=now()
+```
+
+索引：
+- `llm_models(provider_id)`, `llm_models(category)`, `llm_models(is_default)`, `llm_models(is_default_for_category)`
+
+### 16.4 数据迁移（Alembic）
+
+```
+1. CREATE TABLE llm_providers (...) / llm_models (...)
+2. INSERT INTO llm_providers
+   按 (provider_type, base_url, api_key_encrypted, api_key_suffix) GROUP BY
+   每组一条 provider，name = "Migrated: {provider_type} {api_key_suffix}"
+3. 临时映射 _provider_mapping(old_config_id, new_provider_id)
+   JOIN 条件: 上述 4 个字段完全相等
+4. INSERT INTO llm_models
+   每条老配置 → 一条 model，FK 用 _provider_mapping 解析
+   request_params / category / is_default / is_active 全部继承
+5. 保留 llm_configs 表不删，列加 comment 'DEPRECATED: see llm_providers + llm_models'
+6. 代码注释: llm_config.py 头部加 # DEPRECATED, use llm_provider.py + llm_model.py
+```
+
+回滚路径：drop 新表 + 清空 mapping（llm_configs 数据完整无损）。
+
+### 16.5 新 Services
+
+#### `LLMProviderService`（`backend/app/services/llm_provider_service.py`）
+
+```python
+class LLMProviderService:
+    def list_providers(active_only=False) -> List[LLMProvider]
+    def get_provider(provider_id) -> LLMProvider | None
+    def create_provider(name, provider_type, base_url, api_key, notes, is_active) -> LLMProvider
+    def update_provider(provider_id, **kwargs) -> LLMProvider | None
+    def delete_provider(provider_id) -> bool       # 仅当无关联 model 才允许
+    def test_connection(provider_id) -> (bool, str, int)
+    def reveal_api_key(provider_id) -> str        # 返回明文，仅管理员
+```
+
+#### `LLMModelService`（`backend/app/services/llm_model_service.py`）
+
+```python
+class LLMModelService:
+    def list_models(filters=None, active_only=False) -> List[LLMModel]
+    def get_model(model_id) -> LLMModel | None
+    def get_default_model(category) -> LLMModel | None
+    def create_model(name, model_name, provider_id, request_params, category, is_default, is_default_for_category, notes) -> LLMModel
+    def update_model(model_id, **kwargs) -> LLMModel | None
+    def delete_model(model_id) -> bool
+    def set_default(model_id, category=None) -> bool   # category=None 设为全局默认
+```
+
+#### `LLMConfigService`（保留为 deprecated wrapper）
+
+仅保留 `list_configs()` / `get_config()` 等只读方法，从 `llm_providers + llm_models` JOIN 读取，给老代码一个过渡。所有写方法抛 `NotImplementedError`。
+
+### 16.6 消费方迁移（4 个文件）
+
+| 文件 | 改动 |
+|---|---|
+| `llm_fallback.py` | `_get_available_configs()` → `_get_available_models()`，每个 model join provider 拿 (provider_type, api_key, base_url) |
+| `agent_service.py` | 同上模式 |
+| `chat_stream.py` | 同上 |
+| `conversations.py` | 同上 |
+
+新增的 `image_gen_prompt_polisher.py`（图像生成 Phase 8）直接用新接口，不走 deprecated 路径。
+
+### 16.7 前端 UI 重构
+
+```
+frontend/src/components/Admin/LLMConfigs/
+├── ProvidersTab.tsx          # 供应商列表 + 新增/编辑对话框（含 API Key 显隐）
+├── ModelsTab.tsx             # 模型列表 + 新增/编辑对话框（含 provider 下拉 + category + 默认开关）
+├── ProviderDialog.tsx
+├── ModelDialog.tsx
+└── （保留现有 LLMStats.tsx，更新统计维度）
+```
+
+`LLMConfigsPage.tsx`：从单列表 → 顶部 2 tabs。
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ 大模型配置                                              │
+├──────────────────────────────────────────────────────────┤
+│ [📦 模型供应商]  [🤖 模型配置]  (2 tabs)               │
+│                                                          │
+│ ── 模型供应商 ──                                       │
+│ [+ 新建供应商]                                          │
+│ ┌────────────────────────────────────────────────────┐  │
+│ │ 名称 │ 厂商 │ base URL │ key 末4 │ 启用 │ 操作   │  │
+│ ├────────────────────────────────────────────────────┤  │
+│ │ OpenAI 主力 │ openai │ api.openai.com │ ****abcd │ ✓ │  │
+│ │ 阿里通义 │ aliyun │ dashscope.aliyuncs │ ****efgh │ ✓ │  │
+│ │ 豆包 │ doubao_seedream │ ark.cn-beijing.volc │ ****1234 │ ✓ │  │
+│ └────────────────────────────────────────────────────┘  │
+│                                                          │
+│ ── 模型配置 ──                                          │
+│ [+ 新建模型]                                            │
+│ ┌────────────────────────────────────────────────────�  │
+│ │ 名称 │ model │ 供应商 │ category │ 默认 │ 启用 │  │
+│ ├────────────────────────────────────────────────────┤  │
+│ │ GPT-4o │ gpt-4o │ OpenAI 主力 │ chat │ 全局 │ ✓ │  │
+│ │ 通义千问 Turbo │ qwen-turbo │ 阿里通义 │ chat │ 类目 │ ✓ │  │
+│ │ 提示词润色专用 │ qwen-turbo │ 阿里通义 │ image_polish │ 类目 │ ✓ │  │
+│ └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 16.8 API 端点
+
+#### Provider CRUD（`/admin/llm-providers/*`）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/admin/llm-providers` | 列表 |
+| GET | `/admin/llm-providers/{id}` | 详情 |
+| POST | `/admin/llm-providers` | 新建（含 api_key） |
+| PUT | `/admin/llm-providers/{id}` | 更新 |
+| DELETE | `/admin/llm-providers/{id}` | 删除（无关联 model 才允许） |
+| POST | `/admin/llm-providers/{id}/test` | 测试连通性 |
+| POST | `/admin/llm-providers/{id}/reveal` | 返回明文 API Key（仅管理员） |
+
+#### Model CRUD（`/admin/llm-models/*`）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/admin/llm-models` | 列表（可按 category/provider 过滤） |
+| GET | `/admin/llm-models/{id}` | 详情 |
+| POST | `/admin/llm-models` | 新建 |
+| PUT | `/admin/llm-models/{id}` | 更新 |
+| DELETE | `/admin/llm-models/{id}` | 删除 |
+| POST | `/admin/llm-models/{id}/set-default` | 设默认（body: `{category: optional}`） |
+| POST | `/admin/llm-models/test` | 测试模型（不入库，临时调一次） |
+
+### 16.9 对图像生成的影响
+
+- **Phase 8（PromptPolisher）**：从「找标签为 image_gen_polish 的 LLMConfig」改成：
+  ```python
+  model = LLMModelService.get_default_model(category="image_polish")
+  if not model: model = LLMModelService.get_default_model(category="chat")  # 兜底
+  provider = model.provider
+  # 用 provider.api_key + provider.base_url + model.model_name 调 LLM
+  ```
+- **Phase 1.5 必须在 Phase 2 之前完成**（其他工具会立即消费新接口）
+- **Phase 8 引用新的 LLMModelService**
+
+### 16.10 测试
+
+- Migration 单元测试：构造 N 条老配置（含重复 API Key），跑迁移脚本，验证新表去重正确
+- 消费方测试：mock LLMProviderService / LLMModelService，验证 llm_fallback 行为不变
+- UI 测试：vitest + React Testing Library，验证 2 tabs 切换、对话框字段、新建/编辑/删除流程
+- 端到端：用旧 LLMConfig 数据跑一遍 chat，确认行为不变
+
+---
+
 ## 附录 A：术语
 
 | 术语 | 含义 |
