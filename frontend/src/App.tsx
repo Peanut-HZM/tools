@@ -124,6 +124,7 @@ function HomePage() {
   const [categories, setCategories] = useState<string[]>(["全部工具"]);
   const { t } = useI18n();
   const { isAuthenticated } = useContext(AuthContext);
+  const openLoginModal = useLoginModalStore((state) => state.openLoginModal);
 
   const { activeCategory, handleCategoryChange } = useCategory();
   const { debouncedValue, handleSearchChange } = useOutletContext<LayoutContext>();
@@ -225,11 +226,9 @@ function HomePage() {
       recordToolVisit(toolId, tool.title).catch(() => {});
     }
 
-    // 登录拦截
+    // 登录拦截：直接弹出登录弹框（登录成功后用户可再次点击进入）
     if (tool?.require_login && !isAuthenticated) {
-      if (window.confirm('该工具需要登录后才能使用，是否前往登录？')) {
-        navigate('/login');
-      }
+      openLoginModal();
       return;
     }
 
