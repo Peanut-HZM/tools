@@ -21,6 +21,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
     provider_id: '',
     request_params: '',
     category: 'chat',
+    priority: 100,
     is_default: false,
     is_default_for_category: false,
     notes: '',
@@ -35,6 +36,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
         provider_id: editing.provider_id,
         request_params: editing.request_params || '',
         category: editing.category as ModelCategory,
+        priority: editing.priority ?? 100,
         is_default: editing.is_default,
         is_default_for_category: editing.is_default_for_category,
         notes: editing.notes || '',
@@ -43,7 +45,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
     } else {
       setFormData({
         name: '', model_name: '', provider_id: providers[0]?.id || '',
-        request_params: '', category: 'chat',
+        request_params: '', category: 'chat', priority: 100,
         is_default: false, is_default_for_category: false,
         notes: '', is_active: true,
       });
@@ -134,9 +136,29 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as ModelCategory })}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
-                <option value="chat">对话</option>
-                <option value="code">编程</option>
+                <option value="chat">对话 (chat)</option>
+                <option value="code">代码 (code)</option>
+                <option value="voice">语音 (voice)</option>
+                <option value="vision">视觉 (vision)</option>
+                <option value="multimodal">全模态 (multimodal)</option>
+                <option value="embedding">向量 (embedding)</option>
+                <option value="image_polish">图像润色 (image_polish)</option>
+                <option value="image_gen">图像生成 (image_gen)</option>
               </select>
+            </div>
+
+            {/* 优先级 */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">优先级</label>
+              <input
+                type="number"
+                min={0}
+                max={9999}
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) || 100 })}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+              <div className="text-xs text-slate-500 mt-1">数字越小越优先，默认 100</div>
             </div>
 
             {/* 请求参数 */}
