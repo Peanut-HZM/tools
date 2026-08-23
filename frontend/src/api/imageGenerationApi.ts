@@ -287,7 +287,6 @@ export interface ChatParams {
   style?: string;
   strength?: number;
   model_preference?: ModelPreference;
-  polish_prompt?: boolean;
   edit_type?: EditType;
   referenceImage?: File | null;
   maskImage?: File | null;

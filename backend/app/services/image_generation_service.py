@@ -337,7 +337,9 @@ class ImageGenService:
             )
             return dify_result
 
-        except DifyError:
+        except Exception:
+            # 任何异常（DifyError / 网络错误 / OSS 异常等）都必须释放预留配额，
+            # 避免配额永久被占用（详见 final-review Important #1）
             self.quota_svc.release()
             raise
 

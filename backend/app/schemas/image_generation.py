@@ -113,7 +113,16 @@ class PolishPromptRequest(BaseModel):
 
 
 class ChatGenerateRequest(BaseModel):
-    """多轮对话生成请求"""
+    """
+    多轮对话生成请求（参考文档，当前未实际使用）。
+
+    说明：
+      - `/image-generation/chat` 端点因需要接收文件上传（reference_image / mask_image），
+        必须使用 multipart/form-data，因此路由层直接使用 `Form(...)` 参数解析，
+        无法使用本 JSON body 模型。
+      - 本类保留完整的字段定义与校验逻辑，作为该端点参数结构的参考文档，
+        亦可在未来提供纯 JSON 版本（无文件上传）的端点时直接复用。
+    """
     operation: str
     prompt: str = Field(..., min_length=1, max_length=2000)
     conversation_id: Optional[str] = Field(default=None, max_length=64)

@@ -16,7 +16,6 @@ export default function Text2ImgForm() {
   const [n, setN] = useState(1);
   const [style] = useState<string>('auto');
   const [modelPreference] = useState<ModelPreference>('auto');
-  const [polishPrompt] = useState<boolean>(false);
 
   const history = useImageGenStore((s) => s.conversationHistory);
   const chatAnswer = useImageGenStore((s) => s.chatAnswer);
@@ -40,7 +39,6 @@ export default function Text2ImgForm() {
       n,
       style,
       model_preference: modelPreference,
-      polish_prompt: polishPrompt,
     });
   };
 
@@ -122,6 +120,8 @@ export default function Text2ImgForm() {
               onChange={(e) => setSize(e.target.value as ImageSize)}
               className="flex-1 bg-slate-700 text-slate-100 px-2 py-1 rounded"
             >
+              <option value="512x512">512×512</option>
+              <option value="768x768">768×768</option>
               <option value="1024x1024">1024×1024</option>
               <option value="1024x1792">1024×1792</option>
               <option value="1792x1024">1792×1024</option>
