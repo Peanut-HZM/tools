@@ -230,6 +230,112 @@ class DifyClient:
         )
 
     # ------------------------------------------------------------------
+    # Chatflow 多轮对话调用（4 个 operation）
+    # ------------------------------------------------------------------
+
+    async def chat_text2img(
+        self,
+        prompt: str,
+        conversation_id: Optional[str],
+        size: str,
+        n: int,
+        style: Optional[str],
+        model_preference: str,
+        user_id: str,
+        timeout: Optional[float] = None,
+    ) -> ChatRunResult:
+        """调用 text2img-chat Chatflow（多轮对话模式）"""
+        config = self._get_config()
+        if not config.workflow_text2img:
+            raise DifyError("text2img Chatflow 未配置", kind="config_error")
+
+        inputs = {
+            "size": size,
+            "n": n,
+            "style": style or "auto",
+            "model_preference": model_preference,
+        }
+        payload = {
+            "inputs": inputs,
+            "query": prompt,
+            "response_mode": "blocking",
+            "user": user_id or "anonymous",
+            "conversation_id": conversation_id or "",
+        }
+        return await self._call_chat(
+            config=config,
+            endpoint="/chat-messages",
+            payload=payload,
+            user_id=user_id,
+            timeout=timeout or config.default_timeout,
+        )
+
+    async def _call_chat(
+        self,
+        config: "DifyConfig",
+        endpoint: str,
+        payload: Dict[str, Any],
+        user_id: str,
+        timeout: float,
+    ) -> ChatRunResult:
+        """Chatflow 统一调用：POST /chat-messages"""
+        url = f"{config.api_url}{endpoint}"
+        headers = {
+            "Authorization": f"Bearer {config.app_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(url, headers=headers, json=payload)
+                if resp.status_code != 200:
+                    error_body = resp.text[:500]
+                    logger.error(
+                        "[dify-chat] 调用失败: HTTP %d, body: %s",
+                        resp.status_code, error_body,
+                    )
+                    self._raise_http_error(resp.status_code, "chat", error_body)
+
+                data = resp.json()
+                return self._parse_chat_response(data)
+
+        except DifyError:
+            raise
+        except httpx.TimeoutException:
+            raise DifyError(f"Chatflow 调用超时 ({timeout}s)", kind="timeout")
+        except httpx.ConnectError as e:
+            raise DifyError(f"无法连接 Dify: {e}", kind="connection_error")
+        except Exception as e:
+            logger.error("[dify-chat] 未预期异常: %s", e, exc_info=True)
+            raise DifyError(f"未预期的错误: {e}", kind="http_error")
+
+    def _parse_chat_response(self, data: Dict[str, Any]) -> ChatRunResult:
+        """解析 Chatflow 响应"""
+        conversation_id = data.get("conversation_id", "")
+        answer = data.get("answer", "")
+        metadata = data.get("metadata", {}) or {}
+
+        # 图片从 metadata.images 提取（如工作流末尾输出到此字段）
+        image_urls = metadata.get("images", [])
+        if isinstance(image_urls, str):
+            try:
+                image_urls = json.loads(image_urls)
+            except (json.JSONDecodeError, ValueError):
+                image_urls = []
+        if not isinstance(image_urls, list):
+            image_urls = []
+
+        # 若 answer 含 <<GENERATE>> 且 metadata 有 images，标记为已生成
+        return ChatRunResult(
+            conversation_id=conversation_id,
+            answer=answer,
+            image_urls=image_urls,
+            model_used=metadata.get("model_used", ""),
+            polish_prompt=metadata.get("polish_prompt", ""),
+            raw_response=data,
+        )
+
+    # ------------------------------------------------------------------
     # 连通性测试
     # ------------------------------------------------------------------
 
