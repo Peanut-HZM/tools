@@ -140,6 +140,52 @@
 
 ---
 
+## 3.5 Dify 插件架构澄清（2026-08-23 实测修正）
+
+### 3.5.1 关键澄清：Dify 插件分两类
+
+| 类型 | 含义 | 在 Dify UI 哪里配置 | 在 workflow 哪里用 |
+|---|---|---|---|
+| **Model** | LLM / Embedding / TTS / Rerank / 文本/语音模型 | 「设置 → 模型供应商」 | 模型节点 |
+| **Tool** | 图片生成 / OCR / 网络搜索 / PDF 处理 / HTTP 工具 | 「工具」页面 | 工具节点 |
+
+**重要**：图像生成类插件（豆包 Seedream、通义万相、海螺 Hailuo 等）都是 **Tool 类型**，**不会出现在「模型供应商」**，而是出现在「工具」页面。
+
+### 3.5.2 对本项目的影响
+
+- ❌ ~~工作流里用「模型节点」调图像模型~~ （已废止）
+- ✅ 工作流里用「工具节点」选择图像生成插件的具体方法（如 `text_2_image`）
+- 「工具」页面要为每个插件配 API Key（不是「模型供应商」）
+
+### 3.5.3 4 个 operation 对应的插件方法
+
+| Operation | 典型工具方法（示例） | 可选插件 |
+|---|---|---|
+| **text2img** | `text_2_image(prompt, size, n, model)` | Seedream / TongYi AIGC / Hailuo AIGC |
+| **img2img** | `image_2_image(prompt, ref_image, strength)` | Seedream / TongYi AIGC / Hailuo AIGC |
+| **inpaint** | `inpaint(prompt, image, mask)` | 部分插件支持（如 Seedream 4.5+） |
+| **upload_edit** | `edit(image, edit_type)` 或 `image_edit` | 部分插件支持（upscale/denoise/style_transfer） |
+
+### 3.5.4 安装流程（修正）
+
+**踩坑总结**：Dify 1.x 插件安装不是单一 API 调用完成，需要两步：
+
+1. **下载 .difypkg**：`GET https://marketplace.dify.ai/api/v1/plugins/{publisher}/{name}/{version}/download`
+2. **触发安装**：`POST /plugin/{tenant_id}/management/install/identifiers`
+   - Body 字段：`plugin_unique_identifiers`（**用 marketplace API 返回的 `latest_package_identifier`，不是文件 sha256**）
+   - `source: "marketplace"`
+   - `metas: [{}]`（每个 identifier 一个空对象）
+
+**前置条件**：服务器必须装 `uv`（Dify 插件依赖 uv 建 venv）。
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+ln -sf /root/.local/bin/uv /usr/local/bin/uv
+```
+
+**DB 连接池配置**：必须显式设置避免连接耗尽（参见 §C.5）。
+
+---
+
 ## 4. Dify 工作流设计
 
 4 个工作流各自独立。每个工作流的输出 schema 必须一致：
@@ -1291,3 +1337,59 @@ frontend/src/components/Admin/LLMConfigs/
 - nginx `proxy_read_timeout=120s` 是图像生成硬上限；如某模型常态超 120s，需调整 nginx
 - Dify 工作流内部节点级超时建议设为 60s，工作流整体超时由本应用 `DIFY_WORKFLOW_TIMEOUT` 控制（默认 60s，后台可调）
 - 单文件上传上限 10MB（应用层限制），OSS 签名 URL 300s 有效（Dify 需在此时间内拉取参考图）
+
+### C.5 Dify DB 连接池配置（关键！必加）
+
+实测发现 Dify 1.14.2 默认配置下，频繁 UI 操作 + 多插件安装 + 后台轮询会快速耗尽 PostgreSQL `max_connections=100`，导致 `FATAL: too many clients already` 全部 500。
+
+**在 `/data/programs/dify/conf/api.env` 末尾追加**：
+
+```bash
+# ========================================
+# 数据库连接池优化（防止连接数溢出）
+# ========================================
+DB_PSYCOPG_POOL_MIN_CONN=2
+DB_PSYCOPG_POOL_MAX_CONN=15
+DB_PSYCOPG_POOL_TIMEOUT=10
+DB_SQLALCHEMY_POOL_SIZE=5
+DB_SQLALCHEMY_MAX_OVERFLOW=5
+DB_SQLALCHEMY_POOL_TIMEOUT=10
+DB_HEALTH_CHECK=true
+```
+
+**重启生效**：`systemctl restart dify-api`（注意：`dify.target` 有时不会真杀掉 gunicorn，需要直接 restart `dify-api`）。
+
+### C.6 安装好用的国内模型 / 工具插件清单（2026-08-23）
+
+**模型类型 (Models)** - 在「设置 → 模型供应商」配置：
+- `langgenius/tongyi` (通义千问 / 阿里)
+- `langgenius/deepseek` (DeepSeek)
+- `langgenius/moonshot` (月之暗面 Kimi)
+- `langgenius/zhipuai` (智谱 GLM)
+- `langgenius/hunyuan` (腾讯混元)
+- `langgenius/spark` (讯飞星火)
+- `langgenius/wenxin` (百度文心)
+- `langgenius/maas` (华为云盘古)
+- `langgenius/ollama` (本地 Ollama)
+- `langgenius/aihubmix` (500+ 模型聚合网关)
+- `langgenius/siliconflow` (硅基流动)
+- `langgenius/gitee_ai` (Gitee AI)
+- `langgenius/novita` (Novita)
+- `lws123321/tencent-tokenhub` (腾讯 TokenHub)
+
+**工具类型 (Tools)** - 在「工具」页面授权：
+- `wwwzhouhui/qwen_text2image` (通义文生图 / 图生图)
+- `langgenius/siliconflow` (硅基流动 - 文/图生图)
+- `langgenius/aihubmix-image` (多模型图片生成聚合)
+- `langgenius/stability` (Stable Diffusion)
+- `langgenius/cogview` (智谱 CogView)
+- `langgenius/zhipuai_tool` (智谱综合工具)
+- `allenwriter/doubao_image` (豆包图像/视频生成)
+- `langgenius/google` (Google 搜索)
+- `langgenius/tavily` (Tavily 搜索)
+- `langgenius/duckduckgo` (DuckDuckGo 搜索)
+- `langgenius/firecrawl` (网页抓取)
+- `langgenius/jina_tool` (Jina Reader / 抓取)
+- `sawyer-shi/seedream_aigc` (豆包即梦) ✓ 已装
+- `sawyer-shi/tongyi_aigc` (通义万相) ✓ 已装
+- `sawyer-shi/hailuo_aigc` (海螺 MiniMax) ✓ 已装
