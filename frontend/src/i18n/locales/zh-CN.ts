@@ -1068,6 +1068,13 @@ export const zhCN = {
       'line-art': '线稿',
       '3d-model': '3D 模型',
     },
+    chat: {
+      welcome: '你想画什么？告诉我主题、风格、场景等',
+      thinking: '思考中...',
+      inputPlaceholder: '输入你的回复...',
+      send: '发送',
+      newConversation: '开始新对话',
+    },
     result: {
       title: '生成结果',
       model: '模型',

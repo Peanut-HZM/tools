@@ -1068,6 +1068,13 @@ export const enUS = {
       'line-art': 'Line Art',
       '3d-model': '3D Model',
     },
+    chat: {
+      welcome: 'What do you want to draw? Tell me the theme, style, scene, etc.',
+      thinking: 'Thinking...',
+      inputPlaceholder: 'Enter your reply...',
+      send: 'Send',
+      newConversation: 'Start new conversation',
+    },
     result: {
       title: 'Generation Result',
       model: 'Model',

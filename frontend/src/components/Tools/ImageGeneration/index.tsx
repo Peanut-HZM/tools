@@ -139,7 +139,7 @@ export default function ImageGeneration() {
 
           {/* 表单 */}
           <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
-            {operation === 'text2img' && <Text2ImgForm onPolish={handlePolish} polishing={polishing} />}
+            {operation === 'text2img' && <Text2ImgForm />}
             {operation === 'img2img' && <Img2ImgForm onPolish={handlePolish} polishing={polishing} />}
             {operation === 'inpaint' && <InpaintForm onPolish={handlePolish} polishing={polishing} />}
             {operation === 'upload_edit' && <UploadEditForm onPolish={handlePolish} polishing={polishing} />}
