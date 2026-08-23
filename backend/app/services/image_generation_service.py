@@ -633,6 +633,55 @@ class ImageGenService:
         }
 
     # ------------------------------------------------------------------
+    # BackendRegistry 分发入口（M5 策略拆分）
+    # ------------------------------------------------------------------
+
+    async def chat_generate_dispatch(
+        self,
+        backend: str,
+        user_id: uuid.UUID,
+        operation: str,
+        query: str,
+        conversation_id: Optional[str],
+        reference_image: Optional[bytes],
+        mask_image: Optional[bytes],
+        size: str,
+        n: int,
+        strength: Optional[float] = None,
+        edit_type: Optional[str] = None,
+    ):
+        """按 backend 参数通过 BackendRegistry 分发到对应后端
+
+        本方法只负责：
+          1. 构造 BackendContext
+          2. 从 BackendRegistry 取对应后端
+          3. 调用 backend.run(ctx)
+          4. 返回 BackendResult
+
+        quota / OSS / history 等共享逻辑不在此处（在调用方）。
+        """
+        from app.services.image_gen.backends import BackendRegistry
+        from app.services.image_gen.base import BackendContext
+
+        ctx = BackendContext(
+            user_id=user_id,
+            operation=operation,
+            query=query,
+            conversation_id=conversation_id,
+            reference_image=reference_image,
+            reference_mime=None,
+            mask_image=mask_image,
+            mask_mime=None,
+            size=size,
+            n=n,
+            strength=strength,
+            edit_type=edit_type,
+        )
+        logger.info("[chat_generate_dispatch] backend=%s op=%s user=%s", backend, operation, user_id)
+        backend_impl = BackendRegistry.get(backend)
+        return await backend_impl.run(ctx)
+
+    # ------------------------------------------------------------------
     # 委托方法 — 历史查询
     # ------------------------------------------------------------------
 
