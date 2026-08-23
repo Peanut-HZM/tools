@@ -20,6 +20,7 @@ import UploadEditForm from './forms/UploadEditForm';
 import QuotaBadge from './components/QuotaBadge';
 import ResultPanel from './components/ResultPanel';
 import HistoryDrawer from './components/HistoryDrawer';
+import BackendSwitch from './BackendSwitch';
 
 import type { Operation } from '../../../api/imageGenerationApi';
 
@@ -59,6 +60,12 @@ export default function ImageGeneration() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* 顶部：标题 + 后端切换 */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl text-slate-100">图像生成</h1>
+        <BackendSwitch />
+      </div>
+
       {/* 顶部：标题 + 配额 + 操作 */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
