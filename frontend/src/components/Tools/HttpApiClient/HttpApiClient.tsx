@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHttpClientStore } from '../../../stores/httpClientStore';
+import { useAuth } from '../../../stores/authStore';
+import RequireAuthNotice from '../../Common/RequireAuthNotice';
 import { Collection, HttpRequest, Environment, createRequest, createCollection, updateCollection, deleteCollection, FormDataEntry } from '../../../services/httpClientApi';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -36,6 +38,7 @@ import CollectionContextMenu from './components/CollectionContextMenu';
 export default function HttpApiClient() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { isAuthenticated, authVersion } = useAuth();
   const {
     collections,
     loadingCollections,
@@ -96,11 +99,13 @@ export default function HttpApiClient() {
   const [newRequestUrl, setNewRequestUrl] = useState('');
   const [newRequestMethod, setNewRequestMethod] = useState('GET');
 
-  // 加载数据
+  // 加载数据（未登录时不发请求；登录成功/authVersion 变化后自动重载）
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadCollections();
     loadEnvironments();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authVersion]);
 
   // 获取当前激活的标签页
   const activeTab = openTabs.find(tab => tab.requestId === activeTabId);
@@ -413,6 +418,11 @@ export default function HttpApiClient() {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
+
+  // 未登录：不发请求，显示登录提示
+  if (!isAuthenticated) {
+    return <RequireAuthNotice />;
+  }
 
   return (
     <div className="flex-1 text-slate-100 flex flex-col overflow-hidden">
