@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useContext, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
 import Hero from './components/Hero/Hero';
@@ -15,30 +15,7 @@ import CourseDetail from './components/Admin/CourseDetail';
 import AgentManagement from './components/Admin/AgentManagement';
 import ConversationManagement from './components/Admin/ConversationManagement';
 import ContactMessagesManagement from './components/Admin/ContactMessagesManagement';
-import ImageDownloader from './components/Tools/ImageDownloader';
-import VideoDownloader from './components/Tools/VideoDownloader';
-import JsonFormatter from './components/Tools/JsonFormatter';
-import Calendar from './components/Tools/Calendar';
-import AIAssistant from './components/Tools/AIAssistant';
-import KeyGenerator from './components/Tools/KeyGenerator';
-import MarkdownEditorTool from './components/Tools/MarkdownEditorTool';
-import MarkItDownConverter from './components/Tools/MarkItDownConverter';
-import OCRTool from './components/Tools/OCR/OCRTool';
-import ASRTool from './components/Tools/ASR/ASRTool';
-import DatabaseTool from './components/Tools/DatabaseTool/DatabaseTool';
-import RedisTool from './components/Tools/RedisTool/RedisTool';
-import SSHTool from './components/Tools/SSHTool/SSHTool';
-import ProductManagerAgent from './components/Tools/ProductManagerAgent';
-import LearningSharePlatform from './components/Tools/LearningSharePlatform';
-import OpenSpecCourse from './components/Tools/OpenSpecCourse';
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
-import CursorHistory from './components/Tools/CursorHistory/CursorHistory';
-import HttpApiClient from './components/Tools/HttpApiClient/HttpApiClient';
-import SystemMonitor from './components/Tools/SystemMonitor';
-import TokenUsage from './components/Tools/TokenUsage';
-import OpenClawChat from './components/Tools/OpenClawChat/OpenClawChat';
-import K8sTool from './components/Tools/K8sTool/K8sTool';
-import ImageGeneration from './components/Tools/ImageGeneration';
 import { WorkspacePage } from './components/Workspace/WorkspacePage';
 import OpenClawManagement from './components/Admin/OpenClawManagement';
 import ImageGenerationAdmin from './components/Admin/ImageGeneration';
@@ -48,6 +25,7 @@ import CourseDetailPage from './pages/CourseDetailPage';
 import TechContentsPage from './pages/TechContentsPage';
 import TechContentDetailPage from './pages/TechContentDetailPage';
 import AccountSettings from './pages/AccountSettings';
+import DevComponentsPage from './pages/DevComponentsPage';
 import { AuthProvider, AuthContext, useAuth } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
 import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fetchCategories } from './services/api';
@@ -62,6 +40,33 @@ import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
 import { registerAuthFailureHandler } from './api/http';
 import { useLoginModalStore } from './stores/loginModalStore';
+
+// ============================================================
+// 工具组件懒加载 — 避免全部打入首屏 JS bundle
+// ============================================================
+const ImageDownloader = lazy(() => import('./components/Tools/ImageDownloader'));
+const VideoDownloader = lazy(() => import('./components/Tools/VideoDownloader'));
+const JsonFormatter = lazy(() => import('./components/Tools/JsonFormatter'));
+const Calendar = lazy(() => import('./components/Tools/Calendar'));
+const AIAssistant = lazy(() => import('./components/Tools/AIAssistant'));
+const KeyGenerator = lazy(() => import('./components/Tools/KeyGenerator'));
+const MarkdownEditorTool = lazy(() => import('./components/Tools/MarkdownEditorTool'));
+const MarkItDownConverter = lazy(() => import('./components/Tools/MarkItDownConverter'));
+const OCRTool = lazy(() => import('./components/Tools/OCR/OCRTool'));
+const ASRTool = lazy(() => import('./components/Tools/ASR/ASRTool'));
+const DatabaseTool = lazy(() => import('./components/Tools/DatabaseTool/DatabaseTool'));
+const RedisTool = lazy(() => import('./components/Tools/RedisTool/RedisTool'));
+const SSHTool = lazy(() => import('./components/Tools/SSHTool/SSHTool'));
+const ProductManagerAgent = lazy(() => import('./components/Tools/ProductManagerAgent'));
+const LearningSharePlatform = lazy(() => import('./components/Tools/LearningSharePlatform'));
+const OpenSpecCourse = lazy(() => import('./components/Tools/OpenSpecCourse'));
+const CursorHistory = lazy(() => import('./components/Tools/CursorHistory/CursorHistory'));
+const HttpApiClient = lazy(() => import('./components/Tools/HttpApiClient/HttpApiClient'));
+const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
+const TokenUsage = lazy(() => import('./components/Tools/TokenUsage'));
+const OpenClawChat = lazy(() => import('./components/Tools/OpenClawChat/OpenClawChat'));
+const K8sTool = lazy(() => import('./components/Tools/K8sTool/K8sTool'));
+const ImageGeneration = lazy(() => import('./components/Tools/ImageGeneration'));
 
 // React Query 客户端实例（进程级别单例）
 const queryClient = new QueryClient({
@@ -127,6 +132,7 @@ function HomePage() {
   const { t } = useI18n();
   const { isAuthenticated } = useContext(AuthContext);
   const openLoginModal = useLoginModalStore((state) => state.openLoginModal);
+  const initialLoadDone = useRef(false);
 
   const { activeCategory, handleCategoryChange } = useCategory();
   const { debouncedValue, handleSearchChange } = useOutletContext<LayoutContext>();
@@ -140,12 +146,6 @@ function HomePage() {
     }
   }, [location.search]);
 
-  // 初始加载所有工具
-  useEffect(() => {
-    loadCategories();
-    loadTools();
-  }, []);
-
   const loadCategories = async () => {
     try {
       const cats = await fetchCategories();
@@ -156,7 +156,6 @@ function HomePage() {
       setError(t.errors.categoryLoadFailed);
     }
   };
-
 
   const loadTools = async () => {
     try {
@@ -200,17 +199,30 @@ function HomePage() {
     }
   };
 
-  // 根据分类筛选
+  // 首次挂载：加载分类 + 工具（仅一次）
   useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+    loadCategories();
+    loadTools();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 根据分类筛选（排除初始挂载，由上面首次 useEffect 处理）
+  useEffect(() => {
+    if (!initialLoadDone.current) return;
+    if (debouncedValue) return; // 搜索时由搜索 effect 处理
     if (activeCategory === "全部工具") {
       loadTools();
     } else {
       loadToolsDataByCategory(activeCategory);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory]);
 
   // 根据搜索关键词筛选
   useEffect(() => {
+    if (!initialLoadDone.current) return;
     if (debouncedValue) {
       searchToolsData(debouncedValue);
     } else if (activeCategory === "全部工具") {
@@ -218,6 +230,7 @@ function HomePage() {
     } else {
       loadToolsDataByCategory(activeCategory);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValue]);
 
   // 处理工具点击 - 使用路由导航
@@ -305,32 +318,39 @@ function App() {
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
               <Route path="/tech-contents" element={<TechContentsPage />} />
               <Route path="/tech-contents/:slug" element={<TechContentDetailPage />} />
-              <Route path="/tools/image-downloader" element={<ImageDownloader />} />
-              <Route path="/tools/video-downloader" element={<VideoDownloader />} />
-              <Route path="/tools/json-formatter" element={<JsonFormatter />} />
-              <Route path="/tools/calendar" element={<Calendar />} />
-              <Route path="/tools/ai-assistant" element={<AIAssistant />} />
-              <Route path="/tools/key-generator" element={<KeyGenerator />} />
-              <Route path="/tools/markdown-editor" element={<MarkdownEditorTool />} />
-              <Route path="/tools/markitdown-converter" element={<MarkItDownConverter />} />
-              <Route path="/tools/ocr" element={<OCRTool />} />
-              <Route path="/tools/asr" element={<ASRTool />} />
-              <Route path="/tools/database-tool" element={<DatabaseTool />} />
-              <Route path="/tools/redis-tool" element={<RedisTool />} />
-              <Route path="/tools/ssh-tool" element={<SSHTool />} />
-              <Route path="/tools/product-manager" element={<ProductManagerAgent />} />
-              <Route path="/tools/product-manager/:conversationId" element={<ProductManagerAgent />} />
-              <Route path="/tools/learning-share" element={<LearningSharePlatform />} />
-              <Route path="/tools/openspec-course" element={<OpenSpecCourse />} />
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
-              <Route path="/tools/cross-share" element={<CrossShareMain />} />
-              <Route path="/tools/cursor-history" element={<CursorHistory />} />
-              <Route path="/tools/http-api-client" element={<HttpApiClient />} />
-              <Route path="/tools/system-monitor" element={<SystemMonitor />} />
-              <Route path="/tools/token-usage" element={<TokenUsage />} />
-              <Route path="/tools/openclaw" element={<OpenClawChat />} />
-              <Route path="/tools/k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
-              <Route path="/tools/image-generation" element={<ImageGeneration />} />
+              {/* 工具页面：React.lazy 按需加载，Suspense fallback 统一处理加载态 */}
+              <Route path="/tools/*" element={
+                <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="text-xl text-slate-400">加载中...</div></div>}>
+                  <Routes>
+                    <Route path="image-downloader" element={<ImageDownloader />} />
+                    <Route path="video-downloader" element={<VideoDownloader />} />
+                    <Route path="json-formatter" element={<JsonFormatter />} />
+                    <Route path="calendar" element={<Calendar />} />
+                    <Route path="ai-assistant" element={<AIAssistant />} />
+                    <Route path="key-generator" element={<KeyGenerator />} />
+                    <Route path="markdown-editor" element={<MarkdownEditorTool />} />
+                    <Route path="markitdown-converter" element={<MarkItDownConverter />} />
+                    <Route path="ocr" element={<OCRTool />} />
+                    <Route path="asr" element={<ASRTool />} />
+                    <Route path="database-tool" element={<DatabaseTool />} />
+                    <Route path="redis-tool" element={<RedisTool />} />
+                    <Route path="ssh-tool" element={<SSHTool />} />
+                    <Route path="product-manager" element={<ProductManagerAgent />} />
+                    <Route path="product-manager/:conversationId" element={<ProductManagerAgent />} />
+                    <Route path="learning-share" element={<LearningSharePlatform />} />
+                    <Route path="openspec-course" element={<OpenSpecCourse />} />
+                    <Route path="cross-share" element={<CrossShareMain />} />
+                    <Route path="cursor-history" element={<CursorHistory />} />
+                    <Route path="http-api-client" element={<HttpApiClient />} />
+                    <Route path="system-monitor" element={<SystemMonitor />} />
+                    <Route path="token-usage" element={<TokenUsage />} />
+                    <Route path="openclaw" element={<OpenClawChat />} />
+                    <Route path="k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
+                    <Route path="image-generation" element={<ImageGeneration />} />
+                  </Routes>
+                </Suspense>
+              } />
             </Route>
 
             {/* Admin Routes */}
@@ -349,6 +369,11 @@ function App() {
               <Route path="openclaw" element={<OpenClawManagement />} />
               <Route path="image-generation" element={<ImageGenerationAdmin />} />
             </Route>
+
+            {/* 仅开发环境：设计系统 token 验证页 */}
+            {import.meta.env.DEV && (
+              <Route path="/dev/components" element={<DevComponentsPage />} />
+            )}
           </Routes>
         </BrowserRouter>
         </ToastProvider>
