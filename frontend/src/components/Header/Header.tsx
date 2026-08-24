@@ -33,10 +33,10 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
   // 折叠状态：显示迷你横条
   if (isCollapsed) {
     return (
-      <header className="sticky top-0 z-40 bg-slate-800 border-b border-slate-700 h-8 flex items-center justify-center">
+      <header className="sticky top-0 z-40 bg-surface-1 border-b border-border h-8 flex items-center justify-center">
         <button
           onClick={toggleCollapse}
-          className="px-3 py-1 rounded text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+          className="px-3 py-1 rounded text-ink-faint hover:text-ink transition-colors cursor-pointer"
           title="展开导航"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -50,10 +50,14 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
   // 展开状态：原始 Header（尚未添加折叠按钮，下一步添加）
   return (
     <>
-      <header className="sticky top-0 z-40 bg-slate-800 border-b border-slate-700">
+      <header className="sticky top-0 z-40 bg-surface-1 border-b border-border">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-10">
-            <Link to="/" className="text-2xl font-['Pacifico'] text-primary" key={language}>
+            <Link
+              to="/"
+              className="text-2xl font-['Pacifico'] bg-gradient-to-br from-accent to-accent-secondary bg-clip-text text-transparent"
+              key={language}
+            >
               {t.common.logo}
             </Link>
           </div>
@@ -79,14 +83,14 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             </button>
             <button
               onClick={toggleLanguage}
-              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium transition-colors border border-slate-600 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface-3 text-ink-muted text-sm font-medium transition-colors border border-border cursor-pointer"
               title={language === 'zh-CN' ? 'Switch to English' : '切换到中文'}
             >
               {language === 'zh-CN' ? 'EN' : '中'}
             </button>
             <button
               onClick={toggleCollapse}
-              className="px-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm transition-colors cursor-pointer"
+              className="px-2 py-1.5 rounded-lg bg-surface-2 hover:bg-surface-3 text-ink-muted text-sm transition-colors cursor-pointer"
               title="折叠导航"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

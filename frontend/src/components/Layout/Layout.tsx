@@ -26,9 +26,11 @@ export default function Layout() {
   // but it won't affect the tool page.
   
   return (
-    <div className={`bg-slate-900 text-slate-100 ${
+    <div className={`bg-canvas text-ink ${
       isImmersion ? 'h-screen overflow-hidden' : 'min-h-screen'
-    } flex flex-col`}>
+    } flex flex-col relative`}>
+      {/* 新增: 大气背景层 (subtle 强度, Phase 3 按页面细化) */}
+      <div className="bg-mesh bg-mesh--subtle" aria-hidden="true" />
       {!isImmersion && (
         <Header
           searchValue={searchValue}
