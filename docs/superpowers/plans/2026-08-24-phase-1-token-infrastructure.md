@@ -19,6 +19,7 @@
 - 本 Phase 不动业务组件（Phase 2+ 才迁移），只建基建
 - 本 Phase 不动 `MarkdownEditor/MarkdownEditor.css` 的独立霓虹主题（Phase 4 整合）
 - 本 Phase 不动 `themes/cursorThemes.ts`（Phase 4 简化）
+- **本 Phase 保留 Font Awesome 6 CDN**（1,011 处图标引用 / 121 文件 / 20+ 文件动态图标 / 后端数据库 `icon` 字段；Phase 3 迁移完成前不能移除）
 - 字体加载用 Google Fonts CDN + `font-display: swap`，**本 Phase 不做 woff2 子集化**（留待 Phase 4 性能优化）
 - 构建必须通过 `npm run build`，无 TypeScript 错误、无 Tailwind 编译错误
 
@@ -40,7 +41,7 @@
 | `frontend/src/lib/cn.ts` | 新建 | `clsx` + `tailwind-merge` 封装 |
 | `frontend/src/lib/theme.ts` | 新建 | `Theme` 类型 + `ThemeProvider` React Context + `useTheme()` hook + `applyTheme()` 工具函数 |
 | `frontend/tailwind.config.js` | 修改 | 接入 token 变量，扩展语义色、字体、阴影、缓动映射 |
-| `frontend/index.html` | 修改 | 移除 Font Awesome CDN（Phase 3 才完全迁移，但本 Phase 提前移除），加 Google Fonts 链接 |
+| `frontend/index.html` | 修改 | **保留** Font Awesome CDN（1,011 处图标引用 / 121 文件，Phase 3 迁移前不能移除）；加 Google Fonts 链接 |
 | `frontend/src/index.css` | 修改 | 删除硬编码 `#0f172a` / `#e2e8f0`，改为引用 token 变量；保留业务类 `.tool-card` / `.search-input` / `.category-tab` / 自定义滚动条；保留 Monaco 变量高亮类 |
 | `frontend/src/main.tsx` | 修改 | 包裹 `ThemeProvider`；引入 `styles/tokens/index.css` + `styles/backgrounds.css` + `styles/reset.css` |
 | `frontend/src/components/Layout/Layout.tsx` | 修改 | 在根 div 前插入 `<div class="bg-mesh bg-mesh--subtle">` 占位背景（Phase 3 才按页面细化强度） |
@@ -494,14 +495,16 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 4: 设置 Geist 字体加载
+## Task 4: 设置 Geist 字体加载 + **保留 Font Awesome CDN**
 
 **Files:**
-- Modify: `frontend/index.html`（移除 Font Awesome CDN；加 Google Fonts 链接）
+- Modify: `frontend/index.html`（**保留** Font Awesome CDN；加 Google Fonts 链接）
 
 **Interfaces:**
 - Consumes: Task 2 中 `--font-sans` / `--font-mono` / `--font-serif` 定义的字体栈
-- Produces: Geist Sans + Geist Mono + HarmonyOS Sans SC + Noto Serif SC 在首屏前加载（`font-display: swap`）
+- Produces: Geist Sans + Geist Mono + HarmonyOS Sans SC + Noto Serif SC 在首屏前加载（`font-display: swap`）；Font Awesome 6 CDN 保留（Phase 3 全部迁移前不能移除）
+
+**⚠️ 关键约束**：代码库有 **1,011 处 Font Awesome 图标引用 / 121 个文件 / 含 ~20 个文件动态图标模式 + 后端数据库 `icon` 字段**。在 Phase 3 完成全部迁移前，移除 CDN 会导致**全站图标消失**。本 Task **必须保留** Font Awesome CDN。
 
 - [ ] **Step 1: 修改 `frontend/index.html`**
 
@@ -529,6 +532,9 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
     <!-- Pacifico (Logo 手写, 保留) -->
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6 CDN (Phase 1 保留; Phase 3 迁移完成后移除) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="root"></div>
@@ -541,27 +547,26 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ```bash
 cd D:/CodeProjects/tools
-node -e "const fs=require('fs'); const html=fs.readFileSync('frontend/index.html','utf8'); if (html.includes('fontawesome') || html.includes('fa-')) { console.error('FAIL: Font Awesome CDN still present'); process.exit(1); } console.log('OK: Font Awesome removed, 4 Google Fonts links added');"
+node -e "const fs=require('fs'); const html=fs.readFileSync('frontend/index.html','utf8'); if (!html.includes('font-awesome')) { console.error('FAIL: Font Awesome CDN missing (MUST KEEP until Phase 3)'); process.exit(1); } if (!html.includes('Geist') || !html.includes('HarmonyOS') || !html.includes('Noto Serif') || !html.includes('Pacifico')) { console.error('FAIL: Missing Google Fonts links'); process.exit(1); } console.log('OK: Font Awesome CDN kept, 4 Google Fonts links added');"
 ```
 
-Expected: 输出 `OK: Font Awesome removed, 4 Google Fonts links added`。
+Expected: 输出 `OK: Font Awesome CDN kept, 4 Google Fonts links added`。
 
 - [ ] **Step 3: 提交**
 
 ```bash
 cd D:/CodeProjects/tools
 git add frontend/index.html
-git commit -m "feat(fonts): load Geist, HarmonyOS Sans SC, Noto Serif SC, Pacifico via Google Fonts; remove Font Awesome CDN
+git commit -m "feat(fonts): load Geist, HarmonyOS Sans SC, Noto Serif SC, Pacifico via Google Fonts
 
 - Geist + Geist Mono: primary Latin fonts (Vercel, SF Pro alternative)
 - HarmonyOS Sans SC: CJK primary font (Huawei)
 - Noto Serif SC: serif accents for course/learning pages
 - Pacifico: retained for logo signature script
-- Font Awesome 6 CDN removed (Phase 3 icon migration will replace usages with lucide-react)
+- Font Awesome 6 CDN RETAINED (1,011 icon usages / 121 files; Phase 3 will migrate to lucide-react)
 - All fonts use font-display: swap (no FOIT)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-```
 
 ---
 
@@ -1400,7 +1405,7 @@ Expected: 工作区干净（所有 Phase 1 改动已提交）。如果有未提�
 - ✅ `frontend/src/styles/tokens/*.css`：6 份 token 文件 + index 聚合
 - ✅ `frontend/src/styles/backgrounds.css`：`.bg-mesh` + 强度分层 + 呼吸动画
 - ✅ `frontend/tailwind.config.js`：所有 token 接入为 Tailwind utility
-- ✅ `frontend/index.html`：移除 Font Awesome；加载 Geist / HarmonyOS / Noto Serif / Pacifico
+- ✅ `frontend/index.html`：**保留** Font Awesome；加载 Geist / HarmonyOS / Noto Serif / Pacifico
 - ✅ `frontend/src/lib/cn.ts` + `theme.ts`：`cn()` + `ThemeProvider` + `useTheme()`
 - ✅ `frontend/src/index.css`：全局 `body` 接入 token（移除硬编码 slate）
 - ✅ `frontend/src/components/Header/Header.tsx`：Logo 渐变填充

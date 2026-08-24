@@ -11,7 +11,7 @@
 
 工具箱项目（`D:\CodeProjects\tools`）是一个面向中文开发者与产品经理的多工具 SaaS 聚合平台，包含：
 
-- **PC Web 前端**：23+ 工具（JSON 格式化、HTTP 客户端、SSH、Redis、K8s、数据库、Markdown 编辑器、PM Agent、OCR/ASR、跨设备分享等），独立的 `/workspace` 标签页工作区，13 个 admin 后台页面，课程/学习模块
+- **PC Web 前端**：**24 个工具组件（25 个路由，ProductManagerAgent 占 2 路由）**（ImageDownloader、VideoDownloader、JSON 格式化、Calendar、AIAssistant、KeyGenerator、Markdown 编辑器、MarkItDownConverter、OCR、ASR、数据库、Redis、SSH、PM Agent、跨设备分享、OpenSpecCourse、LearningSharePlatform、CursorHistory、HttpApiClient、SystemMonitor、TokenUsage、OpenClawChat、K8sTool、ImageGeneration），独立的 `/workspace` 标签页工作区，13 个 admin 后台页面，课程/学习模块，含 `/account-settings` 与 `/tech-contents` 内容页（**实际 47 条路由**）
 - **微信小程序**：Taro 4 + React + 纯 SCSS，"深空蓝"暗色主题，已通过相同调色板与 PC 端视觉对齐
 - **后端**：FastAPI + Python，端口 19092
 
@@ -29,13 +29,22 @@
 构建一个 Stripe 级别（`#5B6BF5` 紫罗兰蓝 + 大气渐变网格 + 暖奶油亮色）的完整设计系统，覆盖 PC 端 + 微信小程序：
 
 1. **统一 token 源**：所有颜色 / 字体 / 间距 / 圆角 / 阴影 / 动效用 CSS 自定义属性表达，PC 和小程序共享同一份 token 源（自动 codegen 到 SCSS）
-2. **组件原语库**：在 `components/ui/` 下建立 shadcn/ui 风格 + Radix 原语底座的 18 个核心原语（Button、Card、Input、Modal、Dropdown、Tabs、Toast、Tooltip、Select、Switch、Checkbox、Badge、Avatar、Separator、Skeleton、Dialog、Popover、Slider）
+2. **组件原语库**：在 `components/ ui/` 下建立 shadcn/ui 风格 + Radix 原语底座的 18 个核心原语（Button、Card、Input、Modal、Dropdown、Tabs、Toast、Tooltip、Select、Switch、Checkbox、Badge、Avatar、Separator、Skeleton、Dialog、Popover、Slider）
 3. **签名渐变全站存在**：indigo→violet 大气网格背景作为每个页面的"底色"，强度按 marketing/workspace/admin 三档分层（100% / 25% / 25%）
 4. **暗 + 亮双模式**：`data-theme` 切换，亮色保留 Stripe 招牌 `#F5E9D4` 暖奶油画布
 5. **课程区衬线点缀**：唯一允许 Noto Serif SC 进入标题区域的页面（Stripe 自己的 Press/Docs 也用 serif 处理内容型页面）
-6. **图标系统统一**：完全迁移到 lucide-react（树摇友好），废弃 Font Awesome CDN
-7. **主题切换器**：设置页可手动切换"暗 / 亮 / 跟随系统"，记住用户偏好
+6. **图标系统统一（分阶段）**：
+   - **Phase 1**：保留 Font Awesome CDN（代码库有 1,011 处引用 / 121 文件，强行移除会破坏全站）；新增 `<Icon name="..." />` 抽象组件（支持同时渲染 FA 与 lucide，按 name 前缀分发）
+   - **Phase 3**：逐工具迁移 Font Awesome → lucide-react（含 20+ 文件的动态图标模式）
+   - **Phase 3 末尾**：移除 Font Awesome CDN + `@fortawesome/fontawesome-free`（如已列入 npm 依赖）
+   - **新增后端迁移**：数据库 `tools.icon` / `agents.icon` / `courses.icon` 字段从 `fa-xxx` 值迁移为 lucide 名称
+7. **主题切换器**：设置页可手动切换"暗 / 亮 / 跟随系统"，记住用户偏好；接入休眠的 `PreferencesSection.tsx` 与已有的 `CursorHistory` 多色主题（后者收敛为 ThemeProvider 的消费者）
 8. **小程序同步升级**：核心页面（首页 / 工具列表 / 工具详情）同步 token，平台原生模式（底部 Tab + 抽屉 + 底部 sheet）替代 PC 组件
+9. **品牌色策略（cyan + violet-blue 双轨）**：
+   - `cyan` 保留为"辅助强调色"（代码库事实标准，403 处使用）—— 用于焦点环、链接、选中态、代码高亮
+   - `violet-blue`（`#5B6BF5`）作为"主 CTA 品牌色"（按钮、Logo 渐变、主品牌标识）
+   - 两者不互相替换，共存于 token 层：`--accent-primary: #5B6BF5` + `--accent-cyan: #06B6D4`
+   - Phase 3 迁移时，cyan 使用保留原位置，violet-blue 仅替换原 primary/secondary 别名（29 处）
 
 ### 1.3 非目标（v1 不做）
 
@@ -66,7 +75,7 @@
 - 抽出完整 token 层（CSS variables）
 - 引入 shadcn/ui + Radix UI 原语
 - lucide-react 统一图标
-- 重构所有页面（公共首页 / workspace / admin / 23+ 工具页）
+- 重构所有页面（公共首页 / workspace / admin / **24 个工具组件（25 路由）** + Recommendations / AccountSettings / TechContents / 课程页）
 - 小程序同步升级
 - 工期 3-4 周
 
@@ -212,6 +221,9 @@ serif: 'Noto Serif SC', 'Source Han Serif SC', serif
   --accent-press:     #4A5AE5;
   --accent-secondary: #A155F7;
   --accent-warm:      #FF8A4C;   /* 数字/价格强调 */
+  --accent-cyan:      #06B6D4;   /* 辅助强调色：焦点环/链接/选中态/代码高亮（保留代码库事实标准） */
+  --accent-cyan-hover:#22D3EE;
+  --accent-cyan-press:#0891B2;
   --accent-success:   #34D399;
   --accent-warning:   #FBBF24;
   --accent-danger:    #F87171;
@@ -250,6 +262,13 @@ serif: 'Noto Serif SC', 'Source Han Serif SC', serif
   --accent-press:     #3B4BD5;
   --accent-secondary: #A155F7;
   --accent-warm:      #E86B1A;     /* 亮色下橙色调更沉 */
+  --accent-cyan:      #0891B2;     /* 亮色下 cyan 调深以保持对比度 */
+  --accent-cyan-hover:#0E7490;
+  --accent-cyan-press:#155E75;
+  --accent-success:   #10B981;
+  --accent-warning:   #D97706;
+  --accent-danger:    #EF4444;
+  --accent-info:      #3B82F6;
 
   --hairline:         rgba(13, 37, 61, 0.08);
   --border-default:   #E8DFCC;
@@ -659,7 +678,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 - **学习页主体**：宽留白（max-w-3xl），行高 leading-relaxed，章节标题用 serif，正文用 sans
 - **进度条**：渐变填充 + 微发光
 
-### 7.5 工具页（23 个，逐一替换）
+### 7.5 工具页（**24 个组件 / 25 个路由**，逐一替换）
 
 **统一外壳**：
 
@@ -688,14 +707,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
 **优先级替换顺序**（按使用频率）：
 
-1. **第一梯队**（高频工具，先做）：JSON 格式化、HTTP 客户端、Markdown 编辑器、密钥生成、跨设备分享
-2. **第二梯队**（中等频率）：SSH、Redis、数据库、K8s、PM Agent、OpenClaw
-3. **第三梯队**（低频或工具聚合类）：OCR、ASR、ImageGen、ImageDownloader、VideoDownloader、Calendar、SystemMonitor、CursorHistory、MarkItDownConverter、HttpApiClient（重复）、AI Assistant
+1. **第一梯队**（高频工具，先做）：JSON 格式化、HTTP 客户端、Markdown 编辑器、密钥生成、跨设备分享（CrossShare）
+2. **第二梯队**（中等频率）：SSH、Redis、数据库、K8s、PM Agent、OpenClaw、TokenUsage
+3. **第三梯队**（低频或工具聚合类）：OCR、ASR、ImageGen、ImageDownloader、VideoDownloader、Calendar、SystemMonitor、CursorHistory、MarkItDownConverter、OpenSpecCourse、LearningSharePlatform、AI Assistant
 
 每个工具页只动样式，业务逻辑零修改。组件替换策略：
 - 旧的 `bg-slate-800 rounded-xl border border-slate-700` → `bg-surface-2 rounded-lg border border-border`
-- 旧的 `<i className="fas fa-...">` → `<Icon name="..." />`（基于 lucide-react）
+- 旧的 `<i className="fas fa-...">` → **Phase 3 引入 `<Icon name="..." />` 抽象组件后**替换（Phase 1 / Phase 2 保留 FA 不变）
 - 旧的 `<button className="bg-blue-600 ...">` → `<Button variant="primary">...</Button>`
+- **CrossShareMain 改造项**：从 eager 改 lazy 加载（仅 24 工具中唯一非 lazy，影响首屏 bundle）
 
 ### 7.6 登录弹框（`LoginModal.tsx`）
 
@@ -718,6 +738,22 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 - **表单**：输入框改用新 Input 原语
 - **数据卡片**：用户统计、订阅、配额用 tabular-nums + accent-warm 强调
 - **主题切换器**：集成到设置页
+
+### 7.9 TechContents 内容页（`TechContentsPage.tsx` + `TechContentDetailPage.tsx`）
+
+- **背景**：`.bg-mesh.bg-mesh--content`（介于 marketing 与 workspace 之间）
+- **路由**：`/tech-contents`（列表） + `/tech-contents/:slug`（详情）
+- **列表页**：网格布局，每张技术内容卡片用 `.card-elevated` + 渐变边框 hover
+- **详情页**：宽留白（max-w-3xl），正文 sans（Geist），章节标题用 serif（Noto Serif SC，呼应课程区点缀）
+- **代码块**：保留 ` monospace` 字体（Geist Mono）+ `--neon-cyan` 高亮配色（与 Markdown 编辑器风格一致）
+- **小程序对应**：`package-learning/pages/tech-contents/*`（Phase 5 同步）
+
+### 7.10 首页 Recommendations 组件（`RecommendationCard.tsx`）
+
+- **背景**：嵌入首页 hero 下方或工具网格之后
+- **卡片**：`.card-glass`（毛玻璃 + backdrop-blur）+ 渐变描边
+- **图标**：复用 `<Icon name="..." />`（Phase 3 引入后）；Phase 1-2 保留 `fas ${icon}` 渲染
+- **数据来源**：与 ToolCard 类似的 API，icon 从 props 传入
 
 ---
 
@@ -859,6 +895,34 @@ export function ThemeSwitcher() {
 
 ## 11. 小程序同步
 
+### 11.0 页面分类（PC ↔ MP 对应关系）
+
+**PC 端独有的页面**（7 页，无 MP 对应））：
+
+- `/`（HomePage）
+- `/admin/*`（13 个 admin 路由，MP 不开放后台）
+- `/account-settings`（MP 用 `pages/profile` 等价）
+- `/tech-contents/:slug`（MP 有 `package-learning/pages/tech-contents/detail`，但内容可能不同步）
+
+**MP 端独有的页面**（8 页，无 PC 对应）：
+
+- `pages/index`（MP 工具导航页）
+- `pages/profile`（个人中心，PC 用 `/account-settings`）
+- `pages/login`（PC 用全局 LoginModal）
+- `pages/change-password`（PC 在 `/account-settings` 内）
+- `pages/help`（PC 在 `/courses/:slug/help` 或独立页）
+- `package-learning/pages/tech-contents/index`（内容列表，PC 用 `/tech-contents`）
+- `package-learning/pages/tech-contents/detail`（内容详情，PC 用 `/tech-contents/:slug`）
+
+**同步目标（15 页有 PC 对应）**：
+
+- 工具页（10 页）：JSON / Calendar / KeyGenerator / OCR / ASR / HTTP Client / ImageDownloader / VideoDownloader / MarkItDownConverter / MarkdownEditor
+- 跨设备（2 页）：CrossShare / messages + CrossShare / files
+- OpenClaw（1 页）
+- 学习平台（2 页）：CoursePlatform / list + CoursePlatform / detail（对应 PC 的 LearningSharePlatform + OpenSpecCourse）
+
+**Token 同步清单**：同步 token 覆盖全部 PC 页面（含 Admin）；MP 端 23 页全部应用 token，但 PC 独有页面不强制 MP 端对应。
+
 ### 11.1 Token 同步机制
 
 **Codegen 脚本**（`scripts/sync-miniprogram-tokens.ts`）：
@@ -939,36 +1003,52 @@ PC 原语**样式 token 直接复用**：颜色 / 字号 / 间距 / 圆角 / 阴
 - 首页 hero、工具网格视觉达到 Stripe 级
 - Workspace 切换工具流畅
 
-### Phase 3：Admin + 工具页（7-10 天）
+### Phase 3：Admin + 工具页（10-14 天）
+
+**前置条件**：Phase 2 完成 `<Icon name="..." />` 抽象组件（同时支持 FA 与 lucide，按 name 前缀分发：`name="fa-home"` 走 FA，`name="home"` 走 lucide）。
 
 **完成标志**：
 
-- [ ] AdminLayout 重构（侧边栏细化）
-- [ ] 通用工具页外壳 `<ToolShell>` 抽出
-- [ ] 第一梯队 5 个工具页替换（JSON / HTTP / Markdown / 密钥 / 跨设备）
-- [ ] 第二梯队 5 个工具页替换（SSH / Redis / DB / K8s / PM Agent）
-- [ ] 第三梯队 9 个工具页替换（OCR / ASR / ImageGen / ImageDownloader / VideoDownloader / Calendar / SystemMonitor / CursorHistory / MarkItDownConverter）
-- [ ] Font Awesome → lucide-react 迁移完成（`npm uninstall @fortawesome/fontawesome-free` + `index.html` 移除 CDN）
+- [ ] AdminLayout 重构（侧边栏细化 + `<RequireAuth role="admin">` 显式守卫）
+- [ ] 通用工具页外壳 `<ToolShell>` 抽出（含 ErrorBoundary）
+- [ ] CrossShareMain 改 lazy 加载
+- [ ] 第一梯队 6 个工具页替换（JSON / HTTP / Markdown / 密钥 / 跨设备 / TokenUsage）
+- [ ] 第二梯队 6 个工具页替换（SSH / Redis / DB / K8s / PM Agent / OpenClaw）
+- [ ] 第三梯队 12 个工具页替换（OCR / ASR / ImageGen / ImageDownloader / VideoDownloader / Calendar / SystemMonitor / CursorHistory / MarkItDownConverter / OpenSpecCourse / LearningSharePlatform / AIAssistant）
+- [ ] **icon 字段后端迁移脚本**（`scripts/migrate-tool-icons.ts`：数据库 `tools.icon` / `agents.icon` / `courses.icon` 从 `fa-xxx` 转 lucide 名）
+- [ ] **Font Awesome 静态引用迁移**：硬编码 `fas fa-xxx` 改为 `<Icon name="xxx" />`（按 priority 顺序）
+- [ ] **Font Awesome 动态引用迁移**：变量/props 模板字符串改为 `<Icon name={...} />`
+- [ ] **后端数据迁移完成**：admin 通过 API 重新写入 icon 字段
+- [ ] **移除 Font Awesome CDN**（仅在 1,011 处全部迁移 + 后端 icon 字段迁移完成后）+ `index.html` 删除 FA link
 
 **验证**：
 
-- 所有 23 工具页视觉一致（统一外壳）
-- 图标系统统一（无 fa- / fas- 残留）
+- 所有 **24 个工具组件（25 路由）**视觉一致（统一外壳）
+- 图标系统：FA 用量 1,011 → 0
+- 后端数据库 icon 字段全部为 lucide 名（无 fa- 前缀）
 - 工具内数据流不破坏（单元测试通过）
 
-### Phase 4：课程 + Markdown 编辑器整合（3-5 天）
+### Phase 4：课程 + Markdown 编辑器 + 主题系统整合（5-7 天）
 
 **完成标志**：
 
 - [ ] 课程列表 / 详情 / 学习页重构（serif 字体点缀）
+- [ ] **TechContents 列表 / 详情**页重构（与课程页同风格 + serif 章节标题）
+- [ ] Recommendations 组件重构（首页内嵌）
 - [ ] Markdown 编辑器整合进 token 系统（原赛博朋克主题通过 `data-theme` 自动切换）
+  - `MarkdownEditor.css` 的 `--neon-*` / `--bg-*` 变量从 `:root` 移到 `.markdown-editor-container` 作用域
 - [ ] 个人中心 + 设置页（含主题切换器）
+- [ ] **CursorHistory 接入 ThemeProvider**（`cursorThemes.ts` 改造为读 `useTheme()`；`--theme-*` 变量从 `:root` 移到 `.cursor-history-container` 作用域）
+- [ ] **MarkdownEditor 的 `.dark-theme` class 改造**：改为读 `data-theme` 属性
+- [ ] **PreferencesSection 接入 ThemeProvider**：替换休眠的本地 useState
 
 **验证**：
 
-- 课程详情页标题用 Noto Serif SC
+- 课程 / TechContents 详情页标题用 Noto Serif SC
 - Markdown 编辑器在 dark/light 双模式下渲染一致
-- 设置页可保存主题偏好
+- 设置页可保存主题偏好（与全局 ThemeProvider 同步）
+- CursorHistory 颜色随主题切换（不再"卡"在原 `--theme-*`）
+- MarkdownEditor 颜色随主题切换
 
 ### Phase 5：小程序同步（3-5 天）
 
@@ -1032,13 +1112,18 @@ PC 原语**样式 token 直接复用**：颜色 / 字号 / 间距 / 圆角 / 阴
 
 | 风险 | 缓解策略 |
 |---|---|
-| Geist + Geist Mono 字体体积大 | woff2 子集化（仅拉丁 + 数字 + 常用符号），`font-display: swap` |
+| Geist + Geist Mono 字体体积大 | woff2 子集化（仅拉丁 + 数字 + 常用符号），`font-display: swap`；HarmonyOS Sans SC + Noto Serif SC 留系统回退避免双倍字体下载 |
 | 大气背景低端设备性能 | SVG noise overlay 用 data URI（无 HTTP 请求），渐变用 GPU 加速的 `transform` 而非 `background-position` |
 | 双模式 token 维护成本 | CSS 变量是单一真相源，`data-theme` 切换瞬时无重排 |
 | shadcn/ui 默认观感风险 | 大量 token 覆盖 + 渐变签名贯穿，禁止"shadcn 默认出场" |
 | 小程序 Taro + SCSS 同步漂移 | Codegen 脚本 + pre-commit hook 强制同步 |
-| Markdown 编辑器原有用户期待赛博朋克 | 保留 H1 渐变 + 双栏布局，仅去掉独立霓虹变量层 |
-| Font Awesome 迁移遗漏图标 | `grep -r "fas fa-\|far fa-\|fab fa-"` 在迁移前清单化，逐一对应 lucide |
+| Markdown 编辑器原有用户期待赛博朋克 | 保留 H1 渐变 + 双栏布局，仅去掉独立霓虹变量层；`MarkdownEditor.css` 的霓虹变量从 `:root` 移到 `.markdown-editor-container` 作用域避免与新 token 冲突 |
+| **🔴 Font Awesome 大规模迁移风险**（1,011 处引用 / 121 文件 / 含 20+ 文件动态图标 / 后端数据库 icon 字段） | **分阶段策略**：Phase 1 保留 FA CDN + 新增 `<Icon name="..." />` 抽象组件（同时支持 FA 与 lucide，按 name 前缀分发）；Phase 3 逐工具迁移 → 测试 → 在所有图标迁移完成后才移除 CDN；后端数据库 `icon` 字段提供 SQL 迁移脚本（`fa-xxx` → lucide 名）|
+| **🟠 3 个现有主题系统共存风险**（CursorHistory / MarkdownEditor / MarkdownEditor.css） | Phase 1 不触碰这 3 个系统；Phase 4 把它们接入新 ThemeProvider（CursorHistory 的 `--theme-*` 收敛到 `.cursor-history-container` 作用域；MarkdownEditor 的 `.dark-theme` class 改造为读 `data-theme`）|
+| **🟠 cyan 品牌色保留风险**（403 处使用，violet-blue 仅 29 处） | 不强迁 cyan；引入 `--accent-cyan` token；Phase 3 时 cyan 保留原使用位置，violet-blue 仅替换原 primary/secondary 别名（29 处）|
+| **🟠 Admin 路由无显式鉴权守卫** | Phase 2 重构 AdminLayout 时增加 `<RequireAuth role="admin">` 包裹（设计系统迁移无关但是顺带改进）|
+| **🟡 CrossShareMain eager 加载风险**（24 工具唯一非 lazy） | Phase 3 改 lazy（bundle 优化，与设计系统无关但是顺带改进）|
+| **🟡 重复路由 bug**（`/courses/:slug/learn` 声明两次） | Phase 2 重构 App.tsx 时清理 |
 | 主题切换闪烁（FOUC） | 在 `<head>` 内联一段 critical CSS（包含 `--bg-canvas`、`color` 等最基本变量） |
 | 渐变背景在长 workspace 会话引起视觉疲劳 | 25% 强度 + 30s 呼吸 + 不在编辑器/数据表格区增加额外色彩 |
 
@@ -1062,7 +1147,7 @@ PC 原语**样式 token 直接复用**：颜色 / 字号 / 间距 / 圆角 / 阴
 
 设计系统全量重构完成的标志：
 
-1. ✅ PC 端 23+ 工具页 + 公共首页 + Workspace + Admin + 课程页 **全部**视觉达到 Stripe 级（背景渐变、token 一致、原语化）
+1. ✅ PC 端 **24 个工具组件（25 路由）** + 公共首页 + Workspace + Admin + 课程页 + AccountSettings + TechContents + Recommendations **全部**视觉达到 Stripe 级（背景渐变、token 一致、原语化）
 2. ✅ 暗 / 亮双模式可平滑切换，主题持久化到 localStorage
 3. ✅ 18 个原语在 `/dev/components` 展示完整，所有业务组件基于原语构建
 4. ✅ 图标系统统一为 lucide-react，无 Font Awesome 残留
