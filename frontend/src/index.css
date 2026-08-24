@@ -1,72 +1,62 @@
+@import './styles/tokens/index.css';
+@import './styles/backgrounds.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================================
+ * 全局 reset & 基础样式 —— 通过 token 变量表达
+ * ============================================================ */
 
 html, body {
   height: 100%;
 }
 
 body {
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: var(--bg-canvas);
+  color: var(--ink-default);
+  font-family: var(--font-sans);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ============================================================
+ * 业务类 (Phase 3 清理前保留, 改用 token 表达)
+ * ============================================================ */
 
 .tool-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-lg);
 }
 
 .search-input:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+  box-shadow: var(--shadow-focus);
 }
 
 .category-tab.active {
-  background-color: #2563eb;
-  color: white;
+  background-color: var(--accent-primary);
+  color: var(--ink-inverse);
 }
 
 .category-tab {
-  transition: all 0.2s ease;
+  transition: all var(--duration-fast) var(--ease-stripe);
 }
 
-
-/* Pacifico 字体 fallback - 当 Google Fonts 不可用时使用 */
+/* Pacifico 字体 fallback (当 Google Fonts 不可用时) */
 .font-\[Pacifico\] {
   font-family: 'Pacifico', 'Microsoft YaHei', 'PingFang SC', sans-serif;
 }
 
-/* 弹框动画 */
+/* ============================================================
+ * 弹框 / 进入动画
+ * ============================================================ */
+
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* 自定义滚动条样式 - 匹配深色主题 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.5);
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.7);
-}
-
-/* Firefox 滚动条 */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+  to   { opacity: 1; }
 }
 
 @keyframes scaleIn {
@@ -80,38 +70,57 @@ body {
   }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.2s ease-out;
-}
-
-.animate-scaleIn {
-  animation: scaleIn 0.3s ease-out;
-}
-
-/* 底部面板滑出动画 */
 @keyframes slide-in-bottom {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 
-.animate-slide-in-bottom {
-  animation: slide-in-bottom 0.3s ease-out;
+.animate-fadeIn          { animation: fadeIn var(--duration-fast) var(--ease-out); }
+.animate-scaleIn         { animation: scaleIn var(--duration-normal) var(--ease-stripe); }
+.animate-slide-in-bottom { animation: slide-in-bottom var(--duration-normal) var(--ease-stripe); }
+
+/* ============================================================
+ * 自定义滚动条 —— 通过 token 表达
+ * ============================================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* Monaco Editor 变量高亮样式 */
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: var(--radius-md);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hairline);
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast) var(--ease-stripe);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-default);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline) transparent;
+}
+
+/* ============================================================
+ * Monaco Editor 变量高亮 (保留, 改用 token)
+ * ============================================================ */
+
 .variable-defined {
-  background-color: rgba(139, 92, 246, 0.2);
-  border-bottom: 2px solid #8b5cf6;
-  border-radius: 2px;
+  background-color: rgba(161, 85, 247, 0.2);
+  border-bottom: 2px solid var(--accent-secondary);
+  border-radius: var(--radius-sm);
 }
 
 .variable-undefined {
-  background-color: rgba(239, 68, 68, 0.2);
-  border-bottom: 2px solid #ef4444;
-  text-decoration: underline wavy #ef4444;
-  border-radius: 2px;
+  background-color: rgba(248, 113, 113, 0.2);
+  border-bottom: 2px solid var(--accent-danger);
+  text-decoration: underline wavy var(--accent-danger);
+  border-radius: var(--radius-sm);
 }
