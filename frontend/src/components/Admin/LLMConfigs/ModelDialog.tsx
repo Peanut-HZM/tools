@@ -1,9 +1,11 @@
 /**
  * 模型新建/编辑弹窗
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CreateModelRequest, LLMModel, ModelCategory } from '../../../services/llmModelApi';
 import { LLMProvider } from '../../../services/llmProviderApi';
+
+const STORAGE_KEY_LAST_PROVIDER = 'llm_model_last_provider_id';
 
 interface ModelDialogProps {
   isOpen: boolean;
@@ -15,6 +17,8 @@ interface ModelDialogProps {
 }
 
 export default function ModelDialog({ isOpen, onClose, onSubmit, editing, providers, isLoading }: ModelDialogProps) {
+  const modelNameManualRef = useRef(false);
+
   const [formData, setFormData] = useState<CreateModelRequest>({
     name: '',
     model_name: '',
@@ -43,18 +47,29 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
         is_active: editing.is_active,
       });
     } else {
+      // 新建模式：供应商默认使用上次选择的，模型标识联动标记重置
+      const lastProviderId = localStorage.getItem(STORAGE_KEY_LAST_PROVIDER);
+      const defaultProviderId =
+        lastProviderId && providers.some((p) => p.id === lastProviderId)
+          ? lastProviderId
+          : providers[0]?.id || '';
       setFormData({
-        name: '', model_name: '', provider_id: providers[0]?.id || '',
+        name: '', model_name: '', provider_id: defaultProviderId,
         request_params: '', category: 'chat', priority: 100,
         is_default: false, is_default_for_category: false,
         notes: '', is_active: true,
       });
+      modelNameManualRef.current = false;
     }
   }, [editing, isOpen, providers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
+    // 新建成功后记住供应商，供下次新建使用
+    if (!editing && formData.provider_id) {
+      localStorage.setItem(STORAGE_KEY_LAST_PROVIDER, formData.provider_id);
+    }
   };
 
   if (!isOpen) return null;
@@ -86,7 +101,15 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  const newName = e.target.value;
+                  const updates: Partial<CreateModelRequest> = { name: newName };
+                  // 新建模式 + 用户未手动改过模型标识 → 自动同步
+                  if (!editing && !modelNameManualRef.current) {
+                    updates.model_name = newName;
+                  }
+                  setFormData({ ...formData, ...updates });
+                }}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="例如：GPT-4o"
                 required
@@ -101,6 +124,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
               <input
                 type="text"
                 value={formData.model_name}
+                onFocus={() => { modelNameManualRef.current = true; }}
                 onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="例如：gpt-4o"
