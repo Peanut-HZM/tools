@@ -1,0 +1,41 @@
+:root {
+  --font-sans:  'Geist', 'Geist Fallback', 'HarmonyOS Sans SC',
+                'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono:  'Geist Mono', 'JetBrains Mono', 'HarmonyOS Sans Mono',
+                'SF Mono', Menlo, monospace;
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+
+  --text-display-2xl: 4.5rem;
+  --text-display-xl:  3.75rem;
+  --text-display-lg:  3rem;
+  --text-display-md:  2.25rem;
+  --text-display-sm:  1.875rem;
+  --text-heading-lg:  1.5rem;
+  --text-heading-md:  1.25rem;
+  --text-heading-sm:  1.125rem;
+  --text-body-lg:     1rem;
+  --text-body-md:     0.875rem;
+  --text-body-sm:     0.8125rem;
+  --text-caption:     0.75rem;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --leading-tight:   1.2;
+  --leading-snug:    1.4;
+  --leading-normal:  1.6;
+  --leading-relaxed: 1.8;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-num:    -0.01em;
+
+  --feature-num: 'tnum' 1, 'lnum' 1;
+}
+
+.font-tabular {
+  font-feature-settings: var(--feature-num);
+}

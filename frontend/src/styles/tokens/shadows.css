@@ -1,0 +1,16 @@
+:root {
+  --shadow-sm:    0 1px 2px rgba(10, 26, 47, 0.5);
+  --shadow-md:    0 4px 12px rgba(10, 26, 47, 0.4);
+  --shadow-lg:    0 12px 32px rgba(10, 26, 47, 0.35);
+  --shadow-xl:    0 24px 48px rgba(10, 26, 47, 0.4);
+  --shadow-glow:  0 0 32px rgba(91, 107, 245, 0.25);
+  --shadow-focus: 0 0 0 3px rgba(91, 107, 245, 0.4);
+}
+
+:root[data-theme="light"] {
+  --shadow-sm:    0 1px 2px rgba(13, 37, 61, 0.08);
+  --shadow-md:    0 4px 12px rgba(13, 37, 61, 0.10);
+  --shadow-lg:    0 12px 32px rgba(13, 37, 61, 0.12);
+  --shadow-xl:    0 24px 48px rgba(13, 37, 61, 0.16);
+  --shadow-glow:  0 0 32px rgba(91, 107, 245, 0.20);
+}
