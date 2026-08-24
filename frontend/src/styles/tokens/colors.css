@@ -16,6 +16,9 @@
   --accent-press:     #4A5AE5;
   --accent-secondary: #A155F7;
   --accent-warm:      #FF8A4C;
+  --accent-cyan:      #06B6D4;   /* 辅助强调色：焦点环/链接/选中态/代码高亮（保留代码库事实标准） */
+  --accent-cyan-hover:#22D3EE;
+  --accent-cyan-press:#0891B2;
   --accent-success:   #34D399;
   --accent-warning:   #FBBF24;
   --accent-danger:    #F87171;
@@ -54,6 +57,9 @@
   --accent-press:     #3B4BD5;
   --accent-secondary: #A155F7;
   --accent-warm:      #E86B1A;
+  --accent-cyan:      #0891B2;   /* 亮色下 cyan 调深以保持对比度 */
+  --accent-cyan-hover:#0E7490;
+  --accent-cyan-press:#155E75;
   --accent-success:   #10B981;
   --accent-warning:   #D97706;
   --accent-danger:    #EF4444;

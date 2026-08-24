@@ -1,5 +1,8 @@
 import { useTheme } from '@/lib/theme';
 
+const radiusClasses = { sm: 'rounded-sm', md: 'rounded-md', lg: 'rounded-lg', xl: 'rounded-xl', '2xl': 'rounded-2xl', pill: 'rounded-pill' } as const;
+const shadowClasses = { sm: 'shadow-sm', md: 'shadow-md', lg: 'shadow-lg', xl: 'shadow-xl', glow: 'shadow-glow', focus: 'shadow-focus' } as const;
+
 /**
  * /dev/components —— 设计系统 token 验证页
  * 仅用于开发期视觉校验，不进入生产 bundle。
@@ -92,8 +95,8 @@ export default function DevComponentsPage() {
       <section className="space-y-4">
         <h2 className="text-heading-lg font-medium">圆角</h2>
         <div className="flex gap-4">
-          {['sm', 'md', 'lg', 'xl', '2xl', 'pill'].map((r) => (
-            <div key={r} className={`bg-accent w-20 h-20 rounded-${r} flex items-center justify-center text-ink-inverse text-body-sm`}>
+          {(['sm', 'md', 'lg', 'xl', '2xl', 'pill'] as const).map((r) => (
+            <div key={r} className={`bg-accent w-20 h-20 ${radiusClasses[r]} flex items-center justify-center text-ink-inverse text-body-sm`}>
               {r}
             </div>
           ))}
@@ -104,8 +107,8 @@ export default function DevComponentsPage() {
       <section className="space-y-4">
         <h2 className="text-heading-lg font-medium">阴影</h2>
         <div className="flex gap-6">
-          {['sm', 'md', 'lg', 'xl', 'glow', 'focus'].map((s) => (
-            <div key={s} className={`bg-surface-2 shadow-${s} w-24 h-24 rounded-lg flex items-center justify-center text-ink-muted text-body-sm`}>
+          {(['sm', 'md', 'lg', 'xl', 'glow', 'focus'] as const).map((s) => (
+            <div key={s} className={`bg-surface-2 ${shadowClasses[s]} w-24 h-24 rounded-lg flex items-center justify-center text-ink-muted text-body-sm`}>
               {s}
             </div>
           ))}

@@ -27,6 +27,7 @@ export default {
           press: 'var(--accent-press)',
           secondary: 'var(--accent-secondary)',
           warm: 'var(--accent-warm)',
+          cyan: 'var(--accent-cyan)',
           success: 'var(--accent-success)',
           warning: 'var(--accent-warning)',
           danger: 'var(--accent-danger)',
