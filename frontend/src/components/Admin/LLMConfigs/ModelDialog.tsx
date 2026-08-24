@@ -24,7 +24,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
     model_name: '',
     provider_id: '',
     request_params: '',
-    category: 'chat',
+    category: 'text',
     priority: 100,
     is_default: false,
     is_default_for_category: false,
@@ -55,7 +55,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
           : providers[0]?.id || '';
       setFormData({
         name: '', model_name: '', provider_id: defaultProviderId,
-        request_params: '', category: 'chat', priority: 100,
+        request_params: '', category: 'text', priority: 100,
         is_default: false, is_default_for_category: false,
         notes: '', is_active: true,
       });
@@ -160,14 +160,12 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as ModelCategory })}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
-                <option value="chat">对话 (chat)</option>
-                <option value="code">代码 (code)</option>
-                <option value="voice">语音 (voice)</option>
-                <option value="vision">视觉 (vision)</option>
-                <option value="multimodal">全模态 (multimodal)</option>
-                <option value="embedding">向量 (embedding)</option>
-                <option value="image_polish">图像润色 (image_polish)</option>
+                <option value="text">文本 (text)</option>
+                <option value="vision">视觉理解 (vision)</option>
                 <option value="image_gen">图像生成 (image_gen)</option>
+                <option value="voice">语音 (voice)</option>
+                <option value="embedding">向量 (embedding)</option>
+                <option value="ocr">OCR 识别 (ocr)</option>
               </select>
             </div>
 

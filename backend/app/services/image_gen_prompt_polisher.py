@@ -69,15 +69,12 @@ class ImageGenPromptPolisher:
         Returns:
             润色后的提示词；任何失败都返回原 prompt（不抛异常）
         """
-        # 1. 找润色模型：image_polish 类别 → chat 类别兜底
+        # 1. 找润色模型：text 类别
         #    （仅用于前置校验与 system prompt 措辞；实际兜底链由网关按 priority 驱动）
-        model = self._model_svc.get_default_model(category=LLMCategory.IMAGE_POLISH)
-        category = LLMCategory.IMAGE_POLISH
+        model = self._model_svc.get_default_model(category=LLMCategory.TEXT)
+        category = LLMCategory.TEXT
         if not model:
-            model = self._model_svc.get_default_model(category=LLMCategory.CHAT)
-            category = LLMCategory.CHAT
-        if not model:
-            logger.warning("[image-gen-polish] 无可用默认模型（image_polish/chat），返回原提示词")
+            logger.warning("[image-gen-polish] 无可用默认模型（text），返回原提示词")
             return prompt
 
         # 2. 校验 provider 配置
@@ -108,17 +105,7 @@ class ImageGenPromptPolisher:
             Message(role="user", content=prompt),
         ]
         try:
-            try:
-                result = await self._gateway.generate(category=category, messages=messages)
-            except AllModelsUnavailableError:
-                # image_polish 兜底链整体不可用时，降级到 chat 兜底链（保持旧的跨类别兜底语义）
-                if category == LLMCategory.IMAGE_POLISH:
-                    logger.warning("[image-gen-polish] image_polish 兜底链不可用，降级 chat 分类重试")
-                    result = await self._gateway.generate(
-                        category=LLMCategory.CHAT, messages=messages
-                    )
-                else:
-                    raise
+            result = await self._gateway.generate(category=category, messages=messages)
 
             # 兼容 GenerationResult（.content）与纯字符串两种返回形态
             content = getattr(result, "content", result)

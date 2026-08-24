@@ -25,7 +25,7 @@ class LLMConfigService:
         api_key: str,
         model_name: str,
         request_params: Optional[Dict[str, Any]] = None,
-        category: str = "chat",
+        category: str = "text",
         notes: Optional[str] = None,
         is_default: bool = False,
         is_active: bool = True,

@@ -2,7 +2,7 @@
 
 按 category 查询 LLMModel（priority ASC, id ASC），逐个调用直到成功。
 分类：
-  - text 类（chat / code / voice / vision / multimodal / embedding / image_polish）走 get_provider
+  - text 类（text / voice / vision / embedding / ocr）走 get_provider
   - image_gen 走 ImageGenFactory
 """
 

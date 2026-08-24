@@ -14,14 +14,12 @@ const getAuthHeaders = () => {
 
 /** 模型分类 */
 export type ModelCategory =
-  | 'chat'
-  | 'code'
+  | 'text'
   | 'voice'
   | 'vision'
-  | 'multimodal'
   | 'embedding'
-  | 'image_polish'
-  | 'image_gen';
+  | 'image_gen'
+  | 'ocr';
 
 /** 模型 */
 export interface LLMModel {

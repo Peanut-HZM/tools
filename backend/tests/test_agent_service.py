@@ -109,7 +109,7 @@ async def test_default_path_uses_gateway_chat_category(mock_msg_service, mock_ga
     assert result == "你好，我是产品经理助手"
     mock_gateway_cls.assert_called_once()
     gateway.generate.assert_called_once()
-    assert gateway.generate.call_args.kwargs["category"] == "chat"
+    assert gateway.generate.call_args.kwargs["category"] == "text"
 
 
 # ============================================================
@@ -255,4 +255,4 @@ async def test_specified_model_not_found_falls_back_to_gateway(
 
     assert result == "gateway-ok"
     gateway.generate.assert_called_once()
-    assert gateway.generate.call_args.kwargs["category"] == "chat"
+    assert gateway.generate.call_args.kwargs["category"] == "text"

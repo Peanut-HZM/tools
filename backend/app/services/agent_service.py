@@ -135,7 +135,7 @@ async def generate_agent_response(
         gateway = OrderedLLMGateway(db)
         try:
             result = await gateway.generate(
-                category=LLMCategory.CHAT, messages=message_objects
+                category=LLMCategory.TEXT, messages=message_objects
             )
         except AllModelsUnavailableError as e:
             if not e.failures:

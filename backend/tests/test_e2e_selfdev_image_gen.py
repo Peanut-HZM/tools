@@ -175,9 +175,9 @@ def mock_gateway():
         """根据 category 路由到不同 mock 返回值"""
         category = kwargs.get("category")
         call_log["calls"].append(kwargs)
-        if category == "chat":
+        if category == "text":
             # 第一次 tool_call，第二次 final
-            if len([c for c in call_log["calls"] if c.get("category") == "chat"]) == 1:
+            if len([c for c in call_log["calls"] if c.get("category") == "text"]) == 1:
                 return first_chat
             return second_chat
         if category == "image_gen":
@@ -343,9 +343,9 @@ def test_full_selfdev_flow(client, auth_headers, mock_quota, mock_history, mock_
 
     # 4. OrderedLLMGateway.generate 调用次数与分类
     #    期望：chat x2 + image_gen x1 = 3 次
-    chat_calls = [c for c in mock_gateway._call_log["calls"] if c.get("category") == "chat"]
+    chat_calls = [c for c in mock_gateway._call_log["calls"] if c.get("category") == "text"]
     image_gen_calls = [c for c in mock_gateway._call_log["calls"] if c.get("category") == "image_gen"]
-    assert len(chat_calls) == 2, f"chat 应被调用 2 次（tool_call + final），实际: {len(chat_calls)}"
+    assert len(chat_calls) == 2, f"text 应被调用 2 次（tool_call + final），实际: {len(chat_calls)}"
     assert len(image_gen_calls) == 1, f"image_gen 应被调用 1 次，实际: {len(image_gen_calls)}"
 
     # 5. OSS 上传 + 签名 URL 应被调用
@@ -413,7 +413,7 @@ def test_selfdev_flow_with_existing_conversation(
     assert len(second_body["image_urls"]) >= 1
 
     # 第一次 chat 调用（带 history 上下文）的 messages 应 > 1
-    chat_calls = [c for c in mock_gateway._call_log["calls"] if c.get("category") == "chat"]
+    chat_calls = [c for c in mock_gateway._call_log["calls"] if c.get("category") == "text"]
     assert len(chat_calls) >= 1
     first_chat = chat_calls[0]
     assert "messages" in first_chat

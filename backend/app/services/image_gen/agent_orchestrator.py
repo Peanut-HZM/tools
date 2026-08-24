@@ -56,7 +56,7 @@ class AgentOrchestrator:
 
             # gateway.generate 通过 **kwargs 透传 tools 给底层 adapter
             response = await self._gateway.generate(
-                category="chat",
+                category="text",
                 messages=current_messages,
                 tools=tools,
             )

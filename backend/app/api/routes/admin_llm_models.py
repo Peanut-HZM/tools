@@ -43,7 +43,7 @@ class ModelCreate(BaseModel):
     model_name: str = Field(..., min_length=1, max_length=100, description="模型标识，如 gpt-4o")
     provider_id: str = Field(..., description="供应商 ID")
     request_params: Optional[str] = Field(None, description="JSON 字符串格式的请求参数")
-    category: str = Field(default="chat", description="分类：chat / code")
+    category: str = Field(default="text", description="分类：text / vision / image_gen / voice / embedding / ocr")
     is_default: bool = False
     is_default_for_category: bool = False
     notes: Optional[str] = Field(None, max_length=500)
@@ -106,7 +106,7 @@ def _model_to_dict(m) -> dict:
         "provider_id": str(m.provider_id),
         "provider_name": provider_name,
         "request_params": m.request_params,
-        "category": m.category or "chat",
+        "category": m.category or "text",
         "is_default": m.is_default,
         "is_default_for_category": m.is_default_for_category,
         "notes": m.notes,

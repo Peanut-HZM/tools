@@ -2,7 +2,7 @@
  * 模型 Tab — 列表 + CRUD + 设置默认
  */
 import { useState, useEffect } from 'react';
-import { llmModelApi, LLMModel, CreateModelRequest } from '../../../services/llmModelApi';
+import { llmModelApi, LLMModel, CreateModelRequest, ModelCategory } from '../../../services/llmModelApi';
 import { llmProviderApi, LLMProvider } from '../../../services/llmProviderApi';
 import { useToast } from '../../../hooks/useToast';
 import ModelDialog from './ModelDialog';
@@ -31,7 +31,7 @@ export default function ModelsTab() {
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
 
   // 筛选
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'chat' | 'code'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | ModelCategory>('all');
 
   const [submitting, setSubmitting] = useState(false);
   const { success, error } = useToast();
@@ -109,16 +109,26 @@ export default function ModelsTab() {
   const handleSetCategoryDefault = async (m: LLMModel) => {
     try {
       await llmModelApi.setDefault(m.id, m.category);
-      success(`已将 "${m.name}" 设为 [${m.category === 'chat' ? '对话' : '编程'}] 分类默认`);
+      success(`已将 "${m.name}" 设为 [${getCategoryLabel(m.category)}] 分类默认`);
       loadData();
     } catch { error('设置分类默认失败'); }
   };
 
-  const getCategoryLabel = (c: string) => c === 'code' ? '编程' : '对话';
+  const CATEGORY_LABELS: Record<string, string> = {
+    text: '文本', vision: '视觉', image_gen: '图像生成',
+    voice: '语音', embedding: '向量', ocr: 'OCR',
+  };
+  const CATEGORY_COLORS: Record<string, string> = {
+    text: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    vision: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    image_gen: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
+    voice: 'bg-green-500/20 text-green-400 border-green-500/30',
+    embedding: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    ocr: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  };
+  const getCategoryLabel = (c: string) => CATEGORY_LABELS[c] || c;
   const getCategoryColor = (c: string) =>
-    c === 'code'
-      ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-      : 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    CATEGORY_COLORS[c] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
 
   const filtered = sortModelsByPriority(
     categoryFilter === 'all' ? models : models.filter((m) => m.category === categoryFilter)
@@ -137,8 +147,8 @@ export default function ModelsTab() {
       </div>
 
       {/* 分类筛选 */}
-      <div className="flex gap-2 mb-4">
-        {([['all', '全部'], ['chat', '对话'], ['code', '编程']] as const).map(([key, label]) => (
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {([['all', '全部'], ['text', '文本'], ['vision', '视觉'], ['image_gen', '图像生成'], ['voice', '语音'], ['embedding', '向量'], ['ocr', 'OCR']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setCategoryFilter(key)}

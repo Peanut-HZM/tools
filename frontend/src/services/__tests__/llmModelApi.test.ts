@@ -2,18 +2,16 @@ import { describe, expect, it } from 'vitest';
 import type { ModelCategory, LLMModel } from '../llmModelApi';
 
 describe('ModelCategory 类型', () => {
-  it('应包含全部 8 个分类', () => {
+  it('应包含全部 6 个分类', () => {
     const categories: ModelCategory[] = [
-      'chat',
-      'code',
+      'text',
       'voice',
       'vision',
-      'multimodal',
       'embedding',
-      'image_polish',
       'image_gen',
+      'ocr',
     ];
-    expect(categories).toHaveLength(8);
+    expect(categories).toHaveLength(6);
   });
 });
 
@@ -24,7 +22,7 @@ describe('LLMModel 类型', () => {
       name: 'test',
       model_name: 'gpt-4',
       provider_id: 'p',
-      category: 'chat',
+      category: 'text',
       is_default: false,
       is_default_for_category: false,
       is_active: true,

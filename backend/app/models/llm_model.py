@@ -34,8 +34,8 @@ class LLMModel(Base):
     # JSON 字符串形式的请求参数（temperature / max_tokens / timeout 等）
     # 注意：旧 llm_configs.request_params 为 JSON 类型，迁移时需 json.dumps
     request_params = Column(Text, nullable=True)
-    # chat / code
-    category = Column(String(20), nullable=False, default="chat", index=True)
+    # text / vision / image_gen / voice / embedding / ocr
+    category = Column(String(20), nullable=False, default="text", index=True)
     # 全局默认模型（下拉框首选）
     is_default = Column(Boolean, nullable=False, default=False, index=True)
     # 所属分类下的默认模型

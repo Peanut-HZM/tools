@@ -96,7 +96,7 @@ class LLMModelService:
         model_name: str,
         provider_id: ID_LIKE,
         request_params: Optional[str] = None,
-        category: str = "chat",
+        category: str = "text",
         is_default: bool = False,
         is_default_for_category: bool = False,
         notes: Optional[str] = None,
