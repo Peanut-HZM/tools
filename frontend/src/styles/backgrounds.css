@@ -1,0 +1,50 @@
+/* ============================================================
+ * 大气渐变背景层 —— Stripe 签名体验
+ * 用法: <div class="bg-mesh bg-mesh--subtle" />
+ * ============================================================ */
+
+.bg-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    var(--gradient-mesh-1),
+    var(--gradient-mesh-2),
+    var(--gradient-mesh-3),
+    var(--bg-canvas);
+}
+
+/* 强度分层 */
+.bg-mesh--full    { opacity: 1.0; }
+.bg-mesh--content { opacity: 0.7; }
+.bg-mesh--subtle  { opacity: 0.3; }
+
+/* SVG noise overlay 消除渐变 banding */
+.bg-mesh::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* 渐变呼吸动画 (30s 循环) */
+@keyframes mesh-breathe {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(2%, -1%) scale(1.02); }
+}
+
+.bg-mesh--breathing {
+  animation: mesh-breathe 30s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* 无障碍：用户偏好减少动效时禁用呼吸 */
+@media (prefers-reduced-motion: reduce) {
+  .bg-mesh--breathing {
+    animation: none;
+  }
+}
