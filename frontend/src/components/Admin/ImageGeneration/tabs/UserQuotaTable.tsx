@@ -96,7 +96,7 @@ export default function UserQuotaTable() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+        <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -106,7 +106,7 @@ export default function UserQuotaTable() {
           className={`px-4 py-3 rounded-lg ${
             message.type === 'success'
               ? 'bg-green-500/10 border border-green-500 text-green-400'
-              : 'bg-red-500/10 border border-red-500 text-red-400'
+              : 'bg-danger/10 border border-red-500 text-danger'
           }`}
         >
           {message.text}
@@ -121,11 +121,11 @@ export default function UserQuotaTable() {
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           placeholder={igT.enterUserId}
-          className="flex-1 bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+          className="flex-1 bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
         />
         <button
           onClick={handleSearch}
-          className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded-lg transition-colors"
+          className="bg-accent hover:bg-accent-hover text-white px-6 py-2 rounded-lg transition-colors"
         >
           {igT.search}
         </button>
@@ -138,69 +138,69 @@ export default function UserQuotaTable() {
       </div>
 
       {/* 表格 */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+      <div className="bg-surface-1 border border-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-700">
+            <thead className="bg-surface-2">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.userId}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-ink-muted">{igT.userId}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-ink-muted">
                   {igT.dailyQuota}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-ink-muted">
                   {igT.monthlyQuota}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.validity}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.status}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-ink-muted">{igT.validity}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-ink-muted">{igT.status}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-ink-muted">
                   {igT.notes}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300">{igT.actions}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-ink-muted">{igT.actions}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-ink-muted">
                     {igT.loading}
                   </td>
                 </tr>
               ) : !data || data.items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-ink-muted">
                     {igT.noData}
                   </td>
                 </tr>
               ) : (
                 data.items.map((user) => (
-                  <tr key={user.user_id} className="hover:bg-slate-700/50">
-                    <td className="px-4 py-3 text-sm text-white font-mono">{user.user_id}</td>
+                  <tr key={user.user_id} className="hover:bg-surface-2/50">
+                    <td className="px-4 py-3 text-sm text-ink-inverse font-mono">{user.user_id}</td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="text-white">
+                      <div className="text-ink-inverse">
                         {user.daily_used} / {user.daily_limit}
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-ink-muted">
                         {t.imageGeneration.quota.remaining.replace('{count}', String(user.daily_remaining))}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="text-white">
+                      <div className="text-ink-inverse">
                         {user.monthly_used} / {user.monthly_limit}
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-ink-muted">
                         {t.imageGeneration.quota.remaining.replace('{count}', String(user.monthly_remaining))}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-300">
+                    <td className="px-4 py-3 text-xs text-ink-muted">
                       {user.valid_from ? (
                         <div>{new Date(user.valid_from).toLocaleDateString()}</div>
                       ) : (
-                        <div className="text-slate-500">-</div>
+                        <div className="text-ink-faint">-</div>
                       )}
                       {user.valid_until ? (
                         <div>~ {new Date(user.valid_until).toLocaleDateString()}</div>
                       ) : (
-                        <div className="text-slate-500">{igT.permanent}</div>
+                        <div className="text-ink-faint">{igT.permanent}</div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -209,19 +209,19 @@ export default function UserQuotaTable() {
                           {igT.valid}
                         </span>
                       ) : (
-                        <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
+                        <span className="px-2 py-1 bg-danger/20 text-danger rounded text-xs">
                           {igT.invalid}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400 max-w-xs truncate">
+                    <td className="px-4 py-3 text-xs text-ink-muted max-w-xs truncate">
                       {user.notes || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleOpenGrantDialog(user)}
-                          className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                          className="text-accent hover:text-accent transition-colors"
                           title={igT.edit}
                         >
                           <i className="fas fa-edit"></i>
@@ -235,7 +235,7 @@ export default function UserQuotaTable() {
                         </button>
                         <button
                           onClick={() => handleRevoke(user.user_id)}
-                          className="text-red-400 hover:text-red-300 transition-colors"
+                          className="text-danger hover:text-red-300 transition-colors"
                           title={igT.revokeQuota}
                         >
                           <i className="fas fa-trash"></i>
@@ -253,7 +253,7 @@ export default function UserQuotaTable() {
       {/* 分页 */}
       {data && data.total > 0 && (
         <div className="flex items-center justify-between">
-          <div className="text-sm text-slate-400">
+          <div className="text-sm text-ink-muted">
             {t.imageGeneration.history.total
               .replace('{count}', String(data.total))
               .replace('{current}', String(page + 1))
@@ -263,14 +263,14 @@ export default function UserQuotaTable() {
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0 || loading}
-              className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors"
+              className="bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:cursor-not-allowed text-ink-inverse px-4 py-2 rounded transition-colors"
             >
               {t.imageGeneration.history.prevPage}
             </button>
             <button
               onClick={() => setPage(page + 1)}
               disabled={page + 1 >= totalPages || loading}
-              className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors"
+              className="bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:cursor-not-allowed text-ink-inverse px-4 py-2 rounded transition-colors"
             >
               {t.imageGeneration.history.nextPage}
             </button>
