@@ -9,15 +9,15 @@ export default function SkeletonGrid() {
       {Array.from({ length: 8 }).map((_, index) => (
         <div
           key={index}
-          className="bg-slate-800 rounded-xl p-5 border border-slate-700/50"
+          className="bg-surface-1 rounded-xl p-5 border border-border/50"
         >
           {/* 图标占位 */}
-          <div className="w-12 h-12 rounded-lg bg-slate-700/50 animate-pulse mb-4" />
+          <div className="w-12 h-12 rounded-lg bg-surface-2/50 animate-pulse mb-4" />
           {/* 标题占位 */}
-          <div className="h-5 bg-slate-700/50 rounded animate-pulse mb-2 w-3/4" />
+          <div className="h-5 bg-surface-2/50 rounded animate-pulse mb-2 w-3/4" />
           {/* 描述占位 */}
-          <div className="h-4 bg-slate-700/50 rounded animate-pulse mb-1 w-full" />
-          <div className="h-4 bg-slate-700/50 rounded animate-pulse w-2/3" />
+          <div className="h-4 bg-surface-2/50 rounded animate-pulse mb-1 w-full" />
+          <div className="h-4 bg-surface-2/50 rounded animate-pulse w-2/3" />
         </div>
       ))}
     </div>

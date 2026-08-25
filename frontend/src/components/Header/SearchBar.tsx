@@ -15,9 +15,9 @@ export default function SearchBar({ value, onChange, onSearch }: SearchBarProps)
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyPress={handleKeyPress}
-        className="search-input bg-slate-700 text-white px-4 py-2 pl-10 rounded-lg border border-slate-600 focus:border-primary w-64"
+        className="search-input bg-surface-2 text-white px-4 py-2 pl-10 rounded-lg border border-border focus:border-primary w-64"
       />
-      <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+      <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-muted"></i>
     </div>
   );
 }

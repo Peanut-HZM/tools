@@ -19,7 +19,7 @@ export default function LoginButton() {
 
   if (isLoading) {
     return (
-      <div className="text-slate-400 px-4 py-2">
+      <div className="text-ink-muted px-4 py-2">
         {t.common.loading}
       </div>
     );
@@ -29,12 +29,12 @@ export default function LoginButton() {
     return (
       <div className="relative">
         <div className="flex items-center gap-3">
-          <span className="text-slate-300 text-sm">
+          <span className="text-ink-muted text-sm">
             {user.username}
           </span>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg transition-colors cursor-pointer"
+            className="bg-surface-2 hover:bg-surface-3 text-ink-inverse px-3 py-2 rounded-lg transition-colors cursor-pointer"
           >
             <i className="fa-solid fa-chevron-down"></i>
           </button>
@@ -42,13 +42,13 @@ export default function LoginButton() {
 
         {/* User Menu Dropdown */}
         {showUserMenu && (
-          <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50">
+          <div className="absolute right-0 mt-2 w-48 bg-surface-1 border border-border rounded-lg shadow-lg z-50">
             <button
               onClick={() => {
                 navigate('/account-settings');
                 setShowUserMenu(false);
               }}
-              className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors text-sm"
+              className="w-full text-left px-4 py-2 text-ink-muted hover:bg-surface-2 hover:text-ink-inverse transition-colors text-sm"
             >
               <i className="fa-solid fa-user-gear mr-2"></i>
               账户设置
@@ -58,15 +58,15 @@ export default function LoginButton() {
                 setShowChangePasswordModal(true);
                 setShowUserMenu(false);
               }}
-              className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors text-sm"
+              className="w-full text-left px-4 py-2 text-ink-muted hover:bg-surface-2 hover:text-ink-inverse transition-colors text-sm"
             >
               <i className="fa-solid fa-key mr-2"></i>
               修改密码
             </button>
-            <hr className="border-slate-700 my-1" />
+            <hr className="border-border my-1" />
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-2 text-red-400 hover:bg-slate-700 hover:text-red-300 transition-colors text-sm"
+              className="w-full text-left px-4 py-2 text-danger hover:bg-surface-2 hover:text-danger transition-colors text-sm"
             >
               <i className="fa-solid fa-right-from-bracket mr-2"></i>
               {t.auth.logout}
@@ -85,7 +85,7 @@ export default function LoginButton() {
   return (
     <button
       onClick={openLoginModal}
-      className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
+      className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
     >
       {t.auth.login}
     </button>

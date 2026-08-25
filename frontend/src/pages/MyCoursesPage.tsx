@@ -57,15 +57,15 @@ const MyCoursesPage: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-canvas via-surface-1 to-canvas">
       {/* 顶部 Header */}
-      <div className="bg-slate-800/50 border-b border-slate-700/50">
+      <div className="bg-surface-1/50 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            <i className="fas fa-book-reader text-cyan-400 mr-3"></i>
+          <h1 className="text-4xl font-bold text-ink-inverse mb-2">
+            <i className="fas fa-book-reader text-accent mr-3"></i>
             我的课程
           </h1>
-          <p className="text-slate-400">
+          <p className="text-ink-muted">
             继续学习，不断进步
           </p>
         </div>
@@ -79,8 +79,8 @@ const MyCoursesPage: React.FC = () => {
             onClick={() => setFilter('all')}
             className={`px-6 py-3 rounded-xl font-medium transition-all ${
               filter === 'all'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-accent text-white'
+                : 'bg-surface-1/50 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50'
             }`}
           >
             全部 ({courses.length})
@@ -89,8 +89,8 @@ const MyCoursesPage: React.FC = () => {
             onClick={() => setFilter('in-progress')}
             className={`px-6 py-3 rounded-xl font-medium transition-all ${
               filter === 'in-progress'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-accent text-white'
+                : 'bg-surface-1/50 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50'
             }`}
           >
             学习中
@@ -99,8 +99,8 @@ const MyCoursesPage: React.FC = () => {
             onClick={() => setFilter('completed')}
             className={`px-6 py-3 rounded-xl font-medium transition-all ${
               filter === 'completed'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50'
+                ? 'bg-accent text-white'
+                : 'bg-surface-1/50 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50'
             }`}
           >
             已完成
@@ -113,13 +113,13 @@ const MyCoursesPage: React.FC = () => {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 animate-pulse"
+                className="bg-surface-1/50 rounded-2xl overflow-hidden border border-border/50 animate-pulse"
               >
-                <div className="aspect-video bg-slate-700/50"></div>
+                <div className="aspect-video bg-surface-2/50"></div>
                 <div className="p-5 space-y-3">
-                  <div className="h-6 bg-slate-700/50 rounded"></div>
-                  <div className="h-4 bg-slate-700/50 rounded w-3/4"></div>
-                  <div className="h-4 bg-slate-700/50 rounded w-1/2"></div>
+                  <div className="h-6 bg-surface-2/50 rounded"></div>
+                  <div className="h-4 bg-surface-2/50 rounded w-3/4"></div>
+                  <div className="h-4 bg-surface-2/50 rounded w-1/2"></div>
                 </div>
               </div>
             ))}
@@ -127,14 +127,14 @@ const MyCoursesPage: React.FC = () => {
         ) : filteredCourses.length === 0 ? (
           /* 空状态 */
           <div className="text-center py-20">
-            <i className="fas fa-inbox text-6xl text-slate-600 mb-4"></i>
-            <p className="text-slate-400 text-lg">
+            <i className="fas fa-inbox text-6xl text-ink-faint mb-4"></i>
+            <p className="text-ink-muted text-lg">
               {filter === 'all' ? '还没有报名任何课程' : '没有符合条件的课程'}
             </p>
             {filter === 'all' && (
               <button
                 onClick={() => navigate('/courses')}
-                className="mt-4 px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+                className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
               >
                 去浏览课程
               </button>
@@ -163,7 +163,7 @@ const MyCoursesPage: React.FC = () => {
                 {/* 继续学习按钮 */}
                 <button
                   onClick={() => handleContinueLearning(item.course)}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
                 >
                   <i className="fas fa-play mr-2"></i>
                   继续学习

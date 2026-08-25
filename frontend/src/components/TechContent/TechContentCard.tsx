@@ -41,9 +41,9 @@ export default function TechContentCard({
 
   // 内容类型标签配色
   const contentTypeColors = {
-    analysis: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    analysis: 'bg-accent-info/20 text-accent-info border-accent-info/30',
     sharing: 'bg-green-500/20 text-green-400 border-green-500/30',
-    case_study: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    case_study: 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30',
   };
 
   const formatDate = (dateString: string) => {
@@ -71,7 +71,7 @@ export default function TechContentCard({
   return (
     <div
       onClick={handleClick}
-      className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-slate-600 transition-all cursor-pointer group"
+      className="bg-surface-1 rounded-xl overflow-hidden border border-border hover:border-border transition-all cursor-pointer group"
     >
       {/* 封面图 */}
       {coverImage ? (
@@ -92,8 +92,8 @@ export default function TechContentCard({
           </div>
         </div>
       ) : (
-        <div className="relative h-48 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
-          <div className="text-slate-600 text-6xl">
+        <div className="relative h-48 bg-gradient-to-br from-surface-2 to-surface-1 flex items-center justify-center">
+          <div className="text-ink-faint text-6xl">
             <i className="fas fa-file-alt"></i>
           </div>
           <div className="absolute top-3 left-3 flex gap-2">
@@ -116,7 +116,7 @@ export default function TechContentCard({
             {tags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
-                className="px-2 py-0.5 bg-slate-700 text-slate-400 text-xs rounded"
+                className="px-2 py-0.5 bg-surface-2 text-ink-muted text-xs rounded"
               >
                 {tag}
               </span>
@@ -125,24 +125,24 @@ export default function TechContentCard({
         )}
 
         {/* 标题 */}
-        <h3 className="text-lg font-semibold text-slate-100 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+        <h3 className="text-lg font-semibold text-ink mb-2 line-clamp-2 group-hover:text-primary transition-colors">
           {title}
         </h3>
 
         {/* 描述 */}
-        <p className="text-slate-400 text-sm mb-4 line-clamp-3">
+        <p className="text-ink-muted text-sm mb-4 line-clamp-3">
           {getPlainText(description)}
         </p>
 
         {/* 作者和阅读时长 */}
-        <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-700">
+        <div className="flex items-center justify-between text-xs text-ink-faint pt-3 border-t border-border">
           <div className="flex items-center gap-2">
             {author && (
               <>
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent-info to-accent-secondary flex items-center justify-center text-ink-inverse text-xs font-medium">
                   {author.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-slate-400">{author}</span>
+                <span className="text-ink-muted">{author}</span>
               </>
             )}
           </div>

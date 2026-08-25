@@ -9,19 +9,19 @@ export default function RecommendationCard({ icon, iconColor, title, description
   };
 
   return (
-    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+    <div className="bg-surface-1 rounded-xl p-6 border border-border">
       <div className="flex items-center mb-4">
         <div className={`w-10 h-10 ${iconColor} rounded-lg flex items-center justify-center mr-3`}>
-          <i className={`fas ${icon} text-white`}></i>
+          <i className={`fas ${icon} text-ink-inverse`}></i>
         </div>
         <div>
           <h3 className="font-semibold">{title}</h3>
-          <p className="text-sm text-slate-400">{description}</p>
+          <p className="text-sm text-ink-muted">{description}</p>
         </div>
       </div>
       <button
         onClick={handleClick}
-        className="w-full bg-primary hover:bg-blue-700 text-white py-2 rounded-button whitespace-nowrap transition-colors"
+        className="w-full bg-primary hover:bg-accent-hover text-ink-inverse py-2 rounded-button whitespace-nowrap transition-colors"
       >
         {action}
       </button>

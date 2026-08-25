@@ -21,7 +21,7 @@ export default function Navigation() {
           <Link
             key={link.label}
             to={link.href}
-            className="text-slate-300 hover:text-white transition-colors"
+            className="text-ink-muted hover:text-ink-inverse transition-colors"
           >
             {link.label}
           </Link>
@@ -29,7 +29,7 @@ export default function Navigation() {
           <a
             key={link.label}
             href={link.href}
-            className="text-slate-300 hover:text-white transition-colors"
+            className="text-ink-muted hover:text-ink-inverse transition-colors"
           >
             {link.label}
           </a>
@@ -39,7 +39,7 @@ export default function Navigation() {
       {user?.role === 'admin' && (
         <Link
           to="/admin"
-          className="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold"
+          className="text-accent hover:text-accent-hover transition-colors font-semibold"
         >
           后台管理
         </Link>
