@@ -175,7 +175,7 @@ const DatabaseToolContent: React.FC = () => {
     : activeTab?.data?.schemaName;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-900 text-slate-100">
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-canvas text-ink">
       <ResizablePanel
         defaultWidth={280}
         minWidth={200}
@@ -194,23 +194,23 @@ const DatabaseToolContent: React.FC = () => {
         />
       </ResizablePanel>
       
-      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-slate-900">
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-canvas">
         {/* Tab Bar */}
-        <div className="flex items-center bg-slate-800 border-b border-slate-700 overflow-x-auto no-scrollbar">
+        <div className="flex items-center bg-surface-1 border-b border-border overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
             <div
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
               className={`
-                group flex items-center space-x-2 px-4 py-2 border-r border-slate-700 cursor-pointer min-w-[120px] max-w-[200px]
-                ${activeTabId === tab.id ? 'bg-slate-900 text-blue-400 border-t-2 border-t-blue-500' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border-t-2 border-t-transparent'}
+                group flex items-center space-x-2 px-4 py-2 border-r border-border cursor-pointer min-w-[120px] max-w-[200px]
+                ${activeTabId === tab.id ? 'bg-canvas text-accent-info border-t-2 border-t-accent-info' : 'bg-surface-1 text-ink-muted hover:bg-surface-2 border-t-2 border-t-transparent'}
               `}
             >
               <i className={`fas ${tab.type === 'sql' ? 'fa-terminal' : 'fa-table'} text-xs`}></i>
               <span className="text-sm truncate flex-1" title={tab.title}>{tab.title}</span>
               <button
                 onClick={(e) => handleCloseTab(e, tab.id)}
-                className="opacity-0 group-hover:opacity-100 hover:text-red-400 focus:outline-none transition-opacity px-1"
+                className="opacity-0 group-hover:opacity-100 hover:text-danger focus:outline-none transition-opacity px-1"
               >
                 <i className="fas fa-times text-xs"></i>
               </button>
@@ -218,7 +218,7 @@ const DatabaseToolContent: React.FC = () => {
           ))}
           <button 
                 onClick={() => handleOpenSqlConsole()}
-                className="px-3 py-2 text-slate-500 hover:text-blue-400 transition-colors"
+                className="px-3 py-2 text-ink-faint hover:text-accent-info transition-colors"
                 title="New SQL Console"
               >
                 <i className="fas fa-plus text-xs"></i>
@@ -230,7 +230,7 @@ const DatabaseToolContent: React.FC = () => {
           {tabs.map(tab => (
             <div 
               key={tab.id} 
-              className="absolute inset-0 w-full h-full bg-slate-900"
+              className="absolute inset-0 w-full h-full bg-canvas"
               style={{ 
                 display: activeTabId === tab.id ? 'block' : 'none',
                 visibility: activeTabId === tab.id ? 'visible' : 'hidden'
@@ -258,12 +258,12 @@ const DatabaseToolContent: React.FC = () => {
           ))}
           
           {tabs.length === 0 && (
-             <div className="h-full flex flex-col items-center justify-center text-slate-500">
+             <div className="h-full flex flex-col items-center justify-center text-ink-faint">
                 <i className="fas fa-database text-4xl mb-4 opacity-30"></i>
                 <p>Select a table or open SQL Console</p>
                 <button 
                     onClick={() => handleOpenSqlConsole()}
-                    className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded text-blue-400"
+                    className="mt-4 px-4 py-2 bg-surface-1 hover:bg-surface-2 rounded text-accent-info"
                 >
                     Open SQL Console
                 </button>
