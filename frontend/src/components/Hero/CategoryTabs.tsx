@@ -1,4 +1,5 @@
 import { CategoryTabsProps } from '../../types';
+import { Button } from "@/components/ui/Button";
 
 export default function CategoryTabs({ categories, activeCategory, onCategoryChange }: CategoryTabsProps) {
 
@@ -10,15 +11,14 @@ export default function CategoryTabs({ categories, activeCategory, onCategoryCha
   return (
     <div className="flex flex-wrap justify-center gap-3 mb-12">
       {categories.map((category) => (
-        <button
+        <Button
           key={category}
           onClick={() => onCategoryChange(category)}
-          className={`category-tab bg-surface-2 hover:bg-surface-3 text-ink-muted px-4 py-2 rounded-lg transition-colors border border-border ${
-            activeCategory === category ? 'active' : ''
-          }`}
+          variant="outline"
+          className={`category-tab ${activeCategory === category ? 'active' : ''}`}
         >
           {category}
-        </button>
+        </Button>
       ))}
     </div>
   );
