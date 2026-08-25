@@ -52,7 +52,7 @@ from app.models.base import get_db
 from app.models.image_generation_models import ImageGenHistory
 from app.services.dify_client import DifyClient
 from app.services.dify_config_service import DifyConfigService
-from app.services.image_gen_quota_service import ImageGenQuotaService
+from app.services.llm_quota_service import LLMQuotaService
 from app.utils.image_gen_constants import (
     STATUS_CANCELLED,
     STATUS_FAILED,
@@ -80,9 +80,9 @@ def get_dify_config_service(
 
 def get_image_gen_quota_service(
     db: Session = Depends(get_db),
-) -> ImageGenQuotaService:
-    """组装 ImageGenQuotaService"""
-    return ImageGenQuotaService(db=db)
+) -> LLMQuotaService:
+    """组装 LLMQuotaService（Task 11.5：图像生成管理路由也已迁移到通用配额服务）"""
+    return LLMQuotaService(db=db)
 
 
 def get_dify_client(
@@ -259,7 +259,7 @@ async def list_quota_users(
     limit: int = Query(50, ge=1, le=200, description="每页数量"),
     search: Optional[str] = Query(None, description="按 user_id 模糊匹配"),
     admin_user: UserResponse = Depends(get_admin_user),
-    quota_svc: ImageGenQuotaService = Depends(get_image_gen_quota_service),
+    quota_svc: LLMQuotaService = Depends(get_image_gen_quota_service),
 ):
     """有配额用户列表（分页 + 搜索）"""
     items = quota_svc.list_users(skip=skip, limit=limit, search=search)
@@ -277,7 +277,7 @@ async def grant_quota(
     user_id: str,
     body: GrantQuotaRequest,
     admin_user: UserResponse = Depends(get_admin_user),
-    quota_svc: ImageGenQuotaService = Depends(get_image_gen_quota_service),
+    quota_svc: LLMQuotaService = Depends(get_image_gen_quota_service),
 ):
     """
     分配/更新配额 + 有效期。
@@ -287,6 +287,7 @@ async def grant_quota(
     """
     quota = quota_svc.grant(
         user_id=user_id,
+        quota_mode="count",
         daily_limit=body.daily_limit,
         monthly_limit=body.monthly_limit,
         valid_from=body.valid_from,
@@ -305,7 +306,7 @@ async def grant_quota(
 async def revoke_quota(
     user_id: str,
     admin_user: UserResponse = Depends(get_admin_user),
-    quota_svc: ImageGenQuotaService = Depends(get_image_gen_quota_service),
+    quota_svc: LLMQuotaService = Depends(get_image_gen_quota_service),
 ):
     """撤销配额（删除记录）"""
     quota_svc.revoke(user_id)
@@ -320,7 +321,7 @@ async def revoke_quota(
 async def reset_counters(
     user_id: str,
     admin_user: UserResponse = Depends(get_admin_user),
-    quota_svc: ImageGenQuotaService = Depends(get_image_gen_quota_service),
+    quota_svc: LLMQuotaService = Depends(get_image_gen_quota_service),
 ):
     """把 daily_used / monthly_used 归零"""
     quota_svc.reset_counters(user_id)
@@ -335,7 +336,7 @@ async def reset_counters(
 async def get_user_quota(
     user_id: str,
     admin_user: UserResponse = Depends(get_admin_user),
-    quota_svc: ImageGenQuotaService = Depends(get_image_gen_quota_service),
+    quota_svc: LLMQuotaService = Depends(get_image_gen_quota_service),
 ):
     """查看指定用户的配额信息"""
     quota = quota_svc.get_user_quota(user_id)
