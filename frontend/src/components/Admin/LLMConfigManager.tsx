@@ -85,37 +85,37 @@ const LLMConfigManager: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">大模型配置管理</h2>
+        <h2 className="text-2xl font-bold text-ink-inverse">大模型配置管理</h2>
         <button
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover"
         >
           添加配置
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-slate-800 p-6 rounded-lg mb-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
+        <form onSubmit={handleSubmit} className="bg-surface-1 p-6 rounded-lg mb-6">
+          <h3 className="text-lg font-semibold text-ink-inverse mb-4">
             {editingId ? '编辑配置' : '添加配置'}
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-slate-300 mb-2">配置名称</label>
+              <label className="block text-ink-muted mb-2">配置名称</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
                 required
               />
             </div>
             <div>
-              <label className="block text-slate-300 mb-2">供应商</label>
+              <label className="block text-ink-muted mb-2">供应商</label>
               <select
                 value={formData.provider_type}
                 onChange={(e) => setFormData({ ...formData, provider_type: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
               >
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic</option>
@@ -126,32 +126,32 @@ const LLMConfigManager: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-slate-300 mb-2">Base URL</label>
+              <label className="block text-ink-muted mb-2">Base URL</label>
               <input
                 type="text"
                 value={formData.base_url}
                 onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
                 required
               />
             </div>
             <div>
-              <label className="block text-slate-300 mb-2">模型名称</label>
+              <label className="block text-ink-muted mb-2">模型名称</label>
               <input
                 type="text"
                 value={formData.model_name}
                 onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
                 required
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-slate-300 mb-2">API Key</label>
+              <label className="block text-ink-muted mb-2">API Key</label>
               <input
                 type="password"
                 value={formData.api_key}
                 onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
                 required={!editingId}
                 placeholder={editingId ? '留空则保持不变' : ''}
               />
@@ -160,7 +160,7 @@ const LLMConfigManager: React.FC = () => {
           <div className="flex gap-4 mt-6">
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover"
             >
               保存
             </button>
@@ -170,7 +170,7 @@ const LLMConfigManager: React.FC = () => {
                 setShowForm(false);
                 setEditingId(null);
               }}
-              className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700"
+              className="px-4 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-surface-2"
             >
               取消
             </button>
@@ -179,40 +179,40 @@ const LLMConfigManager: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="text-white">加载中...</div>
+        <div className="text-ink-inverse">加载中...</div>
       ) : (
-        <div className="bg-slate-800 rounded-lg overflow-hidden">
+        <div className="bg-surface-1 rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-700">
+            <thead className="bg-surface-2">
               <tr>
-                <th className="px-4 py-3 text-left text-slate-300">名称</th>
-                <th className="px-4 py-3 text-left text-slate-300">供应商</th>
-                <th className="px-4 py-3 text-left text-slate-300">模型</th>
-                <th className="px-4 py-3 text-left text-slate-300">默认</th>
-                <th className="px-4 py-3 text-left text-slate-300">状态</th>
-                <th className="px-4 py-3 text-left text-slate-300">操作</th>
+                <th className="px-4 py-3 text-left text-ink-muted">名称</th>
+                <th className="px-4 py-3 text-left text-ink-muted">供应商</th>
+                <th className="px-4 py-3 text-left text-ink-muted">模型</th>
+                <th className="px-4 py-3 text-left text-ink-muted">默认</th>
+                <th className="px-4 py-3 text-left text-ink-muted">状态</th>
+                <th className="px-4 py-3 text-left text-ink-muted">操作</th>
               </tr>
             </thead>
             <tbody>
               {configs.map((config) => (
-                <tr key={config.id} className="border-t border-slate-700">
-                  <td className="px-4 py-3 text-white">{config.name}</td>
-                  <td className="px-4 py-3 text-slate-300">{config.provider_type}</td>
-                  <td className="px-4 py-3 text-slate-300">{config.model_name}</td>
+                <tr key={config.id} className="border-t border-border">
+                  <td className="px-4 py-3 text-ink-inverse">{config.name}</td>
+                  <td className="px-4 py-3 text-ink-muted">{config.provider_type}</td>
+                  <td className="px-4 py-3 text-ink-muted">{config.model_name}</td>
                   <td className="px-4 py-3">
                     {config.is_default ? (
-                      <span className="text-green-400">✓ 默认</span>
+                      <span className="text-success">✓ 默认</span>
                     ) : (
                       <button
                         onClick={() => handleSetDefault(config.id)}
-                        className="text-blue-400 hover:text-blue-300"
+                        className="text-accent-info hover:text-accent-info/80"
                       >
                         设为默认
                       </button>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={config.is_active ? 'text-green-400' : 'text-red-400'}>
+                    <span className={config.is_active ? 'text-success' : 'text-danger'}>
                       {config.is_active ? '启用' : '禁用'}
                     </span>
                   </td>
@@ -220,7 +220,7 @@ const LLMConfigManager: React.FC = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleTest(config.id)}
-                        className="text-blue-400 hover:text-blue-300"
+                        className="text-accent-info hover:text-accent-info/80"
                       >
                         测试
                       </button>
@@ -237,13 +237,13 @@ const LLMConfigManager: React.FC = () => {
                           });
                           setShowForm(true);
                         }}
-                        className="text-yellow-400 hover:text-yellow-300"
+                        className="text-accent-warning hover:text-accent-warning/80"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDelete(config.id)}
-                        className="text-red-400 hover:text-red-300"
+                        className="text-danger hover:text-danger/80"
                       >
                         删除
                       </button>
