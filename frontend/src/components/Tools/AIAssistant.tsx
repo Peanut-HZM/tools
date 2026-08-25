@@ -8,13 +8,13 @@ export default function AIAssistant() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex-1 text-slate-100 flex flex-col overflow-hidden">
+    <div className="flex-1 text-ink flex flex-col overflow-hidden">
       {/* 顶部工具栏 */}
-      <div className="bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
+      <div className="bg-surface-1 border-b border-border px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
-            className="text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+            className="text-ink-muted hover:text-ink-inverse transition-colors flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>
             <span className="hidden sm:inline">返回</span>
@@ -32,7 +32,7 @@ export default function AIAssistant() {
             href={AI_ASSISTANT_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm"
+            className="text-ink-muted hover:text-ink-inverse transition-colors flex items-center gap-2 text-sm"
           >
             <i className="fas fa-external-link-alt"></i>
             <span className="hidden sm:inline">新窗口打开</span>
@@ -50,11 +50,11 @@ export default function AIAssistant() {
             allow="microphone; camera; clipboard-read; clipboard-write"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-400">
+          <div className="w-full h-full flex items-center justify-center text-ink-muted">
             <div className="text-center">
               <i className="fas fa-info-circle text-3xl mb-3"></i>
               <p>AI 助手未配置</p>
-              <p className="text-xs mt-2 text-slate-500">
+              <p className="text-xs mt-2 text-ink-faint">
                 请在 <code className="text-pink-400">.env</code> 中设置{' '}
                 <code className="text-pink-400">VITE_AI_ASSISTANT_URL</code>
               </p>
