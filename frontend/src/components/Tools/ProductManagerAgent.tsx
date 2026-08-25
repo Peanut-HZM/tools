@@ -233,25 +233,25 @@ const ProductManagerAgent: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col bg-slate-900">
+      <div className="flex-1 flex flex-col bg-canvas">
         {currentConversation ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+            <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
-                <h2 className="text-white font-semibold">{currentConversation.title || '新会话'}</h2>
-                <span className="text-slate-400 text-sm">{getStageLabel(currentConversation.current_stage)}</span>
+                <h2 className="text-ink-inverse font-semibold">{currentConversation.title || '新会话'}</h2>
+                <span className="text-ink-muted text-sm">{getStageLabel(currentConversation.current_stage)}</span>
               </div>
 
               {/* Controls */}
               <div className="flex items-center gap-4">
                 {/* Agent Selection */}
                 <div className="flex items-center gap-2">
-                  <label className="text-slate-400 text-sm">Agent:</label>
+                  <label className="text-ink-muted text-sm">Agent:</label>
                   <select
                     value={selectedAgentId}
                     onChange={(e) => setSelectedAgentId(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-800 text-white text-sm rounded border border-slate-600 focus:outline-none focus:border-blue-500"
+                    className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded border border-border focus:outline-none focus:border-accent"
                   >
                     {agents.map((agent) => (
                       <option key={agent.id} value={agent.id}>
@@ -264,11 +264,11 @@ const ProductManagerAgent: React.FC = () => {
 
                 {/* Model Selection */}
                 <div className="flex items-center gap-2">
-                  <label className="text-slate-400 text-sm">模型:</label>
+                  <label className="text-ink-muted text-sm">模型:</label>
                   <select
                     value={selectedConfigId}
                     onChange={(e) => setSelectedConfigId(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-800 text-white text-sm rounded border border-slate-600 focus:outline-none focus:border-blue-500"
+                    className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded border border-border focus:outline-none focus:border-accent"
                   >
                     {llmConfigs.map((config) => (
                       <option key={config.id} value={config.id}>
@@ -284,8 +284,8 @@ const ProductManagerAgent: React.FC = () => {
                   onClick={() => setShowPRDPreview(!showPRDPreview)}
                   className={`px-3 py-1 text-sm rounded ${
                     showPRDPreview
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:text-white'
+                      ? 'bg-accent text-white'
+                      : 'text-ink-muted hover:text-ink-inverse'
                   }`}
                 >
                   <i className="fas fa-file-alt mr-1"></i>
@@ -293,14 +293,14 @@ const ProductManagerAgent: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setShowExportDialog(true)}
-                  className="px-3 py-1 text-slate-300 hover:text-white"
+                  className="px-3 py-1 text-ink-muted hover:text-ink-inverse"
                 >
                   <i className="fas fa-file-export mr-1"></i>
                   导出
                 </button>
                 <button
                   onClick={() => setShowCompetitorAnalysis(!showCompetitorAnalysis)}
-                  className="px-3 py-1 text-slate-300 hover:text-white"
+                  className="px-3 py-1 text-ink-muted hover:text-ink-inverse"
                 >
                   <i className="fas fa-chart-bar mr-1"></i>
                   分析竞品
@@ -311,7 +311,7 @@ const ProductManagerAgent: React.FC = () => {
             {/* Content Area - Split view for Chat and PRD Preview */}
             <div className="flex-1 flex overflow-hidden">
               {/* Chat Area */}
-              <div className={`flex-1 ${showPRDPreview ? 'w-1/2 border-r border-slate-700' : 'w-full'}`}>
+              <div className={`flex-1 ${showPRDPreview ? 'w-1/2 border-r border-border' : 'w-full'}`}>
                 <ChatInterface
                   messages={messages}
                   sending={loading}
@@ -333,7 +333,7 @@ const ProductManagerAgent: React.FC = () => {
           </>
         ) : (
           /* Empty State */
-          <div className="flex items-center justify-center h-full text-slate-400">
+          <div className="flex items-center justify-center h-full text-ink-muted">
             <div className="text-center">
               <div className="text-6xl mb-4">🤖</div>
               <p className="text-xl mb-2">产品经理 Agent</p>
