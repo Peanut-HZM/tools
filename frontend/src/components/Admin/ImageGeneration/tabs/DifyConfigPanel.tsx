@@ -103,8 +103,8 @@ export default function DifyConfigPanel() {
   if (loading) {
     return (
       <div className="text-center py-16">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
-        <p className="mt-4 text-slate-400">{igT.loadConfigLoading}</p>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
+        <p className="mt-4 text-ink-muted">{igT.loadConfigLoading}</p>
       </div>
     );
   }
@@ -112,7 +112,7 @@ export default function DifyConfigPanel() {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+        <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -122,32 +122,32 @@ export default function DifyConfigPanel() {
           className={`px-4 py-3 rounded-lg ${
             message.type === 'success'
               ? 'bg-green-500/10 border border-green-500 text-green-400'
-              : 'bg-red-500/10 border border-red-500 text-red-400'
+              : 'bg-danger/10 border border-danger text-danger'
           }`}
         >
           {message.text}
         </div>
       )}
 
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-4">
+      <div className="bg-surface-1 border border-border rounded-lg p-6 space-y-4">
         <div>
-          <label className="block text-sm text-slate-300 mb-2">
+          <label className="block text-sm text-ink-muted mb-2">
             {igT.apiUrl}
-            <span className="text-red-400 ml-1">*</span>
+            <span className="text-danger ml-1">*</span>
           </label>
           <input
             type="text"
             value={apiUrl}
             onChange={(e) => setApiUrl(e.target.value)}
             placeholder={igT.apiUrlPlaceholder}
-            className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">
+          <label className="block text-sm text-ink-muted mb-2">
             {igT.apiKey}
-            <span className="text-slate-500 ml-2 text-xs">
+            <span className="text-ink-faint ml-2 text-xs">
               {config?.is_api_key_set ? igT.apiKeySet : igT.apiKeyUnset}
             </span>
           </label>
@@ -156,74 +156,74 @@ export default function DifyConfigPanel() {
             value={appApiKey}
             onChange={(e) => setAppApiKey(e.target.value)}
             placeholder={igT.apiKeyPlaceholder}
-            className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-slate-300 mb-2">{igT.text2imgWorkflowId}</label>
+            <label className="block text-sm text-ink-muted mb-2">{igT.text2imgWorkflowId}</label>
             <input
               type="text"
               value={text2imgWorkflowId}
               onChange={(e) => setText2imgWorkflowId(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-2">{igT.img2imgWorkflowId}</label>
+            <label className="block text-sm text-ink-muted mb-2">{igT.img2imgWorkflowId}</label>
             <input
               type="text"
               value={img2imgWorkflowId}
               onChange={(e) => setImg2imgWorkflowId(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-2">{igT.inpaintWorkflowId}</label>
+            <label className="block text-sm text-ink-muted mb-2">{igT.inpaintWorkflowId}</label>
             <input
               type="text"
               value={inpaintWorkflowId}
               onChange={(e) => setInpaintWorkflowId(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300 mb-2">{igT.uploadEditWorkflowId}</label>
+            <label className="block text-sm text-ink-muted mb-2">{igT.uploadEditWorkflowId}</label>
             <input
               type="text"
               value={uploadEditWorkflowId}
               onChange={(e) => setUploadEditWorkflowId(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">{igT.timeoutSeconds}</label>
+          <label className="block text-sm text-ink-muted mb-2">{igT.timeoutSeconds}</label>
           <input
             type="number"
             min="5"
             max="300"
             value={timeoutSeconds}
             onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
-            className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
-          <p className="text-xs text-slate-500 mt-1">{igT.timeoutRange}</p>
+          <p className="text-xs text-ink-faint mt-1">{igT.timeoutRange}</p>
         </div>
 
         <div className="flex gap-3 pt-4">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
           >
             {saving ? igT.saving : igT.saveConfig}
           </button>
           <button
             onClick={handleTest}
             disabled={testing}
-            className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors border border-slate-600"
+            className="bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:cursor-not-allowed text-ink-inverse px-6 py-2 rounded-lg transition-colors border border-border"
           >
             {testing ? igT.testing : igT.testConnection}
           </button>
