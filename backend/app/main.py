@@ -363,6 +363,10 @@ app.include_router(admin_image_generation.router)
 from app.routes import admin_llm_quota  # noqa: E402
 app.include_router(admin_llm_quota.router)
 
+# User LLM quota router (用户查看自身配额)
+from app.routes import user_quota  # noqa: E402
+app.include_router(user_quota.router)
+
 # Deploy info router
 app.include_router(deploy.router, prefix="/api")
 
