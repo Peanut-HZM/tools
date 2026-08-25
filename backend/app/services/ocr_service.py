@@ -17,6 +17,9 @@ from app.models.ocr_models import (
 )
 from app.config.ocr_config import ocr_settings
 from app.config.database import get_pooled_db_connection, release_db_connection
+from app.core.exceptions import QuotaExceeded
+from app.models.base import SessionLocal
+from app.services.llm_quota_service import LLMQuotaService
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +227,21 @@ class OCRService:
             cursor.close()
             release_db_connection(conn)
 
+    def _quota_session(self):
+        """获取 quota 操作用的 SQLAlchemy Session（OCR 自有连接池不暴露 Session，每次创建短生命周期 Session）。"""
+        return SessionLocal(), True
+
+    @staticmethod
+    def _image_size_kb(image_data: str) -> int:
+        """从 base64 编码的图片数据计算图片大小（KB）。"""
+        if not image_data:
+            return 0
+        try:
+            payload = image_data.split("base64,", 1)[1] if "base64," in image_data else image_data
+            return max(0, len(base64.b64decode(payload)) // 1024)
+        except Exception:
+            return 0
+
     def predict(self, image_data: str, lang: str = "ch", user_id: Optional[str] = None, save_history: bool = True) -> OCRResponse:
         """
         调用远程 OCR 服务进行识别
@@ -241,6 +259,26 @@ class OCRService:
                 raise ValueError("每日 OCR 次数已用完，请明天再试")
             if quota.monthly_remaining <= 0:
                 raise ValueError("每月 OCR 次数已用完，请下月再试")
+
+        # ---- quota 预占（Task 10）：按 image_kb // 4 估算 token ----
+        image_kb = self._image_size_kb(image_data)
+        planned_tokens = max(1, image_kb // 4)
+        quota_db = None
+        quota_owns_session = False
+        quota_svc = None
+        res_id = None
+        if user_id:
+            quota_db, quota_owns_session = self._quota_session()
+            quota_svc = LLMQuotaService(quota_db)
+            try:
+                res_id = quota_svc.check_and_reserve(
+                    user_id=user_id, category="ocr", planned_tokens=planned_tokens,
+                )
+            except QuotaExceeded as e:
+                if quota_owns_session:
+                    quota_db.close()
+                logger.warning("OCR quota 预占失败: user=%s err=%s", user_id, e)
+                raise
 
         try:
             if "base64," in image_data:
@@ -297,6 +335,14 @@ class OCRService:
                     processing_time=processing_time
                 )
 
+                # ---- quota 校正（Task 10）：用 image_kb // 4 写 usage_log ----
+                if quota_svc is not None and res_id is not None:
+                    quota_svc.record_usage(
+                        user_id=user_id, category="ocr",
+                        actual_tokens=planned_tokens, reservation_id=res_id,
+                        model_used="umi-ocr",
+                    )
+
                 # 保存历史记录和更新配额
                 if user_id and save_history:
                     self._save_history(user_id, image_data, ocr_response, lang)
@@ -305,8 +351,17 @@ class OCRService:
                 return ocr_response
 
         except Exception as e:
+            # ---- quota 回滚（Task 10）：OCR 调用失败时回滚预留 ----
+            if quota_svc is not None and res_id is not None:
+                try:
+                    quota_svc.rollback(res_id)
+                except Exception:
+                    pass
             logger.error(f"Remote OCR prediction failed: {e}")
             raise
+        finally:
+            if quota_owns_session and quota_db is not None:
+                quota_db.close()
 
     def predict_pdf(self, file_content: bytes, user_id: Optional[str] = None, save_history: bool = True) -> OCRResponse:
         """PDF OCR 识别"""
@@ -318,6 +373,26 @@ class OCRService:
         start_time = time.time()
         full_blocks = []
         full_text = []
+
+        # ---- quota 预占（Task 10）：PDF 按文件字节数估算 ----
+        pdf_kb = max(1, len(file_content) // 1024)
+        planned_tokens = max(1, pdf_kb // 4)
+        quota_db = None
+        quota_owns_session = False
+        quota_svc = None
+        res_id = None
+        if user_id:
+            quota_db, quota_owns_session = self._quota_session()
+            quota_svc = LLMQuotaService(quota_db)
+            try:
+                res_id = quota_svc.check_and_reserve(
+                    user_id=user_id, category="ocr", planned_tokens=planned_tokens,
+                )
+            except QuotaExceeded as e:
+                if quota_owns_session:
+                    quota_db.close()
+                logger.warning("OCR PDF quota 预占失败: user=%s err=%s", user_id, e)
+                raise
 
         try:
             pdf = pdfium.PdfDocument(file_content)
@@ -361,8 +436,17 @@ class OCRService:
                                     full_text.append(text)
 
         except Exception as e:
+            # ---- quota 回滚（Task 10）：PDF OCR 失败时回滚预留 ----
+            if quota_svc is not None and res_id is not None:
+                try:
+                    quota_svc.rollback(res_id)
+                except Exception:
+                    pass
             logger.error(f"PDF processing failed: {e}")
             raise ValueError(f"Failed to process PDF: {str(e)}")
+        finally:
+            if quota_owns_session and quota_db is not None:
+                quota_db.close()
 
         processing_time = time.time() - start_time
 
@@ -371,6 +455,17 @@ class OCRService:
             blocks=full_blocks,
             processing_time=processing_time
         )
+
+        # ---- quota 校正（Task 10） ----
+        if quota_svc is not None and res_id is not None:
+            try:
+                quota_svc.record_usage(
+                    user_id=user_id, category="ocr",
+                    actual_tokens=planned_tokens, reservation_id=res_id,
+                    model_used="umi-ocr",
+                )
+            except Exception:
+                logger.exception("OCR PDF quota 校正失败: user=%s", user_id)
 
         # 保存历史记录（PDF 作为整体保存）
         if user_id and save_history:
