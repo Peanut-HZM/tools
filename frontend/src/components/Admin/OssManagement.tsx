@@ -66,7 +66,7 @@ export default function OssManagement() {
             id="showMyFiles"
             checked={showMyFilesOnly}
             onChange={(e) => setShowMyFilesOnly(e.target.checked)}
-            className="w-4 h-4 text-cyan-500 rounded focus:ring-accent bg-surface-1 border-slate-500"
+            className="w-4 h-4 text-cyan-500 rounded focus:ring-accent bg-surface-1 border-border"
           />
           <label htmlFor="showMyFiles" className="text-sm text-ink-muted cursor-pointer select-none">
             只看我的文件
