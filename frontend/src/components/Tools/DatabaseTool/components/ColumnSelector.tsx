@@ -85,8 +85,8 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className={`p-1.5 rounded transition-colors ${
           isOpen 
-            ? 'bg-blue-600 text-white' 
-            : 'text-slate-400 hover:text-white hover:bg-slate-700'
+            ? 'bg-accent text-ink-inverse' 
+            : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-2'
         }`}
         title={t.database.dialog.tableDetail.columns || '列'}
       >
@@ -96,22 +96,22 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute top-full right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 max-h-[400px] flex flex-col"
+          className="absolute top-full right-0 mt-2 w-72 bg-surface-1 border border-border rounded-lg shadow-md z-50 max-h-[400px] flex flex-col"
         >
           {/* 全选控制 */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-700 bg-slate-800/50 rounded-t-lg">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-surface-1/50 rounded-t-lg">
             <input
               type="checkbox"
               id={selectAllId}
               checked={isAllSelected}
               ref={input => { if (input) input.indeterminate = isSomeSelected; }}
               onChange={handleToggleAll}
-              className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+              className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas"
             />
-            <label htmlFor={selectAllId} className="text-xs font-medium text-slate-300 cursor-pointer select-none flex-1">
+            <label htmlFor={selectAllId} className="text-xs font-medium text-ink-muted cursor-pointer select-none flex-1">
               {t.database.dialog.columns.selectAll || '全选'}
             </label>
-            <span className="text-[10px] text-slate-500">
+            <span className="text-[10px] text-ink-faint">
               {visibleColumns.length} / {columns.length}
             </span>
           </div>
@@ -127,8 +127,8 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
                   key={col}
                   className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${
                     isSelected 
-                      ? 'hover:bg-slate-700/50' 
-                      : 'bg-slate-800/30 hover:bg-slate-700/30'
+                      ? 'hover:bg-surface-2/50' 
+                      : 'bg-surface-1/30 hover:bg-surface-2/30'
                   }`}
                   onClick={() => handleToggleColumn(col)}
                 >
@@ -136,12 +136,12 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => {}}
-                    className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 pointer-events-none"
+                    className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas pointer-events-none"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-slate-300 truncate font-mono">{col}</div>
+                    <div className="text-xs text-ink-muted truncate font-mono">{col}</div>
                     {comment && (
-                      <div className="text-[10px] text-slate-500 truncate">{comment}</div>
+                      <div className="text-[10px] text-ink-faint truncate">{comment}</div>
                     )}
                   </div>
                 </div>
@@ -150,7 +150,7 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
           </div>
 
           {/* 提示 */}
-          <div className="px-3 py-2 border-t border-slate-700 text-[10px] text-slate-600 rounded-b-lg">
+          <div className="px-3 py-2 border-t border-border text-[10px] text-ink-faint rounded-b-lg">
             {t.database.dialog.columns.minOneRequired || '至少需要显示一列'}
           </div>
         </div>

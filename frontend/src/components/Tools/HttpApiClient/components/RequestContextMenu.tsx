@@ -67,7 +67,7 @@ export default function RequestContextMenu({
     <>
       <div
         ref={menuRef}
-        className="fixed z-[9999] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 min-w-[160px]"
+        className="fixed z-[9999] bg-surface-1 border border-border rounded-lg shadow-md py-1 min-w-[160px]"
         style={{ left: x, top: y }}
       >
         {/* 重命名请求 */}
@@ -78,9 +78,9 @@ export default function RequestContextMenu({
               onRename(request);
               onClose();
             }}
-            className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 flex items-center"
+            className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center"
           >
-            <i className="fas fa-pencil mr-2 text-slate-500"></i>
+            <i className="fas fa-pencil mr-2 text-ink-faint"></i>
             重命名
           </button>
         )}
@@ -89,20 +89,20 @@ export default function RequestContextMenu({
         <div className="relative">
           <button
             onClick={handleDuplicateClick}
-            className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 flex items-center justify-between"
+            className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center justify-between"
           >
             <span>
-              <i className="fas fa-copy mr-2 text-slate-500"></i>
+              <i className="fas fa-copy mr-2 text-ink-faint"></i>
               复制请求
             </span>
-            <i className="fas fa-chevron-right text-xs text-slate-600"></i>
+            <i className="fas fa-chevron-right text-xs text-ink-faint"></i>
           </button>
         </div>
 
         {/* 删除请求 */}
         <button
           onClick={handleDelete}
-          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center"
+          className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10 flex items-center"
         >
           <i className="fas fa-trash mr-2"></i>
           删除请求
@@ -112,19 +112,19 @@ export default function RequestContextMenu({
       {/* 复制目标集合子菜单 */}
       {showSubmenu && (
         <div
-          className="fixed z-[9999] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 min-w-[180px]"
+          className="fixed z-[9999] bg-surface-1 border border-border rounded-lg shadow-md py-1 min-w-[180px]"
           style={{ left: subX, top: subY }}
         >
           {collections.length === 0 ? (
-            <div className="px-4 py-2 text-xs text-slate-500">暂无集合</div>
+            <div className="px-4 py-2 text-xs text-ink-faint">暂无集合</div>
           ) : (
             collections.map(c => (
               <button
                 key={c.id}
                 onClick={(e) => handleDuplicate(c.id, e)}
-                className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 flex items-center"
+                className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center"
               >
-                <i className="fas fa-folder mr-2 text-slate-500 text-xs"></i>
+                <i className="fas fa-folder mr-2 text-ink-faint text-xs"></i>
                 <span className="truncate">{c.name}</span>
               </button>
             ))

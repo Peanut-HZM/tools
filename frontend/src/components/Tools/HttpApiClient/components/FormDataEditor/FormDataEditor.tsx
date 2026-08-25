@@ -51,7 +51,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
   return (
     <div className="space-y-3">
       {entries.length === 0 ? (
-        <div className="text-slate-500 text-sm text-center py-8">
+        <div className="text-ink-faint text-sm text-center py-8">
           暂无 Form-data，点击下方按钮添加
         </div>
       ) : (
@@ -61,7 +61,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
             <select
               value={entry.type}
               onChange={(e) => handleChange(index, 'type', e.target.value)}
-              className="bg-slate-700 text-white px-2 py-2 rounded border border-slate-600 text-sm"
+              className="bg-surface-2 text-ink-inverse px-2 py-2 rounded border border-border text-sm"
             >
               <option value="text">Text</option>
               <option value="file">File</option>
@@ -73,7 +73,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
               value={entry.key}
               onChange={(e) => handleChange(index, 'key', e.target.value)}
               placeholder="Key"
-              className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
+              className="flex-1 bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
             />
 
             {/* Value 输入（text 类型）或文件选择（file 类型） */}
@@ -83,7 +83,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
                 value={entry.value}
                 onChange={(e) => handleChange(index, 'value', e.target.value)}
                 placeholder="Value"
-                className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
+                className="flex-1 bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
               />
             ) : (
               <div className="flex-1 flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
                 />
                 <label
                   htmlFor={`file-${index}`}
-                  className="flex-1 bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm cursor-pointer hover:bg-slate-600"
+                  className="flex-1 bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm cursor-pointer hover:bg-surface-3"
                 >
                   {entry.file ? entry.file.name : '选择文件...'}
                 </label>
@@ -105,7 +105,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
             {/* 删除按钮 */}
             <button
               onClick={() => handleRemove(index)}
-              className="text-slate-500 hover:text-red-400 transition-colors"
+              className="text-ink-faint hover:text-danger transition-colors"
             >
               <i className="fas fa-times"></i>
             </button>
@@ -115,7 +115,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
 
       <button
         onClick={handleAdd}
-        className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
+        className="text-accent-secondary hover:text-accent-secondary transition-colors text-sm"
       >
         <i className="fas fa-plus mr-2"></i>
         添加 Form-data

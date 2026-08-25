@@ -74,12 +74,12 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full border border-slate-700 rounded-md overflow-hidden bg-slate-800 shadow-sm">
-      <div className="bg-slate-900 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
-        <span className="text-sm font-medium text-slate-300">{t.database.executor.title}</span>
+    <div className="flex flex-col h-full border border-border rounded-md overflow-hidden bg-surface-1 shadow-sm">
+      <div className="bg-canvas px-4 py-2 border-b border-border flex justify-between items-center">
+        <span className="text-sm font-medium text-ink-muted">{t.database.executor.title}</span>
         <div className="space-x-2 flex items-center">
           <button
-            className="text-xs text-slate-400 hover:text-blue-400 transition-colors"
+            className="text-xs text-ink-muted hover:text-accent-info transition-colors"
             onClick={() => onChange('')}
           >
             {t.database.executor.clear}
@@ -94,7 +94,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
               aria-label={isFullscreen
                 ? t.database.executor.exitFullscreen
                 : t.database.executor.enterFullscreen}
-              className="text-slate-400 hover:text-blue-400 transition-colors"
+              className="text-ink-muted hover:text-accent-info transition-colors"
             >
               <i className={isFullscreen
                 ? 'fas fa-compress text-sm'
@@ -123,20 +123,20 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
             fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
           }}
           loading={
-            <div className="flex items-center justify-center h-full text-slate-500">
+            <div className="flex items-center justify-center h-full text-ink-faint">
                <i className="fas fa-spinner fa-spin mr-2"></i> Loading Editor...
             </div>
           }
         />
       </div>
-      <div className="bg-slate-900 px-4 py-2 border-t border-slate-700 flex justify-end">
+      <div className="bg-canvas px-4 py-2 border-t border-border flex justify-end">
         <button
           onClick={onExecute}
           disabled={loading || !value.trim()}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium text-white transition-colors flex items-center gap-2
+          className={`px-4 py-1.5 rounded-md text-sm font-medium text-ink-inverse transition-colors flex items-center gap-2
             ${loading || !value.trim() 
-              ? 'bg-blue-500/50 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-500 shadow-sm'
+              ? 'bg-accent/50 cursor-not-allowed' 
+              : 'bg-accent hover:bg-accent-hover shadow-sm'
             }`}
         >
           {loading && <i className="fas fa-spinner fa-spin"></i>}

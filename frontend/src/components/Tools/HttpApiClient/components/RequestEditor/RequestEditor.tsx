@@ -46,28 +46,28 @@ export default function RequestEditor({
   const getMethodColor = (method: string) => {
     const colors: Record<string, string> = {
       GET: 'text-green-400',
-      POST: 'text-blue-400',
-      PUT: 'text-yellow-400',
-      DELETE: 'text-red-400',
-      PATCH: 'text-purple-400',
-      HEAD: 'text-slate-400',
-      OPTIONS: 'text-slate-400',
+      POST: 'text-accent-info',
+      PUT: 'text-accent-warning',
+      DELETE: 'text-danger',
+      PATCH: 'text-accent-secondary',
+      HEAD: 'text-ink-muted',
+      OPTIONS: 'text-ink-muted',
     };
-    return colors[method] || 'text-slate-400';
+    return colors[method] || 'text-ink-muted';
   };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* URL 栏 */}
-      <div className="p-4 border-b border-slate-700 flex-shrink-0">
+      <div className="p-4 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           {/* 方法选择器 */}
           <select
             value={request.method}
             onChange={(e) => handleMethodChange(e.target.value)}
             className={`
-              bg-slate-700 text-white px-3 py-2 rounded-lg font-mono text-sm
-              border border-slate-600 focus:border-purple-500 focus:outline-none
+              bg-surface-2 text-ink-inverse px-3 py-2 rounded-lg font-mono text-sm
+              border border-border focus:border-accent-secondary focus:outline-none
               ${getMethodColor(request.method)}
             `}
           >
@@ -95,8 +95,8 @@ export default function RequestEditor({
             className={`
               px-6 py-2 rounded-lg font-medium text-sm transition-colors
               ${sending
-                ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'
+                ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
+                : 'bg-gradient-to-r from-accent-secondary to-accent-info hover:from-accent-secondary hover:to-accent-hover text-ink-inverse'
               }
             `}
           >
@@ -122,8 +122,8 @@ export default function RequestEditor({
               className={`
                 px-4 py-2 rounded-lg font-medium text-sm transition-colors
                 ${isModified
-                  ? 'bg-purple-500 hover:bg-purple-600 text-white'
-                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  ? 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
+                  : 'bg-surface-2 text-ink-faint cursor-not-allowed'
                 }
               `}
             >
@@ -138,7 +138,7 @@ export default function RequestEditor({
               onClick={onDelete}
               title="删除"
               className="px-4 py-2 rounded-lg font-medium text-sm transition-colors
-                         bg-red-500/20 text-red-400 border border-red-500 hover:bg-red-500/30"
+                         bg-danger/20 text-danger border border-red-500 hover:bg-red-500/30"
             >
               <i className="fas fa-trash mr-1"></i>
               删除
@@ -148,14 +148,14 @@ export default function RequestEditor({
       </div>
 
       {/* 标签页 */}
-      <div className="flex items-center gap-1 px-4 border-b border-slate-700 bg-slate-800/50 flex-shrink-0">
+      <div className="flex items-center gap-1 px-4 border-b border-border bg-surface-1/50 flex-shrink-0">
         <button
           onClick={() => setActiveTab('params')}
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'params'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -167,8 +167,8 @@ export default function RequestEditor({
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'headers'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -180,8 +180,8 @@ export default function RequestEditor({
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'body'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -193,8 +193,8 @@ export default function RequestEditor({
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'auth'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -206,8 +206,8 @@ export default function RequestEditor({
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'docs'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -393,8 +393,8 @@ function BodyPanel({
             className={`
               px-3 py-1.5 rounded text-xs font-medium transition-colors
               ${bodyType === type.value
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
-                : 'bg-slate-700 text-slate-400 border border-transparent hover:bg-slate-600'
+                ? 'bg-accent-secondary/20 text-accent-secondary border border-accent-secondary'
+                : 'bg-surface-2 text-ink-muted border border-transparent hover:bg-surface-3'
               }
             `}
           >
@@ -423,9 +423,9 @@ function BodyPanel({
               ? 'key1=value1&key2=value2'
               : '输入请求体...'
           }
-          className="w-full h-64 bg-slate-900 text-white px-4 py-3 rounded-lg
-                     border border-slate-600 font-mono text-sm resize-none
-                     focus:border-purple-500 focus:outline-none"
+          className="w-full h-64 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+                     border border-border font-mono text-sm resize-none
+                     focus:border-accent-secondary focus:outline-none"
         />
       )}
     </div>
@@ -470,8 +470,8 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
             className={`
               px-3 py-1.5 rounded text-xs font-medium transition-colors
               ${authType === type.value
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
-                : 'bg-slate-700 text-slate-400 border border-transparent hover:bg-slate-600'
+                ? 'bg-accent-secondary/20 text-accent-secondary border border-accent-secondary'
+                : 'bg-surface-2 text-ink-muted border border-transparent hover:bg-surface-3'
               }
             `}
           >
@@ -483,13 +483,13 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
       {/* Bearer Token */}
       {authType === 'bearer' && (
         <div className="space-y-2">
-          <label className="text-sm text-slate-400">Token</label>
+          <label className="text-sm text-ink-muted">Token</label>
           <input
             type="text"
             value={authConfig.token || ''}
             onChange={(e) => handleBearerChange(e.target.value)}
             placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            className="w-full bg-slate-700 text-white px-4 py-2 rounded border border-slate-600 text-sm"
+            className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
           />
         </div>
       )}
@@ -498,23 +498,23 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
       {authType === 'basic' && (
         <div className="space-y-3">
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Username</label>
+            <label className="text-sm text-ink-muted">Username</label>
             <input
               type="text"
               value={authConfig.username || ''}
               onChange={(e) => handleBasicChange(e.target.value, authConfig.password || '')}
               placeholder="username"
-              className="w-full bg-slate-700 text-white px-4 py-2 rounded border border-slate-600 text-sm"
+              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Password</label>
+            <label className="text-sm text-ink-muted">Password</label>
             <input
               type="password"
               value={authConfig.password || ''}
               onChange={(e) => handleBasicChange(authConfig.username || '', e.target.value)}
               placeholder="password"
-              className="w-full bg-slate-700 text-white px-4 py-2 rounded border border-slate-600 text-sm"
+              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
             />
           </div>
         </div>
@@ -524,23 +524,23 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
       {authType === 'apikey' && (
         <div className="space-y-3">
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Key Name</label>
+            <label className="text-sm text-ink-muted">Key Name</label>
             <input
               type="text"
               value={authConfig.key || ''}
               onChange={(e) => handleApiKeyChange(e.target.value, authConfig.value || '', authConfig.in === 'header')}
               placeholder="X-API-Key"
-              className="w-full bg-slate-700 text-white px-4 py-2 rounded border border-slate-600 text-sm"
+              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-slate-400">Key Value</label>
+            <label className="text-sm text-ink-muted">Key Value</label>
             <input
               type="text"
               value={authConfig.value || ''}
               onChange={(e) => handleApiKeyChange(authConfig.key || '', e.target.value, authConfig.in === 'header')}
               placeholder="your-api-key-value"
-              className="w-full bg-slate-700 text-white px-4 py-2 rounded border border-slate-600 text-sm"
+              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -549,15 +549,15 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
               id="inHeader"
               checked={authConfig.in !== 'query'}
               onChange={(e) => handleApiKeyChange(authConfig.key || '', authConfig.value || '', e.target.checked)}
-              className="rounded border-slate-600 bg-slate-700"
+              className="rounded border-border bg-surface-2"
             />
-            <label htmlFor="inHeader" className="text-sm text-slate-400">放在 Header 中</label>
+            <label htmlFor="inHeader" className="text-sm text-ink-muted">放在 Header 中</label>
           </div>
         </div>
       )}
 
       {authType === 'none' && (
-        <div className="text-slate-500 text-sm text-center py-8">
+        <div className="text-ink-faint text-sm text-center py-8">
           <i className="fas fa-unlock text-4xl mb-3 opacity-30"></i>
           <p>此请求不需要认证</p>
         </div>
@@ -579,35 +579,35 @@ function DocsPanel({ description, onChange }: DocsPanelProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-400">请求描述（支持 Markdown）</span>
+        <span className="text-sm text-ink-muted">请求描述（支持 Markdown）</span>
         <button
           onClick={() => setPreview(!preview)}
           className="px-3 py-1 rounded text-xs font-medium transition-colors
-                     bg-slate-700 text-slate-300 hover:bg-slate-600"
+                     bg-surface-2 text-ink-muted hover:bg-surface-3"
         >
           {preview ? '编辑' : '预览'}
         </button>
       </div>
       {preview ? (
-        <div className="bg-slate-900 border border-slate-600 rounded-lg p-4 text-sm text-slate-300 min-h-[256px]">
+        <div className="bg-canvas border border-border rounded-lg p-4 text-sm text-ink-muted min-h-[256px]">
           {description ? (
             <div className="prose prose-invert max-w-none">
               {description.split('\n').map((line, i) => {
                 // 简易 Markdown 渲染
                 if (line.startsWith('### ')) {
-                  return <h3 key={i} className="text-lg font-bold text-white mt-4 mb-2">{line.slice(4)}</h3>;
+                  return <h3 key={i} className="text-lg font-bold text-ink-inverse mt-4 mb-2">{line.slice(4)}</h3>;
                 }
                 if (line.startsWith('## ')) {
-                  return <h2 key={i} className="text-xl font-bold text-white mt-4 mb-2">{line.slice(3)}</h2>;
+                  return <h2 key={i} className="text-xl font-bold text-ink-inverse mt-4 mb-2">{line.slice(3)}</h2>;
                 }
                 if (line.startsWith('# ')) {
-                  return <h1 key={i} className="text-2xl font-bold text-white mt-4 mb-2">{line.slice(2)}</h1>;
+                  return <h1 key={i} className="text-2xl font-bold text-ink-inverse mt-4 mb-2">{line.slice(2)}</h1>;
                 }
                 if (line.startsWith('- ') || line.startsWith('* ')) {
                   return <li key={i} className="ml-4">{line.slice(2)}</li>;
                 }
                 if (line.startsWith('```')) {
-                  return <hr key={i} className="my-2 border-slate-600" />;
+                  return <hr key={i} className="my-2 border-border" />;
                 }
                 if (line.trim() === '') {
                   return <br key={i} />;
@@ -616,7 +616,7 @@ function DocsPanel({ description, onChange }: DocsPanelProps) {
               })}
             </div>
           ) : (
-            <span className="text-slate-600 italic">暂无描述</span>
+            <span className="text-ink-faint italic">暂无描述</span>
           )}
         </div>
       ) : (
@@ -624,8 +624,8 @@ function DocsPanel({ description, onChange }: DocsPanelProps) {
           value={description}
           onChange={(e) => onChange(e.target.value)}
           placeholder="输入请求描述，支持 Markdown 语法..."
-          className="w-full h-64 bg-slate-900 text-white px-4 py-3 rounded-lg
-                     border border-slate-600 text-sm resize-none focus:border-purple-500 focus:outline-none"
+          className="w-full h-64 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+                     border border-border text-sm resize-none focus:border-accent-secondary focus:outline-none"
         />
       )}
     </div>

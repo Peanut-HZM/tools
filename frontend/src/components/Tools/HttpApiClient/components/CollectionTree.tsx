@@ -155,8 +155,8 @@ export default function CollectionTree({
           className={`
             group flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors text-sm
             ${isSelected
-              ? 'bg-purple-500/20 border border-purple-500 text-purple-400'
-              : 'hover:bg-slate-700/50 border border-transparent text-slate-300'
+              ? 'bg-accent-secondary/20 border border-accent-secondary text-accent-secondary'
+              : 'hover:bg-surface-2/50 border border-transparent text-ink-muted'
             }
           `}
           style={{ paddingLeft: level * 16 + 12 }}
@@ -172,7 +172,7 @@ export default function CollectionTree({
               e.stopPropagation();
               handleCollectionClick(collection);
             }}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-ink-faint hover:text-ink-muted transition-colors"
           >
             <i
               className={`fas fa-chevron-right text-xs transition-transform ${
@@ -180,7 +180,7 @@ export default function CollectionTree({
               }`}
             ></i>
           </button>
-          <i className="fas fa-folder text-slate-500 text-xs"></i>
+          <i className="fas fa-folder text-ink-faint text-xs"></i>
           <span className="truncate flex-1">{collection.name}</span>
           {onCollectionRename && (
             <button
@@ -189,7 +189,7 @@ export default function CollectionTree({
                 e.stopPropagation();
                 onCollectionRename(collection);
               }}
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-slate-300 transition-opacity text-xs flex-shrink-0"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted transition-opacity text-xs flex-shrink-0"
             >
               <i className="fas fa-pencil"></i>
             </button>
@@ -201,7 +201,7 @@ export default function CollectionTree({
                 e.stopPropagation();
                 onCollectionDelete(collection);
               }}
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-red-400 transition-opacity text-xs flex-shrink-0"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger transition-opacity text-xs flex-shrink-0"
             >
               <i className="fas fa-trash"></i>
             </button>
@@ -212,12 +212,12 @@ export default function CollectionTree({
         {isExpanded && (
           <div className="ml-4">
             {isLoading ? (
-              <div className="py-2 text-xs text-slate-500">
+              <div className="py-2 text-xs text-ink-faint">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
                 加载中...
               </div>
             ) : requests.length === 0 ? (
-              <div className="py-2 text-xs text-slate-500">
+              <div className="py-2 text-xs text-ink-faint">
                 暂无请求
               </div>
             ) : (
@@ -226,7 +226,7 @@ export default function CollectionTree({
                   <div
                     key={request.id}
                     className="group flex items-center gap-2 px-3 py-1.5 cursor-pointer
-                               hover:bg-slate-700/50 rounded text-xs text-slate-400"
+                               hover:bg-surface-2/50 rounded text-xs text-ink-muted"
                     onClick={() => handleRequestClick(request)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -237,10 +237,10 @@ export default function CollectionTree({
                     <span className={`
                       font-mono font-bold w-12 flex-shrink-0
                       ${request.method === 'GET' ? 'text-green-400' :
-                        request.method === 'POST' ? 'text-blue-400' :
-                        request.method === 'PUT' ? 'text-yellow-400' :
-                        request.method === 'DELETE' ? 'text-red-400' :
-                        'text-slate-400'}
+                        request.method === 'POST' ? 'text-accent-info' :
+                        request.method === 'PUT' ? 'text-accent-warning' :
+                        request.method === 'DELETE' ? 'text-danger' :
+                        'text-ink-muted'}
                     `}>
                       {request.method}
                     </span>
@@ -262,8 +262,8 @@ export default function CollectionTree({
                             setEditingRequestName('');
                           }
                         }}
-                        className="flex-1 bg-slate-900 text-white text-xs px-1 py-0.5 rounded
-                                   border border-purple-500 focus:outline-none min-w-0"
+                        className="flex-1 bg-canvas text-ink-inverse text-xs px-1 py-0.5 rounded
+                                   border border-accent-secondary focus:outline-none min-w-0"
                       />
                     ) : (
                       <>
@@ -276,7 +276,7 @@ export default function CollectionTree({
                               setEditingRequest(request);
                               setEditingRequestName(request.name);
                             }}
-                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-slate-300 transition-opacity text-xs flex-shrink-0"
+                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted transition-opacity text-xs flex-shrink-0"
                           >
                             <i className="fas fa-pencil"></i>
                           </button>
@@ -288,7 +288,7 @@ export default function CollectionTree({
                               e.stopPropagation();
                               onRequestDelete(request);
                             }}
-                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-red-400 transition-opacity text-xs flex-shrink-0"
+                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger transition-opacity text-xs flex-shrink-0"
                           >
                             <i className="fas fa-trash"></i>
                           </button>

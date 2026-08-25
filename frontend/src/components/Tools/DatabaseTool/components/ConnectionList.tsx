@@ -84,10 +84,10 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
 
   const getEnvColor = (env?: Environment) => {
     switch (env) {
-      case Environment.PROD: return 'bg-red-900/30 text-red-400 border border-red-800/50';
-      case Environment.TEST: return 'bg-yellow-900/30 text-yellow-400 border border-yellow-800/50';
+      case Environment.PROD: return 'bg-red-900/30 text-danger border border-red-800/50';
+      case Environment.TEST: return 'bg-yellow-900/30 text-accent-warning border border-yellow-800/50';
       case Environment.DEV: return 'bg-green-900/30 text-green-400 border border-green-800/50';
-      default: return 'bg-slate-700 text-slate-400 border border-slate-600';
+      default: return 'bg-surface-2 text-ink-muted border border-border';
     }
   };
 
@@ -105,21 +105,21 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-800 border-r border-slate-700">
-      <div className="p-4 border-b border-slate-700 flex flex-col gap-2 bg-slate-800">
+    <div className="flex flex-col h-full bg-surface-1 border-r border-border">
+      <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
-            <h2 className="font-semibold text-slate-100">{t.database.connections}</h2>
+            <h2 className="font-semibold text-ink">{t.database.connections}</h2>
             <div className="flex space-x-1">
             <button
                 onClick={toggleToolSidebar}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
                 title={isToolSidebarVisible ? '隐藏工具列表' : '展开工具列表'}
             >
                 <i className={`fas ${isToolSidebarVisible ? 'fa-right-to-bracket' : 'fa-left-to-bracket'}`}></i>
             </button>
             <button
                 onClick={() => setShowDisplaySettings(true)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
                 title="显示设置"
                 aria-label="显示设置"
             >
@@ -128,7 +128,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             {onOpenSqlConsole && (
                 <button
                 onClick={() => onOpenSqlConsole()}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
                 title={t.database.executor.title}
                 >
                 <i className="fas fa-terminal"></i>
@@ -136,7 +136,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             )}
             <button
                 onClick={onAddConfig}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
                 title={t.database.addConnection}
             >
                 <i className="fas fa-plus"></i>
@@ -146,13 +146,13 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
 
         {/* Search Input */}
         <div className="relative">
-             <i className="fas fa-search absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-500 text-xs"></i>
+             <i className="fas fa-search absolute left-2 top-1/2 transform -translate-y-1/2 text-ink-faint text-xs"></i>
              <input
                  type="text"
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
                  placeholder={t.common.search}
-                 className="w-full bg-slate-900 border border-slate-700 rounded pl-7 pr-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+                 className="w-full bg-canvas border border-border rounded pl-7 pr-2 py-1 text-xs text-ink-muted focus:outline-none focus:border-accent"
              />
         </div>
       </div>
@@ -163,9 +163,9 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
           <div className="space-y-1">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="p-2 rounded-md flex items-center space-x-2 animate-pulse">
-                <div className="w-6 h-6 bg-slate-700 rounded"></div>
-                <div className="w-5 h-5 bg-slate-700 rounded"></div>
-                <div className="flex-1 h-4 bg-slate-700 rounded"></div>
+                <div className="w-6 h-6 bg-surface-2 rounded"></div>
+                <div className="w-5 h-5 bg-surface-2 rounded"></div>
+                <div className="flex-1 h-4 bg-surface-2 rounded"></div>
               </div>
             ))}
           </div>
@@ -195,7 +195,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
         ))}
 
         {configs.length === 0 && !isLoading && (
-          <div className="text-center text-slate-500 py-8 text-sm flex flex-col items-center gap-2">
+          <div className="text-center text-ink-faint py-8 text-sm flex flex-col items-center gap-2">
             <i className="fas fa-database text-2xl mb-2 opacity-50"></i>
             <p>{t.database.status.disconnected}</p>
             <p className="text-xs opacity-70">{t.common.create}</p>
@@ -533,7 +533,7 @@ const handleSelectAndExpand = async () => {
     <div className="select-none">
       <div
         className={`p-2 rounded-md cursor-pointer group flex items-center justify-between transition-colors ${
-          isSelected ? 'bg-blue-600/20 text-blue-100 border border-blue-600/50' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
+          isSelected ? 'bg-accent/20 text-accent-info border border-accent-info/50' : 'text-ink-muted hover:bg-surface-2/50 border border-transparent'
         }`}
         onClick={handleSelectAndExpand}
         onContextMenu={handleContextMenu}
@@ -543,7 +543,7 @@ const handleSelectAndExpand = async () => {
         <div className="flex items-center space-x-2 flex-1 min-w-0">
            <button
              onClick={handleExpand}
-             className="p-1 hover:bg-slate-600 rounded text-slate-400 w-6 h-6 flex items-center justify-center"
+             className="p-1 hover:bg-surface-3 rounded text-ink-muted w-6 h-6 flex items-center justify-center"
            >
              {loading ? (
                <i className="fas fa-spinner fa-spin text-xs"></i>
@@ -552,7 +552,7 @@ const handleSelectAndExpand = async () => {
              )}
            </button>
 
-           <i className="fas fa-database text-slate-400"></i>
+           <i className="fas fa-database text-ink-muted"></i>
 
            <div className="flex-1 min-w-0">
              <div className="flex items-center space-x-2">
@@ -571,7 +571,7 @@ const handleSelectAndExpand = async () => {
             <button
                 onClick={handleFilterClick}
                 className={`p-1.5 rounded transition-all ${
-                   visibleDatabases ? 'text-blue-400 hover:text-blue-300' : (isSelected ? 'text-blue-100 hover:bg-blue-500' : 'text-slate-400 hover:text-white hover:bg-slate-600')
+                   visibleDatabases ? 'text-accent-info hover:text-accent-info' : (isSelected ? 'text-accent-info hover:bg-accent-hover' : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-3')
                 }`}
                 title={t.common.filter}
               >
@@ -585,7 +585,7 @@ const handleSelectAndExpand = async () => {
               onEdit();
             }}
             className={`p-1.5 rounded transition-all ${
-              isSelected ? 'text-blue-100 hover:bg-blue-500' : 'text-slate-400 hover:text-white hover:bg-slate-600'
+              isSelected ? 'text-accent-info hover:bg-accent-hover' : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-3'
             }`}
             title={t.common.edit}
           >
@@ -595,7 +595,7 @@ const handleSelectAndExpand = async () => {
       </div>
 
       {isExpanded && (
-        <div className="ml-4 pl-2 border-l border-slate-700 mt-1 space-y-1">
+        <div className="ml-4 pl-2 border-l border-border mt-1 space-y-1">
           {config.db_type === 'postgresql' ? (
             // PostgreSQL: 渲染 Schema 层级
             <>
@@ -636,7 +636,7 @@ const handleSelectAndExpand = async () => {
                 ))
               )}
               {databases.length === 0 && !loading && (
-                <div className="text-xs text-slate-500 py-1 px-2 italic">{t.search.noResults}</div>
+                <div className="text-xs text-ink-faint py-1 px-2 italic">{t.search.noResults}</div>
               )}
             </>
           ) : (
@@ -672,14 +672,14 @@ const handleSelectAndExpand = async () => {
                     />
                   ))}
                   {databases.length === 0 && !loading && (
-                     <div className="text-xs text-slate-500 py-1 px-2 italic">{t.search.noResults}</div>
+                     <div className="text-xs text-ink-faint py-1 px-2 italic">{t.search.noResults}</div>
                   )}
                   {databases.length > 0 && databasesToShow.length === 0 && (
-                     <div className="text-xs text-slate-500 py-1 px-2 italic">
+                     <div className="text-xs text-ink-faint py-1 px-2 italic">
                        {t.database.status.hiddenByFilter}
                        <button
                          onClick={handleFilterClick}
-                         className="ml-2 text-blue-400 hover:underline"
+                         className="ml-2 text-accent-info hover:underline"
                        >
                          {t.database.executor.clear}
                        </button>
@@ -978,7 +978,7 @@ const items: MenuItem[] = [
     <div className="text-sm">
       <div
         className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
-          activeDatabaseName === dbName ? 'bg-blue-600/20 text-blue-300' : 'text-slate-300 hover:bg-slate-700/50'
+          activeDatabaseName === dbName ? 'bg-accent/20 text-accent-info' : 'text-ink-muted hover:bg-surface-2/50'
         }`}
         onClick={handleToggle}
         onContextMenu={handleContextMenu}
@@ -996,11 +996,11 @@ const items: MenuItem[] = [
       </div>
 
       {isExpanded && structure && (
-        <div className="ml-4 pl-2 border-l border-slate-700 mt-1 space-y-1">
+        <div className="ml-4 pl-2 border-l border-border mt-1 space-y-1">
           <FolderNode
             name="Tables"
             icon="fa-table"
-            color="text-blue-400"
+            color="text-accent-info"
             items={structure.tables}
             itemIcon="fa-table"
             onItemClick={handleTableClick}
@@ -1017,7 +1017,7 @@ const items: MenuItem[] = [
           <FolderNode
             name="Views"
             icon="fa-eye"
-            color="text-purple-400"
+            color="text-accent-secondary"
             items={structure.views}
             itemIcon="fa-eye"
             onItemClick={handleTableClick}
@@ -1041,23 +1041,23 @@ const items: MenuItem[] = [
 
       {dbDdl && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div className="bg-slate-800 rounded-lg shadow-xl w-3/4 max-w-4xl max-h-[90vh] flex flex-col border border-slate-700">
-              <div className="flex justify-between items-center p-4 border-b border-slate-700">
-                <h3 className="text-lg font-medium text-slate-100">
+            <div className="bg-surface-1 rounded-lg shadow-md w-3/4 max-w-4xl max-h-[90vh] flex flex-col border border-border">
+              <div className="flex justify-between items-center p-4 border-b border-border">
+                <h3 className="text-lg font-medium text-ink">
                   {t.database.dialog.databaseDDL.replace('{name}', dbName)}
                 </h3>
-                <button onClick={() => setDbDdl(null)} className="text-slate-400 hover:text-white">
+                <button onClick={() => setDbDdl(null)} className="text-ink-muted hover:text-ink-inverse">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
 
               <div className="flex-1 overflow-auto p-4">
-                  <pre className="bg-slate-900 p-4 rounded text-sm text-slate-300 font-mono overflow-auto whitespace-pre-wrap">
+                  <pre className="bg-canvas p-4 rounded text-sm text-ink-muted font-mono overflow-auto whitespace-pre-wrap">
                     {dbDdl}
                   </pre>
               </div>
 
-              <div className="p-4 border-t border-slate-700 flex justify-end gap-2">
+              <div className="p-4 border-t border-border flex justify-end gap-2">
                 <button
                   onClick={() => {
                       if (dbDdl) {
@@ -1065,14 +1065,14 @@ const items: MenuItem[] = [
                           alert(t.common.success);
                       }
                   }}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                  className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
                 >
                   <i className="fas fa-copy mr-2"></i>
                   {t.common.copy}
                 </button>
                 <button
                   onClick={() => setDbDdl(null)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors"
+                  className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors"
                 >
                   {t.common.close}
                 </button>
@@ -1258,26 +1258,26 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
 
   const renderTableDetail = (tableName: string, detail: TableDetailResponse) => {
     return (
-      <div className="ml-5 pl-2.5 border-l border-slate-700/40 py-1.5 space-y-3">
+      <div className="ml-5 pl-2.5 border-l border-border/40 py-1.5 space-y-3">
         {/* Columns */}
         {detail.columns.length > 0 && (
-          <div className="bg-slate-900/40 rounded-md border border-slate-700/30 overflow-hidden">
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/60 border-b border-slate-700/30">
-              <i className="fas fa-columns text-[9px] text-cyan-400/70"></i>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.columns}</span>
-              <span className="text-[9px] text-slate-600 ml-auto">{detail.columns.length}</span>
+          <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
+              <i className="fas fa-columns text-[9px] text-accent/70"></i>
+              <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.columns}</span>
+              <span className="text-[9px] text-ink-faint ml-auto">{detail.columns.length}</span>
             </div>
             <div className="px-2 py-1 space-y-0">
               {detail.columns.map((col) => (
                 <div key={col.name} className="flex items-center gap-1.5 py-0.5 text-[10.5px] leading-relaxed">
-                  <span className="text-slate-200 font-medium min-w-[72px] truncate">{col.name}</span>
-                  <span className="text-cyan-400/70 font-mono text-[10px]">{col.type}{col.length ? `(${col.length})` : ''}</span>
+                  <span className="text-ink font-medium min-w-[72px] truncate">{col.name}</span>
+                  <span className="text-accent/70 font-mono text-[10px]">{col.type}{col.length ? `(${col.length})` : ''}</span>
                   <span className="flex gap-0.5 shrink-0">
                     {col.primary_key && <span className="text-amber-400 text-[8px] px-1 py-px bg-amber-500/10 rounded border border-amber-500/20 font-bold leading-none">PK</span>}
-                    {col.auto_increment && <span className="text-emerald-400 text-[8px] px-1 py-px bg-emerald-500/10 rounded border border-emerald-500/20 font-bold leading-none">AI</span>}
+                    {col.auto_increment && <span className="text-success text-[8px] px-1 py-px bg-success/10 rounded border border-emerald-500/20 font-bold leading-none">AI</span>}
                     {!col.nullable && !col.primary_key && <span className="text-rose-400/60 text-[8px] px-1 py-px bg-rose-500/10 rounded border border-rose-500/15 font-medium leading-none">NN</span>}
                   </span>
-                  {col.comment && <span className="text-slate-600 italic truncate max-w-[90px] text-[9.5px]" title={col.comment}>{col.comment}</span>}
+                  {col.comment && <span className="text-ink-faint italic truncate max-w-[90px] text-[9.5px]" title={col.comment}>{col.comment}</span>}
                 </div>
               ))}
             </div>
@@ -1286,21 +1286,21 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
 
         {/* Indexes */}
         {detail.indexes.length > 0 && (
-          <div className="bg-slate-900/40 rounded-md border border-slate-700/30 overflow-hidden">
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/60 border-b border-slate-700/30">
+          <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
               <i className="fas fa-key text-[9px] text-violet-400/70"></i>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.indexes}</span>
-              <span className="text-[9px] text-slate-600 ml-auto">{detail.indexes.length}</span>
+              <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.indexes}</span>
+              <span className="text-[9px] text-ink-faint ml-auto">{detail.indexes.length}</span>
             </div>
             <div className="px-2 py-1 space-y-0.5">
               {detail.indexes.map((idx) => (
                 <div key={idx.name} className="flex items-center gap-1.5 py-0.5 text-[10.5px]">
-                  <span className="text-slate-200 font-mono text-[10px] min-w-[60px] truncate">{idx.name}</span>
+                  <span className="text-ink font-mono text-[10px] min-w-[60px] truncate">{idx.name}</span>
                   <span className="flex gap-0.5 shrink-0">
                     {idx.primary && <span className="text-amber-400 text-[8px] px-1 py-px bg-amber-500/10 rounded border border-amber-500/20 font-bold leading-none">PRI</span>}
                     {idx.unique && !idx.primary && <span className="text-violet-400 text-[8px] px-1 py-px bg-violet-500/10 rounded border border-violet-500/20 font-bold leading-none">UQ</span>}
                   </span>
-                  <span className="text-slate-500 font-mono text-[9.5px]">({idx.columns.join(', ')})</span>
+                  <span className="text-ink-faint font-mono text-[9.5px]">({idx.columns.join(', ')})</span>
                 </div>
               ))}
             </div>
@@ -1309,20 +1309,20 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
 
         {/* Foreign Keys */}
         {detail.foreign_keys.length > 0 && (
-          <div className="bg-slate-900/40 rounded-md border border-slate-700/30 overflow-hidden">
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/60 border-b border-slate-700/30">
+          <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
               <i className="fas fa-link text-[9px] text-orange-400/70"></i>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.foreignKeys}</span>
-              <span className="text-[9px] text-slate-600 ml-auto">{detail.foreign_keys.length}</span>
+              <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.foreignKeys}</span>
+              <span className="text-[9px] text-ink-faint ml-auto">{detail.foreign_keys.length}</span>
             </div>
             <div className="px-2 py-1 space-y-0.5">
               {detail.foreign_keys.map((fk) => (
                 <div key={fk.name} className="flex items-center gap-1.5 py-0.5 text-[10.5px]">
-                  <span className="text-slate-200 font-mono text-[10px] min-w-[60px] truncate">{fk.name}</span>
-                  <span className="text-slate-400 font-mono text-[9.5px]">{fk.constrained_columns.join(', ')}</span>
-                  <i className="fas fa-arrow-right text-[7px] text-slate-600"></i>
+                  <span className="text-ink font-mono text-[10px] min-w-[60px] truncate">{fk.name}</span>
+                  <span className="text-ink-muted font-mono text-[9.5px]">{fk.constrained_columns.join(', ')}</span>
+                  <i className="fas fa-arrow-right text-[7px] text-ink-faint"></i>
                   <span className="text-orange-400/80 font-mono text-[9.5px]">{fk.referred_table}</span>
-                  <span className="text-slate-500 font-mono text-[9.5px]">({fk.referred_columns.join(', ')})</span>
+                  <span className="text-ink-faint font-mono text-[9.5px]">({fk.referred_columns.join(', ')})</span>
                 </div>
               ))}
             </div>
@@ -1335,7 +1335,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
   return (
     <div>
        <div
-        className="flex items-center space-x-2 py-1 px-2 hover:bg-slate-700/50 rounded cursor-pointer text-slate-400"
+        className="flex items-center space-x-2 py-1 px-2 hover:bg-surface-2/50 rounded cursor-pointer text-ink-muted"
         onClick={() => setIsExpanded(!isExpanded)}
         onContextMenu={onContextMenu}
       >
@@ -1344,15 +1344,15 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
         </span>
         <i className={`fas ${icon} ${color} text-xs`}></i>
         <span className="truncate text-xs font-medium">{name}</span>
-        <span className="text-[10px] bg-slate-700 px-1 rounded-full">{filteredItems.length}</span>
+        <span className="text-[10px] bg-surface-2 px-1 rounded-full">{filteredItems.length}</span>
       </div>
 
       {isExpanded && (
-        <div className="ml-4 pl-2 border-l border-slate-700 mt-1 space-y-0.5">
+        <div className="ml-4 pl-2 border-l border-border mt-1 space-y-0.5">
           {filteredItems.map(item => (
             <div key={item.name}>
               <div
-                className="flex items-center space-x-2 py-0.5 px-2 hover:bg-slate-700/50 rounded cursor-pointer text-slate-300 group/item relative"
+                className="flex items-center space-x-2 py-0.5 px-2 hover:bg-surface-2/50 rounded cursor-pointer text-ink-muted group/item relative"
                 onContextMenu={(e) => handleItemContextMenu(e, item)}
                 title={item.comment || undefined}
               >
@@ -1362,7 +1362,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
                     e.stopPropagation();
                     toggleTableDetail(item.name);
                   }}
-                  className="w-3 h-3 flex items-center justify-center text-slate-600 hover:text-slate-300"
+                  className="w-3 h-3 flex items-center justify-center text-ink-faint hover:text-ink-muted"
                   title="Show structure detail"
                 >
                   {loadingDetails.has(item.name) ? (
@@ -1372,7 +1372,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
                   )}
                 </button>
 
-                <i className={`fas ${itemIcon} text-slate-500 text-[10px]`}></i>
+                <i className={`fas ${itemIcon} text-ink-faint text-[10px]`}></i>
                 <div className="flex-1 min-w-0">
                   <span
                     className="truncate text-xs cursor-pointer"
@@ -1392,7 +1392,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
                     ) : item.name}
                   </span>
                   {item.comment && (
-                    <div className="text-[10px] text-slate-600 truncate" title={item.comment}>
+                    <div className="text-[10px] text-ink-faint truncate" title={item.comment}>
                       {item.comment}
                     </div>
                   )}
@@ -1404,7 +1404,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
             </div>
           ))}
           {filteredItems.length === 0 && (
-             <div className="text-[10px] text-slate-600 py-0.5 px-2 italic">{t.search.noResults}</div>
+             <div className="text-[10px] text-ink-faint py-0.5 px-2 italic">{t.search.noResults}</div>
           )}
         </div>
       )}
@@ -1509,24 +1509,24 @@ const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
     <div className="text-sm select-none">
       <div
         className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
-          isActive ? 'bg-blue-600/20 text-blue-300' : 'text-slate-300 hover:bg-slate-700/50'
+          isActive ? 'bg-accent/20 text-accent-info' : 'text-ink-muted hover:bg-surface-2/50'
         }`}
         onClick={handleToggle}
       >
         <span className="w-4 h-4 flex items-center justify-center">
           <i className={`fas fa-chevron-right text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
         </span>
-        <i className="fas fa-database text-blue-500/80 text-xs"></i>
+        <i className="fas fa-database text-accent-info/80 text-xs"></i>
         <span className="truncate font-medium">{dbName}</span>
         {loadingSchemas ? (
-          <i className="fas fa-spinner fa-spin text-[10px] text-slate-400"></i>
+          <i className="fas fa-spinner fa-spin text-[10px] text-ink-muted"></i>
         ) : (
-          schemasLoaded && <span className="text-[10px] bg-slate-700 px-1 rounded-full">{filteredSchemas.length}</span>
+          schemasLoaded && <span className="text-[10px] bg-surface-2 px-1 rounded-full">{filteredSchemas.length}</span>
         )}
       </div>
 
       {isExpanded && (
-        <div className="ml-4 pl-2 border-l border-slate-700 mt-1 space-y-0.5">
+        <div className="ml-4 pl-2 border-l border-border mt-1 space-y-0.5">
           {filteredSchemas.map(schema => (
             <SchemaNode
               key={schema}

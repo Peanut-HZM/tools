@@ -139,14 +139,14 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-slate-700">
+      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-2xl max-h-[90vh] flex flex-col border border-border">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-700">
-          <h3 className="text-lg font-medium text-slate-100 flex items-center gap-2">
-            <i className="fas fa-archive text-blue-400"></i>
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h3 className="text-lg font-medium text-ink flex items-center gap-2">
+            <i className="fas fa-archive text-accent-info"></i>
             {t.database.dialog.backup.title}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -161,23 +161,23 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                   <i className="fas fa-check-circle"></i>
                   <span className="font-medium">{t.database.dialog.backup.backupSuccess}</span>
                 </div>
-                <div className="text-sm text-slate-300 space-y-1">
-                  <p>{t.database.dialog.backup.backupFile}: <span className="text-slate-100">{backupResult.file_name}</span></p>
-                  <p>{t.database.dialog.backup.backupSize}: <span className="text-slate-100">{formatSize(backupResult.file_size)}</span></p>
-                  <p>{t.database.dialog.backup.backupTables}: <span className="text-slate-100">{backupResult.tables_count}</span></p>
-                  <p>{t.database.dialog.backup.backupModeLabel}: <span className="text-slate-100 capitalize">{backupResult.backup_mode.replace(/_/g, ' ')}</span></p>
+                <div className="text-sm text-ink-muted space-y-1">
+                  <p>{t.database.dialog.backup.backupFile}: <span className="text-ink">{backupResult.file_name}</span></p>
+                  <p>{t.database.dialog.backup.backupSize}: <span className="text-ink">{formatSize(backupResult.file_size)}</span></p>
+                  <p>{t.database.dialog.backup.backupTables}: <span className="text-ink">{backupResult.tables_count}</span></p>
+                  <p>{t.database.dialog.backup.backupModeLabel}: <span className="text-ink capitalize">{backupResult.backup_mode.replace(/_/g, ' ')}</span></p>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setBackupResult(null)}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                  className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
                 >
                   {t.database.dialog.backup.newBackup}
                 </button>
                 <button
                   onClick={handleDownload}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors flex items-center gap-2"
                 >
                   <i className="fas fa-download"></i>
                   {t.database.dialog.backup.download}
@@ -188,24 +188,24 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
             /* Backup Form */
             <>
               {/* Table Selection */}
-              <div className="border border-slate-700 rounded-lg overflow-hidden">
-                <div className="bg-slate-900/50 px-3 py-2 flex items-center justify-between border-b border-slate-700">
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="bg-canvas/50 px-3 py-2 flex items-center justify-between border-b border-border">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectAll}
                       onChange={handleSelectAll}
-                      className="rounded border-slate-600 bg-slate-700 text-blue-600"
+                      className="rounded border-border bg-surface-2 text-accent-info"
                     />
-                    <span className="text-sm text-slate-300 font-medium">
+                    <span className="text-sm text-ink-muted font-medium">
                       {t.database.dialog.backup.selectTables} {t.database.dialog.backup.selectedCount.replace('{selected}', String(tables.filter((t) => t.selected).length)).replace('{total}', String(tables.length))}
                     </span>
                   </label>
-                  {loading && <i className="fas fa-spinner fa-spin text-slate-500 text-xs"></i>}
+                  {loading && <i className="fas fa-spinner fa-spin text-ink-faint text-xs"></i>}
                 </div>
                 <div className="max-h-48 overflow-y-auto">
                   {loading && tables.length === 0 ? (
-                    <div className="p-4 text-center text-slate-500 text-sm">
+                    <div className="p-4 text-center text-ink-faint text-sm">
                       <i className="fas fa-spinner fa-spin mr-2"></i>
                       {t.database.dialog.backup.loadingTables}
                     </div>
@@ -213,17 +213,17 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                     tables.map((table, idx) => (
                       <label
                         key={table.name}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-slate-700/30 cursor-pointer border-b border-slate-800/50 last:border-0"
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-surface-2/30 cursor-pointer border-b border-border/50 last:border-0"
                       >
                         <input
                           type="checkbox"
                           checked={table.selected}
                           onChange={() => handleToggleTable(idx)}
-                          className="rounded border-slate-600 bg-slate-700 text-blue-600"
+                          className="rounded border-border bg-surface-2 text-accent-info"
                         />
-                        <i className="fas fa-table text-slate-500 text-xs"></i>
-                        <span className="text-sm text-slate-200 flex-1">{table.name}</span>
-                        <span className="text-xs text-slate-500">{formatNumber(table.rowCount)} rows</span>
+                        <i className="fas fa-table text-ink-faint text-xs"></i>
+                        <span className="text-sm text-ink flex-1">{table.name}</span>
+                        <span className="text-xs text-ink-faint">{formatNumber(table.rowCount)} rows</span>
                       </label>
                     ))
                   )}
@@ -232,8 +232,8 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
 
               {/* Backup Mode */}
               <div className="space-y-2">
-                <p className="text-sm text-slate-400 font-medium flex items-center gap-2">
-                  <i className="fas fa-sliders-h text-xs text-slate-500"></i>
+                <p className="text-sm text-ink-muted font-medium flex items-center gap-2">
+                  <i className="fas fa-sliders-h text-xs text-ink-faint"></i>
                   {t.database.dialog.backup.backupMode}
                 </p>
                 <div className="grid grid-cols-3 gap-2">
@@ -245,19 +245,19 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                     const isActive = backupMode === mode.value;
                     const colorMap: Record<string, { active: string; inactive: string; icon: string }> = {
                       blue: {
-                        active: 'border-blue-500/60 bg-blue-500/10 shadow-sm shadow-blue-500/5',
-                        inactive: 'border-slate-700/50 hover:border-slate-600 hover:bg-slate-700/20',
-                        icon: 'text-blue-400',
+                        active: 'border-accent-info/60 bg-accent-info/10 shadow-sm shadow-accent-info/5',
+                        inactive: 'border-border/50 hover:border-border hover:bg-surface-2/20',
+                        icon: 'text-accent-info',
                       },
                       amber: {
                         active: 'border-amber-500/60 bg-amber-500/10 shadow-sm shadow-amber-500/5',
-                        inactive: 'border-slate-700/50 hover:border-slate-600 hover:bg-slate-700/20',
+                        inactive: 'border-border/50 hover:border-border hover:bg-surface-2/20',
                         icon: 'text-amber-400',
                       },
                       emerald: {
-                        active: 'border-emerald-500/60 bg-emerald-500/10 shadow-sm shadow-emerald-500/5',
-                        inactive: 'border-slate-700/50 hover:border-slate-600 hover:bg-slate-700/20',
-                        icon: 'text-emerald-400',
+                        active: 'border-emerald-500/60 bg-success/10 shadow-sm shadow-emerald-500/5',
+                        inactive: 'border-border/50 hover:border-border hover:bg-surface-2/20',
+                        icon: 'text-success',
                       },
                     };
                     const colors = colorMap[mode.color];
@@ -276,9 +276,9 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                           onChange={() => setBackupMode(mode.value)}
                           className="sr-only"
                         />
-                        <i className={`fas ${mode.icon} text-base ${isActive ? colors.icon : 'text-slate-500'}`}></i>
-                        <span className={`text-xs font-medium ${isActive ? 'text-slate-100' : 'text-slate-400'}`}>{mode.label}</span>
-                        <span className="text-[10px] text-slate-500">{mode.desc}</span>
+                        <i className={`fas ${mode.icon} text-base ${isActive ? colors.icon : 'text-ink-faint'}`}></i>
+                        <span className={`text-xs font-medium ${isActive ? 'text-ink' : 'text-ink-muted'}`}>{mode.label}</span>
+                        <span className="text-[10px] text-ink-faint">{mode.desc}</span>
                       </label>
                     );
                   })}
@@ -286,12 +286,12 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
               </div>
 
               {/* Options */}
-              <div className="bg-slate-900/30 rounded-lg border border-slate-700/30 p-3 space-y-2">
+              <div className="bg-canvas/30 rounded-lg border border-border/30 p-3 space-y-2">
                 <label className="flex items-center gap-2.5 cursor-pointer group">
                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                    includeDrop ? 'bg-blue-600 border-blue-500' : 'border-slate-600 group-hover:border-slate-500'
+                    includeDrop ? 'bg-accent border-accent-info' : 'border-border group-hover:border-border'
                   }`}>
-                    {includeDrop && <i className="fas fa-check text-white text-[8px]"></i>}
+                    {includeDrop && <i className="fas fa-check text-ink-inverse text-[8px]"></i>}
                     <input
                       type="checkbox"
                       checked={includeDrop}
@@ -299,13 +299,13 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                       className="sr-only"
                     />
                   </div>
-                  <span className="text-sm text-slate-300">{t.database.dialog.backup.includeDropTable}</span>
+                  <span className="text-sm text-ink-muted">{t.database.dialog.backup.includeDropTable}</span>
                 </label>
                 <label className="flex items-center gap-2.5 cursor-pointer group">
                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                    includeIfNotExists ? 'bg-blue-600 border-blue-500' : 'border-slate-600 group-hover:border-slate-500'
+                    includeIfNotExists ? 'bg-accent border-accent-info' : 'border-border group-hover:border-border'
                   }`}>
-                    {includeIfNotExists && <i className="fas fa-check text-white text-[8px]"></i>}
+                    {includeIfNotExists && <i className="fas fa-check text-ink-inverse text-[8px]"></i>}
                     <input
                       type="checkbox"
                       checked={includeIfNotExists}
@@ -313,7 +313,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                       className="sr-only"
                     />
                   </div>
-                  <span className="text-sm text-slate-300">{t.database.dialog.backup.includeIfNotExists}</span>
+                  <span className="text-sm text-ink-muted">{t.database.dialog.backup.includeIfNotExists}</span>
                 </label>
               </div>
             </>
@@ -322,18 +322,18 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
 
         {/* Footer */}
         {!backupResult && (
-          <div className="p-4 border-t border-slate-700 flex justify-end gap-2">
+          <div className="p-4 border-t border-border flex justify-end gap-2">
             <button
               onClick={onClose}
               disabled={backingUp}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors disabled:opacity-50"
             >
               {t.common.cancel}
             </button>
             <button
               onClick={handleBackup}
               disabled={backingUp || tables.filter((t) => t.selected).length === 0}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {backingUp && <i className="fas fa-spinner fa-spin text-xs"></i>}
               <i className="fas fa-archive"></i>

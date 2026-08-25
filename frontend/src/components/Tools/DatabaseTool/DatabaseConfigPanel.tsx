@@ -135,12 +135,12 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-700">
-        <div className="flex justify-between items-center p-6 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-100">
+      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border">
+        <div className="flex justify-between items-center p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-ink">
             {editConfigId ? t.database.editConnection : t.database.addConnection}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink transition-colors">
             <i className="fas fa-times text-xl"></i>
           </button>
         </div>
@@ -150,23 +150,23 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
             
             {/* Alias & Environment */}
             <div className="sm:col-span-4">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.alias}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.alias}</label>
               <input
                 type="text"
                 name="alias"
                 required
                 value={formData.alias}
                 onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.env}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.env}</label>
               <select
                 name="environment"
                 value={formData.environment}
                 onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
               >
                 {Object.values(Environment).map(env => (
                   <option key={env} value={env}>{env.toUpperCase()}</option>
@@ -176,12 +176,12 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
 
             {/* DB Type */}
             <div className="sm:col-span-6">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.type}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.type}</label>
               <select
                 name="db_type"
                 value={formData.db_type}
                 onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
               >
                 {Object.values(DatabaseType).map(type => (
                   <option key={type} value={type}>{type.toUpperCase()}</option>
@@ -191,55 +191,55 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
 
             {/* Host & Port */}
             <div className="sm:col-span-4">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.host}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.host}</label>
               <input
                 type="text"
                 name="host"
                 required
                 value={formData.host}
                 onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.port}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.port}</label>
               <input
                 type="number"
                 name="port"
                 required
                 value={formData.port}
                 onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
               />
             </div>
 
             {/* Database Name */}
             <div className="sm:col-span-6">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.database}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.database}</label>
               <input
                 type="text"
                 name="database_name"
                 placeholder="Optional (Leave empty to list all databases)"
                 value={formData.database_name}
                 onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
               />
             </div>
 
             {/* Username & Password */}
             <div className="sm:col-span-3">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.username}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.username}</label>
               <input
                 type="text"
                 name="username"
                 required
                 value={formData.username}
                 onChange={handleChange}
-                className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
               />
             </div>
             <div className="sm:col-span-3">
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.database.config.password}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.password}</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -248,7 +248,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
                   required={!editConfigId}
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full bg-slate-900 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all"
+                  className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
                 />
                 {editConfigId && (
                   <button
@@ -265,7 +265,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
                         setShowPassword(false);
                       }
                     }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
                     title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
                     <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -276,13 +276,13 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
 
           </div>
 
-          <div className="flex justify-between pt-5 border-t border-slate-700">
+          <div className="flex justify-between pt-5 border-t border-border">
              {editConfigId ? (
                <button
                  type="button"
                  onClick={handleDelete}
                  disabled={loading}
-                 className="bg-red-500/10 text-red-400 border border-red-500/50 px-4 py-2 rounded-md text-sm font-medium hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                 className="bg-danger/10 text-danger border border-red-500/50 px-4 py-2 rounded-md text-sm font-medium hover:bg-danger/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                >
                  {t.common.delete}
                </button>
@@ -293,7 +293,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
                   type="button"
                   onClick={handleTestConnection}
                   disabled={testing || loading}
-                  className="bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
+                  className="bg-surface-2 border border-border text-ink px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border transition-colors"
                 >
                   {testing ? t.database.status.testing : t.database.testConnection}
                 </button>
@@ -301,14 +301,14 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
                   type="button"
                   onClick={onClose}
                   disabled={loading}
-                  className="bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
+                  className="bg-surface-2 border border-border text-ink px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border transition-colors"
                 >
                   {t.common.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-blue-600 border border-transparent text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  className="bg-accent border border-transparent text-ink-inverse px-4 py-2 rounded-md text-sm font-medium hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors"
                 >
                   {loading ? t.common.loading : t.common.save}
                 </button>

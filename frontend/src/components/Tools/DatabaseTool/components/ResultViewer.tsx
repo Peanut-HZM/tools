@@ -362,7 +362,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   if (!result) {
     return (
-      <div className="h-full flex items-center justify-center text-slate-500 bg-slate-800 rounded-md border border-dashed border-slate-700 flex-col gap-2">
+      <div className="h-full flex items-center justify-center text-ink-faint bg-surface-1 rounded-md border border-dashed border-border flex-col gap-2">
         <i className="fas fa-table text-2xl opacity-50"></i>
         <span className="text-sm">{t.database.executor.noResults}</span>
       </div>
@@ -373,7 +373,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
     return (
       <div className="h-full flex flex-col bg-red-900/20 border border-red-800/50 rounded-md overflow-hidden">
         <div className="px-4 py-2 border-b border-red-800/30 flex items-center justify-between">
-          <h3 className="text-red-400 font-medium flex items-center gap-2">
+          <h3 className="text-danger font-medium flex items-center gap-2">
             <i className="fas fa-exclamation-circle"></i>
             {t.common.error}
           </h3>
@@ -441,9 +441,9 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   if (columns.length === 0) {
     return (
-      <div className="h-full p-4 bg-slate-800 border border-slate-700 rounded-md flex flex-col items-center justify-center">
-         <div className="text-slate-400">{t.database.executor.noResults}</div>
-         <div className="mt-2 text-xs text-slate-500">
+      <div className="h-full p-4 bg-surface-1 border border-border rounded-md flex flex-col items-center justify-center">
+         <div className="text-ink-muted">{t.database.executor.noResults}</div>
+         <div className="mt-2 text-xs text-ink-faint">
           {interpolate(t.database.executor.duration, { time: result.execution_time_ms.toFixed(2) })}
         </div>
       </div>
@@ -471,7 +471,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
             : handleCellChange(idx, col, e.target.value)}
           onBlur={finishEdit}
           onKeyDown={(e) => { if (e.key === 'Enter') finishEdit(); }}
-          className="w-full bg-slate-700 border border-blue-500 rounded px-1 py-0.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full bg-surface-2 border border-accent-info rounded px-1 py-0.5 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
           autoFocus
         />
       );
@@ -488,7 +488,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         title={primaryKey && primaryKey.length > 0 && !isNewRow ? '双击编辑' : undefined}
       >
         {displayValue === null ? (
-          <span className="text-slate-600 italic">NULL</span>
+          <span className="text-ink-faint italic">NULL</span>
         ) : (
           <TruncatedText text={formatCellValue(displayValue, colDef)} />
         )}
@@ -497,18 +497,18 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-800 border border-slate-700 rounded-md shadow-sm overflow-hidden">
-      <div className="bg-slate-900/50 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
-        <span className="text-xs font-medium text-slate-400 flex gap-4 items-center">
+    <div className="h-full flex flex-col bg-surface-1 border border-border rounded-md shadow-sm overflow-hidden">
+      <div className="bg-canvas/50 px-4 py-2 border-b border-border flex justify-between items-center">
+        <span className="text-xs font-medium text-ink-muted flex gap-4 items-center">
           <span>{interpolate(t.database.executor.affectedRows, { count: String(result.affected_rows || 0) })}</span>
           <span>{interpolate(t.database.executor.duration, { time: result.execution_time_ms.toFixed(2) })}</span>
           {selectedIndices.size > 0 && (
-             <span className="text-blue-400 border-l border-slate-600 pl-4">{interpolate(t.database.executor.selectedCount, { count: String(selectedIndices.size) })}</span>
+             <span className="text-accent-info border-l border-border pl-4">{interpolate(t.database.executor.selectedCount, { count: String(selectedIndices.size) })}</span>
           )}
           <div className="flex gap-2 ml-2">
             <button 
               onClick={handleCopyInsert}
-              className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded flex items-center gap-1 transition-colors"
+              className="px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors"
               title={t.database.executor.copyInsert}
             >
               <i className={`fas ${copyFeedback === 'insert' ? 'fa-check text-green-400' : 'fa-copy'}`}></i>
@@ -517,7 +517,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
             <button 
               onClick={handleCopyUpdate}
               disabled={!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0}
-              className={`px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded flex items-center gap-1 transition-colors ${(!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors ${(!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
               title={selectedIndices.size === 0 
                 ? t.database.executor.noDataSelected 
                 : (!primaryKey || primaryKey.length === 0) 
@@ -529,7 +529,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
             </button>
              <button 
                onClick={handleBatchViewJson}
-               className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded flex items-center gap-1 transition-colors"
+               className="px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors"
                title={selectedIndices.size === 0 ? t.database.executor.viewJson : (t.database.executor.viewSelectedJson || t.database.executor.viewJson)}
              >
                <i className="fas fa-code"></i>
@@ -548,8 +548,8 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 disabled={!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0}
                 className={`px-2 py-1 text-xs rounded flex items-center gap-1 transition-colors ${
                   (!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0)
-                    ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
-                    : 'bg-red-600/80 hover:bg-red-600 text-white'
+                    ? 'bg-surface-2/50 text-ink-faint cursor-not-allowed'
+                    : 'bg-red-600/80 hover:bg-red-600 text-ink-inverse'
                 }`}
                 title={selectedIndices.size === 0
                   ? t.database.executor.noDataSelected
@@ -565,7 +565,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
               <>
                 <button
                   onClick={handleAddRow}
-                  className="px-2 py-1 bg-green-700/80 hover:bg-green-600 text-white text-xs rounded flex items-center gap-1 transition-colors"
+                  className="px-2 py-1 bg-green-700/80 hover:bg-green-600 text-ink-inverse text-xs rounded flex items-center gap-1 transition-colors"
                   title={t.database.executor.addRow}
                 >
                   <i className="fas fa-plus"></i>
@@ -573,7 +573,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 </button>
                 <button
                   onClick={() => setShowTruncateConfirm(true)}
-                  className="px-2 py-1 bg-red-700/80 hover:bg-red-600 text-white text-xs rounded flex items-center gap-1 transition-colors"
+                  className="px-2 py-1 bg-red-700/80 hover:bg-red-600 text-ink-inverse text-xs rounded flex items-center gap-1 transition-colors"
                   title="清空表数据"
                 >
                   <i className="fas fa-trash-alt"></i>
@@ -584,7 +584,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     <button
                       onClick={handleSave}
                       disabled={saving}
-                      className="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+                      className="px-2 py-1 bg-accent hover:bg-accent-hover text-ink-inverse text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
                       title={t.database.executor.saveChanges}
                     >
                       <i className={`fas ${saving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
@@ -593,7 +593,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     <button
                       onClick={handleDiscardChanges}
                       disabled={saving}
-                      className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+                      className="px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
                       title={t.database.executor.discardChanges}
                     >
                       <i className="fas fa-undo"></i>
@@ -608,7 +608,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
       </div>
       <div className="flex-1 overflow-auto">
         <table className="min-w-full divide-y divide-slate-700">
-          <thead className="bg-slate-900/80 sticky top-0 z-10">
+          <thead className="bg-canvas/80 sticky top-0 z-10">
             <tr>
               {enableSelection && (
                 <th scope="col" className="px-4 py-3 text-left w-10">
@@ -617,12 +617,12 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     checked={isAllSelected}
                     ref={input => { if (input) input.indeterminate = !!isIndeterminate; }}
                     onChange={handleSelectAll}
-                    className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+                    className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas"
                   />
                 </th>
               )}
               {enableSelection && (
-                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase w-16">
+                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase w-16">
                     Action
                  </th>
               )}
@@ -634,7 +634,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                    <th
                      key={col}
                      scope="col"
-                     className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap group relative"
+                     className="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider whitespace-nowrap group relative"
                      title={comment || undefined}
                    >
                      <div>
@@ -642,7 +642,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                        {primaryKey?.includes(col) && <i className="fas fa-key text-yellow-500/70 ml-1 text-[10px]" title="Primary Key"></i>}
                      </div>
                      {comment && (
-                       <div className="text-[10px] text-slate-600 font-normal normal-case tracking-normal mt-0.5 truncate">
+                       <div className="text-[10px] text-ink-faint font-normal normal-case tracking-normal mt-0.5 truncate">
                          {comment}
                        </div>
                      )}
@@ -651,7 +651,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                })}
             </tr>
           </thead>
-          <tbody className="bg-slate-800 divide-y divide-slate-700">
+          <tbody className="bg-surface-1 divide-y divide-slate-700">
             {/* New rows */}
             {newRows.map((newRow, newRowIdx) => (
               <tr key={`new-${newRowIdx}`} className="bg-green-900/10 hover:bg-green-900/20 transition-colors">
@@ -664,7 +664,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                   <td className="px-4 py-2 w-16">
                     <button
                       onClick={() => handleRemoveNewRow(newRowIdx)}
-                      className="text-slate-400 hover:text-red-400 transition-colors p-1"
+                      className="text-ink-muted hover:text-danger transition-colors p-1"
                       title="Remove row"
                     >
                       <i className="fas fa-times"></i>
@@ -672,7 +672,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                   </td>
                 )}
                 {effectiveVisibleColumns.map((col) => (
-                  <td key={`new-${newRowIdx}-${col}`} className="px-6 py-2 whitespace-nowrap text-sm text-slate-300 max-w-xs">
+                  <td key={`new-${newRowIdx}-${col}`} className="px-6 py-2 whitespace-nowrap text-sm text-ink-muted max-w-xs">
                     {renderCell(newRow, 0, col, true, newRowIdx)}
                   </td>
                 ))}
@@ -681,14 +681,14 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
             {/* Existing rows */}
             {result.result_data?.map((row, idx) => (
-              <tr key={idx} className={`hover:bg-slate-700/50 transition-colors ${selectedIndices.has(idx) ? 'bg-blue-900/10' : ''}`}>
+              <tr key={idx} className={`hover:bg-surface-2/50 transition-colors ${selectedIndices.has(idx) ? 'bg-accent-info/10' : ''}`}>
                 {enableSelection && (
                   <td className="px-4 py-4 w-10">
                     <input
                       type="checkbox"
                       checked={selectedIndices.has(idx)}
                       onChange={() => handleSelectRow(idx)}
-                      className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+                      className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas"
                     />
                   </td>
                 )}
@@ -696,7 +696,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                    <td className="px-4 py-4 w-16">
                       <button
                         onClick={() => setViewingRow(row)}
-                        className="text-slate-400 hover:text-blue-400 transition-colors p-1"
+                        className="text-ink-muted hover:text-accent-info transition-colors p-1"
                         title="View JSON"
                       >
                         <i className="fas fa-eye"></i>
@@ -706,7 +706,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 {effectiveVisibleColumns.map((col) => {
                   const isDirty = cellEdits.has(getEditKey(idx, col));
                   return (
-                    <td key={`${idx}-${col}`} className={`px-6 py-4 whitespace-nowrap text-sm max-w-xs ${isDirty ? 'bg-yellow-900/20' : 'text-slate-300'}`}>
+                    <td key={`${idx}-${col}`} className={`px-6 py-4 whitespace-nowrap text-sm max-w-xs ${isDirty ? 'bg-yellow-900/20' : 'text-ink-muted'}`}>
                       {renderCell(row, idx, col, false)}
                     </td>
                   );
@@ -726,29 +726,29 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-slate-700 flex items-center gap-3">
-              <i className="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
-              <h3 className="text-lg font-semibold text-slate-100">{t.database.batchDelete.confirmTitle}</h3>
+          <div className="bg-surface-1 border border-border rounded-lg shadow-md max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-border flex items-center gap-3">
+              <i className="fas fa-exclamation-triangle text-accent-warning text-xl"></i>
+              <h3 className="text-lg font-semibold text-ink">{t.database.batchDelete.confirmTitle}</h3>
             </div>
 
             <div className="px-6 py-4 space-y-3">
-              <p className="text-slate-300">
+              <p className="text-ink-muted">
                 {interpolate(t.database.batchDelete.confirmMessage, { count: String(selectedIndices.size) })}
               </p>
 
-              <div className="bg-slate-900 rounded p-3 space-y-2 text-sm">
+              <div className="bg-canvas rounded p-3 space-y-2 text-sm">
                 <div className="flex gap-2">
-                  <span className="text-slate-500 min-w-[60px]">{t.database.batchDelete.table}:</span>
-                  <span className="text-slate-200">{tableName}</span>
+                  <span className="text-ink-faint min-w-[60px]">{t.database.batchDelete.table}:</span>
+                  <span className="text-ink">{tableName}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="text-slate-500 min-w-[60px]">{t.database.batchDelete.primaryKey}:</span>
-                  <span className="text-slate-200">{primaryKey?.join(', ')}</span>
+                  <span className="text-ink-faint min-w-[60px]">{t.database.batchDelete.primaryKey}:</span>
+                  <span className="text-ink">{primaryKey?.join(', ')}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="text-slate-500 min-w-[60px]">{t.database.batchDelete.condition}:</span>
-                  <span className="text-slate-200 font-mono text-xs break-all">
+                  <span className="text-ink-faint min-w-[60px]">{t.database.batchDelete.condition}:</span>
+                  <span className="text-ink font-mono text-xs break-all">
                     {(() => {
                       const rows = getSelectedRows();
                       if (primaryKey && primaryKey.length === 1) {
@@ -767,18 +767,18 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded text-sm disabled:opacity-50"
               >
                 {t.database.batchDelete.cancelButton}
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {deleting && <i className="fas fa-spinner fa-spin"></i>}
                 {t.database.batchDelete.deleteButton}
@@ -790,34 +790,34 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
       {showTruncateConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-slate-700 flex items-center gap-3">
-              <i className="fas fa-exclamation-triangle text-red-400 text-xl"></i>
-              <h3 className="text-lg font-semibold text-slate-100">确认清空表</h3>
+          <div className="bg-surface-1 border border-border rounded-lg shadow-md max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-border flex items-center gap-3">
+              <i className="fas fa-exclamation-triangle text-danger text-xl"></i>
+              <h3 className="text-lg font-semibold text-ink">确认清空表</h3>
             </div>
 
             <div className="px-6 py-4 space-y-3">
-              <p className="text-slate-300">
-                确定要清空表 <span className="font-mono text-yellow-400">{tableName}</span> 的所有数据吗？
+              <p className="text-ink-muted">
+                确定要清空表 <span className="font-mono text-accent-warning">{tableName}</span> 的所有数据吗？
               </p>
-              <p className="text-red-400 text-sm">
+              <p className="text-danger text-sm">
                 <i className="fas fa-exclamation-circle mr-1"></i>
                 此操作不可撤销，表中的所有数据将被删除。
               </p>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
               <button
                 onClick={() => setShowTruncateConfirm(false)}
                 disabled={truncating}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded text-sm disabled:opacity-50"
               >
                 取消
               </button>
               <button
                 onClick={handleTruncate}
                 disabled={truncating}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {truncating && <i className="fas fa-spinner fa-spin"></i>}
                 确认清空

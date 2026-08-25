@@ -216,22 +216,22 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900">
+    <div className="flex flex-col h-full bg-canvas">
       {/* Header / Toolbar */}
-      <div className="p-4 border-b border-slate-700 bg-slate-800 space-y-4">
+      <div className="p-4 border-b border-border bg-surface-1 space-y-4">
         <div className="flex items-center justify-between">
-           <div className="flex items-center space-x-2 text-slate-100">
-              <i className="fas fa-table text-blue-400"></i>
+           <div className="flex items-center space-x-2 text-ink">
+              <i className="fas fa-table text-accent-info"></i>
               <span className="font-semibold">{tableName}</span>
-              {schemaName && <span className="text-slate-500 text-sm">({schemaName}{databaseName ? `.${databaseName}` : ''})</span>}
-              {!schemaName && databaseName && <span className="text-slate-500 text-sm">({databaseName})</span>}
+              {schemaName && <span className="text-ink-faint text-sm">({schemaName}{databaseName ? `.${databaseName}` : ''})</span>}
+              {!schemaName && databaseName && <span className="text-ink-faint text-sm">({databaseName})</span>}
            </div>
            
            <div className="flex items-center space-x-2">
              <button
                onClick={handleExecute}
                disabled={loading}
-               className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-1"
+               className="bg-accent text-ink-inverse px-3 py-1.5 rounded text-sm hover:bg-accent-hover disabled:opacity-50 flex items-center space-x-1"
              >
                <i className="fas fa-play text-xs"></i>
                <span>Run</span>
@@ -239,7 +239,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              <button
                onClick={handleRefresh}
                disabled={loading}
-               className="bg-slate-700 text-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-600 disabled:opacity-50"
+               className="bg-surface-2 text-ink-muted px-3 py-1.5 rounded text-sm hover:bg-surface-3 disabled:opacity-50"
              >
                <i className="fas fa-sync-alt"></i>
              </button>
@@ -248,7 +248,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              <button
                onClick={handleQuickExport}
                disabled={exporting || !result?.success}
-               className="bg-slate-700 text-slate-300 px-3 py-1.5 rounded text-sm hover:bg-slate-600 disabled:opacity-50 flex items-center space-x-1"
+               className="bg-surface-2 text-ink-muted px-3 py-1.5 rounded text-sm hover:bg-surface-3 disabled:opacity-50 flex items-center space-x-1"
                title={t.database.export.quickExport}
              >
                {exporting ? (
@@ -263,15 +263,15 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                <button
                  onClick={() => setShowExportMenu(!showExportMenu)}
                  disabled={exporting || !result?.success}
-                 className="bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-sm hover:bg-slate-600 disabled:opacity-50"
+                 className="bg-surface-2 text-ink-muted px-2 py-1.5 rounded text-sm hover:bg-surface-3 disabled:opacity-50"
                  title={t.database.export.advancedExport}
                >
                  <i className="fas fa-chevron-down text-xs"></i>
                </button>
 
                {showExportMenu && (
-                 <div className="absolute right-0 mt-1 w-32 bg-slate-800 rounded shadow-lg border border-slate-600 py-1 z-50">
-                   <div className="px-3 py-1 text-xs text-slate-500 border-b border-slate-700">
+                 <div className="absolute right-0 mt-1 w-32 bg-surface-1 rounded shadow-lg border border-border py-1 z-50">
+                   <div className="px-3 py-1 text-xs text-ink-faint border-b border-border">
                      {t.database.export.format}
                    </div>
                    {(['csv', 'excel', 'json', 'sql'] as const).map((fmt) => (
@@ -279,7 +279,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                        key={fmt}
                        onClick={(e) => { e.stopPropagation(); handleExport(fmt); }}
                        disabled={exporting}
-                       className="block w-full text-left px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50"
+                       className="block w-full text-left px-3 py-1.5 text-sm text-ink-muted hover:bg-surface-2 hover:text-ink-inverse disabled:opacity-50"
                      >
                        {fmt.toUpperCase()}
                      </button>
@@ -293,7 +293,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
         <div className="grid grid-cols-2 gap-4">
           {/* WHERE Clause Input */}
           <div className="relative">
-            <label className="absolute -top-2.5 left-2 bg-slate-800 px-1 text-xs text-slate-400">
+            <label className="absolute -top-2.5 left-2 bg-surface-1 px-1 text-xs text-ink-muted">
               WHERE (e.g. id = 1)
             </label>
             <input
@@ -301,14 +301,14 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
               value={whereClause}
               onChange={(e) => setWhereClause(e.target.value)}
               placeholder={getFieldsPlaceholder()}
-              className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+              className="w-full bg-canvas border border-border rounded p-2 text-sm text-ink focus:border-accent focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && handleExecute()}
             />
           </div>
 
           {/* ORDER BY Clause Input */}
           <div className="relative">
-            <label className="absolute -top-2.5 left-2 bg-slate-800 px-1 text-xs text-slate-400">
+            <label className="absolute -top-2.5 left-2 bg-surface-1 px-1 text-xs text-ink-muted">
               ORDER BY (e.g. id desc)
             </label>
             <input
@@ -316,7 +316,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
               value={orderByClause}
               onChange={(e) => setOrderByClause(e.target.value)}
               placeholder={getFieldsPlaceholder(true)}
-              className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+              className="w-full bg-canvas border border-border rounded p-2 text-sm text-ink focus:border-accent focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && handleExecute()}
             />
           </div>
@@ -326,7 +326,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       {/* Result Area */}
       <div className="flex-1 overflow-hidden p-4">
         {loading && !result ? (
-           <div className="h-full flex items-center justify-center text-slate-500">
+           <div className="h-full flex items-center justify-center text-ink-faint">
               <i className="fas fa-spinner fa-spin text-2xl mr-2"></i>
               Loading...
            </div>
@@ -345,7 +345,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       </div>
 
       {/* Pagination Footer */}
-      <div className="p-2 border-t border-slate-700 bg-slate-800 flex items-center justify-between text-sm text-slate-400">
+      <div className="p-2 border-t border-border bg-surface-1 flex items-center justify-between text-sm text-ink-muted">
           <div className="flex items-center space-x-2">
              <span>Page size:</span>
              <select
@@ -356,7 +356,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                    setPage(1);
                    fetchData(1, newPageSize);
                }}
-               className="bg-slate-900 border border-slate-600 rounded px-2 py-1 focus:outline-none"
+               className="bg-canvas border border-border rounded px-2 py-1 focus:outline-none"
              >
                <option value={10}>10</option>
                <option value={20}>20</option>
@@ -369,7 +369,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              <button
                disabled={page <= 1 || loading}
                onClick={() => handlePageChange(page - 1)}
-               className="hover:text-white disabled:opacity-30"
+               className="hover:text-ink-inverse disabled:opacity-30"
              >
                <i className="fas fa-chevron-left"></i> Previous
              </button>
@@ -383,7 +383,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                // We might want to improve `SQLExecutionResult` or return a different structure.
                // For now, let's just allow Next unless we got 0 rows or less than page size.
                onClick={() => handlePageChange(page + 1)}
-               className="hover:text-white disabled:opacity-30"
+               className="hover:text-ink-inverse disabled:opacity-30"
              >
                Next <i className="fas fa-chevron-right"></i>
              </button>

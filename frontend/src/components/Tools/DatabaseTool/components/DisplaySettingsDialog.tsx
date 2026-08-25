@@ -20,10 +20,10 @@ interface DisplaySettingsDialogProps {
 /** 获取环境标签颜色 */
 function getEnvBadgeClass(env?: Environment): string {
   switch (env) {
-    case Environment.PROD: return 'bg-red-900/30 text-red-400 border border-red-800/50';
-    case Environment.TEST: return 'bg-yellow-900/30 text-yellow-400 border border-yellow-800/50';
+    case Environment.PROD: return 'bg-red-900/30 text-danger border border-red-800/50';
+    case Environment.TEST: return 'bg-yellow-900/30 text-accent-warning border border-yellow-800/50';
     case Environment.DEV: return 'bg-green-900/30 text-green-400 border border-green-800/50';
-    default: return 'bg-slate-700 text-slate-400 border border-slate-600';
+    default: return 'bg-surface-2 text-ink-muted border border-border';
   }
 }
 
@@ -233,19 +233,19 @@ export default function DisplaySettingsDialog({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
       <div
-        className="bg-slate-800 rounded-lg shadow-xl w-full max-w-lg border border-slate-700 flex flex-col max-h-[85vh]"
+        className="bg-surface-1 rounded-lg shadow-md w-full max-w-lg border border-border flex flex-col max-h-[85vh]"
         role="dialog"
         aria-label="显示设置"
       >
         {/* 标题栏 */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-700">
-          <h3 className="text-lg font-medium text-slate-100">
-            <i className="fas fa-cog mr-2 text-slate-400"></i>
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h3 className="text-lg font-medium text-ink">
+            <i className="fas fa-cog mr-2 text-ink-muted"></i>
             显示设置
           </h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors p-1"
+            className="text-ink-muted hover:text-ink transition-colors p-1"
             aria-label="关闭"
           >
             <i className="fas fa-times"></i>
@@ -255,13 +255,13 @@ export default function DisplaySettingsDialog({
         {/* 搜索框 */}
         <div className="px-4 pt-3">
           <div className="relative">
-            <i className="fas fa-search absolute left-3 top-2.5 text-slate-500 text-sm"></i>
+            <i className="fas fa-search absolute left-3 top-2.5 text-ink-faint text-sm"></i>
             <input
               type="text"
               placeholder="搜索连接名称或主机..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-md py-2 pl-9 pr-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-canvas border border-border rounded-md py-2 pl-9 pr-3 text-sm text-ink placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
               aria-label="搜索连接"
             />
           </div>
@@ -270,24 +270,24 @@ export default function DisplaySettingsDialog({
         {/* 连接列表 */}
         <div className="flex-1 overflow-y-auto p-4 pt-2 space-y-1">
           {/* 全选 */}
-          <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-slate-700/50">
+          <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-border/50">
             <input
               type="checkbox"
               id="select-all-conn"
               checked={allSelected}
               onChange={toggleSelectAll}
-              className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+              className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas"
             />
-            <label htmlFor="select-all-conn" className="text-sm font-medium text-slate-300 cursor-pointer select-none">
+            <label htmlFor="select-all-conn" className="text-sm font-medium text-ink-muted cursor-pointer select-none">
               全选
             </label>
-            <span className="text-xs text-slate-500 ml-auto">
+            <span className="text-xs text-ink-faint ml-auto">
               {selectedConnections.size} / {configs.length}
             </span>
           </div>
 
           {filteredConfigs.length === 0 ? (
-            <div className="text-center text-slate-500 py-8 text-sm">
+            <div className="text-center text-ink-faint py-8 text-sm">
               <i className="fas fa-search mb-2 block text-lg opacity-50"></i>
               未找到匹配的连接
             </div>
@@ -308,15 +308,15 @@ export default function DisplaySettingsDialog({
                     className={`
                       flex items-center gap-2 px-2 py-2 rounded-md cursor-pointer transition-colors duration-200
                       ${isConnSelected
-                        ? 'bg-blue-500/10 border border-blue-500/30'
-                        : 'hover:bg-slate-700/50 border border-transparent'
+                        ? 'bg-accent-info/10 border border-accent-info/30'
+                        : 'hover:bg-surface-2/50 border border-transparent'
                       }
                     `}
                   >
                     {/* 展开箭头 */}
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleExpand(config.id); }}
-                      className="text-slate-500 hover:text-slate-300 transition-colors p-0.5"
+                      className="text-ink-faint hover:text-ink-muted transition-colors p-0.5"
                       aria-label={isExpanded ? '收起' : '展开'}
                     >
                       <i
@@ -329,11 +329,11 @@ export default function DisplaySettingsDialog({
                       type="checkbox"
                       checked={isConnSelected}
                       onChange={() => toggleConnection(config.id)}
-                      className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 cursor-pointer"
+                      className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas cursor-pointer"
                     />
 
                     {/* 连接信息 */}
-                    <span className="text-sm text-slate-300 flex-1 truncate">{config.alias}</span>
+                    <span className="text-sm text-ink-muted flex-1 truncate">{config.alias}</span>
 
                     {/* 环境标签 */}
                     {config.environment && (
@@ -347,7 +347,7 @@ export default function DisplaySettingsDialog({
                   {isExpanded && (
                     <div className="ml-8 mt-1 mb-1 space-y-0.5">
                       {isLoading ? (
-                        <div className="py-2 text-xs text-slate-500">
+                        <div className="py-2 text-xs text-ink-faint">
                           <i className="fas fa-spinner fa-spin mr-1"></i>
                           加载中...
                         </div>
@@ -361,12 +361,12 @@ export default function DisplaySettingsDialog({
                               checked={allDbsSelected}
                               ref={input => { if (input) input.indeterminate = someDbsSelected && !allDbsSelected; }}
                               onChange={() => toggleAllDatabases(config.id, allDbs)}
-                              className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                              className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas"
                             />
-                            <label htmlFor={`db-all-${config.id}`} className="text-xs text-slate-400 cursor-pointer select-none">
+                            <label htmlFor={`db-all-${config.id}`} className="text-xs text-ink-muted cursor-pointer select-none">
                               全选
                             </label>
-                            <span className="text-xs text-slate-600 ml-auto">
+                            <span className="text-xs text-ink-faint ml-auto">
                               {connDbSelection?.size || 0} / {allDbs.length}
                             </span>
                           </div>
@@ -375,22 +375,22 @@ export default function DisplaySettingsDialog({
                           {allDbs.map(db => (
                             <div
                               key={db}
-                              className="flex items-center space-x-2 px-2 py-1 rounded hover:bg-slate-700/30 cursor-pointer transition-colors"
+                              className="flex items-center space-x-2 px-2 py-1 rounded hover:bg-surface-2/30 cursor-pointer transition-colors"
                               onClick={() => toggleDatabase(config.id, db)}
                             >
                               <input
                                 type="checkbox"
                                 checked={connDbSelection?.has(db) || false}
                                 onChange={() => {}}
-                                className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 pointer-events-none"
+                                className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas pointer-events-none"
                               />
-                              <span className="text-xs text-slate-400 truncate flex-1">{db}</span>
-                              <i className="fas fa-database text-slate-600 text-xs"></i>
+                              <span className="text-xs text-ink-muted truncate flex-1">{db}</span>
+                              <i className="fas fa-database text-ink-faint text-xs"></i>
                             </div>
                           ))}
                         </>
                       ) : (
-                        <div className="py-2 text-xs text-slate-500">
+                        <div className="py-2 text-xs text-ink-faint">
                           暂无数据库
                         </div>
                       )}
@@ -403,11 +403,11 @@ export default function DisplaySettingsDialog({
         </div>
 
         {/* 底部按钮 */}
-        <div className="p-4 border-t border-slate-700 flex justify-between items-center bg-slate-800/50">
+        <div className="p-4 border-t border-border flex justify-between items-center bg-surface-1/50">
           <button
             onClick={handleReset}
             disabled={saving}
-            className="px-3 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+            className="px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse transition-colors disabled:opacity-50 cursor-pointer"
           >
             <i className="fas fa-undo mr-1"></i>
             重置
@@ -416,14 +416,14 @@ export default function DisplaySettingsDialog({
             <button
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700 rounded-md transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded-md transition-colors disabled:opacity-50"
             >
               {t.common.cancel}
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-ink-inverse bg-accent hover:bg-accent-hover rounded-md shadow-sm transition-colors disabled:opacity-50"
             >
               {saving ? (
                 <>

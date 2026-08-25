@@ -437,7 +437,7 @@ export default function HttpApiClient() {
             <span className="hidden sm:inline">返回</span>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-500 rounded flex items-center justify-center">
+            <div className="w-8 h-8 bg-accent-secondary rounded flex items-center justify-center">
               <i className="fas fa-plug text-ink-inverse text-sm"></i>
             </div>
             <h1 className="text-lg font-bold">HTTP API 客户端</h1>
@@ -473,7 +473,7 @@ export default function HttpApiClient() {
 
           {/* 新建请求按钮 */}
           <button
-            className="bg-purple-500 hover:bg-purple-600 text-ink-inverse px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            className="bg-accent-secondary hover:bg-accent-secondary text-ink-inverse px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
             onClick={() => setShowNewRequestForm(true)}
           >
             <i className="fas fa-plus mr-1"></i>
@@ -545,7 +545,7 @@ export default function HttpApiClient() {
 
         {/* 拖拽手柄 - 调整侧边栏 */}
         <div
-          className="w-1 bg-surface-2 hover:bg-purple-500 cursor-col-resize flex-shrink-0 transition-colors"
+          className="w-1 bg-surface-2 hover:bg-accent-secondary cursor-col-resize flex-shrink-0 transition-colors"
           onMouseDown={handleSidebarResize}
         ></div>
 
@@ -592,7 +592,7 @@ export default function HttpApiClient() {
       {currentResponse && (
         <>
           <div
-            className="h-2 bg-surface-2 hover:bg-purple-500 cursor-row-resize flex-shrink-0 transition-colors"
+            className="h-2 bg-surface-2 hover:bg-accent-secondary cursor-row-resize flex-shrink-0 transition-colors"
             onMouseDown={handleResponseResize}
           ></div>
           <div
@@ -690,7 +690,7 @@ export default function HttpApiClient() {
                   px-6 py-2 rounded-lg font-medium
                   ${!collectionModalName.trim()
                     ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
-                    : 'bg-purple-500 hover:bg-purple-600 text-ink-inverse'
+                    : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
                   }
                 `}
               >
@@ -794,7 +794,7 @@ export default function HttpApiClient() {
                   px-6 py-2 rounded-lg font-medium
                   ${!newRequestName.trim() || !newRequestUrl.trim() || !newRequestCollectionId
                     ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
-                    : 'bg-purple-500 hover:bg-purple-600 text-ink-inverse'
+                    : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
                   }
                 `}
               >

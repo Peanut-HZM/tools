@@ -38,7 +38,7 @@ export default function CollectionContextMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-[9999] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 min-w-[160px]"
+      className="fixed z-[9999] bg-surface-1 border border-border rounded-lg shadow-md py-1 min-w-[160px]"
       style={{ left: x, top: y }}
     >
       <button
@@ -46,9 +46,9 @@ export default function CollectionContextMenu({
           onRename(collection);
           onClose();
         }}
-        className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 flex items-center"
+        className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center"
       >
-        <i className="fas fa-pencil mr-2 text-slate-500"></i>
+        <i className="fas fa-pencil mr-2 text-ink-faint"></i>
         重命名
       </button>
       <button
@@ -56,7 +56,7 @@ export default function CollectionContextMenu({
           onDelete(collection);
           onClose();
         }}
-        className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center"
+        className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10 flex items-center"
       >
         <i className="fas fa-trash mr-2"></i>
         删除集合

@@ -144,17 +144,17 @@ export default function ImportExportModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <div className="bg-surface-1 rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
         {/* 标题栏 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">导入/导出</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
             <i className="fas fa-times"></i>
           </button>
         </div>
 
         {/* 标签页 */}
-        <div className="flex items-center gap-1 px-6 border-b border-slate-700">
+        <div className="flex items-center gap-1 px-6 border-b border-border">
           <button
             onClick={() => {
               setActiveTab('import-postman');
@@ -164,8 +164,8 @@ export default function ImportExportModal({
             className={`
               px-4 py-3 text-sm transition-colors border-b-2
               ${activeTab === 'import-postman'
-                ? 'text-purple-400 border-purple-500'
-                : 'text-slate-400 border-transparent hover:text-slate-300'
+                ? 'text-accent-secondary border-accent-secondary'
+                : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
             `}
           >
@@ -181,8 +181,8 @@ export default function ImportExportModal({
             className={`
               px-4 py-3 text-sm transition-colors border-b-2
               ${activeTab === 'import-curl'
-                ? 'text-purple-400 border-purple-500'
-                : 'text-slate-400 border-transparent hover:text-slate-300'
+                ? 'text-accent-secondary border-accent-secondary'
+                : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
             `}
           >
@@ -197,8 +197,8 @@ export default function ImportExportModal({
             className={`
               px-4 py-3 text-sm transition-colors border-b-2
               ${activeTab === 'export'
-                ? 'text-purple-400 border-purple-500'
-                : 'text-slate-400 border-transparent hover:text-slate-300'
+                ? 'text-accent-secondary border-accent-secondary'
+                : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
             `}
           >
@@ -213,21 +213,21 @@ export default function ImportExportModal({
           {activeTab === 'import-postman' && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-slate-400 mb-2 block">
+                <label className="text-sm text-ink-muted mb-2 block">
                   粘贴 Postman Collection v2.1 JSON
                 </label>
                 <textarea
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
                   placeholder='{"info": {"name": "My API", "schema": "..."}, "item": [...]}'
-                  className="w-full h-64 bg-slate-900 text-white px-4 py-3 rounded-lg
-                             border border-slate-600 font-mono text-sm resize-none
-                             focus:border-purple-500 focus:outline-none"
+                  className="w-full h-64 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+                             border border-border font-mono text-sm resize-none
+                             focus:border-accent-secondary focus:outline-none"
                 />
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
                   <i className="fas fa-exclamation-circle mr-2"></i>
                   {error}
                 </div>
@@ -238,7 +238,7 @@ export default function ImportExportModal({
                   px-4 py-3 rounded-lg text-sm
                   ${importResult.success
                     ? 'bg-green-500/10 border border-green-500 text-green-400'
-                    : 'bg-red-500/10 border border-red-500 text-red-400'
+                    : 'bg-danger/10 border border-red-500 text-danger'
                   }
                 `}>
                   <div className="flex items-center mb-2">
@@ -249,7 +249,7 @@ export default function ImportExportModal({
                     <div>
                       <p>成功导入：{importResult.imported_count} 个请求</p>
                       {importResult.failed_count > 0 && (
-                        <p className="text-yellow-400">失败：{importResult.failed_count} 个</p>
+                        <p className="text-accent-warning">失败：{importResult.failed_count} 个</p>
                       )}
                     </div>
                   )}
@@ -259,7 +259,7 @@ export default function ImportExportModal({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
                 >
                   取消
                 </button>
@@ -269,8 +269,8 @@ export default function ImportExportModal({
                   className={`
                     px-6 py-2 rounded-lg font-medium transition-colors
                     ${loading || !importText.trim()
-                      ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                      : 'bg-purple-500 hover:bg-purple-600 text-white'
+                      ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
+                      : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
                     }
                   `}
                 >
@@ -294,36 +294,36 @@ export default function ImportExportModal({
           {activeTab === 'import-curl' && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-slate-400 mb-2 block">
+                <label className="text-sm text-ink-muted mb-2 block">
                   粘贴 cURL 命令
                 </label>
                 <textarea
                   value={curlText}
                   onChange={(e) => setCurlText(e.target.value)}
                   placeholder={"curl -X POST https://api.example.com/users \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\": \"test\"}'"}
-                  className="w-full h-48 bg-slate-900 text-white px-4 py-3 rounded-lg
-                             border border-slate-600 font-mono text-sm resize-none
-                             focus:border-purple-500 focus:outline-none"
+                  className="w-full h-48 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+                             border border-border font-mono text-sm resize-none
+                             focus:border-accent-secondary focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm text-slate-400 mb-1 block">请求名称</label>
+                  <label className="text-sm text-ink-muted mb-1 block">请求名称</label>
                   <input
                     type="text"
                     value={curlName}
                     onChange={(e) => setCurlName(e.target.value)}
                     placeholder="自动命名"
-                    className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
+                    className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1 block">目标集合</label>
+                  <label className="text-sm text-ink-muted mb-1 block">目标集合</label>
                   <select
                     value={curlCollectionId}
                     onChange={(e) => setCurlCollectionId(e.target.value)}
-                    className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 text-sm"
+                    className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
                   >
                     <option value="">请选择集合</option>
                     {collections.map(c => (
@@ -334,7 +334,7 @@ export default function ImportExportModal({
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
                   <i className="fas fa-exclamation-circle mr-2"></i>
                   {error}
                 </div>
@@ -347,8 +347,8 @@ export default function ImportExportModal({
                     cURL 导入成功
                   </div>
                   <div className="font-mono text-xs space-y-1 mt-2">
-                    <p><span className="text-slate-500">方法：</span>{curlResult.method}</p>
-                    <p><span className="text-slate-500">URL：</span>{curlResult.url}</p>
+                    <p><span className="text-ink-faint">方法：</span>{curlResult.method}</p>
+                    <p><span className="text-ink-faint">URL：</span>{curlResult.url}</p>
                   </div>
                 </div>
               )}
@@ -356,7 +356,7 @@ export default function ImportExportModal({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
                 >
                   取消
                 </button>
@@ -366,8 +366,8 @@ export default function ImportExportModal({
                   className={`
                     px-6 py-2 rounded-lg font-medium transition-colors
                     ${curlLoading || !curlText.trim() || !curlCollectionId
-                      ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                      : 'bg-purple-500 hover:bg-purple-600 text-white'
+                      ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
+                      : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
                     }
                   `}
                 >
@@ -390,12 +390,12 @@ export default function ImportExportModal({
           {/* 导出 */}
           {activeTab === 'export' && (
             <div className="space-y-4">
-              <p className="text-slate-400 text-sm">
+              <p className="text-ink-muted text-sm">
                 选择要导出的集合，导出为 Postman Collection v2.1 格式
               </p>
 
               {collections.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
+                <div className="text-center py-8 text-ink-faint">
                   <i className="fas fa-folder-open text-2xl mb-2 opacity-50"></i>
                   <p className="text-sm">暂无集合</p>
                 </div>
@@ -404,36 +404,36 @@ export default function ImportExportModal({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={selectAll}
-                      className="text-xs text-purple-400 hover:text-purple-300"
+                      className="text-xs text-accent-secondary hover:text-accent-secondary"
                     >
                       全选
                     </button>
-                    <span className="text-slate-600">|</span>
+                    <span className="text-ink-faint">|</span>
                     <button
                       onClick={deselectAll}
-                      className="text-xs text-slate-400 hover:text-slate-300"
+                      className="text-xs text-ink-muted hover:text-ink-muted"
                     >
                       取消全选
                     </button>
-                    <span className="text-xs text-slate-500 ml-auto">
+                    <span className="text-xs text-ink-faint ml-auto">
                       已选 {selectedCollections.length}/{collections.length}
                     </span>
                   </div>
 
-                  <div className="max-h-64 overflow-y-auto space-y-1 border border-slate-700 rounded-lg p-2">
+                  <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
                     {collections.map(c => (
                       <label
                         key={c.id}
                         className="flex items-center gap-3 px-3 py-2 rounded cursor-pointer
-                                   hover:bg-slate-700/50 transition-colors text-sm"
+                                   hover:bg-surface-2/50 transition-colors text-sm"
                       >
                         <input
                           type="checkbox"
                           checked={selectedCollections.includes(c.id)}
                           onChange={() => toggleCollection(c.id)}
-                          className="rounded border-slate-600 bg-slate-700 text-purple-500"
+                          className="rounded border-border bg-surface-2 text-accent-secondary"
                         />
-                        <i className="fas fa-folder text-slate-500 text-xs"></i>
+                        <i className="fas fa-folder text-ink-faint text-xs"></i>
                         <span className="truncate">{c.name}</span>
                       </label>
                     ))}
@@ -442,7 +442,7 @@ export default function ImportExportModal({
               )}
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
                   <i className="fas fa-exclamation-circle mr-2"></i>
                   {error}
                 </div>
@@ -451,7 +451,7 @@ export default function ImportExportModal({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
                 >
                   取消
                 </button>
@@ -461,8 +461,8 @@ export default function ImportExportModal({
                   className={`
                     px-6 py-2 rounded-lg font-medium transition-colors
                     ${exportLoading || selectedCollections.length === 0
-                      ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                      : 'bg-purple-500 hover:bg-purple-600 text-white'
+                      ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
+                      : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
                     }
                   `}
                 >

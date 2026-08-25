@@ -296,12 +296,12 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
   }, [editorHeight, columnHeight]);
 
   return (
-    <div className="flex flex-col h-full gap-4 p-4 bg-slate-900">
-        <div className="flex items-center space-x-4 bg-slate-800 p-2 rounded-md border border-slate-700">
+    <div className="flex flex-col h-full gap-4 p-4 bg-canvas">
+        <div className="flex items-center space-x-4 bg-surface-1 p-2 rounded-md border border-border">
         <div className="flex items-center space-x-2">
-          <label className="text-sm text-slate-400">Connection:</label>
+          <label className="text-sm text-ink-muted">Connection:</label>
           <select 
-            className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-blue-500 min-w-[150px]"
+            className="bg-canvas border border-border rounded px-2 py-1 text-sm text-ink focus:outline-none focus:border-accent min-w-[150px]"
             value={configId || ''}
             onChange={(e) => handleConfigChange(e.target.value)}
           >
@@ -314,10 +314,10 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
 
         {currentConfig && (
           <div className="flex items-center space-x-2">
-            <label className="text-sm text-slate-400">Database:</label>
+            <label className="text-sm text-ink-muted">Database:</label>
             <div className="relative">
               <select 
-                className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-blue-500 min-w-[150px] appearance-none pr-8"
+                className="bg-canvas border border-border rounded px-2 py-1 text-sm text-ink focus:outline-none focus:border-accent min-w-[150px] appearance-none pr-8"
                 value={database || ''}
                 onChange={(e) => handleDatabaseChange(e.target.value)}
                 disabled={dbLoading}
@@ -329,7 +329,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
               </select>
               {dbLoading && (
                 <div className="absolute right-2 top-1.5 pointer-events-none">
-                  <i className="fas fa-spinner fa-spin text-xs text-slate-400"></i>
+                  <i className="fas fa-spinner fa-spin text-xs text-ink-muted"></i>
                 </div>
               )}
             </div>
@@ -338,10 +338,10 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
 
         {currentConfig && currentConfig.db_type === 'postgresql' && schemas.length > 0 && (
           <div className="flex items-center space-x-2">
-            <label className="text-sm text-slate-400">Schema:</label>
+            <label className="text-sm text-ink-muted">Schema:</label>
             <div className="relative">
               <select
-                className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:outline-none focus:border-blue-500 min-w-[150px] appearance-none pr-8"
+                className="bg-canvas border border-border rounded px-2 py-1 text-sm text-ink focus:outline-none focus:border-accent min-w-[150px] appearance-none pr-8"
                 value={schema || ''}
                 onChange={(e) => handleSchemaChange(e.target.value)}
                 disabled={schemaLoading}
@@ -353,7 +353,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
               </select>
               {schemaLoading && (
                 <div className="absolute right-2 top-1.5 pointer-events-none">
-                  <i className="fas fa-spinner fa-spin text-xs text-slate-400"></i>
+                  <i className="fas fa-spinner fa-spin text-xs text-ink-muted"></i>
                 </div>
               )}
             </div>
@@ -365,8 +365,8 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
             onClick={() => setShowHistoryPanel(!showHistoryPanel)}
             className={`p-1.5 rounded transition-colors ${
               showHistoryPanel 
-                ? 'bg-blue-600 text-white' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                ? 'bg-accent text-ink-inverse' 
+                : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-2'
             }`}
             title="SQL 历史记录"
           >
@@ -376,7 +376,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
       </div>
 
       {!configId ? (
-        <div className="flex-1 flex items-center justify-center text-slate-500 bg-slate-900 flex-col gap-4">
+        <div className="flex-1 flex items-center justify-center text-ink-faint bg-canvas flex-col gap-4">
            <i className="fas fa-database text-4xl opacity-50"></i>
            <p>{t.database.status.disconnected}</p>
         </div>
@@ -418,31 +418,31 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
                 aria-orientation="horizontal"
                 aria-label={t.database.executor.dragHandleHint}
                 onMouseDown={handleDragStart}
-                className="h-1.5 bg-slate-700 hover:bg-blue-500 active:bg-blue-400 cursor-ns-resize transition-colors rounded flex items-center justify-center group"
+                className="h-1.5 bg-surface-2 hover:bg-accent-hover active:bg-accent-info cursor-ns-resize transition-colors rounded flex items-center justify-center group"
               >
-                <div className="w-12 h-0.5 bg-slate-500 group-hover:bg-white/80 rounded" />
+                <div className="w-12 h-0.5 bg-surface-3 group-hover:bg-white/80 rounded" />
               </div>
             )}
             {!isFullscreen && (
               <div className="flex-1 min-h-0 flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-slate-300 text-sm font-medium">{t.database.executor.results}</h3>
+                  <h3 className="text-ink-muted text-sm font-medium">{t.database.executor.results}</h3>
                   {result && result.success && result.result_data && (
                     <div className="flex items-center gap-2 text-xs">
                       <button
                         disabled={page <= 1 || loading}
                         onClick={() => handlePageChange(page - 1)}
-                        className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                        className="px-2 py-1 bg-surface-1 border border-border rounded text-ink-muted hover:bg-surface-2 disabled:opacity-50 transition-colors"
                       >
                         <i className="fas fa-chevron-left"></i>
                       </button>
-                      <span className="text-slate-400 bg-slate-800 border border-slate-700 px-2 py-1 rounded">
+                      <span className="text-ink-muted bg-surface-1 border border-border px-2 py-1 rounded">
                         Page {page}
                       </span>
                       <button
                         disabled={(!result.result_data || result.result_data.length < pageSize) || loading}
                         onClick={() => handlePageChange(page + 1)}
-                        className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                        className="px-2 py-1 bg-surface-1 border border-border rounded text-ink-muted hover:bg-surface-2 disabled:opacity-50 transition-colors"
                       >
                         <i className="fas fa-chevron-right"></i>
                       </button>

@@ -84,12 +84,12 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
 
   // 计算状态码颜色
   const getStatusColor = (status: number) => {
-    if (status === 0) return 'text-red-400';
+    if (status === 0) return 'text-danger';
     if (status >= 200 && status < 300) return 'text-green-400';
-    if (status >= 300 && status < 400) return 'text-yellow-400';
+    if (status >= 300 && status < 400) return 'text-accent-warning';
     if (status >= 400 && status < 500) return 'text-orange-400';
-    if (status >= 500) return 'text-red-400';
-    return 'text-slate-400';
+    if (status >= 500) return 'text-danger';
+    return 'text-ink-muted';
   };
 
   const getStatusText = (status: number) => {
@@ -130,21 +130,21 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* 响应状态栏 */}
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 bg-surface-1 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">Status:</span>
+            <span className="text-sm text-ink-muted">Status:</span>
             <span className={`font-mono font-bold ${getStatusColor(response.status_code)}`}>
               {response.status_code} {getStatusText(response.status_code)}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">Time:</span>
-            <span className="font-mono text-cyan-400">{response.response_time}ms</span>
+            <span className="text-sm text-ink-muted">Time:</span>
+            <span className="font-mono text-accent">{response.response_time}ms</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">Size:</span>
-            <span className="font-mono text-purple-400">
+            <span className="text-sm text-ink-muted">Size:</span>
+            <span className="font-mono text-accent-secondary">
               {formatBytes(response.body.length)}
             </span>
           </div>
@@ -153,7 +153,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigator.clipboard.writeText(response.body)}
-            className="text-slate-400 hover:text-white transition-colors text-xs"
+            className="text-ink-muted hover:text-ink-inverse transition-colors text-xs"
             title="复制响应体"
           >
             <i className="fas fa-copy mr-1"></i>
@@ -163,14 +163,14 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
       </div>
 
       {/* 标签页 */}
-      <div className="flex items-center gap-1 px-4 border-b border-slate-700 bg-slate-800/30 flex-shrink-0">
+      <div className="flex items-center gap-1 px-4 border-b border-border bg-surface-1/30 flex-shrink-0">
         <button
           onClick={() => setActiveTab('body')}
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'body'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -182,8 +182,8 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'headers'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -196,8 +196,8 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
             className={`
               px-4 py-2 text-sm transition-colors border-b-2
               ${activeTab === 'code'
-                ? 'text-purple-400 border-purple-500'
-                : 'text-slate-400 border-transparent hover:text-slate-300'
+                ? 'text-accent-secondary border-accent-secondary'
+                : 'text-ink-muted border-transparent hover:text-ink-muted'
               }
             `}
           >
@@ -210,8 +210,8 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
           className={`
             px-4 py-2 text-sm transition-colors border-b-2
             ${activeTab === 'preview'
-              ? 'text-purple-400 border-purple-500'
-              : 'text-slate-400 border-transparent hover:text-slate-300'
+              ? 'text-accent-secondary border-accent-secondary'
+              : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
           `}
         >
@@ -226,7 +226,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
           <div>
             {/* Body 子标签 */}
             {isJson && (
-              <div className="flex items-center gap-1 px-4 py-1 border-b border-slate-700/50 bg-slate-800/20">
+              <div className="flex items-center gap-1 px-4 py-1 border-b border-border/50 bg-surface-1/20">
                 {(['raw', 'formatted', 'tree'] as const).map(view => (
                   <button
                     key={view}
@@ -234,8 +234,8 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                     className={`
                       px-2 py-1 text-xs rounded transition-colors
                       ${bodyView === view
-                        ? 'bg-purple-500/20 text-purple-400'
-                        : 'text-slate-500 hover:text-slate-300'
+                        ? 'bg-accent-secondary/20 text-accent-secondary'
+                        : 'text-ink-faint hover:text-ink-muted'
                       }
                     `}
                   >
@@ -249,7 +249,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
               {isJson && bodyView === 'tree' ? (
                 <JsonView src={JSON.parse(response.body)} theme="dark" collapsed={1} />
               ) : (
-                <pre className="font-mono text-sm text-slate-300 whitespace-pre-wrap break-word">
+                <pre className="font-mono text-sm text-ink-muted whitespace-pre-wrap break-word">
                   {formattedBody}
                 </pre>
               )}
@@ -263,12 +263,12 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
               {Object.entries(response.headers).map(([key, value]) => (
                 <div
                   key={key}
-                  className="flex items-start gap-4 py-1.5 border-b border-slate-700/50 last:border-0"
+                  className="flex items-start gap-4 py-1.5 border-b border-border/50 last:border-0"
                 >
-                  <span className="font-mono text-xs text-purple-400 min-w-[200px]">
+                  <span className="font-mono text-xs text-accent-secondary min-w-[200px]">
                     {key}
                   </span>
-                  <span className="font-mono text-xs text-slate-300 flex-1 break-all">
+                  <span className="font-mono text-xs text-ink-muted flex-1 break-all">
                     {value}
                   </span>
                 </div>
@@ -288,8 +288,8 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                   className={`
                     px-3 py-1 rounded text-xs font-medium transition-colors
                     ${snippetLang === lang
-                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
-                      : 'bg-slate-700 text-slate-400 border border-transparent hover:bg-slate-600'
+                      ? 'bg-accent-secondary/20 text-accent-secondary border border-accent-secondary'
+                      : 'bg-surface-2 text-ink-muted border border-transparent hover:bg-surface-3'
                     }
                   `}
                 >
@@ -298,7 +298,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
               ))}
               <button
                 onClick={() => navigator.clipboard.writeText(codeSnippet)}
-                className="ml-auto text-slate-400 hover:text-white transition-colors text-xs"
+                className="ml-auto text-ink-muted hover:text-ink-inverse transition-colors text-xs"
                 title="复制代码"
               >
                 <i className="fas fa-copy mr-1"></i>
@@ -306,7 +306,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
               </button>
             </div>
 
-            <pre className="font-mono text-sm text-slate-300 bg-slate-900/50 p-4 rounded-lg overflow-x-auto whitespace-pre">
+            <pre className="font-mono text-sm text-ink-muted bg-canvas/50 p-4 rounded-lg overflow-x-auto whitespace-pre">
               {codeSnippet}
             </pre>
           </div>
@@ -322,13 +322,13 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
               />
             )}
             {contentType === 'image' && imageBase64 === null && (
-              <div className="text-slate-500 text-sm text-center py-8">
+              <div className="text-ink-faint text-sm text-center py-8">
                 <i className="fas fa-exclamation-triangle text-2xl mb-2"></i>
                 <p>图片数据编码失败，无法预览，请切换到 Body 标签查看</p>
               </div>
             )}
             {(contentType === 'json' || contentType === 'xml' || contentType === 'text' || contentType === 'binary') && (
-              <div className="text-slate-500 text-sm text-center py-8">
+              <div className="text-ink-faint text-sm text-center py-8">
                 <i className="fas fa-info-circle text-2xl mb-2"></i>
                 <p>此响应类型不支持预览，请切换到 Body 标签查看</p>
               </div>

@@ -25,7 +25,7 @@ export default function ImagePreview({ base64Data, contentType }: ImagePreviewPr
 
   if (error) {
     return (
-      <div className="text-center py-8 text-slate-500">
+      <div className="text-center py-8 text-ink-faint">
         <i className="fas fa-image text-4xl mb-3 opacity-30"></i>
         <p>图片加载失败</p>
       </div>
@@ -33,7 +33,7 @@ export default function ImagePreview({ base64Data, contentType }: ImagePreviewPr
   }
 
   return (
-    <div className="flex items-center justify-center p-4 bg-slate-900 rounded-lg">
+    <div className="flex items-center justify-center p-4 bg-canvas rounded-lg">
       <img
         src={dataUrl}
         alt="Response"

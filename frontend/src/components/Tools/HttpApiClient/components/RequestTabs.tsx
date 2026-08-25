@@ -35,10 +35,10 @@ export default function RequestTabs({
 
   if (openTabs.length === 0) {
     return (
-      <div className="flex items-center bg-slate-800 border-b border-slate-700 px-4 py-2 flex-shrink-0">
+      <div className="flex items-center bg-surface-1 border-b border-border px-4 py-2 flex-shrink-0">
         <button
           onClick={onCreateNewRequest}
-          className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
+          className="text-accent-secondary hover:text-accent-secondary transition-colors text-sm"
         >
           <i className="fas fa-plus mr-2"></i>
           新建请求
@@ -48,23 +48,23 @@ export default function RequestTabs({
   }
 
   return (
-    <div className="flex items-center bg-slate-800 border-b border-slate-700 overflow-x-auto flex-shrink-0">
+    <div className="flex items-center bg-surface-1 border-b border-border overflow-x-auto flex-shrink-0">
       {openTabs.map(tab => (
         <div
           key={tab.requestId}
           className={`
-            flex items-center gap-2 px-4 py-2 border-r border-slate-700 cursor-pointer
+            flex items-center gap-2 px-4 py-2 border-r border-border cursor-pointer
             transition-colors text-sm min-w-[160px] max-w-[240px]
             ${tab.requestId === activeTabId
-              ? 'bg-slate-700 text-white border-t-2 border-t-purple-500'
-              : 'text-slate-400 hover:bg-slate-700/50 border-t-2 border-t-transparent'
+              ? 'bg-surface-2 text-ink-inverse border-t-2 border-t-accent-secondary'
+              : 'text-ink-muted hover:bg-surface-2/50 border-t-2 border-t-transparent'
             }
           `}
           onClick={() => onTabClick(tab.requestId)}
         >
           <i
             className={`fas fa-file-code text-xs ${
-              tab.requestId === activeTabId ? 'text-purple-400' : 'text-slate-500'
+              tab.requestId === activeTabId ? 'text-accent-secondary' : 'text-ink-faint'
             }`}
           ></i>
           {editingId === tab.requestId ? (
@@ -85,8 +85,8 @@ export default function RequestTabs({
                   setEditingName('');
                 }
               }}
-              className="flex-1 bg-slate-900 text-white text-sm px-1 py-0.5 rounded
-                         border border-purple-500 focus:outline-none min-w-0"
+              className="flex-1 bg-canvas text-ink-inverse text-sm px-1 py-0.5 rounded
+                         border border-accent-secondary focus:outline-none min-w-0"
             />
           ) : (
             <>
@@ -99,7 +99,7 @@ export default function RequestTabs({
                     setEditingId(tab.requestId);
                     setEditingName(tab.request.name);
                   }}
-                  className="text-slate-500 hover:text-slate-300 transition-colors text-xs"
+                  className="text-ink-faint hover:text-ink-muted transition-colors text-xs"
                 >
                   <i className="fas fa-pencil"></i>
                 </button>
@@ -114,7 +114,7 @@ export default function RequestTabs({
               e.stopPropagation();
               onTabClose(tab.requestId);
             }}
-            className="text-slate-500 hover:text-red-400 transition-colors text-xs"
+            className="text-ink-faint hover:text-danger transition-colors text-xs"
           >
             <i className="fas fa-times"></i>
           </button>

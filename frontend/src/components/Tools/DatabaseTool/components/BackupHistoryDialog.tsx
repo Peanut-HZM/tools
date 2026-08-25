@@ -78,9 +78,9 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
 
   const getModeBadge = (mode: string) => {
     const styles: Record<string, string> = {
-      structure_and_data: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+      structure_and_data: 'bg-accent-info/10 text-accent-info border-accent-info/20',
       structure_only: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-      data_only: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+      data_only: 'bg-success/10 text-emerald-300 border-emerald-500/20',
     };
     const icons: Record<string, string> = {
       structure_and_data: 'fa-cubes',
@@ -93,7 +93,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
       data_only: t.database.dialog.backup.modeDataOnly,
     };
     return (
-      <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium ${styles[mode] || 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+      <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium ${styles[mode] || 'bg-surface-2 text-ink-muted border-border'}`}>
         <i className={`fas ${icons[mode] || 'fa-file'} text-[8px]`}></i>
         {labels[mode] || mode.replace(/_/g, ' ')}
       </span>
@@ -106,15 +106,15 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col border border-slate-700">
+      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-3xl max-h-[85vh] flex flex-col border border-border">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-700">
-          <h3 className="text-lg font-medium text-slate-100 flex items-center gap-2">
-            <i className="fas fa-history text-blue-400"></i>
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h3 className="text-lg font-medium text-ink flex items-center gap-2">
+            <i className="fas fa-history text-accent-info"></i>
             {th.title}
-            {databaseName && <span className="text-sm text-slate-500">({databaseName})</span>}
+            {databaseName && <span className="text-sm text-ink-faint">({databaseName})</span>}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -122,35 +122,35 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
         {/* Content */}
         <div className="flex-1 overflow-auto p-4">
           {loading && records.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-slate-500">
+            <div className="flex flex-col items-center justify-center h-32 text-ink-faint">
               <i className="fas fa-spinner fa-spin text-2xl mb-2 opacity-50"></i>
               <span className="text-sm">{th.loading}</span>
             </div>
           ) : records.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-slate-500">
+            <div className="flex flex-col items-center justify-center h-32 text-ink-faint">
               <i className="fas fa-inbox text-3xl mb-2 opacity-30"></i>
               <p className="text-sm">{th.noBackups}</p>
             </div>
           ) : (
-            <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+            <div className="border border-border/50 rounded-lg overflow-hidden">
               <table className="min-w-full divide-y divide-slate-700/50">
                 <thead>
-                  <tr className="bg-slate-900/70">
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{th.columnFile}</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{th.columnMode}</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{th.columnSize}</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{th.columnTables}</th>
-                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{th.columnDate}</th>
-                    <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{th.columnActions}</th>
+                  <tr className="bg-canvas/70">
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnFile}</th>
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnMode}</th>
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnSize}</th>
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnTables}</th>
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnDate}</th>
+                    <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnActions}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-slate-800/50 divide-y divide-slate-700/30">
+                <tbody className="bg-surface-1/50 divide-y divide-slate-700/30">
                   {records.map((record) => (
-                    <tr key={record.id} className="hover:bg-slate-700/20 transition-colors group/row">
+                    <tr key={record.id} className="hover:bg-surface-2/20 transition-colors group/row">
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-2">
-                          <i className="fas fa-file-archive text-slate-600 text-xs group-hover/row:text-slate-500 transition-colors"></i>
-                          <div className="text-sm text-slate-200 truncate max-w-[180px]" title={record.file_name}>
+                          <i className="fas fa-file-archive text-ink-faint text-xs group-hover/row:text-ink-faint transition-colors"></i>
+                          <div className="text-sm text-ink truncate max-w-[180px]" title={record.file_name}>
                             {record.file_name}
                           </div>
                         </div>
@@ -159,16 +159,16 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
                         )}
                       </td>
                       <td className="px-3 py-2.5">{getModeBadge(record.backup_mode)}</td>
-                      <td className="px-3 py-2.5 text-sm text-slate-400 font-mono">{formatSize(record.file_size)}</td>
-                      <td className="px-3 py-2.5 text-sm text-slate-400">{record.tables_count}</td>
-                      <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-sm text-ink-muted font-mono">{formatSize(record.file_size)}</td>
+                      <td className="px-3 py-2.5 text-sm text-ink-muted">{record.tables_count}</td>
+                      <td className="px-3 py-2.5 text-xs text-ink-faint whitespace-nowrap">
                         {formatDate(record.created_at)}
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-70 group-hover/row:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleDownload(record)}
-                            className="p-1.5 text-slate-500 hover:text-cyan-400 hover:bg-slate-700/50 rounded transition-colors"
+                            className="p-1.5 text-ink-faint hover:text-accent hover:bg-surface-2/50 rounded transition-colors"
                             title={th.download}
                           >
                             <i className="fas fa-download text-xs"></i>
@@ -176,7 +176,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
                           <button
                             onClick={() => handleDelete(record)}
                             disabled={deletingId === record.id}
-                            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-700/50 rounded transition-colors disabled:opacity-50"
+                            className="p-1.5 text-ink-faint hover:text-rose-400 hover:bg-surface-2/50 rounded transition-colors disabled:opacity-50"
                             title={th.delete}
                           >
                             {deletingId === record.id ? (
@@ -200,17 +200,17 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1 || loading}
-                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-sm disabled:opacity-50"
+                className="px-3 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted rounded text-sm disabled:opacity-50"
               >
                 <i className="fas fa-chevron-left"></i>
               </button>
-              <span className="text-sm text-slate-400">
+              <span className="text-sm text-ink-muted">
                 {th.page.replace('{current}', String(page)).replace('{total}', String(totalPages))}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages || loading}
-                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-sm disabled:opacity-50"
+                className="px-3 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted rounded text-sm disabled:opacity-50"
               >
                 <i className="fas fa-chevron-right"></i>
               </button>

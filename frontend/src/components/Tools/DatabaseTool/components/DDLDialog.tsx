@@ -46,12 +46,12 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-3/4 max-w-4xl max-h-[90vh] flex flex-col border border-slate-700">
-        <div className="flex justify-between items-center p-4 border-b border-slate-700">
-          <h3 className="text-lg font-medium text-slate-100">
+      <div className="bg-surface-1 rounded-lg shadow-md w-3/4 max-w-4xl max-h-[90vh] flex flex-col border border-border">
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h3 className="text-lg font-medium text-ink">
             DDL: {tableName}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -59,26 +59,26 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+              <i className="fas fa-spinner fa-spin text-2xl text-accent-info"></i>
             </div>
           ) : (
-            <pre className="bg-slate-900 p-4 rounded text-sm text-slate-300 font-mono overflow-auto whitespace-pre-wrap">
+            <pre className="bg-canvas p-4 rounded text-sm text-ink-muted font-mono overflow-auto whitespace-pre-wrap">
               {ddl}
             </pre>
           )}
         </div>
         
-        <div className="p-4 border-t border-slate-700 flex justify-end gap-2">
+        <div className="p-4 border-t border-border flex justify-end gap-2">
           <button
             onClick={handleCopy}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+            className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
           >
             <i className="fas fa-copy mr-2"></i>
             Copy
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors"
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors"
           >
             {t.common.close}
           </button>

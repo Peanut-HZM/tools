@@ -34,34 +34,34 @@ const JsonViewModal: React.FC<JsonViewModalProps> = ({ isOpen, onClose, data, ti
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-3xl border border-slate-700 flex flex-col max-h-[85vh]">
-        <div className="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800">
-          <h3 className="text-lg font-medium text-slate-100 flex items-center gap-2">
-             <i className="fas fa-code text-blue-400"></i>
+      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-3xl border border-border flex flex-col max-h-[85vh]">
+        <div className="flex justify-between items-center p-4 border-b border-border bg-surface-1">
+          <h3 className="text-lg font-medium text-ink flex items-center gap-2">
+             <i className="fas fa-code text-accent-info"></i>
              {title || "JSON Viewer"}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink">
             <i className="fas fa-times"></i>
           </button>
         </div>
 
-        <div className="flex-1 overflow-auto p-0 bg-slate-900">
-           <pre className="p-4 text-sm font-mono text-blue-100 whitespace-pre-wrap break-all">
+        <div className="flex-1 overflow-auto p-0 bg-canvas">
+           <pre className="p-4 text-sm font-mono text-accent-info whitespace-pre-wrap break-all">
              {jsonString}
            </pre>
         </div>
 
-        <div className="p-4 border-t border-slate-700 flex justify-end space-x-3 bg-slate-800">
+        <div className="p-4 border-t border-border flex justify-end space-x-3 bg-surface-1">
           <button
             onClick={handleCopy}
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-md transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse bg-surface-2 hover:bg-surface-3 rounded-md transition-colors flex items-center gap-2"
           >
             {copied ? <i className="fas fa-check text-green-400"></i> : <i className="fas fa-copy"></i>}
             {copied ? "Copied" : "Copy JSON"}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors"
+            className="px-4 py-2 text-sm font-medium text-ink-inverse bg-accent hover:bg-accent-hover rounded-md shadow-sm transition-colors"
           >
             {t.common.close || "Close"}
           </button>

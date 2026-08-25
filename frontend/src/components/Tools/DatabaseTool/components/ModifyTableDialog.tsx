@@ -134,12 +134,12 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-11/12 max-w-6xl max-h-[90vh] flex flex-col border border-slate-700">
-        <div className="flex justify-between items-center p-4 border-b border-slate-700">
-          <h3 className="text-lg font-medium text-slate-100">
+      <div className="bg-surface-1 rounded-lg shadow-md w-11/12 max-w-6xl max-h-[90vh] flex flex-col border border-border">
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h3 className="text-lg font-medium text-ink">
             Modify Table: {tableName}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -147,45 +147,45 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+              <i className="fas fa-spinner fa-spin text-2xl text-accent-info"></i>
             </div>
           ) : (
             <div className="space-y-4">
                {/* Table Comment */}
                <div className="flex items-center gap-2">
-                   <label className="text-sm text-slate-400 w-24">Table Comment:</label>
+                   <label className="text-sm text-ink-muted w-24">Table Comment:</label>
                    <input 
                        type="text" 
                        value={tableComment} 
                        onChange={(e) => setTableComment(e.target.value)}
-                       className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200"
+                       className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
                    />
                </div>
 
                {/* Columns List */}
-               <div className="border border-slate-700 rounded overflow-hidden">
+               <div className="border border-border rounded overflow-hidden">
                    <table className="min-w-full divide-y divide-slate-700">
-                       <thead className="bg-slate-900">
+                       <thead className="bg-canvas">
                            <tr>
-                               <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
-                               <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
-                               <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Length</th>
-                               <th className="px-3 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Nullable</th>
-                               <th className="px-3 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">PK</th>
-                               <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Default</th>
-                               <th className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Comment</th>
-                               <th className="px-3 py-2 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">Action</th>
+                               <th className="px-3 py-2 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Name</th>
+                               <th className="px-3 py-2 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Type</th>
+                               <th className="px-3 py-2 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Length</th>
+                               <th className="px-3 py-2 text-center text-xs font-medium text-ink-muted uppercase tracking-wider">Nullable</th>
+                               <th className="px-3 py-2 text-center text-xs font-medium text-ink-muted uppercase tracking-wider">PK</th>
+                               <th className="px-3 py-2 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Default</th>
+                               <th className="px-3 py-2 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Comment</th>
+                               <th className="px-3 py-2 text-center text-xs font-medium text-ink-muted uppercase tracking-wider">Action</th>
                            </tr>
                        </thead>
-                       <tbody className="bg-slate-800 divide-y divide-slate-700">
+                       <tbody className="bg-surface-1 divide-y divide-slate-700">
                            {columns.map((col, idx) => (
-                               <tr key={idx} className="hover:bg-slate-700/30">
+                               <tr key={idx} className="hover:bg-surface-2/30">
                                    <td className="px-3 py-2">
                                        <input 
                                            type="text" 
                                            value={col.name} 
                                            onChange={(e) => handleChange(idx, 'name', e.target.value)}
-                                           className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-slate-200"
+                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
                                        />
                                    </td>
                                    <td className="px-3 py-2">
@@ -193,7 +193,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                            list={`types-${idx}`}
                                            value={col.type}
                                            onChange={(e) => handleChange(idx, 'type', e.target.value)}
-                                           className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-slate-200 uppercase"
+                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink uppercase"
                                        />
                                        <datalist id={`types-${idx}`}>
                                            {COMMON_TYPES.map(t => <option key={t} value={t} />)}
@@ -204,7 +204,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                            type="text" 
                                            value={col.length || ''} 
                                            onChange={(e) => handleChange(idx, 'length', e.target.value)}
-                                           className="w-20 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-slate-200"
+                                           className="w-20 bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
                                            placeholder="Length"
                                        />
                                    </td>
@@ -213,7 +213,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                            type="checkbox" 
                                            checked={col.nullable} 
                                            onChange={(e) => handleChange(idx, 'nullable', e.target.checked)}
-                                           className="rounded border-slate-600 bg-slate-700 text-blue-600"
+                                           className="rounded border-border bg-surface-2 text-accent-info"
                                        />
                                    </td>
                                    <td className="px-3 py-2 text-center">
@@ -221,7 +221,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                            type="checkbox" 
                                            checked={col.primary_key} 
                                            onChange={(e) => handleChange(idx, 'primary_key', e.target.checked)}
-                                           className="rounded border-slate-600 bg-slate-700 text-blue-600"
+                                           className="rounded border-border bg-surface-2 text-accent-info"
                                        />
                                    </td>
                                    <td className="px-3 py-2">
@@ -229,7 +229,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                            type="text" 
                                            value={col.default_value || ''} 
                                            onChange={(e) => handleChange(idx, 'default_value', e.target.value)}
-                                           className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-slate-200"
+                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
                                        />
                                    </td>
                                    <td className="px-3 py-2">
@@ -237,13 +237,13 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                            type="text" 
                                            value={col.comment || ''} 
                                            onChange={(e) => handleChange(idx, 'comment', e.target.value)}
-                                           className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-slate-200"
+                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
                                        />
                                    </td>
                                    <td className="px-3 py-2 text-center">
                                        <button 
                                            onClick={() => handleRemoveColumn(idx)}
-                                           className="text-red-400 hover:text-red-300"
+                                           className="text-danger hover:text-red-300"
                                            title="Remove Column"
                                        >
                                            <i className="fas fa-trash"></i>
@@ -253,10 +253,10 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                            ))}
                        </tbody>
                    </table>
-                   <div className="p-2 bg-slate-900/50 border-t border-slate-700">
+                   <div className="p-2 bg-canvas/50 border-t border-border">
                        <button 
                            onClick={handleAddColumn}
-                           className="text-blue-400 hover:text-blue-300 text-xs flex items-center gap-1"
+                           className="text-accent-info hover:text-accent-info text-xs flex items-center gap-1"
                        >
                            <i className="fas fa-plus"></i> Add Column
                        </button>
@@ -266,17 +266,17 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
           )}
         </div>
         
-        <div className="p-4 border-t border-slate-700 flex justify-end gap-2">
+        <div className="p-4 border-t border-border flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+            className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {saving && <i className="fas fa-spinner fa-spin"></i>}
             Save Changes

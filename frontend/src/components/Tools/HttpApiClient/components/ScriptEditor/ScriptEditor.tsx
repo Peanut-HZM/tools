@@ -45,7 +45,7 @@ export default function ScriptEditor({
   };
 
   return (
-    <div className="relative border border-slate-600 rounded-lg overflow-hidden">
+    <div className="relative border border-border rounded-lg overflow-hidden">
       <Editor
         height={height}
         language={language}
@@ -79,7 +79,7 @@ export default function ScriptEditor({
         }}
       />
       {placeholder && !value && (
-        <div className="absolute top-2 left-14 text-slate-500 text-sm pointer-events-none">
+        <div className="absolute top-2 left-14 text-ink-faint text-sm pointer-events-none">
           {placeholder}
         </div>
       )}

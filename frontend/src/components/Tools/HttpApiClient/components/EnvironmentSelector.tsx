@@ -20,12 +20,12 @@ export default function EnvironmentSelector({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-400">环境:</span>
+      <span className="text-xs text-ink-muted">环境:</span>
       <select
         value={activeEnvironment?.id || ''}
         onChange={handleChange}
-        className="bg-slate-700 text-white px-3 py-1.5 rounded border border-slate-600 text-sm
-                   focus:border-purple-500 focus:outline-none"
+        className="bg-surface-2 text-ink-inverse px-3 py-1.5 rounded border border-border text-sm
+                   focus:border-accent-secondary focus:outline-none"
       >
         {environments.map(env => (
           <option key={env.id} value={env.id}>
@@ -39,13 +39,13 @@ export default function EnvironmentSelector({
           {Object.entries(activeEnvironment.variables).slice(0, 3).map(([key, value]) => (
             <span
               key={key}
-              className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-400"
+              className="text-xs bg-surface-2 px-2 py-1 rounded text-ink-muted"
             >
               {key}={value}
             </span>
           ))}
           {Object.keys(activeEnvironment.variables).length > 3 && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-ink-faint">
               +{Object.keys(activeEnvironment.variables).length - 3}
             </span>
           )}
