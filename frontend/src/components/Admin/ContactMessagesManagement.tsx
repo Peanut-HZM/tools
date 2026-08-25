@@ -165,12 +165,12 @@ export default function ContactMessagesManagement() {
   return (
     <div>      {/* 页面标题 */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">{t.admin.contactMessages.title}</h2>
-        <p className="text-slate-400">{t.admin.contactMessages.listTitle}</p>
+        <h2 className="text-3xl font-bold text-ink-inverse mb-2">{t.admin.contactMessages.title}</h2>
+        <p className="text-ink-muted">{t.admin.contactMessages.listTitle}</p>
       </div>
 
       {/* 筛选和操作栏 */}
-      <div className="bg-slate-800 rounded-lg p-4 mb-6 border border-slate-700">
+      <div className="bg-surface-1 rounded-lg p-4 mb-6 border border-border">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* 筛选器 */}
           <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ export default function ContactMessagesManagement() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="all">{t.admin.contactMessages.filter.all}</option>
               <option value="unread">{t.admin.contactMessages.filter.unread}</option>
@@ -193,12 +193,12 @@ export default function ContactMessagesManagement() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder={t.admin.contactMessages.keywordSearch}
-              className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
             <button
               onClick={handleSearch}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors cursor-pointer text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors cursor-pointer text-sm"
             >
               <i className="fas fa-search mr-1"></i> 搜索
             </button>
@@ -207,28 +207,28 @@ export default function ContactMessagesManagement() {
           {/* 批量操作 */}
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 text-sm">已选择 {selectedIds.length} 条</span>
+              <span className="text-ink-muted text-sm">已选择 {selectedIds.length} 条</span>
               <button
                 onClick={() => handleBatchUpdate('read')}
-                className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white rounded text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-ink-inverse rounded text-sm cursor-pointer"
               >
                 标记为已读
               </button>
               <button
                 onClick={() => handleBatchUpdate('processing')}
-                className="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-500 text-white rounded text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-500 text-ink-inverse rounded text-sm cursor-pointer"
               >
                 处理中
               </button>
               <button
                 onClick={() => handleBatchUpdate('resolved')}
-                className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-ink-inverse rounded text-sm cursor-pointer"
               >
                 已完成
               </button>
               <button
                 onClick={handleBatchDelete}
-                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm cursor-pointer"
               >
                 删除
               </button>
@@ -238,19 +238,19 @@ export default function ContactMessagesManagement() {
       </div>
 
       {/* 留言列表 */}
-      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+      <div className="bg-surface-1 rounded-lg border border-border overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-slate-400">
+          <div className="flex items-center justify-center py-12 text-ink-muted">
             <i className="fas fa-inbox text-4xl mb-4"></i>
             <p>{t.admin.contactMessages.noData}</p>
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-slate-900 border-b border-slate-700">
+            <thead className="bg-canvas border-b border-border">
               <tr>
                 <th className="px-4 py-3 text-left">
                   <input
@@ -260,31 +260,31 @@ export default function ContactMessagesManagement() {
                     className="cursor-pointer"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                   {t.admin.contactMessages.name}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                   {t.admin.contactMessages.email}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                   {t.admin.contactMessages.subject}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                   {t.admin.contactMessages.statusLabel}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                   {t.admin.contactMessages.createdAt}
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">
                   {t.admin.contactMessages.actions}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-border">
               {messages.map((message) => (
                 <tr
                   key={message.id}
-                  className={`hover:bg-slate-700/50 transition-colors ${
+                  className={`hover:bg-surface-2/50 transition-colors ${
                     message.status === 'unread' ? 'bg-blue-900/10' : ''
                   }`}
                 >
@@ -296,9 +296,9 @@ export default function ContactMessagesManagement() {
                       className="cursor-pointer"
                     />
                   </td>
-                  <td className="px-4 py-3 text-white">{message.name}</td>
-                  <td className="px-4 py-3 text-slate-300">{message.email}</td>
-                  <td className="px-4 py-3 text-slate-300 max-w-xs truncate" title={message.subject || ''}>
+                  <td className="px-4 py-3 text-ink-inverse">{message.name}</td>
+                  <td className="px-4 py-3 text-ink-muted">{message.email}</td>
+                  <td className="px-4 py-3 text-ink-muted max-w-xs truncate" title={message.subject || ''}>
                     {message.subject || '-'}
                   </td>
                   <td className="px-4 py-3">
@@ -313,7 +313,7 @@ export default function ContactMessagesManagement() {
                       <option value="resolved">{t.admin.contactMessages.status.resolved}</option>
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-slate-400 text-sm">
+                  <td className="px-4 py-3 text-ink-muted text-sm">
                     {new Date(message.created_at).toLocaleString('zh-CN')}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -323,13 +323,13 @@ export default function ContactMessagesManagement() {
                           setSelectedMessage(message);
                           setReplyContent(message.admin_reply || '');
                         }}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm cursor-pointer transition-colors"
+                        className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white rounded text-sm cursor-pointer transition-colors"
                       >
                         {t.admin.contactMessages.viewDetail}
                       </button>
                       <button
                         onClick={() => handleDelete(message.id)}
-                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-sm cursor-pointer transition-colors"
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm cursor-pointer transition-colors"
                       >
                         {t.admin.contactMessages.delete}
                       </button>
@@ -345,21 +345,21 @@ export default function ContactMessagesManagement() {
       {/* 分页 */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6">
-          <p className="text-slate-400 text-sm">
+          <p className="text-ink-muted text-sm">
             共 {total} 条留言，第 {page} 页 / 共 {totalPages} 页
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
+              className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:text-ink-faint text-ink-inverse rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
               上一页
             </button>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
+              className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:text-ink-faint text-ink-inverse rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
               下一页
             </button>
@@ -371,12 +371,12 @@ export default function ContactMessagesManagement() {
       {selectedMessage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setSelectedMessage(null)} />
-          <div className="relative bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between sticky top-0 bg-slate-800 z-10">
-              <h3 className="text-xl font-semibold text-white">{t.admin.contactMessages.detailTitle}</h3>
+          <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-surface-1 z-10">
+              <h3 className="text-xl font-semibold text-ink-inverse">{t.admin.contactMessages.detailTitle}</h3>
               <button
                 onClick={() => setSelectedMessage(null)}
-                className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-700 cursor-pointer"
+                className="text-ink-muted hover:text-ink-inverse transition-colors p-1 rounded-lg hover:bg-surface-2 cursor-pointer"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -388,49 +388,49 @@ export default function ContactMessagesManagement() {
               {/* 基本信息 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-slate-400">{t.admin.contactMessages.name}</label>
-                  <p className="text-white">{selectedMessage.name}</p>
+                  <label className="text-sm text-ink-muted">{t.admin.contactMessages.name}</label>
+                  <p className="text-ink-inverse">{selectedMessage.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400">{t.admin.contactMessages.email}</label>
-                  <p className="text-white">{selectedMessage.email}</p>
+                  <label className="text-sm text-ink-muted">{t.admin.contactMessages.email}</label>
+                  <p className="text-ink-inverse">{selectedMessage.email}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400">{t.admin.contactMessages.subject}</label>
-                  <p className="text-white">{selectedMessage.subject || '-'}</p>
+                  <label className="text-sm text-ink-muted">{t.admin.contactMessages.subject}</label>
+                  <p className="text-ink-inverse">{selectedMessage.subject || '-'}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400">{t.admin.contactMessages.status}</label>
-                  <p className="text-white">{getStatusLabel(selectedMessage.status)}</p>
+                  <label className="text-sm text-ink-muted">{t.admin.contactMessages.status}</label>
+                  <p className="text-ink-inverse">{getStatusLabel(selectedMessage.status)}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400">{t.admin.contactMessages.createdAt}</label>
-                  <p className="text-white">{new Date(selectedMessage.created_at).toLocaleString('zh-CN')}</p>
+                  <label className="text-sm text-ink-muted">{t.admin.contactMessages.createdAt}</label>
+                  <p className="text-ink-inverse">{new Date(selectedMessage.created_at).toLocaleString('zh-CN')}</p>
                 </div>
               </div>
 
               {/* 留言内容 */}
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">{t.admin.contactMessages.content}</label>
-                <div className="bg-slate-700 rounded-lg p-4 text-white whitespace-pre-wrap">
+                <label className="text-sm text-ink-muted mb-1 block">{t.admin.contactMessages.content}</label>
+                <div className="bg-surface-2 rounded-lg p-4 text-ink-inverse whitespace-pre-wrap">
                   {selectedMessage.content}
                 </div>
               </div>
 
               {/* 管理员回复 */}
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">{t.admin.contactMessages.adminReply}</label>
+                <label className="text-sm text-ink-muted mb-1 block">{t.admin.contactMessages.adminReply}</label>
                 <textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder={t.admin.contactMessages.replyPlaceholder}
                   rows={4}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
 
               {/* 操作按钮 */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <select
                   value={selectedMessage.status}
                   onChange={(e) => handleStatusChange(selectedMessage.id, e.target.value as MessageStatus)}
@@ -443,7 +443,7 @@ export default function ContactMessagesManagement() {
                 </select>
                 <button
                   onClick={() => handleReply(selectedMessage.id)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded cursor-pointer transition-colors"
+                  className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded cursor-pointer transition-colors"
                 >
                   {t.admin.contactMessages.saveReply}
                 </button>
