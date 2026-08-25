@@ -84,13 +84,13 @@ export default function JsonFormatter() {
   };
 
   return (
-    <div className="flex-1 text-slate-100 flex flex-col overflow-hidden">
+    <div className="flex-1 text-ink flex flex-col overflow-hidden">
       {/* 顶部工具栏 - 紧凑设计 */}
-      <div className="bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
+      <div className="bg-surface-1 border-b border-border px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
-            className="text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+            className="text-ink-muted hover:text-white transition-colors flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>
             <span className="hidden sm:inline">返回</span>
@@ -108,14 +108,14 @@ export default function JsonFormatter() {
           <select
             value={indentSize}
             onChange={(e) => setIndentSize(Number(e.target.value))}
-            className="bg-slate-700 text-white px-2 py-1.5 rounded border border-slate-600 text-sm"
+            className="bg-surface-2 text-ink-inverse px-2 py-1.5 rounded border border-border text-sm"
           >
             <option value={2}>2空格</option>
             <option value={4}>4空格</option>
           </select>
           <button
             onClick={formatJson}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium"
+            className="bg-accent hover:bg-accent-hover text-white px-4 py-1.5 rounded text-sm font-medium"
           >
             <i className="fas fa-magic mr-1"></i>
             格式化
@@ -129,14 +129,14 @@ export default function JsonFormatter() {
           </button>
           <button
             onClick={clearAll}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-sm"
+            className="bg-surface-2 hover:bg-surface-3 text-ink-inverse px-3 py-1.5 rounded text-sm"
           >
             <i className="fas fa-eraser mr-1"></i>
             清空
           </button>
           <button
             onClick={loadSample}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-sm"
+            className="bg-surface-2 hover:bg-surface-3 text-ink-inverse px-3 py-1.5 rounded text-sm"
             title="加载示例"
           >
             <i className="fas fa-file-import"></i>
@@ -146,7 +146,7 @@ export default function JsonFormatter() {
 
       {/* 错误提示 - 只在有错误时显示 */}
       {error && (
-        <div className="bg-red-500/20 border-b border-red-500 text-red-400 px-4 py-2 text-sm flex-shrink-0">
+        <div className="bg-danger/20 border-b border-danger text-danger px-4 py-2 text-sm flex-shrink-0">
           <i className="fas fa-exclamation-circle mr-2"></i>
           {error}
         </div>
@@ -155,12 +155,12 @@ export default function JsonFormatter() {
       {/* 主内容区域 - 占满剩余空间 */}
       <div className="flex-1 flex overflow-hidden">
         {/* 输入区域 */}
-        <div className="flex-1 flex flex-col border-r border-slate-700">
-          <div className="bg-slate-800/50 px-4 py-2 flex items-center justify-between border-b border-slate-700 flex-shrink-0">
-            <span className="text-sm text-slate-400">输入 JSON</span>
+        <div className="flex-1 flex flex-col border-r border-border">
+          <div className="bg-surface-1/50 px-4 py-2 flex items-center justify-between border-b border-border flex-shrink-0">
+            <span className="text-sm text-ink-muted">输入 JSON</span>
             <button
               onClick={() => copyToClipboard(input)}
-              className="text-xs text-slate-500 hover:text-slate-300"
+              className="text-xs text-ink-faint hover:text-ink-muted"
               title="复制输入"
             >
               <i className="fas fa-copy mr-1"></i>
@@ -171,15 +171,15 @@ export default function JsonFormatter() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder='粘贴JSON字符串，例如：{"name":"张三","age":30}'
-            className="flex-1 w-full bg-slate-900 text-white px-4 py-3 font-mono text-sm resize-none focus:outline-none"
+            className="flex-1 w-full bg-canvas text-ink-inverse px-4 py-3 font-mono text-sm resize-none focus:outline-none"
             spellCheck={false}
           />
         </div>
 
         {/* 输出区域 */}
         <div className="flex-1 flex flex-col">
-          <div className="bg-slate-800/50 px-4 py-2 flex items-center justify-between border-b border-slate-700 flex-shrink-0">
-            <span className="text-sm text-slate-400">格式化结果</span>
+          <div className="bg-surface-1/50 px-4 py-2 flex items-center justify-between border-b border-border flex-shrink-0">
+            <span className="text-sm text-ink-muted">格式化结果</span>
             <button
               onClick={() => copyToClipboard(output)}
               className="text-xs text-green-500 hover:text-green-400"
@@ -193,14 +193,14 @@ export default function JsonFormatter() {
             value={output}
             readOnly
             placeholder="格式化后的JSON将显示在这里..."
-            className="flex-1 w-full bg-slate-900 text-green-400 px-4 py-3 font-mono text-sm resize-none focus:outline-none"
+            className="flex-1 w-full bg-canvas text-green-400 px-4 py-3 font-mono text-sm resize-none focus:outline-none"
             spellCheck={false}
           />
         </div>
       </div>
 
       {/* 底部状态栏 - 紧凑设计 */}
-      <div className="bg-slate-800 border-t border-slate-700 px-4 py-1.5 flex items-center justify-between text-xs text-slate-500 flex-shrink-0">
+      <div className="bg-surface-1 border-t border-border px-4 py-1.5 flex items-center justify-between text-xs text-ink-faint flex-shrink-0">
         <div className="flex items-center gap-4">
           <span>输入: {input.length} 字符</span>
           <span>输出: {output.length} 字符</span>
