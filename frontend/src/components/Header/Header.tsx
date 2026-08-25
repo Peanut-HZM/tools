@@ -72,14 +72,14 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             {user?.role === 'admin' && (
               <Link
                 to="/admin"
-                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-accent-secondary hover:opacity-90 text-ink-inverse text-sm font-medium transition-colors cursor-pointer"
               >
                 {t.nav.admin}
               </Link>
             )}
             <button
               onClick={() => setIsContactModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-ink-inverse text-sm font-medium transition-colors cursor-pointer"
             >
               {t.nav.contactUs}
             </button>

@@ -13,7 +13,7 @@ export default function CategoryTabs({ categories, activeCategory, onCategoryCha
         <button
           key={category}
           onClick={() => onCategoryChange(category)}
-          className={`category-tab bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg transition-colors ${
+          className={`category-tab bg-surface-2 hover:bg-surface-3 text-ink-muted px-4 py-2 rounded-lg transition-colors border border-border ${
             activeCategory === category ? 'active' : ''
           }`}
         >

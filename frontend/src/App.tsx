@@ -104,7 +104,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
       {showRegister ? (
         <RegisterForm
           onSuccess={handleSuccess}
@@ -247,14 +247,14 @@ function HomePage() {
   return (
     <div className="container mx-auto px-6 py-8">
       {error && (
-        <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg mb-8">
+        <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg mb-8">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="text-center py-16">
-          <div className="text-xl text-slate-400">{t.common.loading}</div>
+          <div className="text-xl text-ink-faint">{t.common.loading}</div>
         </div>
       ) : (
         <>
@@ -314,7 +314,7 @@ function App() {
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />
               {/* 工具页面：React.lazy 按需加载，Suspense fallback 统一处理加载态 */}
               <Route path="/tools/*" element={
-                <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="text-xl text-slate-400">加载中...</div></div>}>
+                <Suspense fallback={<div className="min-h-screen bg-canvas flex items-center justify-center"><div className="text-xl text-ink-muted">加载中...</div></div>}>
                   <Routes>
                     <Route path="image-downloader" element={<ImageDownloader />} />
                     <Route path="video-downloader" element={<VideoDownloader />} />
