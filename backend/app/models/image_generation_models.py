@@ -13,25 +13,6 @@ def gen_uuid() -> str:
     return str(uuid.uuid4())
 
 
-class ImageGenQuota(Base):
-    """配额表"""
-    __tablename__ = "image_gen_quota"
-
-    user_id = Column(String(64), primary_key=True)
-    daily_limit = Column(Integer, nullable=False)
-    monthly_limit = Column(Integer, nullable=False)
-    daily_used = Column(Integer, nullable=False, default=0)
-    monthly_used = Column(Integer, nullable=False, default=0)
-    daily_reset_date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    monthly_reset_date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    valid_from = Column(DateTime(timezone=True), nullable=True)
-    valid_until = Column(DateTime(timezone=True), nullable=True)
-    granted_by = Column(String(64), nullable=True)
-    notes = Column(String(512), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
-
-
 class ImageGenHistory(Base):
     """历史表"""
     __tablename__ = "image_gen_history"

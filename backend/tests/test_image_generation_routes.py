@@ -51,7 +51,7 @@ from app.core.exceptions import DifyError, QuotaExceeded, ServiceDegraded  # noq
 from app.models.base import Base  # noqa: E712
 from app.models.image_generation_models import ImageGenHistory  # noqa: E712
 from app.services.image_gen_history_service import ImageGenHistoryService  # noqa: E712
-from app.services.image_gen_quota_service import ImageGenQuotaService, QuotaInfo  # noqa: E712
+from app.services.llm_quota_service import LLMQuotaService, QuotaInfo  # noqa: E712
 from app.services.image_generation_service import GenerationResult  # noqa: E712
 from app.services.image_generation_service import ImageGenService  # noqa: E712
 
@@ -91,8 +91,8 @@ def mock_history_svc():
 
 @pytest.fixture
 def mock_quota_svc():
-    """模拟 ImageGenQuotaService"""
-    svc = MagicMock(spec=ImageGenQuotaService)
+    """模拟 LLMQuotaService"""
+    svc = MagicMock(spec=LLMQuotaService)
     svc.get_user_quota = MagicMock(return_value=None)
     return svc
 
@@ -378,12 +378,17 @@ def test_get_quota_me_returns_quota_info(client, mock_quota_svc):
     mock_quota_svc.get_user_quota = MagicMock(
         return_value=QuotaInfo(
             user_id="user-1",
+            quota_mode="image_gen",
             daily_limit=20,
             daily_used=5,
             daily_remaining=15,
             monthly_limit=300,
             monthly_used=10,
             monthly_remaining=290,
+            token_period=None,
+            token_limit=None,
+            token_used=0,
+            token_remaining=0,
             valid_from=datetime(2026, 1, 1, tzinfo=timezone.utc),
             valid_until=None,
             is_valid=True,

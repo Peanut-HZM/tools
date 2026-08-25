@@ -62,7 +62,7 @@ def get_history_service(
 def get_quota_service(
     db: Session = Depends(get_db),
 ) -> LLMQuotaService:
-    """组装 LLMQuotaService（Task 8 起取代 ImageGenQuotaService）"""
+    """组装 LLMQuotaService（通用配额服务）"""
     return LLMQuotaService(db=db)
 
 

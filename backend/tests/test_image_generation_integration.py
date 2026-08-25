@@ -430,7 +430,7 @@ def test_concurrent_generations_no_overlimit_threaded_lock(db_session):
     SQLite 替代方案：验证 Service 层 _test_lock 参数生效。
 
     真正的并发安全验证请使用 test_concurrent_generations_no_overlimit_postgres（需要 PG）。
-    纯内存的 threading.Lock 模拟测试已在 test_image_gen_quota_service.py 中覆盖。
+    纯内存的 threading.Lock 模拟测试已在 test_llm_quota_service.py 中覆盖。
     """
     if not _is_postgres():
         pytest.skip("多线程并发 SQLite 测试存在连接共享问题，请设置 IMAGE_GEN_TEST_PG_URL 跑 PG 版本")

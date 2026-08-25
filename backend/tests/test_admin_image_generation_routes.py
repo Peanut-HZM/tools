@@ -3,7 +3,7 @@ Task 7.1 — 图像生成管理 API 测试
 
 依赖：
   - FastAPI TestClient
-  - mock ImageGenQuotaService / DifyConfigService / DifyClient
+  - mock LLMQuotaService / DifyConfigService / DifyClient
   - 注入临时 in-memory SQLite session 给 stat 聚合查询
 
 覆盖范围（>=18 个用例）：
@@ -63,7 +63,7 @@ if str(BACKEND_DIR) not in sys.path:
 from app.models.base import Base
 from app.models import image_generation_models  # noqa: F401 - 触发表注册
 from app.models.image_generation_models import ImageGenHistory
-from app.services.image_gen_quota_service import QuotaInfo
+from app.services.llm_quota_service import QuotaInfo
 
 
 # ============================================================
@@ -133,12 +133,17 @@ def _make_quota(
 ) -> QuotaInfo:
     return QuotaInfo(
         user_id=user_id,
+        quota_mode="image_gen",
         daily_limit=daily_limit,
         daily_used=daily_used,
         daily_remaining=max(0, daily_limit - daily_used),
         monthly_limit=monthly_limit,
         monthly_used=monthly_used,
         monthly_remaining=max(0, monthly_limit - monthly_used),
+        token_period=None,
+        token_limit=None,
+        token_used=0,
+        token_remaining=0,
         valid_from=valid_from,
         valid_until=valid_until,
         is_valid=is_valid,
@@ -149,7 +154,7 @@ def _make_quota(
 
 @pytest.fixture
 def mock_quota_svc():
-    """可配置的 mock ImageGenQuotaService"""
+    """可配置的 mock LLMQuotaService"""
     svc = MagicMock()
     svc.list_users.return_value = []
     svc.count_users.return_value = 0
@@ -199,7 +204,7 @@ def app(mock_quota_svc, mock_dify_config_svc, mock_dify_client, db_session, admi
 
     依赖覆盖：
       - get_admin_user → 返回固定 admin_user
-      - get_image_gen_quota_service → mock_quota_svc
+      - get_admin_quota_service → mock_quota_svc
       - get_dify_config_service → mock_dify_config_svc
       - get_dify_client → mock_dify_client
       - get_db → 临时 SQLite session
@@ -228,7 +233,7 @@ def app(mock_quota_svc, mock_dify_config_svc, mock_dify_client, db_session, admi
             pass
 
     app.dependency_overrides[aig.get_admin_user] = _override_admin
-    app.dependency_overrides[aig.get_image_gen_quota_service] = _override_quota
+    app.dependency_overrides[aig.get_admin_quota_service] = _override_quota
     app.dependency_overrides[aig.get_dify_config_service] = _override_config
     app.dependency_overrides[aig.get_dify_client] = _override_client
     app.dependency_overrides[aig.get_db] = _override_db
@@ -274,7 +279,7 @@ def app_with_normal_user(mock_quota_svc, mock_dify_config_svc, mock_dify_client,
         raise HTTPException(status_code=403, detail="Permission denied: Admin access required")
 
     app.dependency_overrides[aig.get_admin_user] = _override_admin
-    app.dependency_overrides[aig.get_image_gen_quota_service] = _override_quota
+    app.dependency_overrides[aig.get_admin_quota_service] = _override_quota
     app.dependency_overrides[aig.get_dify_config_service] = _override_config
     app.dependency_overrides[aig.get_dify_client] = _override_client
     app.dependency_overrides[aig.get_db] = _override_db
