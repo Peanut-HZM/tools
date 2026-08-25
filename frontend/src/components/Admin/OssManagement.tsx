@@ -53,30 +53,30 @@ export default function OssManagement() {
     ? files.filter(f => f.uploaded_by === user.user_id)
     : files;
 
-  if (loading) return <div className="text-white">加载中...</div>;
+  if (loading) return <div className="text-ink-inverse">加载中...</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">OSS 文件管理</h2>
+        <h2 className="text-2xl font-bold text-ink-inverse">OSS 文件管理</h2>
         
-        <div className="flex items-center space-x-2 bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-600">
+        <div className="flex items-center space-x-2 bg-surface-2 px-3 py-1.5 rounded-lg border border-border">
           <input
             type="checkbox"
             id="showMyFiles"
             checked={showMyFilesOnly}
             onChange={(e) => setShowMyFilesOnly(e.target.checked)}
-            className="w-4 h-4 text-cyan-500 rounded focus:ring-cyan-500 bg-slate-800 border-slate-500"
+            className="w-4 h-4 text-cyan-500 rounded focus:ring-accent bg-surface-1 border-slate-500"
           />
-          <label htmlFor="showMyFiles" className="text-sm text-slate-300 cursor-pointer select-none">
+          <label htmlFor="showMyFiles" className="text-sm text-ink-muted cursor-pointer select-none">
             只看我的文件
           </label>
         </div>
       </div>
       
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-slate-300">
-          <thead className="bg-slate-700 text-slate-100 uppercase text-xs">
+        <table className="w-full text-left text-ink-muted">
+          <thead className="bg-surface-2 text-ink uppercase text-xs">
             <tr>
               <th className="px-6 py-3">预览</th>
               <th className="px-6 py-3">文件名</th>
@@ -87,19 +87,19 @@ export default function OssManagement() {
               <th className="px-6 py-3">操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700">
+          <tbody className="divide-y divide-border">
             {filteredFiles.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-4 text-center text-slate-500">
+                <td colSpan={7} className="px-6 py-4 text-center text-ink-faint">
                   暂无文件
                 </td>
               </tr>
             ) : (
               filteredFiles.map((file) => (
-                <tr key={file.id} className="hover:bg-slate-700/50">
+                <tr key={file.id} className="hover:bg-surface-2/50">
                   <td className="px-6 py-4">
                     {isImage(file.type) ? (
-                      <div className="w-12 h-12 bg-slate-800 rounded overflow-hidden">
+                      <div className="w-12 h-12 bg-surface-1 rounded overflow-hidden">
                         <img 
                           src={file.url} 
                           alt={file.name} 
@@ -108,16 +108,16 @@ export default function OssManagement() {
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 bg-slate-800 rounded flex items-center justify-center text-slate-500">
+                      <div className="w-12 h-12 bg-surface-1 rounded flex items-center justify-center text-ink-faint">
                         <i className="fa-solid fa-file"></i>
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4 max-w-xs truncate" title={file.name}>
-                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
                       {file.name}
                     </a>
-                    <div className="text-xs text-slate-500 truncate">{file.path}</div>
+                    <div className="text-xs text-ink-faint truncate">{file.path}</div>
                   </td>
                   <td className="px-6 py-4 text-sm">{file.type || 'Unknown'}</td>
                   <td className="px-6 py-4 text-sm">{formatSize(file.size)}</td>
@@ -128,7 +128,7 @@ export default function OssManagement() {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleDelete(file.path)}
-                      className="text-red-400 hover:text-red-300 transition-colors text-sm"
+                      className="text-danger hover:text-red-300 transition-colors text-sm"
                     >
                       删除
                     </button>
