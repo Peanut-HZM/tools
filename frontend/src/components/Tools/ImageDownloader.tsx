@@ -149,12 +149,12 @@ export default function ImageDownloader() {
   };
 
   return (
-    <div className="text-slate-100 py-8">
+    <div className="text-ink py-8">
       <div className="container mx-auto px-6">
         {/* 返回按钮 */}
         <button
           onClick={() => navigate('/')}
-          className="mb-6 text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+          className="mb-6 text-ink-muted hover:text-white transition-colors flex items-center gap-2"
         >
           <i className="fas fa-arrow-left"></i>
           返回首页
@@ -162,18 +162,18 @@ export default function ImageDownloader() {
 
         {/* 标题 */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="fas fa-download text-white text-2xl"></i>
           </div>
           <h1 className="text-4xl font-bold mb-4">网页图片下载器</h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xl text-ink-muted max-w-2xl mx-auto">
             粘贴网页URL，自动提取并下载该网页的所有图片，支持所有格式，保证原图质量
           </p>
         </div>
 
         {/* 输入区域 */}
         <div className="max-w-3xl mx-auto mb-8">
-          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div className="bg-surface-1 rounded-xl p-6 border border-border">
             <label className="block text-sm font-medium mb-2">网页URL</label>
             <div className="flex gap-3">
               <input
@@ -182,7 +182,7 @@ export default function ImageDownloader() {
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && extractImages()}
                 placeholder="https://example.com"
-                className="flex-1 bg-slate-700 text-white px-4 py-3 rounded-lg border border-slate-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="flex-1 bg-surface-2 text-white px-4 py-3 rounded-lg border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
               <button
                 onClick={extractImages}
@@ -204,7 +204,7 @@ export default function ImageDownloader() {
             </div>
             
             {/* 使用说明 */}
-            <div className="mt-4 text-sm text-slate-400">
+            <div className="mt-4 text-sm text-ink-muted">
               <p className="mb-2">💡 使用提示：</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
                 <li>输入完整的网页URL（包含 http:// 或 https://）</li>
@@ -227,7 +227,7 @@ export default function ImageDownloader() {
         {/* 错误提示 */}
         {error && (
           <div className="max-w-3xl mx-auto mb-8">
-            <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
+            <div className="bg-danger/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
               <i className="fas fa-exclamation-circle mr-2"></i>
               {error}
             </div>
@@ -264,9 +264,9 @@ export default function ImageDownloader() {
               {images.map((image, index) => (
                 <div
                   key={index}
-                  className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden hover:border-primary transition-all group"
+                  className="bg-surface-1 rounded-xl border border-border overflow-hidden hover:border-primary transition-all group"
                 >
-                  <div className="aspect-square bg-slate-700 flex items-center justify-center overflow-hidden relative">
+                  <div className="aspect-square bg-surface-2 flex items-center justify-center overflow-hidden relative">
                     <img
                       src={image.url}
                       alt={image.alt || `图片 ${index + 1}`}
@@ -286,10 +286,10 @@ export default function ImageDownloader() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <p className="text-sm text-slate-400 mb-3 truncate" title={image.alt || `图片 ${index + 1}`}>
+                    <p className="text-sm text-ink-muted mb-3 truncate" title={image.alt || `图片 ${index + 1}`}>
                       {image.alt || `图片 ${index + 1}`}
                       {(image.width && image.height) && (
-                        <span className="ml-2 text-xs text-slate-500">
+                        <span className="ml-2 text-xs text-ink-faint">
                           {image.width} × {image.height}
                         </span>
                       )}
@@ -304,14 +304,14 @@ export default function ImageDownloader() {
                       </button>
                       <button
                         onClick={() => viewOriginalImage(image.url)}
-                        className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors text-sm"
+                        className="flex-1 bg-surface-2 hover:bg-surface-3 text-ink-inverse py-2 rounded-lg transition-colors text-sm"
                         title="在新窗口查看原图"
                       >
                         <i className="fas fa-external-link-alt mr-2"></i>
                         查看原图
                       </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2 text-center">
+                    <p className="text-xs text-ink-faint mt-2 text-center">
                       💡 点击图片或"查看原图"按钮打开原图
                     </p>
                   </div>
@@ -320,12 +320,12 @@ export default function ImageDownloader() {
             </div>
 
             {/* 下载说明 */}
-            <div className="mt-8 bg-blue-500/10 border border-blue-500 rounded-xl p-6">
+            <div className="mt-8 bg-accent-info/10 border border-accent-info rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <i className="fas fa-info-circle text-blue-500"></i>
+                <i className="fas fa-info-circle text-accent-info"></i>
                 下载说明
               </h3>
-              <div className="text-sm text-slate-300 space-y-2">
+              <div className="text-sm text-ink-muted space-y-2">
                 <p>• <strong>原图质量</strong>：使用 Blob 下载方式，确保下载的是完整质量的原图，不会失真或压缩</p>
                 <p>• <strong>自动下载</strong>：点击"下载原图"按钮，图片会自动保存到浏览器的下载文件夹</p>
                 <p>• <strong>批量下载</strong>：点击"下载全部原图"可以一次性下载所有图片</p>
@@ -339,8 +339,8 @@ export default function ImageDownloader() {
         {/* 空状态 */}
         {!loading && images.length === 0 && !error && (
           <div className="max-w-3xl mx-auto text-center py-16">
-            <i className="fas fa-image text-slate-600 text-6xl mb-4"></i>
-            <p className="text-slate-400 text-lg">
+            <i className="fas fa-image text-ink-faint text-6xl mb-4"></i>
+            <p className="text-ink-muted text-lg">
               输入网页URL开始提取图片
             </p>
           </div>
