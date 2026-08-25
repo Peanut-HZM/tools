@@ -126,7 +126,7 @@ const K8sTool: React.FC = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-900 overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] bg-canvas overflow-hidden">
       {/* 左侧：连接列表 */}
       <div style={{ width: `${sidebarWidth}px` }} className="shrink-0">
         <ConnectionList
@@ -143,14 +143,14 @@ const K8sTool: React.FC = () => {
       {/* 可拖动的分隔条 */}
       <div
         onMouseDown={handleDragStart}
-        className={`w-1 bg-slate-700 hover:bg-blue-500 cursor-col-resize transition-colors shrink-0 ${
-          isDragging ? 'bg-blue-500' : ''
+        className={`w-1 bg-surface-2 hover:bg-accent-hover cursor-col-resize transition-colors shrink-0 ${
+          isDragging ? 'bg-accent' : ''
         }`}
         style={{ cursor: 'col-resize' }}
       />
 
       {/* 右侧：主区域 */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-900">
+      <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
         {activeConnectionId ? (
           <>
             {/* 顶部操作栏：集群切换 + 命名空间过滤 */}
