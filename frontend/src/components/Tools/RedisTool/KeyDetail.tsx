@@ -6,6 +6,8 @@ import { HyperLogLogEditor } from './HyperLogLogEditor';
 import { GeoEditor } from './GeoEditor';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -119,26 +121,25 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
           </div>
           <div className="space-x-2">
             {!editing ? (
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setEditing(true)}
-                className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-md text-sm font-medium text-ink-muted transition-colors"
               >
                 <i className="fas fa-pen mr-1"></i> {t.common.edit || 'Edit'}
-              </button>
+              </Button>
             ) : (
               <>
-                <button
-                  onClick={() => { setEditing(false); loadContent(); }} // Reset
-                  className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-md text-sm font-medium text-ink-muted transition-colors"
+                <Button
+                  variant="secondary"
+                  onClick={() => { setEditing(false); loadContent(); }}
                 >
                   {t.common.cancel}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleSave}
-                  className="px-3 py-1.5 bg-accent hover:bg-blue-700 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors"
                 >
                   {t.common.save}
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -146,11 +147,11 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
         {editing && (
             <div className="mt-4">
                 <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.ttl}</label>
-                <input
+                <Input
                     type="number"
                     value={editTTL}
                     onChange={(e) => setEditTTL(parseInt(e.target.value))}
-                    className="block w-32 bg-canvas border border-border rounded-md px-3 py-1.5 text-sm text-ink focus:outline-none focus:border-blue-500"
+                    className="block w-32"
                 />
             </div>
         )}

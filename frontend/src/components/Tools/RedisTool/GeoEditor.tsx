@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getGeoInfo, operateGeo } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -66,10 +68,10 @@ export const GeoEditor: React.FC<Props> = ({ configId, keyName }) => {
       <div className="border border-border rounded-md p-3 space-y-2">
         <div className="text-sm font-medium text-ink-muted">Add Location</div>
         <div className="flex space-x-2">
-          <input value={member} onChange={e => setMember(e.target.value)} placeholder="Member" className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
-          <input value={longitude} onChange={e => setLongitude(e.target.value)} placeholder="Longitude" className="w-28 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
-          <input value={latitude} onChange={e => setLatitude(e.target.value)} placeholder="Latitude" className="w-28 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
-          <button onClick={handleAdd} className="px-3 py-1 bg-accent text-white text-xs rounded hover:bg-blue-700">Add</button>
+          <Input value={member} onChange={e => setMember(e.target.value)} placeholder="Member" className="flex-1" />
+          <Input value={longitude} onChange={e => setLongitude(e.target.value)} placeholder="Longitude" className="w-28" />
+          <Input value={latitude} onChange={e => setLatitude(e.target.value)} placeholder="Latitude" className="w-28" />
+          <Button size="sm" onClick={handleAdd}>Add</Button>
         </div>
       </div>
     </div>

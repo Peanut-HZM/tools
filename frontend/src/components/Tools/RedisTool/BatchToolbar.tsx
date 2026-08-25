@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   selectedCount: number;
@@ -53,46 +55,46 @@ export const BatchToolbar: React.FC<Props> = ({
       <div className="flex items-center justify-between">
         <span className="text-sm text-ink-muted">已选择 {selectedCount} 个 key</span>
         <div className="flex space-x-1">
-          <button onClick={() => setShowTTLModal(true)} className="px-2 py-1 text-xs bg-accent text-white rounded hover:bg-blue-700">修改 TTL</button>
-          <button onClick={() => setShowRenameModal(true)} className="px-2 py-1 text-xs bg-accent-secondary text-ink-inverse rounded hover:bg-purple-700">重命名</button>
-          <button onClick={handleDelete} className="px-2 py-1 text-xs bg-red-600 text-ink-inverse rounded hover:bg-red-700">删除</button>
-          <button onClick={onClear} className="px-2 py-1 text-xs bg-surface-2 text-ink-muted rounded hover:bg-surface-3">清空</button>
+          <Button size="sm" onClick={() => setShowTTLModal(true)}>修改 TTL</Button>
+          <Button size="sm" onClick={() => setShowRenameModal(true)}>重命名</Button>
+          <Button size="sm" variant="destructive" onClick={handleDelete}>删除</Button>
+          <Button size="sm" variant="secondary" onClick={onClear}>清空</Button>
         </div>
       </div>
 
       {showTTLModal && (
         <div className="flex items-center space-x-2">
-          <input
+          <Input
             type="number"
             value={ttl}
             onChange={(e) => setTtl(parseInt(e.target.value))}
-            className="w-24 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+            className="w-24"
             placeholder="TTL (秒)"
           />
-          <button onClick={handleTTL} className="px-2 py-1 text-xs bg-green-600 text-ink-inverse rounded">确认</button>
-          <button onClick={() => setShowTTLModal(false)} className="px-2 py-1 text-xs bg-surface-2 text-ink-muted rounded">取消</button>
+          <Button size="sm" onClick={handleTTL}>确认</Button>
+          <Button size="sm" variant="secondary" onClick={() => setShowTTLModal(false)}>取消</Button>
         </div>
       )}
 
       {showRenameModal && (
         <div className="flex items-center space-x-2">
-          <input
+          <Input
             type="text"
             value={pattern}
             onChange={(e) => setPattern(e.target.value)}
-            className="w-32 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+            className="w-32"
             placeholder="匹配模式"
           />
           <span className="text-ink-muted">→</span>
-          <input
+          <Input
             type="text"
             value={replacement}
             onChange={(e) => setReplacement(e.target.value)}
-            className="w-32 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+            className="w-32"
             placeholder="替换为"
           />
-          <button onClick={handleRename} className="px-2 py-1 text-xs bg-green-600 text-ink-inverse rounded">确认</button>
-          <button onClick={() => setShowRenameModal(false)} className="px-2 py-1 text-xs bg-surface-2 text-ink-muted rounded">取消</button>
+          <Button size="sm" onClick={handleRename}>确认</Button>
+          <Button size="sm" variant="secondary" onClick={() => setShowRenameModal(false)}>取消</Button>
         </div>
       )}
     </div>

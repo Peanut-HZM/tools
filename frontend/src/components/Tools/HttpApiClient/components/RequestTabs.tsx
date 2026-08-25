@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { OpenTab } from '../../../../stores/httpClientStore';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface RequestTabsProps {
   openTabs: OpenTab[];
@@ -36,13 +38,15 @@ export default function RequestTabs({
   if (openTabs.length === 0) {
     return (
       <div className="flex items-center bg-surface-1 border-b border-border px-4 py-2 flex-shrink-0">
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onCreateNewRequest}
-          className="text-accent-secondary hover:text-accent-secondary transition-colors text-sm"
+          className="text-accent-secondary hover:text-accent-secondary"
         >
           <i className="fas fa-plus mr-2"></i>
           新建请求
-        </button>
+        </Button>
       </div>
     );
   }
@@ -68,7 +72,7 @@ export default function RequestTabs({
             }`}
           ></i>
           {editingId === tab.requestId ? (
-            <input
+            <Input
               autoFocus
               value={editingName}
               onChange={(e) => setEditingName(e.target.value)}
@@ -85,39 +89,42 @@ export default function RequestTabs({
                   setEditingName('');
                 }
               }}
-              className="flex-1 bg-canvas text-ink-inverse text-sm px-1 py-0.5 rounded
-                         border border-accent-secondary focus:outline-none min-w-0"
+              className="flex-1 h-6 text-sm px-1 py-0.5 min-w-0"
             />
           ) : (
             <>
               <span className="truncate flex-1">{tab.request.name}</span>
               {onRename && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   title="重命名"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditingId(tab.requestId);
                     setEditingName(tab.request.name);
                   }}
-                  className="text-ink-faint hover:text-ink-muted transition-colors text-xs"
+                  className="h-6 w-6 text-ink-faint hover:text-ink-muted"
                 >
                   <i className="fas fa-pencil"></i>
-                </button>
+                </Button>
               )}
             </>
           )}
           {tab.isModified && (
             <span className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"></span>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               onTabClose(tab.requestId);
             }}
-            className="text-ink-faint hover:text-danger transition-colors text-xs"
+            className="h-6 w-6 text-ink-faint hover:text-danger"
           >
             <i className="fas fa-times"></i>
-          </button>
+          </Button>
         </div>
       ))}
     </div>

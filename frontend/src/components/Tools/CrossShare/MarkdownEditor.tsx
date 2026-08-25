@@ -4,6 +4,7 @@
  */
 import React, { useState, useCallback, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Button } from "@/components/ui/Button";
 
 interface MarkdownEditorProps {
   initialValue: string;
@@ -19,14 +20,16 @@ interface ToolbarButtonProps {
 }
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = ({ icon, title, onClick, shortcut }) => (
-  <button
+  <Button
+    size="icon"
+    variant="ghost"
     type="button"
     onClick={onClick}
-    className="p-2 text-ink-muted hover:text-ink-inverse hover:bg-surface-3 rounded transition-colors"
+    className="text-ink-muted hover:text-ink-inverse"
     title={`${title}${shortcut ? ` (${shortcut})` : ''}`}
   >
     {icon}
-  </button>
+  </Button>
 );
 
 const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, onCancel }) => {
@@ -133,13 +136,14 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
           <ToolbarButton icon=">" title="引用" shortcut="Ctrl+Q" onClick={handleQuote} />
         </div>
         <div className="flex items-center space-x-2">
-          <button
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={() => setPreviewPosition(previewPosition === 'right' ? 'bottom' : 'right')}
-            className="px-2 py-1 text-xs bg-surface-3 hover:bg-surface-3 text-ink rounded transition-colors"
             title="切换预览方向"
           >
             {previewPosition === 'right' ? '⬇️ 上下' : '➡️ 左右'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -188,18 +192,21 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
 
       {/* 操作按钮 */}
       <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-surface-2 border-t border-border">
-        <button
+        <Button
+          size="sm"
+          variant="secondary"
           onClick={onCancel}
-          className="px-4 py-2 text-sm bg-surface-3 hover:bg-surface-3 text-ink rounded transition-colors"
+          className="bg-surface-3 text-ink-inverse hover:bg-surface-3"
         >
           取消
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="default"
           onClick={() => onSave(value)}
-          className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-ink-inverse rounded transition-colors"
+          className="text-ink-inverse"
         >
           保存
-        </button>
+        </Button>
       </div>
     </div>
   );

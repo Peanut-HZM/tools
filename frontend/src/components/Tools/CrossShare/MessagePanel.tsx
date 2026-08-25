@@ -10,6 +10,8 @@ import CodeViewer from './CodeViewer';
 import MessageActions from './MessageActions';
 import HighlightText from './HighlightText';
 import { detectContentType, countLines, isUrl } from './utils/contentDetector';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 const COLLAPSE_HEIGHT = 200; // 折叠高度阈值（px）
 
@@ -370,15 +372,16 @@ const MessagePanel: React.FC = () => {
         {/* 渐变遮罩 - 仅当消息折叠时显示 */}
         {!isExpanded && needsCollapse && (
           <div className="absolute bottom-0 left-0 right-0 h-24 flex items-end justify-center pb-4 bg-gradient-to-t from-surface-2/90 to-transparent pointer-events-none">
-            <button
+            <Button
+              variant="default"
               onClick={() => toggleExpand(msg.id)}
-              className="pointer-events-auto px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse text-sm font-semibold rounded-lg shadow-lg transition-colors flex items-center space-x-2"
+              className="pointer-events-auto text-ink-inverse shadow-lg flex items-center space-x-2"
             >
               <span>展开</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -400,12 +403,13 @@ const MessagePanel: React.FC = () => {
           <div className="text-6xl mb-4">⚠️</div>
           <div className="text-ink text-xl font-semibold mb-2">加载消息失败</div>
           <div className="text-ink-muted mb-6">{loadError}</div>
-          <button
+          <Button
+            variant="default"
             onClick={loadMessages}
-            className="px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse font-semibold rounded-lg transition-colors"
+            className="px-6 py-2 text-ink-inverse font-semibold"
           >
             重试
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -419,26 +423,28 @@ const MessagePanel: React.FC = () => {
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input
+          <Input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="搜索消息..."
-            className="w-full pl-10 pr-24 py-2.5 bg-surface-2/50 border border-border rounded-lg text-ink placeholder-slate-500 text-sm focus:outline-none focus:border-accent-info transition-colors"
+            className="w-full pl-10 pr-24 py-2.5 bg-surface-2/50 placeholder-slate-500 text-sm focus-visible:border-accent-info"
           />
           {searchTerm && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
               <span className="text-xs text-ink-faint">
                 {filteredMessages.length} / {messages.length}
               </span>
-              <button
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={() => setSearchTerm('')}
-                className="text-ink-muted hover:text-ink transition-colors"
+                className="w-6 h-6 text-ink-muted hover:text-ink"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -491,29 +497,33 @@ const MessagePanel: React.FC = () => {
           <div className="absolute bottom-20 right-6 flex flex-col-reverse gap-2 z-50">
             {/* 滚动到底部 */}
             {showScrollButton && (
-              <button
+              <Button
+                size="sm"
+                variant="default"
                 onClick={handleScrollToBottom}
-                className="px-3 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
+                className="shadow-lg text-ink-inverse flex items-center gap-2"
                 title="滚动到底部"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
                 <span>底部</span>
-              </button>
+              </Button>
             )}
             {/* 滚动到顶部 */}
             {showScrollTopButton && (
-              <button
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={handleScrollToTop}
-                className="px-3 py-2 bg-surface-3 hover:bg-surface-3 text-ink-inverse rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
+                className="bg-surface-3 shadow-lg text-ink-inverse flex items-center gap-2"
                 title="滚动到顶部"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                 </svg>
                 <span>顶部</span>
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -531,13 +541,14 @@ const MessagePanel: React.FC = () => {
             className="flex-1 bg-surface-2/50 border border-border rounded-lg px-4 py-3 text-ink placeholder-slate-500 focus:outline-none focus:border-accent-info resize-none"
             rows={2}
           />
-          <button
+          <Button
+            variant="default"
             onClick={handleSend}
             disabled={!inputValue.trim() || sending}
-            className="px-6 py-3 bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-ink-inverse font-semibold rounded-lg transition-colors"
+            className="px-6 py-3 text-ink-inverse font-semibold disabled:bg-surface-3 disabled:cursor-not-allowed h-auto"
           >
             {sending ? '发送中...' : '发送'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -550,18 +561,21 @@ const MessagePanel: React.FC = () => {
               {pasteContent}
             </div>
             <div className="flex justify-end space-x-3">
-              <button
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={() => handlePasteConfirm(false)}
-                className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
               >
                 插入输入框
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant="default"
                 onClick={() => handlePasteConfirm(true)}
-                className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
+                className="text-ink-inverse"
               >
                 立即发送
-              </button>
+              </Button>
             </div>
           </div>
         </div>

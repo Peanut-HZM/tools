@@ -11,6 +11,7 @@ import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import { downloadPodLogs } from '../../../../api/k8sToolApi';
 import { formatAge, getStatusColor, getStatusIcon } from './utils';
+import { Input } from '@/components/ui/Input';
 
 export const PodList: React.FC = () => {
   const { t } = useI18n();
@@ -64,12 +65,12 @@ export const PodList: React.FC = () => {
       <div className="px-3 py-2 border-b border-border bg-surface-1/50 shrink-0">
         <div className="flex items-center gap-2">
           <i className="fas fa-search text-xs text-ink-faint"></i>
-          <input
+          <Input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder={k8sT.podList.searchPlaceholder}
-            className="flex-1 px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500 placeholder-slate-600"
+            className="flex-1 h-7 px-2 text-xs"
           />
           {searchText && (
             <button

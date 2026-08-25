@@ -15,6 +15,7 @@ import { useToast } from '../../../../hooks/useToast';
 import { getAuthToken } from '../../../../api/authApi';
 import { buildExecWebSocketUrl } from '../../../../api/k8sToolApi';
 import type { K8sContainerInfo } from '../types';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   configId: string;
@@ -257,13 +258,15 @@ export const K8sTerminalPanel: React.FC<Props> = ({
         </select>
 
         {/* 重连按钮 */}
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleReconnect}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-surface-2 hover:bg-surface-3 text-ink-muted rounded border border-border transition-colors"
+          className="h-7 px-2"
         >
           <i className="fas fa-redo text-xs"></i>
           {tt.reconnect}
-        </button>
+        </Button>
       </div>
 
       {/* 终端区域 */}

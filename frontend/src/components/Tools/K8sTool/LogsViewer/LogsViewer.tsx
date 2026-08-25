@@ -10,6 +10,8 @@ import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import { buildLogsWebSocketUrl, downloadPodLogs } from '../../../../api/k8sToolApi';
 import type { K8sContainerInfo } from '../types';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface Props {
   configId: string;
@@ -272,34 +274,38 @@ export const LogsViewer: React.FC<Props> = ({
         {/* 搜索框 */}
         <div className="flex items-center gap-1 flex-1 min-w-[140px]">
           <i className="fas fa-search text-xs text-ink-faint"></i>
-          <input
+          <Input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder={lt.search}
-            className="flex-1 px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500 placeholder-slate-600"
+            className="flex-1 h-7 px-2 text-xs"
           />
         </div>
 
         {/* 下载按钮 */}
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleDownload}
           disabled={downloading}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded hover:bg-surface-2 hover:text-ink disabled:opacity-50 transition-colors"
+          className="h-7 px-2"
           title={lt.download}
         >
           <i className={`fas ${downloading ? 'fa-spinner fa-spin' : 'fa-download'} text-xs`}></i>
-        </button>
+        </Button>
 
         {/* 清空按钮 */}
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleClear}
           disabled={lines.length === 0}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded hover:bg-surface-2 hover:text-ink disabled:opacity-500 transition-colors"
+          className="h-7 px-2"
           title={lt.clear}
         >
           <i className="fas fa-trash text-xs"></i>
-        </button>
+        </Button>
       </div>
 
       {/* 日志内容 */}

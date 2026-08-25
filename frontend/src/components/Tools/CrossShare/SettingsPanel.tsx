@@ -3,6 +3,8 @@
  */
 import React, { useState, useEffect } from 'react';
 import { configApi, UserConfig, formatFileSize } from '../../../services/crossShare';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 const SettingsPanel: React.FC = () => {
   const [config, setConfig] = useState<UserConfig | null>(null);
@@ -70,13 +72,13 @@ const SettingsPanel: React.FC = () => {
             <label className="block text-ink font-medium mb-2">
               单文件最大大小 (MB)
             </label>
-            <input
+            <Input
               type="number"
               value={config.max_file_size / 1024 / 1024}
               onChange={(e) =>
                 setConfig({ ...config, max_file_size: Number(e.target.value) * 1024 * 1024 })
               }
-              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-blue-500"
+              className="focus-visible:border-blue-500"
               min="1"
               max="10240"
             />
@@ -90,13 +92,13 @@ const SettingsPanel: React.FC = () => {
             <label className="block text-ink font-medium mb-2">
               总存储配额 (GB)
             </label>
-            <input
+            <Input
               type="number"
               value={config.storage_quota / 1024 / 1024 / 1024}
               onChange={(e) =>
                 setConfig({ ...config, storage_quota: Number(e.target.value) * 1024 * 1024 * 1024 })
               }
-              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-blue-500"
+              className="focus-visible:border-blue-500"
               min="1"
               max="1024"
             />
@@ -110,13 +112,13 @@ const SettingsPanel: React.FC = () => {
             <label className="block text-ink font-medium mb-2">
               文件过期天数
             </label>
-            <input
+            <Input
               type="number"
               value={config.file_expire_days}
               onChange={(e) =>
                 setConfig({ ...config, file_expire_days: Number(e.target.value) })
               }
-              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-blue-500"
+              className="focus-visible:border-blue-500"
               min="1"
               max="365"
             />
@@ -176,13 +178,14 @@ const SettingsPanel: React.FC = () => {
 
       {/* Save Button - 固定在底部 */}
       <div className="flex-shrink-0 p-6 border-t border-border">
-        <button
+        <Button
+          variant="default"
           onClick={handleSave}
           disabled={saving}
-          className="w-full px-6 py-3 bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-ink-inverse font-semibold rounded-lg transition-colors"
+          className="w-full px-6 py-3 text-ink-inverse font-semibold disabled:bg-surface-3 disabled:cursor-not-allowed h-auto"
         >
           {saving ? '保存中...' : '保存设置'}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getBitmapInfo, operateBitmap } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -45,12 +47,12 @@ export const BitmapEditor: React.FC<Props> = ({ configId, keyName }) => {
       <div className="border border-border rounded-md p-3 space-y-3">
         <div className="text-sm font-medium text-ink-muted">Set Bit</div>
         <div className="flex space-x-2 items-center">
-          <input
+          <Input
             type="number"
             value={offset}
             onChange={e => setOffset(parseInt(e.target.value) || 0)}
             placeholder="Offset"
-            className="w-32 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+            className="w-32"
           />
           <select
             value={bitValue}
@@ -60,7 +62,7 @@ export const BitmapEditor: React.FC<Props> = ({ configId, keyName }) => {
             <option value={1}>1</option>
             <option value={0}>0</option>
           </select>
-          <button onClick={handleSetBit} className="px-3 py-1 bg-accent text-white text-xs rounded hover:bg-blue-700">Set</button>
+          <Button size="sm" onClick={handleSetBit}>Set</Button>
         </div>
       </div>
     </div>

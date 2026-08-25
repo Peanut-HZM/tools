@@ -4,6 +4,8 @@
  */
 import { useState } from 'react';
 import { FormDataEntry } from '../../../../../services/httpClientApi';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface FormDataEditorProps {
   formData: FormDataEntry[];
@@ -68,26 +70,26 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
             </select>
 
             {/* Key 输入 */}
-            <input
+            <Input
               type="text"
               value={entry.key}
               onChange={(e) => handleChange(index, 'key', e.target.value)}
               placeholder="Key"
-              className="flex-1 bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
+              className="flex-1 text-sm"
             />
 
             {/* Value 输入（text 类型）或文件选择（file 类型） */}
             {entry.type === 'text' ? (
-              <input
+              <Input
                 type="text"
                 value={entry.value}
                 onChange={(e) => handleChange(index, 'value', e.target.value)}
                 placeholder="Value"
-                className="flex-1 bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
+                className="flex-1 text-sm"
               />
             ) : (
               <div className="flex-1 flex items-center gap-2">
-                <input
+                <Input
                   type="file"
                   onChange={(e) => e.target.files?.[0] && handleFileChange(index, e.target.files[0])}
                   className="hidden"
@@ -103,23 +105,27 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
             )}
 
             {/* 删除按钮 */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleRemove(index)}
-              className="text-ink-faint hover:text-danger transition-colors"
+              className="text-ink-faint hover:text-danger"
             >
               <i className="fas fa-times"></i>
-            </button>
+            </Button>
           </div>
         ))
       )}
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={handleAdd}
-        className="text-accent-secondary hover:text-accent-secondary transition-colors text-sm"
+        className="text-accent-secondary hover:text-accent-secondary"
       >
         <i className="fas fa-plus mr-2"></i>
         添加 Form-data
-      </button>
+      </Button>
     </div>
   );
 }

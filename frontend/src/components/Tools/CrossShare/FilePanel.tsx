@@ -4,6 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { fileApi, CrossFile, formatFileSize, formatDateTime, getFileTypeIcon } from '../../../services/crossShare';
 import { FilePreviewModal } from './FilePreviewModal';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface FilePanelProps {
   onStatsUpdate: () => void;
@@ -128,16 +130,16 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
 
           <div className="flex items-center space-x-3">
             {/* Search */}
-            <input
+            <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索文件..."
-              className="px-4 py-2 bg-surface-2 border border-border rounded-lg text-ink placeholder-slate-500 focus:outline-none focus:border-blue-500 w-64"
+              className="w-64 placeholder-slate-500 focus-visible:border-blue-500"
             />
 
             {/* Upload Button */}
-            <label className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse font-semibold rounded-lg transition-colors cursor-pointer">
+            <label className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-10">
               📤 上传文件
               <input
                 type="file"
@@ -188,24 +190,28 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
               </div>
 
               <div className="flex items-center space-x-2">
-                <button
+                <Button
+                  size="sm"
+                  variant="secondary"
                   onClick={() => handlePreview(file)}
-                  className="px-3 py-1.5 text-sm bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors"
                 >
                   👁️ 预览
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
                   onClick={() => handleDownload(file)}
-                  className="px-3 py-1.5 text-sm bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors"
                 >
                   ⬇️ 下载
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => handleDelete(file.id)}
-                  className="px-3 py-1.5 text-sm bg-red-900/30 hover:bg-red-900/50 text-danger rounded-lg transition-colors"
+                  className="text-danger bg-red-900/30 hover:bg-red-900/50"
                 >
                   🗑️ 删除
-                </button>
+                </Button>
               </div>
             </div>
           ))

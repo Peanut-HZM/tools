@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/Button";
 
 export default function JsonFormatter() {
   const navigate = useNavigate();
@@ -88,13 +89,14 @@ export default function JsonFormatter() {
       {/* 顶部工具栏 - 紧凑设计 */}
       <div className="bg-surface-1 border-b border-border px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => navigate('/')}
-            className="text-ink-muted hover:text-white transition-colors flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>
             <span className="hidden sm:inline">返回</span>
-          </button>
+          </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
               <i className="fas fa-code text-white text-sm"></i>
@@ -113,34 +115,37 @@ export default function JsonFormatter() {
             <option value={2}>2空格</option>
             <option value={4}>4空格</option>
           </select>
-          <button
+          <Button
             onClick={formatJson}
-            className="bg-accent hover:bg-accent-hover text-white px-4 py-1.5 rounded text-sm font-medium"
+            size="sm"
           >
             <i className="fas fa-magic mr-1"></i>
             格式化
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={minifyJson}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded text-sm font-medium"
+            size="sm"
+            className="bg-orange-500 hover:bg-orange-600"
           >
             <i className="fas fa-compress mr-1"></i>
             压缩
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={clearAll}
-            className="bg-surface-2 hover:bg-surface-3 text-ink-inverse px-3 py-1.5 rounded text-sm"
+            size="sm"
           >
             <i className="fas fa-eraser mr-1"></i>
             清空
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={loadSample}
-            className="bg-surface-2 hover:bg-surface-3 text-ink-inverse px-3 py-1.5 rounded text-sm"
+            size="icon"
             title="加载示例"
           >
             <i className="fas fa-file-import"></i>
-          </button>
+          </Button>
         </div>
       </div>
 

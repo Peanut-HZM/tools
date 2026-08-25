@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { RedisConfig, CreateRedisRequest, testConnection } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   isOpen: boolean;
@@ -84,10 +86,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.alias}</label>
-            <input
+            <Input
               type="text"
               required
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+              className="w-full"
               value={formData.alias}
               onChange={e => setFormData({ ...formData, alias: e.target.value })}
             />
@@ -95,20 +97,20 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.host}</label>
-              <input
+              <Input
                 type="text"
                 required
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+                className="w-full"
                 value={formData.host}
                 onChange={e => setFormData({ ...formData, host: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.port}</label>
-              <input
+              <Input
                 type="number"
                 required
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+                className="w-full"
                 value={formData.port}
                 onChange={e => setFormData({ ...formData, port: parseInt(e.target.value) })}
               />
@@ -117,18 +119,18 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           <div className="grid grid-cols-2 gap-4">
              <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.username}</label>
-              <input
+              <Input
                 type="text"
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+                className="w-full"
                 value={formData.username}
                 onChange={e => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
              <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.password}</label>
-              <input
+              <Input
                 type="password"
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+                className="w-full"
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                 placeholder={initialData ? t.common.leaveBlankToKeep : ''}
@@ -137,37 +139,36 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           </div>
            <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.db}</label>
-            <input
+            <Input
               type="number"
               min="0"
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+              className="w-full"
               value={formData.db}
               onChange={e => setFormData({ ...formData, db: parseInt(e.target.value) })}
             />
           </div>
           <div className="flex justify-between items-center pt-4">
-             <button
+             <Button
               type="button"
+              variant="secondary"
               onClick={handleTest}
               disabled={testing}
-              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
             >
               {testing ? t.redis.testing : t.redis.testConnection}
-            </button>
+            </Button>
             <div className="flex space-x-3">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={onClose}
-                className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
               >
                 {t.common.cancel}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
               >
                 {t.common.save}
-              </button>
+              </Button>
             </div>
           </div>
         </form>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { RedisConfig } from '../../../api/redisToolApi';
 import { useI18n, interpolate } from '../../../i18n';
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   configs: RedisConfig[];
@@ -19,13 +20,14 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
       <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
           <h2 className="font-semibold text-ink">{t.redis.connections}</h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onAdd}
-            className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
             title={t.redis.addConnection}
           >
             <i className="fas fa-plus"></i>
-          </button>
+          </Button>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -49,25 +51,29 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
               </div>
             </div>
             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-               <button
+               <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => { e.stopPropagation(); onEdit(config); }}
-                className={`p-1 rounded ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-white'}`}
+                className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-white'}`}
                 title={t.redis.editConnection}
               >
                 <i className="fas fa-pen text-xs"></i>
-              </button>
-              <button
-                onClick={(e) => { 
-                  e.stopPropagation(); 
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
                   if(confirm(interpolate(t.redis.confirmDeleteConnection, { alias: config.alias }))) {
-                    onDelete(config.id); 
+                    onDelete(config.id);
                   }
                 }}
-                className={`p-1 rounded ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-danger'}`}
+                className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-danger'}`}
                 title={t.common.delete}
               >
                  <i className="fas fa-trash text-xs"></i>
-              </button>
+              </Button>
             </div>
           </div>
         ))}

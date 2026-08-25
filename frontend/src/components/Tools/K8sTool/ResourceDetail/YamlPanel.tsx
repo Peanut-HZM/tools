@@ -10,6 +10,7 @@ import { Highlight, themes } from 'prism-react-renderer';
 import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import * as api from '../../../../api/k8sToolApi';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   configId: string;
@@ -77,13 +78,15 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
     <div className="h-full flex flex-col overflow-hidden">
       {/* 工具栏：复制按钮 */}
       <div className="flex items-center justify-end px-3 py-1.5 border-b border-border bg-surface-1/50 shrink-0">
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 text-ink-muted rounded border border-border transition-colors"
+          className="h-7 px-2.5 py-1 text-xs"
         >
           <i className={`fas ${copied ? 'fa-check text-green-400' : 'fa-copy'} text-xs`}></i>
           {copied ? yt.copied : yt.copy}
-        </button>
+        </Button>
       </div>
 
       {/* YAML 代码区域 */}

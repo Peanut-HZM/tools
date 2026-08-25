@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface VideoInfo {
   url: string;
@@ -61,7 +63,7 @@ export default function VideoDownloader() {
       }
 
       const data = await response.json();
-      
+
       // 只过滤掉iframe视频中的无效项，保留所有其他视频（包括短视频和GIF）
       const validVideos = data.videos.filter((video: VideoInfo) => {
         // iframe视频保留
@@ -69,9 +71,9 @@ export default function VideoDownloader() {
         // 所有其他视频都保留（包括短视频和GIF）
         return true;
       });
-      
+
       setVideos(validVideos);
-      
+
       if (validVideos.length === 0) {
         setError('该网页没有找到有效的视频资源');
       }
@@ -139,14 +141,14 @@ export default function VideoDownloader() {
           return;
         }
       }
-      
+
       // 使用后端代理下载
       const proxyUrl = `${API_BASE_URL}/tools/download-video?url=${encodeURIComponent(videoUrl)}`;
-      
+
       const link = document.createElement('a');
       link.href = proxyUrl;
       link.download = `video-${index + 1}`;
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -164,7 +166,7 @@ export default function VideoDownloader() {
   const canPreview = (video: VideoInfo) => {
     // 只有非iframe的视频才能预览
     if (video.source === 'iframe') return false;
-    
+
     // 检查是否是可以直接播放的格式
     const playableTypes = ['video/mp4', 'video/webm', 'video/ogg'];
     return playableTypes.includes(video.type) || video.url.match(/\.(mp4|webm|ogg)(\?|$)/i);
@@ -172,11 +174,11 @@ export default function VideoDownloader() {
 
   const formatDuration = (seconds: number) => {
     if (seconds <= 0) return '未知';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    
+
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     } else {
@@ -213,7 +215,7 @@ export default function VideoDownloader() {
         status: 'pending',
         progress: 0,
       };
-      
+
       setDownloadTasks(prev => new Map(prev).set(videoIndex, newTask));
 
       // 开始轮询任务状态
@@ -229,13 +231,13 @@ export default function VideoDownloader() {
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/tools/download-task/${taskId}`);
-        
+
         if (!response.ok) {
           throw new Error('查询任务状态失败');
         }
 
         const task: DownloadTask = await response.json();
-        
+
         // 更新任务状态
         setDownloadTasks(prev => new Map(prev).set(videoIndex, task));
 
@@ -263,33 +265,33 @@ export default function VideoDownloader() {
   const downloadCompletedFile = async (taskId: string, videoIndex: number) => {
     try {
       const downloadUrl = `${API_BASE_URL}/tools/download-file/${taskId}`;
-      
+
       // 获取文件
       const response = await fetch(downloadUrl);
-      
+
       if (!response.ok) {
         throw new Error('下载文件失败');
       }
 
       // 获取文件 Blob
       const blob = await response.blob();
-      
+
       // 创建 Blob URL
       const blobUrl = URL.createObjectURL(blob);
-      
+
       // 创建下载链接
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = `video-${videoIndex + 1}.mp4`;
-      
+
       // 触发下载
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // 释放 Blob URL
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-      
+
       // 清除任务状态
       setTimeout(() => {
         setDownloadTasks(prev => {
@@ -330,13 +332,14 @@ export default function VideoDownloader() {
     <div className="text-ink py-8">
       <div className="container mx-auto px-6">
         {/* 返回按钮 */}
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate('/')}
-          className="mb-6 text-ink-muted hover:text-white transition-colors flex items-center gap-2"
+          className="mb-6 flex items-center gap-2"
         >
           <i className="fas fa-arrow-left"></i>
           返回首页
-        </button>
+        </Button>
 
         {/* 标题 */}
         <div className="text-center mb-8">
@@ -354,18 +357,18 @@ export default function VideoDownloader() {
           <div className="bg-surface-1 rounded-xl p-6 border border-border">
             <label className="block text-sm font-medium mb-2">网页URL</label>
             <div className="flex gap-3">
-              <input
+              <Input
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && extractVideos()}
                 placeholder="https://example.com"
-                className="flex-1 bg-surface-2 text-white px-4 py-3 rounded-lg border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="flex-1"
               />
-              <button
+              <Button
                 onClick={extractVideos}
                 disabled={loading}
-                className="bg-primary hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="whitespace-nowrap"
               >
                 {loading ? (
                   <>
@@ -378,9 +381,9 @@ export default function VideoDownloader() {
                     提取视频
                   </>
                 )}
-              </button>
+              </Button>
             </div>
-            
+
             {/* 使用说明 */}
             <div className="mt-4 text-sm text-ink-muted">
               <p className="mb-2">💡 使用提示：</p>
@@ -391,7 +394,7 @@ export default function VideoDownloader() {
                 <li>某些视频可能需要特殊工具下载（如YouTube）</li>
                 <li>复制链接后可使用专业下载工具（如IDM、you-get等）</li>
               </ul>
-              
+
               <div className="mt-3 p-3 bg-accent-warning/20 border border-accent-warning/30 rounded">
                 <p className="text-accent-warning font-medium mb-1">⚠️ 检测限制：</p>
                 <p className="text-xs">1. 动态加载的视频（需要JavaScript执行）可能无法检测</p>
@@ -420,7 +423,7 @@ export default function VideoDownloader() {
               <h2 className="text-2xl font-bold">
                 找到 {videos.length} 个视频资源
               </h2>
-              
+
               {/* 质量选择器 */}
               <div className="flex items-center gap-3">
                 <label className="text-sm text-ink-muted">下载质量:</label>
@@ -523,7 +526,7 @@ export default function VideoDownloader() {
                               </button>
                             )}
                           </div>
-                          
+
                           {/* 进度条 */}
                           <div className="w-full bg-surface-3 rounded-full h-2 mb-2">
                             <div
@@ -531,7 +534,7 @@ export default function VideoDownloader() {
                               style={{ width: `${downloadTasks.get(index)?.progress || 0}%` }}
                             />
                           </div>
-                          
+
                           {/* 下载信息 */}
                           <div className="flex items-center justify-between text-xs text-ink-muted">
                             <span>{downloadTasks.get(index)?.progress?.toFixed(1)}%</span>
@@ -552,49 +555,53 @@ export default function VideoDownloader() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* HLS视频 - 服务器下载 */}
                       {isHLSVideo(video) && !downloadTasks.has(index) && (
-                        <button
+                        <Button
                           onClick={() => downloadWithYtdlp(video.url, index)}
-                          className="bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition-colors text-sm w-full"
+                          className="w-full bg-green-500 hover:bg-green-600"
+                          size="sm"
                         >
                           <i className="fas fa-server mr-2"></i>
                           服务器下载 (支持HLS)
-                        </button>
+                        </Button>
                       )}
-                      
+
                       {/* 普通视频 - 直接下载 */}
                       {video.source !== 'iframe' && canPreview(video) && !isHLSVideo(video) && !downloadTasks.has(index) && (
                         <>
-                          <button
+                          <Button
                             onClick={() => downloadVideo(video.url, index)}
-                            className="bg-accent hover:bg-accent-hover text-white py-2 rounded-lg transition-colors text-sm w-full"
+                            className="w-full"
+                            size="sm"
                           >
                             <i className="fas fa-download mr-2"></i>
                             直接下载
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => downloadWithYtdlp(video.url, index)}
-                            className="bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition-colors text-sm w-full"
+                            className="w-full bg-green-500 hover:bg-green-600"
+                            size="sm"
                           >
                             <i className="fas fa-server mr-2"></i>
                             服务器下载
-                          </button>
+                          </Button>
                         </>
                       )}
-                      
+
                       {/* HLS视频 - 查看下载方法（备用） */}
                       {isHLSVideo(video) && !downloadTasks.has(index) && (
-                        <button
+                        <Button
                           onClick={() => downloadVideo(video.url, index)}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg transition-colors text-sm w-full"
+                          className="w-full bg-yellow-500 hover:bg-yellow-600"
+                          size="sm"
                         >
                           <i className="fas fa-info-circle mr-2"></i>
                           查看手动下载方法
-                        </button>
+                        </Button>
                       )}
-                      
+
                       {/* iframe视频 */}
                       {video.source === 'iframe' && !downloadTasks.has(index) && (
                         <>
@@ -607,25 +614,27 @@ export default function VideoDownloader() {
                             <i className="fas fa-play mr-2"></i>
                             观看视频
                           </a>
-                          <button
+                          <Button
                             onClick={() => downloadWithYtdlp(video.url, index)}
-                            className="bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition-colors text-sm w-full"
+                            className="w-full bg-green-500 hover:bg-green-600"
+                            size="sm"
                           >
                             <i className="fas fa-server mr-2"></i>
                             服务器下载
-                          </button>
+                          </Button>
                         </>
                       )}
-                      
+
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => copyToClipboard(video.url)}
-                          className="flex-1 bg-accent hover:bg-accent-hover text-white py-2 rounded-lg transition-colors text-sm"
+                          className="flex-1"
+                          size="sm"
                         >
                           <i className="fas fa-copy mr-2"></i>
                           复制链接
-                        </button>
-                        
+                        </Button>
+
                         <a
                           href={video.url}
                           target="_blank"

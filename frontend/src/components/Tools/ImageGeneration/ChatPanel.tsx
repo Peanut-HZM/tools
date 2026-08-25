@@ -9,6 +9,8 @@ import { useAuth } from '../../../stores/authStore';
 import { useImageGenerate } from '../../../hooks/useImageGenerate';
 import { useI18n } from '../../../i18n';
 import RequireAuthNotice from '../../Common/RequireAuthNotice';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 // 公共组件
 import QuotaBadge from './components/QuotaBadge';
@@ -116,35 +118,33 @@ export default function ChatPanel() {
         <BackendSwitch />
         <div className="flex items-center gap-2">
           <QuotaBadge />
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={reset}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-surface-2 hover:bg-surface-3 text-ink-muted rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-2.5"
             title="重置"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Tab 栏 */}
       <div className="flex gap-1 p-2 border-b border-border bg-surface-1/50 flex-shrink-0">
         {TABS.map((tab) => (
-          <button
+          <Button
             key={tab.key}
+            variant={operation === tab.key ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setOperation(tab.key)}
-            className={`
-              flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium rounded transition-all
-              ${operation === tab.key
-                ? 'bg-accent text-white shadow-sm'
-                : 'text-ink-muted hover:text-ink hover:bg-surface-2/50'
-              }
-            `}
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium"
             title={TAB_LABELS[tab.labelKey]}
           >
             <span className="text-sm">{tab.icon}</span>
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -191,30 +191,31 @@ export default function ChatPanel() {
       {/* 输入框 */}
       <div className="p-3 border-t border-border bg-surface-1/50 flex-shrink-0">
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="输入你的回复..."
             disabled={loading}
-            className="flex-1 px-3 py-2 bg-surface-2 text-ink rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1"
           />
-          <button
+          <Button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             发送
-          </button>
+          </Button>
         </div>
         {chatStatus === 'generated' && (
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={resetConversation}
-            className="mt-2 w-full px-3 py-1.5 text-xs bg-surface-2 text-ink-muted rounded hover:bg-surface-3 transition-colors"
+            className="mt-2 w-full"
           >
             新对话
-          </button>
+          </Button>
         )}
       </div>
     </div>

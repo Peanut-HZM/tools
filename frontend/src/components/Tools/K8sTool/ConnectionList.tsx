@@ -22,6 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { K8sConnection } from './types';
 import { useI18n, interpolate } from '../../../i18n';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   configs: K8sConnection[];
@@ -116,25 +117,29 @@ const SortableConnectionItem: React.FC<{
       </div>
 
       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => { e.stopPropagation(); onEdit(conn); }}
-          className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink-inverse"
+          className="h-7 w-7 p-0"
           title={k8sT.editConnection}
         >
           <i className="fas fa-pen text-xs"></i>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             if (window.confirm(interpolate(k8sT.connection.deleteConfirm, { name: conn.name }))) {
               onDelete(conn.id);
             }
           }}
-          className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-danger"
+          className="h-7 w-7 p-0 hover:text-danger"
           title={t.common.delete}
         >
           <i className="fas fa-trash text-xs"></i>
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -178,13 +183,15 @@ export const ConnectionList: React.FC<Props> = ({
       <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
           <h2 className="font-semibold text-ink">{k8sT.connections}</h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onAdd}
-            className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
+            className="h-8 w-8 p-0"
             title={k8sT.addConnection}
           >
             <i className="fas fa-plus"></i>
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { migrateData } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -44,26 +46,26 @@ export const MigrateWizard: React.FC<Props> = ({ configId, onClose }) => {
       {step === 1 && (
         <div className="space-y-2">
           <div className="text-xs text-ink-muted">目标连接 ID</div>
-          <input
+          <Input
             value={targetConfigId}
             onChange={e => setTargetConfigId(e.target.value)}
             placeholder="输入目标 Redis 配置 ID"
-            className="w-full bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+            className="w-full"
           />
-          <button onClick={() => setStep(2)} className="px-3 py-1 bg-accent text-white text-xs rounded">下一步</button>
+          <Button size="sm" onClick={() => setStep(2)}>下一步</Button>
         </div>
       )}
       {step === 2 && (
         <div className="space-y-2">
           <div className="text-xs text-ink-muted">Key 匹配模式</div>
-          <input value={pattern} onChange={e => setPattern(e.target.value)} className="w-full bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
+          <Input value={pattern} onChange={e => setPattern(e.target.value)} className="w-full" />
           <div className="flex items-center space-x-2">
             <input type="checkbox" checked={replace} onChange={e => setReplace(e.target.checked)} className="w-4 h-4" />
             <span className="text-xs text-ink-muted">覆盖已存在的 key</span>
           </div>
           <div className="flex space-x-2">
-            <button onClick={() => setStep(1)} className="px-3 py-1 bg-surface-2 text-ink-muted text-xs rounded">上一步</button>
-            <button onClick={() => setStep(3)} className="px-3 py-1 bg-accent text-white text-xs rounded">下一步</button>
+            <Button size="sm" variant="secondary" onClick={() => setStep(1)}>上一步</Button>
+            <Button size="sm" onClick={() => setStep(3)}>下一步</Button>
           </div>
         </div>
       )}
@@ -75,10 +77,10 @@ export const MigrateWizard: React.FC<Props> = ({ configId, onClose }) => {
           <div className="text-xs text-ink-muted">Pattern: {pattern}</div>
           <div className="text-xs text-ink-muted">Replace: {replace ? 'Yes' : 'No'}</div>
           <div className="flex space-x-2">
-            <button onClick={() => setStep(2)} className="px-3 py-1 bg-surface-2 text-ink-muted text-xs rounded">上一步</button>
-            <button onClick={handleMigrate} disabled={migrating} className="px-3 py-1 bg-green-600 text-ink-inverse text-xs rounded hover:bg-green-700 disabled:opacity-50">
+            <Button size="sm" variant="secondary" onClick={() => setStep(2)}>上一步</Button>
+            <Button size="sm" onClick={handleMigrate} disabled={migrating}>
               {migrating ? '迁移中...' : '执行迁移'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -90,7 +92,7 @@ export const MigrateWizard: React.FC<Props> = ({ configId, onClose }) => {
           {result.errors?.length > 0 && (
             <div className="text-xs text-danger">错误: {result.errors.slice(0, 5).join(', ')}</div>
           )}
-          <button onClick={onClose} className="px-3 py-1 bg-surface-2 text-ink-muted text-xs rounded">关闭</button>
+          <Button size="sm" variant="secondary" onClick={onClose}>关闭</Button>
         </div>
       )}
     </div>

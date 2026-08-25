@@ -4,6 +4,8 @@ import { useMonitorStore } from '../../../stores/monitorStore';
 import * as monitorApi from '../../../api/monitorApi';
 import type { AlertRule, AlertLog, MonitorSettings } from '../../../api/monitorApi';
 import ConfirmModal from './components/ConfirmModal';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 const METRIC_OPTIONS = [
   { value: 'cpu_percent', label: 'CPU 使用率' },
@@ -110,8 +112,8 @@ export default function Alerts() {
       <div className="bg-canvas rounded-xl border border-border p-4">
         <div className="text-sm text-ink-inverse font-medium mb-3">通知设置</div>
         <div className="flex items-center gap-3">
-          <input
-            className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+          <Input
+            className="flex-1"
             placeholder="Webhook 地址（钉钉/企业微信/飞书机器人）"
             value={settings.webhook_url}
             onChange={(e) => setSettings({ ...settings, webhook_url: e.target.value })}
@@ -182,7 +184,7 @@ export default function Alerts() {
       <div className="bg-canvas rounded-xl border border-border overflow-hidden">
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
           <div className="text-sm text-ink-inverse font-medium">触发记录</div>
-          <button className="px-3 py-1.5 rounded-lg text-xs bg-surface-1 hover:bg-surface-2 text-ink-muted" onClick={markRead}>全部已读</button>
+          <Button variant="secondary" size="sm" onClick={markRead}>全部已读</Button>
         </div>
         {logs.length === 0 ? (
           <div className="text-center text-ink-faint py-8 text-sm">暂无告警记录</div>
@@ -207,11 +209,9 @@ export default function Alerts() {
         )}
         {logTotal > 20 && (
           <div className="flex justify-end items-center gap-2 px-4 py-2 text-xs text-ink-faint">
-            <button className="px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 disabled:opacity-40"
-              disabled={logPage <= 1} onClick={() => { setLogPage(logPage - 1); loadLogs(logPage - 1); }}>上一页</button>
+            <Button variant="secondary" size="sm" disabled={logPage <= 1} onClick={() => { setLogPage(logPage - 1); loadLogs(logPage - 1); }}>上一页</Button>
             <span>{logPage} / {Math.max(1, Math.ceil(logTotal / 20))}</span>
-            <button className="px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 disabled:opacity-40"
-              disabled={logPage >= Math.ceil(logTotal / 20)} onClick={() => { setLogPage(logPage + 1); loadLogs(logPage + 1); }}>下一页</button>
+            <Button variant="secondary" size="sm" disabled={logPage >= Math.ceil(logTotal / 20)} onClick={() => { setLogPage(logPage + 1); loadLogs(logPage + 1); }}>下一页</Button>
           </div>
         )}
       </div>
@@ -237,9 +237,9 @@ export default function Alerts() {
                 value={editing.operator} onChange={(e) => setEditing({ ...editing, operator: e.target.value })}>
                 {OPERATORS.map((op) => <option key={op} value={op}>{op}</option>)}
               </select>
-              <input className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse"
+              <Input className="flex-1"
                 placeholder="阈值" value={editing.threshold} onChange={(e) => setEditing({ ...editing, threshold: e.target.value })} />
-              <input className="w-28 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse"
+              <Input className="w-28"
                 placeholder="连续次数" value={editing.duration} onChange={(e) => setEditing({ ...editing, duration: e.target.value })} />
             </div>
             <label className="flex items-center gap-2 text-sm text-ink-muted">
@@ -248,7 +248,7 @@ export default function Alerts() {
             </label>
             {formError && <div className="text-sm text-danger">{formError}</div>}
             <div className="flex justify-end gap-3 pt-2">
-              <button className="px-4 py-1.5 rounded-lg text-sm text-ink-muted hover:text-ink-inverse hover:bg-surface-1" onClick={() => setEditing(null)}>取消</button>
+              <Button variant="ghost" onClick={() => setEditing(null)}>取消</Button>
               <button className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500" onClick={saveRule}>保存</button>
             </div>
           </div>

@@ -7,6 +7,8 @@ import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import { useImageGenerate } from '../../../../hooks/useImageGenerate';
 import ImageUploader from '../components/ImageUploader';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 export default function Img2ImgForm() {
   const { t } = useI18n();
@@ -63,22 +65,22 @@ export default function Img2ImgForm() {
 
       {/* 对话输入框 */}
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={igT.form.placeholder.img2img}
           disabled={loading || !referenceImage}
-          className="flex-1 px-4 py-2 bg-surface-2 text-ink rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1"
         />
-        <button
+        <Button
           onClick={handleSend}
           disabled={loading || !prompt.trim() || !referenceImage}
-          className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="px-6"
         >
           {igT.chat.send}
-        </button>
+        </Button>
       </div>
     </div>
   );

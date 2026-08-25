@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { CreateSSHRequest, SSHConfig, UpdateSSHRequest, testSSHConnection } from '../../../api/sshToolApi';
 import { useI18n } from '../../../i18n';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface Props {
   isOpen: boolean;
@@ -118,10 +120,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.alias}</label>
-            <input
-              type="text"
+            <Input
               required
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
               value={formData.alias}
               onChange={e => setFormData({ ...formData, alias: e.target.value })}
             />
@@ -129,22 +129,19 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.host}</label>
-              <input
-                type="text"
+              <Input
                 required
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.host}
                 onChange={e => setFormData({ ...formData, host: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.port}</label>
-              <input
+              <Input
                 type="number"
                 required
                 min="1"
                 max="65535"
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.port}
                 onChange={e => setFormData({ ...formData, port: parseInt(e.target.value, 10) || 22 })}
               />
@@ -153,19 +150,16 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.username}</label>
-              <input
-                type="text"
+              <Input
                 required
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.username}
                 onChange={e => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.password}</label>
-              <input
+              <Input
                 type="password"
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                 placeholder={initialData ? t.common.leaveBlankToKeep : ''}
@@ -185,9 +179,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.passphrase}</label>
-              <input
+              <Input
                 type="password"
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.passphrase}
                 onChange={e => setFormData({ ...formData, passphrase: e.target.value })}
                 placeholder={initialData ? t.common.leaveBlankToKeep : ''}
@@ -195,9 +188,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
             </div>
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.group}</label>
-              <input
-                type="text"
-                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+              <Input
                 value={formData.group_name}
                 onChange={e => setFormData({ ...formData, group_name: e.target.value })}
               />
@@ -212,27 +203,27 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
               )}
             </div>
             <div className="flex items-center space-x-3">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
             >
               {t.common.cancel}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               onClick={handleTestConnection}
               disabled={isTesting}
-              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink hover:bg-surface-3 transition-colors disabled:opacity-60"
             >
               {isTesting ? t.ssh.testing : t.ssh.testConnection}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              variant="default"
             >
               {t.common.save}
-            </button>
+            </Button>
             </div>
           </div>
         </form>

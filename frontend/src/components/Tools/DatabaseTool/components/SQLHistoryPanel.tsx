@@ -3,6 +3,7 @@ import * as api from '../../../../api/databaseToolApi';
 import { ExecutionHistory } from '../../../../types/databaseTool';
 import { useToast } from '../../../../hooks/useToast';
 import { useI18n } from '../../../../i18n';
+import { Input } from '@/components/ui/Input';
 
 interface SQLHistoryPanelProps {
   isOpen: boolean;
@@ -103,12 +104,12 @@ const SQLHistoryPanel: React.FC<SQLHistoryPanelProps> = ({ isOpen, onClose, onRe
       <div className="px-4 py-2 border-b border-border space-y-2 bg-surface-1">
         <div className="relative">
           <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-ink-faint text-xs"></i>
-          <input
+          <Input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="搜索 SQL 或连接..."
-            className="w-full bg-canvas border border-border rounded pl-7 pr-2 py-1.5 text-xs text-ink focus:outline-none focus:border-accent"
+            className="pl-7 text-xs"
           />
         </div>
         <div className="flex gap-1">

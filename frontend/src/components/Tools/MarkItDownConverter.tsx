@@ -5,6 +5,7 @@ import { getAuthToken } from '../../api/authApi';
 import { useFileStore } from '../../stores/fileStore';
 import Preview from '../MarkdownEditor/Preview/Preview';
 import { useI18n } from '../../i18n';
+import { Button } from "@/components/ui/Button";
 
 interface HistoryItem {
   id: string;
@@ -41,8 +42,8 @@ export default function MarkItDownConverter() {
         })
         .catch(e => {
           console.error('Failed to load history from backend', e);
-          // Fallback to local storage if backend fails? 
-          // Maybe better to show error or empty. 
+          // Fallback to local storage if backend fails?
+          // Maybe better to show error or empty.
           // For now, let's keep it simple and just log error.
         });
     } else {
@@ -79,7 +80,7 @@ export default function MarkItDownConverter() {
 
   const handleDeleteHistory = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    
+
     if (getAuthToken()) {
       try {
         await deleteHistoryApi(id);
@@ -137,7 +138,7 @@ export default function MarkItDownConverter() {
     try {
       const response = await convertDocument(file);
       setMarkdownContent(response.content);
-      
+
       if (getAuthToken() && response.history_item) {
         const h = response.history_item;
         const newItem: HistoryItem = {
@@ -177,7 +178,7 @@ export default function MarkItDownConverter() {
     // But since MarkdownEditorTool uses complex state management, maybe we can just copy it
     // and guide user to paste.
     // Better yet, let's create a new file via API if we can, but that requires a filename.
-    
+
     // Simple approach: Copy to clipboard and navigate
     await navigator.clipboard.writeText(markdownContent);
     const confirm = window.confirm(t.converter.openEditorConfirm);
@@ -189,15 +190,16 @@ export default function MarkItDownConverter() {
   return (
     <div className="w-full flex-1 flex flex-col p-4 text-ink-muted">
       <div className="flex items-center justify-between mb-4 px-2">
-        <button 
+        <Button
+          variant="ghost"
           onClick={() => navigate('/')}
-          className="flex items-center text-ink-muted hover:text-ink-inverse transition-colors"
+          className="flex items-center"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           {t.converter.back}
-        </button>
+        </Button>
         <h1 className="text-2xl font-bold text-ink-inverse">{t.converter.title}</h1>
         <div className="w-24"></div> {/* Spacer */}
       </div>
@@ -205,10 +207,10 @@ export default function MarkItDownConverter() {
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
         {/* Left Column: Upload & History */}
         <div className="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
-          <div 
+          <div
             className={`shrink-0 h-64 border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-6 transition-all duration-300 ${
-              dragActive 
-                ? 'border-accent bg-accent/10 scale-[1.02]' 
+              dragActive
+                ? 'border-accent bg-accent/10 scale-[1.02]'
                 : 'border-border bg-surface-1/50 hover:border-accent/50 hover:bg-surface-1'
             }`}
             onDragEnter={handleDrag}
@@ -216,14 +218,14 @@ export default function MarkItDownConverter() {
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            <input 
-              type="file" 
-              className="hidden" 
+            <input
+              type="file"
+              className="hidden"
               id="file-upload"
               onChange={handleChange}
               accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.html,.txt"
             />
-            
+
             {file ? (
               <div className="text-center w-full">
                 <div className="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-3 text-accent">
@@ -233,7 +235,7 @@ export default function MarkItDownConverter() {
                 </div>
                 <p className="text-base font-medium text-ink-inverse mb-1 truncate px-2">{file.name}</p>
                 <p className="text-xs text-ink-muted mb-4">{(file.size / 1024).toFixed(2)} KB</p>
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setFile(null); }}
                   className="text-danger hover:text-red-300 text-xs underline"
                 >
@@ -249,7 +251,7 @@ export default function MarkItDownConverter() {
                 </div>
                 <p className="text-base font-medium text-ink-inverse mb-1">{t.converter.dragDrop}</p>
                 <p className="text-xs text-ink-muted mb-4 px-4">{t.converter.supports}</p>
-                <label 
+                <label
                   htmlFor="file-upload"
                   className="px-4 py-2 bg-accent hover:bg-accent text-ink-inverse rounded-lg cursor-pointer transition-colors inline-block text-sm"
                 >
@@ -259,10 +261,10 @@ export default function MarkItDownConverter() {
             )}
           </div>
 
-          <button 
+          <Button
             onClick={handleConvert}
             disabled={!file || loading}
-            className={`shrink-0 w-full py-3 rounded-xl font-bold text-base transition-all ${
+            className={`shrink-0 w-full py-3 rounded-xl font-bold text-base ${
               !file || loading
                 ? 'bg-surface-2 text-ink-faint cursor-not-allowed'
                 : 'bg-gradient-to-r from-accent to-accent-hover hover:from-cyan-400 hover:to-blue-500 text-ink-inverse shadow-lg hover:shadow-cyan-500/25'
@@ -276,7 +278,7 @@ export default function MarkItDownConverter() {
             ) : (
               t.converter.convert
             )}
-          </button>
+          </Button>
 
           {error && (
             <div className="shrink-0 p-3 bg-danger/10 border border-danger/50 rounded-lg text-danger text-xs break-all">
@@ -300,7 +302,7 @@ export default function MarkItDownConverter() {
                 </div>
               ) : (
                 history.map(item => (
-                  <div 
+                  <div
                     key={item.id}
                     onClick={() => loadHistoryItem(item)}
                     className="group p-3 rounded-lg bg-surface-1/30 hover:bg-surface-2/50 border border-transparent hover:border-border transition-all cursor-pointer relative"
@@ -314,15 +316,17 @@ export default function MarkItDownConverter() {
                           <span>{formatTime(item.timestamp)}</span>
                         </div>
                       </div>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => handleDeleteHistory(e, item.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-danger/20 text-ink-faint hover:text-danger rounded transition-all"
+                        className="opacity-0 group-hover:opacity-100 hover:bg-danger/20 hover:text-danger"
                         title="删除记录"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))
@@ -336,23 +340,24 @@ export default function MarkItDownConverter() {
           <div className="p-3 border-b border-border flex items-center justify-between bg-surface-1">
             <h3 className="font-semibold text-ink text-sm">{t.converter.result}</h3>
             <div className="flex gap-2">
-              <button 
+              <Button
+                variant="secondary"
                 onClick={handleCopyToClipboard}
                 disabled={!markdownContent}
-                className="px-3 py-1.5 text-xs bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-md disabled:opacity-50 transition-colors"
+                size="sm"
               >
                 {t.converter.copy}
-              </button>
-              <button 
+              </Button>
+              <Button
                 onClick={handleOpenInEditor}
                 disabled={!markdownContent}
-                className="px-3 py-1.5 text-xs bg-accent hover:bg-accent text-ink-inverse rounded-md disabled:opacity-50 transition-colors"
+                size="sm"
               >
                 {t.converter.openInEditor}
-              </button>
+              </Button>
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-auto bg-[#0d0d14] relative">
             {markdownContent ? (
               <div className="h-full">

@@ -6,6 +6,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import { useImageGenerate } from '../../../../hooks/useImageGenerate';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import type { ImageSize, ModelPreference } from '../../../../api/imageGenerationApi';
 
 export default function Text2ImgForm() {
@@ -89,23 +91,26 @@ export default function Text2ImgForm() {
             {igT.result.model}: {currentResult.model_used}
           </div>
           <div className="flex gap-2 mt-2">
-            <button
+            <Button
+              size="sm"
               onClick={() => {
                 const imageUrl = currentResult.image_urls[0];
                 if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
                   window.open(imageUrl, '_blank');
                 }
               }}
-              className="px-3 py-1 bg-accent text-white text-sm rounded hover:bg-blue-700"
+              className="px-3 py-1 text-sm"
             >
               {igT.result.download}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={resetConversation}
-              className="px-3 py-1 bg-surface-2 text-ink text-sm rounded hover:bg-surface-3"
+              className="px-3 py-1 text-sm"
             >
               {igT.chat.newConversation}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -145,22 +150,22 @@ export default function Text2ImgForm() {
 
       {/* 输入框 */}
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={igT.chat.inputPlaceholder}
           disabled={loading}
-          className="flex-1 px-4 py-2 bg-surface-2 text-ink rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1"
         />
-        <button
+        <Button
           onClick={handleSend}
           disabled={loading || !input.trim()}
-          className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="px-6"
         >
           {igT.chat.send}
-        </button>
+        </Button>
       </div>
     </div>
   );

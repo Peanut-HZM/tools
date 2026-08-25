@@ -6,6 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { PreviewProps } from './types';
+import { Button } from "@/components/ui/Button";
 
 // 设置 PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -34,23 +35,25 @@ export const PdfViewer: React.FC<PreviewProps> = ({ url }) => {
   return (
     <div className="w-full h-full flex flex-col items-center bg-canvas overflow-auto">
       <div className="sticky top-0 z-10 flex items-center gap-4 bg-surface-1 px-4 py-2 border-b border-border">
-        <button
+        <Button
+          size="sm"
+          variant="secondary"
           onClick={() => setPageNumber(prev => Math.max(prev - 1, 1))}
           disabled={pageNumber <= 1}
-          className="px-3 py-1 bg-surface-2 hover:bg-surface-3 disabled:opacity-50 disabled:cursor-not-allowed rounded text-ink"
         >
           上一页
-        </button>
+        </Button>
         <span className="text-ink">
           第 {pageNumber} 页 / 共 {numPages} 页
         </span>
-        <button
+        <Button
+          size="sm"
+          variant="secondary"
           onClick={() => setPageNumber(prev => Math.min(prev + 1, numPages))}
           disabled={pageNumber >= numPages}
-          className="px-3 py-1 bg-surface-2 hover:bg-surface-3 disabled:opacity-50 disabled:cursor-not-allowed rounded text-ink"
         >
           下一页
-        </button>
+        </Button>
       </div>
       <div className="flex-1 flex items-center justify-center p-4">
         <Document

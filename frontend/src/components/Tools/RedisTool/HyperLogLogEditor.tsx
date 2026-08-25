@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getHyperLogLogInfo, operateHyperLogLog } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -44,13 +46,13 @@ export const HyperLogLogEditor: React.FC<Props> = ({ configId, keyName }) => {
       <div className="border border-border rounded-md p-3 space-y-2">
         <div className="text-sm font-medium text-ink-muted">Add Element</div>
         <div className="flex space-x-2">
-          <input
+          <Input
             value={element}
             onChange={e => setElement(e.target.value)}
             placeholder="Element value"
-            className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+            className="flex-1"
           />
-          <button onClick={handleAdd} className="px-3 py-1 bg-accent text-white text-xs rounded hover:bg-blue-700">Add</button>
+          <Button size="sm" onClick={handleAdd}>Add</Button>
         </div>
       </div>
     </div>

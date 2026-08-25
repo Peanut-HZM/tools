@@ -3,6 +3,7 @@
  * 提供多种复制选项
  */
 import React, { useState } from 'react';
+import { Button } from "@/components/ui/Button";
 
 interface CopyDropdownProps {
   content: string;
@@ -79,15 +80,17 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
 
   return (
     <div className="relative">
-      <button
+      <Button
+        size="sm"
+        variant="secondary"
         onClick={() => setIsOpen(!isOpen)}
-        className="px-2 py-1 text-xs bg-surface-3 hover:bg-surface-3 text-ink rounded transition-colors flex items-center space-x-1"
+        className="flex items-center space-x-1"
         title="复制选项"
       >
         <span>📋</span>
         <span>复制</span>
         <span className="text-[10px]">▼</span>
-      </button>
+      </Button>
 
       {isOpen && (
         <>
@@ -100,39 +103,47 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
           {/* 下拉菜单 */}
           <div className="absolute right-0 top-full mt-1 w-48 bg-surface-2 border border-border rounded-lg shadow-md z-20 overflow-hidden">
             <div className="py-1">
-              <button
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={handleCopyText}
-                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface-3 transition-colors flex items-center space-x-2"
+                className="w-full justify-start px-4 py-2 text-sm flex items-center space-x-2"
               >
                 <span className="text-xs">📄</span>
                 <span>复制内容（纯文本）</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={handleCopyMarkdown}
-                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface-3 transition-colors flex items-center space-x-2"
+                className="w-full justify-start px-4 py-2 text-sm flex items-center space-x-2"
               >
                 <span className="text-xs">📝</span>
                 <span>复制 Markdown 源码</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={handleCopyHtml}
-                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface-3 transition-colors flex items-center space-x-2"
+                className="w-full justify-start px-4 py-2 text-sm flex items-center space-x-2"
               >
                 <span className="text-xs">🌐</span>
                 <span>复制渲染 HTML</span>
-              </button>
+              </Button>
             </div>
             {onDelete && messageId && (
               <>
                 <div className="border-t border-border" />
                 <div className="py-1">
-                  <button
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={handleDelete}
-                    className="w-full px-4 py-2 text-left text-sm text-danger hover:bg-red-900/30 hover:text-red-300 transition-colors flex items-center space-x-2"
+                    className="w-full justify-start px-4 py-2 text-sm text-danger hover:bg-red-900/30 hover:text-red-300 flex items-center space-x-2"
                   >
                     <span className="text-xs">🗑️</span>
                     <span>删除消息</span>
-                  </button>
+                  </Button>
                 </div>
               </>
             )}

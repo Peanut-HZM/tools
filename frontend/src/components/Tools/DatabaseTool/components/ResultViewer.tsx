@@ -8,6 +8,7 @@ import { formatCellValue } from '../../../../utils/cellFormatter';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
 import ColumnSelector from './ColumnSelector';
+import { Button } from '@/components/ui/Button';
 
 interface ResultViewerProps {
   result: SQLExecutionResult | null;
@@ -506,35 +507,41 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
              <span className="text-accent-info border-l border-border pl-4">{interpolate(t.database.executor.selectedCount, { count: String(selectedIndices.size) })}</span>
           )}
           <div className="flex gap-2 ml-2">
-            <button 
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleCopyInsert}
-              className="px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors"
+              className="flex items-center gap-1"
               title={t.database.executor.copyInsert}
             >
               <i className={`fas ${copyFeedback === 'insert' ? 'fa-check text-green-400' : 'fa-copy'}`}></i>
               {t.database.executor.copyInsert}
-            </button>
-            <button 
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleCopyUpdate}
               disabled={!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0}
-              className={`px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors ${(!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={selectedIndices.size === 0 
-                ? t.database.executor.noDataSelected 
-                : (!primaryKey || primaryKey.length === 0) 
-                  ? t.database.batchDelete.noPrimaryKey 
+              className="flex items-center gap-1"
+              title={selectedIndices.size === 0
+                ? t.database.executor.noDataSelected
+                : (!primaryKey || primaryKey.length === 0)
+                  ? t.database.batchDelete.noPrimaryKey
                   : t.database.executor.copyUpdate}
             >
               <i className={`fas ${copyFeedback === 'update' ? 'fa-check text-green-400' : 'fa-pen-to-square'}`}></i>
               {t.database.executor.copyUpdate}
-            </button>
-             <button 
+            </Button>
+             <Button
+               variant="secondary"
+               size="sm"
                onClick={handleBatchViewJson}
-               className="px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors"
+               className="flex items-center gap-1"
                title={selectedIndices.size === 0 ? t.database.executor.viewJson : (t.database.executor.viewSelectedJson || t.database.executor.viewJson)}
              >
                <i className="fas fa-code"></i>
                {t.database.executor.viewJson}
-             </button>
+             </Button>
               {columns.length > 0 && (
                 <ColumnSelector
                   columns={columns}
@@ -543,14 +550,12 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                   onColumnChange={handleColumnChange}
                 />
               )}
-              <button
+              <Button
+                size="sm"
+                variant={(!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0) ? 'secondary' : 'destructive'}
                 onClick={handleBatchDelete}
                 disabled={!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0}
-                className={`px-2 py-1 text-xs rounded flex items-center gap-1 transition-colors ${
-                  (!primaryKey || primaryKey.length === 0 || selectedIndices.size === 0)
-                    ? 'bg-surface-2/50 text-ink-faint cursor-not-allowed'
-                    : 'bg-red-600/80 hover:bg-red-600 text-ink-inverse'
-                }`}
+                className="flex items-center gap-1"
                 title={selectedIndices.size === 0
                   ? t.database.executor.noDataSelected
                   : (!primaryKey || primaryKey.length === 0)
@@ -559,46 +564,52 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
               >
                 <i className={`fas ${(!primaryKey || primaryKey.length === 0) ? 'fa-ban' : 'fa-trash'}`}></i>
                 {t.database.executor.deleteRows}
-              </button>
+              </Button>
             {/* Edit buttons */}
             {primaryKey && primaryKey.length > 0 && (
               <>
-                <button
+                <Button
+                  size="sm"
                   onClick={handleAddRow}
-                  className="px-2 py-1 bg-green-700/80 hover:bg-green-600 text-ink-inverse text-xs rounded flex items-center gap-1 transition-colors"
+                  className="flex items-center gap-1"
                   title={t.database.executor.addRow}
                 >
                   <i className="fas fa-plus"></i>
                   {t.database.executor.addRow}
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
                   onClick={() => setShowTruncateConfirm(true)}
-                  className="px-2 py-1 bg-red-700/80 hover:bg-red-600 text-ink-inverse text-xs rounded flex items-center gap-1 transition-colors"
+                  className="flex items-center gap-1"
                   title="清空表数据"
                 >
                   <i className="fas fa-trash-alt"></i>
                   清空表
-                </button>
+                </Button>
                 {totalChanges > 0 && (
                   <>
-                    <button
+                    <Button
+                      size="sm"
                       onClick={handleSave}
                       disabled={saving}
-                      className="px-2 py-1 bg-accent hover:bg-accent-hover text-ink-inverse text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1"
                       title={t.database.executor.saveChanges}
                     >
                       <i className={`fas ${saving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
                       {interpolate(t.database.executor.saveChanges, { count: String(totalChanges) })}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
                       onClick={handleDiscardChanges}
                       disabled={saving}
-                      className="px-2 py-1 bg-surface-2 hover:bg-surface-3 text-ink-muted text-xs rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1"
                       title={t.database.executor.discardChanges}
                     >
                       <i className="fas fa-undo"></i>
                       {t.database.executor.discardChanges}
-                    </button>
+                    </Button>
                   </>
                 )}
               </>
@@ -768,21 +779,22 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
             </div>
 
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded text-sm disabled:opacity-50"
               >
                 {t.database.batchDelete.cancelButton}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm disabled:opacity-50 flex items-center gap-2"
+                className="flex items-center gap-2"
               >
                 {deleting && <i className="fas fa-spinner fa-spin"></i>}
                 {t.database.batchDelete.deleteButton}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -807,21 +819,22 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
             </div>
 
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setShowTruncateConfirm(false)}
                 disabled={truncating}
-                className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded text-sm disabled:opacity-50"
               >
                 取消
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={handleTruncate}
                 disabled={truncating}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm disabled:opacity-50 flex items-center gap-2"
+                className="flex items-center gap-2"
               >
                 {truncating && <i className="fas fa-spinner fa-spin"></i>}
                 确认清空
-              </button>
+              </Button>
             </div>
           </div>
         </div>

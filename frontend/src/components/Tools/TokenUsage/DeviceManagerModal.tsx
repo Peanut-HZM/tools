@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { X, Monitor, Merge, Undo2, Edit3, AlertCircle } from 'lucide-react';
 import type { DeviceInfo } from '../../../api/tokenUsageApi';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   devices: DeviceInfo[];
@@ -152,13 +153,14 @@ export default function DeviceManagerModal({
                     );
                   })}
                 </select>
-                <button
+                <Button
                   onClick={handleMerge}
                   disabled={!mergeTarget || processing}
-                  className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                  size="sm"
+                  className="text-xs"
                 >
                   合并
-                </button>
+                </Button>
               </>
             )}
           </div>

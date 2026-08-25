@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/Button";
 import {
   getChapters,
   getChapterDetail,
@@ -128,12 +129,13 @@ const OpenSpecCourse: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-800 to-blue-900 flex items-center justify-center">
         <div className="text-center bg-red-500/20 border border-red-500 text-red-300 px-6 py-4 rounded-xl">
           <div className="text-xl mb-2">😕 {error}</div>
-          <button
+          <Button
+            variant="destructive"
             onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-red-500 hover:bg-red-600 text-ink-inverse rounded-lg transition-colors"
+            className="mt-4 bg-red-500 hover:bg-red-600"
           >
             重新加载
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -146,14 +148,15 @@ const OpenSpecCourse: React.FC = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => navigate('/')}
-                className="text-ink-inverse/80 hover:text-ink-inverse transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-              </button>
+              </Button>
               <div>
                 <h1 className="text-2xl font-bold text-ink-inverse">🎓 OpenSpec VibeCoding 课程</h1>
                 <p className="text-sm text-ink-inverse/60">从 AI 小白到 Spec 高手的进阶之路</p>

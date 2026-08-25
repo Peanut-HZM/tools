@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/Button";
 
 // AI 助手外部地址，从构建时环境变量注入（见 .env.example）
 // 未在 .env 中配置时不展示"新窗口打开"入口，iframe 也改为空白占位提示。
@@ -12,13 +13,14 @@ export default function AIAssistant() {
       {/* 顶部工具栏 */}
       <div className="bg-surface-1 border-b border-border px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => navigate('/')}
-            className="text-ink-muted hover:text-ink-inverse transition-colors flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>
             <span className="hidden sm:inline">返回</span>
-          </button>
+          </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center">
               <i className="fas fa-robot text-white text-sm"></i>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../../../config/api';
 import { Collection, HttpRequest, fetchCollections, fetchCollections as apiFetchCollections, importCurl, exportCollection } from '../../../../services/httpClientApi';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface ImportExportModalProps {
   isOpen: boolean;
@@ -148,9 +150,9 @@ export default function ImportExportModal({
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">导入/导出</h2>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
+          <Button variant="ghost" size="icon" onClick={onClose}>
             <i className="fas fa-times"></i>
-          </button>
+          </Button>
         </div>
 
         {/* 标签页 */}
@@ -257,22 +259,16 @@ export default function ImportExportModal({
               )}
 
               <div className="flex justify-end gap-3">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={onClose}
-                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
                 >
                   取消
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="default"
                   onClick={handlePostmanImport}
                   disabled={loading || !importText.trim()}
-                  className={`
-                    px-6 py-2 rounded-lg font-medium transition-colors
-                    ${loading || !importText.trim()
-                      ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
-                      : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
-                    }
-                  `}
                 >
                   {loading ? (
                     <>
@@ -285,7 +281,7 @@ export default function ImportExportModal({
                       导入
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -310,12 +306,12 @@ export default function ImportExportModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-ink-muted mb-1 block">请求名称</label>
-                  <input
+                  <Input
                     type="text"
                     value={curlName}
                     onChange={(e) => setCurlName(e.target.value)}
                     placeholder="自动命名"
-                    className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
+                    className="w-full text-sm"
                   />
                 </div>
                 <div>
@@ -354,22 +350,16 @@ export default function ImportExportModal({
               )}
 
               <div className="flex justify-end gap-3">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={onClose}
-                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
                 >
                   取消
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="default"
                   onClick={handleCurlImport}
                   disabled={curlLoading || !curlText.trim() || !curlCollectionId}
-                  className={`
-                    px-6 py-2 rounded-lg font-medium transition-colors
-                    ${curlLoading || !curlText.trim() || !curlCollectionId
-                      ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
-                      : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
-                    }
-                  `}
                 >
                   {curlLoading ? (
                     <>
@@ -382,7 +372,7 @@ export default function ImportExportModal({
                       导入 cURL
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -402,19 +392,23 @@ export default function ImportExportModal({
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={selectAll}
-                      className="text-xs text-accent-secondary hover:text-accent-secondary"
+                      className="text-xs text-accent-secondary hover:text-accent-secondary h-auto px-2 py-0"
                     >
                       全选
-                    </button>
+                    </Button>
                     <span className="text-ink-faint">|</span>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={deselectAll}
-                      className="text-xs text-ink-muted hover:text-ink-muted"
+                      className="text-xs text-ink-muted hover:text-ink-muted h-auto px-2 py-0"
                     >
                       取消全选
-                    </button>
+                    </Button>
                     <span className="text-xs text-ink-faint ml-auto">
                       已选 {selectedCollections.length}/{collections.length}
                     </span>
@@ -427,11 +421,11 @@ export default function ImportExportModal({
                         className="flex items-center gap-3 px-3 py-2 rounded cursor-pointer
                                    hover:bg-surface-2/50 transition-colors text-sm"
                       >
-                        <input
+                        <Input
                           type="checkbox"
                           checked={selectedCollections.includes(c.id)}
                           onChange={() => toggleCollection(c.id)}
-                          className="rounded border-border bg-surface-2 text-accent-secondary"
+                          className="h-4 w-4 p-0 cursor-pointer"
                         />
                         <i className="fas fa-folder text-ink-faint text-xs"></i>
                         <span className="truncate">{c.name}</span>
@@ -449,22 +443,16 @@ export default function ImportExportModal({
               )}
 
               <div className="flex justify-end gap-3">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={onClose}
-                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
                 >
                   取消
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="default"
                   onClick={handleExport}
                   disabled={exportLoading || selectedCollections.length === 0}
-                  className={`
-                    px-6 py-2 rounded-lg font-medium transition-colors
-                    ${exportLoading || selectedCollections.length === 0
-                      ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
-                      : 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
-                    }
-                  `}
                 >
                   {exportLoading ? (
                     <>
@@ -477,7 +465,7 @@ export default function ImportExportModal({
                       导出
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           )}

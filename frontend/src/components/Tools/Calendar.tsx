@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
+import { Button } from "@/components/ui/Button";
 
 interface HolidayDay {
   name: string;
@@ -100,19 +101,19 @@ export default function Calendar() {
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
-      
+
       // 计算日历显示的日期范围
       const firstDay = new Date(currentYear, currentMonth, 1);
       const startDayOfWeek = firstDay.getDay();
       const startDate = new Date(currentYear, currentMonth, 1 - startDayOfWeek);
       const endDate = new Date(currentYear, currentMonth + 1, 42 - startDayOfWeek - new Date(currentYear, currentMonth + 1, 0).getDate());
-      
+
       // 计算需要获取哪些年份的假期数据
       const yearsNeeded = new Set<number>();
       yearsNeeded.add(currentYear);
       if (currentMonth === 0) yearsNeeded.add(currentYear - 1);
       if (currentMonth === 11) yearsNeeded.add(currentYear + 1);
-      
+
       // 获取假期数据
       const allHolidays = new Map<string, { name: string; isOffDay: boolean }>();
       for (const year of yearsNeeded) {
@@ -122,11 +123,11 @@ export default function Calendar() {
         });
       }
       setHolidays(allHolidays);
-      
+
       // 获取农历数据
       const lunar = await fetchLunarData(formatDate(startDate), formatDate(endDate));
       setLunarData(lunar);
-      
+
       setLoading(false);
     };
 
@@ -245,7 +246,7 @@ export default function Calendar() {
   // 获取农历显示文本（优先显示节日）
   const getLunarDisplay = (dayInfo: DayInfo): string => {
     if (!dayInfo.lunar) return '';
-    
+
     // 优先显示农历节日
     if (dayInfo.lunar.lunar_festival) {
       return dayInfo.lunar.lunar_festival;
@@ -272,13 +273,14 @@ export default function Calendar() {
       {/* 顶部工具栏 */}
       <div className="bg-surface-1 border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => navigate('/')}
-            className="text-ink-muted hover:text-white transition-colors flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>
             <span className="hidden sm:inline">返回</span>
-          </button>
+          </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
               <i className="fas fa-calendar-alt text-white text-sm"></i>
@@ -286,7 +288,7 @@ export default function Calendar() {
             <h1 className="text-lg font-bold">万年历</h1>
           </div>
         </div>
-        
+
         {/* 当前农历年份信息 */}
         {days[15]?.lunar && (
           <div className="text-sm text-ink-muted">
@@ -300,13 +302,14 @@ export default function Calendar() {
         {/* 月份导航 */}
         <div className="bg-surface-1 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={goToPrevMonth}
-              className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
             >
               <i className="fas fa-chevron-left text-xl"></i>
-            </button>
-            
+            </Button>
+
             <div className="flex items-center gap-4">
               <select
                 value={currentYear}
@@ -317,7 +320,7 @@ export default function Calendar() {
                   <option key={year} value={year}>{year}年</option>
                 ))}
               </select>
-              
+
               <select
                 value={currentMonth}
                 onChange={(e) => setCurrentMonth(Number(e.target.value))}
@@ -327,21 +330,22 @@ export default function Calendar() {
                   <option key={index} value={index}>{name}</option>
                 ))}
               </select>
-              
-              <button
+
+              <Button
                 onClick={goToToday}
-                className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium"
+                size="sm"
               >
                 今天
-              </button>
+              </Button>
             </div>
-            
-            <button
+
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={goToNextMonth}
-              className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
             >
               <i className="fas fa-chevron-right text-xl"></i>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -386,8 +390,8 @@ export default function Calendar() {
               <div className="flex items-center gap-2">
                 {selectedDayInfo.holiday && (
                   <span className={`px-2 py-1 rounded text-sm ${
-                    selectedDayInfo.holiday.isOffDay 
-                      ? 'bg-green-500/20 text-green-400' 
+                    selectedDayInfo.holiday.isOffDay
+                      ? 'bg-green-500/20 text-green-400'
                       : 'bg-orange-500/20 text-orange-400'
                   }`}>
                     {selectedDayInfo.holiday.name} - {selectedDayInfo.holiday.isOffDay ? '休息' : '上班'}
@@ -403,12 +407,13 @@ export default function Calendar() {
                     {selectedDayInfo.lunar.solar_festival}
                   </span>
                 )}
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setSelectedDate(null)}
-                  className="text-ink-muted hover:text-ink-inverse ml-2"
                 >
                   <i className="fas fa-times"></i>
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -444,7 +449,7 @@ export default function Calendar() {
               const hasHoliday = !!dayInfo.holiday;
               const lunarDisplay = getLunarDisplay(dayInfo);
               const hasFestival = isFestival(dayInfo);
-              
+
               return (
                 <div
                   key={index}
@@ -471,14 +476,14 @@ export default function Calendar() {
                     >
                       {dayInfo.day}
                     </span>
-                    
+
                     {/* 假期标记 */}
                     {hasHoliday && (
                       <span
                         className={`
                           text-xs px-1.5 py-0.5 rounded font-medium
-                          ${dayInfo.holiday!.isOffDay 
-                            ? 'bg-green-500 text-white' 
+                          ${dayInfo.holiday!.isOffDay
+                            ? 'bg-green-500 text-white'
                             : 'bg-orange-500 text-white'}
                           ${!dayInfo.isCurrentMonth ? 'opacity-50' : ''}
                         `}

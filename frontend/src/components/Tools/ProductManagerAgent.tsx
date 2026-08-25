@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button } from "@/components/ui/Button";
 import { conversationApi, Conversation, Message } from '../../services/conversationApi';
 import { llmConfigApi, LLMConfig } from '../../services/llmConfigApi';
 import { agentApi, Agent } from '../../services/agentApi';
@@ -11,7 +12,7 @@ import ExportDialog from '../ProductManagerAgent/ExportDialog';
 const ProductManagerAgent: React.FC = () => {
   const navigate = useNavigate();
   const { conversationId } = useParams<{ conversationId?: string }>();
-  
+
   // State
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
@@ -92,7 +93,7 @@ const ProductManagerAgent: React.FC = () => {
   const loadMessages = async (id: string) => {
     try {
       const data = await conversationApi.getMessages(id);
-      const sortedData = [...data].sort((a, b) => 
+      const sortedData = [...data].sort((a, b) =>
         new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
       );
       setMessages(sortedData);
@@ -280,31 +281,30 @@ const ProductManagerAgent: React.FC = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <button
+                <Button
                   onClick={() => setShowPRDPreview(!showPRDPreview)}
-                  className={`px-3 py-1 text-sm rounded ${
-                    showPRDPreview
-                      ? 'bg-accent text-white'
-                      : 'text-ink-muted hover:text-ink-inverse'
-                  }`}
+                  variant={showPRDPreview ? "default" : "ghost"}
+                  size="sm"
                 >
                   <i className="fas fa-file-alt mr-1"></i>
                   PRD
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => setShowExportDialog(true)}
-                  className="px-3 py-1 text-ink-muted hover:text-ink-inverse"
+                  size="sm"
                 >
                   <i className="fas fa-file-export mr-1"></i>
                   导出
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => setShowCompetitorAnalysis(!showCompetitorAnalysis)}
-                  className="px-3 py-1 text-ink-muted hover:text-ink-inverse"
+                  size="sm"
                 >
                   <i className="fas fa-chart-bar mr-1"></i>
                   分析竞品
-                </button>
+                </Button>
               </div>
             </div>
 

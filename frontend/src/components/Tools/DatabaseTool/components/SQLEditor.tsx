@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { TableItem } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
 
 interface SQLEditorProps {
   value: string;
@@ -130,18 +131,14 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
         />
       </div>
       <div className="bg-canvas px-4 py-2 border-t border-border flex justify-end">
-        <button
+        <Button
           onClick={onExecute}
           disabled={loading || !value.trim()}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium text-ink-inverse transition-colors flex items-center gap-2
-            ${loading || !value.trim() 
-              ? 'bg-accent/50 cursor-not-allowed' 
-              : 'bg-accent hover:bg-accent-hover shadow-sm'
-            }`}
+          className="flex items-center gap-2"
         >
           {loading && <i className="fas fa-spinner fa-spin"></i>}
           {loading ? t.database.executor.executing : t.database.executor.run}
-        </button>
+        </Button>
       </div>
     </div>
   );

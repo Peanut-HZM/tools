@@ -5,6 +5,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PreviewProps } from './types';
+import { Button } from "@/components/ui/Button";
 
 export const MarkdownViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) => {
   const [content, setContent] = React.useState('');
@@ -68,12 +69,14 @@ export const MarkdownViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }
 
   return (
     <div className="relative w-full h-full overflow-auto bg-surface-1 p-6">
-      <button
+      <Button
+        size="sm"
+        variant="secondary"
         onClick={handleCopy}
-        className="absolute top-4 right-4 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 text-ink-inverse text-sm font-medium rounded-lg transition-colors flex items-center space-x-1 z-10"
+        className="absolute top-4 right-4 text-ink-inverse flex items-center space-x-1 z-10"
       >
         <span>{copySuccess ? '✓ 已复制' : '📋 复制'}</span>
-      </button>
+      </Button>
       <div className="max-w-4xl mx-auto prose prose-invert prose-slate">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {content}

@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { HttpRequest, Collection } from '../../../../services/httpClientApi';
+import { Button } from '@/components/ui/Button';
 
 interface ContextMenuProps {
   request: HttpRequest;
@@ -72,41 +73,47 @@ export default function RequestContextMenu({
       >
         {/* 重命名请求 */}
         {onRename && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               onRename(request);
               onClose();
             }}
-            className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center"
+            className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal"
           >
             <i className="fas fa-pencil mr-2 text-ink-faint"></i>
             重命名
-          </button>
+          </Button>
         )}
 
         {/* 复制请求 */}
         <div className="relative">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleDuplicateClick}
-            className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center justify-between"
+            className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal flex justify-between"
           >
             <span>
               <i className="fas fa-copy mr-2 text-ink-faint"></i>
               复制请求
             </span>
             <i className="fas fa-chevron-right text-xs text-ink-faint"></i>
-          </button>
+          </Button>
         </div>
 
         {/* 删除请求 */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleDelete}
-          className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10 flex items-center"
+          className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal text-danger hover:bg-danger/10 hover:text-danger"
         >
           <i className="fas fa-trash mr-2"></i>
           删除请求
-        </button>
+        </Button>
       </div>
 
       {/* 复制目标集合子菜单 */}
@@ -119,14 +126,16 @@ export default function RequestContextMenu({
             <div className="px-4 py-2 text-xs text-ink-faint">暂无集合</div>
           ) : (
             collections.map(c => (
-              <button
+              <Button
                 key={c.id}
+                variant="ghost"
+                size="sm"
                 onClick={(e) => handleDuplicate(c.id, e)}
-                className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center"
+                className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal"
               >
                 <i className="fas fa-folder mr-2 text-ink-faint text-xs"></i>
                 <span className="truncate">{c.name}</span>
-              </button>
+              </Button>
             ))
           )}
         </div>

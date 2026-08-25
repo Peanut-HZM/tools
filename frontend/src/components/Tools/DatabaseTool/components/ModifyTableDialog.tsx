@@ -3,6 +3,8 @@ import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
 import { ColumnDefinition, TableModificationRequest } from '../../../../types/databaseTool';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface ModifyTableDialogProps {
   isOpen: boolean;
@@ -154,11 +156,11 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                {/* Table Comment */}
                <div className="flex items-center gap-2">
                    <label className="text-sm text-ink-muted w-24">Table Comment:</label>
-                   <input 
-                       type="text" 
-                       value={tableComment} 
+                   <Input
+                       type="text"
+                       value={tableComment}
                        onChange={(e) => setTableComment(e.target.value)}
-                       className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+                       className="flex-1"
                    />
                </div>
 
@@ -181,30 +183,30 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                            {columns.map((col, idx) => (
                                <tr key={idx} className="hover:bg-surface-2/30">
                                    <td className="px-3 py-2">
-                                       <input 
-                                           type="text" 
-                                           value={col.name} 
+                                       <Input
+                                           type="text"
+                                           value={col.name}
                                            onChange={(e) => handleChange(idx, 'name', e.target.value)}
-                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
+                                           className="text-xs"
                                        />
                                    </td>
                                    <td className="px-3 py-2">
-                                       <input 
+                                       <Input
                                            list={`types-${idx}`}
                                            value={col.type}
                                            onChange={(e) => handleChange(idx, 'type', e.target.value)}
-                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink uppercase"
+                                           className="text-xs uppercase"
                                        />
                                        <datalist id={`types-${idx}`}>
                                            {COMMON_TYPES.map(t => <option key={t} value={t} />)}
                                        </datalist>
                                    </td>
                                    <td className="px-3 py-2">
-                                       <input 
-                                           type="text" 
-                                           value={col.length || ''} 
+                                       <Input
+                                           type="text"
+                                           value={col.length || ''}
                                            onChange={(e) => handleChange(idx, 'length', e.target.value)}
-                                           className="w-20 bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
+                                           className="w-20 text-xs"
                                            placeholder="Length"
                                        />
                                    </td>
@@ -225,19 +227,19 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                        />
                                    </td>
                                    <td className="px-3 py-2">
-                                       <input 
-                                           type="text" 
-                                           value={col.default_value || ''} 
+                                       <Input
+                                           type="text"
+                                           value={col.default_value || ''}
                                            onChange={(e) => handleChange(idx, 'default_value', e.target.value)}
-                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
+                                           className="text-xs"
                                        />
                                    </td>
                                    <td className="px-3 py-2">
-                                       <input 
-                                           type="text" 
-                                           value={col.comment || ''} 
+                                       <Input
+                                           type="text"
+                                           value={col.comment || ''}
                                            onChange={(e) => handleChange(idx, 'comment', e.target.value)}
-                                           className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
+                                           className="text-xs"
                                        />
                                    </td>
                                    <td className="px-3 py-2 text-center">
@@ -267,20 +269,20 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
         </div>
         
         <div className="p-4 border-t border-border flex justify-end gap-2">
-          <button
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving || loading}
-            className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             {saving && <i className="fas fa-spinner fa-spin"></i>}
             Save Changes
-          </button>
+          </Button>
         </div>
       </div>
     </div>

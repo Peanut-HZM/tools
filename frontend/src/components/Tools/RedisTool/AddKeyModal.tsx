@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { setRedisKey } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   isOpen: boolean;
@@ -59,10 +61,10 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.keys}</label>
-            <input
+            <Input
               type="text"
               required
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+              className="w-full"
               value={key}
               onChange={e => setKey(e.target.value)}
               placeholder="my:key:name"
@@ -84,9 +86,9 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
           </div>
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.ttl}</label>
-            <input
+            <Input
               type="number"
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+              className="w-full"
               value={ttl}
               onChange={e => setTtl(parseInt(e.target.value))}
             />
@@ -103,19 +105,18 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
             />
           </div>
           <div className="flex justify-end space-x-3 pt-4">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
             >
               {t.common.cancel}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               {t.common.create}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

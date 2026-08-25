@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Collection, HttpRequest, fetchRequests } from '../../../../services/httpClientApi';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface CollectionTreeProps {
   collections: Collection[];
@@ -166,45 +168,51 @@ export default function CollectionTree({
             onCollectionContextMenu?.(e, collection);
           }}
         >
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             title="展开/折叠"
             onClick={(e) => {
               e.stopPropagation();
               handleCollectionClick(collection);
             }}
-            className="text-ink-faint hover:text-ink-muted transition-colors"
+            className="h-6 w-6 text-ink-faint hover:text-ink-muted"
           >
             <i
               className={`fas fa-chevron-right text-xs transition-transform ${
                 isExpanded ? 'rotate-90' : ''
               }`}
             ></i>
-          </button>
+          </Button>
           <i className="fas fa-folder text-ink-faint text-xs"></i>
           <span className="truncate flex-1">{collection.name}</span>
           {onCollectionRename && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               title="重命名"
               onClick={(e) => {
                 e.stopPropagation();
                 onCollectionRename(collection);
               }}
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted transition-opacity text-xs flex-shrink-0"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted"
             >
               <i className="fas fa-pencil"></i>
-            </button>
+            </Button>
           )}
           {onCollectionDelete && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               title="删除"
               onClick={(e) => {
                 e.stopPropagation();
                 onCollectionDelete(collection);
               }}
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger transition-opacity text-xs flex-shrink-0"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger"
             >
               <i className="fas fa-trash"></i>
-            </button>
+            </Button>
           )}
         </div>
 
@@ -245,7 +253,7 @@ export default function CollectionTree({
                       {request.method}
                     </span>
                     {editingRequest?.id === request.id ? (
-                      <input
+                      <Input
                         autoFocus
                         value={editingRequestName}
                         onChange={(e) => setEditingRequestName(e.target.value)}
@@ -262,36 +270,39 @@ export default function CollectionTree({
                             setEditingRequestName('');
                           }
                         }}
-                        className="flex-1 bg-canvas text-ink-inverse text-xs px-1 py-0.5 rounded
-                                   border border-accent-secondary focus:outline-none min-w-0"
+                        className="flex-1 h-6 text-xs px-1 py-0.5 min-w-0"
                       />
                     ) : (
                       <>
                         <span className="truncate flex-1">{request.name}</span>
                         {onRequestRename && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             title="重命名"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingRequest(request);
                               setEditingRequestName(request.name);
                             }}
-                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted transition-opacity text-xs flex-shrink-0"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted"
                           >
                             <i className="fas fa-pencil"></i>
-                          </button>
+                          </Button>
                         )}
                         {onRequestDelete && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             title="删除"
                             onClick={(e) => {
                               e.stopPropagation();
                               onRequestDelete(request);
                             }}
-                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger transition-opacity text-xs flex-shrink-0"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger"
                           >
                             <i className="fas fa-trash"></i>
-                          </button>
+                          </Button>
                         )}
                       </>
                     )}

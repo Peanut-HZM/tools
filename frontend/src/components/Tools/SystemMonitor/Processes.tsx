@@ -5,6 +5,8 @@ import * as monitorApi from '../../../api/monitorApi';
 import type { MonitorProcess } from '../../../api/monitorApi';
 import ServerSelector from './components/ServerSelector';
 import ConfirmModal from './components/ConfirmModal';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 const KNOWN_TYPES = ['all', 'FastAPI', 'Django', 'Flask', 'Celery', 'Gunicorn', 'Python',
   'Java', 'Node.js', 'Nginx', 'MySQL', 'PostgreSQL', 'Redis', 'Docker', 'Other'];
@@ -77,8 +79,8 @@ export default function Processes() {
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
         <ServerSelector servers={servers} value={selectedServerId} onChange={setSelectedServerId} />
-        <input
-          className="flex-1 min-w-[180px] bg-canvas border border-border rounded-lg px-3 py-1.5 text-sm text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+        <Input
+          className="flex-1 min-w-[180px]"
           placeholder="搜索进程名或命令行"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -90,9 +92,9 @@ export default function Processes() {
         >
           {KNOWN_TYPES.map((t) => <option key={t} value={t}>{t === 'all' ? '全部类型' : t}</option>)}
         </select>
-        <button className="px-3 py-1.5 rounded-lg text-sm bg-surface-1 hover:bg-surface-2 text-ink-muted" onClick={load}>
+        <Button variant="secondary" size="sm" onClick={load}>
           <i className="fas fa-sync mr-1.5" />刷新
-        </button>
+        </Button>
       </div>
       {error && <div className="text-sm text-danger">{error}</div>}
       <div className="bg-canvas rounded-xl border border-border overflow-hidden">
@@ -138,11 +140,11 @@ export default function Processes() {
         <div className="flex items-center justify-between text-xs text-ink-faint">
           <span>共 {total} 个进程</span>
           <div className="flex items-center gap-2">
-            <button className="px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 disabled:opacity-40"
-              disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</button>
+            <Button variant="secondary" size="sm"
+              disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
             <span>{page} / {totalPages}</span>
-            <button className="px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 disabled:opacity-40"
-              disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</button>
+            <Button variant="secondary" size="sm"
+              disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
           </div>
         </div>
       )}

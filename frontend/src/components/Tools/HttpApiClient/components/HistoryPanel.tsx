@@ -3,6 +3,7 @@
  */
 
 import { RequestHistory } from '../../../../services/httpClientApi';
+import { Button } from '@/components/ui/Button';
 
 interface HistoryPanelProps {
   history: RequestHistory[];
@@ -67,13 +68,15 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
     <div className="space-y-1">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-ink-muted">共 {history.length} 条记录</span>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onClear}
-          className="text-xs text-danger hover:text-red-300 transition-colors"
+          className="text-xs text-danger hover:text-red-300"
         >
           <i className="fas fa-trash mr-1"></i>
           清空历史
-        </button>
+        </Button>
       </div>
 
       <div className="max-h-[60vh] overflow-y-auto space-y-1">
@@ -110,16 +113,18 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
             </span>
 
             {/* 重放按钮 */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onReplay(item);
               }}
-              className="text-ink-faint group-hover:text-accent-secondary transition-colors opacity-0 group-hover:opacity-100"
+              className="h-6 w-6 text-ink-faint group-hover:text-accent-secondary opacity-0 group-hover:opacity-100"
               title="重放"
             >
               <i className="fas fa-rotate-right"></i>
-            </button>
+            </Button>
           </div>
         ))}
       </div>

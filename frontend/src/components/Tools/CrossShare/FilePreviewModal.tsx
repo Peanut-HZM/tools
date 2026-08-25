@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { CrossFile } from '../../../services/crossShare';
+import { Button } from "@/components/ui/Button";
 import {
   ImageViewer,
   VideoViewer,
@@ -102,18 +103,21 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
-            <button
+            <Button
+              size="sm"
+              variant="default"
               onClick={onDownload}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse text-sm font-medium rounded-lg transition-colors"
+              className="text-ink-inverse"
             >
               ⬇️ 下载
-            </button>
-            <button
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-2 rounded-lg transition-colors"
             >
               ✕
-            </button>
+            </Button>
           </div>
         </div>
 

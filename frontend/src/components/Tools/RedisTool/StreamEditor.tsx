@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getStreamInfo, operateStream } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -76,7 +78,7 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
                   ))}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button onClick={() => handleDelete(entry.id)} className="text-danger hover:text-red-300 text-xs">Delete</button>
+                  <Button variant="link" size="sm" onClick={() => handleDelete(entry.id)} className="h-auto px-0 py-0 text-danger hover:text-red-300">Delete</Button>
                 </td>
               </tr>
             ))}
@@ -88,21 +90,21 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
         <div className="text-sm font-medium text-ink-muted mb-2">Add Entry</div>
         {newFields.map((f, i) => (
           <div key={i} className="flex space-x-2 mb-2">
-            <input value={f.key} onChange={e => {
+            <Input value={f.key} onChange={e => {
               const nf = [...newFields];
               nf[i].key = e.target.value;
               setNewFields(nf);
-            }} placeholder="Field" className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
-            <input value={f.value} onChange={e => {
+            }} placeholder="Field" className="flex-1" />
+            <Input value={f.value} onChange={e => {
               const nf = [...newFields];
               nf[i].value = e.target.value;
               setNewFields(nf);
-            }} placeholder="Value" className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
+            }} placeholder="Value" className="flex-1" />
           </div>
         ))}
         <div className="flex space-x-2">
-          <button onClick={() => setNewFields([...newFields, { key: '', value: '' }])} className="text-xs text-accent-info hover:text-blue-300">+ Add field</button>
-          <button onClick={handleAdd} className="px-3 py-1 bg-accent text-white text-xs rounded hover:bg-blue-700">Add Entry</button>
+          <Button variant="link" size="sm" onClick={() => setNewFields([...newFields, { key: '', value: '' }])} className="h-auto px-0 py-0">+ Add field</Button>
+          <Button size="sm" onClick={handleAdd}>Add Entry</Button>
         </div>
       </div>
     </div>

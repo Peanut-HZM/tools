@@ -3,6 +3,8 @@
  */
 import React, { useState, useEffect } from 'react';
 import { deviceApi, Device } from '../../../services/crossShare';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 const DevicePanel: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -109,25 +111,28 @@ const DevicePanel: React.FC = () => {
                   <div>
                     {editingId === device.id ? (
                       <div className="flex items-center space-x-2">
-                        <input
+                        <Input
                           type="text"
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
-                          className="px-3 py-1 bg-surface-3 border border-border rounded-md text-ink focus:outline-none focus:border-accent-info"
+                          className="h-8 px-3 py-1"
                           autoFocus
                         />
-                        <button
+                        <Button
+                          size="sm"
+                          variant="secondary"
                           onClick={() => handleUpdateName(device.id)}
-                          className="px-3 py-1 text-sm bg-green-500 text-ink-inverse rounded-md hover:bg-green-600 transition-colors"
+                          className="bg-green-500 text-ink-inverse hover:bg-green-600"
                         >
                           保存
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1 text-sm bg-surface-3 text-ink rounded-md hover:bg-surface-3 transition-colors"
                         >
                           取消
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <>
@@ -148,21 +153,24 @@ const DevicePanel: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <button
+                  <Button
+                    size="sm"
+                    variant="secondary"
                     onClick={() => {
                       setEditingId(device.id);
                       setEditingName(device.device_name);
                     }}
-                    className="px-3 py-1.5 text-sm bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors"
                   >
                     ✏️ 重命名
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => handleDeleteDevice(device.id, device.device_name)}
-                    className="px-3 py-1.5 text-sm bg-red-900/30 hover:bg-red-900/50 text-danger rounded-lg transition-colors"
+                    className="text-danger bg-red-900/30 hover:bg-red-900/50"
                   >
                     🗑️ 删除
-                  </button>
+                  </Button>
                 </div>
               </div>
             );

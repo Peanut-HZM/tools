@@ -7,6 +7,7 @@ import { useImageGenHistory } from '../../../../hooks/useImageGenHistory';
 import { useImageGenerate } from '../../../../hooks/useImageGenerate';
 import { getResultUrl } from '../../../../api/imageGenerationApi';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
 import type { HistoryItem } from '../../../../api/imageGenerationApi';
 
 function HistoryCard({ item }: { item: HistoryItem }) {
@@ -146,23 +147,27 @@ export default function HistoryDrawer() {
         {/* 分页 */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between p-3 border-t border-border">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={goPrev}
               disabled={page === 0}
-              className="px-3 py-1 text-sm rounded bg-surface-2 text-ink-muted disabled:opacity-40 hover:bg-surface-3 transition-colors"
+              className="px-3 py-1 text-sm"
             >
               {igT.history.prevPage}
-            </button>
+            </Button>
             <span className="text-xs text-ink-faint">
               {page + 1} / {totalPages}
             </span>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={goNext}
               disabled={(page + 1) >= totalPages}
-              className="px-3 py-1 text-sm rounded bg-surface-2 text-ink-muted disabled:opacity-40 hover:bg-surface-3 transition-colors"
+              className="px-3 py-1 text-sm"
             >
               {igT.history.nextPage}
-            </button>
+            </Button>
           </div>
         )}
       </div>

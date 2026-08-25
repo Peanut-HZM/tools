@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/Button';
 
 const STORAGE_KEY = 'image_gen_backend';
 
@@ -32,26 +33,20 @@ export default function BackendSwitch() {
 
   return (
     <div className="inline-flex rounded-lg bg-surface-1 p-1">
-      <button
+      <Button
+        variant={backend === 'dify' ? 'default' : 'ghost'}
+        size="sm"
         onClick={() => handleChange('dify')}
-        className={`px-4 py-1 rounded text-sm transition ${
-          backend === 'dify'
-            ? 'bg-accent text-white'
-            : 'text-ink-muted hover:text-ink'
-        }`}
       >
         Dify
-      </button>
-      <button
+      </Button>
+      <Button
+        variant={backend === 'selfdev' ? 'default' : 'ghost'}
+        size="sm"
         onClick={() => handleChange('selfdev')}
-        className={`px-4 py-1 rounded text-sm transition ${
-          backend === 'selfdev'
-            ? 'bg-accent text-white'
-            : 'text-ink-muted hover:text-ink'
-        }`}
       >
         自研 Agent
-      </button>
+      </Button>
     </div>
   );
 }

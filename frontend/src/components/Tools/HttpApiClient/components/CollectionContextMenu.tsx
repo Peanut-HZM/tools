@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Collection } from '../../../../services/httpClientApi';
+import { Button } from '@/components/ui/Button';
 
 interface CollectionContextMenuProps {
   collection: Collection;
@@ -41,26 +42,30 @@ export default function CollectionContextMenu({
       className="fixed z-[9999] bg-surface-1 border border-border rounded-lg shadow-md py-1 min-w-[160px]"
       style={{ left: x, top: y }}
     >
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => {
           onRename(collection);
           onClose();
         }}
-        className="w-full text-left px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 flex items-center"
+        className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal"
       >
         <i className="fas fa-pencil mr-2 text-ink-faint"></i>
         重命名
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => {
           onDelete(collection);
           onClose();
         }}
-        className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger/10 flex items-center"
+        className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal text-danger hover:bg-danger/10 hover:text-danger"
       >
         <i className="fas fa-trash mr-2"></i>
         删除集合
-      </button>
+      </Button>
     </div>
   );
 }

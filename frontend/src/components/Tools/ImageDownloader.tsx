@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface ImageInfo {
   url: string;
@@ -57,7 +59,7 @@ export default function ImageDownloader() {
 
       const data = await response.json();
       setImages(data.images);
-      
+
       if (data.images.length === 0) {
         setError('该网页没有找到图片');
       }
@@ -73,35 +75,35 @@ export default function ImageDownloader() {
     try {
       // 使用公开代理下载，避免防盗链且无需认证
       const proxyUrl = `${API_BASE_URL}/image-downloader/proxy?url=${encodeURIComponent(imageUrl)}`;
-      
+
       // 获取图片数据
       const response = await fetch(proxyUrl);
-      
+
       if (!response.ok) {
         throw new Error('下载失败');
       }
-      
+
       // 获取图片 Blob
       const blob = await response.blob();
-      
+
       // 从 URL 中提取文件扩展名
       const urlObj = new URL(imageUrl);
       const pathname = urlObj.pathname;
       const ext = pathname.substring(pathname.lastIndexOf('.')) || '.jpg';
-      
+
       // 创建 Blob URL
       const blobUrl = URL.createObjectURL(blob);
-      
+
       // 创建下载链接
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = `image-${index + 1}${ext}`;
-      
+
       // 触发下载
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // 释放 Blob URL
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     } catch (err) {
@@ -112,21 +114,21 @@ export default function ImageDownloader() {
 
   const downloadAllImages = async () => {
     if (images.length === 0) return;
-    
+
     setDownloading(true);
-    
+
     // 提示用户
     const message = `准备下载 ${images.length} 张图片。\n\n下载过程中请不要关闭页面。\n\n是否继续？`;
-    
+
     const confirmed = window.confirm(message);
     if (!confirmed) {
       setDownloading(false);
       return;
     }
-    
+
     let successCount = 0;
     let failCount = 0;
-    
+
     for (let i = 0; i < images.length; i++) {
       try {
         await downloadImage(images[i].url, i);
@@ -138,9 +140,9 @@ export default function ImageDownloader() {
         console.error(`图片 ${i + 1} 下载失败:`, err);
       }
     }
-    
+
     setDownloading(false);
-    
+
     if (failCount === 0) {
       alert(`✅ 全部下载完成！\n\n成功下载 ${successCount} 张图片。`);
     } else {
@@ -152,13 +154,14 @@ export default function ImageDownloader() {
     <div className="text-ink py-8">
       <div className="container mx-auto px-6">
         {/* 返回按钮 */}
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate('/')}
-          className="mb-6 text-ink-muted hover:text-white transition-colors flex items-center gap-2"
+          className="mb-6 flex items-center gap-2"
         >
           <i className="fas fa-arrow-left"></i>
           返回首页
-        </button>
+        </Button>
 
         {/* 标题 */}
         <div className="text-center mb-8">
@@ -176,18 +179,18 @@ export default function ImageDownloader() {
           <div className="bg-surface-1 rounded-xl p-6 border border-border">
             <label className="block text-sm font-medium mb-2">网页URL</label>
             <div className="flex gap-3">
-              <input
+              <Input
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && extractImages()}
                 placeholder="https://example.com"
-                className="flex-1 bg-surface-2 text-white px-4 py-3 rounded-lg border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="flex-1"
               />
-              <button
+              <Button
                 onClick={extractImages}
                 disabled={loading}
-                className="bg-primary hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="whitespace-nowrap"
               >
                 {loading ? (
                   <>
@@ -200,9 +203,9 @@ export default function ImageDownloader() {
                     提取图片
                   </>
                 )}
-              </button>
+              </Button>
             </div>
-            
+
             {/* 使用说明 */}
             <div className="mt-4 text-sm text-ink-muted">
               <p className="mb-2">💡 使用提示：</p>
@@ -213,7 +216,7 @@ export default function ImageDownloader() {
                 <li>点击图片可以在新窗口查看原图</li>
                 <li>使用 Blob 下载方式，确保图片质量不失真</li>
               </ul>
-              
+
               <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded">
                 <p className="text-green-400 font-medium mb-1">✨ 新功能：原图下载</p>
                 <p className="text-xs">• 使用后端代理 + Blob 下载，保证原图质量</p>
@@ -241,10 +244,10 @@ export default function ImageDownloader() {
               <h2 className="text-2xl font-bold">
                 找到 {images.length} 张图片
               </h2>
-              <button
+              <Button
                 onClick={downloadAllImages}
                 disabled={downloading}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-green-500 hover:bg-green-600"
               >
                 {downloading ? (
                   <>
@@ -257,7 +260,7 @@ export default function ImageDownloader() {
                     下载全部原图
                   </>
                 )}
-              </button>
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -295,21 +298,24 @@ export default function ImageDownloader() {
                       )}
                     </p>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         onClick={() => downloadImage(image.url, index)}
-                        className="flex-1 bg-primary hover:bg-blue-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
+                        className="flex-1"
+                        size="sm"
                       >
                         <i className="fas fa-download mr-2"></i>
                         下载原图
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="secondary"
                         onClick={() => viewOriginalImage(image.url)}
-                        className="flex-1 bg-surface-2 hover:bg-surface-3 text-ink-inverse py-2 rounded-lg transition-colors text-sm"
+                        className="flex-1"
+                        size="sm"
                         title="在新窗口查看原图"
                       >
                         <i className="fas fa-external-link-alt mr-2"></i>
                         查看原图
-                      </button>
+                      </Button>
                     </div>
                     <p className="text-xs text-ink-faint mt-2 text-center">
                       💡 点击图片或"查看原图"按钮打开原图

@@ -5,6 +5,8 @@ import * as monitorApi from '../../../api/monitorApi';
 import type { ServiceInfo } from '../../../api/monitorApi';
 import ServerSelector from './components/ServerSelector';
 import ConfirmModal from './components/ConfirmModal';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 /** 页签⑤服务管理：systemd 服务列表与启停 */
 export default function Services() {
@@ -53,15 +55,15 @@ export default function Services() {
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
         <ServerSelector servers={servers} value={selectedServerId} onChange={setSelectedServerId} />
-        <input
-          className="flex-1 min-w-[180px] bg-canvas border border-border rounded-lg px-3 py-1.5 text-sm text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+        <Input
+          className="flex-1 min-w-[180px]"
           placeholder="搜索服务名"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <button className="px-3 py-1.5 rounded-lg text-sm bg-surface-1 hover:bg-surface-2 text-ink-muted" onClick={load}>
+        <Button variant="secondary" size="sm" onClick={load}>
           <i className="fas fa-sync mr-1.5" />刷新
-        </button>
+        </Button>
       </div>
       {!sudoOk && selectedServerId && (
         <div className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">

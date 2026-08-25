@@ -16,6 +16,8 @@ import * as api from '../../../api/k8sToolApi';
 import { useI18n } from '../../../i18n';
 import { useToast } from '../../../hooks/useToast';
 import { useK8sStore } from '../../../stores/k8sStore';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 type TabKey = 'upload' | 'paste' | 'manual';
 type AuthType = CreateK8sManualRequest['auth_type'];
@@ -353,10 +355,9 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                 <label className="block text-sm font-medium text-ink-muted mb-1">
                   {k8sT.modal.fields.name}
                 </label>
-                <input
+                <Input
                   type="text"
                   required
-                  className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                 />
@@ -369,9 +370,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     {k8sT.modal.fields.token}
                     <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                   </label>
-                  <input
+                  <Input
                     type="password"
-                    className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                     placeholder="输入新的 token，留空则保持原值"
                     value={editToken}
                     onChange={e => setEditToken(e.target.value)}
@@ -417,9 +417,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                       {k8sT.modal.fields.username}
                       <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                     </label>
-                    <input
+                    <Input
                       type="text"
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                       placeholder="输入新的用户名"
                       value={editUsername}
                       onChange={e => setEditUsername(e.target.value)}
@@ -430,9 +429,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                       {k8sT.modal.fields.password}
                       <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                     </label>
-                    <input
+                    <Input
                       type="password"
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                       placeholder="输入新的密码"
                       value={editPassword}
                       onChange={e => setEditPassword(e.target.value)}
@@ -461,9 +459,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                 <label className="block text-sm font-medium text-ink-muted mb-1">
                   {k8sT.modal.fields.namespaceFilter}
                 </label>
-                <input
+                <Input
                   type="text"
-                  className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                   placeholder={k8sT.modal.fields.namespaceHint}
                   value={editNamespaceFilter}
                   onChange={e => setEditNamespaceFilter(e.target.value)}
@@ -472,14 +469,14 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
               {/* 测试连接 + 保存按钮 */}
               <div className="flex items-center gap-3">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   disabled={isTesting}
                   onClick={() => handleTestConnection(initialData!.id)}
-                  className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink hover:bg-surface-3 transition-colors disabled:opacity-60"
                 >
                   {isTesting ? k8sT.testing : k8sT.testConnection}
-                </button>
+                </Button>
                 {testMessage && (
                   <span className={`text-sm ${testStatus === 'success' ? 'text-green-400' : 'text-danger'}`}>
                     {testMessage}
@@ -540,9 +537,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.namespaceFilter}
                     </label>
-                    <input
+                    <Input
                       type="text"
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                       placeholder={k8sT.modal.fields.namespaceHint}
                       value={uploadNamespaceFilter}
                       onChange={e => setUploadNamespaceFilter(e.target.value)}
@@ -569,9 +565,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.namespaceFilter}
                     </label>
-                    <input
+                    <Input
                       type="text"
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                       placeholder={k8sT.modal.fields.namespaceHint}
                       value={pasteNamespaceFilter}
                       onChange={e => setPasteNamespaceFilter(e.target.value)}
@@ -587,10 +582,9 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.name}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       required
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                       value={manualName}
                       onChange={e => setManualName(e.target.value)}
                     />
@@ -601,11 +595,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.server}
                     </label>
-                    <input
+                    <Input
                       type="url"
                       required
                       placeholder="https://k8s.example.com:6443"
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                       value={manualServer}
                       onChange={e => setManualServer(e.target.value)}
                     />
@@ -633,9 +626,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                       <label className="block text-sm font-medium text-ink-muted mb-1">
                         {k8sT.modal.fields.token}
                       </label>
-                      <input
+                      <Input
                         type="password"
-                        className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                         value={manualToken}
                         onChange={e => setManualToken(e.target.value)}
                       />
@@ -677,9 +669,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                         <label className="block text-sm font-medium text-ink-muted mb-1">
                           {k8sT.modal.fields.username}
                         </label>
-                        <input
+                        <Input
                           type="text"
-                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                           value={manualUsername}
                           onChange={e => setManualUsername(e.target.value)}
                         />
@@ -688,9 +679,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                         <label className="block text-sm font-medium text-ink-muted mb-1">
                           {k8sT.modal.fields.password}
                         </label>
-                        <input
+                        <Input
                           type="password"
-                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                           value={manualPassword}
                           onChange={e => setManualPassword(e.target.value)}
                         />
@@ -717,9 +707,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.namespaceFilter}
                     </label>
-                    <input
+                    <Input
                       type="text"
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
                       placeholder={k8sT.modal.fields.namespaceHint}
                       value={manualNamespaceFilter}
                       onChange={e => setManualNamespaceFilter(e.target.value)}
@@ -744,25 +733,24 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
           {/* 右侧：操作按钮 */}
           <div className="flex items-center space-x-3">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
             >
               {t.common.cancel}
-            </button>
+            </Button>
 
             {isEditing ? (
-              <button
+              <Button
                 type="button"
                 onClick={handleEditSave}
                 disabled={isSaving}
-                className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-ink-inverse hover:bg-accent-hover transition-colors disabled:opacity-60"
               >
                 {isSaving ? t.common.loading : t.common.save}
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 type="button"
                 disabled={isUploading || isPasting || isCreating}
                 onClick={() => {
@@ -770,10 +758,9 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                   else if (activeTab === 'paste') handlePaste();
                   else handleManualCreate();
                 }}
-                className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-ink-inverse hover:bg-accent-hover transition-colors disabled:opacity-60"
               >
                 {(isUploading || isPasting || isCreating) ? t.common.loading : t.common.save}
-              </button>
+              </Button>
             )}
           </div>
         </div>

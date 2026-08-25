@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import { getResultUrl } from '../../../../api/imageGenerationApi';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
 
 export default function ResultPanel() {
   const { t } = useI18n();
@@ -114,24 +115,27 @@ export default function ResultPanel() {
               {/* 悬浮操作栏 */}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => handleDownload(url, i)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     {igT.result.download}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    size="sm"
                     onClick={() => handleUseAsRef(url)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     {igT.result.useAsReference}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { Button } from "@/components/ui/Button";
 import { useAuth } from '../../stores/authStore';
 import RequireAuthNotice from '../Common/RequireAuthNotice';
 import {
@@ -446,7 +447,7 @@ export default function TokenUsage() {
     const csv = [headers, ...rows]
       .map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(','))
       .join('\n');
-    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -559,39 +560,47 @@ export default function TokenUsage() {
               summary.data.sync_meta?.last_success_at
             )}
           </span>
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
+            className="h-8 w-8 flex-shrink-0"
             title="刷新"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
             onClick={exportCSV}
             disabled={!details.data.items.length}
-            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
+            className="h-8 w-8 flex-shrink-0"
             title="导出"
           >
             <Download className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
             onClick={handleClearData}
             disabled={clearing}
-            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
+            className="h-8 w-8 flex-shrink-0"
             title="清理"
           >
             {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSync}
             disabled={syncing}
-            className="inline-flex h-8 flex-shrink-0 items-center justify-center gap-1 rounded-md border border-border px-2 text-xs text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
+            className="h-8 flex-shrink-0 text-xs"
             title="ccusage 数据同步"
           >
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             {syncing ? '同步中...' : '同步数据'}
-          </button>
+          </Button>
           {syncError && (
             <span className="inline-flex items-center text-xs text-danger">{syncError}</span>
           )}
@@ -653,22 +662,24 @@ export default function TokenUsage() {
                 <option key={device.id} value={device.id}>{device.name}</option>
               ))}
             </select>
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={handleRenameDevice}
               disabled={!selectedDevice}
               title="重命名设备"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Edit3 className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setDeviceManagerOpen(true)}
               disabled={!devices.length}
               title="管理设备"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Settings className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </label>
 
@@ -900,8 +911,8 @@ export default function TokenUsage() {
           <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
             <span className="text-ink-muted">第 {currentPage} / {totalPages} 页</span>
             <div className="flex gap-2">
-              <button onClick={() => setCurrentPage(page => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-md border border-border px-3 py-1.5 text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40">上一页</button>
-              <button onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-md border border-border px-3 py-1.5 text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40">下一页</button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(page => Math.max(1, page - 1))} disabled={currentPage === 1}>上一页</Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages}>下一页</Button>
             </div>
           </div>
         )}

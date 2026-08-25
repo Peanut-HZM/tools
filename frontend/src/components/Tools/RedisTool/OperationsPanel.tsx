@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getRedisConfig, updateRedisServerConfig, getReplicationInfo, flushDB, getBigKeys } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { MigrateWizard } from './MigrateWizard';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -60,17 +62,17 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
       <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
         <div className="text-sm font-medium text-danger mb-3">危险操作</div>
         <div className="flex space-x-2">
-          <button onClick={() => handleFlush('db')} className="px-3 py-1.5 bg-red-700 text-ink-inverse text-xs rounded hover:bg-red-600">FLUSHDB</button>
-          <button onClick={() => handleFlush('all')} className="px-3 py-1.5 bg-red-700 text-ink-inverse text-xs rounded hover:bg-red-600">FLUSHALL</button>
+          <Button size="sm" variant="destructive" onClick={() => handleFlush('db')}>FLUSHDB</Button>
+          <Button size="sm" variant="destructive" onClick={() => handleFlush('all')}>FLUSHALL</Button>
         </div>
       </div>
 
       <div className="bg-surface-1 rounded-lg p-4 border border-border">
         <div className="flex justify-between items-center mb-3">
           <div className="text-sm font-medium text-ink-muted">数据迁移</div>
-          <button onClick={() => setShowMigrate(!showMigrate)} className="px-3 py-1 bg-accent text-white text-xs rounded hover:bg-blue-700">
+          <Button size="sm" onClick={() => setShowMigrate(!showMigrate)}>
             {showMigrate ? '关闭' : '开始迁移'}
-          </button>
+          </Button>
         </div>
         {showMigrate && <MigrateWizard configId={configId} onClose={() => setShowMigrate(false)} />}
       </div>
@@ -89,11 +91,11 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
       <div className="bg-surface-1 rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex justify-between items-center">
           <div className="text-sm font-medium text-ink-muted">配置参数</div>
-          <input
+          <Input
             value={filter}
             onChange={e => setFilter(e.target.value)}
             placeholder="搜索配置项..."
-            className="w-48 bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
+            className="w-48 h-8 text-xs"
           />
         </div>
         <div className="max-h-96 overflow-y-auto">
@@ -107,10 +109,10 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
                   <td className="px-4 py-2 font-mono text-xs text-ink-muted">{c.key}</td>
                   <td className="px-4 py-2">
                     {c.editable ? (
-                      <input
+                      <Input
                         defaultValue={c.value}
                         onBlur={e => handleConfigUpdate(c.key, e.target.value)}
-                        className="w-full bg-canvas border border-border rounded px-2 py-1 text-xs text-ink"
+                        className="w-full h-8 text-xs"
                       />
                     ) : (
                       <span className="text-ink-muted">{c.value}</span>

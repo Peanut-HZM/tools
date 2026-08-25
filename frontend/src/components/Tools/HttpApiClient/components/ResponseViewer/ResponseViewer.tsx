@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SendRequestResponse, HttpRequest } from '../../../../../services/httpClientApi';
 import { generateSnippet } from '../../../../../utils/codeSnippetGenerator';
+import { Button } from '@/components/ui/Button';
 import HtmlPreview from '../ResponsePreview/HtmlPreview';
 import ImagePreview from '../ResponsePreview/ImagePreview';
 import JsonView from 'react18-json-view';
@@ -151,14 +152,16 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigator.clipboard.writeText(response.body)}
-            className="text-ink-muted hover:text-ink-inverse transition-colors text-xs"
+            className="text-xs text-ink-muted hover:text-ink-inverse"
             title="复制响应体"
           >
             <i className="fas fa-copy mr-1"></i>
             复制
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -296,14 +299,16 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                   {lang === 'curl' ? 'cURL' : lang === 'python' ? 'Python' : lang === 'javascript' ? 'JavaScript' : 'Go'}
                 </button>
               ))}
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => navigator.clipboard.writeText(codeSnippet)}
-                className="ml-auto text-ink-muted hover:text-ink-inverse transition-colors text-xs"
+                className="ml-auto text-xs text-ink-muted hover:text-ink-inverse"
                 title="复制代码"
               >
                 <i className="fas fa-copy mr-1"></i>
                 复制
-              </button>
+              </Button>
             </div>
 
             <pre className="font-mono text-sm text-ink-muted bg-canvas/50 p-4 rounded-lg overflow-x-auto whitespace-pre">

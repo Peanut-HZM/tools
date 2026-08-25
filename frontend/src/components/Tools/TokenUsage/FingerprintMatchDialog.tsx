@@ -1,6 +1,7 @@
 import React from 'react';
 import { Monitor, X } from 'lucide-react';
 import type { FingerprintMatch } from '../../../api/tokenUsageApi';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   match: FingerprintMatch;
@@ -49,12 +50,12 @@ export default function FingerprintMatchDialog({
         </p>
 
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={onReuse}
-            className="flex-1 rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
+            className="flex-1"
           >
             复用已有设备
-          </button>
+          </Button>
           <button
             onClick={onCreateNew}
             className="flex-1 rounded-md border border-border bg-surface-1 px-3 py-2 text-sm text-ink hover:bg-surface-2"

@@ -6,6 +6,8 @@ import { AddKeyModal } from './AddKeyModal';
 import { BatchToolbar } from './BatchToolbar';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n, interpolate } from '../../../i18n';
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Props {
   configId: string;
@@ -24,7 +26,6 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
   const loadKeys = async (searchPattern?: string) => {
-    // If it's an auto-refresh (no loading spinner for better UX)
     const isAutoRefresh = !searchPattern && !loading;
     if (!isAutoRefresh) setLoading(true);
 
@@ -39,9 +40,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
       }
     } catch (error) {
       console.error('[RedisTool] Failed to load keys:', error);
-      // Only show toast on manual load to avoid spamming
       if (!isAutoRefresh) addToast(t.common.error, 'error');
-      // Don't clear keys on auto-refresh error to keep UI stable
       if (!isAutoRefresh) setKeys([]);
     } finally {
       if (!isAutoRefresh) setLoading(false);
@@ -49,11 +48,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
   };
 
   const handleRefresh = () => {
-    // Force reset pattern to current input value or '*' if empty? 
-    // Actually handleRefresh should probably use the current pattern in the input
-    // But we need to make sure pattern state is up to date.
     loadKeys();
-    // Trigger KeyDetail refresh if a key is selected
     if (selectedKey) {
       setRefreshTrigger(prev => prev + 1);
     }
@@ -65,21 +60,16 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
     loadKeys('*');
   }, [configId]);
 
-  // Auto-refresh every 5 seconds
   useEffect(() => {
     const intervalId = setInterval(() => {
-      loadKeys(); // Use current pattern
-      
-      // If a key is selected, we should also trigger its refresh.
-      // We do this by incrementing refreshTrigger which is part of KeyDetail's key.
+      loadKeys();
       if (selectedKey) {
         setRefreshTrigger(prev => prev + 1);
       }
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [configId, selectedKey, pattern]); // Dependencies for auto-refresh interval
-
+  }, [configId, selectedKey, pattern]);
 
   const handleDeleteKey = async (key: string) => {
     if (!confirm(interpolate(t.redis.confirmDeleteKey, { key }))) return;
@@ -106,49 +96,47 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
 
   return (
     <div className="flex h-full bg-canvas">
-      {/* Key List Sidebar */}
       <div className="w-1/3 border-r border-border flex flex-col bg-canvas">
         <div className="p-4 border-b border-border space-y-2">
           <div className="flex space-x-2">
             <div className="relative flex-1">
                 <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-faint"></i>
-                <input
+                <Input
                 type="text"
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
-                className="w-full bg-surface-1 border border-border rounded-md pl-9 pr-3 py-2 text-sm text-ink-muted focus:outline-none focus:border-blue-500"
+                className="w-full pl-9"
                 placeholder={t.redis.searchKeys}
                 onKeyDown={(e) => e.key === 'Enter' && loadKeys()}
                 />
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => {
                 setBatchMode(!batchMode);
                 setSelectedKeys(new Set());
               }}
-              className={`px-3 py-2 border rounded-md text-sm transition-colors ${
-                batchMode
-                  ? 'bg-accent text-white border-blue-600'
-                  : 'bg-surface-1 text-ink-muted border-border hover:text-ink-inverse hover:bg-surface-2'
-              }`}
+              className={batchMode ? 'bg-accent text-white border-blue-600 hover:bg-accent hover:text-white' : ''}
               title={batchMode ? '退出批量' : '批量模式'}
             >
               <i className="fas fa-check-square"></i>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleRefresh}
-              className="px-3 py-2 bg-surface-1 border border-border rounded-md text-ink-muted hover:text-ink-inverse hover:bg-surface-2 transition-colors"
               title={t.redis.refresh}
             >
               <i className="fas fa-sync-alt"></i>
-            </button>
-            <button
+            </Button>
+            <Button
+              size="icon"
               onClick={() => setShowAddModal(true)}
-              className="px-3 py-2 bg-accent border border-transparent rounded-md text-white hover:bg-blue-700 transition-colors"
               title={t.redis.addKey}
             >
               <i className="fas fa-plus"></i>
-            </button>
+            </Button>
           </div>
           <div className="text-xs text-ink-faint">
             {keys.length} {t.redis.keys}
@@ -241,15 +229,17 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                     </div>
                   </div>
                   {!batchMode && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={(e) => { e.stopPropagation(); handleDeleteKey(k.key); }}
-                      className={`p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                      className={`h-8 w-8 opacity-0 group-hover:opacity-100 ${
                           selectedKey === k.key ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-2 text-ink-muted hover:text-danger'
                       }`}
                       title={t.redis.deleteKey}
                     >
                       <i className="fas fa-trash text-xs"></i>
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
@@ -263,7 +253,6 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
         </div>
       </div>
 
-      {/* Key Detail View */}
       <div className="flex-1 bg-canvas overflow-hidden flex flex-col">
         {selectedKey ? (
           <KeyDetail

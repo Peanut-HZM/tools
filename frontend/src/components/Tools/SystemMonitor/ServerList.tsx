@@ -6,6 +6,8 @@ import * as sshApi from '../../../api/sshToolApi';
 import { ServerCard } from './components/ServerCard';
 import AddServerModal from './components/AddServerModal';
 import ConfirmModal from './components/ConfirmModal';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 /** 页签①服务器列表：状态卡片网格 + 添加/编辑/删除/重试 */
 export default function ServerList() {
@@ -101,14 +103,14 @@ export default function ServerList() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(null)}>
           <div className="bg-canvas border border-border rounded-xl p-5 w-[400px]" onClick={(e) => e.stopPropagation()}>
             <div className="text-ink-inverse font-medium mb-3">编辑服务器（编辑后需手动触发采集）</div>
-            <input
-              className="w-full bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse mb-3 focus:outline-none focus:border-emerald-500"
+            <Input
+              className="w-full mb-3"
               defaultValue={editing.name}
               placeholder="服务器名称"
               id="edit-name"
             />
             <div className="flex justify-end gap-3">
-              <button className="px-4 py-1.5 rounded-lg text-sm text-ink-muted hover:text-ink-inverse hover:bg-surface-1" onClick={() => setEditing(null)}>取消</button>
+              <Button variant="ghost" onClick={() => setEditing(null)}>取消</Button>
               <button
                 className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500"
                 onClick={async () => {

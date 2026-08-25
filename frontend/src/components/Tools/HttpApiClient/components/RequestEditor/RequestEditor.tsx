@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { HttpRequest, FormDataEntry } from '../../../../../services/httpClientApi';
 import FormDataEditor from '../FormDataEditor/FormDataEditor';
 import ScriptEditor from '../ScriptEditor/ScriptEditor';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface RequestEditorProps {
   request: HttpRequest;
@@ -115,21 +117,16 @@ export default function RequestEditor({
 
           {/* 保存按钮（有修改时高亮可点） */}
           {onSave && (
-            <button
+            <Button
+              variant="default"
+              size="sm"
               onClick={onSave}
               disabled={!isModified}
               title="保存"
-              className={`
-                px-4 py-2 rounded-lg font-medium text-sm transition-colors
-                ${isModified
-                  ? 'bg-accent-secondary hover:bg-accent-secondary text-ink-inverse'
-                  : 'bg-surface-2 text-ink-faint cursor-not-allowed'
-                }
-              `}
             >
               <i className="fas fa-save mr-1"></i>
               保存
-            </button>
+            </Button>
           )}
 
           {/* 删除按钮 */}
@@ -484,12 +481,12 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
       {authType === 'bearer' && (
         <div className="space-y-2">
           <label className="text-sm text-ink-muted">Token</label>
-          <input
+          <Input
             type="text"
             value={authConfig.token || ''}
             onChange={(e) => handleBearerChange(e.target.value)}
             placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
+            className="w-full text-sm"
           />
         </div>
       )}
@@ -499,22 +496,22 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
         <div className="space-y-3">
           <div className="space-y-2">
             <label className="text-sm text-ink-muted">Username</label>
-            <input
+            <Input
               type="text"
               value={authConfig.username || ''}
               onChange={(e) => handleBasicChange(e.target.value, authConfig.password || '')}
               placeholder="username"
-              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
+              className="w-full text-sm"
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-ink-muted">Password</label>
-            <input
+            <Input
               type="password"
               value={authConfig.password || ''}
               onChange={(e) => handleBasicChange(authConfig.username || '', e.target.value)}
               placeholder="password"
-              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
+              className="w-full text-sm"
             />
           </div>
         </div>
@@ -525,31 +522,31 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
         <div className="space-y-3">
           <div className="space-y-2">
             <label className="text-sm text-ink-muted">Key Name</label>
-            <input
+            <Input
               type="text"
               value={authConfig.key || ''}
               onChange={(e) => handleApiKeyChange(e.target.value, authConfig.value || '', authConfig.in === 'header')}
               placeholder="X-API-Key"
-              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
+              className="w-full text-sm"
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-ink-muted">Key Value</label>
-            <input
+            <Input
               type="text"
               value={authConfig.value || ''}
               onChange={(e) => handleApiKeyChange(authConfig.key || '', e.target.value, authConfig.in === 'header')}
               placeholder="your-api-key-value"
-              className="w-full bg-surface-2 text-ink-inverse px-4 py-2 rounded border border-border text-sm"
+              className="w-full text-sm"
             />
           </div>
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="checkbox"
               id="inHeader"
               checked={authConfig.in !== 'query'}
               onChange={(e) => handleApiKeyChange(authConfig.key || '', authConfig.value || '', e.target.checked)}
-              className="rounded border-border bg-surface-2"
+              className="h-4 w-4 p-0 cursor-pointer"
             />
             <label htmlFor="inHeader" className="text-sm text-ink-muted">放在 Header 中</label>
           </div>
