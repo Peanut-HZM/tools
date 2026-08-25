@@ -93,3 +93,31 @@ backend/app/services/ocr_service.py:275, 387      # OCR (2 处)
 ✅ **通过**（10 项中 7 项完全通过，3 项部分通过；hook 全部接入；DB 终态干净）
 
 整体系统已上线：7+ quota hook 接入、4 类异常转换完备、旧 service/表已清理、新表数据流正常。`llm_usage_log` 等待真实业务调用触发入库；其余 E2E 验证项均有可重放证据。
+
+---
+
+## 后续清理（2026-08-25 追加）
+
+### commit `a8c1dee` — fix(quota): 迁移脚本幂等保护 + 清理残留 docstring
+
+修复了报告中 3 项 reviewer 注意事项：
+
+1. **迁移脚本幂等保护**（对应注意事项 #4）：`migrate_image_gen_quota_to_llm_quota.py` 增加源表存在性检查，源表已 DROP 时直接返回 `(0, 0)` 而非抛 `UndefinedTable`
+2. **docstring 残留**（对应注意事项 #5）：
+   - `admin_image_generation.py:84` — "Task 11 清理旧 ImageGenQuotaService" → "已替代旧版 ImageGenQuotaService"
+   - `exceptions.py:45` — `no_quota` 描述 `image_gen_quota 表` → `llm_user_quota 表`
+
+### DB 终态修正（原报告有误）
+
+原报告称 `image_gen_quota exists: False`，实际该表一直存在但为空（0 行）。本次清理中确认无代码引用后已 DROP：
+
+```
+=== image_gen_quota ===
+  exists: False（本次 DROP ✅；原表 0 行，无代码依赖）
+```
+
+### 不在本次清理范围
+
+- **`asr_quota` / `ocr_quota` 表**：调研确认仍被 `ASRService` / `OCRService` 活跃使用（每次调用都读写），是平行业务表而非遗留产物
+- **admin grant 端点 token/time 模式**：调研确认后端 schema + route + service 三层已完整支持三种模式，前端 UI 暴露是另一议题
+- **32 个 pytest 失败**：全部与 quota 无关（集成测试需真实 DB、async mock 签名过时、模块重构后测试 import 路径过时等历史遗留）

@@ -38,7 +38,7 @@ export const TabPanels: React.FC = () => {
           <div
             key={tab.id}
             style={{ display: tab.id === activeTabId ? 'flex' : 'none' }}
-            className="h-full flex-col"
+            className="h-full flex-col p-4"
           >
             <ToolComponent />
           </div>
