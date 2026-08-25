@@ -25,8 +25,11 @@ export default function QuotaManagementTab() {
       setTotalCount(result.count);
     } catch (err: any) {
       error(err?.response?.data?.detail || '加载配额列表失败');
+      setItems([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [search, error]);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
@@ -135,29 +138,31 @@ export default function QuotaManagementTab() {
         </div>
       </div>
 
-      {/* 统计条 */}
-      <div className="flex gap-4 mb-4 text-xs text-slate-400">
-        <span>共 {totalCount} 个用户有配额</span>
-      </div>
-
       {/* 列表 */}
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
           <p className="text-slate-400 mt-2">加载中...</p>
         </div>
-      ) : items.length === 0 ? (
-        <div className="bg-slate-700 rounded-lg p-12 text-center border border-slate-600">
-          <div className="text-6xl mb-4"></div>
-          <h3 className="text-lg font-medium text-white mb-2">暂无配额记录</h3>
-          <p className="text-slate-400 mb-4">点击「分配额度」为用户创建配额</p>
-        </div>
       ) : (
-        <div className="bg-slate-700 rounded-lg border border-slate-600 overflow-hidden">
+        <>
+          {/* 统计条 */}
+          <div className="flex gap-4 mb-4 text-xs text-slate-400">
+            <span>共 {totalCount} 个用户有配额</span>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="bg-slate-700 rounded-lg p-12 text-center border border-slate-600">
+              <div className="text-6xl mb-4"></div>
+              <h3 className="text-lg font-medium text-white mb-2">暂无配额记录</h3>
+              <p className="text-slate-400 mb-4">点击「分配额度」为用户创建配额</p>
+            </div>
+          ) : (
+            <div className="bg-slate-700 rounded-lg border border-slate-600 overflow-hidden">
           <table className="w-full">
             <thead className="bg-slate-800">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">用户 ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">用户</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">模式</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">余额</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">状态</th>
@@ -169,7 +174,10 @@ export default function QuotaManagementTab() {
               {items.map((info) => (
                 <tr key={info.user_id} className="hover:bg-slate-600/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-white font-mono text-sm truncate max-w-[200px]" title={info.user_id}>
+                    <div className="text-white font-medium text-sm truncate max-w-[200px]" title={info.user_id}>
+                      {info.username || <span className="text-slate-400">?</span>}
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono truncate max-w-[200px]" title={info.user_id}>
                       {info.user_id}
                     </div>
                   </td>
@@ -230,6 +238,8 @@ export default function QuotaManagementTab() {
             </tbody>
           </table>
         </div>
+          )}
+        </>
       )}
 
       {/* 分配/修改额度弹窗 */}

@@ -13,6 +13,7 @@ const getAuthHeaders = () => {
 
 export interface QuotaInfo {
   user_id: string;
+  username: string | null;
   quota_mode: string;
   daily_limit: number | null;
   daily_used: number;

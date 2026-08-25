@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import InvalidQuotaMode, QuotaExceeded
 from app.models.llm_quota_models import LLMUsageLog, LLMUserQuota
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def _is_same_month(dt1: datetime, dt2: datetime) -> bool:
 @dataclass
 class QuotaInfo:
     user_id: str
+    username: Optional[str]
     quota_mode: str
     daily_limit: Optional[int]
     daily_used: int
@@ -71,7 +73,7 @@ class QuotaInfo:
     notes: Optional[str]
 
 
-def _to_info(q: LLMUserQuota) -> QuotaInfo:
+def _to_info(q: LLMUserQuota, username: Optional[str] = None) -> QuotaInfo:
     now = _now_utc()
     vf = _to_naive_or_aware(q.valid_from)
     vu = _to_naive_or_aware(q.valid_until)
@@ -86,6 +88,7 @@ def _to_info(q: LLMUserQuota) -> QuotaInfo:
     token_used = q.token_used or 0
     return QuotaInfo(
         user_id=q.user_id,
+        username=username,
         quota_mode=q.quota_mode,
         daily_limit=q.daily_limit,
         daily_used=daily_used,
@@ -217,7 +220,9 @@ class LLMQuotaService:
         )
         if quota is None:
             return None
-        return _to_info(quota)
+        # 附带 username（LEFT JOIN users）
+        user = self.db.query(User).filter(User.id == user_id).first()
+        return _to_info(quota, user.username if user else None)
 
     # -------- 公共：管理员侧 --------
 
@@ -291,7 +296,12 @@ class LLMQuotaService:
             "[llm_quota] grant user=%s mode=%s daily=%s monthly=%s token_limit=%s granted_by=%s",
             user_id, quota_mode, daily_limit, monthly_limit, token_limit, granted_by,
         )
-        return _to_info(quota)
+        # 附带 username（防御性：User 可能不存在或为 mock）
+        user = self.db.query(User).filter(User.id == user_id).first()
+        uname = getattr(user, "username", None) if user else None
+        if not isinstance(uname, str):
+            uname = None
+        return _to_info(quota, uname)
 
     def revoke(self, user_id: str) -> None:
         self.db.expire_all()
@@ -321,12 +331,19 @@ class LLMQuotaService:
     def list_users(
         self, skip: int = 0, limit: int = 50, search: Optional[str] = None
     ) -> list[QuotaInfo]:
-        q = self.db.query(LLMUserQuota)
+        # JOIN users 表以获取 username
+        q = (
+            self.db.query(LLMUserQuota, User.username)
+            .outerjoin(User, LLMUserQuota.user_id == User.id)
+        )
         if search:
             pattern = f"%{search}%"
-            q = q.filter(LLMUserQuota.user_id.like(pattern))
+            q = q.filter(
+                (LLMUserQuota.user_id.like(pattern)) |
+                (User.username.like(pattern))
+            )
         rows = q.order_by(LLMUserQuota.user_id).offset(skip).limit(limit).all()
-        return [_to_info(r) for r in rows]
+        return [_to_info(r.LLMUserQuota, r.username) for r in rows]
 
     def count_users(self, search: Optional[str] = None) -> int:
         q = self.db.query(LLMUserQuota)

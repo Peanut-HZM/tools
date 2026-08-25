@@ -24,6 +24,7 @@ class GrantQuotaRequest(BaseModel):
 
 class QuotaInfoResponse(BaseModel):
     user_id: str
+    username: Optional[str] = None
     quota_mode: str
     daily_limit: Optional[int]
     daily_used: int

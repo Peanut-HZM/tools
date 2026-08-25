@@ -29,8 +29,12 @@ router = APIRouter(prefix="/api/admin/llm-quota", tags=["admin-llm-quota"])
 
 def _to_response(info) -> QuotaInfoResponse:
     """将 service 层 QuotaInfo dataclass 转为 Pydantic response"""
+    uname = info.username
+    if not isinstance(uname, str):
+        uname = None
     return QuotaInfoResponse(
         user_id=info.user_id,
+        username=uname,
         quota_mode=info.quota_mode,
         daily_limit=info.daily_limit,
         daily_used=info.daily_used,
