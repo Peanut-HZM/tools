@@ -12,6 +12,7 @@ import json
 from app.api.dependencies import get_db, get_current_user
 from app.services.conversation_service import ConversationService, MessageService
 from app.services.agent_service import generate_agent_response
+from app.services.llm_quota_service import LLMQuotaService
 from app.models import Conversation, Message
 
 
@@ -248,21 +249,43 @@ async def send_message(
         conversation_id=conversation_id, sender_type="user", content=data.content
     )
 
-    # 调用 AI 服务生成响应
-    agent_content = await generate_agent_response(
-        db=db,
-        conversation_id=conversation_id,
-        user_message=data.content,
-        llm_config_id=data.llm_config_id,
+    # ---- quota 预占（Task 9）：PRD Agent chat 接入 LLMQuotaService ----
+    quota_svc = LLMQuotaService(db)
+    # 估算 token：用户消息长度 + 历史 10 条 + 系统提示
+    planned = (len(data.content) * 100) // 4
+    res_id = quota_svc.check_and_reserve(
+        user_id=current_user["id"], category="text", planned_tokens=planned,
     )
 
-    agent_message = msg_service.create_message(
-        conversation_id=conversation_id, sender_type="agent", content=agent_content
-    )
+    try:
+        # 调用 AI 服务生成响应
+        agent_content = await generate_agent_response(
+            db=db,
+            conversation_id=conversation_id,
+            user_message=data.content,
+            llm_config_id=data.llm_config_id,
+        )
 
-    return ChatResponse(
-        user_message=_message_to_dict(user_message),
-        agent_message=_message_to_dict(agent_message),
-        stage_changed=False,
-        new_stage=None,
-    )
+        agent_message = msg_service.create_message(
+            conversation_id=conversation_id, sender_type="agent", content=agent_content
+        )
+
+        # ---- quota 校正：generate_agent_response 当前仅返回字符串（content），
+        #      无 usage / model 字段；按 brief 兜底到 planned / None ----
+        quota_svc.record_usage(
+            user_id=current_user["id"], category="text",
+            actual_tokens=planned,
+            reservation_id=res_id,
+            model_used=None,
+        )
+
+        return ChatResponse(
+            user_message=_message_to_dict(user_message),
+            agent_message=_message_to_dict(agent_message),
+            stage_changed=False,
+            new_stage=None,
+        )
+    except Exception:
+        # LLM 调用或后续处理失败：回滚预留配额
+        quota_svc.rollback(res_id)
+        raise

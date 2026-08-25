@@ -18,6 +18,7 @@ from app.services.conversation_service import ConversationService, MessageServic
 from app.services.agent_management_service import AgentService as AgentManagementService
 from app.services.llm.factory import get_provider
 from app.services.llm.base import Message, GenerationConfig
+from app.services.llm_quota_service import LLMQuotaService
 from app.models.llm_model import LLMModel
 from app.models.llm_provider import LLMProvider
 from app.core.security import decrypt_api_key
@@ -93,6 +94,16 @@ async def chat_stream(
         "sent_at": user_message.sent_at.isoformat() if user_message.sent_at else None,
     }
 
+    # ---- quota 预占（Task 9）：PRD Agent chat 接入 LLMQuotaService ----
+    # 流式端点：reservation 在外层函数保留（跨 yield），
+    # 实际 token 在流式完成后在生成器内 record_usage。
+    quota_svc = LLMQuotaService(db)
+    # 估算 token：用户消息 + 历史 10 条 + 系统提示（粗估 100 倍消息数）
+    planned = (len(content) * 100) // 4
+    res_id = quota_svc.check_and_reserve(
+        user_id=current_user["id"], category="text", planned_tokens=planned,
+    )
+
     async def generate_stream():
         try:
             # 发送用户消息
@@ -113,6 +124,7 @@ async def chat_stream(
 
             if not model:
                 yield f"data: {json.dumps({'type': 'error', 'message': '没有可用的 LLM 配置'}, ensure_ascii=False)}\n\n"
+                quota_svc.rollback(res_id)
                 return
 
             # 获取对话历史
@@ -185,6 +197,14 @@ async def chat_stream(
             agent_message.llm_model_name = model.model_name
             db.commit()
 
+            # ---- quota 校正（Task 9）：用实际 total_tokens 写 usage_log ----
+            quota_svc.record_usage(
+                user_id=current_user["id"], category="text",
+                actual_tokens=total_tokens,
+                reservation_id=res_id,
+                model_used=model.model_name,
+            )
+
             agent_msg_dict = {
                 "id": str(agent_message.id),
                 "conversation_id": str(agent_message.conversation_id),
@@ -204,6 +224,11 @@ async def chat_stream(
             yield f"data: {json.dumps({'type': 'done', 'data': agent_msg_dict}, ensure_ascii=False)}\n\n"
 
         except Exception as e:
+            # 流式过程失败：回滚预留配额并通知客户端
+            try:
+                quota_svc.rollback(res_id)
+            except Exception:
+                pass
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
