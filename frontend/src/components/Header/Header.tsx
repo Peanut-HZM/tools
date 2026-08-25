@@ -5,6 +5,7 @@ import LoginButton from './LoginButton';
 import { useI18n } from '../../i18n';
 import ContactModal from '../ContactModal/ContactModal';
 import { useAuth } from '../../stores/authStore';
+import { useTheme } from '../../lib/theme';
 import { safeGetItem, safeSetItem } from '../../utils/localStorage';
 
 interface HeaderProps {
@@ -18,6 +19,7 @@ const STORAGE_KEY = 'header-collapsed';
 export default function Header({ searchValue, onSearchChange, onSearch }: HeaderProps) {
   const { t, language, toggleLanguage } = useI18n();
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const [isCollapsed, setIsCollapsed] = useState(() => safeGetItem(STORAGE_KEY) === 'true');
@@ -87,6 +89,13 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
               title={language === 'zh-CN' ? 'Switch to English' : '切换到中文'}
             >
               {language === 'zh-CN' ? 'EN' : '中'}
+            </button>
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
+              className="px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface-3 text-ink-muted text-sm font-medium transition-colors border border-border cursor-pointer"
+              title={`主题: ${theme === 'dark' ? '暗色' : theme === 'light' ? '亮色' : '跟随系统'}`}
+            >
+              {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : ''}
             </button>
             <button
               onClick={toggleCollapse}
