@@ -16,7 +16,7 @@ Task 28 — 自研图像生成路径端到端测试（M9）
                    -> OssService.upload_file + sign_url -> fake URL
                 -> OrderedLLMGateway.generate(category="chat") # 第二次：final
              -> ConversationRepository.save  (持久化消息)
-       -> quota.commit + history.create_record
+       -> quota.record_usage + history.create_record
 
 外部 API 全部 mock：
   - OrderedLLMGateway.generate 按 category 区分返回
@@ -118,11 +118,11 @@ def mock_oss_service():
 
 @pytest.fixture
 def mock_quota():
-    """Mock quota_svc — reserve/commit/release 全部 no-op"""
+    """Mock quota_svc — reserve/record_usage/rollback 全部 no-op（LLMQuotaService reservation_id 模式）"""
     mock = MagicMock()
-    mock.check_and_reserve = MagicMock()
-    mock.commit = MagicMock()
-    mock.release = MagicMock()
+    mock.check_and_reserve = MagicMock(return_value="res-e2e")
+    mock.record_usage = MagicMock()
+    mock.rollback = MagicMock()
     return mock
 
 
@@ -289,7 +289,7 @@ def test_full_selfdev_flow(client, auth_headers, mock_quota, mock_history, mock_
       - resp.answer 是非空文本
       - resp.conversation_id 已生成
       - resp.status == "generated"
-      - quota.check_and_reserve / commit 被调用；release 未调用（成功路径）
+      - quota.check_and_reserve / record_usage 被调用；rollback 未调用（成功路径）
       - history.create_record 被调用，并传入 backend="selfdev"
       - OrderedLLMGateway.generate 被调用至少 2 次（chat x2 + image_gen x1）
       - OssService.upload_file + sign_url 各被调用至少 1 次
@@ -326,10 +326,10 @@ def test_full_selfdev_flow(client, auth_headers, mock_quota, mock_history, mock_
         f"conversation_id 应非空，实际: {body.get('conversation_id')}"
     )
 
-    # 2. quota 流程：reserve + commit 都应被调用，release 不应被调用（成功路径）
+    # 2. quota 流程：reserve + record_usage 都应被调用，rollback 不应被调用（成功路径）
     mock_quota.check_and_reserve.assert_called_once()
-    mock_quota.commit.assert_called_once()
-    mock_quota.release.assert_not_called()
+    mock_quota.record_usage.assert_called_once()
+    mock_quota.rollback.assert_not_called()
 
     # 3. history 应被写入，且 backend="selfdev"
     mock_history.create_record.assert_called_once()
