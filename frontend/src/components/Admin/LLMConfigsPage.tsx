@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { ProvidersTab, ModelsTab, QuotaManagementTab } from './LLMConfigs';
+import { Button } from '@/components/ui/Button';
 
 type TabKey = 'providers' | 'models' | 'quota';
 
@@ -23,17 +24,14 @@ export default function LLMConfigsPage() {
       {/* Tab 切换 */}
       <div className="flex gap-1 mb-6 bg-surface-2 rounded-lg p-1 border border-border">
         {tabs.map((tab) => (
-          <button
+          <Button
             key={tab.key}
+            variant={activeTab === tab.key ? 'default' : 'secondary'}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-              activeTab === tab.key
-                ? 'bg-accent text-white'
-                : 'text-ink-muted hover:bg-surface-3 hover:text-ink-inverse'
-            }`}
+            className="flex-1"
           >
             {tab.label}
-          </button>
+          </Button>
         ))}
       </div>
 

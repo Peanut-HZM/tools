@@ -1,3 +1,6 @@
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+
 interface DeleteConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -24,7 +27,7 @@ export default function DeleteConfirmModal({
       />
 
       {/* 弹窗内容 */}
-      <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-md border border-border">
+      <Card className="relative shadow-lg w-full max-w-md">
         {/* 头部 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -57,21 +60,18 @@ export default function DeleteConfirmModal({
 
         {/* 底部按钮 */}
         <div className="flex gap-4 px-6 py-4 border-t border-border bg-surface-1/50">
-          <button
+          <Button
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-6 py-2 bg-danger hover:bg-danger text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="destructive"
           >
             {isLoading ? '删除中...' : '确认删除'}
-          </button>
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
-          >
+          </Button>
+          <Button onClick={onClose} variant="secondary">
             取消
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

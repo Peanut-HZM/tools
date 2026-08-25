@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { listToolsPaginated, updateToolStatus, updateTool, uploadToolIcon, deleteToolIcon, deleteTool, batchUpdateToolStatus, batchDeleteTools, Tool, listCategories, createCategory, updateCategory, deleteCategory, ToolCategory, ToolsListParams } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/Card';
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
   const [tools, setTools] = useState<Tool[]>([]);
@@ -377,26 +379,18 @@ export default function ToolManagement() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-ink-inverse">后台管理</h2>
         <div className="flex space-x-2">
-          <button
+          <Button
+            variant={activeTab === 'tools' ? 'default' : 'secondary'}
             onClick={() => setActiveTab('tools')}
-            className={`px-4 py-2 rounded-md transition-colors ${
-              activeTab === 'tools'
-                ? 'bg-accent text-white'
-                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
-            }`}
           >
             工具管理
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === 'categories' ? 'default' : 'secondary'}
             onClick={() => setActiveTab('categories')}
-            className={`px-4 py-2 rounded-md transition-colors ${
-              activeTab === 'categories'
-                ? 'bg-accent text-white'
-                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
-            }`}
           >
             分类管理
-          </button>
+          </Button>
         </div>
       </div>
       
@@ -828,8 +822,8 @@ export default function ToolManagement() {
         {/* 编辑工具弹窗 */}
         {isModalOpen && editingTool && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={handleCloseModal}>
-            <div className="bg-surface-1 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
-              <div className="p-6">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
+              <CardContent className="p-6">
                 <h3 className="text-xl font-semibold text-ink-inverse mb-6">编辑工具：{editingTool.title}</h3>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -968,28 +962,28 @@ export default function ToolManagement() {
                 </div>
 
                 <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-border">
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={handleCloseModal}
-                    className="px-6 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-surface-3 transition-colors"
                   >
                     取消
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleSaveTool}
                     disabled={saving}
-                    className="px-6 py-2 bg-accent text-white rounded hover:bg-accent-hover transition-colors disabled:opacity-50"
                   >
                     {saving ? '保存中...' : '保存'}
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         )}
         </div>
       ) : (
         <div>
-          <div className="bg-surface-1 p-6 rounded-lg mb-8">
+          <Card className="p-6 mb-8">
+            <CardContent className="p-0">
             <h3 className="text-xl font-semibold text-ink-inverse mb-4">
               {isEditingCategory ? '编辑分类' : '新建分类'}
             </h3>
@@ -1035,24 +1029,24 @@ export default function ToolManagement() {
                 </div>
               </div>
               <div className="flex space-x-3">
-                <button
+                <Button
                   type="submit"
-                  className="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover transition-colors"
                 >
                   {isEditingCategory ? '更新' : '创建'}
-                </button>
+                </Button>
                 {isEditingCategory && (
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
                     onClick={handleCancelCategoryEdit}
-                    className="px-4 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-surface-3 transition-colors"
                   >
                     取消
-                  </button>
+                  </Button>
                 )}
               </div>
             </form>
-          </div>
+            </CardContent>
+          </Card>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-ink-muted">

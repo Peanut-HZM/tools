@@ -5,6 +5,8 @@ import React, { useState } from 'react';
 import { useResourceStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import ResourceForm from './ResourceForm';
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface ResourceManagerProps {
   chapters: Chapter[];
@@ -137,13 +139,14 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                 </h3>
                 <p className="text-ink-muted text-sm mt-1">管理和编辑章节学习资源</p>
               </div>
-              <button
+              <Button
                 onClick={handleCreateResource}
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-ink-inverse rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
+                variant="default"
+                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
               >
                 <i className="fas fa-plus mr-2"></i>
                 添加资源
-              </button>
+              </Button>
             </div>
 
             {loadingResourceId === selectedChapterId ? (
@@ -156,9 +159,9 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
             ) : selectedResources.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {selectedResources.map((resource) => (
-                  <div
+                  <Card
                     key={resource.id}
-                    className="group bg-gradient-to-br bg-surface-1 rounded-xl p-5 border border-border/50 hover:border-border transition-all duration-200 hover:shadow-lg"
+                    className="group p-5 border-border/50 hover:border-border transition-all duration-200 hover:shadow-lg"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
@@ -173,24 +176,26 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                     </div>
                     <p className="text-ink-faint text-sm line-clamp-2 mb-4">{resource.content.substring(0, 100)}...</p>
                     <div className="flex items-center space-x-2 pt-3 border-t border-border/50">
-                      <button
+                      <Button
                         onClick={() => handleEditResource(resource.id)}
-                        className="flex-1 px-3 py-2 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/30 rounded-lg text-sm transition-all text-center"
+                        variant="outline"
+                        className="flex-1 px-3 py-2 rounded-lg transition-all text-sm text-center"
                       >
                         <i className="fas fa-edit mr-1"></i>编辑
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={async () => {
                           if (confirm('确定要删除这个资源吗？')) {
                             // TODO: 调用 deleteResource
                           }
                         }}
-                        className="px-3 py-2 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-lg text-sm transition-all"
+                        variant="destructive"
+                        className="px-3 py-2 rounded-lg transition-all text-sm"
                       >
                         <i className="fas fa-trash"></i>
-                      </button>
+                      </Button>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             ) : (
@@ -201,13 +206,14 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                   </div>
                   <p className="text-ink-inverse text-lg font-medium mb-2">该章节还没有资源</p>
                   <p className="text-ink-muted text-sm mb-6">添加学习资源来帮助理解课程内容</p>
-                  <button
+                  <Button
                     onClick={handleCreateResource}
-                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover text-ink-inverse rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
+                    variant="default"
+                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
                   >
                     <i className="fas fa-plus mr-2"></i>
                     添加资源
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

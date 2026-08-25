@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../hooks/useToast';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/Card';
 
 interface PasswordResetResult {
   success: boolean;
@@ -91,7 +93,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
   if (success && mode === 'random' && generatedPassword) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fadeIn">
-        <div className="bg-surface-1 p-8 rounded-2xl w-full max-w-md border border-border/50 shadow-lg shadow-accent/10 text-center animate-scaleIn">
+        <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -99,7 +101,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
             </div>
             <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-xl animate-pulse"></div>
           </div>
-          
+
           <h3 className="text-2xl font-bold text-ink-inverse mb-2">密码重置成功</h3>
           <p className="text-ink-muted mb-6">
             系统已为用户 <span className="text-accent font-semibold">{username}</span> 生成随机密码
@@ -134,7 +136,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
           >
             完成
           </button>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -143,7 +145,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
   if (success && mode === 'direct') {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fadeIn">
-        <div className="bg-surface-1 p-8 rounded-2xl w-full max-w-md border border-border/50 shadow-lg shadow-accent/10 text-center animate-scaleIn">
+        <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -151,7 +153,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
             </div>
             <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-xl animate-pulse"></div>
           </div>
-          
+
           <h3 className="text-2xl font-bold text-ink-inverse mb-2">密码重置成功</h3>
           <p className="text-ink-muted mb-8">用户 <span className="text-accent font-semibold">{username}</span> 的密码已更新</p>
 
@@ -161,7 +163,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
           >
             完成
           </button>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -169,7 +171,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
   // Form state
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fadeIn">
-      <div className="bg-surface-1 p-8 rounded-2xl w-full max-w-md border border-border/50 shadow-lg shadow-accent/10 animate-scaleIn">
+      <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 animate-scaleIn">
         <h3 className="text-2xl font-bold text-ink-inverse mb-6">重置密码 - {username}</h3>
 
         <form onSubmit={handleSubmit}>
@@ -225,14 +227,14 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
           )}
 
           <div className="flex justify-end gap-3">
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={handleClose}
-              className="px-6 py-3 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded-xl transition-all"
               disabled={loading}
             >
               取消
-            </button>
+            </Button>
             <button
               type="submit"
               disabled={loading}
@@ -247,7 +249,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
             </button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

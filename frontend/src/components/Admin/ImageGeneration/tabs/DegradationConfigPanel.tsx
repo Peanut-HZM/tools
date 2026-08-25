@@ -10,6 +10,8 @@ import {
   DegradationStatus,
 } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 export default function DegradationConfigPanel() {
   const { t } = useI18n();
@@ -110,10 +112,10 @@ export default function DegradationConfigPanel() {
 
       {/* 当前状态 */}
       {status && (
-        <div className="bg-surface-1 border border-border rounded-lg p-6">
+        <Card className="p-6">
           <h3 className="text-lg font-semibold text-ink-inverse mb-4">{igT.currentDegradationStatus}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-surface-2 rounded-lg p-4">
+            <Card className="bg-surface-2 p-4">
               <div className="text-ink-muted text-xs mb-1">{igT.degradationStatus}</div>
               <div
                 className={`text-lg font-bold ${
@@ -122,37 +124,38 @@ export default function DegradationConfigPanel() {
               >
                 {status.is_degraded ? igT.degraded : igT.normal}
               </div>
-            </div>
-            <div className="bg-surface-2 rounded-lg p-4">
+            </Card>
+            <Card className="bg-surface-2 p-4">
               <div className="text-ink-muted text-xs mb-1">{igT.failureCount}</div>
               <div className="text-lg font-bold text-ink-inverse">{status.failure_count}</div>
-            </div>
-            <div className="bg-surface-2 rounded-lg p-4">
+            </Card>
+            <Card className="bg-surface-2 p-4">
               <div className="text-ink-muted text-xs mb-1">{igT.degradedAt}</div>
               <div className="text-sm text-ink-inverse">
                 {status.degraded_at
                   ? new Date(status.degraded_at).toLocaleString()
                   : '-'}
               </div>
-            </div>
+            </Card>
           </div>
 
           {status.is_degraded && (
             <div className="mt-4 flex justify-end">
-              <button
+              <Button
+                variant="destructive"
                 onClick={handleReset}
                 disabled={resetting}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+                className="disabled:bg-surface-3 disabled:cursor-not-allowed"
               >
                 {resetting ? igT.resetting : igT.manualReset}
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* 配置编辑 */}
-      <div className="bg-surface-1 border border-border rounded-lg p-6 space-y-4">
+      <Card className="p-6 space-y-4">
         <h3 className="text-lg font-semibold text-ink-inverse">{igT.degradationConfig}</h3>
 
         <div className="flex items-center gap-3">
@@ -195,15 +198,15 @@ export default function DegradationConfigPanel() {
         </div>
 
         <div className="flex gap-3 pt-4">
-          <button
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+            className="disabled:bg-surface-3 disabled:cursor-not-allowed"
           >
             {saving ? igT.saving : igT.saveConfig}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

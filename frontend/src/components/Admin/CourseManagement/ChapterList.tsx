@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { useChapterStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
+import { Button } from "@/components/ui/Button";
 
 interface ChapterListProps {
   chapters: Chapter[];
@@ -137,24 +138,26 @@ const ChapterList: React.FC<ChapterListProps> = ({
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end space-x-2">
-                    <button
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         onEdit(chapter.id);
                       }}
-                      className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-sm transition-all"
+                      variant="outline"
+                      className="px-4 py-2 rounded-lg text-sm transition-all"
                     >
                       <i className="fas fa-edit mr-1"></i>编辑
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(chapter.id);
                       }}
-                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm transition-all"
+                      variant="destructive"
+                      className="px-4 py-2 rounded-lg text-sm transition-all"
                     >
                       <i className="fas fa-trash mr-1"></i>删除
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>

@@ -13,6 +13,7 @@ import {
 } from '../../../services/coursePlatform';
 import { useToast } from '../../../hooks/useToast';
 import { generateTimestampFilename } from '../../../utils/filenameUtils';
+import { Card } from "@/components/ui/Card";
 
 interface ImportExportDialogProps {
   courseId?: number;
@@ -181,7 +182,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-2xl border border-border shadow-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+      <Card className="rounded-2xl shadow-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
@@ -566,7 +567,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
             </>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

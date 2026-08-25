@@ -4,6 +4,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { CreateModelRequest, LLMModel, ModelCategory } from '../../../services/llmModelApi';
 import { LLMProvider } from '../../../services/llmProviderApi';
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 const STORAGE_KEY_LAST_PROVIDER = 'llm_model_last_provider_id';
 
@@ -77,7 +79,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden border border-border">
+      <Card className="relative shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-1/50">
           <h3 className="text-lg font-semibold text-ink-inverse">
@@ -243,23 +245,15 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
 
           {/* 底部按钮 */}
           <div className="flex gap-4 mt-6 pt-4 border-t border-border">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? '保存中...' : (editing ? '保存修改' : '创建')}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose}>
               取消
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

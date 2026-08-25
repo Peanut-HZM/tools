@@ -6,6 +6,8 @@ import { quotaApi, QuotaInfo, GrantQuotaRequest } from '@/services/quotaApi';
 import { useToast } from '@/hooks/useToast';
 import { listUsers as fetchSystemUsers } from '@/api/adminApi';
 import { UserResponse } from '@/api/authApi';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 export default function QuotaManagementTab() {
   const [items, setItems] = useState<QuotaInfo[]>([]);
@@ -129,19 +131,13 @@ export default function QuotaManagementTab() {
               placeholder="搜索用户 ID..."
               className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none w-48"
             />
-            <button
-              type="submit"
-              className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm"
-            >
+            <Button type="submit" size="sm">
               搜索
-            </button>
+            </Button>
           </form>
-          <button
-            onClick={() => { setGrantTarget(null); setShowGrantModal(true); }}
-            className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
-          >
+          <Button onClick={() => { setGrantTarget(null); setShowGrantModal(true); }} size="sm" className="flex items-center gap-2">
             <span>+</span><span>分配额度</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -159,13 +155,13 @@ export default function QuotaManagementTab() {
           </div>
 
           {items.length === 0 ? (
-            <div className="bg-surface-2 rounded-lg p-12 text-center border border-border">
+            <Card className="bg-surface-2 p-12 text-center">
               <div className="text-6xl mb-4"></div>
               <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无配额记录</h3>
               <p className="text-ink-muted mb-4">点击「分配额度」为用户创建配额</p>
-            </div>
+            </Card>
           ) : (
-            <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
+            <Card className="bg-surface-2 overflow-hidden p-0">
           <table className="w-full">
             <thead className="bg-surface-1">
               <tr>
@@ -244,7 +240,7 @@ export default function QuotaManagementTab() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
           )}
         </>
       )}
@@ -478,18 +474,15 @@ function GrantModal({
             <label className="block text-sm text-ink-muted mb-1">配额模式</label>
             <div className="flex gap-1">
               {(['count', 'token', 'time'] as const).map((m) => (
-                <button
+                <Button
                   key={m}
                   type="button"
                   onClick={() => setQuotaMode(m)}
-                  className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
-                    quotaMode === m
-                      ? 'bg-accent text-white'
-                      : 'bg-surface-2 text-ink-muted border border-border hover:bg-surface-3'
-                  }`}
+                  variant={quotaMode === m ? 'default' : 'secondary'}
+                  className="flex-1"
                 >
                   {m === 'count' ? '按次数' : m === 'token' ? '按 Token' : '按时间'}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -615,13 +608,9 @@ function GrantModal({
             >
               取消
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-            >
+            <Button type="submit" disabled={submitting} size="sm">
               {submitting ? '提交中...' : currentQuota ? '修改' : '分配'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

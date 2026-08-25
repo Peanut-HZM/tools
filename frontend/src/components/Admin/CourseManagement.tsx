@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { useCourseAdminStore } from '../../stores/courseAdminStore';
 import CourseEditor from './CourseManagement/CourseEditor';
 import { useToast } from '../../hooks/useToast';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 const CourseManagement: React.FC = () => {
   const navigate = useNavigate();
   const { toasts, addToast, removeToast, error, success } = useToast();
@@ -102,18 +104,18 @@ const CourseManagement: React.FC = () => {
           <p className="text-ink-muted text-sm mt-1">管理课程内容和章节</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button
+          <Button
             onClick={handleCreateCourse}
-            className="px-6 py-3 bg-gradient-to-r from-accent-secondary to-accent-secondary-hover hover:from-accent-secondary-hover hover:to-accent-secondary-hover text-white rounded-xl transition-all duration-200 font-medium shadow-lg shadow-accent-secondary/20 hover:shadow-accent-secondary/30 hover:-translate-y-0.5 flex items-center"
+            className="px-6 py-3 bg-gradient-to-r from-accent-secondary to-accent-secondary-hover hover:from-accent-secondary-hover hover:to-accent-secondary-hover shadow-lg shadow-accent-secondary/20 hover:shadow-accent-secondary/30 hover:-translate-y-0.5"
           >
             <i className="fas fa-plus mr-2"></i>
             新增课程
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* 筛选和操作栏 */}
-      <div className="bg-surface-1 rounded-lg p-4 mb-6 border border-border">
+      <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* 状态筛选 */}
           <div className="flex items-center gap-3">
@@ -140,12 +142,9 @@ const CourseManagement: React.FC = () => {
               />
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"></i>
             </div>
-            <button
-              onClick={handleSearch}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors cursor-pointer text-sm"
-            >
+            <Button onClick={handleSearch} size="sm" className="cursor-pointer">
               <i className="fas fa-search mr-1"></i> 搜索
-            </button>
+            </Button>
           </div>
 
           {/* 每页数量 */}
@@ -165,7 +164,7 @@ const CourseManagement: React.FC = () => {
             </select>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Course List */}
       <div className="mb-6">
@@ -270,20 +269,22 @@ const CourseManagement: React.FC = () => {
             共 {total} 条，第 {page} 页 / 共 {totalPages} 页
           </p>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:text-ink-faint text-ink-inverse rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
               <i className="fas fa-chevron-left mr-1"></i>上一页
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
-              className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:text-ink-faint text-ink-inverse rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
               下一页<i className="fas fa-chevron-right ml-1"></i>
-            </button>
+            </Button>
           </div>
         </div>
       )}

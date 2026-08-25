@@ -10,6 +10,8 @@ import {
   RetentionStatus,
 } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 export default function RetentionConfigPanel() {
   const { t } = useI18n();
@@ -112,25 +114,25 @@ export default function RetentionConfigPanel() {
 
       {/* OSS 用量 */}
       {config && (
-        <div className="bg-surface-1 border border-border rounded-lg p-6">
+        <Card className="p-6">
           <h3 className="text-lg font-semibold text-ink-inverse mb-4">{igT.ossUsage}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-surface-2 rounded-lg p-4">
+            <Card className="bg-surface-2 p-4">
               <div className="text-ink-muted text-xs mb-1">{igT.totalFiles}</div>
               <div className="text-lg font-bold text-ink-inverse">{config.total_files}</div>
-            </div>
-            <div className="bg-surface-2 rounded-lg p-4">
+            </Card>
+            <Card className="bg-surface-2 p-4">
               <div className="text-ink-muted text-xs mb-1">{igT.totalSize}</div>
               <div className="text-lg font-bold text-ink-inverse">
                 {config.total_size_mb.toFixed(2)} MB
               </div>
-            </div>
+            </Card>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* 策略配置 */}
-      <div className="bg-surface-1 border border-border rounded-lg p-6 space-y-4">
+      <Card className="p-6 space-y-4">
         <h3 className="text-lg font-semibold text-ink-inverse">{igT.retentionConfig}</h3>
 
         <div>
@@ -172,22 +174,22 @@ export default function RetentionConfigPanel() {
         </div>
 
         <div className="flex gap-3 pt-4">
-          <button
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+            className="disabled:bg-surface-3 disabled:cursor-not-allowed"
           >
             {saving ? igT.saving : igT.saveConfig}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleTrigger}
             disabled={triggering}
-            className="bg-orange-600 hover:bg-orange-700 disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-orange-600 hover:bg-orange-700 disabled:bg-surface-3 disabled:cursor-not-allowed text-white"
           >
             {triggering ? igT.triggering : igT.triggerCleanup}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

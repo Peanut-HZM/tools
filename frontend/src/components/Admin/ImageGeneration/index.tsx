@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { useI18n } from '../../../i18n';
+import { Button } from '@/components/ui/Button';
 import UsageStats from './tabs/UsageStats';
 import DifyConfigPanel from './tabs/DifyConfigPanel';
 import DegradationConfigPanel from './tabs/DegradationConfigPanel';
@@ -32,18 +33,15 @@ export default function ImageGenerationAdmin() {
       {/* Tab 切换 */}
       <div className="flex gap-1 mb-6 bg-surface-2 rounded-lg p-1 border border-border overflow-x-auto">
         {tabs.map((tab) => (
-          <button
+          <Button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium whitespace-nowrap flex items-center justify-center gap-2 ${
-              activeTab === tab.key
-                ? 'bg-accent text-white'
-                : 'text-ink-muted hover:bg-surface-3 hover:text-ink-inverse'
-            }`}
+            variant={activeTab === tab.key ? 'default' : 'ghost'}
+            className="flex-1 whitespace-nowrap flex items-center justify-center gap-2"
           >
             <i className={`fas ${tab.icon}`}></i>
             <span>{tab.label}</span>
-          </button>
+          </Button>
         ))}
       </div>
 

@@ -9,6 +9,8 @@ import {
   QuotaUser,
 } from '../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../i18n';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 interface GrantQuotaDialogProps {
   userId: string;
@@ -61,7 +63,7 @@ export default function GrantQuotaDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface-1 border border-border rounded-xl p-6 max-w-md w-full">
+      <Card className="p-6 max-w-md w-full">
         <h3 className="text-xl font-bold text-ink-inverse mb-4">
           {existing ? igT.editQuota : igT.grantQuota}
         </h3>
@@ -142,24 +144,25 @@ export default function GrantQuotaDialog({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex-1 disabled:bg-surface-3 disabled:cursor-not-allowed"
             >
               {submitting ? igT.submitting : igT.confirm}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 text-ink-inverse px-4 py-2 rounded-lg transition-colors border border-border"
+              className="flex-1 disabled:bg-surface-1"
             >
               {igT.cancel}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

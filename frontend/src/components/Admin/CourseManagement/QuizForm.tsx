@@ -4,6 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuizStore } from '../../../stores/courseAdminStore';
 import type { CourseQuiz as Quiz, QuizCreate, QuizUpdate, CourseQuizQuestion as QuizQuestion, CourseQuizOption as QuizOption } from '../../../services/coursePlatform';
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface QuizFormProps {
   chapterId: number;
@@ -124,7 +126,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-8 overflow-y-auto">
-      <div className="bg-surface-1 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col my-8">
+      <Card className="rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col my-8">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-xl font-bold text-ink-inverse">
@@ -172,13 +174,14 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-ink-inverse">题目列表</h3>
-                <button
+                <Button
                   type="button"
                   onClick={handleAddQuestion}
-                  className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm"
+                  variant="default"
+                  className="px-4 py-2 rounded-lg transition-colors text-sm"
                 >
                   + 添加题目
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-4">
@@ -200,23 +203,25 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
 
         {/* Footer */}
         <div className="flex items-center justify-end px-6 py-4 border-t border-border space-x-4">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
+            variant="secondary"
+            className="px-6 py-2 rounded-lg transition-colors"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             onClick={handleSubmit}
             disabled={loading || formData.questions.length === 0}
-            className="px-6 py-2 bg-accent hover:bg-accent-hover disabled:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
+            variant="default"
+            className="px-6 py-2 disabled:bg-surface-3 rounded-lg transition-colors"
           >
             {loading ? '保存中...' : '保存'}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

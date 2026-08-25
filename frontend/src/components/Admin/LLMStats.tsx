@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { llmProviderApi } from '../../services/llmProviderApi';
 import { llmModelApi } from '../../services/llmModelApi';
+import { Card } from '@/components/ui/Card';
 
 interface LLMStatsProps {
   refreshInterval?: number;
@@ -91,30 +92,30 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {/* 供应商数 */}
-      <div className="bg-surface-2 rounded-xl p-4 border border-border">
+      <Card className="bg-surface-2 p-4">
         <div className="text-sm text-accent font-medium">供应商数</div>
         <div className="text-2xl font-bold text-ink-inverse mt-1">{providerCount}</div>
-      </div>
+      </Card>
 
       {/* 模型总数 */}
-      <div className="bg-surface-2 rounded-xl p-4 border border-border">
+      <Card className="bg-surface-2 p-4">
         <div className="text-sm text-green-400 font-medium">模型总数</div>
         <div className="text-2xl font-bold text-ink-inverse mt-1">{modelCount}</div>
-      </div>
+      </Card>
 
       {/* 活跃模型 */}
-      <div className="bg-surface-2 rounded-xl p-4 border border-border">
+      <Card className="bg-surface-2 p-4">
         <div className="text-sm text-accent-secondary font-medium">活跃模型</div>
         <div className="text-2xl font-bold text-ink-inverse mt-1">{activeModelCount}</div>
-      </div>
+      </Card>
 
       {/* 活跃率 */}
-      <div className="bg-surface-2 rounded-xl p-4 border border-border">
+      <Card className="bg-surface-2 p-4">
         <div className="text-sm text-orange-400 font-medium">活跃率</div>
         <div className="text-2xl font-bold text-ink-inverse mt-1">
           {modelCount > 0 ? `${((activeModelCount / modelCount) * 100).toFixed(0)}%` : '0%'}
         </div>
-      </div>
+      </Card>
 
       {/* 按供应商类型统计 */}
       {Object.keys(byProviderType).length > 0 && (
@@ -122,7 +123,7 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
           <h4 className="text-sm font-semibold text-ink-muted mb-3">按供应商类型</h4>
           <div className="space-y-2">
             {Object.entries(byProviderType).map(([type, count]) => (
-              <div key={type} className="bg-surface-1 rounded-lg p-3 border border-border">
+              <Card key={type} className="p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-ink-muted">{getProviderLabel(type)}</span>
                   <span className="text-sm text-ink-muted">{count} 个</span>
@@ -133,7 +134,7 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
                     style={{ width: `${Math.min(100, (count / Math.max(providerCount, 1)) * 100)}%` }}
                   />
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -145,7 +146,7 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
           <h4 className="text-sm font-semibold text-ink-muted mb-3">按分类</h4>
           <div className="space-y-2">
             {Object.entries(byCategory).map(([cat, count]) => (
-              <div key={cat} className="bg-surface-1 rounded-lg p-3 border border-border">
+              <Card key={cat} className="p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-ink-muted">{getCategoryLabel(cat)}</span>
                   <span className="text-sm text-ink-muted">{count} 个</span>
@@ -156,7 +157,7 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
                     style={{ width: `${Math.min(100, (count / Math.max(modelCount, 1)) * 100)}%` }}
                   />
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

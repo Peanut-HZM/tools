@@ -11,6 +11,8 @@ import {
   UpdateDifyConfigRequest,
 } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 export default function DifyConfigPanel() {
   const { t } = useI18n();
@@ -129,7 +131,7 @@ export default function DifyConfigPanel() {
         </div>
       )}
 
-      <div className="bg-surface-1 border border-border rounded-lg p-6 space-y-4">
+      <Card className="p-6 space-y-4">
         <div>
           <label className="block text-sm text-ink-muted mb-2">
             {igT.apiUrl}
@@ -213,22 +215,23 @@ export default function DifyConfigPanel() {
         </div>
 
         <div className="flex gap-3 pt-4">
-          <button
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+            className="disabled:bg-surface-3 disabled:cursor-not-allowed"
           >
             {saving ? igT.saving : igT.saveConfig}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleTest}
             disabled={testing}
-            className="bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:cursor-not-allowed text-ink-inverse px-6 py-2 rounded-lg transition-colors border border-border"
+            className="disabled:bg-surface-1 disabled:cursor-not-allowed"
           >
             {testing ? igT.testing : igT.testConnection}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

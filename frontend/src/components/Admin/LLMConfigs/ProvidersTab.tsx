@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { llmProviderApi, LLMProvider, CreateProviderRequest } from '../../../services/llmProviderApi';
 import { useToast } from '../../../hooks/useToast';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import ProviderDialog from './ProviderDialog';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ApiKeyDisplay from './ApiKeyDisplay';
@@ -139,12 +141,9 @@ export default function ProvidersTab() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <p className="text-ink-muted text-sm">管理大模型供应商（API Key、连接地址等）</p>
-        <button
-          onClick={handleAdd}
-          className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center gap-2"
-        >
+        <Button onClick={handleAdd} className="flex items-center gap-2">
           <span>+</span><span>新建供应商</span>
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -153,16 +152,16 @@ export default function ProvidersTab() {
           <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : providers.length === 0 ? (
-        <div className="bg-surface-2 rounded-lg p-12 text-center border border-border">
+        <Card className="bg-surface-2 p-12 text-center">
           <div className="text-6xl mb-4">🔑</div>
           <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无供应商</h3>
           <p className="text-ink-muted mb-4">新建供应商以开始配置大模型</p>
-          <button onClick={handleAdd} className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors">
+          <Button onClick={handleAdd}>
             新建供应商
-          </button>
-        </div>
+          </Button>
+        </Card>
       ) : (
-        <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
+        <Card className="bg-surface-2 overflow-hidden p-0">
           <table className="w-full">
             <thead className="bg-surface-1">
               <tr>
@@ -245,7 +244,7 @@ export default function ProvidersTab() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
       <ProviderDialog

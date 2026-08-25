@@ -8,6 +8,7 @@ import {
   testOpenClawConnection,
   type OpenClawConfig,
 } from '../../api/openclawApi';
+import { Button } from '@/components/ui/Button';
 
 export default function OpenClawManagement() {
   const [config, setConfig] = useState<OpenClawConfig | null>(null);
@@ -203,26 +204,25 @@ export default function OpenClawManagement() {
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button
+          <Button
             onClick={handleReconnect}
             disabled={actionLoading !== null && actionLoading !== 'test'}
-            className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50"
           >
             <i className="fas fa-rotate mr-1"></i>
             重新连接
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleDisconnect}
             disabled={(actionLoading !== null && actionLoading !== 'test') || !config?.connected}
-            className="px-4 py-2 bg-surface-3 text-ink-inverse rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50"
           >
             <i className="fas fa-plug-circle-xmark mr-1"></i>
             断开连接
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleTestSavedConfig}
             disabled={actionLoading !== null}
-            className="px-4 py-2 bg-surface-3 text-ink-inverse rounded-lg hover:bg-surface-3 transition-colors disabled:opacity-50"
           >
             {actionLoading === 'test' ? (
               <>
@@ -235,7 +235,7 @@ export default function OpenClawManagement() {
                 测试连接
               </>
             )}
-          </button>
+          </Button>
         </div>
         {statusTestResult && (
           <div className={`mt-3 text-sm ${statusTestResult.ok ? 'text-green-400' : 'text-danger'}`}>
@@ -346,18 +346,17 @@ export default function OpenClawManagement() {
           </div>
         </div>
         <div className="flex gap-3 items-start mt-6">
-          <button
+          <Button
             onClick={handleSave}
             disabled={saving || testing}
-            className="px-6 py-2.5 bg-gradient-to-r from-accent to-accent-hover text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all disabled:opacity-50"
           >
             <i className="fas fa-save mr-1"></i>
             {saving ? '保存中...' : '保存配置'}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleTestConnection}
             disabled={testing || saving}
-            className="px-6 py-2.5 bg-surface-2 text-ink-inverse rounded-lg hover:bg-surface-3 transition-all disabled:opacity-50"
           >
             {testing ? (
               <>
@@ -370,7 +369,7 @@ export default function OpenClawManagement() {
                 测试连接
               </>
             )}
-          </button>
+          </Button>
         </div>
         {testResult && (
           <div className={`mt-3 text-sm ${testResult.ok ? 'text-green-400' : 'text-danger'}`}>

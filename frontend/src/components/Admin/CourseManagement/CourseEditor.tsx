@@ -6,6 +6,8 @@ import React, { useState, useEffect } from 'react';
 import { useCourseAdminStore } from '../../../stores/courseAdminStore';
 import type { Course, CourseCategory } from '../../../services/coursePlatform';
 import { MarkdownEditor } from './MarkdownEditor';
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface CourseEditorProps {
   courseId?: number;
@@ -71,7 +73,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-8">
-      <div className="bg-surface-1 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-lg border border-border/50 animate-in fade-in zoom-in duration-200">
+      <Card className="rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-lg border-border/50 animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface-1/50">
           <div className="flex items-center space-x-3">
@@ -287,18 +289,20 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
             带 * 的字段为必填项
           </p>
           <div className="flex items-center space-x-3">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-xl transition-all font-medium"
+              variant="secondary"
+              className="px-6 py-2.5 rounded-xl transition-all font-medium"
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               onClick={handleSubmit}
               disabled={loading}
-              className="px-6 py-2.5 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover disabled:from-surface-3 disabled:to-surface-3 text-white rounded-xl transition-all font-medium shadow-lg shadow-accent/20 hover:shadow-accent/30 disabled:shadow-none flex items-center"
+              variant="default"
+              className="px-6 py-2.5 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover disabled:from-surface-3 disabled:to-surface-3 rounded-xl transition-all font-medium shadow-lg shadow-accent/20 hover:shadow-accent/30 disabled:shadow-none flex items-center"
             >
               {loading ? (
                 <>
@@ -311,10 +315,10 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                   保存
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

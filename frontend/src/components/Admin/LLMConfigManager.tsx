@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { llmConfigApi, LLMConfig } from '../../services/llmConfigApi';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/Card';
 
 const LLMConfigManager: React.FC = () => {
   const [configs, setConfigs] = useState<LLMConfig[]>([]);
@@ -86,19 +88,18 @@ const LLMConfigManager: React.FC = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-ink-inverse">大模型配置管理</h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover"
-        >
+        <Button onClick={() => setShowForm(true)}>
           添加配置
-        </button>
+        </Button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-surface-1 p-6 rounded-lg mb-6">
+        <Card className="p-6 mb-6">
+          <CardContent className="p-0">
           <h3 className="text-lg font-semibold text-ink-inverse mb-4">
             {editingId ? '编辑配置' : '添加配置'}
           </h3>
+          <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-ink-muted mb-2">配置名称</label>
@@ -158,30 +159,29 @@ const LLMConfigManager: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-4 mt-6">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover"
-            >
+            <Button type="submit">
               保存
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => {
                 setShowForm(false);
                 setEditingId(null);
               }}
-              className="px-4 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-surface-2"
             >
               取消
-            </button>
+            </Button>
           </div>
         </form>
+          </CardContent>
+        </Card>
       )}
 
       {loading ? (
         <div className="text-ink-inverse">加载中...</div>
       ) : (
-        <div className="bg-surface-1 rounded-lg overflow-hidden">
+        <Card className="overflow-hidden">
           <table className="w-full">
             <thead className="bg-surface-2">
               <tr>
@@ -253,7 +253,7 @@ const LLMConfigManager: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   );

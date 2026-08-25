@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { listOssFiles, deleteOssFile, OssFile } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../stores/authStore';
+import { Card } from '@/components/ui/Card';
 
 export default function OssManagement() {
   const [files, setFiles] = useState<OssFile[]>([]);
@@ -60,7 +61,7 @@ export default function OssManagement() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-ink-inverse">OSS 文件管理</h2>
         
-        <div className="flex items-center space-x-2 bg-surface-2 px-3 py-1.5 rounded-lg border border-border">
+        <Card className="flex items-center space-x-2 bg-surface-2 px-3 py-1.5">
           <input
             type="checkbox"
             id="showMyFiles"
@@ -71,7 +72,7 @@ export default function OssManagement() {
           <label htmlFor="showMyFiles" className="text-sm text-ink-muted cursor-pointer select-none">
             只看我的文件
           </label>
-        </div>
+        </Card>
       </div>
       
       <div className="overflow-x-auto">

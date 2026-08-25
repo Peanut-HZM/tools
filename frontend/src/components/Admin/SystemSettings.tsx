@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getSystemSettings, updateSystemSettings, SystemSettings } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
+import { Card } from '@/components/ui/Card';
 import LLMStats from './LLMStats';
 
 export default function SystemSettingsPage() {
@@ -70,14 +71,14 @@ export default function SystemSettingsPage() {
       <h2 className="text-2xl font-bold text-ink-inverse mb-6">系统设置</h2>
       
       {/* LLM Stats Section */}
-      <div className="bg-surface-2 rounded-lg p-6 border border-border mb-6">
+      <Card className="bg-surface-2 p-6 mb-6">
         <h3 className="text-lg font-medium text-ink-inverse mb-4">大模型使用统计</h3>
         <LLMStats />
-      </div>
+      </Card>
       
       <div className="space-y-6">
         {/* User Registration Toggle */}
-        <div className="bg-surface-2 rounded-lg p-6 border border-border">
+        <Card className="bg-surface-2 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-ink-inverse">用户注册</h3>
@@ -85,7 +86,7 @@ export default function SystemSettingsPage() {
                 开启后，游客可以在登录页面自行注册账号。关闭后，仅管理员可添加用户。
               </p>
             </div>
-            
+
             <button
               onClick={handleToggleRegistration}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-canvas ${
@@ -99,10 +100,10 @@ export default function SystemSettingsPage() {
               />
             </button>
           </div>
-        </div>
+        </Card>
 
         {/* Email Verification Toggle */}
-        <div className="bg-surface-2 rounded-lg p-6 border border-border">
+        <Card className="bg-surface-2 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-ink-inverse">邮箱验证注册</h3>
@@ -110,7 +111,7 @@ export default function SystemSettingsPage() {
                 开启后，用户注册时必须验证邮箱。
               </p>
             </div>
-            
+
             <button
               onClick={handleToggleEmailVerify}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-canvas ${
@@ -124,10 +125,10 @@ export default function SystemSettingsPage() {
               />
             </button>
           </div>
-        </div>
+        </Card>
 
         {/* Phone Verification Toggle */}
-        <div className="bg-surface-2 rounded-lg p-6 border border-border">
+        <Card className="bg-surface-2 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-ink-inverse">手机号验证注册</h3>
@@ -149,10 +150,10 @@ export default function SystemSettingsPage() {
               />
             </button>
           </div>
-        </div>
+        </Card>
 
         {/* LLM Configuration Link */}
-        <div className="bg-surface-2 rounded-lg p-6 border border-border">
+        <Card className="bg-surface-2 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-ink-inverse">大模型配置</h3>
@@ -167,7 +168,7 @@ export default function SystemSettingsPage() {
               管理配置
             </Link>
           </div>
-        </div>
+        </Card>
       </div>    </div>
   );
 }

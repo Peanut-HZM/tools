@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { llmModelApi, LLMModel, CreateModelRequest, ModelCategory } from '../../../services/llmModelApi';
 import { llmProviderApi, LLMProvider } from '../../../services/llmProviderApi';
 import { useToast } from '../../../hooks/useToast';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import ModelDialog from './ModelDialog';
 import DeleteConfirmModal from './DeleteConfirmModal';
 
@@ -138,28 +140,21 @@ export default function ModelsTab() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <p className="text-ink-muted text-sm">管理大模型（关联供应商，设置默认等）</p>
-        <button
-          onClick={handleAdd}
-          className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center gap-2"
-        >
+        <Button onClick={handleAdd} className="flex items-center gap-2">
           <span>+</span><span>新建模型</span>
-        </button>
+        </Button>
       </div>
 
       {/* 分类筛选 */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {([['all', '全部'], ['text', '文本'], ['vision', '视觉'], ['image_gen', '图像生成'], ['voice', '语音'], ['embedding', '向量'], ['ocr', 'OCR']] as const).map(([key, label]) => (
-          <button
+          <Button
             key={key}
             onClick={() => setCategoryFilter(key)}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              categoryFilter === key
-                ? 'bg-accent text-white'
-                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
-            }`}
+            variant={categoryFilter === key ? 'default' : 'secondary'}
           >
             {label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -169,16 +164,16 @@ export default function ModelsTab() {
           <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-surface-2 rounded-lg p-12 text-center border border-border">
+        <Card className="bg-surface-2 p-12 text-center">
           <div className="text-6xl mb-4">🤖</div>
           <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无模型</h3>
           <p className="text-ink-muted mb-4">新建模型以开始使用大模型功能</p>
-          <button onClick={handleAdd} className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors">
+          <Button onClick={handleAdd}>
             新建模型
-          </button>
-        </div>
+          </Button>
+        </Card>
       ) : (
-        <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
+        <Card className="bg-surface-2 overflow-hidden p-0">
           <table className="w-full">
             <thead className="bg-surface-1">
               <tr>
@@ -274,7 +269,7 @@ export default function ModelsTab() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
       <ModelDialog

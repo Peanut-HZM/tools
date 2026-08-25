@@ -9,6 +9,8 @@ import {
   ContactMessage,
 } from '../../services/contactApi';
 import { useToast } from '../../hooks/useToast';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 type MessageStatus = 'unread' | 'read' | 'processing' | 'resolved';
 
 export default function ContactMessagesManagement() {
@@ -170,7 +172,7 @@ export default function ContactMessagesManagement() {
       </div>
 
       {/* 筛选和操作栏 */}
-      <div className="bg-surface-1 rounded-lg p-4 mb-6 border border-border">
+      <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* 筛选器 */}
           <div className="flex items-center gap-3">
@@ -196,12 +198,12 @@ export default function ContactMessagesManagement() {
               className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
-            <button
+            <Button
               onClick={handleSearch}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors cursor-pointer text-sm"
+              size="sm"
             >
               <i className="fas fa-search mr-1"></i> 搜索
-            </button>
+            </Button>
           </div>
 
           {/* 批量操作 */}
@@ -226,19 +228,20 @@ export default function ContactMessagesManagement() {
               >
                 已完成
               </button>
-              <button
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleBatchDelete}
-                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm cursor-pointer"
               >
                 删除
-              </button>
+              </Button>
             </div>
           )}
         </div>
       </div>
 
       {/* 留言列表 */}
-      <div className="bg-surface-1 rounded-lg border border-border overflow-hidden">
+      <Card className="overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -318,21 +321,22 @@ export default function ContactMessagesManagement() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button
+                      <Button
+                        size="sm"
                         onClick={() => {
                           setSelectedMessage(message);
                           setReplyContent(message.admin_reply || '');
                         }}
-                        className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white rounded text-sm cursor-pointer transition-colors"
                       >
                         {t.admin.contactMessages.viewDetail}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
                         onClick={() => handleDelete(message.id)}
-                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-ink-inverse rounded text-sm cursor-pointer transition-colors"
                       >
                         {t.admin.contactMessages.delete}
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

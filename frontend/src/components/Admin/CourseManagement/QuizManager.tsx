@@ -5,6 +5,8 @@ import React, { useState } from 'react';
 import { useQuizStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import QuizForm from './QuizForm';
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface QuizManagerProps {
   chapters: Chapter[];
@@ -114,13 +116,14 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 </h3>
                 <p className="text-ink-muted text-sm mt-1">管理和编辑章节测验</p>
               </div>
-              <button
+              <Button
                 onClick={handleCreateQuiz}
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
+                variant="default"
+                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
               >
                 <i className="fas fa-plus mr-2"></i>
                 {selectedQuiz ? '编辑测验' : '创建测验'}
-              </button>
+              </Button>
             </div>
 
             {loadingQuizId === selectedChapterId ? (
@@ -131,7 +134,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 </div>
               </div>
             ) : selectedQuiz ? (
-              <div className="bg-gradient-to-br bg-surface-1 rounded-2xl p-6 border border-border/50 shadow-md">
+              <Card className="rounded-2xl p-6 border-border/50 shadow-md">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-2xl flex items-center justify-center">
@@ -167,14 +170,15 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                   </div>
                 </div>
 
-                <button
+                <Button
                   onClick={() => handleEditQuiz(selectedQuiz.id)}
-                  className="mt-6 px-6 py-3 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/30 rounded-xl transition-all font-medium flex items-center"
+                  variant="outline"
+                  className="mt-6 px-6 py-3 rounded-xl transition-all font-medium flex items-center"
                 >
                   <i className="fas fa-edit mr-2"></i>
                   编辑测验
-                </button>
-              </div>
+                </Button>
+              </Card>
             ) : (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center max-w-md">
@@ -183,13 +187,14 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                   </div>
                   <p className="text-ink-inverse text-lg font-medium mb-2">该章节还没有测验</p>
                   <p className="text-ink-muted text-sm mb-6">创建一个测验来检验学习成果吧</p>
-                  <button
+                  <Button
                     onClick={handleCreateQuiz}
-                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
+                    variant="default"
+                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
                   >
                     <i className="fas fa-plus mr-2"></i>
                     创建测验
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
