@@ -778,12 +778,12 @@ export default function CursorHistory() {
               prose-p:text-ink-muted prose-p:leading-relaxed prose-p:my-2
               prose-strong:text-ink-inverse prose-em:text-cyan-300
               prose-code:text-emerald-300 prose-code:bg-canvas/60 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
-              prose-pre:bg-canvas/80 prose-pre:border prose-pre:border-slate-700/40 prose-pre:rounded-lg prose-pre:my-3
+              prose-pre:bg-canvas/80 prose-pre:border prose-pre:border-border/40 prose-pre:rounded-lg prose-pre:my-3
               prose-a:text-accent prose-a:no-underline hover:prose-a:underline
               prose-li:text-ink-muted prose-li:my-0.5
               prose-blockquote:border-l-violet-500 prose-blockquote:text-ink-muted
               prose-table:text-sm prose-th:text-ink-muted prose-td:text-ink-muted
-              prose-hr:border-slate-700
+              prose-hr:border-border
             ">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -800,12 +800,12 @@ export default function CursorHistory() {
                 const codeText = typeof block === 'object' ? JSON.stringify(block, null, 2) : String(block);
                 return (
                   <div key={bi} className="group/code relative">
-                    <pre className="bg-canvas/80 border border-slate-700/40 rounded-lg p-3 pr-12 text-xs text-ink-muted overflow-x-auto">
+                    <pre className="bg-canvas/80 border border-border/40 rounded-lg p-3 pr-12 text-xs text-ink-muted overflow-x-auto">
                       <code>{codeText}</code>
                     </pre>
                     <button
                       onClick={() => handleCopyCodeBlock(codeText)}
-                      className="absolute top-2 right-2 p-1.5 bg-surface-1/80 hover:bg-surface-2 border border-slate-600/50 rounded text-ink-muted hover:text-ink-inverse opacity-0 group-hover/code:opacity-100 transition-all"
+                      className="absolute top-2 right-2 p-1.5 bg-surface-1/80 hover:bg-surface-2 border border-border/50 rounded text-ink-muted hover:text-ink-inverse opacity-0 group-hover/code:opacity-100 transition-all"
                       title="复制代码"
                     >
                       <i className="fas fa-copy text-xs" />
@@ -1053,7 +1053,7 @@ export default function CursorHistory() {
               className={`px-3 py-2.5 rounded-xl border text-sm transition-all ${
                 customBasePath
                   ? 'bg-violet-500/20 border-violet-500/40 text-violet-400 hover:bg-violet-500/30'
-                  : 'bg-surface-1/60 border-border/50 text-ink-muted hover:text-ink-inverse hover:border-slate-600'
+                  : 'bg-surface-1/60 border-border/50 text-ink-muted hover:text-ink-inverse hover:border-border'
               }`}
               title="设置 Cursor 数据路径"
             >
@@ -1131,7 +1131,7 @@ export default function CursorHistory() {
                 {customBasePath && (
                   <button
                     onClick={() => { setCustomBasePath(''); setPathInput(''); setShowPathSettings(false); }}
-                    className="px-4 py-2 bg-surface-2/40 border border-slate-600/50 rounded-lg text-sm text-ink-muted hover:text-ink-inverse transition-all"
+                    className="px-4 py-2 bg-surface-2/40 border border-border/50 rounded-lg text-sm text-ink-muted hover:text-ink-inverse transition-all"
                   >
                     重置
                   </button>
@@ -1447,7 +1447,7 @@ export default function CursorHistory() {
                           checked={selectedProjectHashes.has(project.workspace_hash)}
                           onChange={() => toggleProjectSelect(project.workspace_hash)}
                           onClick={e => e.stopPropagation()}
-                          className="w-3.5 h-3.5 rounded border-slate-600 text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer"
+                          className="w-3.5 h-3.5 rounded border-border text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer"
                         />
                       )}
                       <i className="fas fa-folder text-violet-400/70 text-sm" />
@@ -1732,7 +1732,7 @@ export default function CursorHistory() {
       {/* 导出对话框 */}
       {showExportDialog && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-surface-1 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-lg">
+          <div className="bg-surface-1 border border-border rounded-2xl p-6 w-full max-w-md shadow-lg">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
                 <i className="fas fa-download text-violet-400 text-lg" />
@@ -1754,7 +1754,7 @@ export default function CursorHistory() {
                     className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
                       exportFormat === format
                         ? 'bg-violet-500/20 border-violet-500/50 text-violet-400'
-                        : 'bg-surface-2/30 border-slate-600/50 text-ink-muted hover:border-slate-500'
+                        : 'bg-surface-2/30 border-border/50 text-ink-muted hover:border-slate-500'
                     }`}
                   >
                     {format === 'markdown' && <><i className="fas fa-file-alt mr-2" />MD</>}
@@ -1772,7 +1772,7 @@ export default function CursorHistory() {
                   type="checkbox"
                   checked={exportOptions.includeCodeBlocks}
                   onChange={e => setExportOptions(prev => ({ ...prev, includeCodeBlocks: e.target.checked }))}
-                  className="w-4 h-4 rounded border-slate-600 text-violet-500 focus:ring-violet-500/50 bg-surface-2"
+                  className="w-4 h-4 rounded border-border text-violet-500 focus:ring-violet-500/50 bg-surface-2"
                 />
                 <span className="text-sm text-ink-muted">包含代码块</span>
               </label>
@@ -1781,7 +1781,7 @@ export default function CursorHistory() {
                   type="checkbox"
                   checked={exportOptions.includeTimestamps}
                   onChange={e => setExportOptions(prev => ({ ...prev, includeTimestamps: e.target.checked }))}
-                  className="w-4 h-4 rounded border-slate-600 text-violet-500 focus:ring-violet-500/50 bg-surface-2"
+                  className="w-4 h-4 rounded border-border text-violet-500 focus:ring-violet-500/50 bg-surface-2"
                 />
                 <span className="text-sm text-ink-muted">包含序号</span>
               </label>
@@ -1791,7 +1791,7 @@ export default function CursorHistory() {
                     type="checkbox"
                     checked={exportOptions.includeAvatars}
                     onChange={e => setExportOptions(prev => ({ ...prev, includeAvatars: e.target.checked }))}
-                    className="w-4 h-4 rounded border-slate-600 text-violet-500 focus:ring-violet-500/50 bg-surface-2"
+                    className="w-4 h-4 rounded border-border text-violet-500 focus:ring-violet-500/50 bg-surface-2"
                   />
                   <span className="text-sm text-ink-muted">包含头像图标 (HTML)</span>
                 </label>
