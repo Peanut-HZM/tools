@@ -63,21 +63,21 @@ const ChapterList: React.FC<ChapterListProps> = ({
 
   return (
     <div className="overflow-y-auto h-full">
-      <div className="rounded-xl border border-slate-700/50 overflow-hidden">
+      <div className="rounded-xl border border-border/50 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gradient-to-r from-slate-700/50 to-slate-800/50">
             <tr>
-              <th className="px-6 py-4 text-slate-400 font-medium text-sm uppercase">
+              <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">
                 <i className="fas fa-sort mr-2"></i>顺序
               </th>
-              <th className="px-6 py-4 text-slate-400 font-medium text-sm uppercase">标题</th>
-              <th className="px-6 py-4 text-slate-400 font-medium text-sm uppercase">类型</th>
-              <th className="px-6 py-4 text-slate-400 font-medium text-sm uppercase">标识符</th>
-              <th className="px-6 py-4 text-slate-400 font-medium text-sm uppercase">状态</th>
-              <th className="px-6 py-4 text-slate-400 font-medium text-sm uppercase text-right">操作</th>
+              <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">标题</th>
+              <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">类型</th>
+              <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">标识符</th>
+              <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">状态</th>
+              <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase text-right">操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/50">
+          <tbody className="divide-y divide-border/50">
             {chapters.map((chapter, index) => (
               <tr
                 key={chapter.id}
@@ -89,13 +89,13 @@ const ChapterList: React.FC<ChapterListProps> = ({
                 className={`cursor-pointer transition-all duration-200 ${
                   selectedChapterId === chapter.id
                     ? 'bg-cyan-500/10 border-l-2 border-cyan-500'
-                    : 'hover:bg-slate-700/30 border-l-2 border-transparent'
+                    : 'hover:bg-surface-2/30 border-l-2 border-transparent'
                 }`}
               >
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <i className="fas fa-grip-vertical text-slate-600 mr-3 cursor-grab"></i>
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-slate-700/50 rounded-lg text-white font-medium">
+                    <i className="fas fa-grip-vertical text-ink-faint mr-3 cursor-grab"></i>
+                    <span className="inline-flex items-center justify-center w-8 h-8 bg-surface-2/50 rounded-lg text-white font-medium">
                       {chapter.order}
                     </span>
                   </div>
@@ -109,12 +109,12 @@ const ChapterList: React.FC<ChapterListProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-3 py-1 bg-slate-700/50 rounded-full text-xs text-slate-300">
+                  <span className="inline-flex items-center px-3 py-1 bg-surface-2/50 rounded-full text-xs text-ink-muted">
                     {getTypeLabel(chapter.chapter_type)}
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <code className="text-slate-400 text-sm bg-slate-700/30 px-2 py-1 rounded">{chapter.slug}</code>
+                  <code className="text-ink-muted text-sm bg-surface-2/30 px-2 py-1 rounded">{chapter.slug}</code>
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -164,11 +164,11 @@ const ChapterList: React.FC<ChapterListProps> = ({
       </div>
       {chapters.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-20 h-20 bg-slate-700/30 rounded-full flex items-center justify-center mb-4">
-            <i className="fas fa-book text-4xl text-slate-500"></i>
+          <div className="w-20 h-20 bg-surface-2/30 rounded-full flex items-center justify-center mb-4">
+            <i className="fas fa-book text-4xl text-ink-faint"></i>
           </div>
-          <p className="text-slate-400 text-lg mb-2">暂无章节</p>
-          <p className="text-slate-500 text-sm">点击右上角"新增章节"创建第一个章节</p>
+          <p className="text-ink-muted text-lg mb-2">暂无章节</p>
+          <p className="text-ink-faint text-sm">点击右上角"新增章节"创建第一个章节</p>
         </div>
       )}
     </div>
