@@ -27,18 +27,18 @@ export default function ImageGenerationAdmin() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-white mb-6">{igT.admin.title}</h2>
+      <h2 className="text-2xl font-bold text-ink-inverse mb-6">{igT.admin.title}</h2>
 
       {/* Tab 切换 */}
-      <div className="flex gap-1 mb-6 bg-slate-700 rounded-lg p-1 border border-slate-600 overflow-x-auto">
+      <div className="flex gap-1 mb-6 bg-surface-2 rounded-lg p-1 border border-border overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium whitespace-nowrap flex items-center justify-center gap-2 ${
               activeTab === tab.key
-                ? 'bg-cyan-600 text-white'
-                : 'text-slate-300 hover:bg-slate-600 hover:text-white'
+                ? 'bg-accent text-white'
+                : 'text-ink-muted hover:bg-surface-3 hover:text-ink-inverse'
             }`}
           >
             <i className={`fas ${tab.icon}`}></i>
