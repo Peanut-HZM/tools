@@ -7,7 +7,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -56,6 +56,10 @@ class LLMModel(Base):
 
     # 关联供应商，joined 加载避免 N+1
     provider = relationship("LLMProvider", lazy="joined")
+
+    __table_args__ = (
+        UniqueConstraint("model_name", "provider_id", name="uq_model_name_provider"),
+    )
 
     def __repr__(self):
         return (

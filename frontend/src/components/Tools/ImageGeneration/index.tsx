@@ -1,11 +1,10 @@
 /**
  * ImageGeneration — 图像生成主页面
  *
- * 顶部 QuotaBadge，左侧操作 Tab + 表单，右侧结果面板
- * HistoryDrawer 从右侧滑出
+ * 单列布局：顶部操作栏 → Tab + 表单 → 历史抽屉
+ * 生成结果由各表单组件内联展示
  */
 import { useImageGenStore } from '../../../stores/imageGenerationStore';
-import { useImageGenerate } from '../../../hooks/useImageGenerate';
 import { useAuth } from '../../../stores/authStore';
 import { useI18n } from '../../../i18n';
 import RequireAuthNotice from '../../Common/RequireAuthNotice';
@@ -47,8 +46,8 @@ export default function ImageGeneration() {
   const setOperation = useImageGenStore((s) => s.setOperation);
   const setHistoryDrawerOpen = useImageGenStore((s) => s.setHistoryDrawerOpen);
   const reset = useImageGenStore((s) => s.reset);
-
-  const { generate, abort, loading, error, setError } = useImageGenerate();
+  const currentResult = useImageGenStore((s) => s.currentResult);
+  const loading = useImageGenStore((s) => s.loading);
 
   if (!isAuthenticated) {
     return (
@@ -59,20 +58,12 @@ export default function ImageGeneration() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
-      {/* 顶部：标题 + 后端切换 */}
+    <div className="container mx-auto px-4 max-w-7xl">
+      {/* 顶部：后端切换 + 配额 + 操作 */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl text-slate-100">图像生成</h1>
         <BackendSwitch />
-      </div>
-
-      {/* 顶部：标题 + 配额 + 操作 */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-slate-100">{igT.title}</h1>
+        <div className="flex items-center gap-3">
           <QuotaBadge />
-        </div>
-        <div className="flex items-center gap-2">
           <button
             onClick={() => setHistoryDrawerOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
@@ -94,85 +85,43 @@ export default function ImageGeneration() {
         </div>
       </div>
 
-      {/* 错误提示 */}
-      {error && (
-        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/50 rounded-lg flex items-center justify-between">
-          <span className="text-sm text-red-400">{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="text-red-400 hover:text-red-300"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* 主体：左表单 + 右结果 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 左侧：Tab + 表单 */}
-        <div className="space-y-4">
-          {/* Tab 栏 */}
-          <div className="flex gap-1 p-1 bg-slate-800 rounded-xl">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setOperation(tab.key)}
-                className={`
-                  flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all
-                  ${operation === tab.key
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                  }
-                `}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* 表单 */}
-          <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
-            {operation === 'text2img' && <Text2ImgForm />}
-            {operation === 'img2img' && <Img2ImgForm />}
-            {operation === 'inpaint' && <InpaintForm />}
-            {operation === 'upload_edit' && <UploadEditForm />}
-          </div>
-
-          {/* 生成按钮 */}
-          <div className="flex gap-3">
-            {loading ? (
-              <button
-                onClick={abort}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-medium rounded-xl transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                </svg>
-                {igT.form.cancel}
-              </button>
-            ) : (
-              <button
-                onClick={generate}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                {igT.form.generate}
-              </button>
-            )}
-          </div>
+      {/* 主体：Tab + 表单 */}
+      <div className="space-y-3">
+        {/* Tab 栏 */}
+        <div className="flex gap-1 p-1 bg-slate-800 rounded-xl">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setOperation(tab.key)}
+              className={`
+                flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all
+                ${operation === tab.key
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                }
+              `}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
 
-        {/* 右侧：结果面板 */}
-        <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
-          <ResultPanel />
+        {/* 表单 */}
+        <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+          {operation === 'text2img' && <Text2ImgForm />}
+          {operation === 'img2img' && <Img2ImgForm />}
+          {operation === 'inpaint' && <InpaintForm />}
+          {operation === 'upload_edit' && <UploadEditForm />}
         </div>
       </div>
+
+      {/* 生成结果：仅在有结果或加载中时显示 */}
+      {(loading || currentResult) && (
+        <div className="mt-3 p-3 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+          <ResultPanel />
+        </div>
+      )}
 
       {/* 历史抽屉 */}
       <HistoryDrawer />

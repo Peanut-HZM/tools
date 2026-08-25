@@ -682,6 +682,40 @@ class ImageGenService:
         return await backend_impl.run(ctx)
 
     # ------------------------------------------------------------------
+    # 后端懒加载注册
+    # ------------------------------------------------------------------
+
+    def _ensure_backends_registered(self) -> None:
+        """懒加载注册图像生成后端
+
+        生产环境在首次请求时注册（依赖 ImageGenService 已注入的 db / dify_client / oss_svc）。
+        测试环境由测试手动 BackendRegistry.register 覆盖即可（注册同名后端等价于替换）。
+        """
+        from app.services.image_gen.backends import BackendRegistry
+        from app.services.image_gen.dify_backend import DifyBackend
+        from app.services.image_gen.selfdev_backend import SelfDevelopedBackend
+        from app.services.image_gen.agent_orchestrator import AgentOrchestrator
+        from app.services.image_gen.tool_executor import ToolExecutor
+        from app.services.image_gen.conversation_repo import ConversationRepository
+        from app.services.llm.ordered_gateway import OrderedLLMGateway
+
+        # dify 后端：包装 DifyClient
+        if "dify" not in BackendRegistry._REGISTRY:
+            BackendRegistry.register("dify", DifyBackend(
+                dify_client=self.dify_client,
+                oss_svc=self.oss_svc,
+            ))
+
+        # selfdev 后端：自研 Agent 编排
+        if "selfdev" not in BackendRegistry._REGISTRY:
+            gateway = OrderedLLMGateway(db=self.db)
+            BackendRegistry.register("selfdev", SelfDevelopedBackend(
+                orchestrator=AgentOrchestrator(gateway=gateway),
+                executor=ToolExecutor(gateway=gateway, oss_svc=self.oss_svc),
+                conv_repo=ConversationRepository(db=self.db),
+            ))
+
+    # ------------------------------------------------------------------
     # 带 quota + history 的 dispatch 入口（M7 自研路径接入）
     # ------------------------------------------------------------------
 
@@ -708,8 +742,13 @@ class ImageGenService:
           4. 若 image_urls 为空 → release quota
           5. 任何异常 → release quota 并抛出
         """
+        # 0. 确保后端已注册（懒加载：生产环境首次请求时注册，测试环境由测试手动注册覆盖）
+        self._ensure_backends_registered()
+
         # 1. 预留 quota（无论后续是否生成）
-        self.quota_svc.check_and_reserve(user_id=user_id, operation=operation)
+        # user_id 在此处是 uuid.UUID 对象，但 image_gen_quota.user_id 是 varchar，
+        # 必须转成字符串，否则 PostgreSQL 无法比较 uuid = varchar
+        self.quota_svc.check_and_reserve(user_id=str(user_id), operation=operation)
 
         try:
             # 2. 走 dispatch
@@ -729,7 +768,7 @@ class ImageGenService:
 
             # 3. quota commit or release
             if result.image_urls:
-                self.quota_svc.commit(user_id=user_id)
+                self.quota_svc.commit()
                 # 4. 写历史记录（带 backend 字段）
                 self.history_svc.create_record(
                     user_id=str(user_id),
@@ -742,12 +781,12 @@ class ImageGenService:
                 )
             else:
                 # image_urls 为空 → 释放预留
-                self.quota_svc.release(user_id=user_id)
+                self.quota_svc.release()
 
             return result
         except Exception:
             # 任何异常都必须释放预留配额
-            self.quota_svc.release(user_id=user_id)
+            self.quota_svc.release()
             raise
 
     # ------------------------------------------------------------------

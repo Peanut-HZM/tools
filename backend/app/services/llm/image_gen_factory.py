@@ -23,6 +23,9 @@ class ImageGenFactory:
         "qwen_image": QwenImageAdapter,
         "hailuo": HailuoAdapter,
         "openai_image": OpenAIImageAdapter,
+        # 阿里云百炼平台的 image_gen 模型（如 qwen-image-*、wanx-*）
+        # 走 DashScope 原生 API，与 qwen_image 同协议
+        "aliyun": QwenImageAdapter,
     }
 
     @classmethod

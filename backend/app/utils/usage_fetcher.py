@@ -52,7 +52,7 @@ class UsageFetcher:
         if cached:
             return cached
 
-        args = [report_type, "--json", "--offline"]
+        args = ["claude", report_type, "--json", "--offline"]
         if since:
             args += ["--since", since]
         if until:

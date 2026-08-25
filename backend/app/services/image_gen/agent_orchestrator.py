@@ -10,10 +10,13 @@
 注意（相对 brief 的修正）：
   - assistant 消息只应在处理一次 LLM 响应时追加一次，而不是每个 tool_call 都追加，
     否则多个 tool_call 会重复写入同一条 assistant 消息。
+  - tool_calls 统一为 OpenAI 格式（type=function, function.name, function.arguments 是 JSON 字符串），
+    这样不同 provider 的 API 校验都能通过。
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Optional
 
@@ -74,10 +77,12 @@ class AgentOrchestrator:
                 raise ValueError("tool_call 返回但 executor 为 None")
 
             # 修正 brief 中的 bug：assistant 消息只追加一次（在 tool 循环之外）
+            # tool_calls 统一为 OpenAI 格式 {id, type, function:{name, arguments(JSON str)}}
+            # 这样下一轮再喂回 API 时（OpenAI/Aliyun）都不会报校验错
             current_messages.append({
                 "role": "assistant",
                 "content": content or "",
-                "tool_calls": tool_calls,
+                "tool_calls": [_normalize_tool_call(call) for call in tool_calls],
             })
 
             for call in tool_calls:
@@ -112,3 +117,41 @@ class AgentOrchestrator:
         if isinstance(obj, dict):
             return obj.get(name)
         return getattr(obj, name, None)
+
+
+def _normalize_tool_call(call: Any) -> dict:
+    """把任何形态的 tool_call 统一为 OpenAI 格式
+
+    兼容：
+      - {id, type, function:{name, arguments(JSON str)}}      OpenAI 原始
+      - {id, function:{name, arguments}}                     OpenAI（缺 type）
+      - {id, name, arguments(dict/str)}                      扁平化（自定义）
+    """
+    if not isinstance(call, dict):
+        call = {
+            "id": getattr(call, "id", ""),
+            "name": getattr(call, "name", ""),
+            "arguments": getattr(call, "arguments", {}),
+        }
+
+    # 已有 function 包装：直接补 type，并确保 arguments 是 JSON 字符串
+    fn = call.get("function")
+    if isinstance(fn, dict):
+        args = fn.get("arguments", "{}")
+        if not isinstance(args, str):
+            args = json.dumps(args, ensure_ascii=False)
+        return {
+            "id": call.get("id", ""),
+            "type": call.get("type", "function"),
+            "function": {"name": fn.get("name", ""), "arguments": args},
+        }
+
+    # 扁平化：{id, name, arguments} → 包装为 OpenAI 格式
+    args = call.get("arguments", "{}")
+    if isinstance(args, dict):
+        args = json.dumps(args, ensure_ascii=False)
+    return {
+        "id": call.get("id", ""),
+        "type": "function",
+        "function": {"name": call.get("name", ""), "arguments": args or "{}"},
+    }

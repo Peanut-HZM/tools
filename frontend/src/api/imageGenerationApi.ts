@@ -329,9 +329,15 @@ export async function chatGenerate(
   if (referenceImage) formData.append('reference_image', referenceImage);
   if (maskImage) formData.append('mask_image', maskImage);
 
+  // FormData 请求不能设 Content-Type: application/json，
+  // 否则浏览器不会自动添加 multipart/form-data boundary，后端解析失败返回 422
+  const token = localStorage.getItem('auth_token');
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const response = await authedFetch(`${BASE_URL}/chat`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: formData,
   });
 

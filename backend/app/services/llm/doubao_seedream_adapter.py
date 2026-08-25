@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import ClassVar, Optional
 
 import httpx
 
 from app.services.llm.exceptions import RecoverableFailure, UnrecoverableFailure
 from app.services.llm.image_gen_base import ImageGenAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class DoubaoSeedreamAdapter(ImageGenAdapter):
@@ -20,7 +23,11 @@ class DoubaoSeedreamAdapter(ImageGenAdapter):
 
     def __init__(self, api_key: str, base_url: Optional[str] = None, model: str = "", **kw):
         self._api_key = api_key
-        self._base_url = (base_url or "https://ark.cn-beijing.volces.com").rstrip("/")
+        base = (base_url or "https://ark.cn-beijing.volces.com").rstrip("/")
+        # 避免 base_url 已含 /api/v3 时拼接出重复路径
+        if base.endswith("/api/v3"):
+            base = base[: -len("/api/v3")]
+        self._base_url = base
         self._model = model
 
     async def _do_generate(self, operation, prompt, **kw):
@@ -41,13 +48,27 @@ class DoubaoSeedreamAdapter(ImageGenAdapter):
             except httpx.TimeoutException as e:
                 raise RecoverableFailure(str(e))
 
-        if resp.status_code == 401 or resp.status_code == 403:
+        if resp.status_code == 401:
             raise UnrecoverableFailure(f"auth failed: {resp.text}")
+        # 403 可能是该 API key 不支持该模型/调用方式 —— 让兜底链尝试下一个
+        if resp.status_code == 403:
+            raise RecoverableFailure(f"access denied (recoverable): {resp.text}")
+        if resp.status_code == 404:
+            # 模型不存在或无权限访问 —— 让兜底链尝试下一个模型
+            logger.warning(
+                "[doubao_seedream] model not found url=%s model=%s body=%s",
+                url, self._model, resp.text[:500],
+            )
+            raise RecoverableFailure(f"model not found: {resp.text}")
         if resp.status_code == 429:
             raise RecoverableFailure(f"rate limited: {resp.text}")
         if resp.status_code >= 500:
             raise RecoverableFailure(f"server error: {resp.status_code}")
         if resp.status_code >= 400:
+            logger.warning(
+                "[doubao_seedream] bad request url=%s status=%s body=%s",
+                url, resp.status_code, resp.text[:500],
+            )
             raise UnrecoverableFailure(f"bad request: {resp.text}")
 
         data = resp.json()

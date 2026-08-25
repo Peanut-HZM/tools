@@ -604,13 +604,6 @@ def _log_sync(db, user_id: str, device_id: str, source: str,
 # ccusage 统一数据源（v2）— 替代 _parse_opencode_entries
 # ========================================================================
 
-# Agent 优先级（用于模型归属歧义时的 tie-breaker）
-AGENT_PRIORITY = [
-    "claude", "opencode", "openclaw", "codex", "amp",
-    "droid", "codebuff", "hermes", "pi", "goose",
-    "kilo", "copilot", "gemini", "kimi", "qwen",
-]
-
 # agent_id → 显示名映射
 AGENT_DISPLAY_NAMES = {
     "claude": "Claude Code",
@@ -631,66 +624,58 @@ AGENT_DISPLAY_NAMES = {
 }
 
 
-def _infer_agent(
+def _build_agent_record(
+    agent: str,
+    record_date: date,
     model_name: str,
-    date_str: str,
-    agent_models_dict: dict,
-) -> str:
-    """根据模型名 + 当日各 agent 的 modelsUsed 字典推断归属。
+    bd: dict,
+) -> dict:
+    """根据单个模型明细 dict 构造一条记录（归属固定为该 agent）。
 
-    agent_models_dict 形如:
-    {
-        "2026-06-05": {
-            "claude": {"claude-opus-4-8", "gpt-5.5", ...},
-            "opencode": {"minimax-m3-free", "qwen3.6-plus", ...},
-        },
+    兼容两种明细格式：
+    - modelBreakdowns 元素（claude/opencode）：{modelName, inputTokens, ...}
+    - models 字典值（codex）：{input, output, cache_read, cache_write, cost}
+    """
+    input_tokens = _safe_int(bd, "inputTokens", "input_tokens", "input")
+    output_tokens = _safe_int(bd, "outputTokens", "output_tokens", "output")
+    cache_creation_tokens = _safe_int(bd, "cacheCreationTokens", "cache_creation_tokens", "cache_write")
+    cache_read_tokens = _safe_int(bd, "cacheReadTokens", "cache_read_tokens", "cache_read")
+    total_tokens = _safe_int(bd, "totalTokens", "total_tokens")
+    if total_tokens == 0:
+        total_tokens = _calc_total_tokens(
+            input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens
+        )
+    total_cost = _safe_float(bd, "cost", "totalCost", "costUSD")
+
+    return {
+        "record_date": record_date,
+        "source": agent,
+        "tool_id": agent,
+        "tool_name": AGENT_DISPLAY_NAMES.get(agent, agent),
+        "model": model_name,
+        "model_display_name": model_name,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cache_creation_tokens": cache_creation_tokens,
+        "cache_read_tokens": cache_read_tokens,
+        "total_tokens": total_tokens,
+        "total_cost": total_cost,
+        "source_raw": "ccusage-agent-daily",
     }
 
-    规则:
-    1. 模型在当日某 agent 的 modelsUsed 中 → 归属该 agent
-    2. 多个 agent 都含该模型（歧义）→ 按 AGENT_PRIORITY 选最高优先级
-    3. 都不含且当日有多个 agent → 抛 ValueError，不再返回 "other" 兜底
-    4. 都不含但当日仅 1 个 agent → 归该 agent（唯一候选 fallback）
-    """
-    day_agents = agent_models_dict.get(date_str, {})
-    candidates = [agent for agent, models in day_agents.items() if model_name in models]
-    if not candidates:
-        # 修复问题 3：多 agent 当日但模型不在任何 modelsUsed 中 → 抛错
-        # 让上层知道这是数据异常，而非静默返回 "other"
-        if len(day_agents) > 1:
-            raise ValueError(
-                f"模型 '{model_name}' 在 {date_str} 当日有 {len(day_agents)} 个 agent "
-                f"({', '.join(day_agents.keys())})，但不在任何 agent 的 modelsUsed 中，"
-                f"无法确定归属"
-            )
-        # 当日仅 1 个 agent 时 fallback 到该 agent
-        if len(day_agents) == 1:
-            return next(iter(day_agents.keys()))
-        # 当日无任何 agent 数据（agent_models_dict 完全为空）→ 也抛错，不静默归 other
-        raise ValueError(
-            f"模型 '{model_name}' 在 {date_str} 当日无 agent 数据可用于推断"
-        )
-    for priority_agent in AGENT_PRIORITY:
-        if priority_agent in candidates:
-            return priority_agent
-    return candidates[0]
 
+def _parse_agent_daily(agent: str, daily: list[dict]) -> list[dict]:
+    """解析单个 agent 的 daily 明细为 (date, model) 记录。
 
-def _parse_ccusage_records(
-    daily: list[dict],
-    agent_models_dict: dict,
-) -> list[dict]:
-    """解析 ccusage daily JSON 为 (date, agent, model) 三元组记录。
-
-    Args:
-        daily: ccusage daily --json 的 daily 数组
-        agent_models_dict: 来自 ccusage <agent> daily --json 的 {date: {agent: modelsUsed set}}
+    直接使用 ccusage <agent> daily 返回的模型级明细（modelBreakdowns
+    或 models 字典），每条记录天然归属该 agent，从根本上避免多 agent
+    同日共用同一模型时"推断归属"造成的用量丢失（曾导致 opencode 与
+    claude 共用 deepseek-v4-pro 时 opencode 数据全部被计入 claude）。
 
     Returns:
         list of dict, 每条含 record_date, source, model, 4 个 token 字段, total_cost 等
     """
     results = []
-    skipped = 0
     for day in daily:
         period = _get_date_key(day)
         if not period:
@@ -701,42 +686,18 @@ def _parse_ccusage_records(
             continue
 
         breakdowns = day.get("modelBreakdowns") or []
-        for bd in breakdowns:
-            model_name = bd.get("modelName") or bd.get("model") or "_unknown"
-            # 修复问题 3：_infer_agent 无法归属时抛 ValueError，这里捕获并跳过该条记录
-            try:
-                agent = _infer_agent(model_name, period, agent_models_dict)
-            except ValueError as exc:
-                logger.warning(f"[ccusage] 跳过无法归属的记录: {exc}")
-                skipped += 1
-                continue
+        if breakdowns:
+            for bd in breakdowns:
+                model_name = bd.get("modelName") or bd.get("model") or "_unknown"
+                results.append(_build_agent_record(agent, record_date, model_name, bd))
+        else:
+            # codex 等 agent 使用 models 字典 {model: {input, output, ...}}
+            models = day.get("models") or {}
+            for model_name, md in models.items():
+                if not isinstance(md, dict):
+                    continue
+                results.append(_build_agent_record(agent, record_date, model_name, md))
 
-            input_tokens = _safe_int(bd, "inputTokens", "input_tokens")
-            output_tokens = _safe_int(bd, "outputTokens", "output_tokens")
-            cache_creation_tokens = _safe_int(bd, "cacheCreationTokens", "cache_creation_tokens")
-            cache_read_tokens = _safe_int(bd, "cacheReadTokens", "cache_read_tokens")
-            total_tokens = _calc_total_tokens(
-                input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens
-            )
-            total_cost = _safe_float(bd, "cost")
-
-            results.append({
-                "record_date": record_date,
-                "source": agent,
-                "tool_id": agent,
-                "tool_name": AGENT_DISPLAY_NAMES.get(agent, agent),
-                "model": model_name,
-                "model_display_name": model_name,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "cache_creation_tokens": cache_creation_tokens,
-                "cache_read_tokens": cache_read_tokens,
-                "total_tokens": total_tokens,
-                "total_cost": total_cost,
-                "source_raw": "ccusage-daily",
-            })
-    if skipped:
-        logger.info(f"[ccusage] 共跳过 {skipped} 条无法归属的记录")
     return results
 
 
@@ -778,13 +739,20 @@ def _fetch_ccusage_v2_records(since_date, until_date) -> dict:
         logger.info(f"[ccusage-v2] {since_str} ~ {until_str} 无数据")
         return {"records": [], "errors": []}
 
+    # 合并 daily 仅用于发现当日有哪些 agent 有数据
     all_agents: set[str] = set()
     for day in daily_list:
         meta = day.get("metadata", {}) or {}
         for a in meta.get("agents", []) or []:
             all_agents.add(a)
 
-    agent_models_dict: dict[str, dict[str, set[str]]] = {}
+    if not all_agents:
+        logger.info("[ccusage-v2] 合并 daily 未发现任何 agent")
+        return {"records": [], "errors": []}
+
+    # 每个 agent 直接使用自己的 daily 模型明细生成记录，不做归属推断
+    records: list[dict] = []
+    errors: list[dict] = []
     for agent in sorted(all_agents):
         agent_result = UsageFetcherV2.fetch_ccusage_agent_daily(
             agent=agent, since=since_str, until=until_str
@@ -801,17 +769,8 @@ def _fetch_ccusage_v2_records(since_date, until_date) -> dict:
                 }
             )
             continue
-        for day in (agent_result.get("daily") or []):
-            date_key = _get_date_key(day)
-            if not date_key:
-                continue
-            # 支持 modelsUsed 数组（claude/opencode）或 models 字典（codex）
-            models = day.get("modelsUsed") or list(day.get("models", {}).keys())
-            agent_models_dict.setdefault(date_key, {}).setdefault(agent, set()).update(models)
-
-    records = _parse_ccusage_records(daily_list, agent_models_dict)
-    if not records:
-        logger.info(f"[ccusage-v2] 解析后 0 条记录（{since_str} ~ {until_str}）")
+        agent_daily = agent_result.get("daily") or []
+        records.extend(_parse_agent_daily(agent, agent_daily))
 
     return {"records": records, "errors": errors}
 
@@ -826,6 +785,10 @@ def _write_ccusage_v2_records(
     """v2: 将已抓取解析的记录写入数据库（快操作）。"""
     if not records:
         return 0
+
+    # 先刷出 claude 遗留路径已 add 的 pending 记录，避免 v2 的"先查再插"
+    # 查不到同键记录而重复插入，触发唯一约束冲突
+    db.flush()
 
     # 按 agent 分组，分别 upsert，确保每个 Agent 有正确的 source/tool_id/tool_name
     from itertools import groupby

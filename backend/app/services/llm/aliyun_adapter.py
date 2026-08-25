@@ -3,10 +3,15 @@
 支持阿里云灵积 DashScope 的 Qwen 系列模型
 """
 
-from typing import List, Optional, Dict
+import json
+import logging
+from typing import List, Optional, Dict, Any
 import httpx
 
 from .base import LLMProvider, Message, GenerationConfig, GenerationResult
+from .exceptions import RecoverableFailure, UnrecoverableFailure
+
+logger = logging.getLogger(__name__)
 
 
 class AliyunQwenAdapter(LLMProvider):
@@ -43,7 +48,10 @@ class AliyunQwenAdapter(LLMProvider):
         )
 
     async def generate(
-        self, messages: List[Message], config: Optional[GenerationConfig] = None
+        self,
+        messages: List[Message],
+        config: Optional[GenerationConfig] = None,
+        **kwargs: Any,
     ) -> GenerationResult:
         """生成文本"""
         if config is None:
@@ -61,12 +69,52 @@ class AliyunQwenAdapter(LLMProvider):
             "max_tokens": config.max_tokens,
         }
 
-        response = await self.client.post(url, json=payload)
-        response.raise_for_status()
+        # 支持工具调用（OpenAI 兼容格式）
+        tools = kwargs.get("tools")
+        if tools:
+            payload["tools"] = tools
+
+        try:
+            response = await self.client.post(url, json=payload)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            body = e.response.text[:500]
+            if status in (401, 403):
+                raise UnrecoverableFailure(f"Aliyun 鉴权失败: {body}") from e
+            if status == 400:
+                raise UnrecoverableFailure(f"Aliyun 请求参数错误: {body}") from e
+            logger.warning("[aliyun_adapter] HTTP error status=%s: %s", status, body)
+            raise RecoverableFailure(f"Aliyun HTTP 错误 ({status}): {body}") from e
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
+            raise RecoverableFailure(f"Aliyun 网络错误: {e}") from e
+
         data = response.json()
+        choice = data["choices"][0].get("message", {})
+
+        # 处理工具调用
+        tool_calls_result = None
+        raw_tool_calls = choice.get("tool_calls")
+        if raw_tool_calls:
+            tool_calls_result = []
+            for tc in raw_tool_calls:
+                try:
+                    fn = tc.get("function", {})
+                    args = json.loads(fn.get("arguments", "{}") or "{}")
+                except (json.JSONDecodeError, TypeError):
+                    args = {}
+                tool_calls_result.append({
+                    "id": tc.get("id", ""),
+                    "name": fn.get("name", ""),
+                    "arguments": args,
+                })
+            logger.info(
+                "[aliyun_adapter] tool_calls=%d model=%s",
+                len(tool_calls_result), self.model,
+            )
 
         return GenerationResult(
-            content=data["choices"][0]["message"]["content"],
+            content=choice.get("content") or "",
             usage={
                 "prompt_tokens": data.get("usage", {}).get("prompt_tokens", 0),
                 "completion_tokens": data.get("usage", {}).get("completion_tokens", 0),
@@ -74,6 +122,7 @@ class AliyunQwenAdapter(LLMProvider):
             },
             model=self.model,
             finish_reason=data["choices"][0].get("finish_reason"),
+            tool_calls=tool_calls_result,
         )
 
     async def test_connection(self) -> tuple[bool, str]:
@@ -193,8 +242,11 @@ class AliyunQwenNativeAdapter(AliyunQwenAdapter):
         )
 
     def _convert_to_native_format(self, messages: List[Message]) -> List[Dict]:
-        """转换为原生格式"""
+        """转换为原生格式，兼容 Message 对象与 dict"""
         converted = []
         for msg in messages:
-            converted.append({"role": msg.role, "content": msg.content})
+            if isinstance(msg, dict):
+                converted.append(msg)
+            else:
+                converted.append({"role": msg.role, "content": msg.content})
         return converted

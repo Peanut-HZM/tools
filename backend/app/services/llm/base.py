@@ -33,6 +33,7 @@ class GenerationResult:
     usage: Dict[str, int]  # prompt_tokens, completion_tokens, total_tokens
     model: str
     finish_reason: Optional[str] = None
+    tool_calls: Optional[List[Any]] = None  # 工具调用列表（可选）
 
 
 class LLMProvider(ABC):
@@ -78,5 +79,15 @@ class LLMProvider(ABC):
         pass
 
     def format_messages(self, messages: List[Message]) -> List[Dict[str, str]]:
-        """格式化消息为供应商特定格式 (默认实现)"""
-        return [{"role": msg.role, "content": msg.content} for msg in messages]
+        """格式化消息为供应商特定格式 (默认实现)
+
+        兼容 Message 对象与 dict 两种输入。
+        dict 会原样透传（保留 tool_calls 等额外字段）。
+        """
+        out = []
+        for msg in messages:
+            if isinstance(msg, dict):
+                out.append(msg)
+            else:
+                out.append({"role": msg.role, "content": msg.content})
+        return out

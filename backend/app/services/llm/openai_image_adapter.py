@@ -21,7 +21,11 @@ class OpenAIImageAdapter(ImageGenAdapter):
 
     def __init__(self, api_key: str, base_url: Optional[str] = None, model: str = "", **kw):
         self._api_key = api_key
-        self._base_url = (base_url or "https://api.openai.com").rstrip("/")
+        base = (base_url or "https://api.openai.com").rstrip("/")
+        # 避免 base_url 已含 /v1 时拼接出重复路径
+        if base.endswith("/v1"):
+            base = base[: -len("/v1")]
+        self._base_url = base
         self._model = model
 
     async def _do_generate(self, operation, prompt, **kw):
@@ -41,8 +45,12 @@ class OpenAIImageAdapter(ImageGenAdapter):
             except (httpx.ConnectError, httpx.TimeoutException) as e:
                 raise RecoverableFailure(str(e))
 
-        if resp.status_code in (401, 403):
+        if resp.status_code == 401:
             raise UnrecoverableFailure(f"auth failed: {resp.text}")
+        if resp.status_code == 403:
+            raise RecoverableFailure(f"access denied (recoverable): {resp.text}")
+        if resp.status_code == 404:
+            raise RecoverableFailure(f"model not found: {resp.text}")
         if resp.status_code == 429:
             raise RecoverableFailure(f"rate limited: {resp.text}")
         if resp.status_code >= 500:

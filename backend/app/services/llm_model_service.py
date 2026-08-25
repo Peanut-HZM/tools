@@ -112,6 +112,18 @@ class LLMModelService:
         if is_default_for_category:
             self._unset_category_defaults(category)
 
+        # 同一供应商下 model_name 不可重复
+        existing = (
+            self.db.query(LLMModel)
+            .filter(
+                LLMModel.model_name == model_name,
+                LLMModel.provider_id == _to_uuid(provider_id),
+            )
+            .first()
+        )
+        if existing:
+            raise ValueError(f"供应商下模型标识已存在: {model_name}")
+
         m = LLMModel(
             name=name,
             model_name=model_name,
