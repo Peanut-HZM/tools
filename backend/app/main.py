@@ -185,13 +185,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"安全校验未通过: {e}")
 
-    # 预初始化数据库连接池
+    # 预初始化 SQLAlchemy 引擎连接池（按需懒加载，首次 checkout 时创建物理连接）
     try:
-        from app.config.database import get_connection_pool
-        get_connection_pool()
-        logger.info("数据库连接池初始化完成")
+        from app.models.base import engine
+        logger.info(f"SQLAlchemy engine 已就绪 (pool_size={engine.pool.size()}, pool_class={type(engine.pool).__name__})")
     except Exception as e:
-        logger.warning(f"数据库连接池初始化失败（将按需懒加载）: {e}")
+        logger.warning(f"SQLAlchemy engine 初始化失败: {e}")
 
     # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")

@@ -65,12 +65,10 @@ class Settings(BaseSettings):
                 return True
         return value
 
-    # Database
+    # Database（原 DB_PSYCOPG_POOL_* 已废弃；连接统一走 SQLAlchemy engine 池）
     DATABASE_URL: str = "sqlite:///./data/tools.db"
-    DB_PSYCOPG_POOL_MIN_CONN: int = 5      # 保持最小连接数
-    DB_PSYCOPG_POOL_MAX_CONN: int = 50     # 增大最大连接数，避免并发请求时连接池耗尽
-    DB_SQLALCHEMY_POOL_SIZE: int = 10      # 从 5 增加到 10
-    DB_SQLALCHEMY_MAX_OVERFLOW: int = 10   # 保持不变
+    DB_SQLALCHEMY_POOL_SIZE: int = 10
+    DB_SQLALCHEMY_MAX_OVERFLOW: int = 10
     DB_SQLALCHEMY_POOL_TIMEOUT: int = 10   # 保持不变
     DB_HEALTH_CHECK: str = "true"  # 开启连接健康检查：取出连接时 SELECT 1 探活，失效则重取，避免池中失效连接导致间歇性 500（如 "server closed the connection unexpectedly"）
     # Security

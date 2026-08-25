@@ -101,80 +101,131 @@ def test_connection() -> bool:
 
 
 # ============================================================
-# 连接池支持
+# 连接池统一（原 psycopg2 ThreadedConnectionPool 已废弃）
+#
+# 所有服务（auth_service / monitor / database_tool / http_client 等）
+# 通过 get_pooled_db_connection() / release_db_connection() 获取连接。
+# 底层统一走 SQLAlchemy engine 的 QueuePool，总预算收敛为一套。
 # ============================================================
 
-_pool = None
+from contextlib import contextmanager
 
 
-def get_connection_pool(min_conn: Optional[int] = None, max_conn: Optional[int] = None):
-    """获取或创建连接池（单例懒加载）"""
-    global _pool
-    if _pool is None:
-        min_conn = min_conn if min_conn is not None else settings.DB_PSYCOPG_POOL_MIN_CONN
-        max_conn = max_conn if max_conn is not None else settings.DB_PSYCOPG_POOL_MAX_CONN
-        config = get_db_config()
-        _pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=min_conn,
-            maxconn=max_conn,
-            host=config["host"],
-            port=config["port"],
-            database=config["database"],
-            user=config["user"],
-            password=config["password"],
-            cursor_factory=RealDictCursor,
-        )
-        logger.info(f"数据库连接池初始化完成 (min={min_conn}, max={max_conn})")
-    return _pool
+class _PooledRawConnection:
+    """透明代理：让旧 API (get_pooled_db_connection / release_db_connection) 继续工作，
+    但连接实际来自 SQLAlchemy engine 池。
+
+    - conn.cursor() / conn.commit() / conn.rollback() / conn.closed
+      全部委托到内部 psycopg2 连接，行为与之前一致
+    - conn.close() 归还到 SA 池而非物理关闭
+    - cursor_factory 默认 RealDictCursor（与旧 ThreadedConnectionPool 兼容）
+    """
+
+    def __init__(self, fairy):
+        self._fairy = fairy
+        self._raw = fairy.dbapi_connection
+        # 保持与原 ThreadedConnectionPool 相同的默认游标类型
+        self._raw.cursor_factory = RealDictCursor
+
+    # -------- 显式委托 --------
+
+    def cursor(self, *args, **kwargs):
+        return self._raw.cursor(*args, **kwargs)
+
+    def commit(self):
+        return self._raw.commit()
+
+    def rollback(self):
+        return self._raw.rollback()
+
+    def close(self):
+        """归还到 SA 池；若 fairy 已失效则直接关闭底层连接"""
+        try:
+            self._fairy.close()
+        except Exception:
+            try:
+                if not getattr(self._raw, "closed", 0):
+                    self._raw.close()
+            except Exception:
+                pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    # -------- 透传 psycopg2 connection 的其他属性 --------
+
+    @property
+    def closed(self):
+        return getattr(self._raw, "closed", 0)
+
+    def __getattr__(self, name):
+        # 仅当实例本身找不到属性时走这里（避免与显式方法冲突）
+        return getattr(self._raw, name)
 
 
-def _health_check_enabled() -> bool:
-    """判断是否启用数据库连接健康检查"""
-    return getattr(settings, "DB_HEALTH_CHECK", "false").lower() == "true"
+@contextmanager
+def get_raw_db_connection():
+    """上下文管理器版本：从 SA engine 池借底层 psycopg2 连接。
+
+    推荐新代码使用此接口；旧代码继续使用 get_pooled_db_connection / release_db_connection。
+    """
+    from app.models.base import engine
+    fairy = engine.pool.connect()
+    raw = _PooledRawConnection(fairy)
+    try:
+        yield raw
+    finally:
+        raw.close()
+
+
+def _do_health_check(conn: _PooledRawConnection) -> None:
+    """用 SELECT 1 探活连接，失败时由调用方决定是否重试"""
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1")
+        cur.fetchone()
 
 
 def get_pooled_db_connection():
-    """从连接池获取连接，若连接已失效则重取一次（健康检查可配置）"""
+    """从 SQLAlchemy engine 池获取连接（健康检查可配置）。
+
+    返回 _PooledRawConnection：
+    - 接口兼容原 psycopg2 connection（cursor / commit / rollback / closed）
+    - close() 归还到 SA 池而非物理关闭
+    """
     import time
+    from app.models.base import engine
+
     wait_start = time.time()
-    pool = get_connection_pool()
     try:
-        # 设置获取连接的超时，避免连接池耗尽时无限阻塞
-        conn = pool.getconn(key=None)
+        fairy = engine.pool.connect()
     except Exception as e:
         wait_time = time.time() - wait_start
-        logger.error(f"从连接池获取连接失败（等待 {wait_time:.2f}s）: {e}")
+        logger.error(f"从引擎池获取连接失败（等待 {wait_time:.2f}s）: {e}")
         raise ConnectionError(f"数据库连接池繁忙，请稍后重试: {e}")
+
+    conn = _PooledRawConnection(fairy)
 
     if not _health_check_enabled():
         return conn
 
     # 通过轻量查询验证连接是否真正可用
     try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")
-            cur.fetchone()
+        _do_health_check(conn)
     except Exception as e:
         logger.warning(f"数据库连接健康检查失败，尝试重新获取连接: {e}")
-        # 探针失败时重试一次，避免无限循环
+        conn.close()
         try:
-            pool.putconn(conn, close=True)
-        except Exception as close_err:
-            logger.debug(f"回收已关闭连接时发生异常: {close_err}")
-            try:
-                if not getattr(conn, "closed", 0):
-                    conn.close()
-            except Exception:
-                pass
-        conn = pool.getconn(key=None)
-        try:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                cur.fetchone()
+            fairy = engine.pool.connect()
+            conn = _PooledRawConnection(fairy)
+            _do_health_check(conn)
         except Exception as retry_err:
             logger.error(f"重新获取的数据库连接仍无效: {retry_err}")
             try:
-                pool.putconn(conn, close=True)
+                conn.close()
             except Exception:
                 pass
             raise ConnectionError(f"无法获取有效的数据库连接: {retry_err}")
@@ -182,34 +233,29 @@ def get_pooled_db_connection():
     return conn
 
 
-def close_connection_pool():
-    """关闭 psycopg2 连接池，避免热重载残留进程继续占用数据库连接。"""
-    global _pool
-    if _pool is not None:
-        _pool.closeall()
-        _pool = None
-        logger.info("数据库连接池已关闭")
-
-
 def release_db_connection(conn):
-    """释放连接回池，失败时不影响业务"""
+    """释放连接回 SA 引擎池。
+
+    接受 _PooledRawConnection（新路径）或任何有 .close() 的对象（向后兼容）。
+    """
     if conn is None:
         return
-    global _pool
-    pool = _pool  # 读取一次，避免多线程竞态
-    if pool is None:
-        try:
-            if not getattr(conn, "closed", 0):
-                conn.close()
-        except Exception:
-            pass
-        return
     try:
-        pool.putconn(conn, key=None)
+        conn.close()
     except Exception as e:
-        logger.warning(f"释放数据库连接回池失败: {e}")
+        logger.warning(f"释放数据库连接失败: {e}")
         try:
             if not getattr(conn, "closed", 0):
                 conn.close()
         except Exception:
             pass
+
+
+def close_connection_pool():
+    """关闭 SQLAlchemy 引擎连接池（热重载时释放残留连接）。"""
+    from app.models.base import engine
+    try:
+        engine.dispose()
+        logger.info("数据库引擎连接池已释放")
+    except Exception as e:
+        logger.warning(f"数据库引擎连接池释放失败: {e}")
