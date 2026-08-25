@@ -82,8 +82,8 @@ export default function DegradationConfigPanel() {
   if (loading) {
     return (
       <div className="text-center py-16">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
-        <p className="mt-4 text-slate-400">{igT.loadDegradationLoading}</p>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
+        <p className="mt-4 text-ink-muted">{igT.loadDegradationLoading}</p>
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function DegradationConfigPanel() {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+        <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -100,8 +100,8 @@ export default function DegradationConfigPanel() {
         <div
           className={`px-4 py-3 rounded-lg ${
             message.type === 'success'
-              ? 'bg-green-500/10 border border-green-500 text-green-400'
-              : 'bg-red-500/10 border border-red-500 text-red-400'
+              ? 'bg-success/10 border border-success text-success'
+              : 'bg-danger/10 border border-danger text-danger'
           }`}
         >
           {message.text}
@@ -110,26 +110,26 @@ export default function DegradationConfigPanel() {
 
       {/* 当前状态 */}
       {status && (
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">{igT.currentDegradationStatus}</h3>
+        <div className="bg-surface-1 border border-border rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-ink-inverse mb-4">{igT.currentDegradationStatus}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-700 rounded-lg p-4">
-              <div className="text-slate-400 text-xs mb-1">{igT.degradationStatus}</div>
+            <div className="bg-surface-2 rounded-lg p-4">
+              <div className="text-ink-muted text-xs mb-1">{igT.degradationStatus}</div>
               <div
                 className={`text-lg font-bold ${
-                  status.is_degraded ? 'text-red-400' : 'text-green-400'
+                  status.is_degraded ? 'text-danger' : 'text-success'
                 }`}
               >
                 {status.is_degraded ? igT.degraded : igT.normal}
               </div>
             </div>
-            <div className="bg-slate-700 rounded-lg p-4">
-              <div className="text-slate-400 text-xs mb-1">{igT.failureCount}</div>
-              <div className="text-lg font-bold text-white">{status.failure_count}</div>
+            <div className="bg-surface-2 rounded-lg p-4">
+              <div className="text-ink-muted text-xs mb-1">{igT.failureCount}</div>
+              <div className="text-lg font-bold text-ink-inverse">{status.failure_count}</div>
             </div>
-            <div className="bg-slate-700 rounded-lg p-4">
-              <div className="text-slate-400 text-xs mb-1">{igT.degradedAt}</div>
-              <div className="text-sm text-white">
+            <div className="bg-surface-2 rounded-lg p-4">
+              <div className="text-ink-muted text-xs mb-1">{igT.degradedAt}</div>
+              <div className="text-sm text-ink-inverse">
                 {status.degraded_at
                   ? new Date(status.degraded_at).toLocaleString()
                   : '-'}
@@ -142,7 +142,7 @@ export default function DegradationConfigPanel() {
               <button
                 onClick={handleReset}
                 disabled={resetting}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-red-600 hover:bg-red-700 disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
               >
                 {resetting ? igT.resetting : igT.manualReset}
               </button>
@@ -152,8 +152,8 @@ export default function DegradationConfigPanel() {
       )}
 
       {/* 配置编辑 */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-white">{igT.degradationConfig}</h3>
+      <div className="bg-surface-1 border border-border rounded-lg p-6 space-y-4">
+        <h3 className="text-lg font-semibold text-ink-inverse">{igT.degradationConfig}</h3>
 
         <div className="flex items-center gap-3">
           <input
@@ -161,44 +161,44 @@ export default function DegradationConfigPanel() {
             id="enabled"
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
-            className="w-4 h-4 text-cyan-600 bg-slate-700 border-slate-600 rounded focus:ring-cyan-500"
+            className="w-4 h-4 text-cyan-600 bg-surface-2 border-border rounded focus:ring-accent"
           />
-          <label htmlFor="enabled" className="text-sm text-slate-300">
+          <label htmlFor="enabled" className="text-sm text-ink-muted">
             {igT.enableAutoDegradation}
           </label>
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">{igT.failureThreshold}</label>
+          <label className="block text-sm text-ink-muted mb-2">{igT.failureThreshold}</label>
           <input
             type="number"
             min="1"
             max="100"
             value={failureThreshold}
             onChange={(e) => setFailureThreshold(Number(e.target.value))}
-            className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
-          <p className="text-xs text-slate-500 mt-1">{igT.failureThresholdRange}</p>
+          <p className="text-xs text-ink-faint mt-1">{igT.failureThresholdRange}</p>
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-2">{igT.degradeDuration}</label>
+          <label className="block text-sm text-ink-muted mb-2">{igT.degradeDuration}</label>
           <input
             type="number"
             min="10"
             max="86400"
             value={degradeDurationSeconds}
             onChange={(e) => setDegradeDurationSeconds(Number(e.target.value))}
-            className="w-full bg-slate-700 border border-slate-600 text-white px-3 py-2 rounded focus:outline-none focus:border-cyan-500"
+            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
-          <p className="text-xs text-slate-500 mt-1">{igT.degradeDurationRange}</p>
+          <p className="text-xs text-ink-faint mt-1">{igT.degradeDurationRange}</p>
         </div>
 
         <div className="flex gap-3 pt-4">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-accent hover:bg-accent-hover disabled:bg-surface-3 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
           >
             {saving ? igT.saving : igT.saveConfig}
           </button>
