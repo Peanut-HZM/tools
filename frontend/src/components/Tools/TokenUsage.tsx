@@ -540,12 +540,12 @@ export default function TokenUsage() {
   }
 
   return (
-    <div className="min-h-0 overflow-y-auto bg-slate-950 p-6 text-slate-100">
+    <div className="min-h-0 overflow-y-auto bg-canvas p-6 text-ink">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-white">
+          <h1 className="text-2xl font-semibold tracking-normal text-ink-inverse">
             Token 消耗统计
-            <span className="ml-3 inline-flex items-center gap-1 text-sm font-normal text-slate-400">
+            <span className="ml-3 inline-flex items-center gap-1 text-sm font-normal text-ink-muted">
               <Database className="h-3.5 w-3.5" />
               按登录用户、设备和工具维度统计
             </span>
@@ -553,7 +553,7 @@ export default function TokenUsage() {
         </div>
 
         <div className="flex flex-nowrap items-center gap-2">
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-ink-muted">
             {formatDateTime(
               summary.data.sync_meta?.latest_record_at ||
               summary.data.sync_meta?.last_success_at
@@ -562,7 +562,7 @@ export default function TokenUsage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             title="刷新"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -570,7 +570,7 @@ export default function TokenUsage() {
           <button
             onClick={exportCSV}
             disabled={!details.data.items.length}
-            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             title="导出"
           >
             <Download className="h-4 w-4" />
@@ -578,7 +578,7 @@ export default function TokenUsage() {
           <button
             onClick={handleClearData}
             disabled={clearing}
-            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             title="清理"
           >
             {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -586,28 +586,28 @@ export default function TokenUsage() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="inline-flex h-8 flex-shrink-0 items-center justify-center gap-1 rounded-md border border-slate-700 px-2 text-xs text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 flex-shrink-0 items-center justify-center gap-1 rounded-md border border-border px-2 text-xs text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             title="ccusage 数据同步"
           >
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             {syncing ? '同步中...' : '同步数据'}
           </button>
           {syncError && (
-            <span className="inline-flex items-center text-xs text-red-400">{syncError}</span>
+            <span className="inline-flex items-center text-xs text-danger">{syncError}</span>
           )}
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 rounded-md border border-slate-800 bg-slate-900 p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="mb-5 grid gap-3 rounded-md border border-border bg-canvas p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">工具</span>
+          <span className="text-xs text-ink-muted">工具</span>
           <select
             value={selectedTool}
             onChange={event => {
               setSelectedTool(event.target.value);
               setSelectedModel('');
             }}
-            className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm"
+            className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm"
           >
             <option value="">全部工具</option>
             {toolOptions.map(option => (
@@ -617,8 +617,8 @@ export default function TokenUsage() {
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">模型</span>
-          <select value={selectedModel} onChange={event => setSelectedModel(event.target.value)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+          <span className="text-xs text-ink-muted">模型</span>
+          <select value={selectedModel} onChange={event => setSelectedModel(event.target.value)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
             <option value="">全部模型</option>
             {modelOptions.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -627,8 +627,8 @@ export default function TokenUsage() {
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">维度</span>
-          <select value={reportType} onChange={event => setReportType(event.target.value as TokenUsageReportType)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+          <span className="text-xs text-ink-muted">维度</span>
+          <select value={reportType} onChange={event => setReportType(event.target.value as TokenUsageReportType)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
             <option value="daily">按天</option>
             <option value="weekly">按周</option>
             <option value="monthly">按月</option>
@@ -636,8 +636,8 @@ export default function TokenUsage() {
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">时间范围</span>
-          <select value={days} onChange={event => setDays(Number(event.target.value))} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+          <span className="text-xs text-ink-muted">时间范围</span>
+          <select value={days} onChange={event => setDays(Number(event.target.value))} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
             {timeRangeOptions.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
@@ -645,9 +645,9 @@ export default function TokenUsage() {
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">设备</span>
+          <span className="text-xs text-ink-muted">设备</span>
           <div className="flex gap-1">
-            <select value={selectedDevice} onChange={event => setSelectedDevice(event.target.value)} className="h-9 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+            <select value={selectedDevice} onChange={event => setSelectedDevice(event.target.value)} className="h-9 min-w-0 flex-1 rounded-md border border-border bg-canvas px-2 text-sm">
               <option value="">全部设备</option>
               {devices.filter(device => !device.canonical_id).map(device => (
                 <option key={device.id} value={device.id}>{device.name}</option>
@@ -657,7 +657,7 @@ export default function TokenUsage() {
               onClick={handleRenameDevice}
               disabled={!selectedDevice}
               title="重命名设备"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Edit3 className="h-4 w-4" />
             </button>
@@ -665,7 +665,7 @@ export default function TokenUsage() {
               onClick={() => setDeviceManagerOpen(true)}
               disabled={!devices.length}
               title="管理设备"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -673,8 +673,8 @@ export default function TokenUsage() {
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">分组</span>
-          <select value={groupBy} onChange={event => setGroupBy(event.target.value as TokenUsageGroupBy)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+          <span className="text-xs text-ink-muted">分组</span>
+          <select value={groupBy} onChange={event => setGroupBy(event.target.value as TokenUsageGroupBy)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
             <option value="none">按日期汇总</option>
             <option value="device">按设备对比</option>
             <option value="tool">按工具对比</option>
@@ -683,8 +683,8 @@ export default function TokenUsage() {
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">排序</span>
-          <select value={sortBy} onChange={event => setSortBy(event.target.value as TokenUsageSortBy)} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+          <span className="text-xs text-ink-muted">排序</span>
+          <select value={sortBy} onChange={event => setSortBy(event.target.value as TokenUsageSortBy)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
             <option value="created_at">更新时间</option>
             <option value="date">日期</option>
             <option value="created_at">更新时间</option>
@@ -697,8 +697,8 @@ export default function TokenUsage() {
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs text-slate-400">图表</span>
-          <select value={chartType} onChange={event => setChartType(event.target.value as 'bar' | 'line')} className="h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm">
+          <span className="text-xs text-ink-muted">图表</span>
+          <select value={chartType} onChange={event => setChartType(event.target.value as 'bar' | 'line')} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
             <option value="bar">柱状图</option>
             <option value="line">折线图</option>
           </select>
@@ -707,8 +707,8 @@ export default function TokenUsage() {
 
       {(error || refreshError || refreshErrors.length > 0 || deviceError || pollError || summary.data.auto_expanded) && (
         <div className="mb-5 space-y-2">
-          {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
-          {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
+          {error && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+          {refreshError && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
           {refreshErrors.length > 0 && (
             <div className="space-y-2">
               {refreshErrors.map((err, idx) => (
@@ -736,7 +736,7 @@ export default function TokenUsage() {
             </div>
           )}
           {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{deviceError}</div>}
-          {pollError && <div className="rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-300">后台轮询失败：{pollError}</div>}
+          {pollError && <div className="rounded-md border border-border bg-canvas px-4 py-3 text-sm text-ink-muted">后台轮询失败：{pollError}</div>}
           {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
         </div>
       )}
@@ -749,12 +749,12 @@ export default function TokenUsage() {
           { label: '输入 Token', value: formatToken(summary.data.summary.total_input_tokens), icon: HardDrive },
           { label: '输出 Token', value: formatToken(summary.data.summary.total_output_tokens), icon: HardDrive },
         ].map(card => (
-          <div key={card.label} className="rounded-md border border-slate-800 bg-slate-900 p-4">
-            <div className="mb-2 flex items-center justify-between text-xs text-slate-400">
+          <div key={card.label} className="rounded-md border border-border bg-canvas p-4">
+            <div className="mb-2 flex items-center justify-between text-xs text-ink-muted">
               <span>{card.label}</span>
               <card.icon className="h-4 w-4" />
             </div>
-            <div className="text-xl font-semibold text-white">{card.value}</div>
+            <div className="text-xl font-semibold text-ink-inverse">{card.value}</div>
           </div>
         ))}
       </div>
@@ -796,10 +796,10 @@ export default function TokenUsage() {
         />
       </div>
 
-      <div className="mb-5 rounded-md border border-slate-800 bg-slate-900 p-4">
+      <div className="mb-5 rounded-md border border-border bg-canvas p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-medium text-white">{chartTitle}</h2>
-          {summary.loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
+          <h2 className="text-base font-medium text-ink-inverse">{chartTitle}</h2>
+          {summary.loading && <Loader2 className="h-4 w-4 animate-spin text-ink-muted" />}
         </div>
         <div className="h-80">
           {(groupBy === 'none' ? chartData : groupedData).length ? (
@@ -840,19 +840,19 @@ export default function TokenUsage() {
               </ComposedChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-slate-500">暂无图表数据</div>
+            <div className="flex h-full items-center justify-center text-sm text-ink-faint">暂无图表数据</div>
           )}
         </div>
       </div>
 
-      <div className="rounded-md border border-slate-800 bg-slate-900">
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-          <h2 className="text-base font-medium text-white">明细数据</h2>
-          <span className="text-xs text-slate-400">共 {details.data.total} 条</span>
+      <div className="rounded-md border border-border bg-canvas">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="text-base font-medium text-ink-inverse">明细数据</h2>
+          <span className="text-xs text-ink-muted">共 {details.data.total} 条</span>
         </div>
         <div className="overflow-auto">
           <table className="w-full min-w-[1040px] text-sm">
-            <thead className="bg-slate-950 text-xs text-slate-400">
+            <thead className="bg-canvas text-xs text-ink-muted">
               <tr>
                 <th className="px-4 py-3 text-left">日期</th>
                 {groupBy !== 'none' && <th className="px-4 py-3 text-left">分组</th>}
@@ -871,37 +871,37 @@ export default function TokenUsage() {
             <tbody>
               {!paginatedItems.length && !details.loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={groupBy === 'none' ? 11 : 12}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
+                  <td className="px-4 py-8 text-center text-ink-faint" colSpan={groupBy === 'none' ? 11 : 12}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
                 </tr>
               ) : paginatedItems.map((item, index) => (
-                <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-slate-800 hover:bg-slate-800/60">
-                  <td className="px-4 py-3 text-slate-200">{item.date}</td>
-                  {groupBy !== 'none' && <td className="max-w-[180px] truncate px-4 py-3 text-slate-300" title={getGroupLabel(item)}>{getGroupLabel(item)}</td>}
-                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-300" title={resolveDeviceName(item)}>
+                <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-border hover:bg-surface-1/60">
+                  <td className="px-4 py-3 text-ink">{item.date}</td>
+                  {groupBy !== 'none' && <td className="max-w-[180px] truncate px-4 py-3 text-ink-muted" title={getGroupLabel(item)}>{getGroupLabel(item)}</td>}
+                  <td className="max-w-[160px] truncate px-4 py-3 text-ink-muted" title={resolveDeviceName(item)}>
                     {resolveDeviceName(item)}
                   </td>
-                  <td className="max-w-[160px] truncate px-4 py-3 text-slate-400" title={getRowToolLabel(item)}>
+                  <td className="max-w-[160px] truncate px-4 py-3 text-ink-muted" title={getRowToolLabel(item)}>
                     {getRowToolLabel(item)}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-300">{formatToken(item.input_tokens)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-300">{formatToken(item.output_tokens)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-400">{formatToken(item.cache_creation_tokens)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-400">{formatToken(item.cache_read_tokens)}</td>
-                  <td className="px-4 py-3 text-right font-mono font-medium text-white">{formatToken(item.total_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.input_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.output_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.cache_creation_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.cache_read_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium text-ink-inverse">{formatToken(item.total_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(item.total_cost)}</td>
-                  <td className="max-w-[240px] truncate px-4 py-3 text-slate-400" title={formatModelsUsed(item.models_used)}>{formatModelsUsed(item.models_used)}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
+                  <td className="max-w-[240px] truncate px-4 py-3 text-ink-muted" title={formatModelsUsed(item.models_used)}>{formatModelsUsed(item.models_used)}</td>
+                  <td className="px-4 py-3 text-xs text-ink-faint">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-800 px-4 py-3 text-sm">
-            <span className="text-slate-400">第 {currentPage} / {totalPages} 页</span>
+          <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
+            <span className="text-ink-muted">第 {currentPage} / {totalPages} 页</span>
             <div className="flex gap-2">
-              <button onClick={() => setCurrentPage(page => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-md border border-slate-700 px-3 py-1.5 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">上一页</button>
-              <button onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-md border border-slate-700 px-3 py-1.5 text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">下一页</button>
+              <button onClick={() => setCurrentPage(page => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-md border border-border px-3 py-1.5 text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40">上一页</button>
+              <button onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-md border border-border px-3 py-1.5 text-ink-muted hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-40">下一页</button>
             </div>
           </div>
         )}
