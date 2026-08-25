@@ -370,19 +370,19 @@ export default function ToolManagement() {
   const hasActiveFilters = toolSearch || toolStatusFilter || toolCategoryFilter ||
     showPcFilter !== 'all' || showMobileFilter !== 'all' || requireLoginFilter !== 'all';
 
-  if (loading) return <div className="text-white">加载中...</div>;
+  if (loading) return <div className="text-ink-inverse">加载中...</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">后台管理</h2>
+        <h2 className="text-2xl font-bold text-ink-inverse">后台管理</h2>
         <div className="flex space-x-2">
           <button
             onClick={() => setActiveTab('tools')}
             className={`px-4 py-2 rounded-md transition-colors ${
               activeTab === 'tools'
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
             工具管理
@@ -391,8 +391,8 @@ export default function ToolManagement() {
             onClick={() => setActiveTab('categories')}
             className={`px-4 py-2 rounded-md transition-colors ${
               activeTab === 'categories'
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
             分类管理
@@ -405,40 +405,40 @@ export default function ToolManagement() {
           {/* 激活筛选提示 */}
           {hasActiveFilters && (
             <div className="flex items-center gap-2 mb-3 flex-wrap">
-              <span className="text-xs text-slate-500">已筛选:</span>
+              <span className="text-xs text-ink-faint">已筛选:</span>
               {toolSearch && (
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
                   搜索: {toolSearch}
                 </span>
               )}
               {toolStatusFilter && (
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
                   状态: {toolStatusFilter === 'online' ? '在线' : '离线'}
                 </span>
               )}
               {toolCategoryFilter && (
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
                   分类: {toolCategoryFilter}
                 </span>
               )}
               {showPcFilter !== 'all' && (
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
                   PC: {showPcFilter === 'true' ? '展示' : '隐藏'}
                 </span>
               )}
               {showMobileFilter !== 'all' && (
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
                   移动: {showMobileFilter === 'true' ? '展示' : '隐藏'}
                 </span>
               )}
               {requireLoginFilter !== 'all' && (
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
                   登录: {requireLoginFilter === 'true' ? '需登录' : '免登录'}
                 </span>
               )}
               <button
                 onClick={handleResetFilters}
-                className="text-xs text-red-400 hover:text-red-300 ml-2 transition-colors cursor-pointer"
+                className="text-xs text-danger hover:text-red-300 ml-2 transition-colors cursor-pointer"
               >
                 <i className="fas fa-times-circle mr-1"></i>重置
               </button>
@@ -447,31 +447,31 @@ export default function ToolManagement() {
 
           {/* 批量操作栏 */}
           {selectedToolIds.size > 0 && (
-            <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+            <div className="bg-accent/10 border border-blue-500/30 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-sm text-blue-300">
                   已选择 <strong className="text-blue-200">{selectedToolIds.size}</strong> 个工具
                 </span>
-                <button onClick={clearSelection} className="text-xs text-slate-400 hover:text-slate-300 cursor-pointer">
+                <button onClick={clearSelection} className="text-xs text-ink-muted hover:text-ink-muted cursor-pointer">
                   取消选择
                 </button>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleBatchEnable}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-sm rounded-md transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
                   <i className="fas fa-check-circle mr-1"></i>批量启用
                 </button>
                 <button
                   onClick={handleBatchDisable}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-md transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
                   <i className="fas fa-pause-circle mr-1"></i>批量停用
                 </button>
                 <button
                   onClick={handleBatchDelete}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm rounded-md transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
                   <i className="fas fa-trash-alt mr-1"></i>批量删除
                 </button>
@@ -480,118 +480,118 @@ export default function ToolManagement() {
           )}
 
           {/* 筛选工具栏 */}
-          <div className="bg-slate-800/50 p-3 rounded-xl mb-4 border border-slate-700/50">
+          <div className="bg-surface-1/50 p-3 rounded-xl mb-4 border border-border/50">
             <div className="flex flex-wrap gap-2 items-center">
               {/* 搜索框 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 min-w-[200px] flex-1 max-w-[320px] transition-colors duration-200 ${toolSearch ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
-                <i className="fas fa-search text-slate-500 text-xs"></i>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 min-w-[200px] flex-1 max-w-[320px] transition-colors duration-200 ${toolSearch ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+                <i className="fas fa-search text-ink-faint text-xs"></i>
                 <input
                   type="text"
                   placeholder="搜索名称/描述..."
                   value={toolSearch}
                   onChange={(e) => { setToolSearch(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-white text-sm outline-none w-full placeholder-slate-500"
+                  className="bg-transparent text-ink-inverse text-sm outline-none w-full placeholder-slate-500"
                 />
               </div>
 
               {/* 状态筛选 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolStatusFilter ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
-                <i className="fas fa-circle-dot text-slate-500 text-xs"></i>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolStatusFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+                <i className="fas fa-circle-dot text-ink-faint text-xs"></i>
                 <select
                   value={toolStatusFilter}
                   onChange={(e) => { setToolStatusFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer"
+                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer"
                 >
-                  <option value="" className="bg-slate-800">全部状态</option>
-                  <option value="online" className="bg-slate-800">在线</option>
-                  <option value="offline" className="bg-slate-800">离线</option>
+                  <option value="" className="bg-surface-1">全部状态</option>
+                  <option value="online" className="bg-surface-1">在线</option>
+                  <option value="offline" className="bg-surface-1">离线</option>
                 </select>
               </div>
 
               {/* 分类筛选 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolCategoryFilter ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
-                <i className="fas fa-folder text-slate-500 text-xs"></i>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolCategoryFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+                <i className="fas fa-folder text-ink-faint text-xs"></i>
                 <select
                   value={toolCategoryFilter}
                   onChange={(e) => { setToolCategoryFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer"
+                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer"
                 >
-                  <option value="" className="bg-slate-800">全部分类</option>
+                  <option value="" className="bg-surface-1">全部分类</option>
                   {categories.map(cat => (
-                    <option key={cat.id} value={cat.name} className="bg-slate-800">{cat.name}</option>
+                    <option key={cat.id} value={cat.name} className="bg-surface-1">{cat.name}</option>
                   ))}
                 </select>
               </div>
 
               {/* 排序 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'usage_count' || toolSortOrder !== 'desc') ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
-                <i className="fas fa-arrow-down-a-z text-slate-500 text-xs"></i>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'usage_count' || toolSortOrder !== 'desc') ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+                <i className="fas fa-arrow-down-a-z text-ink-faint text-xs"></i>
                 <select
                   value={`${toolSortBy}-${toolSortOrder}`}
                   onChange={(e) => { const [by, order] = e.target.value.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}
-                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer"
+                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer"
                 >
-                  <option value="title-asc" className="bg-slate-800">名称 A-Z</option>
-                  <option value="title-desc" className="bg-slate-800">名称 Z-A</option>
-                  <option value="rating-desc" className="bg-slate-800">评分 高→低</option>
-                  <option value="rating-asc" className="bg-slate-800">评分 低→高</option>
-                  <option value="usage_count-desc" className="bg-slate-800">使用次数 多→少</option>
-                  <option value="usage_count-asc" className="bg-slate-800">使用次数 少→多</option>
-                  <option value="created_at-desc" className="bg-slate-800">最新创建</option>
-                  <option value="created_at-asc" className="bg-slate-800">最早创建</option>
+                  <option value="title-asc" className="bg-surface-1">名称 A-Z</option>
+                  <option value="title-desc" className="bg-surface-1">名称 Z-A</option>
+                  <option value="rating-desc" className="bg-surface-1">评分 高→低</option>
+                  <option value="rating-asc" className="bg-surface-1">评分 低→高</option>
+                  <option value="usage_count-desc" className="bg-surface-1">使用次数 多→少</option>
+                  <option value="usage_count-asc" className="bg-surface-1">使用次数 少→多</option>
+                  <option value="created_at-desc" className="bg-surface-1">最新创建</option>
+                  <option value="created_at-asc" className="bg-surface-1">最早创建</option>
                 </select>
               </div>
 
               {/* PC 展示筛选 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showPcFilter !== 'all' ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
-                <i className="fas fa-desktop text-slate-500 text-xs"></i>
-                <span className="text-xs text-slate-400">PC</span>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showPcFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+                <i className="fas fa-desktop text-ink-faint text-xs"></i>
+                <span className="text-xs text-ink-muted">PC</span>
                 <select
                   value={showPcFilter}
                   onChange={(e) => { setShowPcFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
+                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
                 >
-                  <option value="all" className="bg-slate-800">全部</option>
-                  <option value="true" className="bg-slate-800">展示</option>
-                  <option value="false" className="bg-slate-800">隐藏</option>
+                  <option value="all" className="bg-surface-1">全部</option>
+                  <option value="true" className="bg-surface-1">展示</option>
+                  <option value="false" className="bg-surface-1">隐藏</option>
                 </select>
               </div>
 
               {/* 移动端展示筛选 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showMobileFilter !== 'all' ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
-                <i className="fas fa-mobile text-slate-500 text-xs"></i>
-                <span className="text-xs text-slate-400">移动</span>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showMobileFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+                <i className="fas fa-mobile text-ink-faint text-xs"></i>
+                <span className="text-xs text-ink-muted">移动</span>
                 <select
                   value={showMobileFilter}
                   onChange={(e) => { setShowMobileFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
+                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
                 >
-                  <option value="all" className="bg-slate-800">全部</option>
-                  <option value="true" className="bg-slate-800">展示</option>
-                  <option value="false" className="bg-slate-800">隐藏</option>
+                  <option value="all" className="bg-surface-1">全部</option>
+                  <option value="true" className="bg-surface-1">展示</option>
+                  <option value="false" className="bg-surface-1">隐藏</option>
                 </select>
               </div>
 
               {/* 登录要求筛选 */}
-              <div className={`flex items-center bg-slate-800 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${requireLoginFilter !== 'all' ? 'border-blue-500' : 'border-slate-700 hover:border-slate-600'}`}>
-                <i className="fas fa-lock text-slate-500 text-xs"></i>
-                <span className="text-xs text-slate-400">登录</span>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${requireLoginFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+                <i className="fas fa-lock text-ink-faint text-xs"></i>
+                <span className="text-xs text-ink-muted">登录</span>
                 <select
                   value={requireLoginFilter}
                   onChange={(e) => { setRequireLoginFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-white text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
+                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
                 >
-                  <option value="all" className="bg-slate-800">全部</option>
-                  <option value="true" className="bg-slate-800">需登录</option>
-                  <option value="false" className="bg-slate-800">免登录</option>
+                  <option value="all" className="bg-surface-1">全部</option>
+                  <option value="true" className="bg-surface-1">需登录</option>
+                  <option value="false" className="bg-surface-1">免登录</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-          <table className="w-full text-left text-slate-300">
-            <thead className="bg-slate-700 text-slate-100 uppercase text-xs">
+          <table className="w-full text-left text-ink-muted">
+            <thead className="bg-surface-2 text-ink uppercase text-xs">
               <tr>
                 <th className="px-6 py-3 w-[40px]">
                   <input
@@ -603,11 +603,11 @@ export default function ToolManagement() {
                   <label className="flex items-center justify-center cursor-pointer">
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                       tools.length > 0 && selectedToolIds.size === tools.length
-                        ? 'bg-blue-500 border-blue-500'
+                        ? 'bg-accent border-blue-500'
                         : 'border-slate-500 hover:border-slate-400'
                     }`}>
                       {tools.length > 0 && selectedToolIds.size === tools.length && (
-                        <i className="fas fa-check text-white text-[10px]"></i>
+                        <i className="fas fa-check text-ink-inverse text-[10px]"></i>
                       )}
                     </div>
                   </label>
@@ -622,9 +622,9 @@ export default function ToolManagement() {
                 <th className="px-6 py-3 w-[80px]">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-border">
               {tools.map((tool) => (
-                <tr key={tool.id} className={`hover:bg-slate-700/50 ${selectedToolIds.has(tool.id) ? 'bg-blue-600/5' : ''}`}>
+                <tr key={tool.id} className={`hover:bg-surface-2/50 ${selectedToolIds.has(tool.id) ? 'bg-accent/5' : ''}`}>
                   <td className="px-6 py-4">
                     <input
                       type="checkbox"
@@ -635,24 +635,24 @@ export default function ToolManagement() {
                     <label className="flex items-center justify-center cursor-pointer">
                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                         selectedToolIds.has(tool.id)
-                          ? 'bg-blue-500 border-blue-500'
+                          ? 'bg-accent border-blue-500'
                           : 'border-slate-500 hover:border-slate-400'
                       }`}>
                         {selectedToolIds.has(tool.id) && (
-                          <i className="fas fa-check text-white text-[10px]"></i>
+                          <i className="fas fa-check text-ink-inverse text-[10px]"></i>
                         )}
                       </div>
                     </label>
                   </td>
                   <td className="px-6 py-4 flex items-center">
                     {tool.custom_icon_url ? (
-                      <img src={tool.custom_icon_url} alt={tool.title} className="w-8 h-8 rounded object-contain mr-3 bg-slate-600" />
+                      <img src={tool.custom_icon_url} alt={tool.title} className="w-8 h-8 rounded object-contain mr-3 bg-surface-3" />
                     ) : (
-                      <i className={`fa-solid ${tool.icon} w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-white mr-3`}></i>
+                      <i className={`fa-solid ${tool.icon} w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-ink-inverse mr-3`}></i>
                     )}
                     <div>
-                      <div className="font-medium text-white">{tool.title}</div>
-                      <div className="text-xs text-slate-500">{tool.id}</div>
+                      <div className="font-medium text-ink-inverse">{tool.title}</div>
+                      <div className="text-xs text-ink-faint">{tool.id}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4">{tool.category}</td>
@@ -662,8 +662,8 @@ export default function ToolManagement() {
                       parseInt(tool.usageCount) >= 1000
                         ? 'bg-green-500/10 text-green-400 border border-green-500/20'
                         : parseInt(tool.usageCount) >= 100
-                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                          : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                          ? 'bg-accent-info/10 text-accent-info border border-blue-500/20'
+                          : 'bg-slate-500/10 text-ink-muted border border-slate-500/20'
                     }`}>
                       {parseInt(tool.usageCount) >= 1000
                         ? (parseInt(tool.usageCount) / 1000).toFixed(1) + 'K'
@@ -679,7 +679,7 @@ export default function ToolManagement() {
                         onChange={() => handleStatusChange(tool.id, tool.status)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                     </label>
                   </td>
 
@@ -692,7 +692,7 @@ export default function ToolManagement() {
                         onChange={() => handlePcToggle(tool.id, tool.show_pc !== false)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
                     </label>
                   </td>
 
@@ -705,7 +705,7 @@ export default function ToolManagement() {
                         onChange={() => handleMobileToggle(tool.id, tool.show_mobile !== false)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
                     </label>
                   </td>
 
@@ -718,7 +718,7 @@ export default function ToolManagement() {
                         onChange={() => handleLoginToggle(tool.id, tool.require_login ?? false)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
                     </label>
                   </td>
 
@@ -727,7 +727,7 @@ export default function ToolManagement() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEditTool(tool)}
-                        className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
+                        className="text-accent-info hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
                         title="编辑"
                       >
                         <i className="fas fa-edit"></i>
@@ -745,7 +745,7 @@ export default function ToolManagement() {
                       </button>
                       <button
                         onClick={() => handleDeleteTool(tool.id)}
-                        className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors cursor-pointer"
+                        className="text-danger hover:text-red-300 text-sm font-medium transition-colors cursor-pointer"
                         title="删除"
                       >
                         <i className="fas fa-trash-alt"></i>
@@ -759,7 +759,7 @@ export default function ToolManagement() {
           </div>
           {/* 分页控件 */}
           {toolTotalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 text-sm text-slate-400">
+            <div className="flex items-center justify-between mt-4 text-sm text-ink-muted">
               <div className="flex items-center gap-3">
                 <span>共 {toolTotal} 条记录，第 {toolPage}/{toolTotalPages} 页</span>
                 <div className="flex items-center gap-1">
@@ -767,7 +767,7 @@ export default function ToolManagement() {
                   <select
                     value={toolPageSize}
                     onChange={(e) => { setToolPageSize(Number(e.target.value)); setToolPage(1); }}
-                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    className="bg-surface-1 border border-border rounded px-2 py-1 text-xs text-ink-inverse focus:outline-none focus:border-blue-500 cursor-pointer"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -779,14 +779,14 @@ export default function ToolManagement() {
                 <button
                   onClick={() => setToolPage(1)}
                   disabled={toolPage === 1}
-                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                  className="px-3 py-1 rounded bg-surface-2 disabled:opacity-50 hover:bg-surface-3"
                 >
                   首页
                 </button>
                 <button
                   onClick={() => setToolPage(p => Math.max(1, p - 1))}
                   disabled={toolPage === 1}
-                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                  className="px-3 py-1 rounded bg-surface-2 disabled:opacity-50 hover:bg-surface-3"
                 >
                   上一页
                 </button>
@@ -798,7 +798,7 @@ export default function ToolManagement() {
                     <button
                       key={pageNum}
                       onClick={() => setToolPage(pageNum)}
-                      className={`px-3 py-1 rounded ${pageNum === toolPage ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}
+                      className={`px-3 py-1 rounded ${pageNum === toolPage ? 'bg-accent text-white' : 'bg-surface-2 hover:bg-surface-3'}`}
                     >
                       {pageNum}
                     </button>
@@ -807,14 +807,14 @@ export default function ToolManagement() {
                 <button
                   onClick={() => setToolPage(p => Math.min(toolTotalPages, p + 1))}
                   disabled={toolPage >= toolTotalPages}
-                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                  className="px-3 py-1 rounded bg-surface-2 disabled:opacity-50 hover:bg-surface-3"
                 >
                   下一页
                 </button>
                 <button
                   onClick={() => setToolPage(toolTotalPages)}
                   disabled={toolPage >= toolTotalPages}
-                  className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50 hover:bg-slate-600"
+                  className="px-3 py-1 rounded bg-surface-2 disabled:opacity-50 hover:bg-surface-3"
                 >
                   末页
                 </button>
@@ -822,43 +822,43 @@ export default function ToolManagement() {
             </div>
           )}
           {toolTotalPages <= 1 && toolTotal > 0 && (
-            <div className="mt-4 text-sm text-slate-400">共 {toolTotal} 条记录</div>
+            <div className="mt-4 text-sm text-ink-muted">共 {toolTotal} 条记录</div>
           )}
 
         {/* 编辑工具弹窗 */}
         {isModalOpen && editingTool && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={handleCloseModal}>
-            <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-surface-1 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
               <div className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-6">编辑工具：{editingTool.title}</h3>
+                <h3 className="text-xl font-semibold text-ink-inverse mb-6">编辑工具：{editingTool.title}</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-400 mb-1">工具名称</label>
+                    <label className="block text-sm font-medium text-ink-muted mb-1">工具名称</label>
                     <input
                       type="text"
                       value={toolForm.title || ''}
                       onChange={(e) => setToolForm({...toolForm, title: e.target.value})}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-400 mb-1">描述</label>
+                    <label className="block text-sm font-medium text-ink-muted mb-1">描述</label>
                     <textarea
                       value={toolForm.description || ''}
                       onChange={(e) => setToolForm({...toolForm, description: e.target.value})}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                       rows={3}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">分类</label>
+                    <label className="block text-sm font-medium text-ink-muted mb-1">分类</label>
                     <select
                       value={toolForm.category || ''}
                       onChange={(e) => setToolForm({...toolForm, category: e.target.value})}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                     >
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -867,37 +867,37 @@ export default function ToolManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">图标颜色</label>
+                    <label className="block text-sm font-medium text-ink-muted mb-1">图标颜色</label>
                     <input
                       type="text"
                       value={toolForm.iconColor || ''}
                       onChange={(e) => setToolForm({...toolForm, iconColor: e.target.value})}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   {/* 图标上传区域 */}
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-400 mb-1">自定义图标</label>
-                    <div className="bg-slate-700 border border-slate-600 rounded p-4">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">自定义图标</label>
+                    <div className="bg-surface-2 border border-border rounded p-4">
                       {iconPreview ? (
                         <div className="flex items-center space-x-4">
-                          <img src={iconPreview} alt="图标预览" className="w-16 h-16 rounded object-contain bg-slate-600" />
+                          <img src={iconPreview} alt="图标预览" className="w-16 h-16 rounded object-contain bg-surface-3" />
                           <div className="flex-1">
-                            <p className="text-sm text-slate-300">已上传自定义图标</p>
+                            <p className="text-sm text-ink-muted">已上传自定义图标</p>
                             <button
                               onClick={handleDeleteIcon}
-                              className="text-xs text-red-400 hover:text-red-300 mt-1"
+                              className="text-xs text-danger hover:text-red-300 mt-1"
                             >
                               删除自定义图标（恢复默认）
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-400 mb-2">当前使用默认 FontAwesome 图标</p>
+                        <p className="text-sm text-ink-muted mb-2">当前使用默认 FontAwesome 图标</p>
                       )}
                       <div className="mt-3">
-                        <label className="inline-block px-4 py-2 bg-blue-600 text-white text-sm rounded cursor-pointer hover:bg-blue-700">
+                        <label className="inline-block px-4 py-2 bg-accent text-white text-sm rounded cursor-pointer hover:bg-accent-hover">
                           选择文件
                           <input
                             type="file"
@@ -906,15 +906,15 @@ export default function ToolManagement() {
                             className="hidden"
                           />
                         </label>
-                        <span className="text-xs text-slate-500 ml-2">JPG/PNG/SVG，≤2MB</span>
+                        <span className="text-xs text-ink-faint ml-2">JPG/PNG/SVG，≤2MB</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Toggle 开关 */}
                   <div className="col-span-2 grid grid-cols-4 gap-3">
-                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
-                      <span className="text-sm text-slate-300">PC 端展示</span>
+                    <div className="flex items-center justify-between bg-surface-2 rounded p-3">
+                      <span className="text-sm text-ink-muted">PC 端展示</span>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
@@ -922,12 +922,12 @@ export default function ToolManagement() {
                           onChange={(e) => setToolForm({...toolForm, show_pc: e.target.checked})}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                       </label>
                     </div>
 
-                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
-                      <span className="text-sm text-slate-300">移动端展示</span>
+                    <div className="flex items-center justify-between bg-surface-2 rounded p-3">
+                      <span className="text-sm text-ink-muted">移动端展示</span>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
@@ -935,12 +935,12 @@ export default function ToolManagement() {
                           onChange={(e) => setToolForm({...toolForm, show_mobile: e.target.checked})}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                       </label>
                     </div>
 
-                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
-                      <span className="text-sm text-slate-300">上线状态</span>
+                    <div className="flex items-center justify-between bg-surface-2 rounded p-3">
+                      <span className="text-sm text-ink-muted">上线状态</span>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
@@ -948,12 +948,12 @@ export default function ToolManagement() {
                           onChange={(e) => setToolForm({...toolForm, status: e.target.checked ? 'online' : 'offline'})}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                       </label>
                     </div>
 
-                    <div className="flex items-center justify-between bg-slate-700 rounded p-3">
-                      <span className="text-sm text-slate-300">需要登录</span>
+                    <div className="flex items-center justify-between bg-surface-2 rounded p-3">
+                      <span className="text-sm text-ink-muted">需要登录</span>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
@@ -961,23 +961,23 @@ export default function ToolManagement() {
                           onChange={(e) => setToolForm({...toolForm, require_login: e.target.checked})}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-700">
+                <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-border">
                   <button
                     onClick={handleCloseModal}
-                    className="px-6 py-2 bg-slate-600 text-white rounded hover:bg-slate-500 transition-colors"
+                    className="px-6 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-slate-500 transition-colors"
                   >
                     取消
                   </button>
                   <button
                     onClick={handleSaveTool}
                     disabled={saving}
-                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    className="px-6 py-2 bg-accent text-white rounded hover:bg-accent-hover transition-colors disabled:opacity-50"
                   >
                     {saving ? '保存中...' : '保存'}
                   </button>
@@ -989,47 +989,47 @@ export default function ToolManagement() {
         </div>
       ) : (
         <div>
-          <div className="bg-slate-800 p-6 rounded-lg mb-8">
-            <h3 className="text-xl font-semibold text-white mb-4">
+          <div className="bg-surface-1 p-6 rounded-lg mb-8">
+            <h3 className="text-xl font-semibold text-ink-inverse mb-4">
               {isEditingCategory ? '编辑分类' : '新建分类'}
             </h3>
             <form onSubmit={handleCategorySubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">分类名称</label>
+                  <label className="block text-sm font-medium text-ink-muted mb-1">分类名称</label>
                   <input
                     type="text"
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">排序 (越小越前)</label>
+                  <label className="block text-sm font-medium text-ink-muted mb-1">排序 (越小越前)</label>
                   <input
                     type="number"
                     value={categoryForm.sort_order}
                     onChange={(e) => setCategoryForm({...categoryForm, sort_order: parseInt(e.target.value) || 0})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">描述</label>
+                  <label className="block text-sm font-medium text-ink-muted mb-1">描述</label>
                   <input
                     type="text"
                     value={categoryForm.description || ''}
                     onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">图标 (FontAwesome)</label>
+                  <label className="block text-sm font-medium text-ink-muted mb-1">图标 (FontAwesome)</label>
                   <input
                     type="text"
                     value={categoryForm.icon || ''}
                     onChange={(e) => setCategoryForm({...categoryForm, icon: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
                     placeholder="fa-folder"
                   />
                 </div>
@@ -1037,7 +1037,7 @@ export default function ToolManagement() {
               <div className="flex space-x-3">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover transition-colors"
                 >
                   {isEditingCategory ? '更新' : '创建'}
                 </button>
@@ -1045,7 +1045,7 @@ export default function ToolManagement() {
                   <button
                     type="button"
                     onClick={handleCancelCategoryEdit}
-                    className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-500 transition-colors"
+                    className="px-4 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-slate-500 transition-colors"
                   >
                     取消
                   </button>
@@ -1055,8 +1055,8 @@ export default function ToolManagement() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-slate-300">
-              <thead className="bg-slate-700 text-slate-100 uppercase text-xs">
+            <table className="w-full text-left text-ink-muted">
+              <thead className="bg-surface-2 text-ink uppercase text-xs">
                 <tr>
                   <th className="px-6 py-3">分类名称</th>
                   <th className="px-6 py-3">使用计数</th>
@@ -1065,31 +1065,31 @@ export default function ToolManagement() {
                   <th className="px-6 py-3">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-border">
                 {categories.map((cat) => (
-                  <tr key={cat.id} className="hover:bg-slate-700/50">
+                  <tr key={cat.id} className="hover:bg-surface-2/50">
                     <td className="px-6 py-4 flex items-center">
-                       {cat.icon && <i className={`fa-solid ${cat.icon} mr-2 text-slate-400`}></i>}
-                       <span className="font-medium text-white">{cat.name}</span>
+                       {cat.icon && <i className={`fa-solid ${cat.icon} mr-2 text-ink-muted`}></i>}
+                       <span className="font-medium text-ink-inverse">{cat.name}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cat.tool_count ? 'text-green-400' : 'text-slate-500'}>
+                      <span className={cat.tool_count ? 'text-green-400' : 'text-ink-faint'}>
                         {cat.tool_count || 0}
                       </span>
-                      {!cat.tool_count && <span className="ml-2 text-xs text-slate-500">未使用</span>}
+                      {!cat.tool_count && <span className="ml-2 text-xs text-ink-faint">未使用</span>}
                     </td>
                     <td className="px-6 py-4">{cat.sort_order}</td>
-                    <td className="px-6 py-4 text-sm text-slate-400">{cat.description || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-ink-muted">{cat.description || '-'}</td>
                     <td className="px-6 py-4 flex space-x-3">
                       <button
                         onClick={() => handleEditCategory(cat)}
-                        className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                        className="text-accent-info hover:text-blue-300 text-sm font-medium"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDeleteCategory(cat.id)}
-                        className="text-red-400 hover:text-red-300 text-sm font-medium"
+                        className="text-danger hover:text-red-300 text-sm font-medium"
                       >
                         删除
                       </button>
