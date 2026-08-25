@@ -1,4 +1,19 @@
-"""
+"""[DEPRECATED] 已被 LLMQuotaService 替代 — 此文件保留 1 周后由 Task 11 删除。
+
+迁移说明见 docs/superpowers/specs/2026-08-24-llm-user-quota-design.md
+
+调用方迁移指引：
+  ImageGenQuotaService.check_and_reserve(user_id, operation, n)
+    → LLMQuotaService.check_and_reserve(user_id, "image", planned_tokens)  # 返回 reservation_id
+
+  ImageGenQuotaService.commit()
+    → LLMQuotaService.record_usage(user_id, "image", actual_tokens, reservation_id, model_used)
+
+  ImageGenQuotaService.release()
+    → LLMQuotaService.rollback(reservation_id)
+
+管理员方法（grant/revoke/reset_counters/list_users/count_users/get_user_quota）也请改用 LLMQuotaService。
+
 Task 4.1 — QuotaService（并发预留 + 重置日期逻辑）
 
 提供图像生成功能的配额管理：
@@ -11,8 +26,10 @@ Task 4.1 — QuotaService（并发预留 + 重置日期逻辑）
 import logging
 import threading
 import uuid as _uuid_mod
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import wraps
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -21,6 +38,26 @@ from app.core.exceptions import QuotaExceeded
 from app.models.image_generation_models import ImageGenQuota
 
 logger = logging.getLogger(__name__)
+
+
+def _deprecated(reason: str):
+    """内部 @deprecated 装饰器：调用旧方法时发 DeprecationWarning。
+
+    由于 Python 3.13 之前 stdlib 没有 @deprecated，这里手写一个等价版本，
+    行为一致（首次调用触发，每条 (func, source_line) 只警告一次）。
+    """
+    def deco(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(
+                f"ImageGenQuotaService.{func.__name__} 已废弃，请改用 LLMQuotaService。"
+                f"原因：{reason}",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return func(*args, **kwargs)
+        return wrapper
+    return deco
 
 
 @dataclass
@@ -125,6 +162,7 @@ class ImageGenQuotaService:
     # 用户侧（每次生成前后调用）
     # ------------------------------------------------------------------
 
+    @_deprecated("调用方迁移到 LLMQuotaService.check_and_reserve(user_id, category, planned_tokens)")
     def check_and_reserve(self, user_id: str, operation: str, n: int = 1) -> None:
         """
         校验配额并预留。成功时 daily_used/monthly_used 已 +n。
@@ -198,14 +236,17 @@ class ImageGenQuotaService:
             quota.monthly_used, quota.monthly_limit,
         )
 
+    @_deprecated("已无意义——LLMQuotaService 在 record_usage 内部提交")
     def commit(self) -> None:
         """预留成功后的事务提交"""
         self.db.commit()
 
+    @_deprecated("改用 LLMQuotaService.rollback(reservation_id)")
     def release(self) -> None:
         """生成失败/取消时的事务回滚（释放预留）"""
         self.db.rollback()
 
+    @_deprecated("改用 LLMQuotaService.get_user_quota(user_id)，返回的 QuotaInfo 字段已扩展")
     def get_user_quota(self, user_id: str) -> Optional[QuotaInfo]:
         """查看当前用户的配额信息（含 remaining、is_valid）"""
         quota = self.db.query(ImageGenQuota).filter(ImageGenQuota.user_id == user_id).first()
@@ -217,6 +258,7 @@ class ImageGenQuotaService:
     # 管理员侧
     # ------------------------------------------------------------------
 
+    @_deprecated("改用 LLMQuotaService.grant(user_id, quota_mode, ...)，新增 token/time 模式")
     def grant(
         self,
         user_id: str,
@@ -265,6 +307,7 @@ class ImageGenQuotaService:
         logger.info("配额 grant: user=%s daily=%d monthly=%d", user_id, daily_limit, monthly_limit)
         return _quota_to_info(quota)
 
+    @_deprecated("改用 LLMQuotaService.revoke(user_id)")
     def revoke(self, user_id: str) -> None:
         """撤销配额（delete row）"""
         quota = self.db.query(ImageGenQuota).filter(ImageGenQuota.user_id == user_id).first()
@@ -273,6 +316,7 @@ class ImageGenQuotaService:
             self.db.commit()
             logger.info("配额 revoke: user=%s", user_id)
 
+    @_deprecated("改用 LLMQuotaService.reset_counters(user_id)")
     def reset_counters(self, user_id: str) -> None:
         """把 daily_used/monthly_used 归零"""
         quota = self.db.query(ImageGenQuota).filter(ImageGenQuota.user_id == user_id).first()
@@ -282,6 +326,7 @@ class ImageGenQuotaService:
             self.db.commit()
             logger.info("配额 reset_counters: user=%s", user_id)
 
+    @_deprecated("改用 LLMQuotaService.list_users(skip, limit, search)")
     def list_users(
         self, skip: int = 0, limit: int = 50, search: Optional[str] = None
     ) -> List[QuotaInfo]:
@@ -298,6 +343,7 @@ class ImageGenQuotaService:
         quotas = q.order_by(ImageGenQuota.user_id).offset(skip).limit(limit).all()
         return [_quota_to_info(q) for q in quotas]
 
+    @_deprecated("改用 LLMQuotaService.count_users(search)")
     def count_users(self, search: Optional[str] = None) -> int:
         """统计有配额的用户数量（与 list_users 同语义 search）"""
         q = self.db.query(ImageGenQuota)

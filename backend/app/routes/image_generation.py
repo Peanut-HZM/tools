@@ -28,7 +28,7 @@ from app.services.dify_client import DifyClient
 from app.services.dify_config_service import DifyConfigService
 from app.services.image_gen.backends import BackendNotConfiguredError
 from app.services.image_gen_history_service import ImageGenHistoryService
-from app.services.image_gen_quota_service import ImageGenQuotaService
+from app.services.llm_quota_service import LLMQuotaService
 from app.services.image_generation_service import ImageGenService
 from app.services.oss_service import OssService
 from app.utils.image_gen_constants import (
@@ -61,9 +61,9 @@ def get_history_service(
 
 def get_quota_service(
     db: Session = Depends(get_db),
-) -> ImageGenQuotaService:
-    """组装 ImageGenQuotaService"""
-    return ImageGenQuotaService(db=db)
+) -> LLMQuotaService:
+    """组装 LLMQuotaService（Task 8 起取代 ImageGenQuotaService）"""
+    return LLMQuotaService(db=db)
 
 
 def get_image_gen_service(
@@ -77,7 +77,7 @@ def get_image_gen_service(
     """
     config_svc = DifyConfigService(db=db)
     dify_client = DifyClient(config_svc=config_svc)
-    quota_svc = ImageGenQuotaService(db=db)
+    quota_svc = LLMQuotaService(db=db)
     history_svc = ImageGenHistoryService(db=db, oss_svc=_get_oss_service())
     oss_svc = _get_oss_service()
     return ImageGenService(
@@ -445,7 +445,7 @@ async def delete_history(
 @router.get("/quota/me")
 async def get_my_quota(
     current_user: dict = Depends(get_current_user),
-    quota_svc: ImageGenQuotaService = Depends(get_quota_service),
+    quota_svc: LLMQuotaService = Depends(get_quota_service),
 ):
     """查看当前用户的图像生成配额。"""
     user_id = _extract_user_id(current_user)

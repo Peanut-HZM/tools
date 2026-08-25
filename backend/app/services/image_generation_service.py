@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import DifyError, QuotaExceeded, ServiceDegraded
 from app.services.dify_client import DifyClient, DifyRunResult, ChatRunResult
 from app.services.image_gen_history_service import ImageGenHistoryService
-from app.services.image_gen_quota_service import ImageGenQuotaService
+from app.services.llm_quota_service import LLMQuotaService
 from app.utils.image_gen_constants import (
     OPERATION_TEXT2IMG,
     OPERATION_IMG2IMG,
@@ -83,7 +83,7 @@ class ImageGenService:
         self,
         db: Session,
         dify_client: DifyClient,
-        quota_svc: ImageGenQuotaService,
+        quota_svc: LLMQuotaService,
         oss_svc: Any,
         history_svc: ImageGenHistoryService,
         degradation_svc: Optional[Any] = None,
@@ -138,8 +138,10 @@ class ImageGenService:
             prompt = await self.prompt_polisher.polish(prompt)
             logger.debug("提示词已润色: user=%s", user_id)
 
-        # ---- 3. 配额预留 ----
-        self.quota_svc.check_and_reserve(user_id, operation, n)
+        # ---- 3. 配额预留（LLMQuotaService 返回 reservation_id）----
+        res_id = self.quota_svc.check_and_reserve(
+            user_id=str(user_id), category="image", planned_tokens=0,
+        )
 
         # ---- 4-9. 执行生成（含异常处理） ----
         try:
@@ -157,10 +159,18 @@ class ImageGenService:
                 model_preference=model_preference,
                 start_time=start_time,
             )
+            # ---- 记录 usage（按实际值校正 + 写 log）----
+            self.quota_svc.record_usage(
+                user_id=str(user_id),
+                category="image",
+                actual_tokens=max(1, len(prompt) // 4),
+                reservation_id=res_id,
+                model_used=result.model_used,
+            )
             return result
 
         except DifyError as e:
-            # Dify 调用失败：释放配额 + 写 failed 历史 + 记录降级
+            # Dify 调用失败：回滚预留 + 写 failed 历史 + 记录降级
             duration_ms = int((time.monotonic() - start_time) * 1000)
             self._write_failed_history(
                 user_id=user_id,
@@ -170,14 +180,14 @@ class ImageGenService:
                 duration_ms=duration_ms,
                 params=self._build_params(size, n, style, strength, model_preference),
             )
-            self.quota_svc.release()
+            self.quota_svc.rollback(res_id)
             if self.degradation_svc is not None:
                 self.degradation_svc.record_failure()
             logger.error("Dify 调用失败: user=%s op=%s err=%s", user_id, operation, e)
             raise
 
         except asyncio.CancelledError:
-            # 请求被取消：释放配额 + 写 cancelled 历史
+            # 请求被取消：回滚预留 + 写 cancelled 历史
             duration_ms = int((time.monotonic() - start_time) * 1000)
             self._write_cancelled_history(
                 user_id=user_id,
@@ -186,7 +196,7 @@ class ImageGenService:
                 duration_ms=duration_ms,
                 params=self._build_params(size, n, style, strength, model_preference),
             )
-            self.quota_svc.release()
+            self.quota_svc.rollback(res_id)
             logger.info("请求被取消: user=%s op=%s", user_id, operation)
             raise
 
@@ -291,7 +301,9 @@ class ImageGenService:
             return dify_result
 
         # ---- 5. 触发生成：走完整流程 ----
-        self.quota_svc.check_and_reserve(user_id, operation, dify_result.image_urls and 1)
+        res_id = self.quota_svc.check_and_reserve(
+            user_id=str(user_id), category="image", planned_tokens=0,
+        )
 
         try:
             # 下载结果图 → 上传 OSS
@@ -316,7 +328,14 @@ class ImageGenService:
                 duration_ms=duration_ms,
                 conversation_id=dify_result.conversation_id,
             )
-            self.quota_svc.commit()
+            # ---- 记录 usage（LLMQuotaService：按实际值校正 + 写 usage_log）----
+            self.quota_svc.record_usage(
+                user_id=str(user_id),
+                category="image",
+                actual_tokens=max(1, len(prompt) // 4),
+                reservation_id=res_id,
+                model_used=dify_result.model_used,
+            )
             if self.degradation_svc is not None:
                 self.degradation_svc.reset_failure_count()
 
@@ -338,9 +357,9 @@ class ImageGenService:
             return dify_result
 
         except Exception:
-            # 任何异常（DifyError / 网络错误 / OSS 异常等）都必须释放预留配额，
+            # 任何异常（DifyError / 网络错误 / OSS 异常等）都必须回滚预留配额，
             # 避免配额永久被占用（详见 final-review Important #1）
-            self.quota_svc.release()
+            self.quota_svc.rollback(res_id)
             raise
 
     # ------------------------------------------------------------------
@@ -438,8 +457,11 @@ class ImageGenService:
             duration_ms=duration_ms,
         )
 
-        # ---- e. 提交配额 ----
-        self.quota_svc.commit()
+        # ---- e. 提交配额（已迁移到 LLMQuotaService.record_usage，由调用方 generate() 在 _do_generate 成功后调用）----
+        # 此处不再调用 quota_svc.commit()；reservation_id 在外层 generate() 中持有。
+        # 提交/回滚的语义：
+        #   成功 → record_usage(res_id, model_used, actual_tokens) 在 generate() 末尾调用
+        #   失败 → rollback(res_id) 在 generate() 的异常分支调用
 
         # ---- f. 重置降级计数 ----
         if self.degradation_svc is not None:
@@ -735,20 +757,22 @@ class ImageGenService:
     ):
         """按 backend 分发 + quota / history 共享逻辑
 
-        流程：
-          1. check_and_reserve（预留 quota）
+        流程（已迁移到 LLMQuotaService，使用 reservation_id 模式）：
+          1. check_and_reserve（预留 quota，返回 res_id）
           2. 调用 chat_generate_dispatch 执行实际生成
-          3. 若 result.image_urls 非空 → commit quota + 写 history
-          4. 若 image_urls 为空 → release quota
-          5. 任何异常 → release quota 并抛出
+          3. 若 result.image_urls 非空 → record_usage(res_id) + 写 history
+          4. 若 image_urls 为空 → rollback(res_id)
+          5. 任何异常 → rollback(res_id) 并抛出
         """
         # 0. 确保后端已注册（懒加载：生产环境首次请求时注册，测试环境由测试手动注册覆盖）
         self._ensure_backends_registered()
 
         # 1. 预留 quota（无论后续是否生成）
-        # user_id 在此处是 uuid.UUID 对象，但 image_gen_quota.user_id 是 varchar，
+        # user_id 在此处是 uuid.UUID 对象，但 llm_user_quota.user_id 是 varchar，
         # 必须转成字符串，否则 PostgreSQL 无法比较 uuid = varchar
-        self.quota_svc.check_and_reserve(user_id=str(user_id), operation=operation)
+        res_id = self.quota_svc.check_and_reserve(
+            user_id=str(user_id), category="image", planned_tokens=0,
+        )
 
         try:
             # 2. 走 dispatch
@@ -766,9 +790,16 @@ class ImageGenService:
                 edit_type=edit_type,
             )
 
-            # 3. quota commit or release
+            # 3. quota record_usage or rollback
             if result.image_urls:
-                self.quota_svc.commit()
+                # 3a. 按实际值记录 usage（估算：len(query) // 4）
+                self.quota_svc.record_usage(
+                    user_id=str(user_id),
+                    category="image",
+                    actual_tokens=max(1, len(query) // 4),
+                    reservation_id=res_id,
+                    model_used=result.model_used,
+                )
                 # 4. 写历史记录（带 backend 字段）
                 self.history_svc.create_record(
                     user_id=str(user_id),
@@ -780,13 +811,13 @@ class ImageGenService:
                     backend=result.backend,
                 )
             else:
-                # image_urls 为空 → 释放预留
-                self.quota_svc.release()
+                # image_urls 为空 → 回滚预留
+                self.quota_svc.rollback(res_id)
 
             return result
         except Exception:
-            # 任何异常都必须释放预留配额
-            self.quota_svc.release()
+            # 任何异常都必须回滚预留配额
+            self.quota_svc.rollback(res_id)
             raise
 
     # ------------------------------------------------------------------
