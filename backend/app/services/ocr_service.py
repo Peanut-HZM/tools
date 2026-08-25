@@ -260,27 +260,22 @@ class OCRService:
             if quota.monthly_remaining <= 0:
                 raise ValueError("每月 OCR 次数已用完，请下月再试")
 
-        # ---- quota 预占（Task 10）：按 image_kb // 4 估算 token ----
-        image_kb = self._image_size_kb(image_data)
-        planned_tokens = max(1, image_kb // 4)
         quota_db = None
         quota_owns_session = False
         quota_svc = None
         res_id = None
-        if user_id:
-            quota_db, quota_owns_session = self._quota_session()
-            quota_svc = LLMQuotaService(quota_db)
-            try:
+
+        try:
+            # ---- quota 预占（Task 10）：按 image_kb // 4 估算 token ----
+            image_kb = self._image_size_kb(image_data)
+            planned_tokens = max(1, image_kb // 4)
+            if user_id:
+                quota_db, quota_owns_session = self._quota_session()
+                quota_svc = LLMQuotaService(quota_db)
                 res_id = quota_svc.check_and_reserve(
                     user_id=user_id, category="ocr", planned_tokens=planned_tokens,
                 )
-            except QuotaExceeded as e:
-                if quota_owns_session:
-                    quota_db.close()
-                logger.warning("OCR quota 预占失败: user=%s err=%s", user_id, e)
-                raise
 
-        try:
             if "base64," in image_data:
                 image_data = image_data.split("base64,")[1]
 
@@ -350,6 +345,9 @@ class OCRService:
 
                 return ocr_response
 
+        except QuotaExceeded as e:
+            logger.warning("OCR quota 预占失败: user=%s err=%s", user_id, e)
+            raise
         except Exception as e:
             # ---- quota 回滚（Task 10）：OCR 调用失败时回滚预留 ----
             if quota_svc is not None and res_id is not None:
@@ -381,20 +379,15 @@ class OCRService:
         quota_owns_session = False
         quota_svc = None
         res_id = None
-        if user_id:
-            quota_db, quota_owns_session = self._quota_session()
-            quota_svc = LLMQuotaService(quota_db)
-            try:
+
+        try:
+            if user_id:
+                quota_db, quota_owns_session = self._quota_session()
+                quota_svc = LLMQuotaService(quota_db)
                 res_id = quota_svc.check_and_reserve(
                     user_id=user_id, category="ocr", planned_tokens=planned_tokens,
                 )
-            except QuotaExceeded as e:
-                if quota_owns_session:
-                    quota_db.close()
-                logger.warning("OCR PDF quota 预占失败: user=%s err=%s", user_id, e)
-                raise
 
-        try:
             pdf = pdfium.PdfDocument(file_content)
             n_pages = len(pdf)
 
@@ -448,6 +441,9 @@ class OCRService:
                 except Exception:
                     logger.exception("OCR PDF quota 校正失败: user=%s", user_id)
 
+        except QuotaExceeded as e:
+            logger.warning("OCR PDF quota 预占失败: user=%s err=%s", user_id, e)
+            raise
         except Exception as e:
             # ---- quota 回滚（Task 10）：PDF OCR 失败时回滚预留 ----
             if quota_svc is not None and res_id is not None:

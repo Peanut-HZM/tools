@@ -14,7 +14,7 @@ async def predict_ocr(
     OCR 文字识别接口 (支持 Base64 图片)
     """
     try:
-        result = ocr_service.predict(request.image, request.lang)
+        result = ocr_service.predict(request.image, request.lang, user_id=str(current_user["user_id"]))
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -36,7 +36,7 @@ async def predict_pdf_ocr(
         
     try:
         content = await file.read()
-        result = ocr_service.predict_pdf(content)
+        result = ocr_service.predict_pdf(content, user_id=str(current_user["user_id"]))
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
