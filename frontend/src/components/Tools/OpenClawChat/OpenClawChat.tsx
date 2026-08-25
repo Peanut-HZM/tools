@@ -234,15 +234,15 @@ export default function OpenClawChat() {
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-120px)]">
-        <div className="text-center text-slate-400">
+        <div className="text-center text-ink-muted">
           <div className="text-6xl mb-4">
             <i className="fas fa-comments text-violet-500"></i>
           </div>
-          <p className="text-xl mb-4 text-white">OpenClaw AI 对话</p>
+          <p className="text-xl mb-4 text-ink-inverse">OpenClaw AI 对话</p>
           <p className="mb-4">需要登录后才能使用此功能</p>
           <button
             onClick={openLoginModal}
-            className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+            className="px-6 py-2 bg-violet-600 text-ink-inverse rounded-lg hover:bg-violet-700 transition-colors"
           >
             登录
           </button>
@@ -260,7 +260,7 @@ export default function OpenClawChat() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] bg-slate-900 rounded-xl border border-slate-700/50 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-120px)] bg-canvas rounded-xl border border-border/50 overflow-hidden">
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
@@ -277,17 +277,17 @@ export default function OpenClawChat() {
         }
       `}</style>
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 bg-slate-800/50">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface-1/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <i className="fas fa-comments text-white"></i>
+            <i className="fas fa-comments text-ink-inverse"></i>
           </div>
           <div>
-            <h2 className="text-white font-semibold">OpenClaw AI 对话</h2>
+            <h2 className="text-ink-inverse font-semibold">OpenClaw AI 对话</h2>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-sm">
                 <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                <span className="text-slate-400">{isConnected ? '已连接' : '未连接'}</span>
+                <span className="text-ink-muted">{isConnected ? '已连接' : '未连接'}</span>
               </div>
               {!isConnected && (
                 <span className="text-xs text-amber-400/80">服务未连接，请前往管理面板配置 OpenClaw 连接信息</span>
@@ -297,7 +297,7 @@ export default function OpenClawChat() {
         </div>
         <button
           onClick={handleReset}
-          className="px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 rounded-lg hover:border-slate-500 transition-colors"
+          className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink-inverse border border-border rounded-lg hover:border-border transition-colors"
         >
           <i className="fas fa-rotate mr-1"></i>
           新对话
@@ -306,9 +306,9 @@ export default function OpenClawChat() {
 
       {/* Error Banner */}
       {error && (
-        <div className="px-6 py-2 bg-red-500/10 border-b border-red-500/30 text-red-400 text-sm flex items-center justify-between">
+        <div className="px-6 py-2 bg-danger/10 border-b border-danger/30 text-danger text-sm flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300">
+          <button onClick={() => setError(null)} className="text-danger hover:text-red-300">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -323,7 +323,7 @@ export default function OpenClawChat() {
         }}
       >
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-slate-500">
+          <div className="flex items-center justify-center h-full text-ink-faint">
             <div className="text-center">
               <div className="text-5xl mb-3">
                 <i className="fas fa-comments text-violet-500/50"></i>
@@ -341,8 +341,8 @@ export default function OpenClawChat() {
                 <div
                   className={`rounded-2xl px-4 py-3 ${
                     msg.role === 'user'
-                      ? 'bg-violet-600 text-white rounded-br-md'
-                      : 'bg-slate-800 text-slate-200 rounded-bl-md'
+                      ? 'bg-violet-600 text-ink-inverse rounded-br-md'
+                      : 'bg-surface-1 text-ink rounded-bl-md'
                   }`}
                 >
                   <p className="whitespace-pre-wrap break-words">{msg.content || (msg.isStreaming ? 'Thinking...' : '')}</p>
@@ -350,7 +350,7 @@ export default function OpenClawChat() {
                     <span className="inline-block w-1.5 h-4 bg-violet-400 animate-pulse ml-1"></span>
                   )}
                 </div>
-                <div className={`text-xs text-slate-500 mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                <div className={`text-xs text-ink-faint mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                   {new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
@@ -361,7 +361,7 @@ export default function OpenClawChat() {
       </div>
 
       {/* Input Area */}
-      <div className="px-6 py-4 border-t border-slate-700/50 bg-slate-800/30">
+      <div className="px-6 py-4 border-t border-border/50 bg-surface-1/30">
         <div className="flex gap-3">
           <textarea
             ref={inputRef}
@@ -370,13 +370,13 @@ export default function OpenClawChat() {
             onKeyDown={handleKeyDown}
             placeholder="输入消息... (Shift+Enter 换行，Enter 发送)"
             disabled={!isConnected || isSending}
-            className="flex-1 bg-slate-800 text-white placeholder-slate-500 border border-slate-600 rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-violet-500 disabled:opacity-50"
+            className="flex-1 bg-surface-1 text-ink-inverse placeholder-slate-500 border border-border rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-violet-500 disabled:opacity-50"
             rows={1}
           />
           {isSending ? (
             <button
               onClick={handleAbort}
-              className="px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors self-end"
+              className="px-4 py-3 bg-red-600 text-ink-inverse rounded-xl hover:bg-red-700 transition-colors self-end"
             >
               <i className="fas fa-stop"></i>
             </button>
@@ -384,7 +384,7 @@ export default function OpenClawChat() {
             <button
               onClick={handleSend}
               disabled={!inputValue.trim() || !isConnected}
-              className="px-4 py-3 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
+              className="px-4 py-3 bg-violet-600 text-ink-inverse rounded-xl hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
             >
               <i className="fas fa-paper-plane"></i>
             </button>
