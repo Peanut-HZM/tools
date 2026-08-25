@@ -88,13 +88,13 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-8">
-      <div className="bg-slate-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-surface-1 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-          <h2 className="text-xl font-bold text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-xl font-bold text-ink-inverse">
             {resourceId ? '编辑资源' : '添加资源'}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -105,14 +105,14 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-ink-muted mb-1">
                 资源类型 *
               </label>
               <select
                 name="resource_type"
                 value={formData.resource_type}
                 onChange={handleChange}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
               >
                 <option value="code_sample">💻 代码示例</option>
                 <option value="contrast">⚖️ 对比材料</option>
@@ -122,7 +122,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-ink-muted mb-1">
                 资源标题 *
               </label>
               <input
@@ -131,16 +131,16 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
                 value={formData.title}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
                 placeholder="资源标题"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-ink-muted mb-1">
                 资源内容 (Markdown) *
               </label>
-              <div className="border border-slate-600 rounded-lg overflow-hidden h-96">
+              <div className="border border-border rounded-lg overflow-hidden h-96">
                 <Editor
                   height="100%"
                   defaultLanguage="markdown"
@@ -159,7 +159,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
 
             {formData.resource_type === 'video' && (
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   视频链接
                 </label>
                 <input
@@ -170,7 +170,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
                     ...prev,
                     extra_data: { ...prev.extra_data, video_url: e.target.value },
                   }))}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
                   placeholder="https://..."
                 />
               </div>
@@ -179,11 +179,11 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end px-6 py-4 border-t border-slate-700 space-x-4">
+        <div className="flex items-center justify-end px-6 py-4 border-t border-border space-x-4">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
           >
             取消
           </button>
@@ -191,7 +191,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
             type="submit"
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-accent hover:bg-accent-hover disabled:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
           >
             {loading ? '保存中...' : '保存'}
           </button>
