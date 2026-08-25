@@ -65,7 +65,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
     <div className="overflow-y-auto h-full">
       <div className="rounded-xl border border-border/50 overflow-hidden">
         <table className="w-full text-left">
-          <thead className="bg-gradient-to-r from-slate-700/50 to-slate-800/50">
+          <thead className="bg-gradient-to-r from-surface-2/50 to-surface-1/50">
             <tr>
               <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">
                 <i className="fas fa-sort mr-2"></i>顺序
