@@ -94,11 +94,12 @@ def mock_oss_svc():
 
 @pytest.fixture
 def mock_quota_svc():
-    """模拟配额服务"""
+    """模拟配额服务（已迁移到 LLMQuotaService 的 reservation_id 模式）"""
     svc = MagicMock()
-    svc.check_and_reserve = MagicMock()
-    svc.commit = MagicMock()
-    svc.release = MagicMock()
+    # check_and_reserve 返回 reservation_id，供 record_usage/rollback 使用
+    svc.check_and_reserve = MagicMock(return_value="test-reservation-id")
+    svc.record_usage = MagicMock()
+    svc.rollback = MagicMock()
     return svc
 
 
@@ -256,9 +257,11 @@ async def test_generate_text2img_success(
     assert "image-gen/result/" in upload_call.kwargs["object_name"]
 
     # 配额 commit
-    mock_quota_svc.check_and_reserve.assert_called_once_with("test-user", OPERATION_TEXT2IMG, 1)
-    mock_quota_svc.commit.assert_called_once()
-    mock_quota_svc.release.assert_not_called()
+    mock_quota_svc.check_and_reserve.assert_called_once_with(
+        user_id="test-user", category="image", planned_tokens=0,
+    )
+    mock_quota_svc.record_usage.assert_called_once()
+    mock_quota_svc.rollback.assert_not_called()
 
     # 降级计数重置
     mock_degradation_svc.reset_failure_count.assert_called_once()
@@ -345,8 +348,8 @@ async def test_generate_dify_failure_releases_quota(
         )
 
     # 配额释放
-    mock_quota_svc.release.assert_called_once()
-    mock_quota_svc.commit.assert_not_called()
+    mock_quota_svc.rollback.assert_called_once()
+    mock_quota_svc.record_usage.assert_not_called()
 
     # 降级失败计数
     mock_degradation_svc.record_failure.assert_called_once()
@@ -389,7 +392,7 @@ async def test_generate_timeout_releases_quota(
         )
     assert exc_info.value.kind == "timeout"
 
-    mock_quota_svc.release.assert_called_once()
+    mock_quota_svc.rollback.assert_called_once()
     mock_degradation_svc.record_failure.assert_called_once()
 
     history = db_session.query(ImageGenHistory).filter(
@@ -428,8 +431,8 @@ async def test_generate_cancelled_releases_quota(
             prompt="test prompt",
         )
 
-    mock_quota_svc.release.assert_called_once()
-    mock_quota_svc.commit.assert_not_called()
+    mock_quota_svc.rollback.assert_called_once()
+    mock_quota_svc.record_usage.assert_not_called()
     # 取消不记录降级失败
     mock_degradation_svc.record_failure.assert_not_called()
 
