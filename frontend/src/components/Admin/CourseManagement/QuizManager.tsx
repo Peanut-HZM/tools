@@ -58,13 +58,13 @@ const QuizManager: React.FC<QuizManagerProps> = ({
   return (
     <div className="h-full flex">
       {/* Chapter List */}
-      <div className="w-80 border-r border-slate-700/50 pr-4">
+      <div className="w-80 border-r border-border/50 pr-4">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-white flex items-center">
-            <i className="fas fa-book mr-2 text-cyan-400"></i>
+          <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
+            <i className="fas fa-book mr-2 text-accent"></i>
             选择章节
           </h3>
-          <p className="text-slate-500 text-sm mt-1">点击章节加载对应测验</p>
+          <p className="text-ink-faint text-sm mt-1">点击章节加载对应测验</p>
         </div>
         <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
           {chapters.map((chapter) => {
@@ -75,23 +75,23 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 onClick={() => handleSelectChapter(chapter.id)}
                 className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
                   selectedChapterId === chapter.id
-                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 border border-cyan-500/50 shadow-lg shadow-cyan-500/10'
-                    : 'bg-slate-700/30 border border-slate-700/50 hover:bg-slate-700/50 hover:border-slate-600'
+                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 border border-accent shadow-lg shadow-cyan-500/10'
+                    : 'bg-surface-2/30 border border-border/50 hover:bg-surface-2/50 hover:border-border'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <i className={`fas ${chapter.chapter_type === 'story' ? 'fa-book' : chapter.chapter_type === 'code' ? 'fa-code' : 'fa-video'} text-slate-500`}></i>
-                      <span className="text-white font-medium truncate">{chapter.title}</span>
+                      <i className={`fas ${chapter.chapter_type === 'story' ? 'fa-book' : chapter.chapter_type === 'code' ? 'fa-code' : 'fa-video'} text-ink-faint`}></i>
+                      <span className="text-ink-inverse font-medium truncate">{chapter.title}</span>
                     </div>
                   </div>
                   {hasQuiz ? (
-                    <span className="inline-flex items-center px-2 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-xs">
+                    <span className="inline-flex items-center px-2 py-1 bg-success/20 text-success border border-success/30 rounded text-xs">
                       <i className="fas fa-check-circle mr-1"></i>已创建
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-1 bg-slate-600/50 text-slate-400 border border-slate-600/30 rounded text-xs">
+                    <span className="inline-flex items-center px-2 py-1 bg-surface-3/50 text-ink-muted border border-border/50 rounded text-xs">
                       <i className="fas fa-circle mr-1"></i>未创建
                     </span>
                   )}
@@ -108,15 +108,15 @@ const QuizManager: React.FC<QuizManagerProps> = ({
           <>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-white flex items-center">
-                  <i className="fas fa-clipboard-check text-cyan-400 mr-3"></i>
+                <h3 className="text-2xl font-bold text-ink-inverse flex items-center">
+                  <i className="fas fa-clipboard-check text-accent mr-3"></i>
                   测验：{chapters.find((c) => c.id === selectedChapterId)?.title}
                 </h3>
-                <p className="text-slate-400 text-sm mt-1">管理和编辑章节测验</p>
+                <p className="text-ink-muted text-sm mt-1">管理和编辑章节测验</p>
               </div>
               <button
                 onClick={handleCreateQuiz}
-                className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
+                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
               >
                 <i className="fas fa-plus mr-2"></i>
                 {selectedQuiz ? '编辑测验' : '创建测验'}
@@ -127,49 +127,49 @@ const QuizManager: React.FC<QuizManagerProps> = ({
               <div className="flex items-center justify-center py-16">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-                  <p className="text-slate-400">加载中...</p>
+                  <p className="text-ink-muted">加载中...</p>
                 </div>
               </div>
             ) : selectedQuiz ? (
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 shadow-xl">
+              <div className="bg-gradient-to-br bg-surface-1 rounded-2xl p-6 border border-border/50 shadow-md">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                      <i className="fas fa-clipboard-list text-white text-2xl"></i>
+                    <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-2xl flex items-center justify-center">
+                      <i className="fas fa-clipboard-list text-ink-inverse text-2xl"></i>
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-white">{selectedQuiz.title}</h4>
-                      <p className="text-slate-400 text-sm">测验基本信息</p>
+                      <h4 className="text-xl font-bold text-ink-inverse">{selectedQuiz.title}</h4>
+                      <p className="text-ink-muted text-sm">测验基本信息</p>
                     </div>
                   </div>
                   <div className="flex space-x-6">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-cyan-400">{selectedQuiz.questions.length}</div>
-                      <div className="text-slate-500 text-sm mt-1">题目数量</div>
+                      <div className="text-3xl font-bold text-accent">{selectedQuiz.questions.length}</div>
+                      <div className="text-ink-faint text-sm mt-1">题目数量</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-400">{selectedQuiz.passing_score}%</div>
-                      <div className="text-slate-500 text-sm mt-1">及格分数</div>
+                      <div className="text-3xl font-bold text-accent-secondary">{selectedQuiz.passing_score}%</div>
+                      <div className="text-ink-faint text-sm mt-1">及格分数</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600/50">
+                <div className="bg-surface-2/30 rounded-xl p-4 border border-border/50">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-slate-400 text-sm mb-1">及格分数</p>
-                      <p className="text-white font-medium">{selectedQuiz.passing_score}%</p>
+                      <p className="text-ink-muted text-sm mb-1">及格分数</p>
+                      <p className="text-ink-inverse font-medium">{selectedQuiz.passing_score}%</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-sm mb-1">题目数量</p>
-                      <p className="text-white font-medium">{selectedQuiz.questions.length} 题</p>
+                      <p className="text-ink-muted text-sm mb-1">题目数量</p>
+                      <p className="text-ink-inverse font-medium">{selectedQuiz.questions.length} 题</p>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleEditQuiz(selectedQuiz.id)}
-                  className="mt-6 px-6 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-xl transition-all font-medium flex items-center"
+                  className="mt-6 px-6 py-3 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/30 rounded-xl transition-all font-medium flex items-center"
                 >
                   <i className="fas fa-edit mr-2"></i>
                   编辑测验
@@ -178,14 +178,14 @@ const QuizManager: React.FC<QuizManagerProps> = ({
             ) : (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center max-w-md">
-                  <div className="w-24 h-24 bg-slate-700/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i className="fas fa-clipboard-question text-5xl text-slate-500"></i>
+                  <div className="w-24 h-24 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i className="fas fa-clipboard-question text-5xl text-ink-faint"></i>
                   </div>
-                  <p className="text-white text-lg font-medium mb-2">该章节还没有测验</p>
-                  <p className="text-slate-400 text-sm mb-6">创建一个测验来检验学习成果吧</p>
+                  <p className="text-ink-inverse text-lg font-medium mb-2">该章节还没有测验</p>
+                  <p className="text-ink-muted text-sm mb-6">创建一个测验来检验学习成果吧</p>
                   <button
                     onClick={handleCreateQuiz}
-                    className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
+                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
                   >
                     <i className="fas fa-plus mr-2"></i>
                     创建测验
@@ -197,10 +197,10 @@ const QuizManager: React.FC<QuizManagerProps> = ({
         ) : (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
-              <div className="w-20 h-20 bg-slate-700/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-arrow-left text-3xl text-slate-500"></i>
+              <div className="w-20 h-20 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-arrow-left text-3xl text-ink-faint"></i>
               </div>
-              <p className="text-slate-400">请从左侧选择一个章节</p>
+              <p className="text-ink-muted">请从左侧选择一个章节</p>
             </div>
           </div>
         )}
