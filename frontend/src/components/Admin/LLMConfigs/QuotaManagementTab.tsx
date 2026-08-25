@@ -286,6 +286,12 @@ function GrantModal({
   const [monthlyLimit, setMonthlyLimit] = useState<string>(currentQuota?.monthly_limit?.toString() || '');
   const [tokenLimit, setTokenLimit] = useState<string>(currentQuota?.token_limit?.toString() || '');
   const [tokenPeriod, setTokenPeriod] = useState<string>(currentQuota?.token_period || 'daily');
+  const [validFrom, setValidFrom] = useState<string>(
+    currentQuota?.valid_from ? currentQuota.valid_from.slice(0, 16) : ''
+  );
+  const [validUntil, setValidUntil] = useState<string>(
+    currentQuota?.valid_until ? currentQuota.valid_until.slice(0, 16) : ''
+  );
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -356,6 +362,13 @@ function GrantModal({
       data.token_period = tokenPeriod;
       if (!data.token_limit) {
         alert('Token 模式必须设置 Token 限额');
+        return;
+      }
+    } else if (quotaMode === 'time') {
+      data.valid_from = validFrom ? new Date(validFrom).toISOString() : undefined;
+      data.valid_until = validUntil ? new Date(validUntil).toISOString() : undefined;
+      if (!data.valid_from && !data.valid_until) {
+        alert('时间模式必须设置生效时间或过期时间');
         return;
       }
     }
@@ -530,9 +543,27 @@ function GrantModal({
 
           {/* time 模式字段 */}
           {quotaMode === 'time' && (
-            <p className="text-sm text-slate-400">
-              时间模式通过有效起止时间控制，暂不支持前端配置。请联系管理员在数据库设置。
-            </p>
+            <>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">生效时间（可选）</label>
+                <input
+                  type="datetime-local"
+                  value={validFrom}
+                  onChange={(e) => setValidFrom(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 text-white text-sm rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">过期时间（可选）</label>
+                <input
+                  type="datetime-local"
+                  value={validUntil}
+                  onChange={(e) => setValidUntil(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 text-sm rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none bg-slate-700 text-white"
+                />
+                <p className="text-xs text-slate-500 mt-1">至少填一个；填了生效时间后未到时间会被拦截</p>
+              </div>
+            </>
           )}
 
           {/* 备注 */}
