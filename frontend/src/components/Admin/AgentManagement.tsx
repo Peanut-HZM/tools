@@ -13,7 +13,7 @@ export default function AgentManagement() {
     description: '',
     system_prompt: '',
     icon: 'fa-robot',
-    icon_color: 'bg-blue-500',
+    icon_color: 'bg-accent',
     category: 'AI工具',
   });
 
@@ -39,7 +39,7 @@ export default function AgentManagement() {
       description: '',
       system_prompt: '',
       icon: 'fa-robot',
-      icon_color: 'bg-blue-500',
+      icon_color: 'bg-accent',
       category: 'AI工具',
     });
     setEditingId(null);
@@ -103,10 +103,10 @@ export default function AgentManagement() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Agent管理</h2>
+        <h2 className="text-2xl font-bold text-ink-inverse">Agent管理</h2>
         <button
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors flex items-center gap-2"
         >
           <span>+</span>
           <span>添加Agent</span>
@@ -115,66 +115,66 @@ export default function AgentManagement() {
 
       {/* Agent表单 */}
       {showForm && (
-        <div className="bg-slate-700 rounded-lg p-6 mb-6 border border-slate-600">
-          <h3 className="text-lg font-semibold text-white mb-4">
+        <div className="bg-surface-2 rounded-lg p-6 mb-6 border border-border">
+          <h3 className="text-lg font-semibold text-ink-inverse mb-4">
             {editingId ? '编辑Agent' : '添加新Agent'}
           </h3>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Agent名称 <span className="text-red-400">*</span>
+                <label className="block text-sm font-medium text-ink-muted mb-2">
+                  Agent名称 <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="例如：产品经理助手"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  分类 <span className="text-red-400">*</span>
+                <label className="block text-sm font-medium text-ink-muted mb-2">
+                  分类 <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="例如：AI工具"
                   required
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  描述 <span className="text-red-400">*</span>
+                <label className="block text-sm font-medium text-ink-muted mb-2">
+                  描述 <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="简短描述Agent的功能"
                   required
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  系统提示词 <span className="text-red-400">*</span>
+                <label className="block text-sm font-medium text-ink-muted mb-2">
+                  系统提示词 <span className="text-danger">*</span>
                 </label>
                 <textarea
                   value={formData.system_prompt}
                   onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 h-32"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent h-32"
                   placeholder="定义Agent的角色和能力..."
                   required
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-ink-faint mt-1">
                   系统提示词决定了Agent的行为和能力
                 </p>
               </div>
@@ -183,14 +183,14 @@ export default function AgentManagement() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
               >
                 {editingId ? '保存修改' : '创建Agent'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-surface-3 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
               >
                 取消
               </button>
@@ -202,41 +202,41 @@ export default function AgentManagement() {
       {/* Agent列表 */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-          <p className="text-slate-400 mt-2">加载中...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+          <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : agents.length === 0 ? (
-        <div className="bg-slate-700 rounded-lg p-12 text-center border border-slate-600">
+        <div className="bg-surface-2 rounded-lg p-12 text-center border border-border">
           <div className="text-6xl mb-4">🤖</div>
-          <h3 className="text-lg font-medium text-white mb-2">暂无Agent</h3>
-          <p className="text-slate-400 mb-4">添加一个Agent以开始使用</p>
+          <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无Agent</h3>
+          <p className="text-ink-muted mb-4">添加一个Agent以开始使用</p>
           <button
             onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
           >
             添加Agent
           </button>
         </div>
       ) : (
-        <div className="bg-slate-700 rounded-lg border border-slate-600 overflow-hidden">
+        <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-800">
+            <thead className="bg-surface-1">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">Agent名称</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">描述</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">默认</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">状态</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">操作</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">Agent名称</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">描述</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-ink-muted">默认</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-ink-muted">状态</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-ink-muted">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-600">
+            <tbody className="divide-y divide-border">
               {agents.map((agent) => (
-                <tr key={agent.id} className="hover:bg-slate-600/50 transition-colors">
+                <tr key={agent.id} className="hover:bg-surface-3/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-white font-medium">{agent.name}</div>
-                    <div className="text-xs text-slate-400">{agent.category}</div>
+                    <div className="text-ink-inverse font-medium">{agent.name}</div>
+                    <div className="text-xs text-ink-muted">{agent.category}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-300 max-w-[300px] truncate">
+                  <td className="px-4 py-3 text-ink-muted max-w-[300px] truncate">
                     {agent.description}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -247,7 +247,7 @@ export default function AgentManagement() {
                     ) : (
                       <button
                         onClick={() => handleSetDefault(agent.id, agent.name)}
-                        className="text-sm text-slate-400 hover:text-cyan-400 transition-colors"
+                        className="text-sm text-ink-muted hover:text-accent transition-colors"
                       >
                         设为默认
                       </button>
@@ -257,7 +257,7 @@ export default function AgentManagement() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                       agent.is_active
                         ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-red-500/20 text-red-400 border-red-500/30'
+                        : 'bg-red-500/20 text-danger border-red-500/30'
                     }`}>
                       {agent.is_active ? '启用' : '禁用'}
                     </span>
@@ -272,7 +272,7 @@ export default function AgentManagement() {
                       </button>
                       <button
                         onClick={() => handleDelete(agent.id, agent.name)}
-                        className="px-3 py-1 text-sm bg-red-600/20 text-red-400 border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
+                        className="px-3 py-1 text-sm bg-red-600/20 text-danger border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
                       >
                         删除
                       </button>
