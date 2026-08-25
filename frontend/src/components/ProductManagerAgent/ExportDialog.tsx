@@ -90,13 +90,13 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
       />
       
       {/* 对话框 */}
-      <div className="relative bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg mx-4">
+      <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-lg mx-4">
         {/* 头部 */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">导出 PRD 文档</h2>
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h2 className="text-lg font-semibold text-ink-inverse">导出 PRD 文档</h2>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white transition-colors"
+            className="p-1 text-ink-muted hover:text-ink-inverse transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -108,7 +108,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
         <div className="p-5">
           {/* 导出格式选择 */}
           <div className="mb-5">
-            <label className="block text-sm font-medium text-slate-300 mb-3">
+            <label className="block text-sm font-medium text-ink-muted mb-3">
               导出格式
             </label>
             <div className="space-y-2">
@@ -117,8 +117,8 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
                   key={option.value}
                   className={`flex items-start p-3 rounded-lg cursor-pointer transition-all ${
                     format === option.value
-                      ? 'bg-blue-600/20 border-2 border-blue-500'
-                      : 'bg-slate-700/50 border-2 border-transparent hover:border-slate-600'
+                      ? 'bg-accent-info/20 border-2 border-accent-info'
+                      : 'bg-surface-2/50 border-2 border-transparent hover:border-border'
                   }`}
                 >
                   <input
@@ -131,11 +131,11 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
                   />
                   <span className="text-xl mr-3">{option.icon}</span>
                   <div className="flex-1">
-                    <div className="text-white font-medium">{option.label}</div>
-                    <div className="text-sm text-slate-400">{option.description}</div>
+                    <div className="text-ink-inverse font-medium">{option.label}</div>
+                    <div className="text-sm text-ink-muted">{option.description}</div>
                   </div>
                   {format === option.value && (
-                    <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-accent-info" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   )}
@@ -146,7 +146,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 
           {/* 版本选择 */}
           <div className="mb-5">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               导出版本
             </label>
             <input
@@ -154,26 +154,26 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
               min={1}
               value={version}
               onChange={(e) => setVersion(parseInt(e.target.value) || 1)}
-              className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg border border-slate-600 focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 bg-surface-2 text-ink-inverse rounded-lg border border-border focus:outline-none focus:border-accent-info"
             />
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-ink-muted">
               输入要导出的版本号，默认为当前版本
             </p>
           </div>
 
           {/* 错误提示 */}
           {error && (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="mb-4 p-3 bg-danger/20 border border-danger rounded-lg">
+              <p className="text-sm text-danger">{error}</p>
             </div>
           )}
         </div>
 
         {/* 底部按钮 */}
-        <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-700">
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
+            className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
             disabled={loading}
           >
             取消
@@ -181,7 +181,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
           <button
             onClick={handleExport}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (
               <>

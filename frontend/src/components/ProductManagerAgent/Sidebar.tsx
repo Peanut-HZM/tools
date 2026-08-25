@@ -57,14 +57,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
   
   return (
-    <div className="w-72 bg-slate-800 h-full flex flex-col">
+    <div className="w-72 bg-surface-1 h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-slate-700">
-        <h2 className="text-lg font-bold text-white mb-3">对话列表</h2>
+      <div className="p-4 border-b border-border">
+        <h2 className="text-lg font-bold text-ink-inverse mb-3">对话列表</h2>
         <button
           onClick={onNewConversation}
           disabled={loading}
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+          className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
         >
           + 新建对话
         </button>
@@ -89,8 +89,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onSelectConversation(conversation.id)}
                 className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
                   currentConversationId === conversation.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-slate-700'
+                    ? 'bg-accent text-white'
+                    : 'text-gray-300 hover:bg-surface-2'
                 }`}
               >
                 <div className="font-medium truncate">
@@ -99,14 +99,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center justify-between mt-1">
                   <span className={`text-xs px-2 py-0.5 rounded ${
                     currentConversationId === conversation.id
-                      ? 'bg-blue-700 text-blue-100'
+                      ? 'bg-accent-hover text-blue-100'
                       : stageColors[conversation.current_stage] || 'bg-gray-600 text-gray-300'
                   }`}>
                     {stageNames[conversation.current_stage] || conversation.current_stage}
                   </span>
                   <span className={`text-xs ${
                     currentConversationId === conversation.id
-                      ? 'text-blue-200'
+                      ? 'text-accent-info'
                       : 'text-gray-500'
                   }`}>
                     {formatDate(conversation.updated_at)}

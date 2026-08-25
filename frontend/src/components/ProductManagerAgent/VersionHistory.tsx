@@ -45,9 +45,9 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      draft: 'bg-yellow-500/20 text-yellow-400',
+      draft: 'bg-accent-warning/20 text-accent-warning',
       confirmed: 'bg-green-500/20 text-green-400',
-      archived: 'bg-slate-500/20 text-slate-400',
+      archived: 'bg-surface-2/20 text-ink-muted',
     };
     const labels: Record<string, string> = {
       draft: '草稿',
@@ -62,13 +62,13 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700">
-      <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-        <h3 className="text-white font-semibold">版本历史</h3>
+    <div className="bg-surface-1 rounded-lg border border-border">
+      <div className="p-4 border-b border-border flex justify-between items-center">
+        <h3 className="text-ink-inverse font-semibold">版本历史</h3>
         {selectedVersions.length === 2 && (
           <button
             onClick={handleCompare}
-            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+            className="px-3 py-1 bg-accent text-white rounded text-sm hover:bg-accent-hover"
           >
             对比选中版本
           </button>
@@ -77,16 +77,16 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
 
       <div className="max-h-96 overflow-y-auto">
         {versions.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">
+          <div className="p-8 text-center text-ink-muted">
             暂无版本历史
           </div>
         ) : (
           versions.map((version) => (
             <div
               key={version.id}
-              className={`p-4 border-b border-slate-700 hover:bg-slate-700/50 cursor-pointer ${
+              className={`p-4 border-b border-border hover:bg-surface-2/50 cursor-pointer ${
                 selectedVersions.find((v) => v.id === version.id)
-                  ? 'bg-slate-700/50 border-l-4 border-l-blue-500'
+                  ? 'bg-surface-2/50 border-l-4 border-l-accent-info'
                   : ''
               }`}
               onClick={() => onSelect(version)}
@@ -100,16 +100,16 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
                       e.stopPropagation();
                       toggleVersionSelection(version);
                     }}
-                    className="w-4 h-4 rounded border-slate-600"
+                    className="w-4 h-4 rounded border-border"
                   />
-                  <span className="text-white font-medium">
+                  <span className="text-ink-inverse font-medium">
                     版本 {version.version_number}
                   </span>
                   {getStatusBadge(version.status)}
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400 text-sm">
+                  <span className="text-ink-muted text-sm">
                     {new Date(version.created_at).toLocaleString()}
                   </span>
                   <button
@@ -119,7 +119,7 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
                         onRollback(version);
                       }
                     }}
-                    className="px-2 py-1 text-xs text-red-400 hover:text-red-300 border border-red-400/30 rounded"
+                    className="px-2 py-1 text-xs text-danger hover:text-danger border border-danger/30 rounded"
                   >
                     回滚
                   </button>

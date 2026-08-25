@@ -22,9 +22,9 @@ export default function PasswordStrengthMeter({ password }: PasswordStrengthMete
   const strength = getStrength(password);
 
   const getStrengthLabel = (s: number) => {
-    if (s <= 2) return { text: '弱', color: 'text-red-400', bg: 'bg-red-500' };
-    if (s <= 4) return { text: '中', color: 'text-yellow-400', bg: 'bg-yellow-500' };
-    return { text: '强', color: 'text-emerald-400', bg: 'bg-emerald-500' };
+    if (s <= 2) return { text: '弱', color: 'text-danger', bg: 'bg-red-500' };
+    if (s <= 4) return { text: '中', color: 'text-accent-warning', bg: 'bg-yellow-500' };
+    return { text: '强', color: 'text-success', bg: 'bg-emerald-500' };
   };
 
   const { text, color, bg } = getStrengthLabel(strength);
@@ -32,7 +32,7 @@ export default function PasswordStrengthMeter({ password }: PasswordStrengthMete
   return (
     <div className="mt-2">
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-slate-400">密码强度</span>
+        <span className="text-ink-muted">密码强度</span>
         <span className={color}>{text}</span>
       </div>
       <div className="flex gap-1">
@@ -40,7 +40,7 @@ export default function PasswordStrengthMeter({ password }: PasswordStrengthMete
           <div
             key={level}
             className={`h-1 flex-1 rounded-full transition-colors ${
-              level <= strength ? bg : 'bg-slate-700'
+              level <= strength ? bg : 'bg-surface-2'
             }`}
           />
         ))}

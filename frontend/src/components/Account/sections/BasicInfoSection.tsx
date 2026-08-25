@@ -28,18 +28,18 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
 
   const getRoleBadgeClass = (role: string) => {
     if (role === 'admin') {
-      return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      return 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30';
     }
-    return 'bg-slate-600/50 text-slate-400 border-slate-500/30';
+    return 'bg-surface-3/50 text-ink-muted border-border/30';
   };
 
   if (loading) {
     return (
-      <SettingCard title="基本信息" icon={<User className="w-5 h-5 text-cyan-400" />}>
+      <SettingCard title="基本信息" icon={<User className="w-5 h-5 text-accent" />}>
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-slate-700 rounded w-1/3"></div>
-          <div className="h-4 bg-slate-700 rounded w-2/3"></div>
-          <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+          <div className="h-4 bg-surface-2 rounded w-1/3"></div>
+          <div className="h-4 bg-surface-2 rounded w-2/3"></div>
+          <div className="h-4 bg-surface-2 rounded w-1/2"></div>
         </div>
       </SettingCard>
     );
@@ -47,11 +47,11 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
 
   if (!user) {
     return (
-      <SettingCard title="基本信息" icon={<User className="w-5 h-5 text-cyan-400" />}>
-        <p className="text-slate-400 text-sm">暂无用户信息</p>
+      <SettingCard title="基本信息" icon={<User className="w-5 h-5 text-accent" />}>
+        <p className="text-ink-muted text-sm">暂无用户信息</p>
         <button
           onClick={onRefresh}
-          className="mt-3 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded text-sm transition-colors"
+          className="mt-3 px-4 py-2 bg-accent hover:bg-accent text-white rounded text-sm transition-colors"
           type="button"
         >
           重新加载
@@ -61,11 +61,11 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
   }
 
   return (
-    <SettingCard title="基本信息" icon={<User className="w-5 h-5 text-cyan-400" />}>
+    <SettingCard title="基本信息" icon={<User className="w-5 h-5 text-accent" />}>
       <div className="flex items-start gap-6 mb-6">
         <UserAvatar username={user.username} size="lg" />
         <div className="flex-1 pt-2">
-          <h4 className="text-xl font-semibold text-white">{user.username}</h4>
+          <h4 className="text-xl font-semibold text-ink-inverse">{user.username}</h4>
           <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded border ${getRoleBadgeClass(user.role)}`}>
             {user.role}
           </span>

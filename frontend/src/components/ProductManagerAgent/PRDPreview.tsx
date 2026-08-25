@@ -98,7 +98,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
       const svg = mermaidSvgs[block.id] || '';
       result = result.replace(
         /```mermaid\n[\s\S]*?```/,
-        `<div class="mermaid-container my-4 p-4 bg-slate-800 rounded-lg">${svg}</div>`
+        `<div class="mermaid-container my-4 p-4 bg-surface-1 rounded-lg">${svg}</div>`
       );
     });
 
@@ -114,9 +114,9 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
       // 处理斜体
       text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
       // 处理代码
-      text = text.replace(/`(.*?)`/g, '<code class="px-1 py-0.5 bg-slate-700 rounded">$1</code>');
+      text = text.replace(/`(.*?)`/g, '<code class="px-1 py-0.5 bg-surface-2 rounded">$1</code>');
       // 处理链接
-      text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-blue-400 hover:underline">$1</a>');
+      text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-accent-info hover:underline">$1</a>');
       return text;
     };
 
@@ -132,7 +132,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           inList = false;
         }
         const processedContent = processInline(trimmedLine.slice(2));
-        elements.push(<h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-blue-400" dangerouslySetInnerHTML={{ __html: processedContent }} />);
+        elements.push(<h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-accent-info" dangerouslySetInnerHTML={{ __html: processedContent }} />);
       } else if (trimmedLine.startsWith('## ')) {
         if (inList) {
           const listElements = listItems.map((item, i) => <li key={i} dangerouslySetInnerHTML={{ __html: processInline(item) }} />);
@@ -141,7 +141,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           inList = false;
         }
         const processedContent = processInline(trimmedLine.slice(3));
-        elements.push(<h2 key={index} className="text-xl font-semibold mt-5 mb-3 text-blue-300" dangerouslySetInnerHTML={{ __html: processedContent }} />);
+        elements.push(<h2 key={index} className="text-xl font-semibold mt-5 mb-3 text-accent-info" dangerouslySetInnerHTML={{ __html: processedContent }} />);
       } else if (trimmedLine.startsWith('### ')) {
         if (inList) {
           const listElements = listItems.map((item, i) => <li key={i} dangerouslySetInnerHTML={{ __html: processInline(item) }} />);
@@ -150,7 +150,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           inList = false;
         }
         const processedContent = processInline(trimmedLine.slice(4));
-        elements.push(<h3 key={index} className="text-lg font-medium mt-4 mb-2 text-blue-200" dangerouslySetInnerHTML={{ __html: processedContent }} />);
+        elements.push(<h3 key={index} className="text-lg font-medium mt-4 mb-2 text-accent-info" dangerouslySetInnerHTML={{ __html: processedContent }} />);
       } 
       // 列表项
       else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
@@ -166,17 +166,17 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
         }
         const match = trimmedLine.match(/^(\d+)\.\s(.*)$/);
         if (match) {
-          elements.push(<div key={index} className="flex mb-1"><span className="mr-2 text-slate-400">{match[1]}.</span><span dangerouslySetInnerHTML={{ __html: processInline(match[2]) }} /></div>);
+          elements.push(<div key={index} className="flex mb-1"><span className="mr-2 text-ink-muted">{match[1]}.</span><span dangerouslySetInnerHTML={{ __html: processInline(match[2]) }} /></div>);
         }
       }
       // 分割线
       else if (trimmedLine === '---' || trimmedLine === '***') {
-        elements.push(<hr key={index} className="my-4 border-slate-600" />);
+        elements.push(<hr key={index} className="my-4 border-border" />);
       }
       // 引用
       else if (trimmedLine.startsWith('> ')) {
         const processedContent = processInline(trimmedLine.slice(2));
-        elements.push(<blockquote key={index} className="border-l-4 border-blue-500 pl-4 py-1 my-2 text-slate-300 italic" dangerouslySetInnerHTML={{ __html: processedContent }} />);
+        elements.push(<blockquote key={index} className="border-l-4 border-accent-info pl-4 py-1 my-2 text-ink-muted italic" dangerouslySetInnerHTML={{ __html: processedContent }} />);
       }
       // 表格 (简化处理)
       else if (trimmedLine.startsWith('|')) {
@@ -186,7 +186,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
         
         if (!trimmedLine.includes('---')) {
           elements.push(
-            <div key={index} className={`flex ${isHeader ? 'font-bold bg-slate-800' : ''} py-1`}>
+            <div key={index} className={`flex ${isHeader ? 'font-bold bg-surface-1' : ''} py-1`}>
               {cells.map((cell, i) => (
                 <div key={i} className="flex-1 px-2" dangerouslySetInnerHTML={{ __html: processInline(cell.trim()) }} />
               ))}
@@ -203,7 +203,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           inList = false;
         }
         const processedContent = processInline(trimmedLine);
-        elements.push(<p key={index} className="my-2 text-slate-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: processedContent }} />);
+        elements.push(<p key={index} className="my-2 text-ink-muted leading-relaxed" dangerouslySetInnerHTML={{ __html: processedContent }} />);
       }
     });
 
@@ -219,7 +219,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
   if (loading && !content) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">加载中...</div>
+        <div className="text-ink-muted">加载中...</div>
       </div>
     );
   }
@@ -227,7 +227,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
   if (error && !content) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-red-400">{error}</div>
+        <div className="text-danger">{error}</div>
       </div>
     );
   }
@@ -235,11 +235,11 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
   const currentVersionData = versions.find(v => v.version_number === currentVersion);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900">
+    <div className="flex flex-col h-full bg-canvas">
       {/* 头部工具栏 */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-700">
+      <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-white">PRD 预览</h2>
+          <h2 className="text-lg font-semibold text-ink-inverse">PRD 预览</h2>
           
           {/* 版本选择 */}
           <select
@@ -249,7 +249,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
               setCurrentVersion(version);
               onVersionChange?.(version);
             }}
-            className="px-3 py-1.5 bg-slate-800 text-white text-sm rounded border border-slate-600 focus:outline-none focus:border-blue-500"
+            className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded border border-border focus:outline-none focus:border-accent-info"
           >
             {versions.map(v => (
               <option key={v.id} value={v.version_number}>
@@ -261,13 +261,13 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
 
         <div className="flex items-center gap-2">
           {/* 标签切换 */}
-          <div className="flex bg-slate-800 rounded-lg p-1">
+          <div className="flex bg-surface-1 rounded-lg p-1">
             <button
               onClick={() => setActiveTab('preview')}
               className={`px-3 py-1 text-sm rounded ${
                 activeTab === 'preview'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-accent text-white'
+                  : 'text-ink-muted hover:text-ink-inverse'
               }`}
             >
               预览
@@ -276,8 +276,8 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
               onClick={() => setActiveTab('source')}
               className={`px-3 py-1 text-sm rounded ${
                 activeTab === 'source'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-accent text-white'
+                  : 'text-ink-muted hover:text-ink-inverse'
               }`}
             >
               源码
@@ -287,7 +287,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           {/* 导出按钮 */}
           <button
             onClick={onExport}
-            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-1"
+            className="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent-hover flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -304,7 +304,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
             {renderMarkdown(content)}
           </div>
         ) : (
-          <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
+          <pre className="text-sm text-ink-muted whitespace-pre-wrap font-mono">
             {content}
           </pre>
         )}
@@ -312,7 +312,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
 
       {/* 底部状态栏 */}
       {currentVersionData && (
-        <div className="p-3 border-t border-slate-700 flex items-center justify-between text-xs text-slate-400">
+        <div className="p-3 border-t border-border flex items-center justify-between text-xs text-ink-muted">
           <span>
             状态: {currentVersionData.status === 'confirmed' ? '已确认' : currentVersionData.status === 'draft' ? '草稿' : '已归档'}
           </span>

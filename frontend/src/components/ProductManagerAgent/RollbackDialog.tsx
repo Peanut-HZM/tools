@@ -41,13 +41,13 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
       />
       
       {/* Dialog */}
-      <div className="relative bg-slate-800 rounded-xl shadow-2xl w-full max-w-md mx-4 border border-slate-700">
+      <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-md mx-4 border border-border">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">回滚 PRD 版本</h2>
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h2 className="text-lg font-semibold text-ink-inverse">回滚 PRD 版本</h2>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white transition-colors"
+            className="p-1 text-ink-muted hover:text-ink-inverse transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -68,23 +68,23 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
 
           {/* Warning Message */}
           <div className="text-center mb-6">
-            <p className="text-white font-medium mb-2">
+            <p className="text-ink-inverse font-medium mb-2">
               确定要回滚到版本 {targetVersion.version_number} 吗？
             </p>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-ink-muted">
               回滚将创建一个新版本，内容基于选中的版本。当前版本 <strong>V{currentVersion?.version_number}</strong> 不会被删除。
             </p>
           </div>
 
           {/* Version Info */}
-          <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
+          <div className="bg-surface-2/50 rounded-lg p-4 mb-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-slate-400 text-sm">目标版本</span>
-              <span className="text-white font-medium">V{targetVersion.version_number}</span>
+              <span className="text-ink-muted text-sm">目标版本</span>
+              <span className="text-ink-inverse font-medium">V{targetVersion.version_number}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400 text-sm">创建时间</span>
-              <span className="text-slate-300 text-sm">
+              <span className="text-ink-muted text-sm">创建时间</span>
+              <span className="text-ink-muted text-sm">
                 {new Date(targetVersion.created_at).toLocaleString('zh-CN')}
               </span>
             </div>
@@ -95,19 +95,19 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
             <input
               type="checkbox"
               id="confirm-rollback"
-              className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-amber-500 focus:ring-amber-500"
+              className="w-4 h-4 rounded border-border bg-surface-2 text-amber-500 focus:ring-amber-500"
             />
-            <span className="text-sm text-slate-300">
+            <span className="text-sm text-ink-muted">
               我了解回滚将创建一个新的版本
             </span>
           </label>
         </div>
 
         {/* Footer Buttons */}
-        <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-700">
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
+            className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
             disabled={confirming}
           >
             取消

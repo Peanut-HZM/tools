@@ -63,7 +63,7 @@ const MissingInfoPanel: React.FC<MissingInfoPanelProps> = ({
 
       {/* Content */}
       {!isCollapsed && (
-        <div className="p-4 bg-white dark:bg-slate-800">
+        <div className="p-4 bg-white dark:bg-surface-1">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             为了生成更完整的 PRD，建议您补充以下信息。点击问题可以快速发送到对话框：
           </p>
@@ -89,7 +89,7 @@ const MissingInfoPanel: React.FC<MissingInfoPanelProps> = ({
                       <li key={qIndex}>
                         <button
                           onClick={() => onQuestionClick?.(question)}
-                          className="text-left text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors flex items-start"
+                          className="text-left text-sm text-accent-info dark:text-accent-info hover:text-accent-info dark:hover:text-accent-info hover:underline transition-colors flex items-start"
                         >
                           <svg className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -106,7 +106,7 @@ const MissingInfoPanel: React.FC<MissingInfoPanelProps> = ({
 
           {/* Help Text */}
           <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-xs text-blue-700 dark:text-blue-300">
+            <p className="text-xs text-blue-700 dark:text-accent-info">
               💡 <strong>提示：</strong>点击任意问题，它将自动发送到对话框中，AI 助手会根据您的问题提供详细的指导。
             </p>
           </div>

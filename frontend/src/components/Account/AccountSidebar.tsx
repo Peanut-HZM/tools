@@ -40,20 +40,20 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
               onClick={() => onSectionChange(item.id)}
               className={`w-full flex items-start gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left ${
                 activeSection === item.id
-                  ? 'bg-cyan-500/10 border border-cyan-500/50 text-cyan-400'
-                  : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 border border-transparent'
+                  ? 'bg-accent/10 border border-accent text-accent'
+                  : 'text-ink-muted hover:bg-surface-2/50 hover:text-ink border border-transparent'
               }`}
               type="button"
             >
               <span className={`flex-shrink-0 mt-0.5 ${
-                activeSection === item.id ? 'text-cyan-400' : 'text-slate-500'
+                activeSection === item.id ? 'text-accent' : 'text-ink-faint'
               }`}>
                 {item.icon}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm">{item.label}</div>
                 <div className={`text-xs mt-0.5 ${
-                  activeSection === item.id ? 'text-cyan-500/70' : 'text-slate-500'
+                  activeSection === item.id ? 'text-accent/70' : 'text-ink-faint'
                 }`}>
                   {item.description}
                 </div>
@@ -72,8 +72,8 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
               onClick={() => onSectionChange(item.id)}
               className={`flex-shrink-0 px-4 py-2 rounded-lg transition-all duration-200 text-sm whitespace-nowrap ${
                 activeSection === item.id
-                  ? 'bg-cyan-500/10 border border-cyan-500/50 text-cyan-400'
-                  : 'text-slate-400 hover:bg-slate-700/50 border border-transparent'
+                  ? 'bg-accent/10 border border-accent text-accent'
+                  : 'text-ink-muted hover:bg-surface-2/50 border border-transparent'
               }`}
               type="button"
             >
