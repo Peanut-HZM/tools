@@ -119,16 +119,16 @@ export default function ModelsTab() {
     voice: '语音', embedding: '向量', ocr: 'OCR',
   };
   const CATEGORY_COLORS: Record<string, string> = {
-    text: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    vision: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    text: 'bg-accent-info/20 text-accent-info border-blue-500/30',
+    vision: 'bg-accent-secondary/20 text-accent-secondary border-purple-500/30',
     image_gen: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
     voice: 'bg-green-500/20 text-green-400 border-green-500/30',
-    embedding: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    embedding: 'bg-accent-warning/20 text-accent-warning border-yellow-500/30',
     ocr: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   };
   const getCategoryLabel = (c: string) => CATEGORY_LABELS[c] || c;
   const getCategoryColor = (c: string) =>
-    CATEGORY_COLORS[c] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+    CATEGORY_COLORS[c] || 'bg-surface-3/20 text-ink-muted border-border/30';
 
   const filtered = sortModelsByPriority(
     categoryFilter === 'all' ? models : models.filter((m) => m.category === categoryFilter)
@@ -137,10 +137,10 @@ export default function ModelsTab() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <p className="text-slate-400 text-sm">管理大模型（关联供应商，设置默认等）</p>
+        <p className="text-ink-muted text-sm">管理大模型（关联供应商，设置默认等）</p>
         <button
           onClick={handleAdd}
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center gap-2"
         >
           <span>+</span><span>新建模型</span>
         </button>
@@ -154,8 +154,8 @@ export default function ModelsTab() {
             onClick={() => setCategoryFilter(key)}
             className={`px-4 py-2 rounded-lg transition-colors ${
               categoryFilter === key
-                ? 'bg-cyan-600 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-accent text-white'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
             {label}
@@ -165,49 +165,49 @@ export default function ModelsTab() {
 
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-          <p className="text-slate-400 mt-2">加载中...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+          <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-slate-700 rounded-lg p-12 text-center border border-slate-600">
+        <div className="bg-surface-2 rounded-lg p-12 text-center border border-border">
           <div className="text-6xl mb-4">🤖</div>
-          <h3 className="text-lg font-medium text-white mb-2">暂无模型</h3>
-          <p className="text-slate-400 mb-4">新建模型以开始使用大模型功能</p>
-          <button onClick={handleAdd} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors">
+          <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无模型</h3>
+          <p className="text-ink-muted mb-4">新建模型以开始使用大模型功能</p>
+          <button onClick={handleAdd} className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors">
             新建模型
           </button>
         </div>
       ) : (
-        <div className="bg-slate-700 rounded-lg border border-slate-600 overflow-hidden">
+        <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-800">
+            <thead className="bg-surface-1">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">名称</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">模型标识</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">供应商</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-slate-300">分类</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">优先级</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">默认</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">状态</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-300">操作</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">名称</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">模型标识</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">供应商</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">分类</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-ink-muted">优先级</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-ink-muted">默认</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-ink-muted">状态</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-ink-muted">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-600">
+            <tbody className="divide-y divide-border">
               {filtered.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-600/50 transition-colors">
+                <tr key={m.id} className="hover:bg-surface-3/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-white font-medium">{m.name}</div>
+                    <div className="text-ink-inverse font-medium">{m.name}</div>
                     {m.notes && (
-                      <div className="text-xs text-slate-500 mt-1 truncate max-w-[180px]" title={m.notes}>
+                      <div className="text-xs text-ink-faint mt-1 truncate max-w-[180px]" title={m.notes}>
                         📝 {m.notes}
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-mono text-sm text-cyan-300">{m.model_name}</span>
+                    <span className="font-mono text-sm text-accent">{m.model_name}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-slate-300 text-sm">{m.provider_name || '-'}</span>
+                    <span className="text-ink-muted text-sm">{m.provider_name || '-'}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(m.category)}`}>
@@ -226,7 +226,7 @@ export default function ModelsTab() {
                       ) : (
                         <button
                           onClick={() => handleSetDefault(m.id, m.name)}
-                          className="text-xs text-slate-400 hover:text-cyan-400 transition-colors"
+                          className="text-xs text-ink-muted hover:text-accent transition-colors"
                         >
                           设全局
                         </button>
@@ -238,7 +238,7 @@ export default function ModelsTab() {
                       ) : (
                         <button
                           onClick={() => handleSetCategoryDefault(m)}
-                          className="text-xs text-slate-400 hover:text-yellow-400 transition-colors"
+                          className="text-xs text-ink-muted hover:text-accent-warning transition-colors"
                         >
                           设分类
                         </button>
@@ -249,7 +249,7 @@ export default function ModelsTab() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                       m.is_active
                         ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-red-500/20 text-red-400 border-red-500/30'
+                        : 'bg-danger/20 text-danger border-red-500/30'
                     }`}>
                       {m.is_active ? '启用' : '禁用'}
                     </span>
@@ -258,13 +258,13 @@ export default function ModelsTab() {
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={() => handleEdit(m)}
-                        className="px-2 py-1 text-xs bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 rounded hover:bg-yellow-600/30 transition-colors"
+                        className="px-2 py-1 text-xs bg-yellow-600/20 text-accent-warning border border-yellow-500/30 rounded hover:bg-yellow-600/30 transition-colors"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDeleteClick(m)}
-                        className="px-2 py-1 text-xs bg-red-600/20 text-red-400 border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
+                        className="px-2 py-1 text-xs bg-red-600/20 text-danger border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
                       >
                         删除
                       </button>
