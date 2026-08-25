@@ -29,7 +29,7 @@ export default function ApiKeyDisplay({ apiKeySuffix, fullApiKey, onCopy }: ApiK
   return (
     <div className="flex items-center gap-2">
       {/* 脱敏/明文显示 */}
-      <div className="font-mono text-sm text-slate-300 bg-slate-800 px-3 py-1.5 rounded border border-slate-600">
+      <div className="font-mono text-sm text-ink-muted bg-surface-1 px-3 py-1.5 rounded border border-border">
         {isVisible && fullApiKey ? fullApiKey : maskedKey}
       </div>
       
@@ -37,7 +37,7 @@ export default function ApiKeyDisplay({ apiKeySuffix, fullApiKey, onCopy }: ApiK
       <button
         type="button"
         onClick={() => setIsVisible(!isVisible)}
-        className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+        className="p-1.5 text-ink-muted hover:text-ink transition-colors"
         title={isVisible ? '隐藏' : '显示'}
       >
         {isVisible ? (
@@ -57,7 +57,7 @@ export default function ApiKeyDisplay({ apiKeySuffix, fullApiKey, onCopy }: ApiK
         <button
           type="button"
           onClick={handleCopy}
-          className="p-1.5 text-slate-400 hover:text-cyan-400 transition-colors"
+          className="p-1.5 text-ink-muted hover:text-cyan-400 transition-colors"
           title="复制"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
