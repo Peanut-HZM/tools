@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy import cast, String as SAString
 
 from app.core.exceptions import InvalidQuotaMode, QuotaExceeded
 from app.models.llm_quota_models import LLMUsageLog, LLMUserQuota
@@ -220,8 +221,11 @@ class LLMQuotaService:
         )
         if quota is None:
             return None
-        # 附带 username（LEFT JOIN users）
-        user = self.db.query(User).filter(User.id == user_id).first()
+        # 附带 username（LEFT JOIN users，user_id 是 VARCHAR，users.id 是 BIGINT）
+        try:
+            user = self.db.query(User).filter(User.id == int(user_id)).first()
+        except (ValueError, TypeError):
+            user = None
         return _to_info(quota, user.username if user else None)
 
     # -------- 公共：管理员侧 --------
@@ -296,11 +300,15 @@ class LLMQuotaService:
             "[llm_quota] grant user=%s mode=%s daily=%s monthly=%s token_limit=%s granted_by=%s",
             user_id, quota_mode, daily_limit, monthly_limit, token_limit, granted_by,
         )
-        # 附带 username（防御性：User 可能不存在或为 mock）
-        user = self.db.query(User).filter(User.id == user_id).first()
-        uname = getattr(user, "username", None) if user else None
-        if not isinstance(uname, str):
-            uname = None
+        # 附带 username（防御性：User.id 是 BIGINT，user_id 是 VARCHAR）
+        uname = None
+        try:
+            uid_int = int(user_id)
+            user = self.db.query(User).filter(User.id == uid_int).first()
+            if user and isinstance(user.username, str):
+                uname = user.username
+        except (ValueError, TypeError):
+            pass
         return _to_info(quota, uname)
 
     def revoke(self, user_id: str) -> None:
@@ -332,9 +340,10 @@ class LLMQuotaService:
         self, skip: int = 0, limit: int = 50, search: Optional[str] = None
     ) -> list[QuotaInfo]:
         # JOIN users 表以获取 username
+        # user_id 是 VARCHAR，users.id 实际是 BIGINT，需要类型转换
         q = (
             self.db.query(LLMUserQuota, User.username)
-            .outerjoin(User, LLMUserQuota.user_id == User.id)
+            .outerjoin(User, LLMUserQuota.user_id == cast(User.id, SAString))
         )
         if search:
             pattern = f"%{search}%"
