@@ -216,6 +216,122 @@ class LLMQuotaService:
             return None
         return _to_info(quota)
 
+    # -------- 公共：管理员侧 --------
+
+    def grant(
+        self,
+        user_id: str,
+        quota_mode: str,
+        daily_limit: Optional[int] = None,
+        monthly_limit: Optional[int] = None,
+        token_period: Optional[str] = None,
+        token_limit: Optional[int] = None,
+        valid_from: Optional[datetime] = None,
+        valid_until: Optional[datetime] = None,
+        granted_by: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> QuotaInfo:
+        """创建/覆盖配额。校验模式字段合法性后写入。"""
+        # 模式字段校验
+        if quota_mode == "count":
+            if not (daily_limit and daily_limit > 0) and not (monthly_limit and monthly_limit > 0):
+                raise InvalidQuotaMode("count 模式必须设置 daily_limit 或 monthly_limit > 0")
+        elif quota_mode == "token":
+            if not (token_limit and token_limit > 0):
+                raise InvalidQuotaMode("token 模式必须设置 token_limit > 0")
+            if token_period not in ("daily", "monthly", "total"):
+                raise InvalidQuotaMode("token_period 必须为 daily/monthly/total")
+        elif quota_mode == "time":
+            if valid_from is None and valid_until is None:
+                raise InvalidQuotaMode("time 模式必须设置 valid_from 或 valid_until")
+        else:
+            raise InvalidQuotaMode(f"未知 quota_mode: {quota_mode}")
+
+        self.db.expire_all()
+        quota = (
+            self.db.query(LLMUserQuota).filter(LLMUserQuota.user_id == user_id).first()
+        )
+        now = _now_utc()
+        if quota is None:
+            quota = LLMUserQuota(
+                user_id=user_id,
+                quota_mode=quota_mode,
+                daily_used=0, monthly_used=0, token_used=0,
+                daily_reset_date=now, monthly_reset_date=now, token_reset_date=now,
+            )
+            self.db.add(quota)
+        # 覆盖模式字段
+        quota.quota_mode = quota_mode
+        if quota_mode == "count":
+            quota.daily_limit = daily_limit
+            quota.monthly_limit = monthly_limit
+            if quota.daily_reset_date is None:
+                quota.daily_reset_date = now
+            if quota.monthly_reset_date is None:
+                quota.monthly_reset_date = now
+        elif quota_mode == "token":
+            quota.token_period = token_period
+            quota.token_limit = token_limit
+            if quota.token_reset_date is None:
+                quota.token_reset_date = now
+        quota.valid_from = valid_from
+        quota.valid_until = valid_until
+        quota.granted_by = granted_by
+        # 追加审计信息
+        ts_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        audit = f"granted_by={granted_by or 'system'} at {ts_str}"
+        quota.notes = (notes + " | " + audit) if notes else audit
+
+        self.db.commit()
+        self.db.refresh(quota)
+        logger.info(
+            "[llm_quota] grant user=%s mode=%s daily=%s monthly=%s token_limit=%s granted_by=%s",
+            user_id, quota_mode, daily_limit, monthly_limit, token_limit, granted_by,
+        )
+        return _to_info(quota)
+
+    def revoke(self, user_id: str) -> None:
+        self.db.expire_all()
+        quota = (
+            self.db.query(LLMUserQuota).filter(LLMUserQuota.user_id == user_id).first()
+        )
+        if quota is not None:
+            self.db.delete(quota)
+            self.db.commit()
+            logger.info("[llm_quota] revoke user=%s", user_id)
+
+    def reset_counters(self, user_id: str) -> None:
+        self.db.expire_all()
+        quota = (
+            self.db.query(LLMUserQuota).filter(LLMUserQuota.user_id == user_id).with_for_update().first()
+        )
+        if quota is None:
+            return
+        if quota.quota_mode == "count":
+            quota.daily_used = 0
+            quota.monthly_used = 0
+        elif quota.quota_mode == "token":
+            quota.token_used = 0
+        self.db.commit()
+        logger.info("[llm_quota] reset_counters user=%s", user_id)
+
+    def list_users(
+        self, skip: int = 0, limit: int = 50, search: Optional[str] = None
+    ) -> list[QuotaInfo]:
+        q = self.db.query(LLMUserQuota)
+        if search:
+            pattern = f"%{search}%"
+            q = q.filter(LLMUserQuota.user_id.like(pattern))
+        rows = q.order_by(LLMUserQuota.user_id).offset(skip).limit(limit).all()
+        return [_to_info(r) for r in rows]
+
+    def count_users(self, search: Optional[str] = None) -> int:
+        q = self.db.query(LLMUserQuota)
+        if search:
+            pattern = f"%{search}%"
+            q = q.filter(LLMUserQuota.user_id.like(pattern))
+        return q.count()
+
     # -------- 内部 --------
 
     def _do_check_and_reserve(

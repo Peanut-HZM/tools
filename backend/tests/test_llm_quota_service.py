@@ -154,3 +154,77 @@ def test_get_user_quota_none_when_missing():
     db = _make_db_with_quota(None)
     svc = LLMQuotaService(db)
     assert svc.get_user_quota("user-1") is None
+
+
+def test_grant_count_validates_have_limit():
+    db = _make_db_with_quota(None)
+    svc = LLMQuotaService(db)
+    with pytest.raises(InvalidQuotaMode) as exc:
+        svc.grant(user_id="u1", quota_mode="count", daily_limit=0, monthly_limit=0)
+    assert "count 模式" in str(exc.value)
+
+
+def test_grant_token_validates_have_limit():
+    db = _make_db_with_quota(None)
+    svc = LLMQuotaService(db)
+    with pytest.raises(InvalidQuotaMode):
+        svc.grant(user_id="u1", quota_mode="token", token_limit=0, token_period="monthly")
+
+
+def test_grant_time_validates_validity():
+    db = _make_db_with_quota(None)
+    svc = LLMQuotaService(db)
+    with pytest.raises(InvalidQuotaMode):
+        svc.grant(user_id="u1", quota_mode="time", valid_from=None, valid_until=None)
+
+
+def test_grant_count_creates_new_record():
+    db = _make_db_with_quota(None)  # 首次 grant 时无现有记录
+    svc = LLMQuotaService(db)
+    info = svc.grant(
+        user_id="u1", quota_mode="count",
+        daily_limit=10, monthly_limit=300,
+        granted_by="admin", notes="测试",
+    )
+    assert info.quota_mode == "count"
+    assert info.daily_limit == 10
+    assert db.add.called
+    db.commit.assert_called()
+
+
+def test_grant_count_overwrites_existing():
+    existing = LLMUserQuota(
+        user_id="u1", quota_mode="count",
+        daily_limit=5, daily_used=2,
+        daily_reset_date=datetime.now(timezone.utc),
+        monthly_limit=100, monthly_used=10,
+        monthly_reset_date=datetime.now(timezone.utc),
+    )
+    db = _make_db_with_quota(existing)
+    svc = LLMQuotaService(db)
+    info = svc.grant(user_id="u1", quota_mode="count", daily_limit=20, monthly_limit=500)
+    assert info.daily_limit == 20
+    assert existing.daily_used == 2  # 保留已用
+
+
+def test_revoke_deletes_row():
+    existing = LLMUserQuota(user_id="u1", quota_mode="count", daily_limit=1, daily_used=0, daily_reset_date=datetime.now(timezone.utc), monthly_limit=1, monthly_used=0, monthly_reset_date=datetime.now(timezone.utc))
+    db = _make_db_with_quota(existing)
+    svc = LLMQuotaService(db)
+    svc.revoke("u1")
+    db.delete.assert_called_once_with(existing)
+
+
+def test_reset_counters_zeroes_used():
+    existing = LLMUserQuota(
+        user_id="u1", quota_mode="count",
+        daily_limit=10, daily_used=5,
+        daily_reset_date=datetime.now(timezone.utc),
+        monthly_limit=300, monthly_used=100,
+        monthly_reset_date=datetime.now(timezone.utc),
+    )
+    db = _make_db_with_quota(existing)
+    svc = LLMQuotaService(db)
+    svc.reset_counters("u1")
+    assert existing.daily_used == 0
+    assert existing.monthly_used == 0
