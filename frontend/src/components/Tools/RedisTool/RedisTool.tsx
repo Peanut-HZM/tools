@@ -67,7 +67,7 @@ const RedisTool: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-900 overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] bg-canvas overflow-hidden">
       <ConnectionList
         configs={configs}
         selectedId={selectedConfigId}
@@ -76,14 +76,14 @@ const RedisTool: React.FC = () => {
         onEdit={handleEditConfig}
         onDelete={handleDeleteConfig}
       />
-      <div className="flex-1 overflow-hidden bg-slate-900 flex flex-col">
+      <div className="flex-1 overflow-hidden bg-canvas flex flex-col">
         {selectedConfigId ? (
           <>
-            <div className="flex border-b border-slate-700 bg-slate-800">
+            <div className="flex border-b border-border bg-surface-1">
               <button
                 onClick={() => setActiveTab('keys')}
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'keys' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'
+                  activeTab === 'keys' ? 'text-accent-info border-b-2 border-accent-info' : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 <i className="fas fa-key mr-1"></i> 键值浏览
@@ -91,7 +91,7 @@ const RedisTool: React.FC = () => {
               <button
                 onClick={() => setActiveTab('monitor')}
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'monitor' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'
+                  activeTab === 'monitor' ? 'text-accent-info border-b-2 border-accent-info' : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 <i className="fas fa-chart-line mr-1"></i> 监控
@@ -99,7 +99,7 @@ const RedisTool: React.FC = () => {
               <button
                 onClick={() => setActiveTab('ops')}
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'ops' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'
+                  activeTab === 'ops' ? 'text-accent-info border-b-2 border-accent-info' : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 <i className="fas fa-tools mr-1"></i> 运维
@@ -112,7 +112,7 @@ const RedisTool: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500">
+          <div className="flex flex-col items-center justify-center h-full text-ink-faint">
             <i className="fas fa-server text-6xl mb-4 opacity-20"></i>
             <p className="text-lg">{t.redis.selectConnection}</p>
           </div>
