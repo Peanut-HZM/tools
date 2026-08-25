@@ -58,3 +58,6 @@ from app.models.password_log_models import PasswordAuditLog
 
 # K8s 控制台工具模型
 from app.models.k8s_tool_models import *
+
+# LLM 用户配额 + 调用流水模型
+from app.models.llm_quota_models import LLMUserQuota, LLMUsageLog  # noqa: F401
