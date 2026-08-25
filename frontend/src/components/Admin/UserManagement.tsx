@@ -257,19 +257,19 @@ export default function UserManagement() {
     return pages;
   }, [page, totalPages]);
 
-  if (loading) return <div className="text-white">加载中...</div>;
+  if (loading) return <div className="text-ink-inverse">加载中...</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">用户管理</h2>
+        <h2 className="text-2xl font-bold text-ink-inverse">用户管理</h2>
         <div className="flex gap-3">
           <button
             onClick={toggleBatchMode}
             className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
               batchMode
-                ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                : 'bg-slate-600 hover:bg-slate-500 text-white'
+                ? 'bg-orange-500 hover:bg-orange-600 text-ink-inverse'
+                : 'bg-surface-3 text-ink-inverse'
             }`}
           >
             <i className={`fa-solid ${batchMode ? 'fa-check' : 'fa-list-check'} mr-2`}></i>
@@ -277,7 +277,7 @@ export default function UserManagement() {
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm font-medium"
           >
             <i className="fa-solid fa-plus mr-2"></i>添加用户
           </button>
@@ -286,23 +286,23 @@ export default function UserManagement() {
 
       {/* Batch operation toolbar */}
       {batchMode && selectedUserIds.size > 0 && (
-        <div className="mb-4 p-4 bg-slate-700/50 border border-slate-600 rounded-lg flex items-center justify-between">
-          <span className="text-white text-sm">
-            已选择 <span className="text-cyan-400 font-bold">{selectedUserIds.size}</span> 个用户
+        <div className="mb-4 p-4 bg-surface-2/50 border border-border rounded-lg flex items-center justify-between">
+          <span className="text-ink-inverse text-sm">
+            已选择 <span className="text-accent font-bold">{selectedUserIds.size}</span> 个用户
           </span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <select
                 value={batchRole}
                 onChange={(e) => setBatchRole(e.target.value)}
-                className="bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-white focus:border-cyan-500 outline-none"
+                className="bg-surface-1 border border-border rounded px-3 py-1.5 text-sm text-ink-inverse focus:border-accent outline-none"
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
               </select>
               <button
                 onClick={handleBatchUpdateRole}
-                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
+                className="px-3 py-1.5 bg-accent hover:bg-accent text-white rounded text-sm transition-colors"
               >
                 <i className="fa-solid fa-user-pen mr-1"></i>
                 批量改角色
@@ -310,7 +310,7 @@ export default function UserManagement() {
             </div>
             <button
               onClick={handleBatchDelete}
-              className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded text-sm transition-colors"
+              className="px-3 py-1.5 bg-danger hover:bg-danger text-ink-inverse rounded text-sm transition-colors"
             >
               <i className="fa-solid fa-trash mr-1"></i>
               批量删除
@@ -328,29 +328,29 @@ export default function UserManagement() {
             onChange={(e) => setSearch(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="搜索用户名或邮箱..."
-            className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm focus:border-cyan-500 outline-none"
+            className="flex-1 bg-surface-1 border border-border rounded-lg px-4 py-2 text-ink-inverse text-sm focus:border-accent outline-none"
           />
           <button
             onClick={handleSearch}
-            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors text-sm"
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm"
           >
             <i className="fa-solid fa-search mr-2"></i>
             搜索
           </button>
           <button
             onClick={handleReset}
-            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors text-sm"
+            className="px-4 py-2 bg-surface-3 text-ink-inverse rounded-lg transition-colors text-sm"
           >
             <i className="fa-solid fa-rotate-left mr-2"></i>
             重置
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-slate-400 text-sm">角色:</span>
+          <span className="text-ink-muted text-sm">角色:</span>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 outline-none"
+            className="bg-surface-1 border border-border rounded-lg px-3 py-2 text-ink-inverse text-sm focus:border-accent outline-none"
           >
             <option value="">全部</option>
             <option value="user">User</option>
@@ -360,8 +360,8 @@ export default function UserManagement() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-slate-300">
-          <thead className="bg-slate-700 text-slate-100 uppercase text-xs">
+        <table className="w-full text-left text-ink-muted">
+          <thead className="bg-surface-2 text-ink uppercase text-xs">
             <tr>
               <th className="px-6 py-3 w-12">
                 {batchMode && (
@@ -369,7 +369,7 @@ export default function UserManagement() {
                     type="checkbox"
                     checked={isAllSelected}
                     onChange={handleSelectAll}
-                    className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                    className="rounded border-border bg-surface-1 text-accent focus:ring-accent"
                   />
                 )}
               </th>
@@ -380,16 +380,16 @@ export default function UserManagement() {
               <th className="px-6 py-3">操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700">
+          <tbody className="divide-y divide-border">
             {(users || []).map((user) => (
-              <tr key={user.user_id} className="hover:bg-slate-700/50">
+              <tr key={user.user_id} className="hover:bg-surface-2/50">
                 <td className="px-6 py-4">
                   {batchMode && (
                     <input
                       type="checkbox"
                       checked={selectedUserIds.has(user.user_id)}
                       onChange={() => handleSelectUser(user.user_id)}
-                      className="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                      className="rounded border-border bg-surface-1 text-accent focus:ring-accent"
                     />
                   )}
                 </td>
@@ -400,7 +400,7 @@ export default function UserManagement() {
                     <select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.user_id, e.target.value)}
-                      className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm focus:border-cyan-500 outline-none"
+                      className="bg-canvas border border-border rounded px-2 py-1 text-sm focus:border-accent outline-none"
                     >
                       <option value="user">User</option>
                       <option value="admin">Admin</option>
@@ -408,8 +408,8 @@ export default function UserManagement() {
                   ) : (
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       user.role === 'admin'
-                        ? 'bg-purple-500/20 text-purple-400'
-                        : 'bg-slate-600/50 text-slate-400'
+                        ? 'bg-accent-secondary/20 text-accent-secondary'
+                        : 'bg-surface-3/50 text-ink-muted'
                     }`}>
                       {user.role}
                     </span>
@@ -429,14 +429,14 @@ export default function UserManagement() {
                       </button>
                       <button
                         onClick={() => handleDelete(user.user_id)}
-                        className="text-red-400 hover:text-red-300 transition-colors text-sm"
+                        className="text-danger hover:text-danger transition-colors text-sm"
                       >
                         删除
                       </button>
                     </div>
                   )}
                   {batchMode && (
-                    <span className="text-slate-500 text-xs">批量操作中...</span>
+                    <span className="text-ink-faint text-xs">批量操作中...</span>
                   )}
                 </td>
               </tr>
@@ -446,20 +446,20 @@ export default function UserManagement() {
       </div>
 
       {/* Pagination */}
-      <div className="mt-4 flex items-center justify-between border-t border-slate-700 pt-4">
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
         <div className="flex items-center gap-2">
-          <span className="text-slate-400 text-sm">每页显示:</span>
+          <span className="text-ink-muted text-sm">每页显示:</span>
           <select
             value={pageSize}
             onChange={(e) => setPageSize(Number(e.target.value))}
-            className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white focus:border-cyan-500 outline-none"
+            className="bg-surface-1 border border-border rounded px-2 py-1 text-sm text-ink-inverse focus:border-accent outline-none"
           >
             {PAGE_SIZE_OPTIONS.map(size => (
               <option key={size} value={size}>{size}</option>
             ))}
           </select>
-          <span className="text-slate-400 text-sm">
-            共 <span className="text-cyan-400 font-medium">{total}</span> 条记录
+          <span className="text-ink-muted text-sm">
+            共 <span className="text-accent font-medium">{total}</span> 条记录
           </span>
         </div>
 
@@ -469,8 +469,8 @@ export default function UserManagement() {
             disabled={page === 1}
             className={`px-3 py-1.5 rounded text-sm transition-colors ${
               page === 1
-                ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-surface-2 text-ink-faint cursor-not-allowed'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
             首页
@@ -480,8 +480,8 @@ export default function UserManagement() {
             disabled={page === 1}
             className={`px-3 py-1.5 rounded text-sm transition-colors ${
               page === 1
-                ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-surface-2 text-ink-faint cursor-not-allowed'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
             <i className="fa-solid fa-chevron-left"></i>
@@ -494,10 +494,10 @@ export default function UserManagement() {
               disabled={p === '...'}
               className={`px-3 py-1.5 rounded text-sm transition-colors ${
                 p === page
-                  ? 'bg-cyan-500 text-white font-medium'
+                  ? 'bg-accent text-white font-medium'
                   : p === '...'
-                    ? 'bg-transparent text-slate-500 cursor-default'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    ? 'bg-transparent text-ink-faint cursor-default'
+                    : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
               }`}
             >
               {p}
@@ -509,8 +509,8 @@ export default function UserManagement() {
             disabled={page === totalPages}
             className={`px-3 py-1.5 rounded text-sm transition-colors ${
               page === totalPages
-                ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-surface-2 text-ink-faint cursor-not-allowed'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
             <i className="fa-solid fa-chevron-right"></i>
@@ -520,8 +520,8 @@ export default function UserManagement() {
             disabled={page === totalPages}
             className={`px-3 py-1.5 rounded text-sm transition-colors ${
               page === totalPages
-                ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-surface-2 text-ink-faint cursor-not-allowed'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
             末页
@@ -532,35 +532,35 @@ export default function UserManagement() {
       {/* Add User Modal */}
       {isModalOpen && !generatedPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 p-6 rounded-lg w-full max-w-md border border-slate-700">
-            <h3 className="text-xl font-bold text-white mb-4">添加新用户</h3>
+          <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border">
+            <h3 className="text-xl font-bold text-ink-inverse mb-4">添加新用户</h3>
             <form onSubmit={handleAddUser}>
               <div className="mb-4">
-                <label className="block text-slate-300 mb-2 text-sm">用户名</label>
+                <label className="block text-ink-muted mb-2 text-sm">用户名</label>
                 <input
                   type="text"
                   required
                   value={newUser.username}
                   onChange={e => setNewUser({ ...newUser, username: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink-inverse focus:border-accent outline-none"
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-slate-300 mb-2 text-sm">邮箱</label>
+                <label className="block text-ink-muted mb-2 text-sm">邮箱</label>
                 <input
                   type="email"
                   required
                   value={newUser.email}
                   onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink-inverse focus:border-accent outline-none"
                 />
               </div>
               <div className="mb-6">
-                <label className="block text-slate-300 mb-2 text-sm">角色</label>
+                <label className="block text-ink-muted mb-2 text-sm">角色</label>
                 <select
                   value={newUser.role}
                   onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink-inverse focus:border-accent outline-none"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
@@ -570,13 +570,13 @@ export default function UserManagement() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
+                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded transition-colors"
+                  className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded transition-colors"
                 >
                   创建用户
                 </button>
@@ -589,20 +589,20 @@ export default function UserManagement() {
       {/* Password Display Modal */}
       {generatedPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 p-6 rounded-lg w-full max-w-md border border-slate-700 text-center">
+          <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border text-center">
             <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="fa-solid fa-check text-2xl"></i>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">用户创建成功</h3>
-            <p className="text-slate-400 mb-6">请复制下方生成的随机密码并发送给用户。</p>
+            <h3 className="text-xl font-bold text-ink-inverse mb-2">用户创建成功</h3>
+            <p className="text-ink-muted mb-6">请复制下方生成的随机密码并发送给用户。</p>
 
-            <div className="bg-slate-900 p-4 rounded mb-6 select-all font-mono text-cyan-400 text-lg break-all border border-slate-700">
+            <div className="bg-canvas p-4 rounded mb-6 select-all font-mono text-accent text-lg break-all border border-border">
               {generatedPassword}
             </div>
 
             <button
               onClick={closeGeneratedPasswordModal}
-              className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded transition-colors"
+              className="w-full px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded transition-colors"
             >
               完成
             </button>
