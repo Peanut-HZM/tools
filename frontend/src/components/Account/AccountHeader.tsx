@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 export default function AccountHeader() {
   const navigate = useNavigate();
@@ -9,13 +10,15 @@ export default function AccountHeader() {
     <div className="mb-8">
       {/* 面包屑导航 */}
       <nav className="flex items-center gap-2 text-sm text-ink-muted mb-4">
-        <button
+        <Button
           onClick={() => navigate('/')}
-          className="hover:text-accent transition-colors"
+          variant="ghost"
+          size="sm"
+          className="h-auto p-0 hover:text-accent"
           type="button"
         >
           首页
-        </button>
+        </Button>
         <ChevronRight className="w-4 h-4" />
         <span className="text-ink-muted">账户设置</span>
       </nav>

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { changePassword } from '../../api/authApi';
 import { useToast } from '../../hooks/useToast';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -102,12 +104,9 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: Chan
           <h3 className="text-xl font-bold text-white mb-2">密码修改成功</h3>
           <p className="text-ink-muted mb-6">您的密码已更新，请使用新密码登录</p>
 
-          <button
-            onClick={handleClose}
-            className="w-full px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded transition-colors"
-          >
+          <Button onClick={handleClose} className="w-full">
             完成
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -121,23 +120,21 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: Chan
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-ink-muted mb-2 text-sm">当前密码</label>
-            <input
+            <Input
               type="password"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
-              className="w-full bg-canvas border border-border rounded px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm"
               required
             />
           </div>
 
           <div className="mb-4">
             <label className="block text-ink-muted mb-2 text-sm">新密码</label>
-            <input
+            <Input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="至少 8 位，包含大小写字母、数字和特殊字符"
-              className="w-full bg-canvas border border-border rounded px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm"
               required
             />
             <p className="text-ink-faint text-xs mt-1">
@@ -147,11 +144,10 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: Chan
 
           <div className="mb-4">
             <label className="block text-ink-muted mb-2 text-sm">确认新密码</label>
-            <input
+            <Input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-canvas border border-border rounded px-3 py-2 text-white focus:border-cyan-500 outline-none text-sm"
               required
             />
           </div>
@@ -163,21 +159,20 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: Chan
           )}
 
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={handleClose}
-              className="px-4 py-2 text-ink-muted hover:text-white transition-colors"
               disabled={loading}
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? '修改中...' : '确认修改'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

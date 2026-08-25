@@ -7,6 +7,8 @@ import { useToast } from '../../hooks/useToast';
 import { useI18n } from '../../i18n';
 import { getSystemSettings, SystemSettings } from '../../api/adminApi';
 import { sendVerificationCode } from '../../api/authApi';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -153,12 +155,11 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             <label htmlFor="username" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.username}
             </label>
-            <input
+            <Input
               type="text"
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               placeholder={t.auth.inputUsername}
               disabled={isLoading}
             />
@@ -168,12 +169,11 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             <label htmlFor="email" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.email}
             </label>
-            <input
+            <Input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
               placeholder={t.auth.inputEmail}
               required
             />
@@ -185,23 +185,24 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                 邮箱验证码
               </label>
               <div className="flex gap-2">
-                <input
+                <Input
                   type="text"
                   id="emailCode"
                   value={emailCode}
                   onChange={(e) => setEmailCode(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                   placeholder="请输入验证码"
                   required
+                  className="flex-1"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => handleSendCode(email, 'email')}
                   disabled={emailCooldown > 0}
-                  className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
+                  className="min-w-[100px]"
                 >
                   {emailCooldown > 0 ? `${emailCooldown}s` : '获取验证码'}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -212,12 +213,11 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                 <label htmlFor="phone" className="block text-sm font-medium text-ink-muted mb-1">
                   手机号
                 </label>
-                <input
+                <Input
                   type="tel"
                   id="phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                   placeholder="请输入手机号"
                   required
                 />
@@ -228,23 +228,24 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                   手机验证码
                 </label>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="text"
                     id="phoneCode"
                     value={phoneCode}
                     onChange={(e) => setPhoneCode(e.target.value)}
-                    className="flex-1 px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                     placeholder="请输入验证码 (测试码: 202601)"
                     required
+                    className="flex-1"
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
                     onClick={() => handleSendCode(phone, 'phone')}
                     disabled={phoneCooldown > 0}
-                    className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
+                    className="min-w-[100px]"
                   >
                     {phoneCooldown > 0 ? `${phoneCooldown}s` : '获取验证码'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </>
@@ -254,12 +255,11 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             <label htmlFor="password" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.password}
             </label>
-            <input
+            <Input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               placeholder={t.auth.inputPassword}
               disabled={isLoading}
               maxLength={50}
@@ -270,35 +270,31 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.confirmPassword}
             </label>
-            <input
+            <Input
               type="password"
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               placeholder={t.auth.confirmPassword}
               disabled={isLoading}
               maxLength={50}
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2 px-4 bg-accent hover:bg-accent-hover disabled:bg-cyan-500/50 text-white font-medium rounded-lg transition-colors cursor-pointer"
-          >
+          <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? t.auth.registerProcessing : t.auth.register}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center">
           <span className="text-ink-muted">{t.auth.hasAccount}</span>
-          <button
+          <Button
             onClick={onSwitchToLogin}
-            className="ml-2 text-accent hover:text-cyan-300 cursor-pointer"
+            variant="link"
+            className="ml-2 cursor-pointer"
           >
             {t.auth.registerToLogin}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

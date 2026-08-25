@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/cn';
 import SettingCard from '../SettingCard';
 import { Settings, Globe, Moon, Bell } from 'lucide-react';
 
@@ -35,28 +37,22 @@ export default function PreferencesSection() {
             <h4 className="text-ink-inverse font-medium">语言设置</h4>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              key="zh"
               onClick={() => updatePreference('language', 'zh')}
-              className={`px-4 py-2 rounded text-sm transition-colors ${
-                preferences.language === 'zh'
-                  ? 'bg-accent text-white'
-                  : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
-              }`}
+              variant={preferences.language === 'zh' ? 'default' : 'secondary'}
               type="button"
             >
               中文
-            </button>
-            <button
+            </Button>
+            <Button
+              key="en"
               onClick={() => updatePreference('language', 'en')}
-              className={`px-4 py-2 rounded text-sm transition-colors ${
-                preferences.language === 'en'
-                  ? 'bg-accent text-white'
-                  : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
-              }`}
+              variant={preferences.language === 'en' ? 'default' : 'secondary'}
               type="button"
             >
               English
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -68,20 +64,16 @@ export default function PreferencesSection() {
           </div>
           <div className="flex gap-2">
             {(['dark', 'light', 'system'] as const).map((theme) => (
-              <button
+              <Button
                 key={theme}
                 onClick={() => updatePreference('theme', theme)}
-                className={`px-4 py-2 rounded text-sm transition-colors ${
-                  preferences.theme === theme
-                    ? 'bg-accent text-white'
-                    : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
-                }`}
+                variant={preferences.theme === theme ? 'default' : 'secondary'}
                 type="button"
               >
                 {theme === 'dark' && '深色'}
                 {theme === 'light' && '浅色'}
                 {theme === 'system' && '跟随系统'}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

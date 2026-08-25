@@ -1,5 +1,7 @@
 import React from 'react';
 import { User, Shield, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/cn';
 import { AccountSection, NavItem } from './types';
 
 interface AccountSidebarProps {
@@ -35,30 +37,34 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
       <aside className="hidden lg:block w-72 flex-shrink-0">
         <nav className="space-y-2">
           {navItems.map((item) => (
-            <button
+            <Button
               key={item.id}
               onClick={() => onSectionChange(item.id)}
-              className={`w-full flex items-start gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left ${
+              variant={activeSection === item.id ? 'outline' : 'ghost'}
+              className={cn(
+                'w-full justify-start gap-3 h-auto py-3 px-4 text-left',
                 activeSection === item.id
-                  ? 'bg-accent/10 border border-accent text-accent'
-                  : 'text-ink-muted hover:bg-surface-2/50 hover:text-ink border border-transparent'
-              }`}
+                  ? 'bg-accent/10 border-accent text-accent hover:bg-accent/20'
+                  : 'border border-transparent hover:bg-surface-2/50 text-ink-muted'
+              )}
               type="button"
             >
-              <span className={`flex-shrink-0 mt-0.5 ${
+              <span className={cn(
+                'flex-shrink-0 mt-0.5',
                 activeSection === item.id ? 'text-accent' : 'text-ink-faint'
-              }`}>
+              )}>
                 {item.icon}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm">{item.label}</div>
-                <div className={`text-xs mt-0.5 ${
+                <div className={cn(
+                  'text-xs mt-0.5',
                   activeSection === item.id ? 'text-accent/70' : 'text-ink-faint'
-                }`}>
+                )}>
                   {item.description}
                 </div>
               </div>
-            </button>
+            </Button>
           ))}
         </nav>
       </aside>
@@ -67,18 +73,20 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
       <div className="lg:hidden w-full">
         <nav className="flex gap-2 overflow-x-auto pb-2">
           {navItems.map((item) => (
-            <button
+            <Button
               key={item.id}
               onClick={() => onSectionChange(item.id)}
-              className={`flex-shrink-0 px-4 py-2 rounded-lg transition-all duration-200 text-sm whitespace-nowrap ${
+              variant={activeSection === item.id ? 'outline' : 'ghost'}
+              className={cn(
+                'flex-shrink-0 whitespace-nowrap',
                 activeSection === item.id
-                  ? 'bg-accent/10 border border-accent text-accent'
-                  : 'text-ink-muted hover:bg-surface-2/50 border border-transparent'
-              }`}
+                  ? 'bg-accent/10 border-accent text-accent'
+                  : 'border border-transparent text-ink-muted'
+              )}
               type="button"
             >
               {item.label}
-            </button>
+            </Button>
           ))}
         </nav>
       </div>

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import SettingCard from '../SettingCard';
 import InfoRow from '../InfoRow';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
@@ -33,23 +35,18 @@ export default function SecuritySettingsSection({ onPasswordChangeSuccess }: Sec
                   定期修改密码可以提高账户安全性
                 </p>
                 <div className="max-w-xs">
-                  <input
+                  <Input
                     type="password"
                     placeholder="输入新密码查看强度"
                     value={previewPassword}
                     onChange={(e) => setPreviewPassword(e.target.value)}
-                    className="w-full bg-surface-1 border border-border rounded px-3 py-2 text-ink-inverse text-sm focus:border-accent outline-none transition-colors"
                   />
                   <PasswordStrengthMeter password={previewPassword} />
                 </div>
               </div>
-              <button
-                onClick={() => setIsChangePasswordModalOpen(true)}
-                className="ml-4 px-4 py-2 bg-accent hover:bg-accent text-white rounded text-sm font-medium transition-colors flex-shrink-0"
-                type="button"
-              >
+              <Button onClick={() => setIsChangePasswordModalOpen(true)} className="ml-4 flex-shrink-0">
                 修改密码
-              </button>
+              </Button>
             </div>
           </div>
 

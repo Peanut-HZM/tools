@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../stores/authStore';
 import { useLoginModalStore } from '../../stores/loginModalStore';
 import { useI18n } from '../../i18n';
+import { Button } from '@/components/ui/Button';
 import LoginForm from '../Auth/LoginForm';
 import RegisterForm from '../Auth/RegisterForm';
 
@@ -40,13 +41,15 @@ export default function LoginModal() {
           <h2 className="text-xl font-bold text-white">
             {t.auth.loginTitle}
           </h2>
-          <button
+          <Button
             onClick={closeLoginModal}
-            className="text-ink-faint hover:text-white transition-colors cursor-pointer"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-ink-faint hover:text-white"
             title="关闭"
           >
             <i className="fa-solid fa-xmark text-lg"></i>
-          </button>
+          </Button>
         </div>
 
         {showRegister ? (

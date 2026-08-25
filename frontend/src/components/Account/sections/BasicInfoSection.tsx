@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserResponse } from '@/api/authApi';
+import { Button } from '@/components/ui/Button';
 import SettingCard from '../SettingCard';
 import InfoRow from '../InfoRow';
 import UserAvatar from '../components/UserAvatar';
@@ -49,13 +50,9 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
     return (
       <SettingCard title="基本信息" icon={<User className="w-5 h-5 text-accent" />}>
         <p className="text-ink-muted text-sm">暂无用户信息</p>
-        <button
-          onClick={onRefresh}
-          className="mt-3 px-4 py-2 bg-accent hover:bg-accent text-white rounded text-sm transition-colors"
-          type="button"
-        >
+        <Button onClick={onRefresh} size="sm" className="mt-3">
           重新加载
-        </button>
+        </Button>
       </SettingCard>
     );
   }

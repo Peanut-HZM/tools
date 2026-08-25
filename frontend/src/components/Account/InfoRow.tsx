@@ -1,5 +1,6 @@
 import React from 'react';
 import { Copy } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface InfoRowProps {
   label: string;
@@ -15,14 +16,16 @@ export default function InfoRow({ label, value, copyable = false, onCopy }: Info
       <div className="flex items-center gap-2">
         <span className="text-ink-inverse font-medium text-sm">{value}</span>
         {copyable && (
-          <button
+          <Button
             onClick={onCopy}
-            className="text-ink-faint hover:text-accent transition-colors"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-ink-faint hover:text-accent"
             title="复制"
             type="button"
           >
             <Copy className="w-4 h-4" />
-          </button>
+          </Button>
         )}
       </div>
     </div>
