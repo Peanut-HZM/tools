@@ -39,7 +39,7 @@ export const TabBar: React.FC<Props> = ({ tabs, statuses, activeTabId, onActivat
   };
 
   return (
-    <div className="flex items-center border-b border-slate-800 bg-slate-900">
+    <div className="flex items-center border-b border-border bg-canvas">
       <div className="flex-1 flex overflow-x-auto" role="tablist">
         {tabs.map(tab => {
           const active = activeTabId === tab.tabId;
@@ -49,8 +49,8 @@ export const TabBar: React.FC<Props> = ({ tabs, statuses, activeTabId, onActivat
               key={tab.tabId}
               role="tab"
               aria-selected={active}
-              className={`flex items-center gap-2 px-3 py-2 text-xs border-r border-slate-800 cursor-pointer select-none shrink-0 ${
-                active ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/60'
+              className={`flex items-center gap-2 px-3 py-2 text-xs border-r border-border cursor-pointer select-none shrink-0 ${
+                active ? 'bg-surface-1 text-ink-inverse' : 'text-ink-muted hover:bg-surface-1/60'
               }`}
               onClick={() => onActivate(tab.tabId)}
               onAuxClick={e => handleAuxClick(e, tab)}
@@ -64,14 +64,14 @@ export const TabBar: React.FC<Props> = ({ tabs, statuses, activeTabId, onActivat
               <span className="max-w-[12rem] truncate">
                 {tab.configSnapshot.alias}
               </span>
-              <span className="text-slate-500 text-[10px] truncate">
+              <span className="text-ink-faint text-[10px] truncate">
                 {tab.configSnapshot.username}@{tab.configSnapshot.host}:{tab.configSnapshot.port}
               </span>
               <button
                 type="button"
                 aria-label={t.ssh.closeTab}
                 title={t.ssh.closeTab}
-                className="ml-1 text-slate-400 hover:text-white"
+                className="ml-1 text-ink-muted hover:text-ink-inverse"
                 onClick={e => {
                   e.stopPropagation();
                   handleClose(tab);
@@ -83,7 +83,7 @@ export const TabBar: React.FC<Props> = ({ tabs, statuses, activeTabId, onActivat
           );
         })}
       </div>
-      <div className="px-3 text-[11px] text-slate-500 shrink-0">
+      <div className="px-3 text-[11px] text-ink-faint shrink-0">
         {interpolate(t.ssh.tabCount, { count: String(tabs.length), max: String(MAX_TABS) })}
       </div>
     </div>

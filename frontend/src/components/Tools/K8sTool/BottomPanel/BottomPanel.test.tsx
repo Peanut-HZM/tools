@@ -232,7 +232,7 @@ describe('BottomPanel', () => {
     // 拖动中应包含 cursor-grabbing 和蓝色高亮
     const draggingSeparator = getSeparator(container)!;
     expect(draggingSeparator.className).toContain('cursor-grabbing');
-    expect(draggingSeparator.className).toContain('bg-blue-500');
+    expect(draggingSeparator.className).toContain('bg-accent');
 
     // 结束拖动
     act(() => {

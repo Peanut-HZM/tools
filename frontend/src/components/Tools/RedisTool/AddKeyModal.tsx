@@ -54,24 +54,24 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-slate-700">
-        <h2 className="text-xl font-bold mb-4 text-white">{t.redis.addKey}</h2>
+      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-md p-6 border border-border">
+        <h2 className="text-xl font-bold mb-4 text-ink-inverse">{t.redis.addKey}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.keys}</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.keys}</label>
             <input
               type="text"
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
               value={key}
               onChange={e => setKey(e.target.value)}
               placeholder="my:key:name"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.type}</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.type}</label>
             <select
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
               value={type}
               onChange={e => setType(e.target.value)}
             >
@@ -83,20 +83,20 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.ttl}</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.ttl}</label>
             <input
               type="number"
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
               value={ttl}
               onChange={e => setTtl(parseInt(e.target.value))}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">{t.redis.value}</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.value}</label>
             <textarea
               required
               rows={4}
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500 font-mono"
               value={value}
               onChange={e => setValue(e.target.value)}
               placeholder={type === 'string' ? 'Value' : 'JSON content'}
@@ -106,13 +106,13 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-600 transition-colors"
+              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
             >
               {t.common.cancel}
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               {t.common.create}
             </button>

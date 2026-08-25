@@ -60,7 +60,7 @@ export const ClusterSwitcher: React.FC = () => {
       {/* 触发按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-md text-sm text-slate-200 hover:border-slate-500 hover:bg-slate-700 transition-colors min-w-[180px] max-w-[260px]"
+        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-slate-500 hover:bg-surface-2 transition-colors min-w-[180px] max-w-[260px]"
       >
         {activeConn ? (
           <>
@@ -68,16 +68,16 @@ export const ClusterSwitcher: React.FC = () => {
             <span className="truncate">{activeConn.name}</span>
           </>
         ) : (
-          <span className="text-slate-500">{k8sT.topBar.selectCluster}</span>
+          <span className="text-ink-faint">{k8sT.topBar.selectCluster}</span>
         )}
-        <i className={`fas fa-chevron-down ml-auto text-xs text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
+        <i className={`fas fa-chevron-down ml-auto text-xs text-ink-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
       </button>
 
       {/* 下拉菜单 */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-72 max-h-80 overflow-y-auto bg-slate-800 border border-slate-600 rounded-md shadow-lg z-50">
+        <div className="absolute top-full left-0 mt-1 w-72 max-h-80 overflow-y-auto bg-surface-1 border border-border rounded-md shadow-lg z-50">
           {sortedConns.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-slate-500 text-center">
+            <div className="px-3 py-4 text-sm text-ink-faint text-center">
               {k8sT.emptyConnections}
             </div>
           ) : (
@@ -93,17 +93,17 @@ export const ClusterSwitcher: React.FC = () => {
                     }}
                     className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
                       isActive
-                        ? 'bg-blue-600/20 text-blue-300'
-                        : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        ? 'bg-accent/20 text-blue-300'
+                        : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
                     }`}
                   >
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getHealthDotClass(conn)}`}></span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{conn.name}</div>
-                      <div className="text-xs text-slate-500 truncate">{conn.server || conn.cluster_name}</div>
+                      <div className="text-xs text-ink-faint truncate">{conn.server || conn.cluster_name}</div>
                     </div>
                     {isActive && (
-                      <i className="fas fa-check text-blue-400 text-xs flex-shrink-0"></i>
+                      <i className="fas fa-check text-accent-info text-xs flex-shrink-0"></i>
                     )}
                   </li>
                 );

@@ -56,7 +56,7 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
   // 加载中
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500">
+      <div className="flex items-center justify-center h-full text-ink-faint">
         <i className="fas fa-spinner fa-spin mr-2"></i>
         {yt.loading}
       </div>
@@ -66,7 +66,7 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
   // 加载失败
   if (isError) {
     return (
-      <div className="flex items-center justify-center h-full text-red-400">
+      <div className="flex items-center justify-center h-full text-danger">
         <i className="fas fa-exclamation-triangle mr-2"></i>
         {yt.error}
       </div>
@@ -76,10 +76,10 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* 工具栏：复制按钮 */}
-      <div className="flex items-center justify-end px-3 py-1.5 border-b border-slate-700 bg-slate-800/50 shrink-0">
+      <div className="flex items-center justify-end px-3 py-1.5 border-b border-border bg-surface-1/50 shrink-0">
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded border border-slate-600 transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 text-ink-muted rounded border border-border transition-colors"
         >
           <i className={`fas ${copied ? 'fa-check text-green-400' : 'fa-copy'} text-xs`}></i>
           {copied ? yt.copied : yt.copy}
@@ -97,7 +97,7 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
               {tokens.map((line, i) => (
                 <div key={i} {...getLineProps({ line })} className="table-row">
                   {/* 行号 */}
-                  <span className="table-cell text-right pr-3 pl-3 select-none text-slate-600 border-r border-slate-800">
+                  <span className="table-cell text-right pr-3 pl-3 select-none text-ink-faint border-r border-border">
                     {i + 1}
                   </span>
                   {/* 代码内容 */}

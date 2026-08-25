@@ -157,7 +157,7 @@ export const LogsViewer: React.FC<Props> = ({
   const highlightLine = useCallback(
     (text: string, lineIdx: number): React.ReactNode => {
       if (!searchRegex || !text) {
-        return <span className="text-slate-300">{text || ' '}</span>;
+        return <span className="text-ink-muted">{text || ' '}</span>;
       }
 
       const regex = new RegExp(searchRegex.source, 'gi');
@@ -193,7 +193,7 @@ export const LogsViewer: React.FC<Props> = ({
         );
       }
 
-      return parts.length > 0 ? <>{parts}</> : <span className="text-slate-300">{text || ' '}</span>;
+      return parts.length > 0 ? <>{parts}</> : <span className="text-ink-muted">{text || ' '}</span>;
     },
     [searchRegex],
   );
@@ -226,15 +226,15 @@ export const LogsViewer: React.FC<Props> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950">
+    <div className="h-full flex flex-col bg-canvas">
       {/* 工具栏 */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-700 bg-slate-900 shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-canvas shrink-0 flex-wrap">
         {/* 容器选择 */}
         {containers.length > 1 && (
           <select
             value={selectedContainer}
             onChange={(e) => setSelectedContainer(e.target.value)}
-            className="px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded focus:outline-none focus:border-blue-500"
+            className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
           >
             {containers.map((c) => (
               <option key={c.name} value={c.name}>{c.name}</option>
@@ -248,7 +248,7 @@ export const LogsViewer: React.FC<Props> = ({
           className={`flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors ${
             follow
               ? 'bg-green-500/20 border-green-500/30 text-green-400'
-              : 'bg-slate-800 border-slate-700 text-slate-400'
+              : 'bg-surface-1 border-border text-ink-muted'
           }`}
         >
           <i className={`fas ${follow ? 'fa-pause' : 'fa-play'} text-xs`}></i>
@@ -259,7 +259,7 @@ export const LogsViewer: React.FC<Props> = ({
         <select
           value={tailLines}
           onChange={(e) => setTailLines(Number(e.target.value))}
-          className="px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded focus:outline-none focus:border-blue-500"
+          className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
           title="日志行数"
         >
           <option value={100}>100 行</option>
@@ -271,13 +271,13 @@ export const LogsViewer: React.FC<Props> = ({
 
         {/* 搜索框 */}
         <div className="flex items-center gap-1 flex-1 min-w-[140px]">
-          <i className="fas fa-search text-xs text-slate-500"></i>
+          <i className="fas fa-search text-xs text-ink-faint"></i>
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder={lt.search}
-            className="flex-1 px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded focus:outline-none focus:border-blue-500 placeholder-slate-600"
+            className="flex-1 px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500 placeholder-slate-600"
           />
         </div>
 
@@ -285,7 +285,7 @@ export const LogsViewer: React.FC<Props> = ({
         <button
           onClick={handleDownload}
           disabled={downloading}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-400 rounded hover:bg-slate-700 hover:text-slate-200 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded hover:bg-surface-2 hover:text-ink disabled:opacity-50 transition-colors"
           title={lt.download}
         >
           <i className={`fas ${downloading ? 'fa-spinner fa-spin' : 'fa-download'} text-xs`}></i>
@@ -295,7 +295,7 @@ export const LogsViewer: React.FC<Props> = ({
         <button
           onClick={handleClear}
           disabled={lines.length === 0}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-400 rounded hover:bg-slate-700 hover:text-slate-200 disabled:opacity-500 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded hover:bg-surface-2 hover:text-ink disabled:opacity-500 transition-colors"
           title={lt.clear}
         >
           <i className="fas fa-trash text-xs"></i>
@@ -308,7 +308,7 @@ export const LogsViewer: React.FC<Props> = ({
         className="flex-1 overflow-y-auto overflow-x-hidden font-mono"
       >
         {lines.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-slate-600 text-sm">
+          <div className="flex items-center justify-center h-full text-ink-faint text-sm">
             <i className="fas fa-stream mr-2"></i>
             {lt.noLogs}
           </div>
@@ -317,15 +317,15 @@ export const LogsViewer: React.FC<Props> = ({
             {lines.map((line, idx) => (
               <div
                 key={idx}
-                className="flex hover:bg-slate-800/30"
+                className="flex hover:bg-surface-1/30"
                 style={{ minHeight: 20 }}
               >
                 {/* 行号 */}
-                <span className="shrink-0 w-12 text-right pr-2 pl-2 select-none text-slate-600 border-r border-slate-800/50 text-xs leading-5">
+                <span className="shrink-0 w-12 text-right pr-2 pl-2 select-none text-ink-faint border-r border-border/50 text-xs leading-5">
                   {idx + 1}
                 </span>
                 {/* 日志内容 */}
-                <span className="px-2 text-xs text-slate-300 whitespace-pre-wrap break-all leading-5">
+                <span className="px-2 text-xs text-ink-muted whitespace-pre-wrap break-all leading-5">
                   {highlightLine(line, idx)}
                 </span>
               </div>
@@ -335,21 +335,21 @@ export const LogsViewer: React.FC<Props> = ({
       </div>
 
       {/* 底部状态栏 */}
-      <div className="flex items-center justify-between px-3 py-1 border-t border-slate-800 bg-slate-900 text-xs text-slate-500 shrink-0">
+      <div className="flex items-center justify-between px-3 py-1 border-t border-border bg-canvas text-xs text-ink-faint shrink-0">
         <span>
           {lines.length > 0 && (
             <>
-              <span className="text-slate-400">{lines.length.toLocaleString()}</span>
+              <span className="text-ink-muted">{lines.length.toLocaleString()}</span>
               {' '}lines
               {selectedContainer && (
                 <span className="ml-2">
-                  container: <span className="text-blue-400">{selectedContainer}</span>
+                  container: <span className="text-accent-info">{selectedContainer}</span>
                 </span>
               )}
             </>
           )}
         </span>
-        <span className={follow ? 'text-green-400' : 'text-slate-600'}>
+        <span className={follow ? 'text-green-400' : 'text-ink-faint'}>
           {follow ? '● LIVE' : '○ PAUSED'}
         </span>
       </div>

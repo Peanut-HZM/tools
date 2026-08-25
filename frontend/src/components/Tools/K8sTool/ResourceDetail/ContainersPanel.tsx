@@ -17,9 +17,9 @@ interface Props {
 const getStateColor = (state: K8sContainerInfo['state']): string => {
   switch (state) {
     case 'running': return 'text-green-400';
-    case 'waiting': return 'text-yellow-400';
-    case 'terminated': return 'text-red-400';
-    default: return 'text-slate-400';
+    case 'waiting': return 'text-accent-warning';
+    case 'terminated': return 'text-danger';
+    default: return 'text-ink-muted';
   }
 };
 
@@ -44,23 +44,23 @@ const formatResources = (resources: Record<string, string>): string => {
 const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct: Record<string, string> }> = ({
   container, isInit, ct,
 }) => (
-  <tr className="border-b border-slate-800 hover:bg-slate-800/30">
+  <tr className="border-b border-border hover:bg-surface-1/30">
     {/* 名称 */}
     <td className="px-3 py-2">
       <div className="flex items-center gap-2">
         {isInit && (
-          <span className="px-1 py-0.5 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-xs">
+          <span className="px-1 py-0.5 bg-accent-secondary/20 text-accent-secondary border border-accent-secondary/30 rounded text-xs">
             init
           </span>
         )}
-        <span className="text-slate-200 font-medium text-xs">{container.name}</span>
+        <span className="text-ink font-medium text-xs">{container.name}</span>
       </div>
     </td>
 
     {/* 镜像 */}
     <td className="px-3 py-2">
       <span
-        className="text-xs text-slate-400 font-mono truncate block max-w-[200px]"
+        className="text-xs text-ink-muted font-mono truncate block max-w-[200px]"
         title={container.image}
       >
         {container.image}
@@ -75,7 +75,7 @@ const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct:
           {container.state}
         </span>
         {container.state_detail && container.state !== container.state_detail && (
-          <span className="text-xs text-slate-500 truncate max-w-[120px]" title={container.state_detail}>
+          <span className="text-xs text-ink-faint truncate max-w-[120px]" title={container.state_detail}>
             ({container.state_detail})
           </span>
         )}
@@ -84,7 +84,7 @@ const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct:
 
     {/* 就绪 */}
     <td className="px-3 py-2">
-      <span className={`text-xs font-medium ${container.ready ? 'text-green-400' : 'text-red-400'}`}>
+      <span className={`text-xs font-medium ${container.ready ? 'text-green-400' : 'text-danger'}`}>
         {container.ready ? ct.ready : ct.notReady}
       </span>
     </td>
@@ -92,21 +92,21 @@ const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct:
     {/* 重启次数 */}
     <td className="px-3 py-2 text-xs">
       {container.restart_count > 0 ? (
-        <span className={container.restart_count > 5 ? 'text-red-400 font-medium' : 'text-yellow-400'}>
+        <span className={container.restart_count > 5 ? 'text-danger font-medium' : 'text-accent-warning'}>
           {container.restart_count}
         </span>
       ) : (
-        <span className="text-slate-500">0</span>
+        <span className="text-ink-faint">0</span>
       )}
     </td>
 
     {/* 资源请求 */}
-    <td className="px-3 py-2 text-xs text-slate-400 font-mono">
+    <td className="px-3 py-2 text-xs text-ink-muted font-mono">
       {formatResources(container.resources_requests)}
     </td>
 
     {/* 资源限制 */}
-    <td className="px-3 py-2 text-xs text-slate-400 font-mono">
+    <td className="px-3 py-2 text-xs text-ink-muted font-mono">
       {formatResources(container.resources_limits)}
     </td>
   </tr>
@@ -123,7 +123,7 @@ export const ContainersPanel: React.FC<Props> = ({ containers, initContainers })
 
   if (allContainers.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+      <div className="flex items-center justify-center h-full text-ink-faint text-sm">
         {ct.noContainers}
       </div>
     );
@@ -132,7 +132,7 @@ export const ContainersPanel: React.FC<Props> = ({ containers, initContainers })
   return (
     <div className="overflow-auto h-full">
       <table className="w-full text-xs">
-        <thead className="sticky top-0 bg-slate-800 text-slate-400 border-b border-slate-700">
+        <thead className="sticky top-0 bg-surface-1 text-ink-muted border-b border-border">
           <tr>
             <th className="text-left px-3 py-2 font-medium">{ct.name}</th>
             <th className="text-left px-3 py-2 font-medium">{ct.image}</th>

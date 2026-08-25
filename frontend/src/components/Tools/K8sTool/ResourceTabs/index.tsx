@@ -45,7 +45,7 @@ export const ResourceTabs: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* 标签栏 */}
-      <div className="flex items-center px-4 border-b border-slate-700 bg-slate-800/30">
+      <div className="flex items-center px-4 border-b border-border bg-surface-1/30">
         {TABS.map((tab) => {
           const isActive = resourceType === tab.key;
           return (
@@ -54,8 +54,8 @@ export const ResourceTabs: React.FC = () => {
               onClick={() => setResourceType(tab.key as 'pods' | 'workloads' | 'nodes' | 'events')}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 isActive
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                  ? 'border-blue-500 text-accent-info'
+                  : 'border-transparent text-ink-muted hover:text-ink hover:border-border'
               }`}
             >
               <i className={`${tab.icon} text-xs`}></i>

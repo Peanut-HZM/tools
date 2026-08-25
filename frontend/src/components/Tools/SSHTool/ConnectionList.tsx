@@ -17,13 +17,13 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
   const { t } = useI18n();
 
   return (
-    <div className="flex flex-col h-full bg-slate-800 border-r border-slate-700 w-64">
-      <div className="p-4 border-b border-slate-700 flex flex-col gap-2 bg-slate-800">
+    <div className="flex flex-col h-full bg-surface-1 border-r border-border w-64">
+      <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-slate-100">{t.ssh.connections}</h2>
+          <h2 className="font-semibold text-ink">{t.ssh.connections}</h2>
           <button
             onClick={onAdd}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+            className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
             title={t.ssh.addConnection}
           >
             <i className="fas fa-plus"></i>
@@ -34,7 +34,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
         {configs.map(config => (
           <div
             key={config.id}
-            className="p-2 rounded cursor-pointer group flex justify-between items-center text-slate-300 hover:bg-slate-700 hover:text-white"
+            className="p-2 rounded cursor-pointer group flex justify-between items-center text-ink-muted hover:bg-surface-2 hover:text-ink-inverse"
             onClick={() => onSelect(config.id)}
           >
             <div className="truncate flex-1">
@@ -42,14 +42,14 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
                 <i className="fas fa-terminal mr-2 text-xs opacity-70"></i>
                 {config.alias}
               </div>
-              <div className="text-xs truncate text-slate-500 group-hover:text-slate-400">
+              <div className="text-xs truncate text-ink-faint group-hover:text-ink-muted">
                 {config.username}@{config.host}:{config.port}
               </div>
             </div>
             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => { e.stopPropagation(); onEdit(config); }}
-                className="p-1 rounded hover:bg-slate-600 text-slate-400 hover:text-white"
+                className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink-inverse"
                 title={t.ssh.editConnection}
               >
                 <i className="fas fa-pen text-xs"></i>
@@ -61,7 +61,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
                     onDelete(config.id);
                   }
                 }}
-                className="p-1 rounded hover:bg-slate-600 text-slate-400 hover:text-red-400"
+                className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-danger"
                 title={t.common.delete}
               >
                 <i className="fas fa-trash text-xs"></i>
@@ -70,7 +70,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
           </div>
         ))}
         {configs.length === 0 && (
-          <div className="p-4 text-center text-sm text-slate-500">
+          <div className="p-4 text-center text-sm text-ink-faint">
             {t.ssh.emptyConnections}
           </div>
         )}

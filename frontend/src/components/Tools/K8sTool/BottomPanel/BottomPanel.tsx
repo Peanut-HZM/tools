@@ -90,7 +90,7 @@ export const BottomPanel: React.FC = () => {
 
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 z-40 shadow-2xl animate-slide-in-bottom flex flex-col"
+      className="absolute bottom-0 left-0 right-0 bg-canvas border-t border-border z-40 shadow-lg animate-slide-in-bottom flex flex-col"
       style={{ height: panelHeight }}
     >
       {/* 标签栏 */}
@@ -101,8 +101,8 @@ export const BottomPanel: React.FC = () => {
         onMouseDown={handleDragStart}
         className={`h-1 transition-colors ${
           isDragging
-            ? 'bg-blue-500 cursor-grabbing'
-            : 'bg-slate-700 hover:bg-blue-500 cursor-grab'
+            ? 'bg-accent cursor-grabbing'
+            : 'bg-surface-2 hover:bg-accent-hover cursor-grab'
         }`}
         title="拖动调整面板高度"
       />

@@ -30,7 +30,7 @@ export const EventsList: React.FC = () => {
   return (
     <div className="flex-1 overflow-auto">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-slate-800 text-slate-400 border-b border-slate-700">
+        <thead className="sticky top-0 bg-surface-1 text-ink-muted border-b border-border">
           <tr>
             <th className="text-left px-3 py-2 font-medium">{k8sT.eventsList.type}</th>
             <th className="text-left px-3 py-2 font-medium">{k8sT.eventsList.reason}</th>
@@ -43,7 +43,7 @@ export const EventsList: React.FC = () => {
         <tbody>
           {isLoading && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+              <td colSpan={6} className="px-3 py-8 text-center text-ink-faint">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
                 Loading...
               </td>
@@ -52,7 +52,7 @@ export const EventsList: React.FC = () => {
 
           {isError && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-red-400">
+              <td colSpan={6} className="px-3 py-8 text-center text-danger">
                 <i className="fas fa-exclamation-triangle mr-2"></i>
                 {errorMessage}
               </td>
@@ -61,7 +61,7 @@ export const EventsList: React.FC = () => {
 
           {!isLoading && !isError && events.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+              <td colSpan={6} className="px-3 py-8 text-center text-ink-faint">
                 {k8sT.eventsList.noEvents}
               </td>
             </tr>
@@ -72,14 +72,14 @@ export const EventsList: React.FC = () => {
             return (
               <tr
                 key={`${event.object_namespace}/${event.object_kind}/${event.object_name}/${event.reason}-${idx}`}
-                className={`border-b border-slate-800 transition-colors ${
-                  isWarning ? 'bg-red-900/10 hover:bg-red-900/20' : 'hover:bg-slate-800/50'
+                className={`border-b border-border transition-colors ${
+                  isWarning ? 'bg-red-900/10 hover:bg-red-900/20' : 'hover:bg-surface-1/50'
                 }`}
               >
                 {/* 类型 */}
                 <td className="px-3 py-2">
                   <span className={`inline-flex items-center gap-1 text-xs font-medium ${
-                    isWarning ? 'text-yellow-400' : 'text-blue-400'
+                    isWarning ? 'text-accent-warning' : 'text-accent-info'
                   }`}>
                     <i className={`fas ${isWarning ? 'fa-exclamation-triangle' : 'fa-info-circle'}`}></i>
                     {event.type}
@@ -88,35 +88,35 @@ export const EventsList: React.FC = () => {
 
                 {/* 原因 */}
                 <td className="px-3 py-2">
-                  <span className={`text-xs font-mono ${isWarning ? 'text-yellow-300' : 'text-slate-300'}`}>
+                  <span className={`text-xs font-mono ${isWarning ? 'text-yellow-300' : 'text-ink-muted'}`}>
                     {event.reason}
                   </span>
                 </td>
 
                 {/* 消息 */}
-                <td className="px-3 py-2 text-slate-400 text-xs truncate max-w-[300px]" title={event.message}>
+                <td className="px-3 py-2 text-ink-muted text-xs truncate max-w-[300px]" title={event.message}>
                   {event.message}
                 </td>
 
                 {/* 对象 */}
-                <td className="px-3 py-2 text-slate-400 text-xs">
+                <td className="px-3 py-2 text-ink-muted text-xs">
                   <span className="font-mono">
                     {event.object_kind}/{event.object_name}
                   </span>
-                  <span className="text-slate-600 ml-1">{event.object_namespace}</span>
+                  <span className="text-ink-faint ml-1">{event.object_namespace}</span>
                 </td>
 
                 {/* 次数 */}
-                <td className="px-3 py-2 text-slate-400 text-xs text-center">
+                <td className="px-3 py-2 text-ink-muted text-xs text-center">
                   {event.count > 1 ? (
-                    <span className="bg-slate-700 px-1.5 py-0.5 rounded text-xs">{event.count}</span>
+                    <span className="bg-surface-2 px-1.5 py-0.5 rounded text-xs">{event.count}</span>
                   ) : (
                     event.count
                   )}
                 </td>
 
                 {/* 最近出现 */}
-                <td className="px-3 py-2 text-slate-400 text-xs">
+                <td className="px-3 py-2 text-ink-muted text-xs">
                   {formatAge(event.last_seen)}
                 </td>
               </tr>

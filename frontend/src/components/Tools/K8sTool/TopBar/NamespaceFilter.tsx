@@ -85,26 +85,26 @@ export const NamespaceFilter: React.FC = () => {
       {/* 触发按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-md text-sm text-slate-200 hover:border-slate-500 transition-colors min-w-[150px] max-w-[240px]"
+        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-slate-500 transition-colors min-w-[150px] max-w-[240px]"
       >
-        <i className="fas fa-filter text-xs text-slate-400"></i>
+        <i className="fas fa-filter text-xs text-ink-muted"></i>
         <span className="truncate">{displayText}</span>
-        <i className={`fas fa-chevron-down ml-auto text-xs text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
+        <i className={`fas fa-chevron-down ml-auto text-xs text-ink-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
       </button>
 
       {/* 下拉菜单 */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-64 max-h-72 overflow-y-auto bg-slate-800 border border-slate-600 rounded-md shadow-lg z-50">
+        <div className="absolute top-full left-0 mt-1 w-64 max-h-72 overflow-y-auto bg-surface-1 border border-border rounded-md shadow-lg z-50">
           {/* 搜索框 */}
-          <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-2">
-            <div className="flex items-center gap-2 px-2 py-1 bg-slate-900 border border-slate-700 rounded">
-              <i className="fas fa-search text-xs text-slate-500"></i>
+          <div className="sticky top-0 bg-surface-1 border-b border-border p-2">
+            <div className="flex items-center gap-2 px-2 py-1 bg-canvas border border-border rounded">
+              <i className="fas fa-search text-xs text-ink-faint"></i>
               <input
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="搜索命名空间..."
-                className="flex-1 bg-transparent text-sm text-slate-300 placeholder-slate-600 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-ink-muted placeholder-slate-600 focus:outline-none"
                 onClick={(e) => e.stopPropagation()}
               />
               {searchText && (
@@ -113,7 +113,7 @@ export const NamespaceFilter: React.FC = () => {
                     e.stopPropagation();
                     setSearchText('');
                   }}
-                  className="text-slate-500 hover:text-slate-300"
+                  className="text-ink-faint hover:text-ink-muted"
                 >
                   <i className="fas fa-times text-xs"></i>
                 </button>
@@ -124,16 +124,16 @@ export const NamespaceFilter: React.FC = () => {
           {/* "所有命名空间"选项 */}
           <div
             onClick={toggleAll}
-            className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-slate-700 transition-colors ${
+            className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border transition-colors ${
               isAllSelected
-                ? 'bg-blue-600/20 text-blue-300'
-                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                ? 'bg-accent/20 text-blue-300'
+                : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
             }`}
           >
             <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-              isAllSelected ? 'bg-blue-500 border-blue-400' : 'border-slate-500'
+              isAllSelected ? 'bg-accent border-blue-400' : 'border-slate-500'
             }`}>
-              {isAllSelected && <i className="fas fa-check text-[10px] text-white"></i>}
+              {isAllSelected && <i className="fas fa-check text-[10px] text-ink-inverse"></i>}
             </div>
             <span className="text-sm font-medium">{k8sT.topBar.allNamespaces}</span>
           </div>
@@ -147,14 +147,14 @@ export const NamespaceFilter: React.FC = () => {
                 onClick={() => toggleNamespace(ns)}
                 className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
                   isChecked
-                    ? 'bg-blue-600/20 text-blue-300'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-accent/20 text-blue-300'
+                    : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
                 }`}
               >
                 <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                  isChecked ? 'bg-blue-500 border-blue-400' : 'border-slate-500'
+                  isChecked ? 'bg-accent border-blue-400' : 'border-slate-500'
                 }`}>
-                  {isChecked && <i className="fas fa-check text-[10px] text-white"></i>}
+                  {isChecked && <i className="fas fa-check text-[10px] text-ink-inverse"></i>}
                 </div>
                 <span className="text-sm truncate">{ns}</span>
               </div>
@@ -162,7 +162,7 @@ export const NamespaceFilter: React.FC = () => {
           })}
 
           {filteredNamespaces.length === 0 && searchText && (
-            <div className="px-3 py-4 text-sm text-slate-500 text-center">
+            <div className="px-3 py-4 text-sm text-ink-faint text-center">
               未找到匹配的命名空间
             </div>
           )}
@@ -170,11 +170,11 @@ export const NamespaceFilter: React.FC = () => {
           {namespaces.length === 0 && (
             <div className="px-3 py-4 text-sm text-center">
               {isError ? (
-                <div className="text-yellow-400">
+                <div className="text-accent-warning">
                   <i className="fas fa-exclamation-triangle mr-2"></i>
                   无法获取命名空间列表
                   <br />
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-ink-faint">
                     请在编辑配置时指定命名空间过滤
                   </span>
                 </div>

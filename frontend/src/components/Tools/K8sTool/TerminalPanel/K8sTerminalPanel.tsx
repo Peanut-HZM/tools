@@ -230,15 +230,15 @@ export const K8sTerminalPanel: React.FC<Props> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-canvas">
       {/* 工具栏：容器选择 + Shell 切换 + 重连 */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-700 bg-slate-800/50 shrink-0">
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-surface-1/50 shrink-0">
         {/* 容器选择 */}
         {containers.length > 1 && (
           <select
             value={selectedContainer}
             onChange={(e) => setSelectedContainer(e.target.value)}
-            className="px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded focus:outline-none focus:border-blue-500"
+            className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
           >
             {containers.map((c) => (
               <option key={c.name} value={c.name}>{c.name}</option>
@@ -250,7 +250,7 @@ export const K8sTerminalPanel: React.FC<Props> = ({
         <select
           value={command}
           onChange={(e) => setCommand(e.target.value as ShellCommand)}
-          className="px-2 py-1 text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded focus:outline-none focus:border-blue-500"
+          className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
         >
           <option value="/bin/sh">/bin/sh</option>
           <option value="/bin/bash">/bin/bash</option>
@@ -259,7 +259,7 @@ export const K8sTerminalPanel: React.FC<Props> = ({
         {/* 重连按钮 */}
         <button
           onClick={handleReconnect}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded border border-slate-600 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs bg-surface-2 hover:bg-surface-3 text-ink-muted rounded border border-border transition-colors"
         >
           <i className="fas fa-redo text-xs"></i>
           {tt.reconnect}
@@ -269,7 +269,7 @@ export const K8sTerminalPanel: React.FC<Props> = ({
       {/* 终端区域 */}
       <div
         ref={terminalRef}
-        className="flex-1 bg-slate-950 cursor-text"
+        className="flex-1 bg-canvas cursor-text"
         onClick={() => terminalInstance.current?.focus()}
       />
     </div>

@@ -45,7 +45,7 @@ export const NodeList: React.FC = () => {
   return (
     <div className="flex-1 overflow-auto">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-slate-800 text-slate-400 border-b border-slate-700">
+        <thead className="sticky top-0 bg-surface-1 text-ink-muted border-b border-border">
           <tr>
             <th className="text-left px-3 py-2 font-medium">{k8sT.nodeList.status}</th>
             <th className="text-left px-3 py-2 font-medium">{k8sT.nodeList.name}</th>
@@ -58,7 +58,7 @@ export const NodeList: React.FC = () => {
         <tbody>
           {isLoading && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+              <td colSpan={6} className="px-3 py-8 text-center text-ink-faint">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
                 Loading...
               </td>
@@ -67,7 +67,7 @@ export const NodeList: React.FC = () => {
 
           {isError && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-red-400">
+              <td colSpan={6} className="px-3 py-8 text-center text-danger">
                 <i className="fas fa-exclamation-triangle mr-2"></i>
                 {errorMessage}
               </td>
@@ -76,7 +76,7 @@ export const NodeList: React.FC = () => {
 
           {!isLoading && !isError && nodes.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+              <td colSpan={6} className="px-3 py-8 text-center text-ink-faint">
                 {k8sT.nodeList.noNodes}
               </td>
             </tr>
@@ -89,7 +89,7 @@ export const NodeList: React.FC = () => {
               <tr
                 key={node.name}
                 onClick={() => handleRowClick(node)}
-                className="border-b border-slate-800 hover:bg-slate-800/50 cursor-pointer transition-colors"
+                className="border-b border-border hover:bg-surface-1/50 cursor-pointer transition-colors"
               >
                 {/* 状态 */}
                 <td className="px-3 py-2">
@@ -101,26 +101,26 @@ export const NodeList: React.FC = () => {
 
                 {/* 名称 */}
                 <td className="px-3 py-2">
-                  <div className="text-slate-200 font-medium truncate max-w-[240px]">{node.name}</div>
+                  <div className="text-ink font-medium truncate max-w-[240px]">{node.name}</div>
                 </td>
 
                 {/* 角色 */}
-                <td className="px-3 py-2 text-slate-400 text-xs">
+                <td className="px-3 py-2 text-ink-muted text-xs">
                   {getRolesDisplay(node.roles)}
                 </td>
 
                 {/* 版本 */}
-                <td className="px-3 py-2 text-slate-400 text-xs font-mono">
+                <td className="px-3 py-2 text-ink-muted text-xs font-mono">
                   {node.version || '-'}
                 </td>
 
                 {/* 运行时 */}
-                <td className="px-3 py-2 text-slate-400 text-xs truncate max-w-[160px]">
+                <td className="px-3 py-2 text-ink-muted text-xs truncate max-w-[160px]">
                   {node.container_runtime || '-'}
                 </td>
 
                 {/* 创建时间 */}
-                <td className="px-3 py-2 text-slate-400 text-xs">
+                <td className="px-3 py-2 text-ink-muted text-xs">
                   {formatAge(node.created_at)}
                 </td>
               </tr>

@@ -111,40 +111,40 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 border border-slate-700">
-        <h2 className="text-xl font-bold mb-4 text-white">
+      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-lg p-6 border border-border">
+        <h2 className="text-xl font-bold mb-4 text-ink-inverse">
           {initialData ? t.ssh.editConnection : t.ssh.addConnection}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.alias}</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.alias}</label>
             <input
               type="text"
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
               value={formData.alias}
               onChange={e => setFormData({ ...formData, alias: e.target.value })}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.host}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.host}</label>
               <input
                 type="text"
                 required
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.host}
                 onChange={e => setFormData({ ...formData, host: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.port}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.port}</label>
               <input
                 type="number"
                 required
                 min="1"
                 max="65535"
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.port}
                 onChange={e => setFormData({ ...formData, port: parseInt(e.target.value, 10) || 22 })}
               />
@@ -152,20 +152,20 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.username}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.username}</label>
               <input
                 type="text"
                 required
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.username}
                 onChange={e => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.password}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.password}</label>
               <input
                 type="password"
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                 placeholder={initialData ? t.common.leaveBlankToKeep : ''}
@@ -173,10 +173,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.privateKey}</label>
+            <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.privateKey}</label>
             <textarea
               rows={4}
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
               value={formData.private_key}
               onChange={e => setFormData({ ...formData, private_key: e.target.value })}
               placeholder={initialData ? t.common.leaveBlankToKeep : ''}
@@ -184,20 +184,20 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.passphrase}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.passphrase}</label>
               <input
                 type="password"
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.passphrase}
                 onChange={e => setFormData({ ...formData, passphrase: e.target.value })}
                 placeholder={initialData ? t.common.leaveBlankToKeep : ''}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">{t.ssh.group}</label>
+              <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.group}</label>
               <input
                 type="text"
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                 value={formData.group_name}
                 onChange={e => setFormData({ ...formData, group_name: e.target.value })}
               />
@@ -206,7 +206,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           <div className="flex items-center justify-between pt-4">
             <div className="text-sm">
               {testMessage && (
-                <span className={testStatus === 'success' ? 'text-green-400' : 'text-red-400'}>
+                <span className={testStatus === 'success' ? 'text-green-400' : 'text-danger'}>
                   {testMessage}
                 </span>
               )}
@@ -215,7 +215,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-600 transition-colors"
+              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
             >
               {t.common.cancel}
             </button>
@@ -223,13 +223,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
               type="button"
               onClick={handleTestConnection}
               disabled={isTesting}
-              className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-600 transition-colors disabled:opacity-60"
+              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink hover:bg-surface-3 transition-colors disabled:opacity-60"
             >
               {isTesting ? t.ssh.testing : t.ssh.testConnection}
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               {t.common.save}
             </button>

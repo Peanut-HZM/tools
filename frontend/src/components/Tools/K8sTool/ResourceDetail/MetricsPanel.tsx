@@ -124,7 +124,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
   // 加载中
   if (isLoading && dataPoints.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500">
+      <div className="flex items-center justify-center h-full text-ink-faint">
         <i className="fas fa-spinner fa-spin mr-2"></i>
         {t.common.loading}
       </div>
@@ -134,10 +134,10 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
   // 错误（Metrics Server 未安装）
   if (isError && dataPoints.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-2">
-        <i className="fas fa-chart-line text-3xl text-slate-600"></i>
+      <div className="flex flex-col items-center justify-center h-full text-ink-faint gap-2">
+        <i className="fas fa-chart-line text-3xl text-ink-faint"></i>
         <div>{mt.unavailable}</div>
-        <div className="text-xs text-slate-600">{t.tools['k8s-tool'].errors.METRICS_UNAVAILABLE}</div>
+        <div className="text-xs text-ink-faint">{t.tools['k8s-tool'].errors.METRICS_UNAVAILABLE}</div>
       </div>
     );
   }
@@ -145,8 +145,8 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
   // 无数据
   if (dataPoints.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-2">
-        <i className="fas fa-chart-line text-3xl text-slate-600"></i>
+      <div className="flex flex-col items-center justify-center h-full text-ink-faint gap-2">
+        <i className="fas fa-chart-line text-3xl text-ink-faint"></i>
         <div>{mt.noData}</div>
       </div>
     );
@@ -156,35 +156,35 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
     <div className="p-4 h-full overflow-y-auto space-y-4">
       {/* 当前值概览卡片 */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-3">
+        <div className="bg-surface-1/50 border border-border/50 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full" style={{ background: CPU_COLOR }}></div>
-            <span className="text-xs text-slate-400">CPU</span>
+            <span className="text-xs text-ink-muted">CPU</span>
           </div>
-          <div className="text-xl font-mono text-slate-100">
+          <div className="text-xl font-mono text-ink">
             {dataPoints[dataPoints.length - 1].cpu}
-            <span className="text-xs text-slate-500 ml-1">cores</span>
+            <span className="text-xs text-ink-faint ml-1">cores</span>
           </div>
         </div>
 
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-3">
+        <div className="bg-surface-1/50 border border-border/50 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full" style={{ background: MEMORY_COLOR }}></div>
-            <span className="text-xs text-slate-400">Memory</span>
+            <span className="text-xs text-ink-muted">Memory</span>
           </div>
-          <div className="text-xl font-mono text-slate-100">
+          <div className="text-xl font-mono text-ink">
             {dataPoints[dataPoints.length - 1].memory}
-            <span className="text-xs text-slate-500 ml-1">Mi</span>
+            <span className="text-xs text-ink-faint ml-1">Mi</span>
           </div>
         </div>
       </div>
 
       {/* CPU 折线图 */}
       <div>
-        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+        <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
           {mt.cpuUsage}
         </h4>
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-2" style={{ height: 180 }}>
+        <div className="bg-surface-1/30 border border-border/50 rounded-lg p-2" style={{ height: 180 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={dataPoints}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -223,10 +223,10 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
 
       {/* Memory 折线图 */}
       <div>
-        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+        <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
           {mt.memoryUsage}
         </h4>
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-2" style={{ height: 180 }}>
+        <div className="bg-surface-1/30 border border-border/50 rounded-lg p-2" style={{ height: 180 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={dataPoints}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

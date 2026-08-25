@@ -96,24 +96,24 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
 
   if (loading) {
     return (
-        <div className="flex justify-center items-center h-full text-slate-500">
+        <div className="flex justify-center items-center h-full text-ink-faint">
             <i className="fas fa-spinner fa-spin mr-2"></i> {t.common.loading}
         </div>
     );
   }
 
   if (!content) {
-    return <div className="p-8 text-center text-slate-500">{t.redis.noKeysFound}</div>;
+    return <div className="p-8 text-center text-ink-faint">{t.redis.noKeysFound}</div>;
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-900">
-      <div className="p-4 border-b border-slate-700 bg-slate-800 shadow-sm">
+    <div className="flex flex-col h-full bg-canvas">
+      <div className="p-4 border-b border-border bg-surface-1 shadow-sm">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-lg font-medium text-slate-100 break-all">{content.key}</h3>
-            <div className="mt-1 flex space-x-4 text-sm text-slate-400">
-              <span className="bg-slate-700 px-2 py-0.5 rounded uppercase text-slate-300 font-mono text-xs">{content.type}</span>
+            <h3 className="text-lg font-medium text-ink break-all">{content.key}</h3>
+            <div className="mt-1 flex space-x-4 text-sm text-ink-muted">
+              <span className="bg-surface-2 px-2 py-0.5 rounded uppercase text-ink-muted font-mono text-xs">{content.type}</span>
               <span>TTL: {content.ttl === -1 ? 'None' : `${content.ttl}s`}</span>
             </div>
           </div>
@@ -121,7 +121,7 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
-                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-md text-sm font-medium text-slate-300 transition-colors"
+                className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-md text-sm font-medium text-ink-muted transition-colors"
               >
                 <i className="fas fa-pen mr-1"></i> {t.common.edit || 'Edit'}
               </button>
@@ -129,13 +129,13 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
               <>
                 <button
                   onClick={() => { setEditing(false); loadContent(); }} // Reset
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-md text-sm font-medium text-slate-300 transition-colors"
+                  className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-md text-sm font-medium text-ink-muted transition-colors"
                 >
                   {t.common.cancel}
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors"
+                  className="px-3 py-1.5 bg-accent hover:bg-blue-700 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors"
                 >
                   {t.common.save}
                 </button>
@@ -145,12 +145,12 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
         </div>
         {editing && (
             <div className="mt-4">
-                <label className="block text-sm font-medium text-slate-400 mb-1">{t.redis.ttl}</label>
+                <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.ttl}</label>
                 <input
                     type="number"
                     value={editTTL}
                     onChange={(e) => setEditTTL(parseInt(e.target.value))}
-                    className="block w-32 bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="block w-32 bg-canvas border border-border rounded-md px-3 py-1.5 text-sm text-ink focus:outline-none focus:border-blue-500"
                 />
             </div>
         )}
@@ -158,17 +158,17 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
       <div className="flex-1 p-4 overflow-hidden flex flex-col">
         {editing ? (
           <div className="h-full flex flex-col">
-            <label className="block text-sm font-medium text-slate-400 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               {t.redis.value} {content.type !== 'string' && '(JSON)'}
             </label>
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 w-full bg-slate-800 border border-slate-700 rounded-md text-slate-200 font-mono text-sm p-4 focus:outline-none focus:border-blue-500 resize-none"
+              className="flex-1 w-full bg-surface-1 border border-border rounded-md text-ink font-mono text-sm p-4 focus:outline-none focus:border-blue-500 resize-none"
             />
           </div>
         ) : (
-          <div className="flex-1 bg-slate-800 rounded-md border border-slate-700 p-4 overflow-auto">
+          <div className="flex-1 bg-surface-1 rounded-md border border-border p-4 overflow-auto">
             {content.type === 'stream' && (
               <StreamEditor configId={configId} keyName={keyName} />
             )}
@@ -182,7 +182,7 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
               <GeoEditor configId={configId} keyName={keyName} />
             )}
             {['string', 'list', 'set', 'zset', 'hash'].includes(content.type) && (
-              <pre className="font-mono text-sm text-slate-300 whitespace-pre-wrap break-all">
+              <pre className="font-mono text-sm text-ink-muted whitespace-pre-wrap break-all">
                 {formatValue(content.value)}
               </pre>
             )}

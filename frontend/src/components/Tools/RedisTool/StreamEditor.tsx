@@ -51,32 +51,32 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
     }
   };
 
-  if (loading) return <div className="text-slate-400">Loading...</div>;
+  if (loading) return <div className="text-ink-muted">Loading...</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-400">Length: {info?.length || 0} | Groups: {info?.groups?.length || 0}</div>
+        <div className="text-sm text-ink-muted">Length: {info?.length || 0} | Groups: {info?.groups?.length || 0}</div>
       </div>
 
-      <div className="border border-slate-700 rounded-md overflow-hidden">
+      <div className="border border-border rounded-md overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-900 text-slate-400">
+          <thead className="bg-canvas text-ink-muted">
             <tr><th className="px-3 py-2 text-left">ID</th><th className="px-3 py-2 text-left">Fields</th><th className="px-3 py-2 text-right">Actions</th></tr>
           </thead>
           <tbody>
             {info?.entries?.map((entry: any) => (
-              <tr key={entry.id} className="border-t border-slate-700 hover:bg-slate-800/50">
-                <td className="px-3 py-2 font-mono text-slate-300">{entry.id}</td>
+              <tr key={entry.id} className="border-t border-border hover:bg-surface-1/50">
+                <td className="px-3 py-2 font-mono text-ink-muted">{entry.id}</td>
                 <td className="px-3 py-2">
                   {Object.entries(entry.fields).map(([k, v]) => (
-                    <span key={k} className="inline-block mr-2 text-xs bg-slate-700 px-1.5 py-0.5 rounded">
+                    <span key={k} className="inline-block mr-2 text-xs bg-surface-2 px-1.5 py-0.5 rounded">
                       {k}: {String(v)}
                     </span>
                   ))}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button onClick={() => handleDelete(entry.id)} className="text-red-400 hover:text-red-300 text-xs">Delete</button>
+                  <button onClick={() => handleDelete(entry.id)} className="text-danger hover:text-red-300 text-xs">Delete</button>
                 </td>
               </tr>
             ))}
@@ -84,25 +84,25 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
         </table>
       </div>
 
-      <div className="border border-slate-700 rounded-md p-3">
-        <div className="text-sm font-medium text-slate-300 mb-2">Add Entry</div>
+      <div className="border border-border rounded-md p-3">
+        <div className="text-sm font-medium text-ink-muted mb-2">Add Entry</div>
         {newFields.map((f, i) => (
           <div key={i} className="flex space-x-2 mb-2">
             <input value={f.key} onChange={e => {
               const nf = [...newFields];
               nf[i].key = e.target.value;
               setNewFields(nf);
-            }} placeholder="Field" className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200" />
+            }} placeholder="Field" className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
             <input value={f.value} onChange={e => {
               const nf = [...newFields];
               nf[i].value = e.target.value;
               setNewFields(nf);
-            }} placeholder="Value" className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200" />
+            }} placeholder="Value" className="flex-1 bg-canvas border border-border rounded px-2 py-1 text-sm text-ink" />
           </div>
         ))}
         <div className="flex space-x-2">
-          <button onClick={() => setNewFields([...newFields, { key: '', value: '' }])} className="text-xs text-blue-400 hover:text-blue-300">+ Add field</button>
-          <button onClick={handleAdd} className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">Add Entry</button>
+          <button onClick={() => setNewFields([...newFields, { key: '', value: '' }])} className="text-xs text-accent-info hover:text-blue-300">+ Add field</button>
+          <button onClick={handleAdd} className="px-3 py-1 bg-accent text-white text-xs rounded hover:bg-blue-700">Add Entry</button>
         </div>
       </div>
     </div>

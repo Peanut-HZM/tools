@@ -96,27 +96,27 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
   const getKeyTypeColor = (type: string) => {
     switch (type) {
       case 'string': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'list': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'set': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'list': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-accent-info';
+      case 'set': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-accent-secondary';
       case 'zset': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'hash': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'hash': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-accent-warning';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
     }
   };
 
   return (
-    <div className="flex h-full bg-slate-900">
+    <div className="flex h-full bg-canvas">
       {/* Key List Sidebar */}
-      <div className="w-1/3 border-r border-slate-700 flex flex-col bg-slate-900">
-        <div className="p-4 border-b border-slate-700 space-y-2">
+      <div className="w-1/3 border-r border-border flex flex-col bg-canvas">
+        <div className="p-4 border-b border-border space-y-2">
           <div className="flex space-x-2">
             <div className="relative flex-1">
-                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
+                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-faint"></i>
                 <input
                 type="text"
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-md pl-9 pr-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+                className="w-full bg-surface-1 border border-border rounded-md pl-9 pr-3 py-2 text-sm text-ink-muted focus:outline-none focus:border-blue-500"
                 placeholder={t.redis.searchKeys}
                 onKeyDown={(e) => e.key === 'Enter' && loadKeys()}
                 />
@@ -128,8 +128,8 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
               }}
               className={`px-3 py-2 border rounded-md text-sm transition-colors ${
                 batchMode
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:bg-slate-700'
+                  ? 'bg-accent text-white border-blue-600'
+                  : 'bg-surface-1 text-ink-muted border-border hover:text-ink-inverse hover:bg-surface-2'
               }`}
               title={batchMode ? '退出批量' : '批量模式'}
             >
@@ -137,20 +137,20 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
             </button>
             <button
               onClick={handleRefresh}
-              className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+              className="px-3 py-2 bg-surface-1 border border-border rounded-md text-ink-muted hover:text-ink-inverse hover:bg-surface-2 transition-colors"
               title={t.redis.refresh}
             >
               <i className="fas fa-sync-alt"></i>
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-3 py-2 bg-blue-600 border border-transparent rounded-md text-white hover:bg-blue-700 transition-colors"
+              className="px-3 py-2 bg-accent border border-transparent rounded-md text-white hover:bg-blue-700 transition-colors"
               title={t.redis.addKey}
             >
               <i className="fas fa-plus"></i>
             </button>
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-ink-faint">
             {keys.length} {t.redis.keys}
             {keys.length === 0 && !loading && (
                <span className="ml-2 text-xs opacity-50 hidden group-hover:inline">
@@ -187,7 +187,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
             />
           )}
           {loading ? (
-            <div className="flex justify-center items-center h-32 text-slate-500">
+            <div className="flex justify-center items-center h-32 text-ink-faint">
                 <i className="fas fa-spinner fa-spin mr-2"></i> {t.common.loading}
             </div>
           ) : (
@@ -197,10 +197,10 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                   key={k.key}
                   className={`p-2 rounded cursor-pointer flex items-center group ${
                     selectedKey === k.key && !batchMode
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-accent text-white'
                         : selectedKeys.has(k.key) && batchMode
-                        ? 'bg-blue-900/40 text-white'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        ? 'bg-blue-900/40 text-ink-inverse'
+                        : 'text-ink-muted hover:bg-surface-1 hover:text-ink-inverse'
                   }`}
                   onClick={() => {
                     if (batchMode) {
@@ -224,7 +224,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                         else newSet.delete(k.key);
                         setSelectedKeys(newSet);
                       }}
-                      className="mr-2 w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500"
+                      className="mr-2 w-4 h-4 rounded border-border bg-surface-1 text-blue-600 focus:ring-blue-500"
                     />
                   )}
                   <div className="truncate flex-1 mr-2">
@@ -233,7 +233,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                     </div>
                     <div className="text-xs mt-0.5 flex items-center space-x-2 opacity-80">
                       <span className={`px-1.5 rounded text-[10px] uppercase font-bold ${
-                          selectedKey === k.key ? 'bg-white/20 text-white' : getKeyTypeColor(k.type)
+                          selectedKey === k.key ? 'bg-white/20 text-ink-inverse' : getKeyTypeColor(k.type)
                       }`}>
                           {k.type}
                       </span>
@@ -244,7 +244,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteKey(k.key); }}
                       className={`p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                          selectedKey === k.key ? 'hover:bg-blue-500 text-blue-100' : 'hover:bg-slate-700 text-slate-400 hover:text-red-400'
+                          selectedKey === k.key ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-2 text-ink-muted hover:text-danger'
                       }`}
                       title={t.redis.deleteKey}
                     >
@@ -254,7 +254,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                 </div>
               ))}
               {keys.length === 0 && (
-                <div className="p-8 text-center text-sm text-slate-500">
+                <div className="p-8 text-center text-sm text-ink-faint">
                     {t.redis.noKeysFound}
                 </div>
               )}
@@ -264,7 +264,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
       </div>
 
       {/* Key Detail View */}
-      <div className="flex-1 bg-slate-900 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-canvas overflow-hidden flex flex-col">
         {selectedKey ? (
           <KeyDetail
             key={`${configId}-${selectedKey}-${refreshTrigger}`}
@@ -273,7 +273,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
             onKeyUpdated={loadKeys}
           />
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500">
+          <div className="h-full flex flex-col items-center justify-center text-ink-faint">
             <i className="fas fa-hand-pointer text-4xl mb-4 opacity-30"></i>
             <p className="text-lg">{t.redis.selectConnection}</p>
           </div>

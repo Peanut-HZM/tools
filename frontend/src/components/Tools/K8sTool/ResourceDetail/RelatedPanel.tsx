@@ -113,20 +113,20 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
   /** 资源 Kind 图标 */
   const getKindIcon = (kind: string): string => {
     switch (kind) {
-      case 'ConfigMap': return 'fas fa-map text-blue-400';
-      case 'Secret': return 'fas fa-key text-yellow-400';
-      case 'PVC': return 'fas fa-database text-purple-400';
-      default: return 'fas fa-cube text-slate-400';
+      case 'ConfigMap': return 'fas fa-map text-accent-info';
+      case 'Secret': return 'fas fa-key text-accent-warning';
+      case 'PVC': return 'fas fa-database text-accent-secondary';
+      default: return 'fas fa-cube text-ink-muted';
     }
   };
 
   /** 资源 Kind 颜色 */
   const getKindColor = (kind: string): string => {
     switch (kind) {
-      case 'ConfigMap': return 'border-blue-500/30 bg-blue-500/10';
+      case 'ConfigMap': return 'border-accent-info/30 bg-accent-info/10';
       case 'Secret': return 'border-yellow-500/30 bg-yellow-500/10';
-      case 'PVC': return 'border-purple-500/30 bg-purple-500/10';
-      default: return 'border-slate-600 bg-slate-800/50';
+      case 'PVC': return 'border-accent-secondary/30 bg-accent-secondary/10';
+      default: return 'border-border bg-surface-1/50';
     }
   };
 
@@ -136,7 +136,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
 
   if (!hasContent && !pod) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+      <div className="flex items-center justify-center h-full text-ink-faint text-sm">
         {rt.noRelated}
       </div>
     );
@@ -147,25 +147,25 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
       {/* Owner Reference */}
       {pod?.owner_references && pod.owner_references.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+          <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
             {rt.ownerReferences}
           </h4>
           <div className="space-y-1.5">
             {pod.owner_references.map((ref) => (
               <div
                 key={ref.uid}
-                className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded text-xs hover:bg-slate-800 cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 bg-surface-1/50 border border-border/50 rounded text-xs hover:bg-surface-1 cursor-pointer"
                 onClick={() => setSelectedResource({
                   type: ref.kind.toLowerCase(),
                   namespace,
                   name: ref.name,
                 })}
               >
-                <i className="fas fa-link text-blue-400"></i>
-                <span className="text-blue-400 font-medium">{ref.kind}</span>
-                <span className="text-slate-400">/</span>
-                <span className="text-slate-200 font-mono">{ref.name}</span>
-                <i className="fas fa-bolt text-slate-600 ml-auto" title={rt.viewEvents}></i>
+                <i className="fas fa-link text-accent-info"></i>
+                <span className="text-accent-info font-medium">{ref.kind}</span>
+                <span className="text-ink-muted">/</span>
+                <span className="text-ink font-mono">{ref.name}</span>
+                <i className="fas fa-bolt text-ink-faint ml-auto" title={rt.viewEvents}></i>
               </div>
             ))}
           </div>
@@ -175,12 +175,12 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
       {/* 节点信息 */}
       {pod?.node && (
         <div>
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+          <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
             {rt.node}
           </h4>
-          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded text-xs">
+          <div className="flex items-center gap-2 px-3 py-2 bg-surface-1/50 border border-border/50 rounded text-xs">
             <i className="fas fa-server text-green-400"></i>
-            <span className="text-slate-200 font-mono">{pod.node}</span>
+            <span className="text-ink font-mono">{pod.node}</span>
           </div>
         </div>
       )}
@@ -188,19 +188,19 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
       {/* 容器镜像 */}
       {pod?.containers && pod.containers.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+          <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
             {rt.containerImages}
           </h4>
           <div className="space-y-1">
             {pod.containers.map((c) => (
               <div
                 key={c.name}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/30 border border-slate-700/30 rounded text-xs"
+                className="flex items-center gap-2 px-3 py-1.5 bg-surface-1/30 border border-border/30 rounded text-xs"
               >
-                <i className="fas fa-cube text-slate-500"></i>
-                <span className="text-slate-400">{c.name}:</span>
+                <i className="fas fa-cube text-ink-faint"></i>
+                <span className="text-ink-muted">{c.name}:</span>
                 <span
-                  className="text-slate-300 font-mono truncate"
+                  className="text-ink-muted font-mono truncate"
                   title={c.image}
                 >
                   {c.image}
@@ -213,12 +213,12 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
 
       {/* ConfigMap / Secret / PVC 引用 */}
       <div>
-        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+        <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
           {rt.configmaps} / {rt.secrets} / {rt.pvcs}
         </h4>
 
         {relatedItems.length === 0 ? (
-          <div className="text-xs text-slate-500 italic">{rt.noRelated}</div>
+          <div className="text-xs text-ink-faint italic">{rt.noRelated}</div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {relatedItems.map((item) => (
@@ -229,10 +229,10 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
                 title={rt.viewEvents}
               >
                 <i className={getKindIcon(item.kind)}></i>
-                <span className="text-slate-300 font-mono truncate max-w-[200px]">
+                <span className="text-ink-muted font-mono truncate max-w-[200px]">
                   {item.name}
                 </span>
-                <span className="text-slate-500">({item.kind})</span>
+                <span className="text-ink-faint">({item.kind})</span>
               </button>
             ))}
           </div>

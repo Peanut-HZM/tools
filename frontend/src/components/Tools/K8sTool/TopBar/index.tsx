@@ -9,12 +9,12 @@ import { NamespaceFilter } from './NamespaceFilter';
 
 export const TopBar: React.FC = () => {
   return (
-    <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-700 bg-slate-800/50">
+    <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-surface-1/50">
       {/* 集群切换 */}
       <ClusterSwitcher />
 
       {/* 分隔线 */}
-      <div className="w-px h-6 bg-slate-700"></div>
+      <div className="w-px h-6 bg-surface-2"></div>
 
       {/* 命名空间过滤 */}
       <NamespaceFilter />

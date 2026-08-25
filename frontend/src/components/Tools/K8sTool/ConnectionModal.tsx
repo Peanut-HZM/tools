@@ -312,10 +312,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-lg border border-slate-700 overflow-hidden">
+      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-lg border border-border overflow-hidden">
         {/* 标题栏 */}
-        <div className="px-6 pt-5 pb-3 border-b border-slate-700">
-          <h2 className="text-xl font-bold text-white">
+        <div className="px-6 pt-5 pb-3 border-b border-border">
+          <h2 className="text-xl font-bold text-ink-inverse">
             {isEditing ? k8sT.editConnection : k8sT.addConnection}
           </h2>
         </div>
@@ -325,23 +325,23 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
           {isEditing ? (
             <div className="space-y-4">
               {/* 只读展示的连接信息 */}
-              <div className="bg-slate-900 rounded-md p-3 border border-slate-700">
-                <div className="text-xs text-slate-500 mb-2">连接信息</div>
+              <div className="bg-canvas rounded-md p-3 border border-border">
+                <div className="text-xs text-ink-faint mb-2">连接信息</div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-server text-xs text-slate-400"></i>
-                    <span className="text-sm text-slate-300">{initialData.server}</span>
+                    <i className="fas fa-server text-xs text-ink-muted"></i>
+                    <span className="text-sm text-ink-muted">{initialData.server}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-key text-xs text-slate-400"></i>
-                    <span className="text-sm text-slate-300">
+                    <i className="fas fa-key text-xs text-ink-muted"></i>
+                    <span className="text-sm text-ink-muted">
                       {k8sT.modal.authTypes[initialData.auth_type]}
                       {initialData.has_auth_data && <i className="fas fa-check-circle ml-1 text-green-400"></i>}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-shield-alt text-xs text-slate-400"></i>
-                    <span className="text-sm text-slate-300">
+                    <i className="fas fa-shield-alt text-xs text-ink-muted"></i>
+                    <span className="text-sm text-ink-muted">
                       {initialData.has_ca_cert ? '已配置 CA 证书' : '使用系统 CA'}
                     </span>
                   </div>
@@ -350,13 +350,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
               {/* 可编辑的字段 */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   {k8sT.modal.fields.name}
                 </label>
                 <input
                   type="text"
                   required
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                 />
@@ -365,13 +365,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
               {/* 敏感字段重新输入 */}
               {initialData.auth_type === 'bearer_token' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-ink-muted mb-1">
                     {k8sT.modal.fields.token}
-                    <span className="text-xs text-slate-500 ml-2">（留空表示不修改）</span>
+                    <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                   </label>
                   <input
                     type="password"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                     placeholder="输入新的 token，留空则保持原值"
                     value={editToken}
                     onChange={e => setEditToken(e.target.value)}
@@ -382,26 +382,26 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
               {initialData.auth_type === 'client_cert' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.clientCert}
-                      <span className="text-xs text-slate-500 ml-2">（留空表示不修改）</span>
+                      <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                     </label>
                     <textarea
                       rows={3}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500 resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-blue-500 resize-y"
                       placeholder="输入新的证书，留空则保持原值"
                       value={editClientCert}
                       onChange={e => setEditClientCert(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.clientKey}
-                      <span className="text-xs text-slate-500 ml-2">（留空表示不修改）</span>
+                      <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                     </label>
                     <textarea
                       rows={3}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500 resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-blue-500 resize-y"
                       placeholder="输入新的私钥，留空则保持原值"
                       value={editClientKey}
                       onChange={e => setEditClientKey(e.target.value)}
@@ -413,26 +413,26 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
               {initialData.auth_type === 'basic_auth' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.username}
-                      <span className="text-xs text-slate-500 ml-2">（留空表示不修改）</span>
+                      <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       placeholder="输入新的用户名"
                       value={editUsername}
                       onChange={e => setEditUsername(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.password}
-                      <span className="text-xs text-slate-500 ml-2">（留空表示不修改）</span>
+                      <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                     </label>
                     <input
                       type="password"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       placeholder="输入新的密码"
                       value={editPassword}
                       onChange={e => setEditPassword(e.target.value)}
@@ -443,13 +443,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
               {/* CA 证书 */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   {k8sT.modal.fields.caCert}
-                  <span className="text-xs text-slate-500 ml-2">（留空表示不修改）</span>
+                  <span className="text-xs text-ink-faint ml-2">（留空表示不修改）</span>
                 </label>
                 <textarea
                   rows={2}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500 resize-y"
+                  className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-blue-500 resize-y"
                   placeholder="输入新的 CA 证书，留空则保持原值"
                   value={editCaCert}
                   onChange={e => setEditCaCert(e.target.value)}
@@ -458,12 +458,12 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
               {/* 命名空间过滤 */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-ink-muted mb-1">
                   {k8sT.modal.fields.namespaceFilter}
                 </label>
                 <input
                   type="text"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                   placeholder={k8sT.modal.fields.namespaceHint}
                   value={editNamespaceFilter}
                   onChange={e => setEditNamespaceFilter(e.target.value)}
@@ -476,12 +476,12 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                   type="button"
                   disabled={isTesting}
                   onClick={() => handleTestConnection(initialData!.id)}
-                  className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-600 transition-colors disabled:opacity-60"
+                  className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink hover:bg-surface-3 transition-colors disabled:opacity-60"
                 >
                   {isTesting ? k8sT.testing : k8sT.testConnection}
                 </button>
                 {testMessage && (
-                  <span className={`text-sm ${testStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  <span className={`text-sm ${testStatus === 'success' ? 'text-green-400' : 'text-danger'}`}>
                     {testMessage}
                   </span>
                 )}
@@ -491,7 +491,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
             /* 新建模式：三 Tab 切换 */
             <>
               {/* Tab 栏 */}
-              <div className="flex border-b border-slate-700 mb-4">
+              <div className="flex border-b border-border mb-4">
                 {tabs.map(tab => (
                   <button
                     key={tab.key}
@@ -499,8 +499,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     className={[
                       'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
                       activeTab === tab.key
-                        ? 'text-blue-400 border-blue-400'
-                        : 'text-slate-400 border-transparent hover:text-slate-200',
+                        ? 'text-accent-info border-blue-400'
+                        : 'text-ink-muted border-transparent hover:text-ink',
                     ].join(' ')}
                   >
                     {tab.label}
@@ -517,16 +517,16 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     className={[
                       'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
                       isDragActive
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-slate-600 hover:border-slate-500',
+                        ? 'border-blue-500 bg-accent-info/10'
+                        : 'border-border hover:border-slate-500',
                     ].join(' ')}
                   >
                     <input {...getInputProps()} />
-                    <i className="fas fa-cloud-upload-alt text-3xl text-slate-500 mb-3"></i>
-                    <p className="text-sm text-slate-400 mb-1">
+                    <i className="fas fa-cloud-upload-alt text-3xl text-ink-faint mb-3"></i>
+                    <p className="text-sm text-ink-muted mb-1">
                       {isDragActive ? '松开以上传' : k8sT.modal.upload.hint}
                     </p>
-                    <p className="text-xs text-slate-600">{k8sT.modal.upload.maxSize}</p>
+                    <p className="text-xs text-ink-faint">{k8sT.modal.upload.maxSize}</p>
                     {uploadFile && (
                       <p className="mt-2 text-sm text-green-400">
                         <i className="fas fa-check-circle mr-1"></i>
@@ -537,12 +537,12 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
                   {/* 命名空间过滤 */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.namespaceFilter}
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       placeholder={k8sT.modal.fields.namespaceHint}
                       value={uploadNamespaceFilter}
                       onChange={e => setUploadNamespaceFilter(e.target.value)}
@@ -554,24 +554,24 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
               {activeTab === 'paste' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       kubeconfig YAML
                     </label>
                     <textarea
                       rows={8}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500 resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-blue-500 resize-y"
                       placeholder={k8sT.modal.paste.placeholder}
                       value={pasteText}
                       onChange={e => setPasteText(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.namespaceFilter}
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       placeholder={k8sT.modal.fields.namespaceHint}
                       value={pasteNamespaceFilter}
                       onChange={e => setPasteNamespaceFilter(e.target.value)}
@@ -584,13 +584,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                 <div className="space-y-4">
                   {/* 连接名称 */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.name}
                     </label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       value={manualName}
                       onChange={e => setManualName(e.target.value)}
                     />
@@ -598,14 +598,14 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
                   {/* 服务器地址 */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.server}
                     </label>
                     <input
                       type="url"
                       required
                       placeholder="https://k8s.example.com:6443"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       value={manualServer}
                       onChange={e => setManualServer(e.target.value)}
                     />
@@ -613,11 +613,11 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
                   {/* 认证方式 */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.authType}
                     </label>
                     <select
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       value={manualAuthType}
                       onChange={e => setManualAuthType(e.target.value as AuthType)}
                     >
@@ -630,12 +630,12 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                   {/* 按认证类型显示对应字段 */}
                   {manualAuthType === 'bearer_token' && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                      <label className="block text-sm font-medium text-ink-muted mb-1">
                         {k8sT.modal.fields.token}
                       </label>
                       <input
                         type="password"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                        className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                         value={manualToken}
                         onChange={e => setManualToken(e.target.value)}
                       />
@@ -645,24 +645,24 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                   {manualAuthType === 'client_cert' && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                        <label className="block text-sm font-medium text-ink-muted mb-1">
                           {k8sT.modal.fields.clientCert}
                         </label>
                         <textarea
                           rows={3}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500 resize-y"
+                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-blue-500 resize-y"
                           placeholder="-----BEGIN CERTIFICATE-----"
                           value={manualClientCert}
                           onChange={e => setManualClientCert(e.target.value)}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                        <label className="block text-sm font-medium text-ink-muted mb-1">
                           {k8sT.modal.fields.clientKey}
                         </label>
                         <textarea
                           rows={3}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500 resize-y"
+                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-blue-500 resize-y"
                           placeholder="-----BEGIN RSA PRIVATE KEY-----"
                           value={manualClientKey}
                           onChange={e => setManualClientKey(e.target.value)}
@@ -674,23 +674,23 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                   {manualAuthType === 'basic_auth' && (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                        <label className="block text-sm font-medium text-ink-muted mb-1">
                           {k8sT.modal.fields.username}
                         </label>
                         <input
                           type="text"
-                          className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                           value={manualUsername}
                           onChange={e => setManualUsername(e.target.value)}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                        <label className="block text-sm font-medium text-ink-muted mb-1">
                           {k8sT.modal.fields.password}
                         </label>
                         <input
                           type="password"
-                          className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                           value={manualPassword}
                           onChange={e => setManualPassword(e.target.value)}
                         />
@@ -700,12 +700,12 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
                   {/* CA 证书（可选，所有认证类型共用） */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.caCert}
                     </label>
                     <textarea
                       rows={2}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500 resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-blue-500 resize-y"
                       placeholder="-----BEGIN CERTIFICATE-----"
                       value={manualCaCert}
                       onChange={e => setManualCaCert(e.target.value)}
@@ -714,12 +714,12 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
 
                   {/* 命名空间过滤 */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.namespaceFilter}
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
                       placeholder={k8sT.modal.fields.namespaceHint}
                       value={manualNamespaceFilter}
                       onChange={e => setManualNamespaceFilter(e.target.value)}
@@ -732,11 +732,11 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
         </div>
 
         {/* 底部按钮区 */}
-        <div className="px-6 py-4 border-t border-slate-700 flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-border flex justify-between items-center">
           {/* 左侧：测试结果显示（编辑模式下） */}
           <div className="text-sm flex-1">
             {!isEditing && testMessage && (
-              <span className={testStatus === 'success' ? 'text-green-400' : 'text-red-400'}>
+              <span className={testStatus === 'success' ? 'text-green-400' : 'text-danger'}>
                 {testMessage}
               </span>
             )}
@@ -747,7 +747,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-600 transition-colors"
+              className="px-4 py-2 bg-surface-2 border border-border rounded-md text-sm font-medium text-ink-muted hover:bg-surface-3 transition-colors"
             >
               {t.common.cancel}
             </button>
@@ -757,7 +757,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                 type="button"
                 onClick={handleEditSave}
                 disabled={isSaving}
-                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+                className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
               >
                 {isSaving ? t.common.loading : t.common.save}
               </button>
@@ -770,7 +770,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                   else if (activeTab === 'paste') handlePaste();
                   else handleManualCreate();
                 }}
-                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+                className="px-4 py-2 bg-accent border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
               >
                 {(isUploading || isPasting || isCreating) ? t.common.loading : t.common.save}
               </button>

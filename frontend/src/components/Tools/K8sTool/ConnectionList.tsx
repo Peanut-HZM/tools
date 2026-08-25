@@ -80,8 +80,8 @@ const SortableConnectionItem: React.FC<{
       className={[
         'p-2 rounded group flex justify-between items-center transition-colors',
         isSelected
-          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40'
-          : 'text-slate-300 hover:bg-slate-700 hover:text-white',
+          ? 'bg-accent/20 text-blue-300 border border-blue-500/40'
+          : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse',
       ].join(' ')}
       onClick={() => onSelect(conn.id)}
     >
@@ -89,7 +89,7 @@ const SortableConnectionItem: React.FC<{
       <div
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300 mr-1 flex-shrink-0"
+        className="cursor-grab active:cursor-grabbing text-ink-faint hover:text-ink-muted mr-1 flex-shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
         <i className="fas fa-grip-vertical text-xs"></i>
@@ -110,7 +110,7 @@ const SortableConnectionItem: React.FC<{
           <i className={[getSourceIcon(conn.source_type), 'mr-1.5 text-xs opacity-60 flex-shrink-0'].join(' ')}></i>
           <span className="truncate">{conn.name}</span>
         </div>
-        <div className="text-xs truncate text-slate-500 group-hover:text-slate-400 ml-4">
+        <div className="text-xs truncate text-ink-faint group-hover:text-ink-muted ml-4">
           {conn.server || conn.cluster_name}
         </div>
       </div>
@@ -118,7 +118,7 @@ const SortableConnectionItem: React.FC<{
       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(conn); }}
-          className="p-1 rounded hover:bg-slate-600 text-slate-400 hover:text-white"
+          className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink-inverse"
           title={k8sT.editConnection}
         >
           <i className="fas fa-pen text-xs"></i>
@@ -130,7 +130,7 @@ const SortableConnectionItem: React.FC<{
               onDelete(conn.id);
             }
           }}
-          className="p-1 rounded hover:bg-slate-600 text-slate-400 hover:text-red-400"
+          className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-danger"
           title={t.common.delete}
         >
           <i className="fas fa-trash text-xs"></i>
@@ -174,13 +174,13 @@ export const ConnectionList: React.FC<Props> = ({
   }, [configs]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-800 border-r border-slate-700 w-full">
-      <div className="p-4 border-b border-slate-700 flex flex-col gap-2 bg-slate-800">
+    <div className="flex flex-col h-full bg-surface-1 border-r border-border w-full">
+      <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-slate-100">{k8sT.connections}</h2>
+          <h2 className="font-semibold text-ink">{k8sT.connections}</h2>
           <button
             onClick={onAdd}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+            className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
             title={k8sT.addConnection}
           >
             <i className="fas fa-plus"></i>
@@ -205,7 +205,7 @@ export const ConnectionList: React.FC<Props> = ({
             ))}
 
             {items.length === 0 && (
-              <div className="p-4 text-center text-sm text-slate-500">
+              <div className="p-4 text-center text-sm text-ink-faint">
                 {k8sT.emptyConnections}
               </div>
             )}
