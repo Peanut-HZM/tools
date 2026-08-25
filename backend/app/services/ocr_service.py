@@ -435,6 +435,19 @@ class OCRService:
                                     ))
                                     full_text.append(text)
 
+            # ---- quota 校正（Task 10） ----
+            # 必须在 finally 关闭 quota_db 之前调用 record_usage，
+            # 否则会在已关闭的 Session 上写入 llm_usage_log 而失败。
+            if quota_svc is not None and res_id is not None:
+                try:
+                    quota_svc.record_usage(
+                        user_id=user_id, category="ocr",
+                        actual_tokens=planned_tokens, reservation_id=res_id,
+                        model_used="umi-ocr",
+                    )
+                except Exception:
+                    logger.exception("OCR PDF quota 校正失败: user=%s", user_id)
+
         except Exception as e:
             # ---- quota 回滚（Task 10）：PDF OCR 失败时回滚预留 ----
             if quota_svc is not None and res_id is not None:
@@ -455,17 +468,6 @@ class OCRService:
             blocks=full_blocks,
             processing_time=processing_time
         )
-
-        # ---- quota 校正（Task 10） ----
-        if quota_svc is not None and res_id is not None:
-            try:
-                quota_svc.record_usage(
-                    user_id=user_id, category="ocr",
-                    actual_tokens=planned_tokens, reservation_id=res_id,
-                    model_used="umi-ocr",
-                )
-            except Exception:
-                logger.exception("OCR PDF quota 校正失败: user=%s", user_id)
 
         # 保存历史记录（PDF 作为整体保存）
         if user_id and save_history:
