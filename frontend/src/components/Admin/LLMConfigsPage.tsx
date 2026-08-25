@@ -1,11 +1,11 @@
 /**
  * 大模型配置管理页面
- * Task 1.5.4 — 重构为 2 tabs（供应商 + 模型）
+ * Task 1.5.4 — 重构为 3 tabs（供应商 + 模型 + 额度管理）
  */
 import { useState } from 'react';
-import { ProvidersTab, ModelsTab } from './LLMConfigs';
+import { ProvidersTab, ModelsTab, QuotaManagementTab } from './LLMConfigs';
 
-type TabKey = 'providers' | 'models';
+type TabKey = 'providers' | 'models' | 'quota';
 
 export default function LLMConfigsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('providers');
@@ -13,6 +13,7 @@ export default function LLMConfigsPage() {
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'providers', label: '模型供应商' },
     { key: 'models', label: '模型配置' },
+    { key: 'quota', label: '额度管理' },
   ];
 
   return (
@@ -39,6 +40,7 @@ export default function LLMConfigsPage() {
       {/* Tab 内容 */}
       {activeTab === 'providers' && <ProvidersTab />}
       {activeTab === 'models' && <ModelsTab />}
+      {activeTab === 'quota' && <QuotaManagementTab />}
     </div>
   );
 }
