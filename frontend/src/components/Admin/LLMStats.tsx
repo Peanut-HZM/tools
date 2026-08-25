@@ -67,8 +67,8 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
 
   if (error) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-        <p className="text-red-400">{error}</p>
+      <div className="bg-danger/10 border border-danger/30 rounded-lg p-4">
+        <p className="text-danger">{error}</p>
         <button onClick={loadStats} className="mt-2 text-sm text-red-300 hover:text-red-100">
           重试
         </button>
@@ -91,27 +91,27 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {/* 供应商数 */}
-      <div className="bg-slate-700 rounded-xl p-4 border border-slate-600">
-        <div className="text-sm text-cyan-400 font-medium">供应商数</div>
-        <div className="text-2xl font-bold text-white mt-1">{providerCount}</div>
+      <div className="bg-surface-2 rounded-xl p-4 border border-border">
+        <div className="text-sm text-accent font-medium">供应商数</div>
+        <div className="text-2xl font-bold text-ink-inverse mt-1">{providerCount}</div>
       </div>
 
       {/* 模型总数 */}
-      <div className="bg-slate-700 rounded-xl p-4 border border-slate-600">
+      <div className="bg-surface-2 rounded-xl p-4 border border-border">
         <div className="text-sm text-green-400 font-medium">模型总数</div>
-        <div className="text-2xl font-bold text-white mt-1">{modelCount}</div>
+        <div className="text-2xl font-bold text-ink-inverse mt-1">{modelCount}</div>
       </div>
 
       {/* 活跃模型 */}
-      <div className="bg-slate-700 rounded-xl p-4 border border-slate-600">
-        <div className="text-sm text-purple-400 font-medium">活跃模型</div>
-        <div className="text-2xl font-bold text-white mt-1">{activeModelCount}</div>
+      <div className="bg-surface-2 rounded-xl p-4 border border-border">
+        <div className="text-sm text-accent-secondary font-medium">活跃模型</div>
+        <div className="text-2xl font-bold text-ink-inverse mt-1">{activeModelCount}</div>
       </div>
 
       {/* 活跃率 */}
-      <div className="bg-slate-700 rounded-xl p-4 border border-slate-600">
+      <div className="bg-surface-2 rounded-xl p-4 border border-border">
         <div className="text-sm text-orange-400 font-medium">活跃率</div>
-        <div className="text-2xl font-bold text-white mt-1">
+        <div className="text-2xl font-bold text-ink-inverse mt-1">
           {modelCount > 0 ? `${((activeModelCount / modelCount) * 100).toFixed(0)}%` : '0%'}
         </div>
       </div>
@@ -119,17 +119,17 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
       {/* 按供应商类型统计 */}
       {Object.keys(byProviderType).length > 0 && (
         <div className="col-span-2 mt-2">
-          <h4 className="text-sm font-semibold text-slate-300 mb-3">按供应商类型</h4>
+          <h4 className="text-sm font-semibold text-ink-muted mb-3">按供应商类型</h4>
           <div className="space-y-2">
             {Object.entries(byProviderType).map(([type, count]) => (
-              <div key={type} className="bg-slate-800 rounded-lg p-3 border border-slate-600">
+              <div key={type} className="bg-surface-1 rounded-lg p-3 border border-border">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-300">{getProviderLabel(type)}</span>
-                  <span className="text-sm text-slate-400">{count} 个</span>
+                  <span className="text-sm text-ink-muted">{getProviderLabel(type)}</span>
+                  <span className="text-sm text-ink-muted">{count} 个</span>
                 </div>
-                <div className="mt-1.5 w-full bg-slate-600 rounded-full h-1.5">
+                <div className="mt-1.5 w-full bg-surface-3 rounded-full h-1.5">
                   <div
-                    className="bg-cyan-500 h-1.5 rounded-full"
+                    className="bg-accent h-1.5 rounded-full"
                     style={{ width: `${Math.min(100, (count / Math.max(providerCount, 1)) * 100)}%` }}
                   />
                 </div>
@@ -142,17 +142,17 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
       {/* 按分类统计 */}
       {Object.keys(byCategory).length > 0 && (
         <div className="col-span-2 mt-2">
-          <h4 className="text-sm font-semibold text-slate-300 mb-3">按分类</h4>
+          <h4 className="text-sm font-semibold text-ink-muted mb-3">按分类</h4>
           <div className="space-y-2">
             {Object.entries(byCategory).map(([cat, count]) => (
-              <div key={cat} className="bg-slate-800 rounded-lg p-3 border border-slate-600">
+              <div key={cat} className="bg-surface-1 rounded-lg p-3 border border-border">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-300">{getCategoryLabel(cat)}</span>
-                  <span className="text-sm text-slate-400">{count} 个</span>
+                  <span className="text-sm text-ink-muted">{getCategoryLabel(cat)}</span>
+                  <span className="text-sm text-ink-muted">{count} 个</span>
                 </div>
-                <div className="mt-1.5 w-full bg-slate-600 rounded-full h-1.5">
+                <div className="mt-1.5 w-full bg-surface-3 rounded-full h-1.5">
                   <div
-                    className="bg-purple-500 h-1.5 rounded-full"
+                    className="bg-accent-secondary h-1.5 rounded-full"
                     style={{ width: `${Math.min(100, (count / Math.max(modelCount, 1)) * 100)}%` }}
                   />
                 </div>
