@@ -86,22 +86,43 @@ class SQLExecutor:
                     if not stmt_str.strip():
                         continue
 
-                    # Escape percent signs to prevent SQLAlchemy from interpreting %(xxx)s as bind parameters
-                    escaped_stmt = stmt_str.replace("%", "%%")
+                    # ------------------------------------------------------------------
+                    # 百分号处理策略
+                    # ------------------------------------------------------------------
+                    # SQLAlchemy 2.0 text() 编译器始终将 % 翻倍为 %%（DBAPI pyformat 转义）。
+                    # DBAPI 层（cursor.execute）只在有参数时执行 sql % params，把 %% 还原为 %。
+                    # 当无参数时，DBAPI 不做 % 处理，编译后的 %% 会原样发送到数据库。
+                    #
+                    # 因此：
+                    #   有 params：不做任何预处理。编译器 % → %% 后由 DBAPI % 操作还原。
+                    #   无 params：先让编译器 % → %%，再撤销 %% → %，抵消编译器多余的转义。
+                    #
+                    # 旧代码 replace("%", "%%") 导致双重翻倍：
+                    #   %(1x) → replace %(2x) → compile %(4x) → DBAPI(无处理) → DB 看到 %%%%
+                    # ------------------------------------------------------------------
 
-                    # When no params provided, escape colon-based bind parameters to prevent
-                    # SQLAlchemy from treating JSON like {"visible":true} as :true bind param.
-                    # \: is SQLAlchemy's escape syntax for literal colons.
-                    # Only escape when params is empty/None, since users may intentionally use
-                    # :param binding when providing params. Preserve :: (PostgreSQL type casts).
                     if not params:
-                        escaped_stmt = re.sub(
+                        # 无 params：DBAPI 不会执行 % 操作，必须手动撤销编译器的 %% 转义
+
+                        # 步骤 1: 先转义冒号，防止 text() 把 JSON 的 :key 当作绑定参数
+                        # （\: 是 SQLAlchemy 的字面冒号转义；保留 :: 即 PG 类型转换）
+                        stmt_with_escaped_colons = re.sub(
                             r'(?<!:)(?<!\\):([a-zA-Z_]\w*|\d+)',
                             r'\\:\1',
-                            escaped_stmt,
+                            stmt_str,
                         )
 
-                    stmt = text(escaped_stmt)
+                        # 步骤 2: 编译（编译器把 % → %%），然后撤销 %% → %
+                        # 最终结果：用户输入 %，DB 看到 %（LIKE 通配符正确）
+                        compiled = text(stmt_with_escaped_colons).compile(
+                            dialect=engine.dialect
+                        )
+                        final_sql = str(compiled).replace('%%', '%')
+                        stmt = text(final_sql)
+                    else:
+                        # 有 params：完整处理链会自动还原 %
+                        # 编译器 % → %%，DBAPI 执行 sql % params 时 %% → %
+                        stmt = text(stmt_str)
 
                     # Execute
                     if params:

@@ -87,8 +87,6 @@ interface LayoutContext {
   handleSearch: () => void;
 }
 
-import { recordToolVisit } from './api/adminApi';
-
 function LoginPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useContext(AuthContext);
@@ -235,19 +233,14 @@ function HomePage() {
 
   // 处理工具点击 - 使用路由导航
   const handleToolClick = (toolId: string) => {
-    // Record tool visit (fire-and-forget，不阻塞页面跳转)
-    const tool = filteredTools.find(t => t.id === toolId);
-    if (tool) {
-      recordToolVisit(toolId, tool.title).catch(() => {});
-    }
-
     // 登录拦截：直接弹出登录弹框（登录成功后用户可再次点击进入）
+    const tool = filteredTools.find(t => t.id === toolId);
     if (tool?.require_login && !isAuthenticated) {
       openLoginModal();
       return;
     }
 
-    // 跳转到工作区，由工作区 Store 管理标签
+    // 跳转到工作区，由工作区 Store 管理标签（使用次数由 workspaceStore.addTab 统一上报，此处不再重复上报）
     navigate('/workspace', { state: { openToolId: toolId } });
   };
 

@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// mock 必须在导入 store 之前声明（vi.mock 会被提升到文件顶部）
+vi.mock('../api/adminApi', () => ({
+  recordToolVisit: vi.fn().mockResolvedValue(true),
+}));
+
 import { useWorkspaceStore } from './workspaceStore';
+import { recordToolVisit } from '../api/adminApi';
 
 describe('workspaceStore', () => {
   beforeEach(() => {
@@ -8,6 +15,8 @@ describe('workspaceStore', () => {
       tabs: [],
       activeTabId: null,
     });
+    // 清空 mock 调用记录，避免测试间互相污染
+    vi.mocked(recordToolVisit).mockClear();
   });
 
   it('should start with empty tabs', () => {
@@ -94,5 +103,62 @@ describe('workspaceStore', () => {
     useWorkspaceStore.getState().setActiveTab(tabs[0].id);
 
     expect(useWorkspaceStore.getState().activeTabId).toBe(tabs[0].id);
+  });
+
+  it('should record usage when adding a new tab', () => {
+    const tool = { id: 'k8s-tool', title: 'K8s 控制台', icon: 'fas fa-server' };
+    useWorkspaceStore.getState().addTab(tool);
+
+    expect(recordToolVisit).toHaveBeenCalledTimes(1);
+    expect(recordToolVisit).toHaveBeenCalledWith('k8s-tool', 'K8s 控制台');
+  });
+
+  it('should record usage when activating an existing tab via addTab', () => {
+    const tool = { id: 'k8s-tool', title: 'K8s 控制台', icon: 'fas fa-server' };
+    useWorkspaceStore.getState().addTab(tool);
+    vi.mocked(recordToolVisit).mockClear();
+
+    // 第二次 addTab 同一工具：走 existing 分支（激活已打开 tab），也应计一次
+    useWorkspaceStore.getState().addTab(tool);
+
+    expect(useWorkspaceStore.getState().tabs).toHaveLength(1);
+    expect(recordToolVisit).toHaveBeenCalledTimes(1);
+    expect(recordToolVisit).toHaveBeenCalledWith('k8s-tool', 'K8s 控制台');
+  });
+
+  it('should record usage when switching tabs via setActiveTab', () => {
+    const tool1 = { id: 'k8s-tool', title: 'K8s', icon: 'fas fa-server' };
+    const tool2 = { id: 'ssh-tool', title: 'SSH', icon: 'fas fa-key' };
+    useWorkspaceStore.getState().addTab(tool1);
+    useWorkspaceStore.getState().addTab(tool2);
+    vi.mocked(recordToolVisit).mockClear();
+
+    const tabs = useWorkspaceStore.getState().tabs;
+    useWorkspaceStore.getState().setActiveTab(tabs[0].id);
+
+    expect(recordToolVisit).toHaveBeenCalledTimes(1);
+    expect(recordToolVisit).toHaveBeenCalledWith('k8s-tool', 'K8s');
+  });
+
+  it('should not record usage when setActiveTab gets unknown tabId', () => {
+    const tool = { id: 'k8s-tool', title: 'K8s', icon: 'fas fa-server' };
+    useWorkspaceStore.getState().addTab(tool);
+    vi.mocked(recordToolVisit).mockClear();
+
+    useWorkspaceStore.getState().setActiveTab('nonexistent-tab-id');
+
+    expect(recordToolVisit).not.toHaveBeenCalled();
+  });
+
+  it('should still add tab when recordToolVisit rejects', async () => {
+    vi.mocked(recordToolVisit).mockRejectedValueOnce(new Error('network down'));
+
+    const tool = { id: 'k8s-tool', title: 'K8s', icon: 'fas fa-server' };
+    useWorkspaceStore.getState().addTab(tool);
+
+    // 上报失败静默，store 行为不受影响
+    expect(useWorkspaceStore.getState().tabs).toHaveLength(1);
+    // 等待微任务队列排空，确保没有未处理的 Promise 拒绝
+    await Promise.resolve();
   });
 });
