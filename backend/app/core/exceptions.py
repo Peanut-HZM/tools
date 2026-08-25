@@ -50,6 +50,10 @@ class QuotaExceeded(Exception):
         self.reason = reason
 
 
+class InvalidQuotaMode(Exception):
+    """grant 时的配额模式/字段校验失败（HTTP 400）"""
+
+
 class ServiceDegraded(Exception):
     """
     服务降级中，拒绝新请求。
