@@ -604,7 +604,7 @@ export default function ToolManagement() {
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                       tools.length > 0 && selectedToolIds.size === tools.length
                         ? 'bg-accent border-blue-500'
-                        : 'border-slate-500 hover:border-slate-400'
+                        : 'border-border hover:border-border'
                     }`}>
                       {tools.length > 0 && selectedToolIds.size === tools.length && (
                         <i className="fas fa-check text-ink-inverse text-[10px]"></i>
@@ -636,7 +636,7 @@ export default function ToolManagement() {
                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                         selectedToolIds.has(tool.id)
                           ? 'bg-accent border-blue-500'
-                          : 'border-slate-500 hover:border-slate-400'
+                          : 'border-border hover:border-border'
                       }`}>
                         {selectedToolIds.has(tool.id) && (
                           <i className="fas fa-check text-ink-inverse text-[10px]"></i>
@@ -663,7 +663,7 @@ export default function ToolManagement() {
                         ? 'bg-green-500/10 text-green-400 border border-green-500/20'
                         : parseInt(tool.usageCount) >= 100
                           ? 'bg-accent-info/10 text-accent-info border border-blue-500/20'
-                          : 'bg-slate-500/10 text-ink-muted border border-slate-500/20'
+                          : 'bg-surface-3/10 text-ink-muted border border-border/20'
                     }`}>
                       {parseInt(tool.usageCount) >= 1000
                         ? (parseInt(tool.usageCount) / 1000).toFixed(1) + 'K'
@@ -970,7 +970,7 @@ export default function ToolManagement() {
                 <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-border">
                   <button
                     onClick={handleCloseModal}
-                    className="px-6 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-slate-500 transition-colors"
+                    className="px-6 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-surface-3 transition-colors"
                   >
                     取消
                   </button>
@@ -1045,7 +1045,7 @@ export default function ToolManagement() {
                   <button
                     type="button"
                     onClick={handleCancelCategoryEdit}
-                    className="px-4 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-slate-500 transition-colors"
+                    className="px-4 py-2 bg-surface-3 text-ink-inverse rounded hover:bg-surface-3 transition-colors"
                   >
                     取消
                   </button>
