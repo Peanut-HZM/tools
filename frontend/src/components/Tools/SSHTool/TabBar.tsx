@@ -15,7 +15,7 @@ const DOT_COLORS: Record<ConnectionStatus, string> = {
   connected: 'bg-green-400',
   connecting: 'bg-yellow-400 animate-pulse',
   error: 'bg-red-500',
-  disconnected: 'bg-slate-500',
+  disconnected: 'bg-surface-3',
 };
 
 export const TabBar: React.FC<Props> = ({ tabs, statuses, activeTabId, onActivate, onClose }) => {

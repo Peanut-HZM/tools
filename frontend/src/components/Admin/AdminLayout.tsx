@@ -20,8 +20,8 @@ export default function AdminLayout() {
   }, [isAuthenticated, user, isLoading, navigate]);
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+    return <div className="min-h-screen flex items-center justify-center bg-canvas text-ink-inverse">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
     </div>;
   }
 
@@ -45,7 +45,7 @@ export default function AdminLayout() {
   ];
 
   return (
-    <div className="h-screen bg-slate-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <Header
         searchValue={searchValue}
         onSearchChange={setSearchValue}
@@ -55,12 +55,12 @@ export default function AdminLayout() {
       <div className="flex flex-1 w-full px-6 py-8 gap-8 min-h-0">
         {/* Sidebar - 固定不随内容滚动 */}
         <aside className="w-64 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 border border-slate-700/50 shadow-xl">
+          <div className="bg-gradient-to-br from-surface-1 to-canvas rounded-xl p-4 border border-border/50 shadow-xl">
             <div className="flex items-center space-x-3 mb-6 px-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <i className="fas fa-shield-alt text-white text-lg"></i>
+              <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-info rounded-lg flex items-center justify-center">
+                <i className="fas fa-shield-alt text-ink-inverse text-lg"></i>
               </div>
-              <h2 className="text-xl font-bold text-white">后台管理</h2>
+              <h2 className="text-xl font-bold text-ink-inverse">后台管理</h2>
             </div>
             <nav className="space-y-1">
               {menuItems.map((item) => (
@@ -69,11 +69,11 @@ export default function AdminLayout() {
                   to={item.path}
                   className={`group flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     location.pathname === item.path
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-                      : 'text-slate-400 hover:bg-slate-700/50 hover:text-white hover:translate-x-1'
+                      ? 'bg-gradient-to-r from-accent/20 to-accent-info/10 text-accent border border-accent/30 shadow-lg shadow-accent/10'
+                      : 'text-ink-muted hover:bg-surface-2/50 hover:text-ink-inverse hover:translate-x-1'
                   }`}
                 >
-                  <i className={`fas ${item.icon} w-5 text-center ${location.pathname === item.path ? 'text-cyan-400' : 'text-slate-500 group-hover:text-white'}`}></i>
+                  <i className={`fas ${item.icon} w-5 text-center ${location.pathname === item.path ? 'text-accent' : 'text-ink-faint group-hover:text-ink-inverse'}`}></i>
                   <span className="font-medium">{item.label}</span>
                 </Link>
               ))}
@@ -82,7 +82,7 @@ export default function AdminLayout() {
         </aside>
 
         {/* Main Content - 仅内容区域可滚动 */}
-        <main className="flex-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700/50 shadow-xl overflow-y-auto">
+        <main className="flex-1 bg-gradient-to-br from-surface-1 to-canvas rounded-xl p-6 border border-border/50 shadow-xl overflow-y-auto">
           <Outlet />
         </main>
       </div>

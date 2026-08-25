@@ -79,7 +79,7 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
             border-2 border-dashed rounded-lg cursor-pointer transition-colors
             ${dragOver
               ? 'border-purple-500 bg-accent-secondary/10'
-              : 'border-border hover:border-slate-500 bg-surface-1/50'
+              : 'border-border hover:border-border bg-surface-1/50'
             }
           `}
         >

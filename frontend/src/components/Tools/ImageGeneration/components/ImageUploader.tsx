@@ -98,8 +98,8 @@ export default function ImageUploader({ label, file, preview, onChange, error: e
             flex flex-col items-center justify-center gap-2 p-6
             border-2 border-dashed rounded-lg cursor-pointer transition-colors
             ${dragOver
-              ? 'border-blue-500 bg-accent-info/10'
-              : 'border-border hover:border-slate-500 bg-surface-1/50'
+              ? 'border-accent-info bg-accent-info/10'
+              : 'border-border hover:border-border bg-surface-1/50'
             }
           `}
         >

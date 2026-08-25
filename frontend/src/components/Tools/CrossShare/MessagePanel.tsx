@@ -369,7 +369,7 @@ const MessagePanel: React.FC = () => {
         </div>
         {/* 渐变遮罩 - 仅当消息折叠时显示 */}
         {!isExpanded && needsCollapse && (
-          <div className="absolute bottom-0 left-0 right-0 h-24 flex items-end justify-center pb-4 bg-gradient-to-t from-slate-700/90 to-transparent pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 h-24 flex items-end justify-center pb-4 bg-gradient-to-t from-surface-2/90 to-transparent pointer-events-none">
             <button
               onClick={() => toggleExpand(msg.id)}
               className="pointer-events-auto px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse text-sm font-semibold rounded-lg shadow-lg transition-colors flex items-center space-x-2"
@@ -424,7 +424,7 @@ const MessagePanel: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="搜索消息..."
-            className="w-full pl-10 pr-24 py-2.5 bg-surface-2/50 border border-border rounded-lg text-ink placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full pl-10 pr-24 py-2.5 bg-surface-2/50 border border-border rounded-lg text-ink placeholder-slate-500 text-sm focus:outline-none focus:border-accent-info transition-colors"
           />
           {searchTerm && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
@@ -506,7 +506,7 @@ const MessagePanel: React.FC = () => {
             {showScrollTopButton && (
               <button
                 onClick={handleScrollToTop}
-                className="px-3 py-2 bg-surface-3 hover:bg-slate-500 text-ink-inverse rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
+                className="px-3 py-2 bg-surface-3 hover:bg-surface-3 text-ink-inverse rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
                 title="滚动到顶部"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -528,7 +528,7 @@ const MessagePanel: React.FC = () => {
             onKeyPress={handleKeyPress}
             onPaste={handlePaste}
             placeholder="输入消息... (支持 Markdown，Ctrl+V 同步剪贴板)"
-            className="flex-1 bg-surface-2/50 border border-border rounded-lg px-4 py-3 text-ink placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+            className="flex-1 bg-surface-2/50 border border-border rounded-lg px-4 py-3 text-ink placeholder-slate-500 focus:outline-none focus:border-accent-info resize-none"
             rows={2}
           />
           <button

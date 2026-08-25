@@ -92,7 +92,7 @@ export default function ServerList() {
       ))}
       {servers.length === 0 && (
         <div className="text-center text-ink-faint py-16">
-          <i className="fas fa-server text-4xl mb-3 block text-slate-700" />
+          <i className="fas fa-server text-4xl mb-3 block text-ink-faint" />
           暂无监控服务器，点击右上角添加
         </div>
       )}

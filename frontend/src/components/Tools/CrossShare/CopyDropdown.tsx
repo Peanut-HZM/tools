@@ -81,7 +81,7 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-2 py-1 text-xs bg-surface-3 hover:bg-slate-500 text-ink rounded transition-colors flex items-center space-x-1"
+        className="px-2 py-1 text-xs bg-surface-3 hover:bg-surface-3 text-ink rounded transition-colors flex items-center space-x-1"
         title="复制选项"
       >
         <span>📋</span>

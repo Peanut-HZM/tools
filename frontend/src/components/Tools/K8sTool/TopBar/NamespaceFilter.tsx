@@ -85,7 +85,7 @@ export const NamespaceFilter: React.FC = () => {
       {/* 触发按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-slate-500 transition-colors min-w-[150px] max-w-[240px]"
+        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border transition-colors min-w-[150px] max-w-[240px]"
       >
         <i className="fas fa-filter text-xs text-ink-muted"></i>
         <span className="truncate">{displayText}</span>
@@ -126,12 +126,12 @@ export const NamespaceFilter: React.FC = () => {
             onClick={toggleAll}
             className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border transition-colors ${
               isAllSelected
-                ? 'bg-accent/20 text-blue-300'
+                ? 'bg-accent/20 text-accent-info'
                 : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
             }`}
           >
             <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-              isAllSelected ? 'bg-accent border-blue-400' : 'border-slate-500'
+              isAllSelected ? 'bg-accent border-accent' : 'border-border'
             }`}>
               {isAllSelected && <i className="fas fa-check text-[10px] text-ink-inverse"></i>}
             </div>
@@ -147,12 +147,12 @@ export const NamespaceFilter: React.FC = () => {
                 onClick={() => toggleNamespace(ns)}
                 className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
                   isChecked
-                    ? 'bg-accent/20 text-blue-300'
+                    ? 'bg-accent/20 text-accent-info'
                     : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
                 }`}
               >
                 <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                  isChecked ? 'bg-accent border-blue-400' : 'border-slate-500'
+                  isChecked ? 'bg-accent border-accent' : 'border-border'
                 }`}>
                   {isChecked && <i className="fas fa-check text-[10px] text-ink-inverse"></i>}
                 </div>

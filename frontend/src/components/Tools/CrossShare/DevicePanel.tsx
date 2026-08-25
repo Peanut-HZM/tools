@@ -87,7 +87,7 @@ const DevicePanel: React.FC = () => {
       </div>
 
       {/* Device List - 可滚动 */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-700">
+      <div className="flex-1 overflow-y-auto divide-y divide-border">
         {devices.length === 0 ? (
           <div className="text-center text-ink-faint py-16">
             <div className="text-6xl mb-4">📭</div>
@@ -113,7 +113,7 @@ const DevicePanel: React.FC = () => {
                           type="text"
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
-                          className="px-3 py-1 bg-surface-3 border border-slate-500 rounded-md text-ink focus:outline-none focus:border-blue-500"
+                          className="px-3 py-1 bg-surface-3 border border-border rounded-md text-ink focus:outline-none focus:border-accent-info"
                           autoFocus
                         />
                         <button
@@ -124,7 +124,7 @@ const DevicePanel: React.FC = () => {
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1 text-sm bg-surface-3 text-ink rounded-md hover:bg-slate-500 transition-colors"
+                          className="px-3 py-1 text-sm bg-surface-3 text-ink rounded-md hover:bg-surface-3 transition-colors"
                         >
                           取消
                         </button>

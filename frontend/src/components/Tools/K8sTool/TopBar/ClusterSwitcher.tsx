@@ -15,7 +15,7 @@ import type { K8sConnection } from '../types';
 function getHealthDotClass(conn: K8sConnection): string {
   if (conn.last_test_error) return 'bg-red-500';
   if (conn.last_test_at) return 'bg-green-500';
-  return 'bg-slate-500';
+  return 'bg-surface-3';
 }
 
 /**
@@ -60,7 +60,7 @@ export const ClusterSwitcher: React.FC = () => {
       {/* 触发按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-slate-500 hover:bg-surface-2 transition-colors min-w-[180px] max-w-[260px]"
+        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border hover:bg-surface-2 transition-colors min-w-[180px] max-w-[260px]"
       >
         {activeConn ? (
           <>
@@ -93,7 +93,7 @@ export const ClusterSwitcher: React.FC = () => {
                     }}
                     className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
                       isActive
-                        ? 'bg-accent/20 text-blue-300'
+                        ? 'bg-accent/20 text-accent-info'
                         : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
                     }`}
                   >

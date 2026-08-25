@@ -135,7 +135,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setPreviewPosition(previewPosition === 'right' ? 'bottom' : 'right')}
-            className="px-2 py-1 text-xs bg-surface-3 hover:bg-slate-500 text-ink rounded transition-colors"
+            className="px-2 py-1 text-xs bg-surface-3 hover:bg-surface-3 text-ink rounded transition-colors"
             title="切换预览方向"
           >
             {previewPosition === 'right' ? '⬇️ 上下' : '➡️ 左右'}
@@ -190,7 +190,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
       <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-surface-2 border-t border-border">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm bg-surface-3 hover:bg-slate-500 text-ink rounded transition-colors"
+          className="px-4 py-2 text-sm bg-surface-3 hover:bg-surface-3 text-ink rounded transition-colors"
         >
           取消
         </button>

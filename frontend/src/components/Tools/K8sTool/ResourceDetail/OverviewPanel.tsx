@@ -20,7 +20,7 @@ const getPhaseColor = (phase: string): string => {
     case 'pending': return 'bg-accent-warning/20 text-accent-warning border-yellow-500/30';
     case 'failed': return 'bg-danger/20 text-danger border-red-500/30';
     case 'succeeded': return 'bg-accent-info/20 text-accent-info border-accent-info/30';
-    default: return 'bg-slate-500/20 text-ink-muted border-slate-500/30';
+    default: return 'bg-surface-3/20 text-ink-muted border-border/30';
   }
 };
 

@@ -135,7 +135,7 @@ export const PageLoading: React.FC<PageLoadingProps> = ({
   message = '正在加载...',
 }) => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-canvas">
+    <div className="min-h-screen flex items-center justify-center bg-surface-1 dark:bg-canvas">
       <div className="text-center">
         <LoadingSpinner size="lg" className="mx-auto" />
         <p className="mt-4 text-ink-faint dark:text-ink-muted">{message}</p>
@@ -157,7 +157,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   width,
   height,
 }) => {
-  const baseClasses = 'animate-pulse bg-slate-200 dark:bg-surface-2';
+  const baseClasses = 'animate-pulse bg-surface-1 dark:bg-surface-2';
 
   const variantClasses = {
     text: 'rounded',

@@ -699,7 +699,7 @@ export default function CursorHistory() {
                          'fa-wrench text-ink-muted';
       return (
         <div className="flex justify-start group">
-          <div className="max-w-[80%] rounded-xl px-4 py-2.5 bg-cyan-500/5 border border-cyan-500/15">
+          <div className="max-w-[80%] rounded-xl px-4 py-2.5 bg-accent/5 border border-accent/15">
             <div className="flex items-center gap-2">
               <i className={`fas ${statusIcon} text-xs`} />
               <span className="text-xs font-medium text-accent/80">
@@ -776,7 +776,7 @@ export default function CursorHistory() {
             <div className="prose prose-invert prose-sm max-w-none text-ink break-words
               prose-headings:text-ink-inverse prose-headings:font-semibold
               prose-p:text-ink-muted prose-p:leading-relaxed prose-p:my-2
-              prose-strong:text-ink-inverse prose-em:text-cyan-300
+              prose-strong:text-ink-inverse prose-em:text-accent-info
               prose-code:text-emerald-300 prose-code:bg-canvas/60 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
               prose-pre:bg-canvas/80 prose-pre:border prose-pre:border-border/40 prose-pre:rounded-lg prose-pre:my-3
               prose-a:text-accent prose-a:no-underline hover:prose-a:underline
@@ -957,7 +957,7 @@ export default function CursorHistory() {
   // ==================== 渲染 ====================
 
   return (
-    <div className="min-h-screen bg-slate-950 text-ink-inverse">
+    <div className="min-h-screen bg-canvas text-ink-inverse">
       {/* 顶部导航栏 */}
       <div className="bg-canvas/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-30">
         <div className="max-w-[1920px] mx-auto px-6 py-4 flex items-center justify-between">
@@ -1007,7 +1007,7 @@ export default function CursorHistory() {
               disabled={syncStatus.syncing}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 syncStatus.syncing
-                  ? 'bg-blue-500/20 text-accent-info cursor-not-allowed'
+                  ? 'bg-accent-info/20 text-accent-info cursor-not-allowed'
                   : 'bg-emerald-500/20 text-success hover:bg-emerald-500/30 border border-emerald-500/30'
               }`}
               title={syncStatus.last_sync_time ? `上次同步: ${syncStatus.last_sync_time}` : '同步 Cursor 数据到本地缓存'}
@@ -1067,11 +1067,11 @@ export default function CursorHistory() {
         {/* 同步进度条 */}
         {syncStatus.syncing && (
           <div className="max-w-[1920px] mx-auto px-6 pb-2">
-            <div className="bg-accent-info/10 border border-blue-500/20 rounded-xl px-4 py-3">
+            <div className="bg-accent-info/10 border border-accent-info/20 rounded-xl px-4 py-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <i className="fas fa-sync fa-spin text-accent-info text-xs" />
-                  <span className="text-xs text-blue-300">{syncStatus.current_step}</span>
+                  <span className="text-xs text-accent-info">{syncStatus.current_step}</span>
                 </div>
                 <span className="text-xs text-accent-info">
                   {syncStatus.total > 0 ? `${syncStatus.progress}/${syncStatus.total}` : '准备中...'}
@@ -1079,7 +1079,7 @@ export default function CursorHistory() {
               </div>
               <div className="w-full h-1.5 bg-surface-2/50 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                  className="h-full bg-accent-info rounded-full transition-all duration-300"
                   style={{ width: `${syncStatus.total > 0 ? (syncStatus.progress / syncStatus.total) * 100 : 5}%` }}
                 />
               </div>
@@ -1309,7 +1309,7 @@ export default function CursorHistory() {
                       loadMessages(session.composer_id, session.session_name);
                       setShowRecentPanel(false);
                     }}
-                    className="px-4 py-3 cursor-pointer border-b border-slate-800/50 transition-all hover:bg-surface-1/50"
+                    className="px-4 py-3 cursor-pointer border-b border-border/50 transition-all hover:bg-surface-1/50"
                   >
                     <div className="text-sm font-medium text-ink-inverse truncate">{session.session_name}</div>
                     <div className="text-xs text-ink-faint truncate mt-1">{session.project_name}</div>
@@ -1434,7 +1434,7 @@ export default function CursorHistory() {
                         handleProjectClick(project);
                       }
                     }}
-                    className={`group pl-1 pr-2 py-3 cursor-pointer border-b border-slate-800/50 transition-all hover:bg-surface-1/50 ${
+                    className={`group pl-1 pr-2 py-3 cursor-pointer border-b border-border/50 transition-all hover:bg-surface-1/50 ${
                       selectedProject?.workspace_hash === project.workspace_hash
                         ? 'bg-violet-500/10'
                         : ''
@@ -1536,7 +1536,7 @@ export default function CursorHistory() {
               ) : (
                 <>
                   {/* 批量操作工具栏 */}
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/30 bg-surface-1/30">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-border/30 bg-surface-1/30">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setSelectMode(!selectMode)}
@@ -1569,7 +1569,7 @@ export default function CursorHistory() {
                     <div
                       key={session.composer_id}
                       onClick={() => handleSessionClick(session)}
-                      className={`group px-4 py-3 cursor-pointer border-b border-slate-800/30 transition-all hover:bg-surface-1/40 flex items-start gap-3 ${
+                      className={`group px-4 py-3 cursor-pointer border-b border-border/30 transition-all hover:bg-surface-1/40 flex items-start gap-3 ${
                         selectedSession?.composer_id === session.composer_id
                           ? 'bg-violet-500/10 border-l-2 border-l-violet-500'
                           : ''
@@ -1588,7 +1588,7 @@ export default function CursorHistory() {
                             toggleSessionSelect(session.composer_id);
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="mt-1 w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                          className="mt-1 w-4 h-4 rounded border-gray-600 text-accent-info focus:ring-accent-info focus:ring-offset-0"
                         />
                       )}
                       <div className="flex-1 min-w-0">
@@ -1622,7 +1622,7 @@ export default function CursorHistory() {
 
 
           {/* 第三栏：消息内容 */}
-          <div className="flex-1 flex flex-col min-w-0 bg-slate-950">
+          <div className="flex-1 flex flex-col min-w-0 bg-canvas">
             {selectedSession ? (
               <>
                 {/* 会话标题 */}
@@ -1754,7 +1754,7 @@ export default function CursorHistory() {
                     className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
                       exportFormat === format
                         ? 'bg-violet-500/20 border-violet-500/50 text-violet-400'
-                        : 'bg-surface-2/30 border-border/50 text-ink-muted hover:border-slate-500'
+                        : 'bg-surface-2/30 border-border/50 text-ink-muted hover:border-border'
                     }`}
                   >
                     {format === 'markdown' && <><i className="fas fa-file-alt mr-2" />MD</>}
@@ -1920,7 +1920,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
             <div
               key={idx}
               onClick={() => onSelectSession(fav.composer_id, fav.workspace_hash || '', fav.session_name || '', fav.project_name || '')}
-              className="px-4 py-3 cursor-pointer border-b border-slate-800/50 transition-all hover:bg-surface-1/50"
+              className="px-4 py-3 cursor-pointer border-b border-border/50 transition-all hover:bg-surface-1/50"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
