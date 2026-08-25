@@ -51,43 +51,43 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   // 预览组件
   const Preview = () => (
-    <div className="h-full overflow-y-auto p-4 bg-slate-900/50 rounded-r-xl">
+    <div className="h-full overflow-y-auto p-4 bg-canvas/50 rounded-r-xl">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
         components={{
-          h1: ({ children }) => <h1 className="text-2xl font-bold text-white mb-4">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-xl font-semibold text-white mb-3">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-lg font-medium text-white mb-2">{children}</h3>,
-          p: ({ children }) => <p className="mb-4 text-slate-300 leading-relaxed">{children}</p>,
-          strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
-          em: ({ children }) => <em className="text-cyan-300">{children}</em>,
+          h1: ({ children }) => <h1 className="text-2xl font-bold text-ink-inverse mb-4">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-xl font-semibold text-ink-inverse mb-3">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-lg font-medium text-ink-inverse mb-2">{children}</h3>,
+          p: ({ children }) => <p className="mb-4 text-ink-muted leading-relaxed">{children}</p>,
+          strong: ({ children }) => <strong className="text-ink-inverse font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="text-accent">{children}</em>,
           code: ({ children }) => (
-            <code className="px-1.5 py-0.5 bg-slate-700/50 rounded text-pink-400 text-xs">
+            <code className="px-1.5 py-0.5 bg-surface-2/50 rounded text-pink-400 text-xs">
               {children}
             </code>
           ),
           pre: ({ children }) => (
-            <pre className="bg-slate-900/50 rounded-lg p-3 my-2 overflow-x-auto border border-slate-700/30">
+            <pre className="bg-canvas/50 rounded-lg p-3 my-2 overflow-x-auto border border-border/30">
               {children}
             </pre>
           ),
           ul: ({ children }) => (
-            <ul className="list-disc list-inside space-y-2 my-3 text-slate-300">{children}</ul>
+            <ul className="list-disc list-inside space-y-2 my-3 text-ink-muted">{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-inside space-y-2 my-3 text-slate-300">{children}</ol>
+            <ol className="list-decimal list-inside space-y-2 my-3 text-ink-muted">{children}</ol>
           ),
-          li: ({ children }) => <li className="text-slate-300">{children}</li>,
+          li: ({ children }) => <li className="text-ink-muted">{children}</li>,
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-cyan-500/50 pl-4 my-3 text-slate-400 italic">
+            <blockquote className="border-l-4 border-accent/50 pl-4 my-3 text-ink-muted italic">
               {children}
             </blockquote>
           ),
           a: ({ children, href }) => (
             <a
               href={href}
-              className="text-cyan-400 hover:text-cyan-300 underline"
+              className="text-accent hover:text-accent underline"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -102,16 +102,16 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   );
 
   return (
-    <div className="border border-slate-600 rounded-xl overflow-hidden bg-slate-800/50">
+    <div className="border border-border rounded-xl overflow-hidden bg-surface-1/50">
       {/* 工具栏 */}
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-700/50 border-b border-slate-600">
+      <div className="flex items-center justify-between px-3 py-2 bg-surface-2/50 border-b border-border">
         <div className="flex items-center gap-1">
           {toolbarButtons.map((btn, index) => (
             <button
               key={index}
               type="button"
               onClick={() => handleToolbarClick(btn.prefix, btn.suffix)}
-              className="px-2.5 py-1.5 text-sm bg-slate-600 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-400 rounded transition-all font-mono"
+              className="px-2.5 py-1.5 text-sm bg-surface-3 hover:bg-accent/20 text-ink-muted hover:text-accent rounded transition-all font-mono"
               title={btn.title}
             >
               {btn.icon}
@@ -124,8 +124,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             onClick={() => setViewMode('edit')}
             className={`px-3 py-1.5 text-xs rounded transition-all font-medium ${
               viewMode === 'edit'
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                ? 'bg-accent/20 text-accent border border-accent/30'
+                : 'bg-surface-3 text-ink-muted hover:bg-accent-hover'
             }`}
           >
             <i className="fas fa-edit mr-1.5"></i>
@@ -136,8 +136,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             onClick={() => setViewMode('split')}
             className={`px-3 py-1.5 text-xs rounded transition-all font-medium ${
               viewMode === 'split'
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                ? 'bg-accent/20 text-accent border border-accent/30'
+                : 'bg-surface-3 text-ink-muted hover:bg-accent-hover'
             }`}
           >
             <i className="fas fa-columns mr-1.5"></i>
@@ -170,19 +170,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
         {/* 预览面板 */}
         {viewMode === 'split' && (
-          <div className="w-1/2 border-l border-slate-700/50">
+          <div className="w-1/2 border-l border-border/50">
             <Preview />
           </div>
         )}
       </div>
 
       {/* Footer - 字符计数 */}
-      <div className="px-4 py-2 bg-slate-700/30 border-t border-slate-600 flex items-center justify-between">
-        <p className="text-xs text-slate-400">
+      <div className="px-4 py-2 bg-surface-2/30 border-t border-border flex items-center justify-between">
+        <p className="text-xs text-ink-muted">
           <i className="fas fa-info-circle mr-1"></i>
           支持 Markdown 格式
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-muted">
           {charCount} 字
         </p>
       </div>
