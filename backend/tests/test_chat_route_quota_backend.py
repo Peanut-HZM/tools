@@ -2,9 +2,9 @@
 Task 23 — 自研路径 quota + history 测试
 
 覆盖 chat_generate_dispatch_with_quota 的关键路径：
-  ✓ image_urls 非空 → commit + 写 history（含 backend 字段）
-  ✓ image_urls 为空 → release（不写 history）
-  ✓ 异常 → release（不写 history）
+  ✓ image_urls 非空 → record_usage + 写 history（含 backend 字段）
+  ✓ image_urls 为空 → rollback（不写 history）
+  ✓ 异常 → rollback（不写 history）
 """
 
 import sys
@@ -116,9 +116,9 @@ async def test_quota_commit_on_image_urls(db_session):
     BackendRegistry.register("selfdev", _StubBackendWithImages())
 
     svc, quota, history = _make_svc(db_session)
-    quota.check_and_reserve = MagicMock()
-    quota.commit = MagicMock()
-    quota.release = MagicMock()
+    quota.check_and_reserve = MagicMock(return_value="res-1")
+    quota.record_usage = MagicMock()
+    quota.rollback = MagicMock()
     history.create_record = MagicMock(return_value=MagicMock(id="h1"))
 
     await svc.chat_generate_dispatch_with_quota(
@@ -134,8 +134,8 @@ async def test_quota_commit_on_image_urls(db_session):
     )
 
     quota.check_and_reserve.assert_called_once()
-    quota.commit.assert_called_once()
-    quota.release.assert_not_called()
+    quota.record_usage.assert_called_once()
+    quota.rollback.assert_not_called()
     history.create_record.assert_called_once()
     # history record 应带 backend 字段
     call_kwargs = history.create_record.call_args[1]
@@ -148,9 +148,9 @@ async def test_quota_release_on_empty_image_urls(db_session):
     BackendRegistry.register("selfdev", _StubBackendWithoutImages())
 
     svc, quota, history = _make_svc(db_session)
-    quota.check_and_reserve = MagicMock()
-    quota.commit = MagicMock()
-    quota.release = MagicMock()
+    quota.check_and_reserve = MagicMock(return_value="res-2")
+    quota.record_usage = MagicMock()
+    quota.rollback = MagicMock()
     history.create_record = MagicMock()
 
     await svc.chat_generate_dispatch_with_quota(
@@ -166,8 +166,8 @@ async def test_quota_release_on_empty_image_urls(db_session):
     )
 
     quota.check_and_reserve.assert_called_once()
-    quota.commit.assert_not_called()
-    quota.release.assert_called_once()
+    quota.record_usage.assert_not_called()
+    quota.rollback.assert_called_once()
     history.create_record.assert_not_called()
 
 
@@ -177,9 +177,9 @@ async def test_quota_release_on_exception(db_session):
     BackendRegistry.register("selfdev", _StubBackendRaises())
 
     svc, quota, history = _make_svc(db_session)
-    quota.check_and_reserve = MagicMock()
-    quota.commit = MagicMock()
-    quota.release = MagicMock()
+    quota.check_and_reserve = MagicMock(return_value="res-3")
+    quota.record_usage = MagicMock()
+    quota.rollback = MagicMock()
     history.create_record = MagicMock()
 
     with pytest.raises(RuntimeError, match="boom"):
@@ -196,6 +196,6 @@ async def test_quota_release_on_exception(db_session):
         )
 
     quota.check_and_reserve.assert_called_once()
-    quota.commit.assert_not_called()
-    quota.release.assert_called_once()
+    quota.record_usage.assert_not_called()
+    quota.rollback.assert_called_once()
     history.create_record.assert_not_called()
