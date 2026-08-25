@@ -77,13 +77,13 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-slate-700">
+      <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden border border-border">
         {/* 头部 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-800/50">
-          <h3 className="text-lg font-semibold text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-1/50">
+          <h3 className="text-lg font-semibold text-ink-inverse">
             {editing ? '编辑模型' : '新建模型'}
           </h3>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1 text-ink-muted hover:text-ink-inverse transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -95,8 +95,8 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 名称 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                名称 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                名称 <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -110,7 +110,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                   }
                   setFormData({ ...formData, ...updates });
                 }}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：GPT-4o"
                 required
               />
@@ -118,15 +118,15 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
 
             {/* 模型标识 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                模型标识 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                模型标识 <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
                 value={formData.model_name}
                 onFocus={() => { modelNameManualRef.current = true; }}
                 onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：gpt-4o"
                 required
               />
@@ -134,13 +134,13 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
 
             {/* 供应商 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                供应商 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                供应商 <span className="text-danger">*</span>
               </label>
               <select
                 value={formData.provider_id}
                 onChange={(e) => setFormData({ ...formData, provider_id: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse focus:outline-none focus:ring-2 focus:ring-accent"
                 required
               >
                 <option value="">请选择供应商</option>
@@ -152,13 +152,13 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
 
             {/* 分类 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                分类 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                分类 <span className="text-danger">*</span>
               </label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as ModelCategory })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="text">文本 (text)</option>
                 <option value="vision">视觉理解 (vision)</option>
@@ -171,27 +171,27 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
 
             {/* 优先级 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">优先级</label>
+              <label className="block text-sm font-medium text-ink-muted mb-2">优先级</label>
               <input
                 type="number"
                 min={0}
                 max={9999}
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) || 100 })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <div className="text-xs text-slate-500 mt-1">数字越小越优先，默认 100</div>
+              <div className="text-xs text-ink-faint mt-1">数字越小越优先，默认 100</div>
             </div>
 
             {/* 请求参数 */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                请求参数 <span className="text-slate-400 text-xs">（JSON 格式）</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                请求参数 <span className="text-ink-muted text-xs">（JSON 格式）</span>
               </label>
               <textarea
                 value={formData.request_params}
                 onChange={(e) => setFormData({ ...formData, request_params: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
                 placeholder='{"temperature": 0.7, "max_tokens": 4096}'
                 rows={3}
               />
@@ -199,11 +199,11 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
 
             {/* 备注 */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-2">备注</label>
+              <label className="block text-sm font-medium text-ink-muted mb-2">备注</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="可选备注"
                 rows={2}
               />
@@ -216,44 +216,44 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                   type="checkbox"
                   checked={formData.is_default}
                   onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-600 focus:ring-cyan-500"
+                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
                 />
-                <span className="text-slate-300">全局默认</span>
+                <span className="text-ink-muted">全局默认</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.is_default_for_category}
                   onChange={(e) => setFormData({ ...formData, is_default_for_category: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-600 focus:ring-cyan-500"
+                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
                 />
-                <span className="text-slate-300">分类默认</span>
+                <span className="text-ink-muted">分类默认</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-600 focus:ring-cyan-500"
+                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
                 />
-                <span className="text-slate-300">启用</span>
+                <span className="text-ink-muted">启用</span>
               </label>
             </div>
           </div>
 
           {/* 底部按钮 */}
-          <div className="flex gap-4 mt-6 pt-4 border-t border-slate-700">
+          <div className="flex gap-4 mt-6 pt-4 border-t border-border">
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? '保存中...' : (editing ? '保存修改' : '创建')}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              className="px-6 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
             >
               取消
             </button>
