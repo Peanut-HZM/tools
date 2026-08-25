@@ -18,6 +18,9 @@ from app.models.asr_models import (
     SpeakerDiarizationRequest, SpeakerDiarizationResponse, SpeakerSegment
 )
 from app.config.asr_config import asr_settings
+from app.core.exceptions import QuotaExceeded
+from app.models.base import SessionLocal
+from app.services.llm_quota_service import LLMQuotaService
 
 logger = logging.getLogger(__name__)
 
@@ -546,6 +549,12 @@ class ASRService:
             'errors': errors
         }
 
+    def _quota_session(self):
+        """获取 quota 操作用的 SQLAlchemy Session；非注入场景下创建短生命周期 Session。"""
+        if self.db_session is not None:
+            return self.db_session, False
+        return SessionLocal(), True
+
     def predict(self, audio_file_path: str, language: str = "zh", user_id: Optional[str] = None, save_history: bool = False) -> ASRResponse:
         """
         调用远程 ASR 服务进行语音识别
@@ -558,6 +567,24 @@ class ASRService:
 
         if not os.path.exists(audio_file_path):
             raise FileNotFoundError(f"Audio file not found: {audio_file_path}")
+
+        # ---- quota 预占（Task 10）：duration 在调用后才可知，先以 0 占位；成功后按实际 duration * 10 校正 ----
+        quota_db = None
+        quota_owns_session = False
+        quota_svc = None
+        res_id = None
+        if user_id:
+            quota_db, quota_owns_session = self._quota_session()
+            quota_svc = LLMQuotaService(quota_db)
+            try:
+                res_id = quota_svc.check_and_reserve(
+                    user_id=user_id, category="asr", planned_tokens=0,
+                )
+            except QuotaExceeded as e:
+                if quota_owns_session:
+                    quota_db.close()
+                logger.warning("ASR quota 预占失败: user=%s err=%s", user_id, e)
+                raise
 
         try:
             target_url = f"{self.api_url}/asr-http/recognition"
@@ -602,6 +629,15 @@ class ASRService:
                 processing_time=processing_time
             )
 
+            # ---- quota 校正（Task 10）：用实际 duration * 10 写 usage_log ----
+            if quota_svc is not None and res_id is not None:
+                actual_tokens = max(1, int(duration * 10))
+                quota_svc.record_usage(
+                    user_id=user_id, category="asr",
+                    actual_tokens=actual_tokens, reservation_id=res_id,
+                    model_used="asr-http",
+                )
+
             # 保存历史记录
             if save_history and user_id:
                 self._save_history(user_id, audio_file_path, asr_response, language)
@@ -612,8 +648,17 @@ class ASRService:
             return asr_response
 
         except Exception as e:
+            # ---- quota 回滚（Task 10）：ASR 调用失败时回滚预留 ----
+            if quota_svc is not None and res_id is not None:
+                try:
+                    quota_svc.rollback(res_id)
+                except Exception:
+                    pass
             logger.error(f"ASR prediction failed: {e}")
             raise
+        finally:
+            if quota_owns_session and quota_db is not None:
+                quota_db.close()
 
     def speaker_diarization(self, user_id: str, audio_file: str, num_speakers: Optional[int] = None) -> SpeakerDiarizationResponse:
         """
