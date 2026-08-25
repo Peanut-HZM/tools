@@ -174,8 +174,9 @@ def test_grant_token_validates_have_limit():
 def test_grant_time_validates_validity():
     db = _make_db_with_quota(None)
     svc = LLMQuotaService(db)
-    with pytest.raises(InvalidQuotaMode):
-        svc.grant(user_id="u1", quota_mode="time", valid_from=None, valid_until=None)
+    # 新版：time 模式允许两个都为 None（永久有效）
+    info = svc.grant(user_id="u1", quota_mode="time", valid_from=None, valid_until=None)
+    assert info.quota_mode == "time"
 
 
 def test_grant_count_creates_new_record():

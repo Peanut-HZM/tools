@@ -14,11 +14,10 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy import cast, String as SAString
+from sqlalchemy import text
 
 from app.core.exceptions import InvalidQuotaMode, QuotaExceeded
 from app.models.llm_quota_models import LLMUsageLog, LLMUserQuota
-from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -221,12 +220,9 @@ class LLMQuotaService:
         )
         if quota is None:
             return None
-        # 附带 username（LEFT JOIN users，user_id 是 VARCHAR，users.id 是 BIGINT）
-        try:
-            user = self.db.query(User).filter(User.id == int(user_id)).first()
-        except (ValueError, TypeError):
-            user = None
-        return _to_info(quota, user.username if user else None)
+        # 附带 username：用原生 SQL 查 users 表（避开 SQLAlchemy User 模型列名不一致）
+        username = self._lookup_username(user_id)
+        return _to_info(quota, username)
 
     # -------- 公共：管理员侧 --------
 
@@ -254,8 +250,8 @@ class LLMQuotaService:
             if token_period not in ("daily", "monthly", "total"):
                 raise InvalidQuotaMode("token_period 必须为 daily/monthly/total")
         elif quota_mode == "time":
-            if valid_from is None and valid_until is None:
-                raise InvalidQuotaMode("time 模式必须设置 valid_from 或 valid_until")
+            # time 模式：可设置 valid_from / valid_until 之一，也可两个都为空（永久有效）
+            pass
         else:
             raise InvalidQuotaMode(f"未知 quota_mode: {quota_mode}")
 
@@ -300,16 +296,8 @@ class LLMQuotaService:
             "[llm_quota] grant user=%s mode=%s daily=%s monthly=%s token_limit=%s granted_by=%s",
             user_id, quota_mode, daily_limit, monthly_limit, token_limit, granted_by,
         )
-        # 附带 username（防御性：User.id 是 BIGINT，user_id 是 VARCHAR）
-        uname = None
-        try:
-            uid_int = int(user_id)
-            user = self.db.query(User).filter(User.id == uid_int).first()
-            if user and isinstance(user.username, str):
-                uname = user.username
-        except (ValueError, TypeError):
-            pass
-        return _to_info(quota, uname)
+        # 附带 username：原生 SQL 查 users 表（避免 User 模型列名不一致问题）
+        return _to_info(quota, self._lookup_username(user_id))
 
     def revoke(self, user_id: str) -> None:
         self.db.expire_all()
@@ -339,20 +327,23 @@ class LLMQuotaService:
     def list_users(
         self, skip: int = 0, limit: int = 50, search: Optional[str] = None
     ) -> list[QuotaInfo]:
-        # JOIN users 表以获取 username
-        # user_id 是 VARCHAR，users.id 实际是 BIGINT，需要类型转换
-        q = (
-            self.db.query(LLMUserQuota, User.username)
-            .outerjoin(User, LLMUserQuota.user_id == cast(User.id, SAString))
-        )
+        # 先查配额行
+        q = self.db.query(LLMUserQuota)
         if search:
             pattern = f"%{search}%"
-            q = q.filter(
-                (LLMUserQuota.user_id.like(pattern)) |
-                (User.username.like(pattern))
-            )
-        rows = q.order_by(LLMUserQuota.user_id).offset(skip).limit(limit).all()
-        return [_to_info(r.LLMUserQuota, r.username) for r in rows]
+            q = q.filter(LLMUserQuota.user_id.like(pattern))
+        rows = (
+            q.order_by(LLMUserQuota.user_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        if not rows:
+            return []
+        # 批量查 username（原生 SQL，避开 SQLAlchemy User 模型列名问题）
+        user_ids = [r.user_id for r in rows]
+        username_map = self._lookup_usernames_batch(user_ids)
+        return [_to_info(r, username_map.get(r.user_id)) for r in rows]
 
     def count_users(self, search: Optional[str] = None) -> int:
         q = self.db.query(LLMUserQuota)
@@ -360,6 +351,34 @@ class LLMQuotaService:
             pattern = f"%{search}%"
             q = q.filter(LLMUserQuota.user_id.like(pattern))
         return q.count()
+
+    # -------- 内部：username 查询（原生 SQL 避开 User 模型列名问题） --------
+
+    def _lookup_username(self, user_id: str) -> Optional[str]:
+        """单条 username 查询；失败或 user 不存在时返回 None"""
+        try:
+            result = self.db.execute(
+                text("SELECT username FROM users WHERE user_id = :uid"),
+                {"uid": user_id},
+            ).scalar()
+            return result if isinstance(result, str) else None
+        except Exception as e:
+            logger.warning("[llm_quota] _lookup_username 失败 user=%s: %s", user_id, e)
+            return None
+
+    def _lookup_usernames_batch(self, user_ids: list[str]) -> dict[str, str]:
+        """批量查询 user_id → username；user 不存在则不出现在结果中"""
+        if not user_ids:
+            return {}
+        try:
+            rows = self.db.execute(
+                text("SELECT user_id, username FROM users WHERE user_id = ANY(:ids)"),
+                {"ids": user_ids},
+            ).fetchall()
+            return {row[0]: row[1] for row in rows if isinstance(row[1], str)}
+        except Exception as e:
+            logger.warning("[llm_quota] _lookup_usernames_batch 失败: %s", e)
+            return {}
 
     # -------- 内部 --------
 

@@ -292,6 +292,10 @@ function GrantModal({
   const [validUntil, setValidUntil] = useState<string>(
     currentQuota?.valid_until ? currentQuota.valid_until.slice(0, 16) : ''
   );
+  // 永久有效：勾选后跳过两个时间字段（time 模式允许两个都为 null）
+  const [permanent, setPermanent] = useState<boolean>(
+    !currentQuota?.valid_from && !currentQuota?.valid_until
+  );
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -365,11 +369,17 @@ function GrantModal({
         return;
       }
     } else if (quotaMode === 'time') {
-      data.valid_from = validFrom ? new Date(validFrom).toISOString() : undefined;
-      data.valid_until = validUntil ? new Date(validUntil).toISOString() : undefined;
-      if (!data.valid_from && !data.valid_until) {
-        alert('时间模式必须设置生效时间或过期时间');
-        return;
+      if (permanent) {
+        // 永久有效：不发送 valid_from / valid_until
+        data.valid_from = undefined;
+        data.valid_until = undefined;
+      } else {
+        data.valid_from = validFrom ? new Date(validFrom).toISOString() : undefined;
+        data.valid_until = validUntil ? new Date(validUntil).toISOString() : undefined;
+        if (!data.valid_from && !data.valid_until) {
+          alert('时间模式必须设置生效时间或过期时间，或勾选「永久有效」');
+          return;
+        }
       }
     }
 
@@ -544,13 +554,26 @@ function GrantModal({
           {/* time 模式字段 */}
           {quotaMode === 'time' && (
             <>
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg">
+                <input
+                  id="permanent-checkbox"
+                  type="checkbox"
+                  checked={permanent}
+                  onChange={(e) => setPermanent(e.target.checked)}
+                  className="w-4 h-4 accent-cyan-500"
+                />
+                <label htmlFor="permanent-checkbox" className="text-sm text-slate-200 cursor-pointer select-none">
+                  永久有效（不设置生效时间/过期时间）
+                </label>
+              </div>
               <div>
                 <label className="block text-sm text-slate-300 mb-1">生效时间（可选）</label>
                 <input
                   type="datetime-local"
                   value={validFrom}
+                  disabled={permanent}
                   onChange={(e) => setValidFrom(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 text-white text-sm rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none"
+                  className="w-full px-3 py-2 bg-slate-700 text-white text-sm rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
@@ -558,10 +581,15 @@ function GrantModal({
                 <input
                   type="datetime-local"
                   value={validUntil}
+                  disabled={permanent}
                   onChange={(e) => setValidUntil(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 text-sm rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none bg-slate-700 text-white"
+                  className="w-full px-3 py-2 bg-slate-700 text-white text-sm rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <p className="text-xs text-slate-500 mt-1">至少填一个；填了生效时间后未到时间会被拦截</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {permanent
+                    ? '已勾选「永久有效」，时间输入已禁用'
+                    : '至少填一个；填了生效时间后未到时间会被拦截'}
+                </p>
               </div>
             </>
           )}
