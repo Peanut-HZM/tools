@@ -12,7 +12,7 @@ interface ServerSelectorProps {
 export default function ServerSelector({ servers, value, onChange, disabled }: ServerSelectorProps) {
   return (
     <select
-      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500 disabled:opacity-50"
+      className="bg-canvas border border-border rounded-lg px-3 py-1.5 text-sm text-ink-inverse focus:outline-none focus:border-emerald-500 disabled:opacity-50"
       value={value ?? ''}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}

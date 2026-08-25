@@ -58,11 +58,11 @@ export default function UploadEditForm() {
 
       {/* 编辑类型 */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-slate-300">{igT.form.editType}</label>
+        <label className="text-sm font-medium text-ink-muted">{igT.form.editType}</label>
         <select
           value={params.edit_type}
           onChange={(e) => setParams({ edit_type: e.target.value as EditType })}
-          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
         >
           {EDIT_TYPE_KEYS.map((k) => (
             <option key={k} value={k}>
@@ -81,12 +81,12 @@ export default function UploadEditForm() {
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={igT.form.placeholder.uploadEdit}
           disabled={loading || !referenceImage}
-          className="flex-1 px-4 py-2 bg-slate-700 text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-4 py-2 bg-surface-2 text-ink rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleSend}
           disabled={loading || !prompt.trim() || !referenceImage}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
           {igT.chat.send}
         </button>

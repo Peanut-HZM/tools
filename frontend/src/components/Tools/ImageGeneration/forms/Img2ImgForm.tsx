@@ -43,8 +43,8 @@ export default function Img2ImgForm() {
       {/* 强度滑块 */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-300">{igT.form.strength}</label>
-          <span className="text-xs text-slate-400 tabular-nums">{params.strength.toFixed(2)}</span>
+          <label className="text-sm font-medium text-ink-muted">{igT.form.strength}</label>
+          <span className="text-xs text-ink-muted tabular-nums">{params.strength.toFixed(2)}</span>
         </div>
         <input
           type="range"
@@ -53,9 +53,9 @@ export default function Img2ImgForm() {
           step={0.05}
           value={params.strength}
           onChange={(e) => setParams({ strength: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          className="w-full h-2 bg-surface-2 rounded-lg appearance-none cursor-pointer accent-blue-500"
         />
-        <div className="flex justify-between text-[10px] text-slate-500">
+        <div className="flex justify-between text-[10px] text-ink-faint">
           <span>{igT.form.strengthMin}</span>
           <span>{igT.form.strengthMax}</span>
         </div>
@@ -70,12 +70,12 @@ export default function Img2ImgForm() {
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={igT.form.placeholder.img2img}
           disabled={loading || !referenceImage}
-          className="flex-1 px-4 py-2 bg-slate-700 text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-4 py-2 bg-surface-2 text-ink rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleSend}
           disabled={loading || !prompt.trim() || !referenceImage}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
           {igT.chat.send}
         </button>

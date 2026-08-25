@@ -67,15 +67,15 @@ export default function ResultPanel() {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-4">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 text-sm">{igT.result.generating}</p>
+        <p className="text-ink-muted text-sm">{igT.result.generating}</p>
       </div>
     );
   }
 
   if (!currentResult) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-500">
-        <svg className="w-16 h-16 mb-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-ink-faint">
+        <svg className="w-16 h-16 mb-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         <p className="text-sm">{igT.result.noResult}</p>
@@ -88,10 +88,10 @@ export default function ResultPanel() {
       {/* 结果信息 */}
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-3">
-          <span className="px-2 py-0.5 rounded bg-slate-700 text-slate-300 text-xs">
+          <span className="px-2 py-0.5 rounded bg-surface-2 text-ink-muted text-xs">
             {currentResult.model_used}
           </span>
-          <span className="text-slate-500">
+          <span className="text-ink-faint">
             {currentResult.duration_ms ? `${(currentResult.duration_ms / 1000).toFixed(1)}s` : ''}
           </span>
         </div>
@@ -105,7 +105,7 @@ export default function ResultPanel() {
       ) : (
         <div className={`grid gap-3 ${resultUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {resultUrls.map((url, i) => (
-            <div key={i} className="group relative rounded-lg overflow-hidden border border-slate-700 bg-slate-800">
+            <div key={i} className="group relative rounded-lg overflow-hidden border border-border bg-surface-1">
               <img
                 src={url}
                 alt={igT.result.imageAlt.replace('{index}', String(i + 1))}
@@ -116,7 +116,7 @@ export default function ResultPanel() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleDownload(url, i)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -125,7 +125,7 @@ export default function ResultPanel() {
                   </button>
                   <button
                     onClick={() => handleUseAsRef(url)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -140,8 +140,8 @@ export default function ResultPanel() {
       )}
 
       {/* 提示词 */}
-      <div className="text-xs text-slate-500 line-clamp-2">
-        <span className="text-slate-400">{igT.result.promptLabel}</span>{currentResult.prompt}
+      <div className="text-xs text-ink-faint line-clamp-2">
+        <span className="text-ink-muted">{igT.result.promptLabel}</span>{currentResult.prompt}
       </div>
     </div>
   );

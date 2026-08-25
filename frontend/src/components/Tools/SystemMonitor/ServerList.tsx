@@ -67,15 +67,15 @@ export default function ServerList() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-400">共 {servers.length} 台服务器</div>
-        <button className="px-3 py-1.5 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-500 text-white" onClick={openAdd}>
+        <div className="text-sm text-ink-muted">共 {servers.length} 台服务器</div>
+        <button className="px-3 py-1.5 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-500 text-ink-inverse" onClick={openAdd}>
           <i className="fas fa-plus mr-1.5" />添加服务器
         </button>
       </div>
-      {error && <div className="text-sm text-red-400">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
       {Object.entries(groups).map(([group, list]) => (
         <div key={group}>
-          <div className="text-xs text-slate-500 mb-2">{group}</div>
+          <div className="text-xs text-ink-faint mb-2">{group}</div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
             {list.map((server) => (
               <ServerCard
@@ -91,7 +91,7 @@ export default function ServerList() {
         </div>
       ))}
       {servers.length === 0 && (
-        <div className="text-center text-slate-500 py-16">
+        <div className="text-center text-ink-faint py-16">
           <i className="fas fa-server text-4xl mb-3 block text-slate-700" />
           暂无监控服务器，点击右上角添加
         </div>
@@ -99,18 +99,18 @@ export default function ServerList() {
       <AddServerModal open={addOpen} onClose={() => setAddOpen(false)} onSaved={refresh} sshConfigs={sshConfigs} />
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 w-[400px]" onClick={(e) => e.stopPropagation()}>
-            <div className="text-white font-medium mb-3">编辑服务器（编辑后需手动触发采集）</div>
+          <div className="bg-canvas border border-border rounded-xl p-5 w-[400px]" onClick={(e) => e.stopPropagation()}>
+            <div className="text-ink-inverse font-medium mb-3">编辑服务器（编辑后需手动触发采集）</div>
             <input
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-3 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse mb-3 focus:outline-none focus:border-emerald-500"
               defaultValue={editing.name}
               placeholder="服务器名称"
               id="edit-name"
             />
             <div className="flex justify-end gap-3">
-              <button className="px-4 py-1.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800" onClick={() => setEditing(null)}>取消</button>
+              <button className="px-4 py-1.5 rounded-lg text-sm text-ink-muted hover:text-ink-inverse hover:bg-surface-1" onClick={() => setEditing(null)}>取消</button>
               <button
-                className="px-4 py-1.5 rounded-lg text-sm text-white bg-emerald-600 hover:bg-emerald-500"
+                className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500"
                 onClick={async () => {
                   const nameInput = document.getElementById('edit-name') as HTMLInputElement;
                   try {

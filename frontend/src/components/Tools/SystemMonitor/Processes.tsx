@@ -78,33 +78,33 @@ export default function Processes() {
       <div className="flex items-center gap-3 flex-wrap">
         <ServerSelector servers={servers} value={selectedServerId} onChange={setSelectedServerId} />
         <input
-          className="flex-1 min-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+          className="flex-1 min-w-[180px] bg-canvas border border-border rounded-lg px-3 py-1.5 text-sm text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-emerald-500"
           placeholder="搜索进程名或命令行"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
         <select
-          className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
+          className="bg-canvas border border-border rounded-lg px-3 py-1.5 text-sm text-ink-inverse focus:outline-none"
           value={projectType}
           onChange={(e) => { setProjectType(e.target.value); setPage(1); }}
         >
           {KNOWN_TYPES.map((t) => <option key={t} value={t}>{t === 'all' ? '全部类型' : t}</option>)}
         </select>
-        <button className="px-3 py-1.5 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 text-slate-300" onClick={load}>
+        <button className="px-3 py-1.5 rounded-lg text-sm bg-surface-1 hover:bg-surface-2 text-ink-muted" onClick={load}>
           <i className="fas fa-sync mr-1.5" />刷新
         </button>
       </div>
-      {error && <div className="text-sm text-red-400">{error}</div>}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+      {error && <div className="text-sm text-danger">{error}</div>}
+      <div className="bg-canvas rounded-xl border border-border overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-slate-500 border-b border-slate-800">
-              <th className="text-left px-3 py-2 cursor-pointer hover:text-slate-300" onClick={() => handleSort('pid')}>PID</th>
-              <th className="text-left px-3 py-2 cursor-pointer hover:text-slate-300" onClick={() => handleSort('name')}>进程名</th>
+            <tr className="text-ink-faint border-b border-border">
+              <th className="text-left px-3 py-2 cursor-pointer hover:text-ink-muted" onClick={() => handleSort('pid')}>PID</th>
+              <th className="text-left px-3 py-2 cursor-pointer hover:text-ink-muted" onClick={() => handleSort('name')}>进程名</th>
               <th className="text-left px-3 py-2 hidden md:table-cell">用户</th>
-              <th className="text-right px-3 py-2 cursor-pointer hover:text-slate-300" onClick={() => handleSort('cpu_percent')}>CPU%</th>
-              <th className="text-right px-3 py-2 cursor-pointer hover:text-slate-300" onClick={() => handleSort('memory_percent')}>内存%</th>
-              <th className="text-right px-3 py-2 hidden lg:table-cell cursor-pointer hover:text-slate-300" onClick={() => handleSort('memory_rss')}>内存</th>
+              <th className="text-right px-3 py-2 cursor-pointer hover:text-ink-muted" onClick={() => handleSort('cpu_percent')}>CPU%</th>
+              <th className="text-right px-3 py-2 cursor-pointer hover:text-ink-muted" onClick={() => handleSort('memory_percent')}>内存%</th>
+              <th className="text-right px-3 py-2 hidden lg:table-cell cursor-pointer hover:text-ink-muted" onClick={() => handleSort('memory_rss')}>内存</th>
               <th className="text-left px-3 py-2 hidden xl:table-cell">运行时间</th>
               <th className="text-left px-3 py-2">类型</th>
               <th className="text-right px-3 py-2">操作</th>
@@ -112,36 +112,36 @@ export default function Processes() {
           </thead>
           <tbody>
             {processes.map((p) => (
-              <tr key={p.pid} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30">
-                <td className="px-3 py-2 text-slate-400">{p.pid}</td>
-                <td className="px-3 py-2 text-white max-w-[240px] truncate" title={p.command_line}>{p.name}</td>
-                <td className="px-3 py-2 text-slate-500 hidden md:table-cell">{p.username}</td>
-                <td className="px-3 py-2 text-right text-slate-300">{p.cpu_percent.toFixed(1)}</td>
-                <td className="px-3 py-2 text-right text-slate-300">{p.memory_percent.toFixed(1)}</td>
-                <td className="px-3 py-2 text-right text-slate-400 hidden lg:table-cell">{fmtBytes(p.memory_rss)}</td>
-                <td className="px-3 py-2 text-slate-500 hidden xl:table-cell">{p.create_time}</td>
+              <tr key={p.pid} className="border-b border-border/50 last:border-0 hover:bg-surface-1/30">
+                <td className="px-3 py-2 text-ink-muted">{p.pid}</td>
+                <td className="px-3 py-2 text-ink-inverse max-w-[240px] truncate" title={p.command_line}>{p.name}</td>
+                <td className="px-3 py-2 text-ink-faint hidden md:table-cell">{p.username}</td>
+                <td className="px-3 py-2 text-right text-ink-muted">{p.cpu_percent.toFixed(1)}</td>
+                <td className="px-3 py-2 text-right text-ink-muted">{p.memory_percent.toFixed(1)}</td>
+                <td className="px-3 py-2 text-right text-ink-muted hidden lg:table-cell">{fmtBytes(p.memory_rss)}</td>
+                <td className="px-3 py-2 text-ink-faint hidden xl:table-cell">{p.create_time}</td>
                 <td className="px-3 py-2">
-                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-emerald-400">{p.project_type}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-surface-1 text-[10px] text-success">{p.project_type}</span>
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button className="text-red-400/80 hover:text-red-300 text-[11px]" onClick={() => setKilling(p)}>结束</button>
+                  <button className="text-danger/80 hover:text-red-300 text-[11px]" onClick={() => setKilling(p)}>结束</button>
                 </td>
               </tr>
             ))}
             {processes.length === 0 && !loading && (
-              <tr><td colSpan={9} className="px-3 py-10 text-center text-slate-600">暂无进程</td></tr>
+              <tr><td colSpan={9} className="px-3 py-10 text-center text-ink-faint">暂无进程</td></tr>
             )}
           </tbody>
         </table>
       </div>
       {total > 0 && (
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center justify-between text-xs text-ink-faint">
           <span>共 {total} 个进程</span>
           <div className="flex items-center gap-2">
-            <button className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+            <button className="px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 disabled:opacity-40"
               disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</button>
             <span>{page} / {totalPages}</span>
-            <button className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+            <button className="px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 disabled:opacity-40"
               disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</button>
           </div>
         </div>

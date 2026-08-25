@@ -31,13 +31,13 @@ export default function BackendSwitch() {
   };
 
   return (
-    <div className="inline-flex rounded-lg bg-slate-800 p-1">
+    <div className="inline-flex rounded-lg bg-surface-1 p-1">
       <button
         onClick={() => handleChange('dify')}
         className={`px-4 py-1 rounded text-sm transition ${
           backend === 'dify'
-            ? 'bg-blue-600 text-white'
-            : 'text-slate-400 hover:text-slate-200'
+            ? 'bg-accent text-white'
+            : 'text-ink-muted hover:text-ink'
         }`}
       >
         Dify
@@ -46,8 +46,8 @@ export default function BackendSwitch() {
         onClick={() => handleChange('selfdev')}
         className={`px-4 py-1 rounded text-sm transition ${
           backend === 'selfdev'
-            ? 'bg-blue-600 text-white'
-            : 'text-slate-400 hover:text-slate-200'
+            ? 'bg-accent text-white'
+            : 'text-ink-muted hover:text-ink'
         }`}
       >
         自研 Agent

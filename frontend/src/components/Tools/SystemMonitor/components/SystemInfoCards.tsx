@@ -21,12 +21,12 @@ export default function SystemInfoCards({ info, server }: SystemInfoCardsProps) 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {cards.map((card) => (
-        <div key={card.label} className="bg-slate-900 rounded-xl p-3 border border-slate-800">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+        <div key={card.label} className="bg-canvas rounded-xl p-3 border border-border">
+          <div className="flex items-center gap-1.5 text-xs text-ink-faint mb-1">
             <i className={`fas ${card.icon}`} />
             {card.label}
           </div>
-          <div className="text-sm text-white font-medium break-all">{card.value}</div>
+          <div className="text-sm text-ink-inverse font-medium break-all">{card.value}</div>
         </div>
       ))}
     </div>

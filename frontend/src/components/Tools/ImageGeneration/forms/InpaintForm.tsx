@@ -57,12 +57,12 @@ export default function InpaintForm() {
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={igT.form.placeholder.inpaint}
           disabled={loading || !referenceImage || !maskImage}
-          className="flex-1 px-4 py-2 bg-slate-700 text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-4 py-2 bg-surface-2 text-ink rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleSend}
           disabled={loading || !prompt.trim() || !referenceImage || !maskImage}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
           {igT.chat.send}
         </button>

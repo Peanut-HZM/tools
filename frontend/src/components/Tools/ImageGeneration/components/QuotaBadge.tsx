@@ -13,7 +13,7 @@ export default function QuotaBadge() {
 
   if (!quota && !quotaLoadError) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700/50 text-slate-400 text-sm">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-2/50 text-ink-muted text-sm">
         <span className="animate-pulse">{igT.admin.loading}</span>
       </div>
     );
@@ -33,25 +33,25 @@ export default function QuotaBadge() {
     'bg-red-500';
 
   return (
-    <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-700/50">
+    <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-surface-1/80 border border-border/50">
       {/* 日配额 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-400">{igT.quota.daily}</span>
-        <div className="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+        <span className="text-xs text-ink-muted">{igT.quota.daily}</span>
+        <div className="w-20 h-1.5 bg-surface-2 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${barColor}`}
             style={{ width: `${dailyPct}%` }}
           />
         </div>
-        <span className="text-sm font-medium text-slate-200 tabular-nums">
+        <span className="text-sm font-medium text-ink tabular-nums">
           {quota.daily_remaining}/{quota.daily_limit}
         </span>
       </div>
 
       {/* 月配额 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-400">{igT.quota.monthly}</span>
-        <span className="text-sm font-medium text-slate-200 tabular-nums">
+        <span className="text-xs text-ink-muted">{igT.quota.monthly}</span>
+        <span className="text-sm font-medium text-ink tabular-nums">
           {quota.monthly_remaining}/{quota.monthly_limit}
         </span>
       </div>

@@ -97,7 +97,7 @@ export default function History() {
           {RANGES.map((r) => (
             <button
               key={r.key}
-              className={`px-3 py-1.5 rounded-lg text-xs ${range === r.key ? 'bg-emerald-600/20 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs ${range === r.key ? 'bg-emerald-600/20 text-success' : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1'}`}
               onClick={() => setRange(r.key)}
             >
               {r.label}
@@ -109,20 +109,20 @@ export default function History() {
         {GROUPS.map((g) => (
           <button
             key={g.key}
-            className={`px-3 py-1.5 rounded-lg text-xs ${group === g.key ? 'bg-emerald-600/20 text-emerald-400' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs ${group === g.key ? 'bg-emerald-600/20 text-success' : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1'}`}
             onClick={() => setGroup(g.key)}
           >
             {g.label}
           </button>
         ))}
       </div>
-      {error && <div className="text-sm text-red-400">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
       {loading ? (
-        <div className="text-center text-slate-500 py-16">加载中...</div>
+        <div className="text-center text-ink-faint py-16">加载中...</div>
       ) : points.length === 0 ? (
-        <div className="text-center text-slate-500 py-16">暂无数据（采集后约 1 分钟可见）</div>
+        <div className="text-center text-ink-faint py-16">暂无数据（采集后约 1 分钟可见）</div>
       ) : (
-        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+        <div className="bg-canvas rounded-xl border border-border p-4">
           <MetricChart data={points} lines={lines} yUnit={groupConfig.yUnit} />
         </div>
       )}

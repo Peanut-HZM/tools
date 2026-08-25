@@ -47,7 +47,7 @@ function HistoryCard({ item }: { item: HistoryItem }) {
 
   const isSelected = currentResult?.history_id === item.id;
   const statusIcon = item.status === 'success' ? '✓' : item.status === 'failed' ? '✗' : '';
-  const statusColor = item.status === 'success' ? 'text-emerald-400' : item.status === 'failed' ? 'text-red-400' : 'text-slate-500';
+  const statusColor = item.status === 'success' ? 'text-success' : item.status === 'failed' ? 'text-danger' : 'text-ink-faint';
 
   return (
     <div
@@ -55,29 +55,29 @@ function HistoryCard({ item }: { item: HistoryItem }) {
       className={`
         p-3 rounded-lg border cursor-pointer transition-all
         ${isSelected
-          ? 'border-blue-500 bg-blue-500/10'
-          : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+          ? 'border-blue-500 bg-accent-info/10'
+          : 'border-border bg-surface-1/50 hover:border-border hover:bg-surface-1'
         }
       `}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-1.5 py-0.5 text-[10px] bg-slate-700 text-slate-300 rounded">
+            <span className="px-1.5 py-0.5 text-[10px] bg-surface-2 text-ink-muted rounded">
               {operationLabels[item.operation] || item.operation}
             </span>
             <span className={`text-xs ${statusColor}`}>{statusIcon}</span>
           </div>
-          <p className="text-xs text-slate-400 truncate">{item.prompt}</p>
+          <p className="text-xs text-ink-muted truncate">{item.prompt}</p>
           {item.created_at && (
-            <p className="text-[10px] text-slate-600 mt-1">
+            <p className="text-[10px] text-ink-faint mt-1">
               {new Date(item.created_at).toLocaleString()}
             </p>
           )}
         </div>
         <button
           onClick={handleDelete}
-          className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+          className="p-1 text-ink-faint hover:text-danger transition-colors"
           title="删除"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,19 +94,19 @@ export default function ImagePanel() {
   const { history, historyTotal, historyLoading, page, totalPages, goNext, goPrev, refresh } = useImageGenHistory();
 
   return (
-    <div className="w-3/4 flex flex-col min-h-0 bg-slate-900">
+    <div className="w-3/4 flex flex-col min-h-0 bg-canvas">
       {/* 生成结果 */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
         <ResultPanel />
       </div>
 
       {/* 历史列表 */}
-      <div className="border-t border-slate-700 bg-slate-800/30 flex-shrink-0">
-        <div className="px-4 py-2 border-b border-slate-700 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-slate-300">{igT.history.title}</h3>
+      <div className="border-t border-border bg-surface-1/30 flex-shrink-0">
+        <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+          <h3 className="text-sm font-medium text-ink-muted">{igT.history.title}</h3>
           <button
             onClick={refresh}
-            className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            className="text-xs text-ink-muted hover:text-ink transition-colors"
             title="刷新"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +121,7 @@ export default function ImagePanel() {
               <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : history.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 text-sm">
+            <div className="text-center py-8 text-ink-faint text-sm">
               {igT.history.empty}
             </div>
           ) : (
@@ -131,21 +131,21 @@ export default function ImagePanel() {
 
         {/* 分页 */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between p-3 border-t border-slate-700">
+          <div className="flex items-center justify-between p-3 border-t border-border">
             <button
               onClick={goPrev}
               disabled={page === 0}
-              className="px-3 py-1 text-xs rounded bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 transition-colors"
+              className="px-3 py-1 text-xs rounded bg-surface-2 text-ink-muted disabled:opacity-40 hover:bg-surface-3 transition-colors"
             >
               上一页
             </button>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-ink-faint">
               {page + 1} / {totalPages}
             </span>
             <button
               onClick={goNext}
               disabled={(page + 1) >= totalPages}
-              className="px-3 py-1 text-xs rounded bg-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-600 transition-colors"
+              className="px-3 py-1 text-xs rounded bg-surface-2 text-ink-muted disabled:opacity-40 hover:bg-surface-3 transition-colors"
             >
               下一页
             </button>

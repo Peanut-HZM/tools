@@ -51,9 +51,9 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       (t) => (
         <div
           className={`
-            flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl
-            bg-slate-800/95 backdrop-blur-sm border border-slate-700/50
-            text-slate-100
+            flex items-center gap-3 px-5 py-4 rounded-xl shadow-lg
+            bg-surface-1/95 backdrop-blur-sm border border-border/50
+            text-ink
             max-w-[400px] min-w-[280px]
           `}
           style={{

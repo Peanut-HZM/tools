@@ -17,7 +17,7 @@ function fmtRate(v: number | null | undefined): string {
 }
 
 function StatusDot({ status }: { status: string }) {
-  const color = status === 'online' ? 'bg-emerald-500' : status === 'offline' ? 'bg-red-500' : status === 'error' ? 'bg-orange-500' : 'bg-slate-600';
+  const color = status === 'online' ? 'bg-emerald-500' : status === 'offline' ? 'bg-red-500' : status === 'error' ? 'bg-orange-500' : 'bg-surface-3';
   return <span className={`inline-block h-2 w-2 rounded-full ${color}`} />;
 }
 
@@ -27,24 +27,24 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
   const offline = server.status !== 'online';
   return (
     <div
-      className="bg-slate-900 rounded-xl p-4 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors"
+      className="bg-canvas rounded-xl p-4 border border-border hover:border-border cursor-pointer transition-colors"
       onClick={() => onSelect(server.id)}
       data-testid={`server-card-${server.id}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <StatusDot status={server.status} />
-          <span className="text-white text-sm font-medium truncate">{server.name}</span>
+          <span className="text-ink-inverse text-sm font-medium truncate">{server.name}</span>
         </div>
-        <span className="text-xs text-slate-500 shrink-0">{server.server_type === 'local' ? '本机' : server.host}</span>
+        <span className="text-xs text-ink-faint shrink-0">{server.server_type === 'local' ? '本机' : server.host}</span>
       </div>
-      {server.group_name && <div className="text-xs text-slate-600 mt-0.5">{server.group_name}</div>}
+      {server.group_name && <div className="text-xs text-ink-faint mt-0.5">{server.group_name}</div>}
       {offline ? (
         <div className="mt-2">
-          <div className="text-xs text-red-400/80 break-words">{server.last_error || '服务器离线'}</div>
+          <div className="text-xs text-danger/80 break-words">{server.last_error || '服务器离线'}</div>
           {server.status === 'error' && onRetry && (
             <button
-              className="mt-2 text-xs text-emerald-400 hover:text-emerald-300"
+              className="mt-2 text-xs text-success hover:text-emerald-300"
               onClick={(e) => { e.stopPropagation(); onRetry(server); }}
             >
               重试采集
@@ -53,20 +53,20 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-1.5 mt-2 text-xs">
-          <div className="text-slate-400">CPU <span className="text-white">{metric?.cpu_percent ?? '-'}%</span></div>
-          <div className="text-slate-400">内存 <span className="text-white">{metric?.mem_percent ?? '-'}%</span></div>
-          <div className="text-slate-400">磁盘 <span className="text-white">{metric?.disk_percent ?? '-'}%</span></div>
-          <div className="text-slate-400">网络 <span className="text-white">{fmtRate(metric?.net_recv_rate)}</span></div>
+          <div className="text-ink-muted">CPU <span className="text-ink-inverse">{metric?.cpu_percent ?? '-'}%</span></div>
+          <div className="text-ink-muted">内存 <span className="text-ink-inverse">{metric?.mem_percent ?? '-'}%</span></div>
+          <div className="text-ink-muted">磁盘 <span className="text-ink-inverse">{metric?.disk_percent ?? '-'}%</span></div>
+          <div className="text-ink-muted">网络 <span className="text-ink-inverse">{fmtRate(metric?.net_recv_rate)}</span></div>
         </div>
       )}
       {!offline && server.last_seen_at && (
-        <div className="text-[11px] text-slate-600 mt-2">最近采集 {server.last_seen_at.replace('T', ' ').slice(0, 19)}</div>
+        <div className="text-[11px] text-ink-faint mt-2">最近采集 {server.last_seen_at.replace('T', ' ').slice(0, 19)}</div>
       )}
       {(onEdit || onDelete) && (
         <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-          {onEdit && <button className="text-xs text-slate-400 hover:text-white" onClick={() => onEdit(server)}>编辑</button>}
+          {onEdit && <button className="text-xs text-ink-muted hover:text-ink-inverse" onClick={() => onEdit(server)}>编辑</button>}
           {onDelete && server.server_type !== 'local' && (
-            <button className="text-xs text-slate-400 hover:text-red-400" onClick={() => onDelete(server)}>删除</button>
+            <button className="text-xs text-ink-muted hover:text-danger" onClick={() => onDelete(server)}>删除</button>
           )}
         </div>
       )}

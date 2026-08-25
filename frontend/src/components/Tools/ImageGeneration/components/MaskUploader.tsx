@@ -49,13 +49,13 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-300">{igT.form.maskImage}</label>
-      <p className="text-xs text-slate-500">
+      <label className="text-sm font-medium text-ink-muted">{igT.form.maskImage}</label>
+      <p className="text-xs text-ink-faint">
         {igT.form.uploadMaskHint}
       </p>
 
       {preview ? (
-        <div className="relative group rounded-lg overflow-hidden border border-slate-600 bg-slate-800">
+        <div className="relative group rounded-lg overflow-hidden border border-border bg-surface-1">
           <img
             src={preview}
             alt={igT.form.maskImage}
@@ -63,7 +63,7 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
           />
           <button
             onClick={handleClear}
-            className="absolute top-2 right-2 px-2 py-1 text-xs bg-red-600/80 hover:bg-red-600 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 px-2 py-1 text-xs bg-red-600/80 hover:bg-red-600 text-ink-inverse rounded opacity-0 group-hover:opacity-100 transition-opacity"
           >
             {igT.form.remove}
           </button>
@@ -78,16 +78,16 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
             flex flex-col items-center justify-center gap-2 p-6
             border-2 border-dashed rounded-lg cursor-pointer transition-colors
             ${dragOver
-              ? 'border-purple-500 bg-purple-500/10'
-              : 'border-slate-600 hover:border-slate-500 bg-slate-800/50'
+              ? 'border-purple-500 bg-accent-secondary/10'
+              : 'border-border hover:border-slate-500 bg-surface-1/50'
             }
           `}
         >
-          <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-8 h-8 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          <span className="text-sm text-slate-400">{igT.form.uploadHintMask}</span>
-          <span className="text-xs text-slate-500">{igT.form.uploadFormatMask}</span>
+          <span className="text-sm text-ink-muted">{igT.form.uploadHintMask}</span>
+          <span className="text-xs text-ink-faint">{igT.form.uploadFormatMask}</span>
         </div>
       )}
 
@@ -103,7 +103,7 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
         className="hidden"
       />
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
 }

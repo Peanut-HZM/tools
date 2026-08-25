@@ -30,11 +30,11 @@ export const EmptyWorkspace: React.FC<Props> = ({ tools }: Props) => {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-slate-900">
+    <div className="flex-1 flex items-center justify-center bg-canvas">
       <div className="text-center max-w-md">
-        <i className="fas fa-tools text-6xl text-slate-600 mb-6"></i>
-        <h2 className="text-2xl font-bold text-slate-200 mb-2">{t.workspace.welcome}</h2>
-        <p className="text-slate-400 mb-8">
+        <i className="fas fa-tools text-6xl text-ink-faint mb-6"></i>
+        <h2 className="text-2xl font-bold text-ink mb-2">{t.workspace.welcome}</h2>
+        <p className="text-ink-muted mb-8">
           {t.workspace.welcomeHint}
         </p>
         {featuredTools.length > 0 && (
@@ -43,10 +43,10 @@ export const EmptyWorkspace: React.FC<Props> = ({ tools }: Props) => {
               <button
                 key={tool.id}
                 onClick={() => handleOpenTool(tool)}
-                className="flex flex-col items-center gap-2 p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 rounded-lg transition-colors"
+                className="flex flex-col items-center gap-2 p-4 bg-surface-1 hover:bg-surface-2 border border-border hover:border-border rounded-lg transition-colors"
               >
-                <i className={[tool.icon, 'text-xl text-blue-400'].join(' ')}></i>
-                <span className="text-xs text-slate-300">{tool.title}</span>
+                <i className={[tool.icon, 'text-xl text-accent-info'].join(' ')}></i>
+                <span className="text-xs text-ink-muted">{tool.title}</span>
               </button>
             ))}
           </div>

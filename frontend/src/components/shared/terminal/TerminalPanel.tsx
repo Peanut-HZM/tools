@@ -190,7 +190,7 @@ export const TerminalPanel: React.FC<Props> = ({
     <div
       ref={terminalRef}
       data-testid={`ssh-terminal-${tabId}`}
-      className="w-full h-full bg-slate-900"
+      className="w-full h-full bg-canvas"
       onClick={() => {
         terminalInstance.current?.focus();
         if (statusRef.current === 'error' || statusRef.current === 'disconnected') {

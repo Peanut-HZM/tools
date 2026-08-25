@@ -110,15 +110,15 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="w-1/4 flex flex-col min-h-0 border-r border-slate-700 bg-slate-900">
+    <div className="w-1/4 flex flex-col min-h-0 border-r border-border bg-canvas">
       {/* 顶部操作栏 */}
-      <div className="flex items-center justify-between p-3 border-b border-slate-700 flex-shrink-0">
+      <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
         <BackendSwitch />
         <div className="flex items-center gap-2">
           <QuotaBadge />
           <button
             onClick={reset}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-surface-2 hover:bg-surface-3 text-ink-muted rounded-lg transition-colors"
             title="重置"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +129,7 @@ export default function ChatPanel() {
       </div>
 
       {/* Tab 栏 */}
-      <div className="flex gap-1 p-2 border-b border-slate-700 bg-slate-800/50 flex-shrink-0">
+      <div className="flex gap-1 p-2 border-b border-border bg-surface-1/50 flex-shrink-0">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -137,8 +137,8 @@ export default function ChatPanel() {
             className={`
               flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium rounded transition-all
               ${operation === tab.key
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                ? 'bg-accent text-white shadow-sm'
+                : 'text-ink-muted hover:text-ink hover:bg-surface-2/50'
               }
             `}
             title={TAB_LABELS[tab.labelKey]}
@@ -151,7 +151,7 @@ export default function ChatPanel() {
       {/* 聊天历史 */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
         {conversationHistory.length === 0 && chatStatus === 'idle' && (
-          <div className="text-center text-slate-500 py-8">
+          <div className="text-center text-ink-faint py-8">
             🤖 你想画什么？告诉我主题、风格、场景等
           </div>
         )}
@@ -163,8 +163,8 @@ export default function ChatPanel() {
             <div
               className={`max-w-[90%] px-3 py-2 rounded-lg text-sm ${
                 msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-100'
+                  ? 'bg-accent text-white'
+                  : 'bg-surface-2 text-ink'
               }`}
             >
               {msg.content}
@@ -173,14 +173,14 @@ export default function ChatPanel() {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-700 text-slate-100 px-3 py-2 rounded-lg text-sm animate-pulse">
+            <div className="bg-surface-2 text-ink px-3 py-2 rounded-lg text-sm animate-pulse">
               思考中...
             </div>
           </div>
         )}
         {chatAnswer && chatStatus === 'asking' && (
           <div className="flex justify-start">
-            <div className="bg-slate-700 text-slate-100 px-3 py-2 rounded-lg text-sm">
+            <div className="bg-surface-2 text-ink px-3 py-2 rounded-lg text-sm">
               {chatAnswer}
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function ChatPanel() {
       </div>
 
       {/* 输入框 */}
-      <div className="p-3 border-t border-slate-700 bg-slate-800/50 flex-shrink-0">
+      <div className="p-3 border-t border-border bg-surface-1/50 flex-shrink-0">
         <div className="flex gap-2">
           <input
             type="text"
@@ -198,12 +198,12 @@ export default function ChatPanel() {
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="输入你的回复..."
             disabled={loading}
-            className="flex-1 px-3 py-2 bg-slate-700 text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 bg-surface-2 text-ink rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             发送
           </button>
@@ -211,7 +211,7 @@ export default function ChatPanel() {
         {chatStatus === 'generated' && (
           <button
             onClick={resetConversation}
-            className="mt-2 w-full px-3 py-1.5 text-xs bg-slate-700 text-slate-300 rounded hover:bg-slate-600 transition-colors"
+            className="mt-2 w-full px-3 py-1.5 text-xs bg-surface-2 text-ink-muted rounded hover:bg-surface-3 transition-colors"
           >
             新对话
           </button>

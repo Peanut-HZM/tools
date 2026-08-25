@@ -62,11 +62,11 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   if (processed.type !== 'data') {
     const message = processed.type === 'empty-no-data' ? emptyHint : '暂无 Token 数据';
     return (
-      <div className="rounded-md border border-slate-800 bg-slate-900 p-3 h-80 flex flex-col">
+      <div className="rounded-md border border-border bg-canvas p-3 h-80 flex flex-col">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-white">{title}</h2>
+          <h2 className="text-sm font-medium text-ink-inverse">{title}</h2>
         </div>
-        <div className="flex-1 flex items-center justify-center text-sm text-slate-500">
+        <div className="flex-1 flex items-center justify-center text-sm text-ink-faint">
           {message}
         </div>
       </div>
@@ -81,10 +81,10 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
       : `${formatToken(s.tokens)} Token / ${formatCurrency(s.cost)}`;
 
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-900 p-3 h-80 flex flex-col">
+    <div className="rounded-md border border-border bg-canvas p-3 h-80 flex flex-col">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-white">{title}</h2>
-        <span className="text-xs text-slate-500">{slices.length} 项</span>
+        <h2 className="text-sm font-medium text-ink-inverse">{title}</h2>
+        <span className="text-xs text-ink-faint">{slices.length} 项</span>
       </div>
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="relative h-44">
@@ -126,18 +126,18 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                   if (!slice) return null;
                   const pct = `${(slice.percent ?? 0).toFixed(1)}%`;
                   return (
-                    <div className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 shadow-lg">
-                      <div className="mb-1 font-medium text-white">{title}</div>
-                      <div className="mb-1 text-slate-300">{slice.label}</div>
+                    <div className="rounded border border-border bg-canvas px-3 py-2 text-xs text-ink shadow-lg">
+                      <div className="mb-1 font-medium text-ink-inverse">{title}</div>
+                      <div className="mb-1 text-ink-muted">{slice.label}</div>
                       {metric === 'cost' ? (
                         <>
-                          <div>{formatCurrency(slice.cost)} <span className="text-slate-500">({pct})</span></div>
-                          <div className="text-slate-400">{formatToken(slice.tokens)} Token</div>
+                          <div>{formatCurrency(slice.cost)} <span className="text-ink-faint">({pct})</span></div>
+                          <div className="text-ink-muted">{formatToken(slice.tokens)} Token</div>
                         </>
                       ) : (
                         <>
-                          <div>{formatToken(slice.tokens)} Token <span className="text-slate-500">({pct})</span></div>
-                          <div className="text-slate-400">{formatCurrency(slice.cost)}</div>
+                          <div>{formatToken(slice.tokens)} Token <span className="text-ink-faint">({pct})</span></div>
+                          <div className="text-ink-muted">{formatCurrency(slice.cost)}</div>
                         </>
                       )}
                     </div>
@@ -147,21 +147,21 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-base font-semibold text-white">{formatToken(totalTokens)}</span>
+            <span className="text-base font-semibold text-ink-inverse">{formatToken(totalTokens)}</span>
             <span className="text-xs text-emerald-300">Token</span>
           </div>
         </div>
         <div className="mt-2 flex-1 overflow-y-auto space-y-1">
           {slices.map((s, i) => (
             <div key={s.key} className="flex items-center justify-between gap-2 text-xs">
-              <span className="flex min-w-0 items-center gap-1.5 text-slate-300">
+              <span className="flex min-w-0 items-center gap-1.5 text-ink-muted">
                 <span
                   className="h-2 w-2 flex-none rounded-full"
                   style={{ backgroundColor: COLORS[i % COLORS.length] }}
                 />
                 <span className="truncate">{s.label}</span>
               </span>
-              <span className="font-mono text-slate-400">
+              <span className="font-mono text-ink-muted">
                 {metric === 'cost' ? formatCurrency(displayValue(s)) : `${formatToken(displayValue(s))} Token`}
               </span>
             </div>

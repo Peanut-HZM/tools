@@ -107,20 +107,20 @@ export default function DeviceManagerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg border border-slate-700 bg-slate-900 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
+      <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-canvas shadow-md">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <h3 className="text-base font-medium text-white">设备管理</h3>
-            <p className="text-xs text-slate-400">{devices.length} 个设备 · {mergedDevices.length} 个已合并</p>
+            <h3 className="text-base font-medium text-ink-inverse">设备管理</h3>
+            <p className="text-xs text-ink-muted">{devices.length} 个设备 · {mergedDevices.length} 个已合并</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="flex-1 overflow-auto p-4">
           {error && (
-            <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            <div className="mb-3 rounded-md border border-red-500/30 bg-danger/10 px-3 py-2 text-sm text-red-200">
               <AlertCircle className="mr-1 inline h-4 w-4" />
               {error}
             </div>
@@ -130,7 +130,7 @@ export default function DeviceManagerModal({
             <button
               onClick={handleMergeSameName}
               disabled={processing}
-              className="rounded-md border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700 disabled:opacity-50"
+              className="rounded-md border border-border bg-surface-1 px-3 py-1.5 text-xs text-ink hover:bg-surface-2 disabled:opacity-50"
             >
               <Merge className="mr-1 inline h-3.5 w-3.5" />
               一键合并同名设备
@@ -140,7 +140,7 @@ export default function DeviceManagerModal({
                 <select
                   value={mergeTarget}
                   onChange={e => setMergeTarget(e.target.value)}
-                  className="rounded-md border border-slate-600 bg-slate-800 px-2 py-1.5 text-xs text-slate-200"
+                  className="rounded-md border border-border bg-surface-1 px-2 py-1.5 text-xs text-ink"
                 >
                   <option value="">选择合并目标...</option>
                   {Array.from(selectedIds).map(id => {
@@ -155,7 +155,7 @@ export default function DeviceManagerModal({
                 <button
                   onClick={handleMerge}
                   disabled={!mergeTarget || processing}
-                  className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                  className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
                 >
                   合并
                 </button>
@@ -169,8 +169,8 @@ export default function DeviceManagerModal({
                 key={device.id}
                 className={`flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm ${
                   selectedIds.has(device.id)
-                    ? 'border-blue-500/50 bg-blue-500/10'
-                    : 'border-slate-700 bg-slate-950'
+                    ? 'border-blue-500/50 bg-accent-info/10'
+                    : 'border-border bg-canvas'
                 }`}
               >
                 <input
@@ -179,13 +179,13 @@ export default function DeviceManagerModal({
                   onChange={() => toggleSelection(device.id)}
                   className="h-4 w-4 accent-blue-600"
                 />
-                <Monitor className="h-4 w-4 text-slate-400" />
+                <Monitor className="h-4 w-4 text-ink-muted" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium text-slate-200">{device.name}</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="truncate font-medium text-ink">{device.name}</div>
+                  <div className="text-xs text-ink-faint">
                     {device.id_type === 'hardware' ? '硬件指纹' : 'UUID'} · {device.id.slice(0, 8)}...
                     {device.canonical_id && (
-                      <span className="ml-1 text-blue-400">→ {devices.find(d => d.id === device.canonical_id)?.name || device.canonical_id.slice(0, 8)}</span>
+                      <span className="ml-1 text-accent-info">→ {devices.find(d => d.id === device.canonical_id)?.name || device.canonical_id.slice(0, 8)}</span>
                     )}
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export default function DeviceManagerModal({
                     onClick={() => onUnmerge(device.id)}
                     disabled={processing}
                     title="撤销合并"
-                    className="rounded-md border border-slate-600 p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                    className="rounded-md border border-border p-1.5 text-ink-muted hover:bg-surface-1 hover:text-ink-inverse disabled:opacity-50"
                   >
                     <Undo2 className="h-3.5 w-3.5" />
                   </button>
@@ -203,7 +203,7 @@ export default function DeviceManagerModal({
                     onClick={() => handleRename(device)}
                     disabled={processing}
                     title="重命名"
-                    className="rounded-md border border-slate-600 p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                    className="rounded-md border border-border p-1.5 text-ink-muted hover:bg-surface-1 hover:text-ink-inverse disabled:opacity-50"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
                   </button>
