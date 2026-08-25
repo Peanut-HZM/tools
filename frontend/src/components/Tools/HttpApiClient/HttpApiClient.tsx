@@ -425,20 +425,20 @@ export default function HttpApiClient() {
   }
 
   return (
-    <div className="flex-1 text-slate-100 flex flex-col overflow-hidden">
+    <div className="flex-1 text-ink flex flex-col overflow-hidden">
       {/* 顶部工具栏 */}
-      <div className="bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
+      <div className="bg-surface-1 border-b border-border px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
-            className="text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+            className="text-ink-muted hover:text-ink-inverse transition-colors flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>
             <span className="hidden sm:inline">返回</span>
           </button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-purple-500 rounded flex items-center justify-center">
-              <i className="fas fa-plug text-white text-sm"></i>
+              <i className="fas fa-plug text-ink-inverse text-sm"></i>
             </div>
             <h1 className="text-lg font-bold">HTTP API 客户端</h1>
           </div>
@@ -453,7 +453,7 @@ export default function HttpApiClient() {
 
           {/* 导入/导出按钮 */}
           <button
-            className="text-slate-400 hover:text-white transition-colors text-sm"
+            className="text-ink-muted hover:text-ink-inverse transition-colors text-sm"
             title="导入/导出"
             onClick={() => setIsImportExportModalOpen(true)}
           >
@@ -463,7 +463,7 @@ export default function HttpApiClient() {
 
           {/* 历史按钮 */}
           <button
-            className="text-slate-400 hover:text-white transition-colors text-sm"
+            className="text-ink-muted hover:text-ink-inverse transition-colors text-sm"
             title="请求历史"
             onClick={handleToggleHistory}
           >
@@ -473,7 +473,7 @@ export default function HttpApiClient() {
 
           {/* 新建请求按钮 */}
           <button
-            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            className="bg-purple-500 hover:bg-purple-600 text-ink-inverse px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
             onClick={() => setShowNewRequestForm(true)}
           >
             <i className="fas fa-plus mr-1"></i>
@@ -486,13 +486,13 @@ export default function HttpApiClient() {
       <div className="flex-1 flex overflow-hidden">
         {/* 左侧：集合导航 */}
         <div
-          className="bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0"
+          className="bg-surface-1 border-r border-border flex flex-col overflow-hidden flex-shrink-0"
           style={{ width: sidebarWidth }}
         >
-          <div className="p-3 border-b border-slate-700 flex items-center justify-between">
+          <div className="p-3 border-b border-border flex items-center justify-between">
             <h2 className="font-semibold text-sm">请求集合</h2>
             <button
-              className="text-slate-400 hover:text-white transition-colors text-xs"
+              className="text-ink-muted hover:text-ink-inverse transition-colors text-xs"
               title="新建集合"
               onClick={() => {
                 setCollectionModal({ mode: 'create' });
@@ -504,12 +504,12 @@ export default function HttpApiClient() {
           </div>
           <div className="flex-1 overflow-y-auto">
             {loadingCollections ? (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-ink-faint text-sm">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
                 加载中...
               </div>
             ) : collections.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-xs">
+              <div className="text-center py-8 text-ink-faint text-xs">
                 <i className="fas fa-folder-open text-2xl mb-2 opacity-50"></i>
                 <p>暂无集合</p>
                 <p className="mt-1">点击"+"创建</p>
@@ -545,7 +545,7 @@ export default function HttpApiClient() {
 
         {/* 拖拽手柄 - 调整侧边栏 */}
         <div
-          className="w-1 bg-slate-700 hover:bg-purple-500 cursor-col-resize flex-shrink-0 transition-colors"
+          className="w-1 bg-surface-2 hover:bg-purple-500 cursor-col-resize flex-shrink-0 transition-colors"
           onMouseDown={handleSidebarResize}
         ></div>
 
@@ -577,7 +577,7 @@ export default function HttpApiClient() {
                 onDelete={isHistoryReplay ? undefined : handleDeleteActiveRequest}
               />
             ) : (
-              <div className="flex-1 flex items-center justify-center text-slate-500">
+              <div className="flex-1 flex items-center justify-center text-ink-faint">
                 <div className="text-center">
                   <i className="fas fa-plug text-6xl mb-4 opacity-20"></i>
                   <p>选择一个请求或创建新请求</p>
@@ -592,11 +592,11 @@ export default function HttpApiClient() {
       {currentResponse && (
         <>
           <div
-            className="h-2 bg-slate-700 hover:bg-purple-500 cursor-row-resize flex-shrink-0 transition-colors"
+            className="h-2 bg-surface-2 hover:bg-purple-500 cursor-row-resize flex-shrink-0 transition-colors"
             onMouseDown={handleResponseResize}
           ></div>
           <div
-            className="border-t border-slate-700 flex flex-col overflow-hidden flex-shrink-0"
+            className="border-t border-border flex flex-col overflow-hidden flex-shrink-0"
             style={{ height: responseHeight }}
           >
             <ResponseViewer
@@ -620,10 +620,10 @@ export default function HttpApiClient() {
       {/* 历史面板弹窗 */}
       {showHistoryPanel && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg w-full max-w-2xl max-h-[70vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <div className="bg-surface-1 rounded-lg w-full max-w-2xl max-h-[70vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h2 className="text-lg font-semibold">请求历史</h2>
-              <button onClick={() => setShowHistoryPanel(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowHistoryPanel(false)} className="text-ink-muted hover:text-ink-inverse">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -658,12 +658,12 @@ export default function HttpApiClient() {
       {/* 集合新建/重命名弹窗 */}
       {collectionModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg w-full max-w-md p-6">
+          <div className="bg-surface-1 rounded-lg w-full max-w-md p-6">
             <h3 className="text-lg font-semibold mb-4">
               {collectionModal.mode === 'create' ? '新建集合' : '重命名集合'}
             </h3>
             <div>
-              <label className="text-sm text-slate-400 mb-1 block">集合名称</label>
+              <label className="text-sm text-ink-muted mb-1 block">集合名称</label>
               <input
                 type="text"
                 value={collectionModalName}
@@ -672,14 +672,14 @@ export default function HttpApiClient() {
                   if (e.key === 'Enter') handleCollectionModalSubmit();
                 }}
                 placeholder="例如：Glodon-SAP"
-                className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
+                className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border"
                 autoFocus
               />
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setCollectionModal(null)}
-                className="px-4 py-2 text-slate-400 hover:text-white"
+                className="px-4 py-2 text-ink-muted hover:text-ink-inverse"
               >
                 取消
               </button>
@@ -689,8 +689,8 @@ export default function HttpApiClient() {
                 className={`
                   px-6 py-2 rounded-lg font-medium
                   ${!collectionModalName.trim()
-                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                    : 'bg-purple-500 hover:bg-purple-600 text-white'
+                    ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
+                    : 'bg-purple-500 hover:bg-purple-600 text-ink-inverse'
                   }
                 `}
               >
@@ -720,21 +720,21 @@ export default function HttpApiClient() {
       {/* 新建集合弹窗 */}
       {showNewRequestForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg w-full max-w-md p-6">
+          <div className="bg-surface-1 rounded-lg w-full max-w-md p-6">
             <h3 className="text-lg font-semibold mb-4">新建请求</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">请求名称</label>
+                <label className="text-sm text-ink-muted mb-1 block">请求名称</label>
                 <input
                   type="text"
                   value={newRequestName}
                   onChange={(e) => setNewRequestName(e.target.value)}
                   placeholder="My Request"
-                  className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
+                  className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">目标集合</label>
+                <label className="text-sm text-ink-muted mb-1 block">目标集合</label>
                 {collections.length === 0 ? (
                   <div className="text-sm text-orange-400 bg-orange-500/10 px-3 py-2 rounded border border-orange-500/30">
                     <i className="fas fa-exclamation-triangle mr-2"></i>
@@ -744,7 +744,7 @@ export default function HttpApiClient() {
                   <select
                     value={newRequestCollectionId}
                     onChange={(e) => setNewRequestCollectionId(e.target.value)}
-                    className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
+                    className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border"
                   >
                     <option value="">请选择集合</option>
                     {collections.map(c => (
@@ -754,11 +754,11 @@ export default function HttpApiClient() {
                 )}
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">方法</label>
+                <label className="text-sm text-ink-muted mb-1 block">方法</label>
                 <select
                   value={newRequestMethod}
                   onChange={(e) => setNewRequestMethod(e.target.value)}
-                  className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
+                  className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border"
                 >
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>
@@ -770,20 +770,20 @@ export default function HttpApiClient() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">URL</label>
+                <label className="text-sm text-ink-muted mb-1 block">URL</label>
                 <input
                   type="text"
                   value={newRequestUrl}
                   onChange={(e) => setNewRequestUrl(e.target.value)}
                   placeholder="https://api.example.com/users"
-                  className="w-full bg-slate-700 text-white px-3 py-2 rounded border border-slate-600"
+                  className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border"
                 />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowNewRequestForm(false)}
-                className="px-4 py-2 text-slate-400 hover:text-white"
+                className="px-4 py-2 text-ink-muted hover:text-ink-inverse"
               >
                 取消
               </button>
@@ -793,8 +793,8 @@ export default function HttpApiClient() {
                 className={`
                   px-6 py-2 rounded-lg font-medium
                   ${!newRequestName.trim() || !newRequestUrl.trim() || !newRequestCollectionId
-                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                    : 'bg-purple-500 hover:bg-purple-600 text-white'
+                    ? 'bg-surface-3 text-ink-muted cursor-not-allowed'
+                    : 'bg-purple-500 hover:bg-purple-600 text-ink-inverse'
                   }
                 `}
               >
