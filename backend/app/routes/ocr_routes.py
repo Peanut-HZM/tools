@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body, File, UploadFile
 from app.models.ocr_models import OCRRequest, OCRResponse, QRCodeRequest, QRCodeResponse
 from app.services.ocr_service import ocr_service
 from app.middleware.auth_middleware import get_current_user
+from app.core.exceptions import QuotaExceeded
 
 router = APIRouter(tags=["OCR"])
 
@@ -18,6 +19,8 @@ async def predict_ocr(
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except QuotaExceeded:
+        raise HTTPException(status_code=429, detail="今日 OCR 次数已用完，请明天再试")
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
@@ -40,6 +43,8 @@ async def predict_pdf_ocr(
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except QuotaExceeded:
+        raise HTTPException(status_code=429, detail="今日 OCR 次数已用完，请明天再试")
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
