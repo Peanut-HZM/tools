@@ -339,7 +339,7 @@ export default function MarkItDownConverter() {
               <button 
                 onClick={handleCopyToClipboard}
                 disabled={!markdownContent}
-                className="px-3 py-1.5 text-xs bg-surface-2 hover:bg-slate-600 text-ink-inverse rounded-md disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 text-xs bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-md disabled:opacity-50 transition-colors"
               >
                 {t.converter.copy}
               </button>
