@@ -81,19 +81,22 @@ def _to_info(q: LLMUserQuota) -> QuotaInfo:
         is_valid = False
     if vu is not None and nw > vu:
         is_valid = False
+    daily_used = q.daily_used or 0
+    monthly_used = q.monthly_used or 0
+    token_used = q.token_used or 0
     return QuotaInfo(
         user_id=q.user_id,
         quota_mode=q.quota_mode,
         daily_limit=q.daily_limit,
-        daily_used=q.daily_used,
-        daily_remaining=max(0, (q.daily_limit or 0) - q.daily_used),
+        daily_used=daily_used,
+        daily_remaining=max(0, (q.daily_limit or 0) - daily_used),
         monthly_limit=q.monthly_limit,
-        monthly_used=q.monthly_used,
-        monthly_remaining=max(0, (q.monthly_limit or 0) - q.monthly_used),
+        monthly_used=monthly_used,
+        monthly_remaining=max(0, (q.monthly_limit or 0) - monthly_used),
         token_period=q.token_period,
         token_limit=q.token_limit,
-        token_used=q.token_used,
-        token_remaining=max(0, (q.token_limit or 0) - q.token_used),
+        token_used=token_used,
+        token_remaining=max(0, (q.token_limit or 0) - token_used),
         valid_from=q.valid_from,
         valid_until=q.valid_until,
         is_valid=is_valid,
