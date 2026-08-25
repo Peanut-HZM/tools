@@ -62,21 +62,21 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 背景遮罩 */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* 弹窗内容 */}
-      <div className="relative bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-slate-700">
+      <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden border border-border">
         {/* 头部 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-800/50">
-          <h3 className="text-lg font-semibold text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-1/50">
+          <h3 className="text-lg font-semibold text-ink-inverse">
             {editingConfig ? '编辑配置' : '添加新配置'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white transition-colors"
+            className="p-1 text-ink-muted hover:text-ink-inverse transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -89,14 +89,14 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 配置名称 */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                配置名称 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                配置名称 <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：OpenAI GPT-4"
                 required
               />
@@ -104,15 +104,15 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
 
             {/* 供应商 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                供应商 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                供应商 <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
                 list="provider-suggestions"
                 value={formData.provider_type}
                 onChange={(e) => setFormData({ ...formData, provider_type: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 required
               />
               <datalist id="provider-suggestions">
@@ -130,13 +130,13 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
 
             {/* 分类 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                分类 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                分类 <span className="text-danger">*</span>
               </label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as LLMConfigCategory })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="chat">对话类型</option>
                 <option value="code">编程类型</option>
@@ -145,14 +145,14 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
 
             {/* Base URL */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Base URL <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                Base URL <span className="text-danger">*</span>
               </label>
               <input
                 type="url"
                 value={formData.base_url}
                 onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="https://api.openai.com/v1"
                 required
               />
@@ -160,14 +160,14 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
 
             {/* 模型名称 */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                模型名称 <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                模型名称 <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
                 value={formData.model_name}
                 onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：gpt-4"
                 required
               />
@@ -175,15 +175,15 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
 
             {/* API Key */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                API Key <span className="text-red-400">*</span>
-                {editingConfig && <span className="text-slate-400 text-xs ml-2">（留空保持原值）</span>}
+              <label className="block text-sm font-medium text-ink-muted mb-2">
+                API Key <span className="text-danger">*</span>
+                {editingConfig && <span className="text-ink-muted text-xs ml-2">（留空保持原值）</span>}
               </label>
               <input
                 type="password"
                 value={formData.api_key}
                 onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder={editingConfig ? '••••••••' : '请输入 API Key'}
                 required={!editingConfig}
               />
@@ -191,13 +191,13 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
 
             {/* 备注 */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-ink-muted mb-2">
                 备注
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="可选备注，方便识别此配置"
                 rows={2}
               />
@@ -210,36 +210,36 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                   type="checkbox"
                   checked={formData.is_default}
                   onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-600 focus:ring-cyan-500"
+                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
                 />
-                <span className="text-slate-300">设为默认配置</span>
+                <span className="text-ink-muted">设为默认配置</span>
               </label>
-              
+
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-600 focus:ring-cyan-500"
+                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
                 />
-                <span className="text-slate-300">启用配置</span>
+                <span className="text-ink-muted">启用配置</span>
               </label>
             </div>
           </div>
 
           {/* 底部按钮 */}
-          <div className="flex gap-4 mt-6 pt-4 border-t border-slate-700">
+          <div className="flex gap-4 mt-6 pt-4 border-t border-border">
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? '保存中...' : (editingConfig ? '保存修改' : '创建配置')}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              className="px-6 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
             >
               取消
             </button>
