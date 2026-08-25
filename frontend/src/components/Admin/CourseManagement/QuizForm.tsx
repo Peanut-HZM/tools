@@ -124,13 +124,13 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-8 overflow-y-auto">
-      <div className="bg-slate-800 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col my-8">
+      <div className="bg-surface-1 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col my-8">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-          <h2 className="text-xl font-bold text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-xl font-bold text-ink-inverse">
             {quizId ? '编辑测验' : '创建测验'}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -141,7 +141,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-ink-muted mb-1">
                 测验标题 *
               </label>
               <input
@@ -149,13 +149,13 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
                 value={formData.title}
                 onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                 required
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
                 placeholder="章节测验"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-ink-muted mb-1">
                 及格分数 (%)
               </label>
               <input
@@ -164,18 +164,18 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
                 onChange={(e) => setFormData((prev) => ({ ...prev, passing_score: parseInt(e.target.value) || 0 }))}
                 min="0"
                 max="100"
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
               />
             </div>
 
             {/* Questions */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-white">题目列表</h3>
+                <h3 className="text-lg font-medium text-ink-inverse">题目列表</h3>
                 <button
                   type="button"
                   onClick={handleAddQuestion}
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors text-sm"
+                  className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm"
                 >
                   + 添加题目
                 </button>
@@ -199,11 +199,11 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end px-6 py-4 border-t border-slate-700 space-x-4">
+        <div className="flex items-center justify-end px-6 py-4 border-t border-border space-x-4">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
           >
             取消
           </button>
@@ -211,7 +211,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
             type="submit"
             onClick={handleSubmit}
             disabled={loading || formData.questions.length === 0}
-            className="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-accent hover:bg-accent-hover disabled:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
           >
             {loading ? '保存中...' : '保存'}
           </button>
@@ -269,19 +269,19 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   const optionsLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   return (
-    <div className="bg-slate-700/50 rounded-lg border border-slate-600 overflow-hidden">
+    <div className="bg-surface-2/50 rounded-lg border border-border overflow-hidden">
       {/* Question Header */}
       <div className="flex items-center justify-between p-4 cursor-pointer" onClick={onToggleExpand}>
         <div className="flex items-center space-x-3">
-          <span className="text-slate-400 font-medium">题目 {index + 1}</span>
-          <span className="text-xs px-2 py-1 bg-slate-600 rounded">
+          <span className="text-ink-muted font-medium">题目 {index + 1}</span>
+          <span className="text-xs px-2 py-1 bg-surface-3 rounded">
             {question.question_type === 'single' ? '单选题' :
              question.question_type === 'multiple' ? '多选题' : '判断题'}
           </span>
         </div>
         <div className="flex items-center space-x-2">
           <svg
-            className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 text-ink-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -294,7 +294,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               e.stopPropagation();
               onDelete();
             }}
-            className="text-red-400 hover:text-red-300 transition-colors"
+            className="text-danger hover:text-danger/80 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -305,9 +305,9 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
       {/* Question Content */}
       {isExpanded && (
-        <div className="p-4 border-t border-slate-600 space-y-4">
+        <div className="p-4 border-t border-border space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               题目类型
             </label>
             <select
@@ -316,7 +316,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 question_type: e.target.value as 'single' | 'multiple' | 'true_false',
                 correct_answer: ''
               })}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
             >
               <option value="single">单选题</option>
               <option value="multiple">多选题</option>
@@ -325,20 +325,20 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               题目内容 *
             </label>
             <textarea
               value={question.question_text}
               onChange={(e) => onUpdate({ question_text: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
               placeholder="请输入题目内容"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               选项和正确答案 *
             </label>
             <div className="space-y-2">
@@ -350,29 +350,29 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     onChange={() => handleCorrectAnswerChange(optIndex)}
                     className="w-4 h-4"
                   />
-                  <span className="text-slate-400 w-6">{optionsLabels[optIndex]}.</span>
+                  <span className="text-ink-muted w-6">{optionsLabels[optIndex]}.</span>
                   <input
                     type="text"
                     value={option.option_text}
                     onChange={(e) => handleOptionChange(optIndex, e.target.value)}
-                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="flex-1 px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
                     placeholder={`选项 ${optionsLabels[optIndex]} 的内容`}
                   />
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-2">勾选正确的答案</p>
+            <p className="text-xs text-ink-muted mt-2">勾选正确的答案</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-ink-muted mb-1">
               答案解析
             </label>
             <textarea
               value={question.explanation}
               onChange={(e) => onUpdate({ explanation: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
               placeholder="请解释为什么这个答案是正确的"
             />
           </div>
