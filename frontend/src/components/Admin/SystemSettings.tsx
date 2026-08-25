@@ -63,33 +63,33 @@ export default function SystemSettingsPage() {
     }
   };
 
-  if (loading) return <div className="text-white">加载中...</div>;
+  if (loading) return <div className="text-ink-inverse">加载中...</div>;
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-white mb-6">系统设置</h2>
+      <h2 className="text-2xl font-bold text-ink-inverse mb-6">系统设置</h2>
       
       {/* LLM Stats Section */}
-      <div className="bg-slate-700 rounded-lg p-6 border border-slate-600 mb-6">
-        <h3 className="text-lg font-medium text-white mb-4">大模型使用统计</h3>
+      <div className="bg-surface-2 rounded-lg p-6 border border-border mb-6">
+        <h3 className="text-lg font-medium text-ink-inverse mb-4">大模型使用统计</h3>
         <LLMStats />
       </div>
       
       <div className="space-y-6">
         {/* User Registration Toggle */}
-        <div className="bg-slate-700 rounded-lg p-6 border border-slate-600">
+        <div className="bg-surface-2 rounded-lg p-6 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-white">用户注册</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="text-lg font-medium text-ink-inverse">用户注册</h3>
+              <p className="text-sm text-ink-muted mt-1">
                 开启后，游客可以在登录页面自行注册账号。关闭后，仅管理员可添加用户。
               </p>
             </div>
             
             <button
               onClick={handleToggleRegistration}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                settings?.allow_registration ? 'bg-cyan-500' : 'bg-slate-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-canvas ${
+                settings?.allow_registration ? 'bg-accent' : 'bg-surface-3'
               }`}
             >
               <span
@@ -102,19 +102,19 @@ export default function SystemSettingsPage() {
         </div>
 
         {/* Email Verification Toggle */}
-        <div className="bg-slate-700 rounded-lg p-6 border border-slate-600">
+        <div className="bg-surface-2 rounded-lg p-6 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-white">邮箱验证注册</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="text-lg font-medium text-ink-inverse">邮箱验证注册</h3>
+              <p className="text-sm text-ink-muted mt-1">
                 开启后，用户注册时必须验证邮箱。
               </p>
             </div>
             
             <button
               onClick={handleToggleEmailVerify}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                settings?.enable_email_verify ? 'bg-cyan-500' : 'bg-slate-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-canvas ${
+                settings?.enable_email_verify ? 'bg-accent' : 'bg-surface-3'
               }`}
             >
               <span
@@ -127,19 +127,19 @@ export default function SystemSettingsPage() {
         </div>
 
         {/* Phone Verification Toggle */}
-        <div className="bg-slate-700 rounded-lg p-6 border border-slate-600">
+        <div className="bg-surface-2 rounded-lg p-6 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-white">手机号验证注册</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="text-lg font-medium text-ink-inverse">手机号验证注册</h3>
+              <p className="text-sm text-ink-muted mt-1">
                 开启后，用户注册时必须输入手机号并验证。
               </p>
             </div>
 
             <button
               onClick={handleTogglePhoneVerify}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                settings?.enable_phone_verify ? 'bg-cyan-500' : 'bg-slate-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-canvas ${
+                settings?.enable_phone_verify ? 'bg-accent' : 'bg-surface-3'
               }`}
             >
               <span
@@ -152,17 +152,17 @@ export default function SystemSettingsPage() {
         </div>
 
         {/* LLM Configuration Link */}
-        <div className="bg-slate-700 rounded-lg p-6 border border-slate-600">
+        <div className="bg-surface-2 rounded-lg p-6 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-white">大模型配置</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="text-lg font-medium text-ink-inverse">大模型配置</h3>
+              <p className="text-sm text-ink-muted mt-1">
                 配置产品经理 Agent 使用的大模型 API，支持 OpenAI、Anthropic、Azure、百度文心、阿里通义等多个供应商。
               </p>
             </div>
             <Link
               to="/admin/llm-configs"
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors text-sm"
             >
               管理配置
             </Link>
