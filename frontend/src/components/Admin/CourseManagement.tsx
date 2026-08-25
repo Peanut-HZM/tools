@@ -95,16 +95,16 @@ const CourseManagement: React.FC = () => {
     <div className="h-full flex flex-col">      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center">
-            <i className="fas fa-graduation-cap text-cyan-400 mr-3"></i>
+          <h1 className="text-3xl font-bold text-ink-inverse flex items-center">
+            <i className="fas fa-graduation-cap text-accent mr-3"></i>
             课程管理
           </h1>
-          <p className="text-slate-400 text-sm mt-1">管理课程内容和章节</p>
+          <p className="text-ink-muted text-sm mt-1">管理课程内容和章节</p>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={handleCreateCourse}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-xl transition-all duration-200 font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:-translate-y-0.5 flex items-center"
+            className="px-6 py-3 bg-gradient-to-r from-accent-secondary to-accent-secondary-hover hover:from-accent-secondary-hover hover:to-accent-secondary-hover text-white rounded-xl transition-all duration-200 font-medium shadow-lg shadow-accent-secondary/20 hover:shadow-accent-secondary/30 hover:-translate-y-0.5 flex items-center"
           >
             <i className="fas fa-plus mr-2"></i>
             新增课程
@@ -113,14 +113,14 @@ const CourseManagement: React.FC = () => {
       </div>
 
       {/* 筛选和操作栏 */}
-      <div className="bg-slate-800 rounded-lg p-4 mb-6 border border-slate-700">
+      <div className="bg-surface-1 rounded-lg p-4 mb-6 border border-border">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* 状态筛选 */}
           <div className="flex items-center gap-3">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
             >
               <option value="all">全部</option>
               <option value="published">已发布</option>
@@ -135,14 +135,14 @@ const CourseManagement: React.FC = () => {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="搜索课程或章节内容..."
-                className="px-4 py-2 pl-10 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-72"
+                className="px-4 py-2 pl-10 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-accent w-72"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"></i>
             </div>
             <button
               onClick={handleSearch}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors cursor-pointer text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors cursor-pointer text-sm"
             >
               <i className="fas fa-search mr-1"></i> 搜索
             </button>
@@ -150,14 +150,14 @@ const CourseManagement: React.FC = () => {
 
           {/* 每页数量 */}
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 text-sm">每页:</span>
+            <span className="text-ink-muted text-sm">每页:</span>
             <select
               value={limit}
               onChange={(e) => {
                 setLimit(Number(e.target.value));
                 setPage(1);
               }}
-              className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
             >
               <option value={9}>9</option>
               <option value={15}>15</option>
@@ -169,13 +169,13 @@ const CourseManagement: React.FC = () => {
 
       {/* Course List */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-white mb-3">课程列表</h2>
+        <h2 className="text-lg font-semibold text-ink-inverse mb-3">课程列表</h2>
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
           </div>
         ) : courses.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-slate-400">
+          <div className="flex items-center justify-center py-12 text-ink-muted">
             <i className="fas fa-inbox text-4xl mb-4"></i>
             <p>暂无课程</p>
           </div>
@@ -184,17 +184,17 @@ const CourseManagement: React.FC = () => {
             {courses.map((course) => (
               <div
                 key={course.id}
-                className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 hover:border-cyan-500/50 transition-all group"
+                className="bg-surface-1/50 rounded-xl border border-border/50 p-4 hover:border-accent/50 transition-all group"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3
-                      className="text-white font-semibold mb-2 group-hover:text-cyan-400 transition-colors cursor-pointer"
+                      className="text-ink-inverse font-semibold mb-2 group-hover:text-accent transition-colors cursor-pointer"
                       onClick={() => handleViewCourseDetail(course.id)}
                     >
                       {course.title}
                     </h3>
-                    <p className="text-slate-400 text-sm line-clamp-2 mb-3">
+                    <p className="text-ink-muted text-sm line-clamp-2 mb-3">
                       {course.description}
                     </p>
                   </div>
@@ -213,13 +213,13 @@ const CourseManagement: React.FC = () => {
                         course.status === 'published'
                           ? 'bg-green-500/20 text-green-400'
                           : course.status === 'draft'
-                          ? 'bg-slate-600/20 text-slate-400'
+                          ? 'bg-surface-3/20 text-ink-muted'
                           : 'bg-orange-500/20 text-orange-400'
                       }`}
                     >
                       {course.status === 'published' ? '已发布' : course.status === 'draft' ? '草稿' : '已归档'}
                     </span>
-                    <span className="text-slate-500">
+                    <span className="text-ink-faint">
                       <i className="fas fa-users mr-1"></i>
                       {course.statistics?.enroll_count || 0} 人学习
                     </span>
@@ -230,30 +230,30 @@ const CourseManagement: React.FC = () => {
                         e.stopPropagation();
                         handleEditCourse(course.id);
                       }}
-                      className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                      className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                       title="编辑课程"
                     >
-                      <i className="fas fa-edit text-slate-400 hover:text-cyan-400"></i>
+                      <i className="fas fa-edit text-ink-muted hover:text-accent"></i>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewCourseDetail(course.id);
                       }}
-                      className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                      className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                       title="管理章节"
                     >
-                      <i className="fas fa-list text-slate-400 hover:text-blue-400"></i>
+                      <i className="fas fa-list text-ink-muted hover:text-accent-info"></i>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteCourse(course.id);
                       }}
-                      className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                      className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                       title="删除课程"
                     >
-                      <i className="fas fa-trash text-slate-400 hover:text-red-400"></i>
+                      <i className="fas fa-trash text-ink-muted hover:text-danger"></i>
                     </button>
                   </div>
                 </div>
@@ -266,21 +266,21 @@ const CourseManagement: React.FC = () => {
       {/* 分页 */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 mb-6">
-          <p className="text-slate-400 text-sm">
+          <p className="text-ink-muted text-sm">
             共 {total} 条，第 {page} 页 / 共 {totalPages} 页
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
+              className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:text-ink-faint text-ink-inverse rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
               <i className="fas fa-chevron-left mr-1"></i>上一页
             </button>
             <button
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
-              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
+              className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-1 disabled:text-ink-faint text-ink-inverse rounded cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
               下一页<i className="fas fa-chevron-right ml-1"></i>
             </button>
