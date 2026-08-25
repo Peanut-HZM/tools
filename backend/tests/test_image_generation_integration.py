@@ -52,11 +52,11 @@ from app.core.exceptions import DifyError, QuotaExceeded, ServiceDegraded  # noq
 from app.models.base import Base  # noqa: E402
 from app.models.image_generation_models import (  # noqa: E402
     ImageGenHistory,
-    ImageGenQuota,
 )
+from app.models.llm_quota_models import LLMUserQuota  # noqa: E402
 from app.services.dify_client import DifyClient, DifyRunResult  # noqa: E402
 from app.services.image_gen_history_service import ImageGenHistoryService  # noqa: E402
-from app.services.image_gen_quota_service import ImageGenQuotaService  # noqa: E402
+from app.services.llm_quota_service import LLMQuotaService  # noqa: E402
 from app.services.image_generation_service import ImageGenService  # noqa: E402
 
 
@@ -208,7 +208,7 @@ def user_client(db_session, fake_user, mock_dify_client, mock_oss_svc, patch_dow
     from app.api.dependencies import get_current_user as real_get_current_user
 
     # 真实 service（注入 mock）
-    quota_svc = ImageGenQuotaService(db=db_session)
+    quota_svc = LLMQuotaService(db=db_session)
     history_svc = ImageGenHistoryService(db=db_session, oss_svc=mock_oss_svc)
     real_service = ImageGenService(
         db=db_session,
@@ -256,17 +256,20 @@ TINY_PNG = (
 
 
 def _grant_quota(db_session, user_id: str, daily: int = 20, monthly: int = 200):
-    """直接在测试 DB 中插入配额记录"""
+    """直接在测试 DB 中插入配额记录（LLMUserQuota，count 模式）"""
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
-    quota = ImageGenQuota(
+    quota = LLMUserQuota(
         user_id=user_id,
+        quota_mode="count",
         daily_limit=daily,
         monthly_limit=monthly,
         daily_used=0,
         monthly_used=0,
+        token_used=0,
         daily_reset_date=now,
         monthly_reset_date=now,
+        token_reset_date=now,
         valid_from=None,
         valid_until=None,
         granted_by="admin-test",
@@ -350,7 +353,7 @@ def test_quota_deducted_after_generation(user_client, db_session, fake_user):
     assert resp.status_code == 200, resp.text
 
     db_session.expire_all()
-    row = db_session.query(ImageGenQuota).filter(ImageGenQuota.user_id == user_id).one()
+    row = db_session.query(LLMUserQuota).filter(LLMUserQuota.user_id == user_id).one()
     assert row.daily_used == 1
     assert row.monthly_used == 1
 
@@ -389,10 +392,18 @@ def test_concurrent_generations_no_overlimit_postgres():
 
     def worker():
         with Session() as session:
-            svc = ImageGenQuotaService(db=session)
+            svc = LLMQuotaService(db=session)
             try:
-                svc.check_and_reserve(user_id, "text2img", n=1)
-                svc.commit()
+                res_id = svc.check_and_reserve(
+                    user_id=user_id, category="image", planned_tokens=0,
+                )
+                svc.record_usage(
+                    reservation_id=res_id,
+                    user_id=user_id,
+                    category="image",
+                    model_used="test-model",
+                    actual_tokens=0,
+                )
                 with results_lock:
                     results["success"] += 1
             except QuotaExceeded:
@@ -410,7 +421,7 @@ def test_concurrent_generations_no_overlimit_postgres():
     assert results["failed"] == 5
     # 验证：DB 中 daily_used = 5（不超限）
     with Session() as verify_session:
-        row = verify_session.query(ImageGenQuota).filter(ImageGenQuota.user_id == user_id).one()
+        row = verify_session.query(LLMUserQuota).filter(LLMUserQuota.user_id == user_id).one()
         assert row.daily_used == 5
 
 
@@ -538,8 +549,9 @@ def test_admin_grant_quota_then_user_generates(user_client, db_session, fake_use
     assert resp.status_code == 429, resp.text
 
     # 管理员 grant
-    ImageGenQuotaService(db=db_session).grant(
+    LLMQuotaService(db=db_session).grant(
         user_id=user_id,
+        quota_mode="count",
         daily_limit=10,
         monthly_limit=100,
         valid_from=None,
@@ -601,7 +613,7 @@ def test_degradation_triggers_after_threshold_failures(db_session, fake_user, mo
 
     degradation = FakeDegradation(threshold=3)
 
-    quota_svc = ImageGenQuotaService(db=db_session)
+    quota_svc = LLMQuotaService(db=db_session)
     history_svc = ImageGenHistoryService(db=db_session, oss_svc=mock_oss_svc)
     service = ImageGenService(
         db=db_session,
@@ -642,7 +654,7 @@ def test_degradation_resets_on_success(db_session, fake_user, mock_oss_svc, mock
     _grant_quota(db_session, user_id, daily=100, monthly=1000)
 
     degradation = FakeDegradation(threshold=10)
-    quota_svc = ImageGenQuotaService(db=db_session)
+    quota_svc = LLMQuotaService(db=db_session)
     history_svc = ImageGenHistoryService(db=db_session, oss_svc=mock_oss_svc)
     service = ImageGenService(
         db=db_session,
