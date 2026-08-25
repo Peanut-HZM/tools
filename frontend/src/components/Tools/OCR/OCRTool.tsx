@@ -127,17 +127,17 @@ export default function OCRTool() {
     <div className="container mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-accent-hover rounded-lg flex items-center justify-center">
             <i className="fas fa-file-image text-white text-xl"></i>
           </div>
-          <h1 className="text-2xl font-bold text-slate-100">{t.tools['ocr-tool'].title}</h1>
+          <h1 className="text-2xl font-bold text-ink">{t.tools['ocr-tool'].title}</h1>
         </div>
 
-        <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+        <div className="flex bg-surface-1 rounded-lg p-1 border border-border">
           <button
             onClick={() => switchMode('image')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'image' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+              mode === 'image' ? 'bg-accent text-white shadow-md' : 'text-ink-muted hover:text-ink'
             }`}
           >
             <i className="fas fa-image mr-2"></i>图片识别
@@ -145,7 +145,7 @@ export default function OCRTool() {
           <button
             onClick={() => switchMode('pdf')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'pdf' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+              mode === 'pdf' ? 'bg-accent text-white shadow-md' : 'text-ink-muted hover:text-ink'
             }`}
           >
             <i className="fas fa-file-pdf mr-2"></i>PDF识别
@@ -153,7 +153,7 @@ export default function OCRTool() {
           <button
             onClick={() => switchMode('qrcode')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'qrcode' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+              mode === 'qrcode' ? 'bg-accent text-white shadow-md' : 'text-ink-muted hover:text-ink'
             }`}
           >
             <i className="fas fa-qrcode mr-2"></i>二维码
@@ -163,15 +163,15 @@ export default function OCRTool() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-200px)] min-h-[600px]">
         {/* Input Section */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-xl flex flex-col">
+        <div className="bg-surface-1 rounded-xl border border-border p-6 shadow-md flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-slate-200">
+            <h2 className="text-lg font-semibold text-ink">
               {mode === 'image' ? '图片上传' : mode === 'pdf' ? 'PDF上传' : '二维码上传'}
             </h2>
             {(file || preview) && (
               <button 
                 onClick={clearFile}
-                className="text-slate-400 hover:text-red-400 text-sm transition-colors flex items-center"
+                className="text-ink-muted hover:text-danger text-sm transition-colors flex items-center"
               >
                 <i className="fas fa-trash-alt mr-1"></i> 清除
               </button>
@@ -183,7 +183,7 @@ export default function OCRTool() {
             onDrop={onDrop}
             onDragOver={onDragOver}
             className={`flex-1 border-2 border-dashed rounded-xl transition-all relative flex flex-col items-center justify-center overflow-hidden
-              ${(file || preview) ? 'border-slate-700 bg-slate-900' : 'border-slate-600 hover:border-indigo-500 hover:bg-slate-700/50 cursor-pointer'}
+              ${(file || preview) ? 'border-border bg-canvas' : 'border-border hover:border-indigo-500 hover:bg-surface-2/50 cursor-pointer'}
             `}
           >
             <input 
@@ -199,19 +199,19 @@ export default function OCRTool() {
               </div>
             ) : file && mode === 'pdf' ? (
               <div className="text-center p-6">
-                 <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700">
-                   <i className="fas fa-file-pdf text-3xl text-red-500"></i>
+                 <div className="w-16 h-16 bg-surface-1 rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
+                   <i className="fas fa-file-pdf text-3xl text-danger"></i>
                  </div>
-                 <p className="text-lg text-slate-200 font-medium">{file.name}</p>
-                 <p className="text-sm text-slate-400 mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                 <p className="text-lg text-ink font-medium">{file.name}</p>
+                 <p className="text-sm text-ink-muted mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
             ) : (
               <div className="text-center p-6">
-                <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className={`fas ${mode === 'pdf' ? 'fa-file-pdf' : mode === 'qrcode' ? 'fa-qrcode' : 'fa-cloud-upload-alt'} text-3xl text-indigo-400`}></i>
+                <div className="w-16 h-16 bg-surface-2 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className={`fas ${mode === 'pdf' ? 'fa-file-pdf' : mode === 'qrcode' ? 'fa-qrcode' : 'fa-cloud-upload-alt'} text-3xl text-accent`}></i>
                 </div>
-                <p className="text-lg text-slate-200 mb-2">点击或拖拽{mode === 'pdf' ? 'PDF' : '图片'}到这里</p>
-                {mode !== 'pdf' && <p className="text-sm text-slate-400">支持 Ctrl+V 粘贴图片</p>}
+                <p className="text-lg text-ink mb-2">点击或拖拽{mode === 'pdf' ? 'PDF' : '图片'}到这里</p>
+                {mode !== 'pdf' && <p className="text-sm text-ink-muted">支持 Ctrl+V 粘贴图片</p>}
               </div>
             )}
           </div>
@@ -222,8 +222,8 @@ export default function OCRTool() {
               disabled={(!file && !preview) || loading}
               className={`w-full py-3 rounded-lg font-medium transition-all flex items-center justify-center space-x-2
                 ${(!file && !preview) || loading 
-                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
+                  ? 'bg-surface-2 text-ink-muted cursor-not-allowed' 
+                  : 'bg-accent hover:bg-accent-hover text-white shadow-lg shadow-accent/30'
                 }
               `}
             >
@@ -243,18 +243,18 @@ export default function OCRTool() {
         </div>
 
         {/* Result Section */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-xl flex flex-col">
+        <div className="bg-surface-1 rounded-xl border border-border p-6 shadow-md flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-slate-200">识别结果</h2>
+            <h2 className="text-lg font-semibold text-ink">识别结果</h2>
             {result && (
-              <div className="flex items-center space-x-4 text-sm text-slate-400">
+              <div className="flex items-center space-x-4 text-sm text-ink-muted">
                 <span><i className="fas fa-clock mr-1"></i> {result.processing_time.toFixed(2)}s</span>
                 <button 
                   onClick={() => {
                     navigator.clipboard.writeText(result.text);
                     success('已复制到剪贴板');
                   }}
-                  className="text-indigo-400 hover:text-indigo-300 transition-colors flex items-center"
+                  className="text-accent hover:text-indigo-300 transition-colors flex items-center"
                 >
                   <i className="fas fa-copy mr-1"></i> 复制
                 </button>
@@ -262,15 +262,15 @@ export default function OCRTool() {
             )}
           </div>
           
-          <div className="flex-1 bg-slate-900 rounded-xl border border-slate-700 p-4 overflow-hidden relative">
+          <div className="flex-1 bg-canvas rounded-xl border border-border p-4 overflow-hidden relative">
             {result ? (
               <textarea 
-                className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-slate-200 font-mono text-sm leading-relaxed outline-none"
+                className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-ink font-mono text-sm leading-relaxed outline-none"
                 value={result.text || (result as QRCodeResult).type ? `[类型: ${(result as QRCodeResult).type}]\n${result.text}` : ''}
                 readOnly
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-slate-500 flex-col">
+              <div className="absolute inset-0 flex items-center justify-center text-ink-faint flex-col">
                 <i className="fas fa-align-left text-4xl mb-4 opacity-30"></i>
                 <p>等待识别结果...</p>
               </div>
