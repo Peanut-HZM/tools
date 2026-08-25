@@ -22,7 +22,7 @@ export const PdfViewer: React.FC<PreviewProps> = ({ url }) => {
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-red-400">
+      <div className="w-full h-full flex items-center justify-center text-danger">
         <div className="text-center">
           <div className="text-4xl mb-2">❌</div>
           <div>PDF 加载失败</div>
@@ -32,22 +32,22 @@ export const PdfViewer: React.FC<PreviewProps> = ({ url }) => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col items-center bg-slate-900 overflow-auto">
-      <div className="sticky top-0 z-10 flex items-center gap-4 bg-slate-800 px-4 py-2 border-b border-slate-700">
+    <div className="w-full h-full flex flex-col items-center bg-canvas overflow-auto">
+      <div className="sticky top-0 z-10 flex items-center gap-4 bg-surface-1 px-4 py-2 border-b border-border">
         <button
           onClick={() => setPageNumber(prev => Math.max(prev - 1, 1))}
           disabled={pageNumber <= 1}
-          className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-slate-200"
+          className="px-3 py-1 bg-surface-2 hover:bg-surface-3 disabled:opacity-50 disabled:cursor-not-allowed rounded text-ink"
         >
           上一页
         </button>
-        <span className="text-slate-200">
+        <span className="text-ink">
           第 {pageNumber} 页 / 共 {numPages} 页
         </span>
         <button
           onClick={() => setPageNumber(prev => Math.min(prev + 1, numPages))}
           disabled={pageNumber >= numPages}
-          className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-slate-200"
+          className="px-3 py-1 bg-surface-2 hover:bg-surface-3 disabled:opacity-50 disabled:cursor-not-allowed rounded text-ink"
         >
           下一页
         </button>
@@ -58,7 +58,7 @@ export const PdfViewer: React.FC<PreviewProps> = ({ url }) => {
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={() => setError(true)}
           loading={
-            <div className="text-slate-400">加载 PDF 中...</div>
+            <div className="text-ink-muted">加载 PDF 中...</div>
           }
           error={null}
         >

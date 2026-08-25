@@ -18,7 +18,7 @@ const CrossShareCard: React.FC<CrossShareCardProps> = ({
   return (
     <div
       onClick={() => navigate('/tools/cross-share')}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/30"
+      className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30"
     >
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 opacity-20">
@@ -31,30 +31,30 @@ const CrossShareCard: React.FC<CrossShareCardProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             {/* Badge */}
-            <div className="inline-flex items-center px-3 py-1 bg-yellow-500/20 border border-yellow-400 text-yellow-300 rounded-full text-xs font-semibold mb-4">
+            <div className="inline-flex items-center px-3 py-1 bg-accent-warning/20 border border-yellow-400 text-yellow-300 rounded-full text-xs font-semibold mb-4">
               ✨ 跨设备共享
             </div>
 
             {/* Title */}
-            <h3 className="text-3xl font-bold text-white mb-2">
+            <h3 className="text-3xl font-bold text-ink-inverse mb-2">
               📡 CrossShare 设备传传
             </h3>
-            <p className="text-white/80 mb-4 max-w-xl">
+            <p className="text-ink-inverse/80 mb-4 max-w-xl">
               跨设备消息和文件共享 | 登录即用，全平台同步
             </p>
 
             {/* Features */}
             <div className="flex flex-wrap gap-3 mb-6">
-              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-white rounded-full text-sm">
+              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-ink-inverse rounded-full text-sm">
                 💬 消息同步
               </span>
-              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-white rounded-full text-sm">
+              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-ink-inverse rounded-full text-sm">
                 📁 文件传输
               </span>
-              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-white rounded-full text-sm">
+              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-ink-inverse rounded-full text-sm">
                 📋 剪贴板
               </span>
-              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-white rounded-full text-sm">
+              <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-ink-inverse rounded-full text-sm">
                 📱 多设备
               </span>
             </div>
@@ -62,7 +62,7 @@ const CrossShareCard: React.FC<CrossShareCardProps> = ({
             {/* Stats */}
             {transferredFiles > 0 && (
               <div className="mb-4">
-                <div className="text-white/60 text-sm">
+                <div className="text-ink-inverse/60 text-sm">
                   已传输 {transferredFiles} 个文件
                 </div>
               </div>

@@ -49,7 +49,7 @@ export const JsonViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) =>
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-slate-400">
+      <div className="w-full h-full flex items-center justify-center text-ink-muted">
         加载中...
       </div>
     );
@@ -57,7 +57,7 @@ export const JsonViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) =>
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-red-400">
+      <div className="w-full h-full flex items-center justify-center text-danger">
         <div className="text-center">
           <div className="text-4xl mb-2">❌</div>
           <div>JSON 加载失败</div>
@@ -67,10 +67,10 @@ export const JsonViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) =>
   }
 
   return (
-    <div className="relative w-full h-full overflow-auto bg-slate-800 p-4">
+    <div className="relative w-full h-full overflow-auto bg-surface-1 p-4">
       <button
         onClick={handleCopy}
-        className="absolute top-4 right-4 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center space-x-1 z-10"
+        className="absolute top-4 right-4 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 text-ink-inverse text-sm font-medium rounded-lg transition-colors flex items-center space-x-1 z-10"
       >
         <span>{copySuccess ? '✓ 已复制' : '📋 复制'}</span>
       </button>

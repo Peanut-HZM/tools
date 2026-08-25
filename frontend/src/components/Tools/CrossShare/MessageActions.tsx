@@ -71,7 +71,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* 复制纯文本 */}
       <button
         onClick={handleCopyText}
-        className={`${buttonBase} bg-slate-600/60 hover:bg-slate-500 text-slate-300 hover:text-white`}
+        className={`${buttonBase} bg-surface-3/60 hover:bg-slate-500 text-ink-muted hover:text-ink-inverse`}
         title="复制纯文本"
       >
         {copyFeedback === 'text' ? (
@@ -85,7 +85,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* 复制 Markdown */}
       <button
         onClick={handleCopyMarkdown}
-        className={`${buttonBase} bg-slate-600/60 hover:bg-slate-500 text-slate-300 hover:text-white`}
+        className={`${buttonBase} bg-surface-3/60 hover:bg-slate-500 text-ink-muted hover:text-ink-inverse`}
         title="复制 Markdown 源码"
       >
         {copyFeedback === 'markdown' ? (
@@ -100,7 +100,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {needsCollapse && onToggleExpand && (
         <button
           onClick={onToggleExpand}
-          className={`${buttonBase} bg-blue-600/60 hover:bg-blue-500 text-blue-200 hover:text-white`}
+          className={`${buttonBase} bg-accent/60 hover:bg-accent-hover text-blue-200 hover:text-ink-inverse`}
           title={isExpanded ? '折叠' : '展开'}
         >
           {isExpanded ? (
@@ -120,7 +120,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* 删除 */}
       <button
         onClick={handleDelete}
-        className={`${buttonBase} bg-red-600/40 hover:bg-red-500/70 text-red-300 hover:text-white`}
+        className={`${buttonBase} bg-red-600/40 hover:bg-red-500/70 text-red-300 hover:text-ink-inverse`}
         title="删除消息"
       >
         <Trash2 size={12} strokeWidth={1.5} />

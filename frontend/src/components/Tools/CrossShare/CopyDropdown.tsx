@@ -81,7 +81,7 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-2 py-1 text-xs bg-slate-600 hover:bg-slate-500 text-slate-200 rounded transition-colors flex items-center space-x-1"
+        className="px-2 py-1 text-xs bg-surface-3 hover:bg-slate-500 text-ink rounded transition-colors flex items-center space-x-1"
         title="复制选项"
       >
         <span>📋</span>
@@ -98,25 +98,25 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
           />
 
           {/* 下拉菜单 */}
-          <div className="absolute right-0 top-full mt-1 w-48 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-20 overflow-hidden">
+          <div className="absolute right-0 top-full mt-1 w-48 bg-surface-2 border border-border rounded-lg shadow-md z-20 overflow-hidden">
             <div className="py-1">
               <button
                 onClick={handleCopyText}
-                className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-600 transition-colors flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface-3 transition-colors flex items-center space-x-2"
               >
                 <span className="text-xs">📄</span>
                 <span>复制内容（纯文本）</span>
               </button>
               <button
                 onClick={handleCopyMarkdown}
-                className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-600 transition-colors flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface-3 transition-colors flex items-center space-x-2"
               >
                 <span className="text-xs">📝</span>
                 <span>复制 Markdown 源码</span>
               </button>
               <button
                 onClick={handleCopyHtml}
-                className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-600 transition-colors flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface-3 transition-colors flex items-center space-x-2"
               >
                 <span className="text-xs">🌐</span>
                 <span>复制渲染 HTML</span>
@@ -124,11 +124,11 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
             </div>
             {onDelete && messageId && (
               <>
-                <div className="border-t border-slate-600" />
+                <div className="border-t border-border" />
                 <div className="py-1">
                   <button
                     onClick={handleDelete}
-                    className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-colors flex items-center space-x-2"
+                    className="w-full px-4 py-2 text-left text-sm text-danger hover:bg-red-900/30 hover:text-red-300 transition-colors flex items-center space-x-2"
                   >
                     <span className="text-xs">🗑️</span>
                     <span>删除消息</span>

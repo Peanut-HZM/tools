@@ -19,7 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onSelectPanel }) => {
   ];
 
   return (
-    <aside className="w-64 bg-slate-800/50 backdrop-blur-sm border-r border-slate-700 h-full flex flex-col">
+    <aside className="w-64 bg-surface-1/50 backdrop-blur-sm border-r border-border h-full flex flex-col">
       <nav className="p-4 flex-1 overflow-y-auto">
         <div className="space-y-2">
           {menuItems.map((item) => (
@@ -28,8 +28,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onSelectPanel }) => {
               onClick={() => onSelectPanel(item.id)}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                 activePanel === item.id
-                  ? 'bg-blue-600 border-2 border-blue-400 text-white'
-                  : 'bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-accent border-2 border-blue-400 text-ink-inverse'
+                  : 'bg-surface-2/50 border border-border text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
               }`}
             >
               <span className="text-2xl">{item.icon}</span>
@@ -42,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onSelectPanel }) => {
         <div className="mt-8 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
           <div className="flex items-start space-x-2">
             <span className="text-xl">💡</span>
-            <div className="text-slate-400 text-sm">
+            <div className="text-ink-muted text-sm">
               <p>快捷提示：</p>
               <p className="mt-1">按 Ctrl+V 快速粘贴剪贴板内容</p>
             </div>

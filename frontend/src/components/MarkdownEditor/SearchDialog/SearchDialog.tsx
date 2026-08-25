@@ -64,14 +64,14 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-20 z-50">
-      <div className="bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[70vh] flex flex-col">
+      <div className="bg-surface-1 rounded-xl shadow-lg w-full max-w-2xl max-h-[70vh] flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-white">搜索</h2>
+            <h2 className="text-lg font-semibold text-ink-inverse">搜索</h2>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white cursor-pointer"
+              className="text-ink-muted hover:text-ink-inverse cursor-pointer"
             >
               ✕
             </button>
@@ -83,8 +83,8 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
               onClick={() => setSearchType('file')}
               className={`px-3 py-1 rounded text-sm cursor-pointer ${
                 searchType === 'file'
-                  ? 'bg-cyan-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? 'bg-accent text-ink-inverse'
+                  : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
               }`}
             >
               文件名搜索
@@ -93,8 +93,8 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
               onClick={() => setSearchType('content')}
               className={`px-3 py-1 rounded text-sm cursor-pointer ${
                 searchType === 'content'
-                  ? 'bg-cyan-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? 'bg-accent text-ink-inverse'
+                  : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
               }`}
             >
               内容搜索
@@ -109,13 +109,13 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={searchType === 'file' ? '输入文件名...' : '输入搜索内容...'}
-              className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="flex-1 px-3 py-2 bg-surface-2 border border-border rounded text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
               autoFocus
             />
             <button
               onClick={handleSearch}
               disabled={isSearching || !keyword.trim()}
-              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 text-white rounded text-sm cursor-pointer"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-ink-inverse rounded text-sm cursor-pointer"
             >
               {isSearching ? '搜索中...' : '搜索'}
             </button>
@@ -124,7 +124,7 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
           {/* Content Search Options */}
           {searchType === 'content' && (
             <div className="flex gap-4 mt-3">
-              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-ink-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={useRegex}
@@ -133,7 +133,7 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
                 />
                 正则表达式
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-ink-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={caseSensitive}
@@ -149,7 +149,7 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
         {/* Results */}
         <div className="flex-1 overflow-auto p-4">
           {error && (
-            <div className="text-red-400 text-sm mb-4">{error}</div>
+            <div className="text-danger text-sm mb-4">{error}</div>
           )}
 
           {/* File Search Results */}
@@ -159,10 +159,10 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
                 <div
                   key={result.path}
                   onClick={() => handleFileClick(result.path)}
-                  className="p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700 cursor-pointer"
+                  className="p-3 bg-surface-2/50 rounded-lg hover:bg-surface-2 cursor-pointer"
                 >
-                  <div className="text-white text-sm font-medium">{result.name}</div>
-                  <div className="text-slate-400 text-xs mt-1">{result.path}</div>
+                  <div className="text-ink-inverse text-sm font-medium">{result.name}</div>
+                  <div className="text-ink-muted text-xs mt-1">{result.path}</div>
                 </div>
               ))}
             </div>
@@ -172,25 +172,25 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
           {searchType === 'content' && contentResults.length > 0 && (
             <div className="space-y-4">
               {contentResults.map((result) => (
-                <div key={result.file} className="bg-slate-700/50 rounded-lg overflow-hidden">
+                <div key={result.file} className="bg-surface-2/50 rounded-lg overflow-hidden">
                   <div
                     onClick={() => handleFileClick(result.file)}
-                    className="p-3 bg-slate-700 cursor-pointer hover:bg-slate-600"
+                    className="p-3 bg-surface-2 cursor-pointer hover:bg-surface-3"
                   >
-                    <div className="text-white text-sm font-medium">{result.file}</div>
-                    <div className="text-slate-400 text-xs mt-1">
+                    <div className="text-ink-inverse text-sm font-medium">{result.file}</div>
+                    <div className="text-ink-muted text-xs mt-1">
                       {result.matches.length} 个匹配
                     </div>
                   </div>
                   <div className="p-3 space-y-2">
                     {result.matches.slice(0, 5).map((match, idx) => (
                       <div key={idx} className="text-sm">
-                        <span className="text-slate-500">行 {match.line}: </span>
-                        <span className="text-slate-300">{match.content}</span>
+                        <span className="text-ink-faint">行 {match.line}: </span>
+                        <span className="text-ink-muted">{match.content}</span>
                       </div>
                     ))}
                     {result.matches.length > 5 && (
-                      <div className="text-slate-500 text-xs">
+                      <div className="text-ink-faint text-xs">
                         还有 {result.matches.length - 5} 个匹配...
                       </div>
                     )}
@@ -202,14 +202,14 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
 
           {/* No Results */}
           {!isSearching && keyword && fileResults.length === 0 && contentResults.length === 0 && !error && (
-            <div className="text-center text-slate-400 py-8">
+            <div className="text-center text-ink-muted py-8">
               未找到匹配结果
             </div>
           )}
 
           {/* Initial State */}
           {!keyword && (
-            <div className="text-center text-slate-400 py-8">
+            <div className="text-center text-ink-muted py-8">
               输入关键词开始搜索
             </div>
           )}

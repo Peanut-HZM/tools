@@ -40,7 +40,7 @@ export default function UnifiedFileTree() {
 
   if (ossFilesLoading) {
     return (
-      <div className="h-full flex items-center justify-center text-slate-400">
+      <div className="h-full flex items-center justify-center text-ink-muted">
         <div className="animate-spin mr-2">⟳</div>
         加载中...
       </div>
@@ -52,27 +52,27 @@ export default function UnifiedFileTree() {
       {/* OSS Files Section */}
       {ossFiles.length > 0 && (
         <div className="mb-4">
-          <div className="px-3 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <div className="px-3 py-2 text-xs font-medium text-ink-faint uppercase tracking-wider">
             云端文件
           </div>
           {ossFiles.map((file) => (
             <div
               key={file.file_path}
-              className={`file-tree-item flex items-center px-3 py-1.5 cursor-pointer hover:bg-slate-700 ${
+              className={`file-tree-item flex items-center px-3 py-1.5 cursor-pointer hover:bg-surface-2 ${
                 currentFilePath === file.file_path ? 'bg-cyan-900/30 border-l-2 border-cyan-500' : ''
               }`}
               onClick={() => handleFileSelect(file.file_path)}
             >
               {/* Cloud Icon */}
               <svg 
-                className="w-4 h-4 mr-2 text-cyan-400" 
+                className="w-4 h-4 mr-2 text-accent" 
                 fill="currentColor" 
                 viewBox="0 0 20 20"
               >
                 <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
               </svg>
-              <span className="text-sm text-slate-300 truncate">{file.filename}</span>
-              <span className="ml-auto text-xs text-slate-500">
+              <span className="text-sm text-ink-muted truncate">{file.filename}</span>
+              <span className="ml-auto text-xs text-ink-faint">
                 {(file.size / 1024).toFixed(1)}KB
               </span>
             </div>
@@ -83,7 +83,7 @@ export default function UnifiedFileTree() {
       {/* Local Files Section */}
       {directoryTree && (
         <div>
-          <div className="px-3 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <div className="px-3 py-2 text-xs font-medium text-ink-faint uppercase tracking-wider">
             本地文件
           </div>
           <FileTree
@@ -98,7 +98,7 @@ export default function UnifiedFileTree() {
 
       {/* Empty State */}
       {!ossFilesLoading && ossFiles.length === 0 && !directoryTree && (
-        <div className="p-4 text-slate-400 text-sm text-center">
+        <div className="p-4 text-ink-muted text-sm text-center">
           暂无文件
         </div>
       )}

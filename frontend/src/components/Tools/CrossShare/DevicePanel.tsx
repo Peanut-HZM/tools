@@ -72,27 +72,27 @@ const DevicePanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-xl shadow-md border border-slate-700">
-        <div className="text-slate-400">加载中...</div>
+      <div className="w-full h-full flex items-center justify-center bg-surface-1 rounded-xl shadow-md border border-border">
+        <div className="text-ink-muted">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-800 rounded-xl shadow-md border border-slate-700 overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-surface-1 rounded-xl shadow-md border border-border overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 p-6 border-b border-slate-700">
-        <h2 className="text-xl font-bold text-slate-100">📱 设备管理</h2>
-        <p className="text-sm text-slate-400 mt-1">管理已登录的设备</p>
+      <div className="flex-shrink-0 p-6 border-b border-border">
+        <h2 className="text-xl font-bold text-ink">📱 设备管理</h2>
+        <p className="text-sm text-ink-muted mt-1">管理已登录的设备</p>
       </div>
 
       {/* Device List - 可滚动 */}
       <div className="flex-1 overflow-y-auto divide-y divide-slate-700">
         {devices.length === 0 ? (
-          <div className="text-center text-slate-500 py-16">
+          <div className="text-center text-ink-faint py-16">
             <div className="text-6xl mb-4">📭</div>
-            <div className="text-slate-300">暂无设备</div>
-            <div className="text-sm mt-2 text-slate-500">登录一个设备开始使用</div>
+            <div className="text-ink-muted">暂无设备</div>
+            <div className="text-sm mt-2 text-ink-faint">登录一个设备开始使用</div>
           </div>
         ) : (
           devices.map((device) => {
@@ -100,7 +100,7 @@ const DevicePanel: React.FC = () => {
             return (
               <div
                 key={device.id}
-                className="flex items-center justify-between p-6 hover:bg-slate-700/30 transition-colors"
+                className="flex items-center justify-between p-6 hover:bg-surface-2/30 transition-colors"
               >
                 <div className="flex items-center space-x-4">
                   <div className="text-4xl">
@@ -113,25 +113,25 @@ const DevicePanel: React.FC = () => {
                           type="text"
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
-                          className="px-3 py-1 bg-slate-600 border border-slate-500 rounded-md text-slate-100 focus:outline-none focus:border-blue-500"
+                          className="px-3 py-1 bg-surface-3 border border-slate-500 rounded-md text-ink focus:outline-none focus:border-blue-500"
                           autoFocus
                         />
                         <button
                           onClick={() => handleUpdateName(device.id)}
-                          className="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                          className="px-3 py-1 text-sm bg-green-500 text-ink-inverse rounded-md hover:bg-green-600 transition-colors"
                         >
                           保存
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1 text-sm bg-slate-600 text-slate-200 rounded-md hover:bg-slate-500 transition-colors"
+                          className="px-3 py-1 text-sm bg-surface-3 text-ink rounded-md hover:bg-slate-500 transition-colors"
                         >
                           取消
                         </button>
                       </div>
                     ) : (
                       <>
-                        <div className="text-slate-100 font-medium flex items-center space-x-2">
+                        <div className="text-ink font-medium flex items-center space-x-2">
                           <span>{device.device_name}</span>
                           {online && (
                             <span className="px-2 py-0.5 bg-green-900/30 text-green-400 text-xs rounded-full">
@@ -139,7 +139,7 @@ const DevicePanel: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-sm text-ink-muted">
                           {device.device_type} • 最后活跃：{device.last_seen_at ? new Date(device.last_seen_at).toLocaleString('zh-CN') : '从未'}
                         </div>
                       </>
@@ -153,13 +153,13 @@ const DevicePanel: React.FC = () => {
                       setEditingId(device.id);
                       setEditingName(device.device_name);
                     }}
-                    className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
+                    className="px-3 py-1.5 text-sm bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors"
                   >
                     ✏️ 重命名
                   </button>
                   <button
                     onClick={() => handleDeleteDevice(device.id, device.device_name)}
-                    className="px-3 py-1.5 text-sm bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg transition-colors"
+                    className="px-3 py-1.5 text-sm bg-red-900/30 hover:bg-red-900/50 text-danger rounded-lg transition-colors"
                   >
                     🗑️ 删除
                   </button>

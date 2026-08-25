@@ -14,7 +14,7 @@ export const VideoViewer: React.FC<PreviewProps> = ({ fileName, fileId }) => {
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-red-400">
+      <div className="w-full h-full flex items-center justify-center text-danger">
         <div className="text-center">
           <div className="text-4xl mb-2">❌</div>
           <div>视频加载失败</div>
@@ -24,7 +24,7 @@ export const VideoViewer: React.FC<PreviewProps> = ({ fileName, fileId }) => {
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-slate-900">
+    <div className="w-full h-full flex items-center justify-center bg-canvas">
       <video
         controls
         width="100%"

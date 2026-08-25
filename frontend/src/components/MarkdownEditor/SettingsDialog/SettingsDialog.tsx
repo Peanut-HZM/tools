@@ -28,13 +28,13 @@ export default function SettingsDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-xl shadow-2xl w-full max-w-md">
+      <div className="bg-surface-1 rounded-xl shadow-lg w-full max-w-md">
         {/* Header */}
-        <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">设置</h2>
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-ink-inverse">设置</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white cursor-pointer"
+            className="text-ink-muted hover:text-ink-inverse cursor-pointer"
           >
             ✕
           </button>
@@ -44,7 +44,7 @@ export default function SettingsDialog({
         <div className="p-4 space-y-4 max-h-[60vh] overflow-auto">
           {/* Theme */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               主题
             </label>
             <div className="flex gap-2">
@@ -52,8 +52,8 @@ export default function SettingsDialog({
                 onClick={() => onConfigChange({ theme: 'light' })}
                 className={`flex-1 py-2 rounded text-sm cursor-pointer ${
                   config.theme === 'light'
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    ? 'bg-accent text-ink-inverse'
+                    : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
                 }`}
               >
                 亮色
@@ -62,8 +62,8 @@ export default function SettingsDialog({
                 onClick={() => onConfigChange({ theme: 'dark' })}
                 className={`flex-1 py-2 rounded text-sm cursor-pointer ${
                   config.theme === 'dark'
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    ? 'bg-accent text-ink-inverse'
+                    : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
                 }`}
               >
                 暗色
@@ -73,7 +73,7 @@ export default function SettingsDialog({
 
           {/* Language */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               语言
             </label>
             <div className="flex gap-2">
@@ -81,8 +81,8 @@ export default function SettingsDialog({
                 onClick={() => onConfigChange({ language: 'zh-CN' })}
                 className={`flex-1 py-2 rounded text-sm cursor-pointer ${
                   config.language === 'zh-CN'
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    ? 'bg-accent text-ink-inverse'
+                    : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
                 }`}
               >
                 中文
@@ -91,8 +91,8 @@ export default function SettingsDialog({
                 onClick={() => onConfigChange({ language: 'en-US' })}
                 className={`flex-1 py-2 rounded text-sm cursor-pointer ${
                   config.language === 'en-US'
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    ? 'bg-accent text-ink-inverse'
+                    : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
                 }`}
               >
                 English
@@ -102,7 +102,7 @@ export default function SettingsDialog({
 
           {/* Font Size */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               字体大小: {config.fontSize}px
             </label>
             <input
@@ -117,7 +117,7 @@ export default function SettingsDialog({
 
           {/* Tab Size */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               Tab 大小: {config.tabSize}
             </label>
             <input
@@ -132,7 +132,7 @@ export default function SettingsDialog({
 
           {/* Auto Save Interval */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-ink-muted mb-2">
               自动保存间隔: {config.autoSaveInterval}秒
             </label>
             <input
@@ -149,7 +149,7 @@ export default function SettingsDialog({
           {/* Toggles */}
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-slate-300">显示行号</span>
+              <span className="text-sm text-ink-muted">显示行号</span>
               <input
                 type="checkbox"
                 checked={config.showLineNumbers}
@@ -159,7 +159,7 @@ export default function SettingsDialog({
             </label>
 
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-slate-300">使用空格缩进</span>
+              <span className="text-sm text-ink-muted">使用空格缩进</span>
               <input
                 type="checkbox"
                 checked={config.useSpaces}
@@ -169,7 +169,7 @@ export default function SettingsDialog({
             </label>
 
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-slate-300">自动换行</span>
+              <span className="text-sm text-ink-muted">自动换行</span>
               <input
                 type="checkbox"
                 checked={config.wordWrap ?? true}
@@ -181,16 +181,16 @@ export default function SettingsDialog({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-700 flex justify-end gap-2">
+        <div className="p-4 border-t border-border flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white cursor-pointer"
+            className="px-4 py-2 text-sm text-ink-muted hover:text-ink-inverse cursor-pointer"
           >
             取消
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm bg-cyan-500 hover:bg-cyan-600 text-white rounded cursor-pointer"
+            className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-ink-inverse rounded cursor-pointer"
           >
             保存
           </button>

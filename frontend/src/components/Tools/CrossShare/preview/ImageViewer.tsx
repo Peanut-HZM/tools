@@ -10,7 +10,7 @@ export const ImageViewer: React.FC<PreviewProps> = ({ url, fileName }) => {
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-red-400">
+      <div className="w-full h-full flex items-center justify-center text-danger">
         <div className="text-center">
           <div className="text-4xl mb-2">❌</div>
           <div>图片加载失败</div>
@@ -20,9 +20,9 @@ export const ImageViewer: React.FC<PreviewProps> = ({ url, fileName }) => {
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-slate-900">
+    <div className="w-full h-full flex items-center justify-center bg-canvas">
       {loading && (
-        <div className="absolute text-slate-400">加载中...</div>
+        <div className="absolute text-ink-muted">加载中...</div>
       )}
       <img
         src={url}

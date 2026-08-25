@@ -20,9 +20,9 @@ const statusLabels: Record<SaveStatus, string> = {
 
 const statusColors: Record<SaveStatus, string> = {
   saved: 'text-green-400',
-  unsaved: 'text-yellow-400',
-  saving: 'text-cyan-400',
-  error: 'text-red-400'
+  unsaved: 'text-accent-warning',
+  saving: 'text-accent',
+  error: 'text-danger'
 };
 
 export default function StatusBar({
@@ -42,7 +42,7 @@ export default function StatusBar({
   };
 
   return (
-    <div className="h-6 bg-slate-800 border-t border-slate-700 flex items-center justify-between px-4 text-xs text-slate-400">
+    <div className="h-6 bg-surface-1 border-t border-border flex items-center justify-between px-4 text-xs text-ink-muted">
       {/* Left side - File path */}
       <div className="flex items-center gap-4">
         <span className="truncate max-w-xs" title={filePath}>
@@ -61,7 +61,7 @@ export default function StatusBar({
         <span className={statusColors[saveStatus]}>
           {statusLabels[saveStatus]}
           {saveStatus === 'saved' && lastSaveTime && (
-            <span className="ml-1 text-slate-500">
+            <span className="ml-1 text-ink-faint">
               ({formatTime(lastSaveTime)})
             </span>
           )}

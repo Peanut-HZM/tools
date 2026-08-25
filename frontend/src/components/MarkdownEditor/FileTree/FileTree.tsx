@@ -64,7 +64,7 @@ function TreeNode({
       >
         {/* Expand/Collapse Icon */}
         {isDirectory && (
-          <span className="file-tree-icon text-slate-500" style={{ fontSize: '10px', marginRight: '4px' }}>
+          <span className="file-tree-icon text-ink-faint" style={{ fontSize: '10px', marginRight: '4px' }}>
             {hasChildren ? (isExpanded ? '▼' : '▶') : ''}
           </span>
         )}
@@ -76,7 +76,7 @@ function TreeNode({
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
             </svg>
           ) : (
-            <svg className="text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="text-ink-muted" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
             </svg>
           )}
@@ -191,7 +191,7 @@ export default function FileTree({
 
   if (!tree) {
     return (
-      <div className="p-4 text-slate-400 text-sm">
+      <div className="p-4 text-ink-muted text-sm">
         加载中...
       </div>
     );
@@ -214,7 +214,7 @@ export default function FileTree({
           />
         ))
       ) : (
-        <div className="p-4 text-slate-400 text-sm text-center">
+        <div className="p-4 text-ink-muted text-sm text-center">
           暂无文件
         </div>
       )}
@@ -222,25 +222,25 @@ export default function FileTree({
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 z-50"
+          className="fixed bg-surface-1 border border-border rounded-lg shadow-md py-1 z-50"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 cursor-pointer"
+            className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
             onClick={handleNewFile}
           >
             新建文件
           </button>
           <button
-            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 cursor-pointer"
+            className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
             onClick={handleNewDirectory}
           >
             新建文件夹
           </button>
-          <div className="border-t border-slate-600 my-1" />
+          <div className="border-t border-border my-1" />
           <button
-            className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-slate-700 cursor-pointer"
+            className="w-full px-4 py-2 text-left text-sm text-danger hover:bg-surface-2 cursor-pointer"
             onClick={handleDelete}
           >
             删除
@@ -251,14 +251,14 @@ export default function FileTree({
       {/* New File Input Modal */}
       {showNewFileInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-4 w-80">
-            <h3 className="text-white font-medium mb-3">新建文件</h3>
+          <div className="bg-surface-1 rounded-lg p-4 w-80">
+            <h3 className="text-ink-inverse font-medium mb-3">新建文件</h3>
             <input
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder="文件名.md"
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm mb-3"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink-inverse text-sm mb-3"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreateFile();
@@ -267,13 +267,13 @@ export default function FileTree({
             />
             <div className="flex justify-end gap-2">
               <button
-                className="px-3 py-1 text-sm text-slate-400 hover:text-white cursor-pointer"
+                className="px-3 py-1 text-sm text-ink-muted hover:text-ink-inverse cursor-pointer"
                 onClick={() => setShowNewFileInput(false)}
               >
                 取消
               </button>
               <button
-                className="px-3 py-1 text-sm bg-cyan-500 text-white rounded hover:bg-cyan-600 cursor-pointer"
+                className="px-3 py-1 text-sm bg-accent text-ink-inverse rounded hover:bg-accent-hover cursor-pointer"
                 onClick={handleCreateFile}
               >
                 创建
@@ -286,14 +286,14 @@ export default function FileTree({
       {/* New Directory Input Modal */}
       {showNewDirInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-4 w-80">
-            <h3 className="text-white font-medium mb-3">新建文件夹</h3>
+          <div className="bg-surface-1 rounded-lg p-4 w-80">
+            <h3 className="text-ink-inverse font-medium mb-3">新建文件夹</h3>
             <input
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder="文件夹名称"
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm mb-3"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink-inverse text-sm mb-3"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreateDirectory();
@@ -302,13 +302,13 @@ export default function FileTree({
             />
             <div className="flex justify-end gap-2">
               <button
-                className="px-3 py-1 text-sm text-slate-400 hover:text-white cursor-pointer"
+                className="px-3 py-1 text-sm text-ink-muted hover:text-ink-inverse cursor-pointer"
                 onClick={() => setShowNewDirInput(false)}
               >
                 取消
               </button>
               <button
-                className="px-3 py-1 text-sm bg-cyan-500 text-white rounded hover:bg-cyan-600 cursor-pointer"
+                className="px-3 py-1 text-sm bg-accent text-ink-inverse rounded hover:bg-accent-hover cursor-pointer"
                 onClick={handleCreateDirectory}
               >
                 创建

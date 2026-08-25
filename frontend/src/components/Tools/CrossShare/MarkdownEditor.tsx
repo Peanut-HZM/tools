@@ -22,7 +22,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({ icon, title, onClick, sho
   <button
     type="button"
     onClick={onClick}
-    className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded transition-colors"
+    className="p-2 text-ink-muted hover:text-ink-inverse hover:bg-surface-3 rounded transition-colors"
     title={`${title}${shortcut ? ` (${shortcut})` : ''}`}
   >
     {icon}
@@ -119,9 +119,9 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
   }, []);
 
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+    <div className="bg-surface-1 rounded-xl border border-border overflow-hidden">
       {/* 工具栏 */}
-      <div className="flex items-center justify-between px-2 py-2 bg-slate-700 border-b border-slate-600">
+      <div className="flex items-center justify-between px-2 py-2 bg-surface-2 border-b border-border">
         <div className="flex items-center space-x-1">
           <ToolbarButton icon="**B**" title="粗体" shortcut="Ctrl+B" onClick={handleBold} />
           <ToolbarButton icon="*I*" title="斜体" shortcut="Ctrl+I" onClick={handleItalic} />
@@ -135,7 +135,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setPreviewPosition(previewPosition === 'right' ? 'bottom' : 'right')}
-            className="px-2 py-1 text-xs bg-slate-600 hover:bg-slate-500 text-slate-200 rounded transition-colors"
+            className="px-2 py-1 text-xs bg-surface-3 hover:bg-slate-500 text-ink rounded transition-colors"
             title="切换预览方向"
           >
             {previewPosition === 'right' ? '⬇️ 上下' : '➡️ 左右'}
@@ -154,7 +154,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
       >
         {/* 编辑区 */}
         <div
-          className="h-full bg-slate-800"
+          className="h-full bg-surface-1"
           style={{ [previewPosition === 'right' ? 'width' : 'height']: `${splitRatio}%` }}
         >
           <textarea
@@ -162,7 +162,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full h-full bg-slate-800 text-slate-100 px-4 py-3 font-mono text-sm resize-none focus:outline-none border-none"
+            className="w-full h-full bg-surface-1 text-ink px-4 py-3 font-mono text-sm resize-none focus:outline-none border-none"
             placeholder="输入 Markdown 内容..."
           />
         </div>
@@ -170,14 +170,14 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
         {/* 分隔线（仅左右布局时） */}
         {previewPosition === 'right' && (
           <div
-            className="w-1 bg-slate-600 hover:bg-blue-500 cursor-col-resize transition-colors"
+            className="w-1 bg-surface-3 hover:bg-accent-hover cursor-col-resize transition-colors"
             onMouseDown={handleMouseDown}
           />
         )}
 
         {/* 预览区 */}
         <div
-          className={`h-full bg-slate-700/50 overflow-y-auto ${previewPosition === 'bottom' ? 'border-t' : 'border-l'} border-slate-600`}
+          className={`h-full bg-surface-2/50 overflow-y-auto ${previewPosition === 'bottom' ? 'border-t' : 'border-l'} border-border`}
           style={{ [previewPosition === 'right' ? 'width' : 'height']: `${100 - splitRatio}%` }}
         >
           <div className="p-4 prose prose-invert prose-sm max-w-none">
@@ -187,16 +187,16 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
       </div>
 
       {/* 操作按钮 */}
-      <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-slate-700 border-t border-slate-600">
+      <div className="flex items-center justify-end space-x-2 px-4 py-3 bg-surface-2 border-t border-border">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-500 text-slate-200 rounded transition-colors"
+          className="px-4 py-2 text-sm bg-surface-3 hover:bg-slate-500 text-ink rounded transition-colors"
         >
           取消
         </button>
         <button
           onClick={() => onSave(value)}
-          className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+          className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-ink-inverse rounded transition-colors"
         >
           保存
         </button>

@@ -81,9 +81,9 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
       />
 
       {/* 模态框内容 */}
-      <div className="relative w-[90vw] h-[90vh] bg-slate-800 rounded-xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-[90vw] h-[90vh] bg-surface-1 rounded-xl shadow-lg overflow-hidden flex flex-col">
         {/* 头部 */}
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-700">
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center space-x-3">
             <span className="text-2xl">
               {viewerType === 'ImageViewer' && '🖼️'}
@@ -96,7 +96,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
               {viewerType === 'TextViewer' && '📄'}
               {viewerType === 'UnsupportedViewer' && '📎'}
             </span>
-            <span className="text-lg font-semibold text-slate-100 truncate max-w-md">
+            <span className="text-lg font-semibold text-ink truncate max-w-md">
               {file.file_name}
             </span>
           </div>
@@ -104,13 +104,13 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
           <div className="flex items-center space-x-3">
             <button
               onClick={onDownload}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse text-sm font-medium rounded-lg transition-colors"
             >
               ⬇️ 下载
             </button>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-2 rounded-lg transition-colors"
             >
               ✕
             </button>
@@ -123,8 +123,8 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         </div>
 
         {/* 底部信息栏 */}
-        <div className="flex-shrink-0 px-6 py-3 border-t border-slate-700 bg-slate-800">
-          <div className="flex items-center justify-between text-sm text-slate-400">
+        <div className="flex-shrink-0 px-6 py-3 border-t border-border bg-surface-1">
+          <div className="flex items-center justify-between text-sm text-ink-muted">
             <span>
               文件大小：{(file.file_size / 1024).toFixed(2)} KB
               {file.file_size > 1024 * 1024 && ` (${(file.file_size / 1024 / 1024).toFixed(2)} MB)`}
