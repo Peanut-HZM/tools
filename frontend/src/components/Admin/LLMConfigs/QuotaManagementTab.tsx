@@ -4,6 +4,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { quotaApi, QuotaInfo, GrantQuotaRequest } from '@/services/quotaApi';
 import { useToast } from '@/hooks/useToast';
+import { listUsers as fetchSystemUsers } from '@/api/adminApi';
+import { UserResponse } from '@/api/authApi';
 
 export default function QuotaManagementTab() {
   const [items, setItems] = useState<QuotaInfo[]>([]);
@@ -39,11 +41,16 @@ export default function QuotaManagementTab() {
     loadUsers();
   };
 
-  const handleGrant = async (data: GrantQuotaRequest) => {
-    if (!grantTarget) return;
+  const handleGrant = async (data: GrantQuotaRequest & { _user_id?: string }) => {
+    // 编辑模式用 grantTarget.user_id；新建模式用 modal 传入的 _user_id
+    const uid = grantTarget?.user_id || data._user_id;
+    if (!uid) {
+      error('未指定用户');
+      return;
+    }
     try {
-      await quotaApi.grant(grantTarget.user_id, data);
-      success(`已为用户 ${grantTarget.user_id} 分配额度`);
+      await quotaApi.grant(uid, data);
+      success(`已为用户 ${uid} 分配额度`);
       setShowGrantModal(false);
       setGrantTarget(null);
       loadUsers();
@@ -273,7 +280,7 @@ function GrantModal({
   targetUser: string | null;
   currentQuota: QuotaInfo | null;
 }) {
-  const [userId, setUserId] = useState(targetUser || '');
+  const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
   const [quotaMode, setQuotaMode] = useState<string>(currentQuota?.quota_mode || 'count');
   const [dailyLimit, setDailyLimit] = useState<string>(currentQuota?.daily_limit?.toString() || '');
   const [monthlyLimit, setMonthlyLimit] = useState<string>(currentQuota?.monthly_limit?.toString() || '');
@@ -282,15 +289,55 @@ function GrantModal({
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // 用户列表
+  const [users, setUsers] = useState<UserResponse[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [showUserPicker, setShowUserPicker] = useState(false);
+
   useEffect(() => {
-    if (targetUser) setUserId(targetUser);
-  }, [targetUser]);
+    if (targetUser && !selectedUser) {
+      // 编辑模式：从已有数据反查用户信息（尽力而为，找不到就只显示 id）
+      setSelectedUser({ user_id: targetUser, username: '(已存在用户)', email: '', role: '' } as UserResponse);
+    }
+    if (!isOpen) {
+      setSelectedUser(null);
+      setShowUserPicker(false);
+      setUserSearch('');
+    }
+  }, [targetUser, isOpen]);
+
+  // 打开弹窗且未选用户时加载系统用户
+  useEffect(() => {
+    if (isOpen && !selectedUser && users.length === 0) {
+      loadUsers('');
+    }
+  }, [isOpen]);
+
+  const loadUsers = async (search: string) => {
+    setUsersLoading(true);
+    try {
+      const data = await fetchSystemUsers({ page: 1, page_size: 50, search: search || undefined });
+      setUsers(data.users || []);
+    } catch {
+      // 静默失败，UI 上显示空列表
+    }
+    setUsersLoading(false);
+  };
+
+  const handleUserSearch = (val: string) => {
+    setUserSearch(val);
+    loadUsers(val);
+  };
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId.trim()) return;
+    if (!selectedUser) {
+      alert('请先选择用户');
+      return;
+    }
 
     const data: GrantQuotaRequest = {
       quota_mode: quotaMode,
@@ -314,9 +361,12 @@ function GrantModal({
     }
 
     setSubmitting(true);
-    onSubmit(data);
+    // 把 user_id 注入到外层：外层通过 grantTarget 拿到
+    onSubmit({ ...data, _user_id: selectedUser.user_id } as any);
     setSubmitting(false);
   };
+
+  const isEditMode = !!currentQuota;
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
@@ -329,17 +379,75 @@ function GrantModal({
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 用户 ID */}
+          {/* 用户选择器 */}
           <div>
-            <label className="block text-sm text-slate-300 mb-1">用户 ID</label>
-            <input
-              type="text"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              disabled={!!currentQuota}
-              className="w-full px-3 py-2 bg-slate-700 text-white text-sm rounded-lg border border-slate-600 focus:border-cyan-500 focus:outline-none disabled:opacity-50 font-mono"
-              placeholder="输入用户 ID"
-            />
+            <label className="block text-sm text-slate-300 mb-1">用户</label>
+            {isEditMode && selectedUser ? (
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg">
+                <div>
+                  <div className="text-white text-sm font-medium">{selectedUser.username}</div>
+                  <div className="text-xs text-slate-500 font-mono">{selectedUser.user_id}</div>
+                </div>
+                <span className="text-xs text-slate-500">（已有配额，仅修改配置）</span>
+              </div>
+            ) : selectedUser ? (
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-700 border border-cyan-500 rounded-lg">
+                <div>
+                  <div className="text-white text-sm font-medium">{selectedUser.username}</div>
+                  <div className="text-xs text-slate-400">{selectedUser.email} · {selectedUser.role}</div>
+                  <div className="text-xs text-slate-500 font-mono">{selectedUser.user_id}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUserPicker(!showUserPicker)}
+                  className="text-xs text-cyan-400 hover:text-cyan-300"
+                >
+                  重新选择
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowUserPicker(true)}
+                className="w-full px-3 py-2 bg-slate-700 text-slate-400 text-sm rounded-lg border border-slate-600 hover:border-cyan-500 hover:text-white transition-colors text-left"
+              >
+                + 选择系统用户
+              </button>
+            )}
+
+            {/* 用户选择下拉 */}
+            {showUserPicker && !isEditMode && (
+              <div className="mt-2 bg-slate-700 border border-slate-600 rounded-lg overflow-hidden">
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={(e) => handleUserSearch(e.target.value)}
+                  placeholder="搜索用户名/邮箱..."
+                  className="w-full px-3 py-2 bg-slate-800 text-white text-sm border-b border-slate-600 focus:outline-none focus:border-cyan-500"
+                  autoFocus
+                />
+                <div className="max-h-48 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center py-4 text-slate-400 text-sm">加载中...</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center py-4 text-slate-400 text-sm">无匹配用户</div>
+                  ) : (
+                    users.map((u) => (
+                      <button
+                        key={u.user_id}
+                        type="button"
+                        onClick={() => { setSelectedUser(u); setShowUserPicker(false); }}
+                        className="w-full px-3 py-2 text-left hover:bg-slate-600 transition-colors border-b border-slate-600 last:border-b-0"
+                      >
+                        <div className="text-white text-sm">{u.username}</div>
+                        <div className="text-xs text-slate-400">{u.email} · {u.role}</div>
+                        <div className="text-xs text-slate-500 font-mono">{u.user_id}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 模式选择 */}
