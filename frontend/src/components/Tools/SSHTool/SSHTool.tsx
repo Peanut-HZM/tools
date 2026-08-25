@@ -116,7 +116,7 @@ const SSHTool: React.FC = () => {
   const activeTab = useMemo(() => tabs.find(item => item.tabId === activeTabId) ?? null, [tabs, activeTabId]);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-900 overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] bg-canvas overflow-hidden">
       <ConnectionList
         configs={configs}
         selectedId={null}
@@ -125,7 +125,7 @@ const SSHTool: React.FC = () => {
         onEdit={handleEditConfig}
         onDelete={handleDeleteConfig}
       />
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-900">
+      <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
         {tabs.length === 0 ? (
           <EmptyState />
         ) : (
