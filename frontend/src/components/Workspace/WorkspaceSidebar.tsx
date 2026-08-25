@@ -33,12 +33,12 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
   }
 
   return (
-    <div className="w-52 bg-slate-800 border-r border-slate-700 flex flex-col h-full">
+    <div className="w-52 bg-surface-1 border-r border-border flex flex-col h-full">
       {/* 首页按钮 */}
-      <div className="p-3 border-b border-slate-700">
+      <div className="p-3 border-b border-border">
         <button
           onClick={handleGoHome}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md text-sm font-medium transition-colors"
         >
           <i className="fas fa-home"></i>
           <span>{t.workspace.home}</span>
@@ -46,22 +46,22 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
       </div>
 
       {/* 搜索框 */}
-      <div className="px-3 py-2 border-b border-slate-700">
+      <div className="px-3 py-2 border-b border-border">
         <div className="relative">
-          <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+          <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-ink-faint text-xs"></i>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.workspace.searchPlaceholder}
-            className="w-full bg-slate-900 border border-slate-700 rounded-md pl-7 pr-2 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-slate-600"
+            className="w-full bg-canvas border border-border rounded-md pl-7 pr-2 py-1.5 text-xs text-ink-muted placeholder-slate-500 focus:outline-none focus:border-border"
           />
         </div>
       </div>
 
       {/* 工具列表 */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
-        <div className="text-[10px] text-slate-500 uppercase font-semibold tracking-wider px-2 mb-2">
+        <div className="text-[10px] text-ink-faint uppercase font-semibold tracking-wider px-2 mb-2">
           {t.workspace.toolList}
         </div>
         <div className="space-y-0.5">
@@ -75,8 +75,8 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
                 className={[
                   'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors',
                   isOpened
-                    ? 'bg-blue-600/20 text-blue-300'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white',
+                    ? 'bg-accent/20 text-blue-300'
+                    : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse',
                 ].join(' ')}
                 onClick={() => handleToolClick(tool)}
               >

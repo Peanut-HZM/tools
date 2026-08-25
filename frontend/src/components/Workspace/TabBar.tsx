@@ -7,18 +7,18 @@ export const TabBar: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
 
   return (
-    <div className="flex items-end bg-slate-800 border-b border-slate-700 h-10 px-2 gap-0.5 overflow-x-auto">
+    <div className="flex items-end bg-surface-1 border-b border-border h-10 px-2 gap-0.5 overflow-x-auto">
       {/* 工具列表展开/折叠按钮 */}
       <button
         onClick={toggleToolSidebar}
-        className="self-center p-1.5 mr-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-colors flex-shrink-0"
+        className="self-center p-1.5 mr-1 text-ink-muted hover:text-ink hover:bg-surface-2 rounded transition-colors flex-shrink-0"
         title={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
         aria-label={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
       >
         <i className={`fas ${isToolSidebarVisible ? 'fa-chevron-left' : 'fa-chevron-right'} text-xs`}></i>
       </button>
       {/* 标签页分隔线 */}
-      <div className="self-stretch w-px bg-slate-700 mr-1"></div>
+      <div className="self-stretch w-px bg-surface-2 mr-1"></div>
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
         return (
@@ -29,15 +29,15 @@ export const TabBar: React.FC = () => {
             className={[
               'flex items-center gap-2 px-3 py-1.5 rounded-t-md text-sm cursor-pointer transition-colors min-w-0 max-w-[180px] group',
               isActive
-                ? 'bg-slate-900 text-slate-100 border-t border-l border-r border-slate-700'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700',
+                ? 'bg-canvas text-ink border-t border-l border-r border-border'
+                : 'bg-surface-1 text-ink-muted hover:text-ink hover:bg-surface-2',
             ].join(' ')}
             onClick={() => setActiveTab(tab.id)}
           >
             <i className={['fas', tab.toolIcon, 'text-xs flex-shrink-0'].join(' ')}></i>
             <span className="truncate">{tab.toolName}</span>
             <button
-              className="ml-1 text-slate-500 hover:text-slate-200 hover:bg-slate-600 rounded px-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="ml-1 text-ink-faint hover:text-ink hover:bg-surface-3 rounded px-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
                 removeTab(tab.id);

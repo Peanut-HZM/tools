@@ -24,7 +24,7 @@ export const TabPanels: React.FC = () => {
             <div
               key={tab.id}
               style={{ display: tab.id === activeTabId ? 'flex' : 'none' }}
-              className="h-full items-center justify-center text-slate-500"
+              className="h-full items-center justify-center text-ink-faint"
             >
               <div className="text-center">
                 <i className="fas fa-exclamation-triangle text-4xl mb-4"></i>

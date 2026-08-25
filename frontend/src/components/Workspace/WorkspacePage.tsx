@@ -41,16 +41,16 @@ export const WorkspacePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">加载中...</div>
+      <div className="h-screen bg-canvas flex items-center justify-center">
+        <div className="text-ink-muted">加载中...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center text-slate-400">
+      <div className="h-screen bg-canvas flex items-center justify-center">
+        <div className="text-center text-ink-muted">
           <i className="fas fa-exclamation-triangle text-4xl mb-4 text-amber-500"></i>
           <p>{error}</p>
         </div>
@@ -61,7 +61,7 @@ export const WorkspacePage: React.FC = () => {
   const hasTabs = tabs.length > 0;
 
   return (
-    <div className="h-screen bg-slate-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <div className="flex flex-1 min-h-0">
         {/* 左侧边栏 */}
         <WorkspaceSidebar tools={tools} />
