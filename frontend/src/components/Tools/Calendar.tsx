@@ -268,13 +268,13 @@ export default function Calendar() {
   };
 
   return (
-    <div className="text-slate-100">
+    <div className="text-ink">
       {/* 顶部工具栏 */}
-      <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between">
+      <div className="bg-surface-1 border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/')}
-            className="text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+            className="text-ink-muted hover:text-white transition-colors flex items-center gap-2"
           >
             <i className="fas fa-arrow-left"></i>
             <span className="hidden sm:inline">返回</span>
@@ -289,7 +289,7 @@ export default function Calendar() {
         
         {/* 当前农历年份信息 */}
         {days[15]?.lunar && (
-          <div className="text-sm text-slate-400">
+          <div className="text-sm text-ink-muted">
             {days[15].lunar.gan_zhi_year}年 ({days[15].lunar.sheng_xiao}年)
           </div>
         )}
@@ -298,11 +298,11 @@ export default function Calendar() {
       {/* 日历主体 */}
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* 月份导航 */}
-        <div className="bg-slate-800 rounded-lg p-4 mb-4">
+        <div className="bg-surface-1 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between">
             <button
               onClick={goToPrevMonth}
-              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
             >
               <i className="fas fa-chevron-left text-xl"></i>
             </button>
@@ -311,7 +311,7 @@ export default function Calendar() {
               <select
                 value={currentYear}
                 onChange={(e) => setCurrentYear(Number(e.target.value))}
-                className="bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-600"
+                className="bg-surface-2 text-ink-inverse px-3 py-2 rounded-lg border border-border"
               >
                 {Array.from({ length: 30 }, (_, i) => today.getFullYear() - 15 + i).map((year) => (
                   <option key={year} value={year}>{year}年</option>
@@ -321,7 +321,7 @@ export default function Calendar() {
               <select
                 value={currentMonth}
                 onChange={(e) => setCurrentMonth(Number(e.target.value))}
-                className="bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-600"
+                className="bg-surface-2 text-ink-inverse px-3 py-2 rounded-lg border border-border"
               >
                 {monthNames.map((name, index) => (
                   <option key={index} value={index}>{name}</option>
@@ -330,7 +330,7 @@ export default function Calendar() {
               
               <button
                 onClick={goToToday}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium"
               >
                 今天
               </button>
@@ -338,7 +338,7 @@ export default function Calendar() {
             
             <button
               onClick={goToNextMonth}
-              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
             >
               <i className="fas fa-chevron-right text-xl"></i>
             </button>
@@ -346,35 +346,35 @@ export default function Calendar() {
         </div>
 
         {/* 图例 */}
-        <div className="bg-slate-800 rounded-lg p-3 mb-4 flex items-center gap-4 text-sm flex-wrap">
+        <div className="bg-surface-1 rounded-lg p-3 mb-4 flex items-center gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-green-500 rounded"></span>
-            <span className="text-slate-400">法定假日</span>
+            <span className="text-ink-muted">法定假日</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-orange-500 rounded"></span>
-            <span className="text-slate-400">调休上班</span>
+            <span className="text-ink-muted">调休上班</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-blue-500 rounded"></span>
-            <span className="text-slate-400">今天</span>
+            <span className="w-3 h-3 bg-accent rounded"></span>
+            <span className="text-ink-muted">今天</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-pink-400 text-xs">节</span>
-            <span className="text-slate-400">传统节日</span>
+            <span className="text-ink-muted">传统节日</span>
           </div>
         </div>
 
         {/* 选中日期详情 */}
         {selectedDayInfo && (
-          <div className="bg-slate-800 rounded-lg p-4 mb-4">
+          <div className="bg-surface-1 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="text-2xl font-bold">{selectedDayInfo.day}</div>
                 <div>
                   <div className="text-lg">{selectedDayInfo.dateStr}</div>
                   {selectedDayInfo.lunar && (
-                    <div className="text-sm text-slate-400">
+                    <div className="text-sm text-ink-muted">
                       农历 {selectedDayInfo.lunar.lunar_month_name}{selectedDayInfo.lunar.lunar_day_name}
                       <span className="ml-2">
                         {selectedDayInfo.lunar.gan_zhi_year}年 {selectedDayInfo.lunar.sheng_xiao}
@@ -399,13 +399,13 @@ export default function Calendar() {
                   </span>
                 )}
                 {selectedDayInfo.lunar?.solar_festival && (
-                  <span className="px-2 py-1 rounded text-sm bg-cyan-500/20 text-cyan-400">
+                  <span className="px-2 py-1 rounded text-sm bg-accent/20 text-accent">
                     {selectedDayInfo.lunar.solar_festival}
                   </span>
                 )}
                 <button
                   onClick={() => setSelectedDate(null)}
-                  className="text-slate-400 hover:text-white ml-2"
+                  className="text-ink-muted hover:text-ink-inverse ml-2"
                 >
                   <i className="fas fa-times"></i>
                 </button>
@@ -415,21 +415,21 @@ export default function Calendar() {
         )}
 
         {loading && (
-          <div className="text-center py-4 text-slate-400">
+          <div className="text-center py-4 text-ink-muted">
             <i className="fas fa-spinner fa-spin mr-2"></i>
             加载数据中...
           </div>
         )}
 
         {/* 日历表格 */}
-        <div className="bg-slate-800 rounded-lg overflow-hidden">
+        <div className="bg-surface-1 rounded-lg overflow-hidden">
           {/* 星期标题 */}
-          <div className="grid grid-cols-7 bg-slate-700">
+          <div className="grid grid-cols-7 bg-surface-2">
             {weekDays.map((day, index) => (
               <div
                 key={day}
                 className={`py-3 text-center font-medium ${
-                  index === 0 || index === 6 ? 'text-red-400' : 'text-slate-300'
+                  index === 0 || index === 6 ? 'text-danger' : 'text-ink-muted'
                 }`}
               >
                 {day}
@@ -450,12 +450,12 @@ export default function Calendar() {
                   key={index}
                   onClick={() => handleDateClick(dayInfo)}
                   className={`
-                    min-h-[80px] p-2 border-t border-slate-700 relative cursor-pointer
+                    min-h-[80px] p-2 border-t border-border relative cursor-pointer
                     transition-all duration-150
-                    ${!dayInfo.isCurrentMonth ? 'bg-slate-800/50' : 'bg-slate-800'}
-                    ${dayInfo.isToday ? 'ring-2 ring-blue-500 ring-inset' : ''}
-                    ${isSelected ? 'ring-2 ring-purple-500 ring-inset bg-purple-500/10' : ''}
-                    ${!isSelected && !dayInfo.isToday ? 'hover:bg-slate-700/50' : ''}
+                    ${!dayInfo.isCurrentMonth ? 'bg-surface-1/50' : 'bg-surface-1'}
+                    ${dayInfo.isToday ? 'ring-2 ring-accent ring-inset' : ''}
+                    ${isSelected ? 'ring-2 ring-accent-secondary ring-inset bg-accent-secondary/10' : ''}
+                    ${!isSelected && !dayInfo.isToday ? 'hover:bg-surface-2/50' : ''}
                   `}
                 >
                   {/* 日期数字和假期标记 */}
@@ -463,10 +463,10 @@ export default function Calendar() {
                     <span
                       className={`
                         text-lg font-medium inline-flex items-center justify-center
-                        ${!dayInfo.isCurrentMonth ? 'text-slate-600' : ''}
-                        ${dayInfo.isCurrentMonth && dayInfo.isWeekend && !dayInfo.isToday ? 'text-red-400' : ''}
-                        ${dayInfo.isCurrentMonth && !dayInfo.isWeekend && !dayInfo.isToday ? 'text-slate-200' : ''}
-                        ${dayInfo.isToday ? 'bg-blue-500 text-white w-7 h-7 rounded-full' : ''}
+                        ${!dayInfo.isCurrentMonth ? 'text-ink-faint' : ''}
+                        ${dayInfo.isCurrentMonth && dayInfo.isWeekend && !dayInfo.isToday ? 'text-danger' : ''}
+                        ${dayInfo.isCurrentMonth && !dayInfo.isWeekend && !dayInfo.isToday ? 'text-ink' : ''}
+                        ${dayInfo.isToday ? 'bg-accent text-white w-7 h-7 rounded-full' : ''}
                       `}
                     >
                       {dayInfo.day}
@@ -494,8 +494,8 @@ export default function Calendar() {
                       <span className={`
                         text-xs truncate block
                         ${hasFestival ? 'text-pink-400 font-medium' : ''}
-                        ${!hasFestival && dayInfo.isCurrentMonth ? 'text-slate-500' : ''}
-                        ${!hasFestival && !dayInfo.isCurrentMonth ? 'text-slate-700' : ''}
+                        ${!hasFestival && dayInfo.isCurrentMonth ? 'text-ink-faint' : ''}
+                        ${!hasFestival && !dayInfo.isCurrentMonth ? 'text-ink-faint' : ''}
                       `}>
                         {lunarDisplay}
                       </span>
@@ -520,7 +520,7 @@ export default function Calendar() {
         </div>
 
         {/* 使用说明 */}
-        <div className="mt-4 bg-slate-800 rounded-lg p-4 text-sm text-slate-400">
+        <div className="mt-4 bg-surface-1 rounded-lg p-4 text-sm text-ink-muted">
           <p className="mb-2">💡 使用提示：</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
             <li>点击日期可以选中并查看详情</li>
