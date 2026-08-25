@@ -42,7 +42,7 @@ class QuotaExceeded(Exception):
       - "monthly_limit_exceeded"  — 月配额用完
       - "validity_not_started"    — 有效期未开始（now < valid_from）
       - "validity_expired"        — 有效期已过（now > valid_until）
-      - "no_quota"                — 用户在 image_gen_quota 表无记录
+      - "no_quota"                — 用户在 llm_user_quota 表无记录
     """
 
     def __init__(self, reason: str):

@@ -81,7 +81,7 @@ def get_dify_config_service(
 def get_admin_quota_service(
     db: Session = Depends(get_db),
 ) -> LLMQuotaService:
-    """组装 LLMQuotaService（通用配额服务，Task 11 清理旧 ImageGenQuotaService）"""
+    """组装 LLMQuotaService（通用配额服务，已替代旧版 ImageGenQuotaService）"""
     return LLMQuotaService(db=db)
 
 

@@ -84,6 +84,16 @@ def migrate() -> tuple[int, int]:
             # 防御性建表：确保目标表存在
             cur.execute(SQL_ENSURE_TABLE)
 
+            # 源表存在性检查：旧表已 DROP 或从未建过则直接返回（幂等）
+            cur.execute(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema = 'public' AND table_name = 'image_gen_quota')"
+            )
+            if not cur.fetchone()[0]:
+                conn.commit()
+                logger.info("源表 image_gen_quota 不存在，跳过迁移（0 inserted）")
+                return 0, 0
+
             # 先统计旧表总数
             cur.execute("SELECT COUNT(*) FROM image_gen_quota")
             total = cur.fetchone()[0]
