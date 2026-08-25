@@ -56,11 +56,11 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   return (
     <div className="relative">
       {children}
-      <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="absolute inset-0 bg-white/50 dark:bg-canvas/50 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="flex flex-col items-center">
           <LoadingSpinner size="lg" />
           {message && (
-            <p className="mt-4 text-slate-600 dark:text-slate-400">{message}</p>
+            <p className="mt-4 text-ink-faint dark:text-ink-muted">{message}</p>
           )}
         </div>
       </div>
@@ -89,7 +89,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
         <div className="flex items-center justify-center p-8">
           <div className="flex flex-col items-center">
             <LoadingSpinner size="lg" />
-            <p className="mt-4 text-slate-600 dark:text-slate-400">加载中...</p>
+            <p className="mt-4 text-ink-faint dark:text-ink-muted">加载中...</p>
           </div>
         </div>
       )
@@ -110,11 +110,11 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
               />
             </svg>
           </div>
-          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <p className="text-red-600 dark:text-danger mb-4">{error}</p>
           {onRetry && (
             <button
               onClick={onRetry}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-accent-info text-white rounded-lg hover:bg-accent-hover"
             >
               重试
             </button>
@@ -135,10 +135,10 @@ export const PageLoading: React.FC<PageLoadingProps> = ({
   message = '正在加载...',
 }) => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-canvas">
       <div className="text-center">
         <LoadingSpinner size="lg" className="mx-auto" />
-        <p className="mt-4 text-slate-600 dark:text-slate-400">{message}</p>
+        <p className="mt-4 text-ink-faint dark:text-ink-muted">{message}</p>
       </div>
     </div>
   );
@@ -157,8 +157,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   width,
   height,
 }) => {
-  const baseClasses = 'animate-pulse bg-slate-200 dark:bg-slate-700';
-  
+  const baseClasses = 'animate-pulse bg-slate-200 dark:bg-surface-2';
+
   const variantClasses = {
     text: 'rounded',
     circular: 'rounded-full',

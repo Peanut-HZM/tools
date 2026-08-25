@@ -42,13 +42,13 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
   return createPortal(
     <div
       ref={menuRef}
-      className="fixed z-50 bg-slate-800 border border-slate-700 rounded shadow-lg py-1 min-w-[160px] select-none"
+      className="fixed z-50 bg-surface-1 border border-border rounded shadow-lg py-1 min-w-[160px] select-none"
       style={style}
       onContextMenu={(e) => e.preventDefault()} // Prevent native context menu on the menu itself
     >
       {items.map((item, index) => {
         if (item.separator) {
-          return <div key={index} className="h-px bg-slate-700 my-1" />;
+          return <div key={index} className="h-px bg-surface-2 my-1" />;
         }
 
         return (
@@ -56,11 +56,11 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
             key={index}
             className={`
               px-4 py-2 text-sm flex items-center gap-2 cursor-pointer transition-colors
-              ${item.disabled 
-                ? 'text-slate-500 cursor-not-allowed' 
-                : item.danger 
-                  ? 'text-red-400 hover:bg-red-900/20' 
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+              ${item.disabled
+                ? 'text-ink-faint cursor-not-allowed'
+                : item.danger
+                  ? 'text-danger hover:bg-red-900/20'
+                  : 'text-ink-muted hover:bg-surface-2 hover:text-white'
               }
             `}
             onClick={() => {
@@ -70,7 +70,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
               }
             }}
           >
-            {item.icon && <i className={`fas ${item.icon} w-4 text-center ${item.danger ? '' : 'text-slate-400'}`}></i>}
+            {item.icon && <i className={`fas ${item.icon} w-4 text-center ${item.danger ? '' : 'text-ink-faint'}`}></i>}
             <span>{item.label}</span>
           </div>
         );

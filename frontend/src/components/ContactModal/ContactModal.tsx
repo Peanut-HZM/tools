@@ -100,16 +100,16 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
       />
 
       {/* 弹窗内容 */}
-      <div className="relative bg-slate-800 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in">
+      <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden animate-fade-in">
         {/* 头部 */}
-        <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
             <h3 className="text-xl font-semibold text-white">{t.contactModal.title}</h3>
-            <p className="text-sm text-slate-400 mt-1">{t.contactModal.subtitle}</p>
+            <p className="text-sm text-ink-faint mt-1">{t.contactModal.subtitle}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-700"
+            className="text-ink-faint hover:text-white transition-colors p-1 rounded-lg hover:bg-surface-2"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -121,7 +121,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* 姓名 */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-ink-muted mb-1">
               {t.contactModal.name}
             </label>
             <input
@@ -131,18 +131,18 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               value={formData.name}
               onChange={handleChange}
               placeholder={t.contactModal.namePlaceholder}
-              className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.name ? 'border-red-500' : 'border-slate-600'
+              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.name ? 'border-red-500' : 'border-border'
               }`}
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-400">{errors.name}</p>
+              <p className="mt-1 text-sm text-danger">{errors.name}</p>
             )}
           </div>
 
           {/* 邮箱 */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-ink-muted mb-1">
               {t.contactModal.email}
             </label>
             <input
@@ -152,18 +152,18 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               value={formData.email}
               onChange={handleChange}
               placeholder={t.contactModal.emailPlaceholder}
-              className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.email ? 'border-red-500' : 'border-slate-600'
+              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.email ? 'border-red-500' : 'border-border'
               }`}
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-400">{errors.email}</p>
+              <p className="mt-1 text-sm text-danger">{errors.email}</p>
             )}
           </div>
 
           {/* 主题 */}
           <div>
-            <label htmlFor="subject" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="subject" className="block text-sm font-medium text-ink-muted mb-1">
               {t.contactModal.subject}
             </label>
             <input
@@ -173,13 +173,13 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               value={formData.subject}
               onChange={handleChange}
               placeholder={t.contactModal.subjectPlaceholder}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* 留言内容 */}
           <div>
-            <label htmlFor="content" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="content" className="block text-sm font-medium text-ink-muted mb-1">
               {t.contactModal.content}
             </label>
             <textarea
@@ -189,12 +189,12 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               onChange={handleChange}
               placeholder={t.contactModal.contentPlaceholder}
               rows={5}
-              className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
-                errors.content ? 'border-red-500' : 'border-slate-600'
+              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
+                errors.content ? 'border-red-500' : 'border-border'
               }`}
             />
             {errors.content && (
-              <p className="mt-1 text-sm text-red-400">{errors.content}</p>
+              <p className="mt-1 text-sm text-danger">{errors.content}</p>
             )}
           </div>
 
@@ -217,14 +217,14 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors border border-slate-600 cursor-pointer disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-muted rounded-lg transition-colors border border-border cursor-pointer disabled:opacity-50"
             >
               {t.contactModal.cancel}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? t.contactModal.submitting : t.contactModal.submit}
             </button>

@@ -75,7 +75,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       else setPhoneCooldown(60);
     } catch (e) {
       showError(e instanceof Error ? e.message : '验证码发送失败');
-      
+
     }
   };
 
@@ -99,7 +99,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       showError(t.auth.invalidEmail);
       return;
     }
-    
+
     // Check Email Code
     if (settings?.enable_email_verify && !emailCode) {
       showError('请输入邮箱验证码');
@@ -145,12 +145,12 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
+      <div className="bg-surface-1 rounded-xl p-8 shadow-md">
         <h2 className="text-2xl font-bold text-white mb-6 text-center">{t.auth.registerTitle}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="username" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.username}
             </label>
             <input
@@ -158,14 +158,14 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               placeholder={t.auth.inputUsername}
               disabled={isLoading}
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.email}
             </label>
             <input
@@ -173,7 +173,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+              className="w-full px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
               placeholder={t.auth.inputEmail}
               required
             />
@@ -181,7 +181,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
 
           {settings?.enable_email_verify && (
             <div>
-              <label htmlFor="emailCode" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="emailCode" className="block text-sm font-medium text-ink-muted mb-1">
                 邮箱验证码
               </label>
               <div className="flex gap-2">
@@ -190,7 +190,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                   id="emailCode"
                   value={emailCode}
                   onChange={(e) => setEmailCode(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                  className="flex-1 px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                   placeholder="请输入验证码"
                   required
                 />
@@ -198,7 +198,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                   type="button"
                   onClick={() => handleSendCode(email, 'email')}
                   disabled={emailCooldown > 0}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
+                  className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
                 >
                   {emailCooldown > 0 ? `${emailCooldown}s` : '获取验证码'}
                 </button>
@@ -209,7 +209,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
           {settings?.enable_phone_verify && (
             <>
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="phone" className="block text-sm font-medium text-ink-muted mb-1">
                   手机号
                 </label>
                 <input
@@ -217,14 +217,14 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                   id="phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                  className="w-full px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                   placeholder="请输入手机号"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="phoneCode" className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="phoneCode" className="block text-sm font-medium text-ink-muted mb-1">
                   手机验证码
                 </label>
                 <div className="flex gap-2">
@@ -233,7 +233,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                     id="phoneCode"
                     value={phoneCode}
                     onChange={(e) => setPhoneCode(e.target.value)}
-                    className="flex-1 px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                    className="flex-1 px-4 py-2 bg-surface-2/50 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                     placeholder="请输入验证码 (测试码: 202601)"
                     required
                   />
@@ -241,7 +241,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
                     type="button"
                     onClick={() => handleSendCode(phone, 'phone')}
                     disabled={phoneCooldown > 0}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
+                    className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
                   >
                     {phoneCooldown > 0 ? `${phoneCooldown}s` : '获取验证码'}
                   </button>
@@ -251,7 +251,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
           )}
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.password}
             </label>
             <input
@@ -259,7 +259,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               placeholder={t.auth.inputPassword}
               disabled={isLoading}
               maxLength={50}
@@ -267,7 +267,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-ink-muted mb-1">
               {t.auth.confirmPassword}
             </label>
             <input
@@ -275,7 +275,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               placeholder={t.auth.confirmPassword}
               disabled={isLoading}
               maxLength={50}
@@ -285,17 +285,17 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2 px-4 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 text-white font-medium rounded-lg transition-colors cursor-pointer"
+            className="w-full py-2 px-4 bg-accent hover:bg-accent-hover disabled:bg-cyan-500/50 text-white font-medium rounded-lg transition-colors cursor-pointer"
           >
             {isLoading ? t.auth.registerProcessing : t.auth.register}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <span className="text-slate-400">{t.auth.hasAccount}</span>
+          <span className="text-ink-muted">{t.auth.hasAccount}</span>
           <button
             onClick={onSwitchToLogin}
-            className="ml-2 text-cyan-400 hover:text-cyan-300 cursor-pointer"
+            className="ml-2 text-accent hover:text-cyan-300 cursor-pointer"
           >
             {t.auth.registerToLogin}
           </button>

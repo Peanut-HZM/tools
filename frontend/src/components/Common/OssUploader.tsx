@@ -220,10 +220,10 @@ const OssUploader: React.FC<OssUploaderProps> = ({
         onDrop={handleDrop}
         className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
           dragOver
-            ? 'border-cyan-500 bg-cyan-500/10'
+            ? 'border-accent bg-accent/10'
             : disabled
-            ? 'border-slate-700 bg-slate-800/30 cursor-not-allowed'
-            : 'border-slate-600 hover:border-cyan-500/50 hover:bg-slate-700/30'
+            ? 'border-border bg-canvas/30 cursor-not-allowed'
+            : 'border-border hover:border-accent/50 hover:bg-surface-2/30'
         }`}
       >
         <input
@@ -238,16 +238,16 @@ const OssUploader: React.FC<OssUploaderProps> = ({
         {uploading ? (
           <div className="space-y-3">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400 mx-auto"></div>
-            <p className="text-slate-300">正在上传...</p>
+            <p className="text-ink-muted">正在上传...</p>
             {uploadFile && (
               <div className="max-w-md mx-auto">
-                <div className="flex items-center justify-between text-sm text-slate-400 mb-1">
+                <div className="flex items-center justify-between text-sm text-ink-faint mb-1">
                   <span className="truncate">{uploadFile.name}</span>
                   <span>{progress}%</span>
                 </div>
-                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-surface-2 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-accent to-accent-hover transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -261,7 +261,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
             </div>
             <p className="text-white font-medium">上传成功</p>
             {uploadFile && (
-              <p className="text-slate-400 text-sm">
+              <p className="text-ink-faint text-sm">
                 {uploadFile.name} ({formatFileSize(uploadFile.size)})
               </p>
             )}
@@ -271,18 +271,18 @@ const OssUploader: React.FC<OssUploaderProps> = ({
                 e.stopPropagation();
                 handleClick();
               }}
-              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm"
             >
               重新上传
             </button>
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="text-cyan-400 text-5xl mb-4">
+            <div className="text-accent text-5xl mb-4">
               <i className="fas fa-cloud-upload-alt"></i>
             </div>
             <p className="text-white font-medium">点击或拖拽文件到此处上传</p>
-            <p className="text-slate-400 text-sm">
+            <p className="text-ink-faint text-sm">
               支持 {accept || '所有文件'}，最大 {maxSize}MB
             </p>
           </div>
@@ -291,15 +291,15 @@ const OssUploader: React.FC<OssUploaderProps> = ({
 
       {/* File Preview */}
       {value && !uploading && (
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+        <div className="bg-surface-1/50 rounded-xl p-4 border border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 flex-1 min-w-0">
-              <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <i className="fas fa-file text-cyan-400"></i>
+              <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i className="fas fa-file text-accent"></i>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium truncate">{value.split('/').pop()}</p>
-                <p className="text-slate-400 text-sm">{value}</p>
+                <p className="text-ink-faint text-sm">{value}</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -307,10 +307,10 @@ const OssUploader: React.FC<OssUploaderProps> = ({
                 href={value}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                 title="查看文件"
               >
-                <i className="fas fa-external-link-alt text-slate-400"></i>
+                <i className="fas fa-external-link-alt text-ink-faint"></i>
               </a>
               <button
                 type="button"
@@ -318,10 +318,10 @@ const OssUploader: React.FC<OssUploaderProps> = ({
                   e.stopPropagation();
                   navigator.clipboard.writeText(value);
                 }}
-                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                 title="复制链接"
               >
-                <i className="fas fa-copy text-slate-400"></i>
+                <i className="fas fa-copy text-ink-faint"></i>
               </button>
             </div>
           </div>
@@ -330,8 +330,8 @@ const OssUploader: React.FC<OssUploaderProps> = ({
 
       {/* Error Message */}
       {uploadFile?.status === 'error' && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-          <div className="flex items-center space-x-2 text-red-400">
+        <div className="bg-danger/10 border border-red-500/30 rounded-xl p-4">
+          <div className="flex items-center space-x-2 text-danger">
             <i className="fas fa-exclamation-circle"></i>
             <span className="font-medium">{uploadFile.error}</span>
           </div>

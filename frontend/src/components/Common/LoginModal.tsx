@@ -35,14 +35,14 @@ export default function LoginModal() {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-      <div className="bg-slate-800 rounded-xl p-8 shadow-xl w-full max-w-md mx-4 border border-slate-700">
+      <div className="bg-surface-1 rounded-xl p-8 shadow-md w-full max-w-md mx-4 border border-border">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white">
             {t.auth.loginTitle}
           </h2>
           <button
             onClick={closeLoginModal}
-            className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="text-ink-faint hover:text-white transition-colors cursor-pointer"
             title="关闭"
           >
             <i className="fa-solid fa-xmark text-lg"></i>

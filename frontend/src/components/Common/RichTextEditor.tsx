@@ -55,20 +55,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [content, editor]);
 
   if (!editor) {
-    return <div className="text-slate-400">加载编辑器...</div>;
+    return <div className="text-ink-faint">加载编辑器...</div>;
   }
 
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center flex-wrap gap-2 p-3 bg-slate-800/50 border border-slate-700/50 rounded-t-xl">
+      <div className="flex items-center flex-wrap gap-2 p-3 bg-surface-1/50 border border-border/50 rounded-t-xl">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('bold')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="粗体"
         >
@@ -79,8 +79,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('italic')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="斜体"
         >
@@ -91,21 +91,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => editor.chain().focus().toggleStrike().run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('strike')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="删除线"
         >
           <i className="fas fa-strikethrough"></i>
         </button>
-        <div className="w-px h-6 bg-slate-600 mx-2"></div>
+        <div className="w-px h-6 bg-surface-3 mx-2"></div>
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('heading', { level: 1 })
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="标题 1"
         >
@@ -116,8 +116,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('heading', { level: 2 })
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="标题 2"
         >
@@ -128,21 +128,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('heading', { level: 3 })
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="标题 3"
         >
           <span className="font-bold">H3</span>
         </button>
-        <div className="w-px h-6 bg-slate-600 mx-2"></div>
+        <div className="w-px h-6 bg-surface-3 mx-2"></div>
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('bulletList')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="无序列表"
         >
@@ -153,21 +153,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('orderedList')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="有序列表"
         >
           <i className="fas fa-list-ol"></i>
         </button>
-        <div className="w-px h-6 bg-slate-600 mx-2"></div>
+        <div className="w-px h-6 bg-surface-3 mx-2"></div>
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('codeBlock')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="代码块"
         >
@@ -178,14 +178,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('blockquote')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="引用"
         >
           <i className="fas fa-quote-left"></i>
         </button>
-        <div className="w-px h-6 bg-slate-600 mx-2"></div>
+        <div className="w-px h-6 bg-surface-3 mx-2"></div>
         <button
           type="button"
           onClick={() => {
@@ -196,8 +196,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           }}
           className={`p-2 rounded-lg transition-all ${
             editor.isActive('link')
-              ? 'bg-cyan-500/20 text-cyan-400'
-              : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
           }`}
           title="链接"
         >
@@ -206,7 +206,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().unsetAllMarks().run()}
-          className="p-2 rounded-lg bg-slate-700/50 text-slate-400 hover:bg-slate-600 transition-all"
+          className="p-2 rounded-lg bg-surface-2/50 text-ink-faint hover:bg-surface-3 transition-all"
           title="清除格式"
         >
           <i className="fas fa-remove-format"></i>
@@ -217,8 +217,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => setShowPreviewState(!showPreviewState)}
           className={`px-4 py-2 rounded-lg transition-all font-medium ${
             showPreviewState
-              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              ? 'bg-accent/20 text-accent border border-accent/30'
+              : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
           }`}
         >
           <i className="fas fa-eye mr-2"></i>
@@ -227,8 +227,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
 
       {/* Editor Content */}
-      <div className={`flex-1 flex ${showPreviewState ? 'divide-x divide-slate-700/50' : ''}`}>
-        <div className={`flex-1 overflow-y-auto border border-slate-700/50 rounded-b-xl ${showPreviewState ? 'w-1/2' : 'w-full'}`}>
+      <div className={`flex-1 flex ${showPreviewState ? 'divide-x divide-border/50' : ''}`}>
+        <div className={`flex-1 overflow-y-auto border border-border/50 rounded-b-xl ${showPreviewState ? 'w-1/2' : 'w-full'}`}>
           <EditorContent
             editor={editor}
             className="prose prose-invert prose-lg max-w-none p-4 h-full editor-content"
@@ -237,9 +237,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
         {/* Preview Panel */}
         {showPreviewState && (
-          <div className="w-1/2 overflow-y-auto border border-slate-700/50 rounded-b-xl bg-slate-900/50 p-4">
-            <h3 className="text-sm font-semibold text-slate-400 mb-3 flex items-center">
-              <i className="fas fa-eye text-cyan-400 mr-2"></i>
+          <div className="w-1/2 overflow-y-auto border border-border/50 rounded-b-xl bg-canvas/50 p-4">
+            <h3 className="text-sm font-semibold text-ink-faint mb-3 flex items-center">
+              <i className="fas fa-eye text-accent mr-2"></i>
               预览
             </h3>
             <div
