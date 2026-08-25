@@ -89,12 +89,12 @@ export default function TechContentsPage() {
   ];
 
   return (
-    <div className="bg-slate-900 min-h-screen">
+    <div className="bg-canvas min-h-screen">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 border-b border-slate-700">
+      <div className="bg-gradient-to-r from-accent-info/50 to-accent-secondary/50 border-b border-border">
         <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-white mb-4">技术分析</h1>
-          <p className="text-slate-300 text-lg max-w-3xl">
+          <h1 className="text-4xl font-bold text-ink-inverse mb-4">技术分析</h1>
+          <p className="text-ink-muted text-lg max-w-3xl">
             深入探讨技术趋势、架构决策和工程实践，分享团队内部的技术经验和项目案例
           </p>
         </div>
@@ -110,7 +110,7 @@ export default function TechContentsPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 currentType === type.value
                   ? 'bg-primary text-white'
-                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                  : 'bg-surface-1 text-ink-muted hover:text-ink-inverse hover:bg-surface-2'
               }`}
             >
               {type.label}
@@ -123,11 +123,11 @@ export default function TechContentsPage() {
       <div className="container mx-auto px-6 pb-12">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="text-slate-400">加载中...</div>
+            <div className="text-ink-muted">加载中...</div>
           </div>
         ) : contents.length === 0 ? (
           <div className="flex items-center justify-center py-16">
-            <div className="text-center text-slate-400">
+            <div className="text-center text-ink-muted">
               <i className="fas fa-inbox text-4xl mb-4"></i>
               <p>暂无内容</p>
             </div>
@@ -146,17 +146,17 @@ export default function TechContentsPage() {
                 <button
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="px-4 py-2 bg-slate-800 text-slate-400 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 bg-surface-1 text-ink-muted rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 transition-colors"
                 >
                   上一页
                 </button>
-                <span className="px-4 py-2 text-slate-400">
+                <span className="px-4 py-2 text-ink-muted">
                   第 {page} 页，共 {totalPages} 页，{total} 篇文章
                 </span>
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page === totalPages}
-                  className="px-4 py-2 bg-slate-800 text-slate-400 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 bg-surface-1 text-ink-muted rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 transition-colors"
                 >
                   下一页
                 </button>
