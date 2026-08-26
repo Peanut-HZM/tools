@@ -19,6 +19,7 @@ import { useToast } from '../../../hooks/useToast';
 import { useK8sStore } from '../../../stores/k8sStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 type TabKey = 'upload' | 'paste' | 'manual';
 type AuthType = CreateK8sManualRequest['auth_type'];
@@ -610,15 +611,19 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     <label className="block text-sm font-medium text-ink-muted mb-1">
                       {k8sT.modal.fields.authType}
                     </label>
-                    <select
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-accent-info"
+                    <Select
                       value={manualAuthType}
-                      onChange={e => setManualAuthType(e.target.value as AuthType)}
+                      onValueChange={(v) => setManualAuthType(v as AuthType)}
                     >
-                      <option value="bearer_token">{k8sT.modal.authTypes.bearer_token}</option>
-                      <option value="client_cert">{k8sT.modal.authTypes.client_cert}</option>
-                      <option value="basic_auth">{k8sT.modal.authTypes.basic_auth}</option>
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bearer_token">{k8sT.modal.authTypes.bearer_token}</SelectItem>
+                        <SelectItem value="client_cert">{k8sT.modal.authTypes.client_cert}</SelectItem>
+                        <SelectItem value="basic_auth">{k8sT.modal.authTypes.basic_auth}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* 按认证类型显示对应字段 */}

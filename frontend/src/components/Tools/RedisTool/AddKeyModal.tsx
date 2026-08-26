@@ -4,6 +4,7 @@ import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 
 interface Props {
   isOpen: boolean;
@@ -72,17 +73,21 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
           </div>
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.type}</label>
-            <select
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+            <Select
               value={type}
-              onChange={e => setType(e.target.value)}
+              onValueChange={setType}
             >
-              <option value="string">{t.redis.keyType.string}</option>
-              <option value="list">{t.redis.keyType.list} (JSON Array)</option>
-              <option value="set">{t.redis.keyType.set} (JSON Array)</option>
-              <option value="hash">{t.redis.keyType.hash} (JSON Object)</option>
-              <option value="zset">{t.redis.keyType.zset} (JSON Object/Array)</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="string">{t.redis.keyType.string}</SelectItem>
+                <SelectItem value="list">{t.redis.keyType.list} (JSON Array)</SelectItem>
+                <SelectItem value="set">{t.redis.keyType.set} (JSON Array)</SelectItem>
+                <SelectItem value="hash">{t.redis.keyType.hash} (JSON Object)</SelectItem>
+                <SelectItem value="zset">{t.redis.keyType.zset} (JSON Object/Array)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.ttl}</label>

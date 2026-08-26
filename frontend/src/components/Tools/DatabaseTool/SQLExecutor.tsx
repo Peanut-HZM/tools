@@ -8,6 +8,7 @@ import ResultViewer from './components/ResultViewer';
 import SQLHistoryPanel from './components/SQLHistoryPanel';
 import { useI18n } from '../../../i18n';
 import { Loader2, History, Database, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 const MIN_EDITOR_H = 200;
 const MAX_EDITOR_RATIO = 0.9;
@@ -301,33 +302,40 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
         <div className="flex items-center space-x-4 bg-surface-1 p-2 rounded-md border border-border">
         <div className="flex items-center space-x-2">
           <label className="text-sm text-ink-muted">Connection:</label>
-          <select 
-            className="bg-canvas border border-border rounded px-2 py-1 text-sm text-ink focus:outline-none focus:border-accent min-w-[150px]"
+          <Select
             value={configId || ''}
-            onChange={(e) => handleConfigChange(e.target.value)}
+            onValueChange={(v) => handleConfigChange(v)}
           >
-            <option value="" disabled>Select Connection</option>
-            {configs.map(c => (
-              <option key={c.id} value={c.id}>{c.alias}</option>
-            ))}
-          </select>
+            <SelectTrigger className="min-w-[150px]">
+              <SelectValue placeholder="Select Connection" />
+            </SelectTrigger>
+            <SelectContent>
+              {configs.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.alias}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {currentConfig && (
           <div className="flex items-center space-x-2">
             <label className="text-sm text-ink-muted">Database:</label>
             <div className="relative">
-              <select 
-                className="bg-canvas border border-border rounded px-2 py-1 text-sm text-ink focus:outline-none focus:border-accent min-w-[150px] appearance-none pr-8"
+              <Select
                 value={database || ''}
-                onChange={(e) => handleDatabaseChange(e.target.value)}
+                onValueChange={(v) => handleDatabaseChange(v)}
                 disabled={dbLoading}
               >
-                <option value="">Default ({currentConfig.database_name || 'None'})</option>
-                {databases.map(db => (
-                  <option key={db} value={db}>{db}</option>
-                ))}
-              </select>
+                <SelectTrigger className="min-w-[150px]">
+                  <SelectValue placeholder={`Default (${currentConfig.database_name || 'None'})`} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Default ({currentConfig.database_name || 'None'})</SelectItem>
+                  {databases.map(db => (
+                    <SelectItem key={db} value={db}>{db}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {dbLoading && (
                 <div className="absolute right-2 top-1.5 pointer-events-none">
                   <Loader2 className="w-3 h-3 animate-spin text-ink-muted" />
@@ -341,17 +349,21 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
           <div className="flex items-center space-x-2">
             <label className="text-sm text-ink-muted">Schema:</label>
             <div className="relative">
-              <select
-                className="bg-canvas border border-border rounded px-2 py-1 text-sm text-ink focus:outline-none focus:border-accent min-w-[150px] appearance-none pr-8"
+              <Select
                 value={schema || ''}
-                onChange={(e) => handleSchemaChange(e.target.value)}
+                onValueChange={(v) => handleSchemaChange(v)}
                 disabled={schemaLoading}
               >
-                <option value="">Default (public)</option>
-                {schemas.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+                <SelectTrigger className="min-w-[150px]">
+                  <SelectValue placeholder="Default (public)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Default (public)</SelectItem>
+                  {schemas.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {schemaLoading && (
                 <div className="absolute right-2 top-1.5 pointer-events-none">
                   <Loader2 className="w-3 h-3 animate-spin text-ink-muted" />

@@ -17,6 +17,7 @@ import { getAuthToken } from '../../../../api/authApi';
 import { buildExecWebSocketUrl } from '../../../../api/k8sToolApi';
 import type { K8sContainerInfo } from '../types';
 import { Button } from '@/components/ui/Button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 interface Props {
   configId: string;
@@ -237,26 +238,34 @@ export const K8sTerminalPanel: React.FC<Props> = ({
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-surface-1/50 shrink-0">
         {/* 容器选择 */}
         {containers.length > 1 && (
-          <select
+          <Select
             value={selectedContainer}
-            onChange={(e) => setSelectedContainer(e.target.value)}
-            className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
+            onValueChange={setSelectedContainer}
           >
-            {containers.map((c) => (
-              <option key={c.name} value={c.name}>{c.name}</option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {containers.map((c) => (
+                <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
 
         {/* Shell 切换 */}
-        <select
+        <Select
           value={command}
-          onChange={(e) => setCommand(e.target.value as ShellCommand)}
-          className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
+          onValueChange={(v) => setCommand(v as ShellCommand)}
         >
-          <option value="/bin/sh">/bin/sh</option>
-          <option value="/bin/bash">/bin/bash</option>
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="/bin/sh">/bin/sh</SelectItem>
+            <SelectItem value="/bin/bash">/bin/bash</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* 重连按钮 */}
         <Button

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 import { Button } from "@/components/ui/Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 
 interface Algorithm {
   name: string;
@@ -143,15 +144,19 @@ export default function KeyGenerator() {
             {currentAlgorithm && currentAlgorithm.key_sizes.length > 1 && (
               <div className="mb-3">
                 <label className="text-xs text-ink-muted mb-1 block">密钥长度</label>
-                <select
-                  value={selectedKeySize}
-                  onChange={(e) => setSelectedKeySize(Number(e.target.value))}
-                  className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
+                <Select
+                  value={String(selectedKeySize)}
+                  onValueChange={(v) => setSelectedKeySize(Number(v))}
                 >
-                  {currentAlgorithm.key_sizes.map((size) => (
-                    <option key={size} value={size}>{size} bits</option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currentAlgorithm.key_sizes.map((size) => (
+                      <SelectItem key={size} value={String(size)}>{size} bits</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 

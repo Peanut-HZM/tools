@@ -9,6 +9,7 @@ import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import type { ImageSize, ModelPreference } from '../../../../api/imageGenerationApi';
 
 export default function Text2ImgForm() {
@@ -121,30 +122,38 @@ export default function Text2ImgForm() {
         <Card className="mb-4 p-3 space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <label className="text-ink-muted w-20">{igT.form.size}</label>
-            <select
+            <Select
               value={size}
-              onChange={(e) => setSize(e.target.value as ImageSize)}
-              className="flex-1 bg-surface-2 text-ink px-2 py-1 rounded"
+              onValueChange={(v) => setSize(v as ImageSize)}
             >
-              <option value="512x512">512×512</option>
-              <option value="768x768">768×768</option>
-              <option value="1024x1024">1024×1024</option>
-              <option value="1024x1792">1024×1792</option>
-              <option value="1792x1024">1792×1024</option>
-            </select>
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="512x512">512×512</SelectItem>
+                <SelectItem value="768x768">768×768</SelectItem>
+                <SelectItem value="1024x1024">1024×1024</SelectItem>
+                <SelectItem value="1024x1792">1024×1792</SelectItem>
+                <SelectItem value="1792x1024">1792×1024</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-2">
             <label className="text-ink-muted w-20">{igT.form.count}</label>
-            <select
-              value={n}
-              onChange={(e) => setN(Number(e.target.value))}
-              className="flex-1 bg-surface-2 text-ink px-2 py-1 rounded"
+            <Select
+              value={String(n)}
+              onValueChange={(v) => setN(Number(v))}
             >
-              <option value={1}>1 张</option>
-              <option value={2}>2 张</option>
-              <option value={3}>3 张</option>
-              <option value={4}>4 张</option>
-            </select>
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 张</SelectItem>
+                <SelectItem value="2">2 张</SelectItem>
+                <SelectItem value="3">3 张</SelectItem>
+                <SelectItem value="4">4 张</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </Card>
       )}

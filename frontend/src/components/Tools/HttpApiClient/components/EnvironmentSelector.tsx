@@ -1,4 +1,5 @@
 import { Environment } from '../../../../services/httpClientApi';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 interface EnvironmentSelectorProps {
   environments: Environment[];
@@ -11,8 +12,8 @@ export default function EnvironmentSelector({
   activeEnvironment,
   onEnvironmentChange,
 }: EnvironmentSelectorProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedEnv = environments.find(env => env.id === e.target.value);
+  const handleChange = (value: string) => {
+    const selectedEnv = environments.find(env => env.id === value);
     if (selectedEnv && onEnvironmentChange) {
       onEnvironmentChange(selectedEnv);
     }
@@ -21,18 +22,21 @@ export default function EnvironmentSelector({
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-ink-muted">环境:</span>
-      <select
+      <Select
         value={activeEnvironment?.id || ''}
-        onChange={handleChange}
-        className="bg-surface-2 text-ink-inverse px-3 py-1.5 rounded border border-border text-sm
-                   focus:border-accent-secondary focus:outline-none"
+        onValueChange={handleChange}
       >
-        {environments.map(env => (
-          <option key={env.id} value={env.id}>
-            {env.name} {env.is_active ? '(当前)' : ''}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {environments.map(env => (
+            <SelectItem key={env.id} value={env.id}>
+              {env.name} {env.is_active ? '(当前)' : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {activeEnvironment && Object.keys(activeEnvironment.variables).length > 0 && (
         <div className="flex items-center gap-1 ml-2" title="环境变量">

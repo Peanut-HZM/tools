@@ -2,6 +2,7 @@ import { BarChart3, FileText, FileDown } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { conversationApi, Conversation, Message } from '../../services/conversationApi';
 import { llmConfigApi, LLMConfig } from '../../services/llmConfigApi';
 import { agentApi, Agent } from '../../services/agentApi';
@@ -250,35 +251,43 @@ const ProductManagerAgent: React.FC = () => {
                 {/* Agent Selection */}
                 <div className="flex items-center gap-2">
                   <label className="text-ink-muted text-sm">Agent:</label>
-                  <select
+                  <Select
                     value={selectedAgentId}
-                    onChange={(e) => setSelectedAgentId(e.target.value)}
-                    className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded border border-border focus:outline-none focus:border-accent"
+                    onValueChange={setSelectedAgentId}
                   >
-                    {agents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
-                        {agent.name}
-                        {agent.is_default ? ' [默认]' : ''}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {agents.map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          {agent.name}
+                          {agent.is_default ? ' [默认]' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Model Selection */}
                 <div className="flex items-center gap-2">
                   <label className="text-ink-muted text-sm">模型:</label>
-                  <select
+                  <Select
                     value={selectedConfigId}
-                    onChange={(e) => setSelectedConfigId(e.target.value)}
-                    className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded border border-border focus:outline-none focus:border-accent"
+                    onValueChange={setSelectedConfigId}
                   >
-                    {llmConfigs.map((config) => (
-                      <option key={config.id} value={config.id}>
-                        {config.name} ({getProviderLabel(config.provider_type)})
-                        {config.is_default ? ' [默认]' : ''}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {llmConfigs.map((config) => (
+                        <SelectItem key={config.id} value={config.id}>
+                          {config.name} ({getProviderLabel(config.provider_type)})
+                          {config.is_default ? ' [默认]' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Action Buttons */}

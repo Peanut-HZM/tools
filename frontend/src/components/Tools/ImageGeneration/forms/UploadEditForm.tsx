@@ -9,6 +9,7 @@ import ImageUploader from '../components/ImageUploader';
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import type { EditType } from '../../../../api/imageGenerationApi';
 
 const EDIT_TYPE_KEYS = [
@@ -61,17 +62,21 @@ export default function UploadEditForm() {
       {/* 编辑类型 */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-ink-muted">{igT.form.editType}</label>
-        <select
+        <Select
           value={params.edit_type}
-          onChange={(e) => setParams({ edit_type: e.target.value as EditType })}
-          className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          onValueChange={(v) => setParams({ edit_type: v as EditType })}
         >
-          {EDIT_TYPE_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {igT.form[EDIT_TYPE_LABELS[k] as keyof typeof igT.form] as string}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {EDIT_TYPE_KEYS.map((k) => (
+              <SelectItem key={k} value={k}>
+                {igT.form[EDIT_TYPE_LABELS[k] as keyof typeof igT.form] as string}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* 对话输入框 */}

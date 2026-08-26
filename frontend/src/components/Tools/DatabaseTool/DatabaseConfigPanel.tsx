@@ -7,6 +7,7 @@ import { useI18n } from '../../../i18n';
 import { useAuth } from '../../../stores';
 import { X } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 interface DatabaseConfigPanelProps {
   editConfigId?: string | null;
@@ -164,31 +165,37 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.env}</label>
-              <select
-                name="environment"
+              <Select
                 value={formData.environment}
-                onChange={handleChange}
-                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
+                onValueChange={(value) => setFormData(prev => ({ ...prev, environment: value as Environment }))}
               >
-                {Object.values(Environment).map(env => (
-                  <option key={env} value={env}>{env.toUpperCase()}</option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(Environment).map(env => (
+                    <SelectItem key={env} value={env}>{env.toUpperCase()}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* DB Type */}
             <div className="sm:col-span-6">
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.database.config.type}</label>
-              <select
-                name="db_type"
+              <Select
                 value={formData.db_type}
-                onChange={handleChange}
-                className="block w-full bg-canvas border border-border rounded-md shadow-sm py-2 px-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent sm:text-sm transition-all"
+                onValueChange={(value) => setFormData(prev => ({ ...prev, db_type: value as DatabaseType }))}
               >
-                {Object.values(DatabaseType).map(type => (
-                  <option key={type} value={type}>{type.toUpperCase()}</option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(DatabaseType).map(type => (
+                    <SelectItem key={type} value={type}>{type.toUpperCase()}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Host & Port */}

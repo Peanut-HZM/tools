@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
 } from '@/components/ui/DropdownMenu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 interface TableDataViewerProps {
   configId: string;
@@ -351,21 +352,25 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       <div className="p-2 border-t border-border bg-surface-1 flex items-center justify-between text-sm text-ink-muted">
           <div className="flex items-center space-x-2">
              <span>Page size:</span>
-             <select
-               value={pageSize}
-               onChange={(e) => {
-                   const newPageSize = Number(e.target.value);
+             <Select
+               value={String(pageSize)}
+               onValueChange={(v) => {
+                   const newPageSize = Number(v);
                    setPageSize(newPageSize);
                    setPage(1);
                    fetchData(1, newPageSize);
                }}
-               className="bg-canvas border border-border rounded px-2 py-1 focus:outline-none"
              >
-               <option value={10}>10</option>
-               <option value={20}>20</option>
-               <option value={50}>50</option>
-               <option value={100}>100</option>
-             </select>
+               <SelectTrigger className="w-auto">
+                 <SelectValue />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="10">10</SelectItem>
+                 <SelectItem value="20">20</SelectItem>
+                 <SelectItem value="50">50</SelectItem>
+                 <SelectItem value="100">100</SelectItem>
+               </SelectContent>
+             </Select>
           </div>
 
           <div className="flex items-center space-x-4">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PRDVersion, prdApi } from '../../services/prdApi';
 import { parseMermaidBlocks, renderMermaidToSvg, initMermaid } from '../../utils/mermaidRenderer';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 interface PRDPreviewProps {
   conversationId: string;
@@ -242,21 +243,25 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           <h2 className="text-lg font-semibold text-ink-inverse">PRD 预览</h2>
           
           {/* 版本选择 */}
-          <select
-            value={currentVersion}
-            onChange={(e) => {
-              const version = parseInt(e.target.value);
+          <Select
+            value={String(currentVersion)}
+            onValueChange={(v) => {
+              const version = parseInt(v);
               setCurrentVersion(version);
               onVersionChange?.(version);
             }}
-            className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded border border-border focus:outline-none focus:border-accent-info"
           >
-            {versions.map(v => (
-              <option key={v.id} value={v.version_number}>
-                V{v.version_number} {v.status === 'confirmed' ? '✓' : ''}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {versions.map(v => (
+                <SelectItem key={v.id} value={String(v.version_number)}>
+                  V{v.version_number} {v.status === 'confirmed' ? '✓' : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-center gap-2">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useI18n } from '../../../../i18n';
 import { Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 interface CreateDatabaseDialogProps {
   isOpen: boolean;
@@ -62,16 +63,20 @@ const CreateDatabaseDialog: React.FC<CreateDatabaseDialogProps> = ({ isOpen, onC
             
             <div>
               <label className="block text-sm text-ink-muted mb-1">{t.database.dialog.createDatabase.charset}</label>
-              <select
+              <Select
                 value={charset}
-                onChange={(e) => setCharset(e.target.value)}
-                className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent"
+                onValueChange={setCharset}
               >
-                <option value="utf8mb4">utf8mb4</option>
-                <option value="utf8">utf8</option>
-                <option value="latin1">latin1</option>
-                <option value="ascii">ascii</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="utf8mb4">utf8mb4</SelectItem>
+                  <SelectItem value="utf8">utf8</SelectItem>
+                  <SelectItem value="latin1">latin1</SelectItem>
+                  <SelectItem value="ascii">ascii</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

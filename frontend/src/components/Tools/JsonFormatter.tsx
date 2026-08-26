@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, Code, Copy, Eraser, FileInput, Minimize2, Spark
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 
 export default function JsonFormatter() {
   const navigate = useNavigate();
@@ -108,14 +109,18 @@ export default function JsonFormatter() {
 
         {/* 操作按钮 */}
         <div className="flex items-center gap-2">
-          <select
-            value={indentSize}
-            onChange={(e) => setIndentSize(Number(e.target.value))}
-            className="bg-surface-2 text-ink-inverse px-2 py-1.5 rounded border border-border text-sm"
+          <Select
+            value={String(indentSize)}
+            onValueChange={(v) => setIndentSize(Number(v))}
           >
-            <option value={2}>2空格</option>
-            <option value={4}>4空格</option>
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2空格</SelectItem>
+              <SelectItem value="4">4空格</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             onClick={formatJson}
             size="sm"

@@ -13,6 +13,7 @@ import { buildLogsWebSocketUrl, downloadPodLogs } from '../../../../api/k8sToolA
 import type { K8sContainerInfo } from '../types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 interface Props {
   configId: string;
@@ -234,15 +235,19 @@ export const LogsViewer: React.FC<Props> = ({
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-canvas shrink-0 flex-wrap">
         {/* 容器选择 */}
         {containers.length > 1 && (
-          <select
+          <Select
             value={selectedContainer}
-            onChange={(e) => setSelectedContainer(e.target.value)}
-            className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
+            onValueChange={setSelectedContainer}
           >
-            {containers.map((c) => (
-              <option key={c.name} value={c.name}>{c.name}</option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {containers.map((c) => (
+                <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
 
         {/* Follow 开关 */}
@@ -259,18 +264,21 @@ export const LogsViewer: React.FC<Props> = ({
         </button>
 
         {/* 日志行数选择 */}
-        <select
-          value={tailLines}
-          onChange={(e) => setTailLines(Number(e.target.value))}
-          className="px-2 py-1 text-xs bg-surface-1 border border-border text-ink-muted rounded focus:outline-none focus:border-blue-500"
-          title="日志行数"
+        <Select
+          value={String(tailLines)}
+          onValueChange={(v) => setTailLines(Number(v))}
         >
-          <option value={100}>100 行</option>
-          <option value={500}>500 行</option>
-          <option value={1000}>1000 行</option>
-          <option value={5000}>5000 行</option>
-          <option value={10000}>10000 行</option>
-        </select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="100">100 行</SelectItem>
+            <SelectItem value="500">500 行</SelectItem>
+            <SelectItem value="1000">1000 行</SelectItem>
+            <SelectItem value="5000">5000 行</SelectItem>
+            <SelectItem value="10000">10000 行</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* 搜索框 */}
         <div className="flex items-center gap-1 flex-1 min-w-[140px]">
