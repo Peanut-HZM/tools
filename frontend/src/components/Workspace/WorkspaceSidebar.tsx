@@ -48,7 +48,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
       <div className="p-3 border-b border-border">
         <button
           onClick={handleGoHome}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-md text-sm font-medium transition-colors"
         >
           <Home className="w-4 h-4" />
           <span>{t.workspace.home}</span>

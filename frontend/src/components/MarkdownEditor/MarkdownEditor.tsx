@@ -588,7 +588,7 @@ export default function MarkdownEditor() {
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'local'
                   ? 'text-accent border-b-2 border-accent-cyan bg-surface-1/50'
-                  : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1/30'
+                  : 'text-ink-muted hover:text-ink hover:bg-surface-1/30'
               }`}
               onClick={() => setActiveTab('local')}
             >
@@ -603,7 +603,7 @@ export default function MarkdownEditor() {
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'oss'
                   ? 'text-accent border-b-2 border-accent-cyan bg-surface-1/50'
-                  : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1/30'
+                  : 'text-ink-muted hover:text-ink hover:bg-surface-1/30'
               }`}
               onClick={() => setActiveTab('oss')}
             >
