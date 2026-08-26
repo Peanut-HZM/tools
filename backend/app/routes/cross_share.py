@@ -123,43 +123,131 @@ def get_oss_download_url(oss_key: str, expires: int = 3600) -> str:
 
 # ============ 设备管理 ============
 
-@router.get("/devices", response_model=DeviceListResponse)
+@router.get("/devices")  # 移除 response_model，直接返回字典
 async def get_devices(
-    service: CrossShareService = Depends(get_cross_share_service),
     current_user: str = Depends(get_current_user_id),
 ):
     """获取设备列表"""
-    devices = service.get_devices(current_user)
-    return {
-        "devices": devices,
-        "total": len(devices),
-    }
+    from app.config.database import get_db_connection
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, user_id, device_name, device_type, device_token,
+                       user_agent, ip_address, is_active, last_seen_at, created_at, updated_at
+                FROM cross_share_devices
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+            """, (current_user,))
+            rows = cur.fetchall()
+
+            devices = []
+            for row in rows:
+                devices.append({
+                    "id": str(row["id"]) if row["id"] else None,
+                    "user_id": row["user_id"],
+                    "device_name": row["device_name"],
+                    "device_type": row["device_type"],
+                    "device_token": row["device_token"],
+                    "user_agent": row["user_agent"],
+                    "ip_address": row["ip_address"],
+                    "is_active": bool(row["is_active"]) if row["is_active"] is not None else True,
+                    "last_seen_at": str(row["last_seen_at"]) if row["last_seen_at"] else None,
+                    "created_at": str(row["created_at"]) if row["created_at"] else None,
+                    "updated_at": str(row["updated_at"]) if row["updated_at"] else None,
+                })
+
+            return {
+                "devices": devices,
+                "total": len(devices),
+            }
+    finally:
+        if conn:
+            conn.close()
 
 
-@router.post("/devices", response_model=DeviceResponse)
+@router.post("/devices")  # 移除 response_model，直接返回字典
 async def register_device(
     device: DeviceCreate,
     request: Request,
-    service: CrossShareService = Depends(get_cross_share_service),
     current_user: str = Depends(get_current_user_id),
 ):
     """注册/更新设备"""
-    # 获取 User-Agent 和 IP
+    from app.config.database import get_db_connection
+    from datetime import datetime
+
     user_agent = request.headers.get("User-Agent")
     ip_address = request.client.host if request.client else None
 
-    # 创建设备
-    db_device = service.create_or_update_device(
-        user_id=current_user,
-        device=DeviceCreate(
-            device_name=device.device_name,
-            device_type=device.device_type,
-            device_token=device.device_token,
-            user_agent=user_agent,
-            ip_address=ip_address,
-        ),
-    )
-    return db_device
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 检查是否已存在设备
+            cur.execute("""
+                SELECT id FROM cross_share_devices WHERE device_token = %s
+            """, (device.device_token,))
+            existing = cur.fetchone()
+
+            if existing:
+                # 更新现有设备
+                cur.execute("""
+                    UPDATE cross_share_devices
+                    SET device_name = %s,
+                        device_type = %s,
+                        ip_address = %s,
+                        user_agent = %s,
+                        last_seen_at = NOW(),
+                        is_active = TRUE,
+                        updated_at = NOW()
+                    WHERE device_token = %s
+                    RETURNING id, user_id, device_name, device_type, device_token,
+                              user_agent, ip_address, is_active, last_seen_at, created_at, updated_at
+                """, (
+                    device.device_name,
+                    device.device_type or "desktop",
+                    ip_address,
+                    user_agent,
+                    device.device_token,
+                ))
+            else:
+                # 创建新设备
+                cur.execute("""
+                    INSERT INTO cross_share_devices
+                    (id, user_id, device_name, device_type, device_token, user_agent, ip_address, last_seen_at, is_active)
+                    VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, NOW(), TRUE)
+                    RETURNING id, user_id, device_name, device_type, device_token,
+                              user_agent, ip_address, is_active, last_seen_at, created_at, updated_at
+                """, (
+                    current_user,
+                    device.device_name,
+                    device.device_type or "desktop",
+                    device.device_token,
+                    user_agent,
+                    ip_address,
+                ))
+
+            row = cur.fetchone()
+            conn.commit()
+
+            return {
+                "id": str(row["id"]) if row["id"] else None,
+                "user_id": row["user_id"],
+                "device_name": row["device_name"],
+                "device_type": row["device_type"],
+                "device_token": row["device_token"],
+                "user_agent": row["user_agent"],
+                "ip_address": row["ip_address"],
+                "is_active": bool(row["is_active"]) if row["is_active"] is not None else True,
+                "last_seen_at": str(row["last_seen_at"]) if row["last_seen_at"] else None,
+                "created_at": str(row["created_at"]) if row["created_at"] else None,
+                "updated_at": str(row["updated_at"]) if row["updated_at"] else None,
+            }
+    finally:
+        if conn:
+            conn.close()
 
 
 @router.put("/devices/{device_id}", response_model=DeviceResponse)
@@ -203,22 +291,76 @@ async def ping_device(
 
 # ============ 消息功能 ============
 
-@router.get("/messages", response_model=MessageListResponse)
+@router.get("/messages")  # 移除 response_model，直接返回字典
 async def get_messages(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     message_type: Optional[MessageType] = None,
-    service: CrossShareService = Depends(get_cross_share_service),
     current_user: str = Depends(get_current_user_id),
 ):
     """获取消息列表"""
-    messages = service.get_messages(current_user, limit=limit, offset=offset, message_type=message_type)
-    total = len(messages)
-    return {
-        "messages": messages,
-        "total": total,
-        "has_more": total == limit,
-    }
+    from app.config.database import get_db_connection
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            if message_type:
+                sql = """
+                    SELECT id, user_id, from_device_id, content, message_type, file_id,
+                           is_encrypted, is_read, expires_at, created_at
+                    FROM cross_share_messages
+                    WHERE user_id = %s
+                      AND message_type = %s
+                      AND (expires_at IS NULL OR expires_at > NOW())
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                """
+                params = (
+                    current_user,
+                    message_type.value if isinstance(message_type, MessageType) else message_type,
+                    limit,
+                    offset,
+                )
+            else:
+                sql = """
+                    SELECT id, user_id, from_device_id, content, message_type, file_id,
+                           is_encrypted, is_read, expires_at, created_at
+                    FROM cross_share_messages
+                    WHERE user_id = %s
+                      AND (expires_at IS NULL OR expires_at > NOW())
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                """
+                params = (current_user, limit, offset)
+
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+
+            messages = []
+            for row in rows:
+                messages.append({
+                    "id": str(row["id"]) if row["id"] else None,
+                    "user_id": row["user_id"],
+                    "from_device_id": str(row["from_device_id"]) if row["from_device_id"] else None,
+                    "content": row["content"],
+                    "message_type": row["message_type"] or "text",
+                    "file_id": str(row["file_id"]) if row["file_id"] else None,
+                    "is_encrypted": bool(row["is_encrypted"]) if row["is_encrypted"] is not None else False,
+                    "is_read": bool(row["is_read"]) if row["is_read"] is not None else False,
+                    "expires_at": str(row["expires_at"]) if row["expires_at"] else None,
+                    "created_at": str(row["created_at"]) if row["created_at"] else None,
+                })
+
+            total = len(messages)
+            return {
+                "messages": messages,
+                "total": total,
+                "has_more": total == limit,
+            }
+    finally:
+        if conn:
+            conn.close()
 
 
 @router.post("/messages", response_model=MessageResponse)
@@ -336,21 +478,54 @@ async def get_files(
 
 @router.get("/files/stats")
 async def get_storage_stats(
-    service: CrossShareService = Depends(get_cross_share_service),
     current_user: str = Depends(get_current_user_id),
 ):
     """获取存储统计"""
-    config = service.get_config(current_user)
-    stats = service.get_storage_stats(current_user, config)
-    # Ensure all values are proper types for JSON serialization
-    return {
-        "total_files": int(stats.get("total_files", 0)),
-        "total_size": int(stats.get("total_size", 0)),
-        "used_quota": int(stats.get("used_quota", 0)),
-        "available_quota": int(stats.get("available_quota", 0)),
-        "usage_percentage": float(stats.get("usage_percentage", 0.0)),
-        "files_by_type": stats.get("files_by_type", {}),
-    }
+    from app.config.database import get_db_connection
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 总文件数和大小
+            cur.execute("""
+                SELECT COUNT(*) as total_files,
+                       COALESCE(SUM(file_size), 0) as total_size
+                FROM cross_share_files
+                WHERE user_id = %s AND is_deleted = FALSE
+            """, (current_user,))
+            row = cur.fetchone()
+            total_files = int(row["total_files"] or 0)
+            total_size = int(row["total_size"] or 0)
+
+            # 按文件类型统计
+            cur.execute("""
+                SELECT file_type, COUNT(*) as count
+                FROM cross_share_files
+                WHERE user_id = %s AND is_deleted = FALSE
+                GROUP BY file_type
+            """, (current_user,))
+            rows = cur.fetchall()
+            files_by_type = {row["file_type"]: int(row["count"]) for row in rows}
+
+            # 获取用户配置的存储配额
+            cur.execute("""
+                SELECT storage_quota FROM cross_share_configs WHERE user_id = %s
+            """, (current_user,))
+            config_row = cur.fetchone()
+            storage_quota = int(config_row["storage_quota"]) if config_row else 5368709120  # 5GB 默认
+
+            return {
+                "total_files": total_files,
+                "total_size": total_size,
+                "used_quota": total_size,
+                "available_quota": max(0, storage_quota - total_size),
+                "usage_percentage": (total_size / storage_quota * 100) if storage_quota > 0 else 0,
+                "files_by_type": files_by_type,
+            }
+    finally:
+        if conn:
+            conn.close()
 
 
 @router.get("/files/{file_id}", response_model=FileResponse)

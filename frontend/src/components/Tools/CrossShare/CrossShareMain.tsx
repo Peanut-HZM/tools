@@ -1,9 +1,10 @@
 /**
  * CrossShare 跨设备共享主页面
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { deviceApi, messageApi, fileApi, configApi, StorageStats, generateDeviceToken } from '../../../services/crossShare';
 import { useToast } from '../../../hooks/useToast';
+import { AuthContext } from '../../../stores/authStore';
 import Sidebar from './Sidebar';
 import MessagePanel from './MessagePanel';
 import FilePanel from './FilePanel';
@@ -14,15 +15,36 @@ type PanelType = 'messages' | 'files' | 'devices' | 'settings';
 
 const CrossShareMain: React.FC = () => {
   const { toast, showToast } = useToast();
+  const { isAuthenticated } = useContext(AuthContext);
   const [activePanel, setActivePanel] = useState<PanelType>('messages');
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
 
-  // 注册当前设备
+  // 认证检查：未登录时不发起任何 API 请求
   useEffect(() => {
-    registerCurrentDevice();
-  }, []);
+    if (isAuthenticated) {
+      // 已登录，继续初始化和加载
+      registerCurrentDevice();
+      loadStorageStats();
+    } else {
+      // 未登录，停止加载状态
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // 未登录时显示登录提示
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔐</div>
+          <div className="text-ink text-xl font-semibold mb-2">请先登录</div>
+          <div className="text-ink-muted text-sm">CrossShare 需要登录后才能使用</div>
+        </div>
+      </div>
+    );
+  }
 
   const registerCurrentDevice = async () => {
     try {
@@ -69,11 +91,6 @@ const CrossShareMain: React.FC = () => {
       console.error('Failed to register device:', error);
     }
   };
-
-  // Load initial data
-  useEffect(() => {
-    loadStorageStats();
-  }, []);
 
   const loadStorageStats = async () => {
     try {

@@ -29,10 +29,15 @@ const MessagePanel: React.FC = () => {
   const [pasteContent, setPasteContent] = useState<string | null>(null); // 待粘贴的内容
   const [showPasteConfirm, setShowPasteConfirm] = useState(false); // 是否显示粘贴确认对话框
   const [searchTerm, setSearchTerm] = useState(''); // 搜索关键词
+  const [pollingStopped, setPollingStopped] = useState(false); // 轮询是否已停止（认证失败时）
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true); // 是否是首次加载
   const contentRefs = useRef<Map<string, HTMLDivElement>>(new Map()); // 存储消息内容 ref
+  const intervalRef = useRef<NodeJS.Timeout | null>(null); // 轮询定时器 ID
+  const lastErrorRef = useRef<string | null>(null); // 上一次错误信息（用于去重）
+  const consecutiveErrorsRef = useRef(0); // 连续错误计数
+  const hasShownFirstErrorRef = useRef(false); // 是否已显示过首次错误
   const { toast, showToast } = useToast();
 
   // 检查用户是否在底部
@@ -82,12 +87,99 @@ const MessagePanel: React.FC = () => {
     return () => clearTimeout(timer);
   }, [messages]);
 
+  // 使用 useCallback 包裹 loadMessages，避免闭包陈旧问题
+  const loadMessages = useCallback(async (isPolling: boolean = false) => {
+    try {
+      // 仅在首次加载时清除错误状态，轮询时保持当前错误状态避免闪烁
+      if (!isPolling) {
+        setLoadError(null);
+      }
+      const data = await messageApi.getMessages(100, 0);
+      // 去重：根据消息 id 去重
+      const uniqueMessages = Array.from(
+        new Map(data.map(msg => [msg.id, msg])).values()
+      );
+      setMessages(uniqueMessages.reverse()); // 最新消息在最后
+
+      // 成功时重置错误计数
+      consecutiveErrorsRef.current = 0;
+      lastErrorRef.current = null;
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.detail || error.message || '未知错误';
+      const httpStatus = error.response?.status;
+
+      // 认证失败（401/403）熔断：停止轮询，提示用户重新登录
+      if (httpStatus === 401 || httpStatus === 403) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setPollingStopped(true);
+        // 仅在首次认证失败时提示一次
+        if (!hasShownFirstErrorRef.current) {
+          showToast('登录已过期，请重新登录', 'warning');
+          hasShownFirstErrorRef.current = true;
+        }
+        console.error('认证失败，已停止轮询:', errorMsg);
+        setLoadError('登录已过期，请重新登录');
+        return;
+      }
+
+      // 非认证失败的错误处理（带退避和去重）
+      consecutiveErrorsRef.current += 1;
+
+      // 错误去重策略：
+      // 1. 首次失败时显示 toast
+      // 2. 错误信息变化时显示 toast
+      // 3. 之后每连续失败 6 次（约 30 秒）提醒一次，避免完全静默
+      const shouldShowToast =
+        lastErrorRef.current !== errorMsg &&
+        (consecutiveErrorsRef.current === 1 ||
+         !hasShownFirstErrorRef.current ||
+         consecutiveErrorsRef.current % 6 === 0);
+
+      if (shouldShowToast) {
+        showToast('加载消息失败：' + errorMsg, 'error');
+        hasShownFirstErrorRef.current = true;
+      }
+
+      lastErrorRef.current = errorMsg;
+
+      // 仅在首次加载失败时设置 loadError（避免轮询时整屏 UI 闪烁）
+      if (!isPolling) {
+        setLoadError(errorMsg);
+      }
+
+      console.error('Failed to load messages:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  // 轮询逻辑：首次加载 + 定时轮询
   useEffect(() => {
-    loadMessages();
-    // 轮询新消息（每 5 秒）
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    // React StrictMode 兼容：使用 cleanup 标记避免双重调用
+    let isMounted = true;
+
+    // 首次加载
+    loadMessages(false);
+
+    // 定时轮询（每 5 秒）
+    intervalRef.current = setInterval(() => {
+      if (isMounted && !pollingStopped) {
+        loadMessages(true);
+      }
+    }, 5000);
+
+    // 清理函数
+    return () => {
+      isMounted = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [loadMessages, pollingStopped]);
 
   // 自动滚动到底部：仅初次加载时执行一次，使用 instant 方式
   useEffect(() => {
@@ -124,25 +216,6 @@ const MessagePanel: React.FC = () => {
     // 仅在组件挂载时滚动一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadMessages = async () => {
-    try {
-      setLoadError(null);
-      const data = await messageApi.getMessages(100, 0);
-      // 去重：根据消息 id 去重
-      const uniqueMessages = Array.from(
-        new Map(data.map(msg => [msg.id, msg])).values()
-      );
-      setMessages(uniqueMessages.reverse()); // 最新消息在最后
-    } catch (error: any) {
-      console.error('Failed to load messages:', error);
-      const errorMsg = error.response?.data?.detail || error.message || '未知错误';
-      setLoadError(errorMsg);
-      showToast('加载消息失败：' + errorMsg, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

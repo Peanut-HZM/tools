@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useI18n } from '../../i18n';
+import { AuthContext } from '../../stores/authStore';
+import { useLoginModalStore } from '../../stores/loginModalStore';
 import type { Tool } from '../../types';
 
 interface Props {
@@ -13,6 +15,8 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
   const { t } = useI18n();
   const { tabs, addTab, isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const { isAuthenticated } = useContext(AuthContext);
+  const openLoginModal = useLoginModalStore((state) => state.openLoginModal);
 
   const openedToolIds = new Set(tabs.map((t) => t.toolId));
 
@@ -21,6 +25,11 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
   );
 
   const handleToolClick = (tool: Tool) => {
+    // 登录拦截：检查工具是否需要登录
+    if (tool.require_login && !isAuthenticated) {
+      openLoginModal();
+      return;
+    }
     addTab({ id: tool.id, title: tool.title, icon: tool.icon });
   };
 

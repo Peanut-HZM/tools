@@ -151,6 +151,7 @@ TOOLS_DATA = [
         rating=4.9,
         usageCount="New",
         category="实用工具",
+        require_login=True,
     ),
     Tool(
         id="course-platform",

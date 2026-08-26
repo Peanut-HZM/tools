@@ -96,15 +96,17 @@ class MessageUpdate(BaseModel):
     is_read: Optional[bool] = None
 
 
-class MessageResponse(MessageBase):
+class MessageResponse(BaseModel):
     """消息响应"""
-    model_config = ConfigDict(from_attributes=True)
-
+    # 不继承 MessageBase，直接定义所有字段
     id: str
     user_id: str
     from_device_id: Optional[str] = None
+    content: Optional[str] = None
+    message_type: MessageType = MessageType.TEXT
     file_id: Optional[str] = None
     file: Optional["FileResponse"] = None
+    is_encrypted: bool = False
     is_read: bool
     expires_at: Optional[datetime] = None
     created_at: datetime
@@ -113,6 +115,17 @@ class MessageResponse(MessageBase):
     @classmethod
     def validate_uuid_fields(cls, v):
         return str(v) if v else v
+
+    @field_validator('message_type', mode='before')
+    @classmethod
+    def validate_message_type(cls, v):
+        # 如果是字符串，转换为 MessageType 枚举
+        if isinstance(v, str):
+            try:
+                return MessageType(v)
+            except ValueError:
+                return MessageType.TEXT
+        return v
 
 
 class ClipboardSyncRequest(BaseModel):

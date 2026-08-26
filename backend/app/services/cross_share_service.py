@@ -117,28 +117,105 @@ class CrossShareService:
 
     # ============ 消息管理 ============
 
+    def _message_to_dict(self, message: CrossMessage) -> Dict[str, Any]:
+        """将 CrossMessage ORM 对象转换为字典，确保在会话关闭前访问所有属性"""
+        # 检查 message_type 的实际类型
+        msg_type = message.message_type
+        logger.debug(f"message_type type: {type(msg_type)}, value: {msg_type}")
+
+        # 如果是 InstrumentedAttribute，说明 ORM 对象没有正确加载
+        from sqlalchemy.orm.attributes import InstrumentedAttribute
+        if isinstance(msg_type, InstrumentedAttribute):
+            logger.error(f"Message {message.id} has unloaded attributes!")
+            # 尝试从 __dict__ 获取实际值
+            msg_type = message.__dict__.get('message_type', 'text')
+
+        result = {
+            "id": str(message.id) if message.id else None,
+            "user_id": str(message.user_id) if message.user_id else None,
+            "from_device_id": str(message.from_device_id) if message.from_device_id else None,
+            "content": str(message.content) if message.content is not None else None,
+            "message_type": str(msg_type) if msg_type is not None else "text",
+            "file_id": str(message.file_id) if message.file_id else None,
+            "is_encrypted": bool(message.is_encrypted) if message.is_encrypted is not None else False,
+            "is_read": bool(message.is_read) if message.is_read is not None else False,
+            "expires_at": message.expires_at,
+            "created_at": message.created_at,
+        }
+        return result
+
     def get_messages(
         self,
         user_id: str,
         limit: int = 50,
         offset: int = 0,
         message_type: Optional[MessageType] = None,
-    ) -> List[CrossMessage]:
+    ) -> List[Dict[str, Any]]:
         """获取消息列表"""
-        query = self.db.query(CrossMessage).filter(CrossMessage.user_id == user_id)
+        # 使用原始 SQL 查询，避免 ORM 对象的属性加载问题
+        from sqlalchemy import text
 
         if message_type:
-            query = query.filter(CrossMessage.message_type == message_type)
+            sql = """
+                SELECT id, user_id, from_device_id, content, message_type, file_id,
+                       is_encrypted, is_read, expires_at, created_at
+                FROM cross_share_messages
+                WHERE user_id = :user_id
+                  AND message_type = :message_type
+                  AND (expires_at IS NULL OR expires_at > NOW())
+                ORDER BY created_at DESC
+                LIMIT :limit OFFSET :offset
+            """
+            params = {
+                "user_id": user_id,
+                "message_type": message_type.value if isinstance(message_type, MessageType) else message_type,
+                "limit": limit,
+                "offset": offset,
+            }
+        else:
+            sql = """
+                SELECT id, user_id, from_device_id, content, message_type, file_id,
+                       is_encrypted, is_read, expires_at, created_at
+                FROM cross_share_messages
+                WHERE user_id = :user_id
+                  AND (expires_at IS NULL OR expires_at > NOW())
+                ORDER BY created_at DESC
+                LIMIT :limit OFFSET :offset
+            """
+            params = {"user_id": user_id, "limit": limit, "offset": offset}
 
-        # 过滤过期消息
-        query = query.filter(
-            or_(
-                CrossMessage.expires_at.is_(None),
-                CrossMessage.expires_at > datetime.now()
-            )
-        )
+        # 调试：打印 SQL 和参数
+        logger.error(f"DEBUG SQL: {sql}")
+        logger.error(f"DEBUG PARAMS: {params}")
 
-        return query.order_by(desc(CrossMessage.created_at)).offset(offset).limit(limit).all()
+        result = self.db.execute(text(sql), params)
+        rows = result.fetchall()
+
+        messages = []
+        for row in rows:
+            # 使用 _mapping 访问列值
+            mapping = row._mapping
+
+            # 调试：打印第一行的所有键值对
+            if len(messages) == 0:
+                logger.error(f"DEBUG MAPPING KEYS: {list(mapping.keys())}")
+                for key in mapping.keys():
+                    logger.error(f"DEBUG MAPPING {key} = {mapping[key]} (type: {type(mapping[key]).__name__})")
+
+            messages.append({
+                "id": str(mapping["id"]) if mapping["id"] else None,
+                "user_id": str(mapping["user_id"]) if mapping["user_id"] else None,
+                "from_device_id": str(mapping["from_device_id"]) if mapping["from_device_id"] else None,
+                "content": mapping["content"],
+                "message_type": mapping["message_type"] or "text",
+                "file_id": str(mapping["file_id"]) if mapping["file_id"] else None,
+                "is_encrypted": bool(mapping["is_encrypted"]) if mapping["is_encrypted"] is not None else False,
+                "is_read": bool(mapping["is_read"]) if mapping["is_read"] is not None else False,
+                "expires_at": mapping["expires_at"],
+                "created_at": mapping["created_at"],
+            })
+
+        return messages
 
     def get_message_by_id(self, message_id: str, user_id: str) -> Optional[CrossMessage]:
         """根据 ID 获取消息"""
