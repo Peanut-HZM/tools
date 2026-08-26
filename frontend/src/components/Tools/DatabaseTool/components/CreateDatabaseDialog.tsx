@@ -84,7 +84,7 @@ const CreateDatabaseDialog: React.FC<CreateDatabaseDialogProps> = ({ isOpen, onC
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
+              className="px-3 py-1.5 text-ink-muted hover:text-ink hover:bg-surface-2 rounded transition-colors"
               disabled={loading}
             >
               {t.database.dialog.createDatabase.cancel}

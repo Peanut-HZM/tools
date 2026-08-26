@@ -143,7 +143,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
           <h3 className="text-lg font-medium text-ink">
             Modify Table: {tableName}
           </h3>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -247,7 +247,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                    <td className="px-3 py-2 text-center">
                                        <button 
                                            onClick={() => handleRemoveColumn(idx)}
-                                           className="text-danger hover:text-red-300"
+                                           className="text-danger hover:text-danger"
                                            title="Remove Column"
                                        >
                                            <Trash2 className="w-4 h-4" />

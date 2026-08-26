@@ -51,7 +51,7 @@ const SQLHistoryPanel: React.FC<SQLHistoryPanelProps> = ({ isOpen, onClose, onRe
   };
 
   const getStatusIcon = (status: string) => {
-    if (status === 'success') return <CheckCircle className="w-4 h-4 text-green-400" />;
+    if (status === 'success') return <CheckCircle className="w-4 h-4 text-success" />;
     if (status === 'failed') return <XCircle className="w-4 h-4 text-danger" />;
     return <Clock className="w-4 h-4 text-accent-warning" />;
   };
@@ -60,7 +60,7 @@ const SQLHistoryPanel: React.FC<SQLHistoryPanelProps> = ({ isOpen, onClose, onRe
     if (!type) return 'text-ink-muted';
     const t = type.toUpperCase();
     if (t === 'SELECT') return 'text-accent-info';
-    if (t === 'INSERT') return 'text-green-400';
+    if (t === 'INSERT') return 'text-success';
     if (t === 'UPDATE') return 'text-accent-warning';
     if (t === 'DELETE') return 'text-danger';
     return 'text-ink-muted';

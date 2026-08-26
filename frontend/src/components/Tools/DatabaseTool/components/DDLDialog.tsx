@@ -53,7 +53,7 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
           <h3 className="text-lg font-medium text-ink">
             DDL: {tableName}
           </h3>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -73,7 +73,7 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
         <div className="p-4 border-t border-border flex justify-end gap-2">
           <button
             onClick={handleCopy}
-            className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
+            className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded text-sm transition-colors"
           >
             <Copy className="w-4 h-4 mr-2" />
             Copy

@@ -410,7 +410,7 @@ export default function DisplaySettingsDialog({
           <button
             onClick={handleReset}
             disabled={saving}
-            className="px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse transition-colors disabled:opacity-50 cursor-pointer"
+            className="px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Undo2 className="w-3 h-3 mr-1" />
             重置
@@ -419,7 +419,7 @@ export default function DisplaySettingsDialog({
             <button
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded-md transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface-2 rounded-md transition-colors disabled:opacity-50"
             >
               {t.common.cancel}
             </button>

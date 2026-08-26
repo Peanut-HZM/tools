@@ -148,7 +148,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
             <Archive className="w-4 h-4 text-accent-info" />
             {t.database.dialog.backup.title}
           </h3>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -159,7 +159,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
             /* Result View */
             <div className="space-y-4">
               <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-green-400 mb-2">
+                <div className="flex items-center gap-2 text-success mb-2">
                   <CheckCircle className="w-4 h-4" />
                   <span className="font-medium">{t.database.dialog.backup.backupSuccess}</span>
                 </div>
@@ -173,7 +173,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setBackupResult(null)}
-                  className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
+                  className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded text-sm transition-colors"
                 >
                   {t.database.dialog.backup.newBackup}
                 </button>
@@ -252,12 +252,12 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                         icon: 'text-accent-info',
                       },
                       amber: {
-                        active: 'border-amber-500/60 bg-amber-500/10 shadow-sm shadow-amber-500/5',
+                        active: 'border-warning/60 bg-warning/10 shadow-sm shadow-warning/5',
                         inactive: 'border-border/50 hover:border-border hover:bg-surface-2/20',
-                        icon: 'text-amber-400',
+                        icon: 'text-warning',
                       },
                       emerald: {
-                        active: 'border-emerald-500/60 bg-success/10 shadow-sm shadow-emerald-500/5',
+                        active: 'border-success/60 bg-success/10 shadow-sm shadow-success/5',
                         inactive: 'border-border/50 hover:border-border hover:bg-surface-2/20',
                         icon: 'text-success',
                       },
@@ -328,7 +328,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
             <button
               onClick={onClose}
               disabled={backingUp}
-              className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded text-sm transition-colors disabled:opacity-50"
             >
               {t.common.cancel}
             </button>

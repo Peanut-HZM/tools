@@ -379,7 +379,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
             className={`p-1.5 rounded transition-colors ${
               showHistoryPanel 
                 ? 'bg-accent text-ink-inverse' 
-                : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-2'
+                : 'text-ink-muted hover:text-ink hover:bg-surface-2'
             }`}
             title="SQL 历史记录"
           >

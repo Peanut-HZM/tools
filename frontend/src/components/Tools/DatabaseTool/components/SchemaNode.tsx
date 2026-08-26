@@ -281,9 +281,9 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                   <span className="text-ink font-medium min-w-[72px] truncate">{col.name}</span>
                   <span className="text-accent/70 font-mono text-[10px]">{col.type}{col.length ? `(${col.length})` : ''}</span>
                   <span className="flex gap-0.5 shrink-0">
-                    {col.primary_key && <span className="text-amber-400 text-[8px] px-1 py-px bg-amber-500/10 rounded border border-amber-500/20 font-bold leading-none">PK</span>}
-                    {col.auto_increment && <span className="text-success text-[8px] px-1 py-px bg-success/10 rounded border border-emerald-500/20 font-bold leading-none">AI</span>}
-                    {!col.nullable && !col.primary_key && <span className="text-rose-400/60 text-[8px] px-1 py-px bg-rose-500/10 rounded border border-rose-500/15 font-medium leading-none">NN</span>}
+                    {col.primary_key && <span className="text-warning text-[8px] px-1 py-px bg-warning/10 rounded border border-warning/20 font-bold leading-none">PK</span>}
+                    {col.auto_increment && <span className="text-success text-[8px] px-1 py-px bg-success/10 rounded border border-success/20 font-bold leading-none">AI</span>}
+                    {!col.nullable && !col.primary_key && <span className="text-danger/60 text-[8px] px-1 py-px bg-danger/10 rounded border border-danger/15 font-medium leading-none">NN</span>}
                   </span>
                   {col.comment && <span className="text-ink-faint italic truncate max-w-[90px] text-[9.5px]" title={col.comment}>{col.comment}</span>}
                 </div>
@@ -295,7 +295,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         {detail.indexes && detail.indexes.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <Key className="w-2 h-2 text-violet-400/70" />
+              <Key className="w-2 h-2 text-accent-secondary/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.indexes}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.indexes.length}</span>
             </div>
@@ -304,8 +304,8 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                 <div key={idx.name} className="flex items-center gap-1.5 py-0.5 text-[10.5px]">
                   <span className="text-ink font-mono text-[10px] min-w-[60px] truncate">{idx.name}</span>
                   <span className="flex gap-0.5 shrink-0">
-                    {idx.primary && <span className="text-amber-400 text-[8px] px-1 py-px bg-amber-500/10 rounded border border-amber-500/20 font-bold leading-none">PRI</span>}
-                    {idx.unique && !idx.primary && <span className="text-violet-400 text-[8px] px-1 py-px bg-violet-500/10 rounded border border-violet-500/20 font-bold leading-none">UQ</span>}
+                    {idx.primary && <span className="text-warning text-[8px] px-1 py-px bg-warning/10 rounded border border-warning/20 font-bold leading-none">PRI</span>}
+                    {idx.unique && !idx.primary && <span className="text-accent-secondary text-[8px] px-1 py-px bg-accent-secondary/10 rounded border border-accent-secondary/20 font-bold leading-none">UQ</span>}
                   </span>
                   <span className="text-ink-faint font-mono text-[9.5px]">({idx.columns.join(', ')})</span>
                 </div>
@@ -317,7 +317,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         {detail.foreign_keys && detail.foreign_keys.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <Link className="w-2 h-2 text-orange-400/70" />
+              <Link className="w-2 h-2 text-accent-warm/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.foreignKeys}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.foreign_keys.length}</span>
             </div>
@@ -327,7 +327,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                   <span className="text-ink font-mono text-[10px] min-w-[60px] truncate">{fk.name}</span>
                   <span className="text-ink-muted font-mono text-[9.5px]">{fk.constrained_columns.join(', ')}</span>
                   <ArrowRight className="w-1.5 h-1.5 text-ink-faint" />
-                  <span className="text-orange-400/80 font-mono text-[9.5px]">{fk.referred_table}</span>
+                  <span className="text-accent-warm/80 font-mono text-[9.5px]">{fk.referred_table}</span>
                   <span className="text-ink-faint font-mono text-[9.5px]">({fk.referred_columns.join(', ')})</span>
                 </div>
               ))}
@@ -423,7 +423,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                             <>
                               {item.name.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>
                                 part.toLowerCase() === searchTerm.toLowerCase()
-                                  ? <span key={i} className="bg-yellow-500/30 text-yellow-200">{part}</span>
+                                  ? <span key={i} className="bg-warning/30 text-warning">{part}</span>
                                   : part
                               )}
                             </>

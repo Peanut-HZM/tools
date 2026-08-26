@@ -118,7 +118,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
             {th.title}
             {databaseName && <span className="text-sm text-ink-faint">({databaseName})</span>}
           </h3>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -159,7 +159,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
                           </div>
                         </div>
                         {record.status !== 'success' && (
-                          <span className="text-[10px] text-rose-400 font-medium">{record.status}</span>
+                          <span className="text-[10px] text-danger font-medium">{record.status}</span>
                         )}
                       </td>
                       <td className="px-3 py-2.5">{getModeBadge(record.backup_mode)}</td>
@@ -180,7 +180,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
                           <button
                             onClick={() => handleDelete(record)}
                             disabled={deletingId === record.id}
-                            className="p-1.5 text-ink-faint hover:text-rose-400 hover:bg-surface-2/50 rounded transition-colors disabled:opacity-50"
+                            className="p-1.5 text-ink-faint hover:text-danger hover:bg-surface-2/50 rounded transition-colors disabled:opacity-50"
                             title={th.delete}
                           >
                             {deletingId === record.id ? (

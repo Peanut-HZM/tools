@@ -284,7 +284,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                      key={fmt}
                      disabled={exporting}
                      onSelect={() => handleExport(fmt)}
-                     className="px-3 py-1.5 text-sm text-ink-muted focus:text-ink-inverse"
+                     className="px-3 py-1.5 text-sm text-ink-muted focus:text-ink"
                    >
                      {fmt.toUpperCase()}
                    </DropdownMenuItem>
@@ -377,7 +377,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              <button
                disabled={page <= 1 || loading}
                onClick={() => handlePageChange(page - 1)}
-               className="hover:text-ink-inverse disabled:opacity-30"
+               className="hover:text-ink disabled:opacity-30"
              >
                <ChevronLeft className="w-4 h-4" /> Previous
              </button>
@@ -391,7 +391,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                // We might want to improve `SQLExecutionResult` or return a different structure.
                // For now, let's just allow Next unless we got 0 rows or less than page size.
                onClick={() => handlePageChange(page + 1)}
-               className="hover:text-ink-inverse disabled:opacity-30"
+               className="hover:text-ink disabled:opacity-30"
              >
                Next <ChevronRight className="w-4 h-4" />
              </button>

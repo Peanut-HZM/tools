@@ -56,9 +56,9 @@ const JsonViewModal: React.FC<JsonViewModalProps> = ({ isOpen, onClose, data, ti
         <div className="p-4 border-t border-border flex justify-end space-x-3 bg-surface-1">
           <button
             onClick={handleCopy}
-            className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse bg-surface-2 hover:bg-surface-3 rounded-md transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink bg-surface-2 hover:bg-surface-3 rounded-md transition-colors flex items-center gap-2"
           >
-            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
             {copied ? "Copied" : "Copy JSON"}
           </button>
           <button

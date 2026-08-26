@@ -157,7 +157,7 @@ const DatabaseFilterDialog: React.FC<DatabaseFilterDialogProps> = ({
         <div className="p-4 border-t border-border flex justify-end space-x-3 bg-surface-1/50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface-2 rounded-md transition-colors"
           >
             {t.common.cancel}
           </button>
