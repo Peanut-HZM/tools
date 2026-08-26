@@ -5,6 +5,7 @@
  * 根据当前 resourceType 渲染对应的列表组件
  */
 import React from 'react';
+import { Box, Rocket, Server, Zap } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useI18n } from '../../../../i18n';
 import { PodList } from './PodList';
@@ -17,14 +18,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 interface TabConfig {
   key: string;
   labelKey: 'pods' | 'workloads' | 'nodes' | 'events';
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 const TABS: TabConfig[] = [
-  { key: 'pods', labelKey: 'pods', icon: 'fas fa-cube' },
-  { key: 'workloads', labelKey: 'workloads', icon: 'fas fa-rocket' },
-  { key: 'nodes', labelKey: 'nodes', icon: 'fas fa-server' },
-  { key: 'events', labelKey: 'events', icon: 'fas fa-bolt' },
+  { key: 'pods', labelKey: 'pods', icon: Box },
+  { key: 'workloads', labelKey: 'workloads', icon: Rocket },
+  { key: 'nodes', labelKey: 'nodes', icon: Server },
+  { key: 'events', labelKey: 'events', icon: Zap },
 ];
 
 export const ResourceTabs: React.FC = () => {
@@ -49,7 +50,10 @@ export const ResourceTabs: React.FC = () => {
         <TabsList className="mx-4 bg-transparent h-auto p-0 justify-start border-b border-border bg-surface-1/30">
           {TABS.map((tab) => (
             <TabsTrigger key={tab.key} value={tab.key} className="rounded-none bg-transparent px-4 py-2.5 text-sm font-medium border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 data-[state=active]:text-accent-info data-[state=inactive]:text-ink-muted">
-              <i className={`${tab.icon} text-xs`}></i>
+              {(() => {
+                const TabIcon = tab.icon;
+                return <TabIcon className="w-3.5 h-3.5 mr-1.5" />;
+              })()}
               {k8sT.resourceTabs[tab.labelKey]}
             </TabsTrigger>
           ))}

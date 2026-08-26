@@ -1,4 +1,5 @@
 import React from 'react';
+import { Plus, Terminal, Pencil, Trash2 } from 'lucide-react';
 import { SSHConfig } from '../../../api/sshToolApi';
 import { useI18n, interpolate } from '../../../i18n';
 
@@ -26,7 +27,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
             className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
             title={t.ssh.addConnection}
           >
-            <i className="fas fa-plus"></i>
+            <Plus className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -39,7 +40,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
           >
             <div className="truncate flex-1">
               <div className="font-medium flex items-center">
-                <i className="fas fa-terminal mr-2 text-xs opacity-70"></i>
+                <Terminal className="w-3 h-3 mr-2 opacity-70" />
                 {config.alias}
               </div>
               <div className="text-xs truncate text-ink-faint group-hover:text-ink-muted">
@@ -52,7 +53,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
                 className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink-inverse"
                 title={t.ssh.editConnection}
               >
-                <i className="fas fa-pen text-xs"></i>
+                <Pencil className="w-3 h-3" />
               </button>
               <button
                 onClick={(e) => {
@@ -64,7 +65,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
                 className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-danger"
                 title={t.common.delete}
               >
-                <i className="fas fa-trash text-xs"></i>
+                <Trash2 className="w-3 h-3" />
               </button>
             </div>
           </div>

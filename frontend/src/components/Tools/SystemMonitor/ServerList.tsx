@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus, Server } from 'lucide-react';
 import { useMonitorStore } from '../../../stores/monitorStore';
 import type { MonitorServer } from '../../../api/monitorApi';
 import * as monitorApi from '../../../api/monitorApi';
@@ -72,7 +73,7 @@ export default function ServerList() {
       <div className="flex items-center justify-between">
         <div className="text-sm text-ink-muted">共 {servers.length} 台服务器</div>
         <button className="px-3 py-1.5 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-500 text-ink-inverse" onClick={openAdd}>
-          <i className="fas fa-plus mr-1.5" />添加服务器
+          <Plus className="w-3.5 h-3.5 mr-1.5" />添加服务器
         </button>
       </div>
       {error && <div className="text-sm text-danger">{error}</div>}
@@ -95,7 +96,7 @@ export default function ServerList() {
       ))}
       {servers.length === 0 && (
         <div className="text-center text-ink-faint py-16">
-          <i className="fas fa-server text-4xl mb-3 block text-ink-faint" />
+          <Server className="w-10 h-10 mb-3 block text-ink-faint" />
           暂无监控服务器，点击右上角添加
         </div>
       )}

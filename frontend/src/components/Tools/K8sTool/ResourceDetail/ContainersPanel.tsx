@@ -5,6 +5,7 @@
  * 列：名称、镜像、状态、重启次数、资源请求/限制
  */
 import React from 'react';
+import { PlayCircle, Hourglass, StopCircle, HelpCircle } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import type { K8sContainerInfo } from '../types';
 import { Badge } from '@/components/ui/Badge';
@@ -25,12 +26,12 @@ const getStateColor = (state: K8sContainerInfo['state']): string => {
 };
 
 /** 容器状态图标 */
-const getStateIcon = (state: K8sContainerInfo['state']): string => {
+const getStateIcon = (state: K8sContainerInfo['state']): React.ComponentType<{ className?: string }> => {
   switch (state) {
-    case 'running': return 'fas fa-play-circle';
-    case 'waiting': return 'fas fa-hourglass-half';
-    case 'terminated': return 'fas fa-stop-circle';
-    default: return 'fas fa-question-circle';
+    case 'running': return PlayCircle;
+    case 'waiting': return Hourglass;
+    case 'terminated': return StopCircle;
+    default: return HelpCircle;
   }
 };
 
@@ -71,7 +72,10 @@ const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct:
     {/* 状态 */}
     <td className="px-3 py-2">
       <div className="flex items-center gap-1.5">
-        <i className={`${getStateIcon(container.state)} ${getStateColor(container.state)} text-xs`}></i>
+        {(() => {
+          const StateIcon = getStateIcon(container.state);
+          return <StateIcon className={`${getStateColor(container.state)} w-3 h-3`} />;
+        })()}
         <span className={`text-xs ${getStateColor(container.state)}`}>
           {container.state}
         </span>

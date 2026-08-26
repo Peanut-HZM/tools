@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Search, CheckSquare, RefreshCw, Plus, Loader2, Trash2, Hand } from 'lucide-react';
 import { RedisKeyInfo, getRedisKeys, deleteRedisKeys } from '../../../api/redisToolApi';
 import { batchUpdateTTL, batchRename } from '../../../api/redisToolApi';
 import { KeyDetail } from './KeyDetail';
@@ -101,7 +102,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
         <div className="p-4 border-b border-border space-y-2">
           <div className="flex space-x-2">
             <div className="relative flex-1">
-                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-faint"></i>
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-faint" />
                 <Input
                 type="text"
                 value={pattern}
@@ -121,7 +122,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
               className={batchMode ? 'bg-accent text-white border-blue-600 hover:bg-accent hover:text-white' : ''}
               title={batchMode ? '退出批量' : '批量模式'}
             >
-              <i className="fas fa-check-square"></i>
+              <CheckSquare className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
@@ -129,14 +130,14 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
               onClick={handleRefresh}
               title={t.redis.refresh}
             >
-              <i className="fas fa-sync-alt"></i>
+              <RefreshCw className="w-4 h-4" />
             </Button>
             <Button
               size="icon"
               onClick={() => setShowAddModal(true)}
               title={t.redis.addKey}
             >
-              <i className="fas fa-plus"></i>
+              <Plus className="w-4 h-4" />
             </Button>
           </div>
           <div className="text-xs text-ink-faint">
@@ -177,7 +178,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
           )}
           {loading ? (
             <div className="flex justify-center items-center h-32 text-ink-faint">
-                <i className="fas fa-spinner fa-spin mr-2"></i> {t.common.loading}
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.common.loading}
             </div>
           ) : (
             <div className="space-y-1">
@@ -239,7 +240,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                       }`}
                       title={t.redis.deleteKey}
                     >
-                      <i className="fas fa-trash text-xs"></i>
+                      <Trash2 className="w-3 h-3" />
                     </Button>
                   )}
                 </div>
@@ -264,7 +265,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-ink-faint">
-            <i className="fas fa-hand-pointer text-4xl mb-4 opacity-30"></i>
+            <Hand className="w-10 h-10 mb-4 opacity-30" />
             <p className="text-lg">{t.redis.selectConnection}</p>
           </div>
         )}

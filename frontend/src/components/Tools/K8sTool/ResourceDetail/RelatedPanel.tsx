@@ -6,7 +6,7 @@
  */
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Zap, Server, Box } from 'lucide-react';
+import { Link, Zap, Server, Box, MapPin, Key, Database } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import * as api from '../../../../api/k8sToolApi';
@@ -113,12 +113,12 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
   };
 
   /** 资源 Kind 图标 */
-  const getKindIcon = (kind: string): string => {
+  const getKindIcon = (kind: string): React.ReactNode => {
     switch (kind) {
-      case 'ConfigMap': return 'fas fa-map text-accent-info';
-      case 'Secret': return 'fas fa-key text-accent-warning';
-      case 'PVC': return 'fas fa-database text-accent-secondary';
-      default: return 'fas fa-cube text-ink-muted';
+      case 'ConfigMap': return <MapPin className="w-3.5 h-3.5 text-accent-info" />;
+      case 'Secret': return <Key className="w-3.5 h-3.5 text-accent-warning" />;
+      case 'PVC': return <Database className="w-3.5 h-3.5 text-accent-secondary" />;
+      default: return <Box className="w-3.5 h-3.5 text-ink-muted" />;
     }
   };
 
@@ -230,7 +230,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded text-xs transition-colors hover:opacity-80 ${getKindColor(item.kind)}`}
                 title={rt.viewEvents}
               >
-                <i className={getKindIcon(item.kind)}></i>
+                {getKindIcon(item.kind)}
                 <span className="text-ink-muted font-mono truncate max-w-[200px]">
                   {item.name}
                 </span>

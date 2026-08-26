@@ -8,7 +8,18 @@
  */
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  Box,
+  Loader2,
+  AlertTriangle,
+  Info,
+  Workflow,
+  Terminal,
+  FileCode,
+  Zap,
+  LineChart,
+  Network,
+} from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import * as api from '../../../../api/k8sToolApi';
@@ -34,7 +45,7 @@ interface PodDetailProps {
 interface SubTab {
   key: string;
   labelKey: keyof typeof TAB_I18N_KEYS;
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 /** Tab key → i18n key 映射 */
@@ -50,14 +61,14 @@ const TAB_I18N_KEYS = {
 } as const;
 
 const SUB_TABS: SubTab[] = [
-  { key: 'overview', labelKey: 'overview', icon: 'fas fa-info-circle' },
-  { key: 'containers', labelKey: 'containers', icon: 'fas fa-cube' },
-  { key: 'logs', labelKey: 'logs', icon: 'fas fa-stream' },
-  { key: 'terminal', labelKey: 'terminal', icon: 'fas fa-terminal' },
-  { key: 'yaml', labelKey: 'yaml', icon: 'fas fa-file-code' },
-  { key: 'events', labelKey: 'events', icon: 'fas fa-bolt' },
-  { key: 'metrics', labelKey: 'metrics', icon: 'fas fa-chart-line' },
-  { key: 'related', labelKey: 'related', icon: 'fas fa-project-diagram' },
+  { key: 'overview', labelKey: 'overview', icon: Info },
+  { key: 'containers', labelKey: 'containers', icon: Box },
+  { key: 'logs', labelKey: 'logs', icon: Workflow },
+  { key: 'terminal', labelKey: 'terminal', icon: Terminal },
+  { key: 'yaml', labelKey: 'yaml', icon: FileCode },
+  { key: 'events', labelKey: 'events', icon: Zap },
+  { key: 'metrics', labelKey: 'metrics', icon: LineChart },
+  { key: 'related', labelKey: 'related', icon: Network },
 ];
 
 export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
@@ -248,7 +259,10 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
         <TabsList className="bg-transparent h-auto p-0">
           {SUB_TABS.map((tab) => (
             <TabsTrigger key={tab.key} value={tab.key} className="rounded-none bg-transparent px-3 py-2 text-xs font-medium border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 data-[state=active]:text-accent-info data-[state=inactive]:text-ink-muted">
-              <i className={`${tab.icon} text-xs`}></i>
+              {(() => {
+                const TabIcon = tab.icon;
+                return <TabIcon className="w-3 h-3 mr-1" />;
+              })()}
               {tabT[tab.labelKey]}
             </TabsTrigger>
           ))}

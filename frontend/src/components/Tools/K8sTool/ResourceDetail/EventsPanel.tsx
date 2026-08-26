@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Zap } from 'lucide-react';
+import { Loader2, Zap, Info, AlertTriangle, Circle } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/k8sToolApi';
 import { formatAge } from '../ResourceTabs/utils';
@@ -32,11 +32,11 @@ const getEventTypeColor = (type: string): string => {
 };
 
 /** 事件类型图标 */
-const getEventTypeIcon = (type: string): string => {
+const getEventTypeIcon = (type: string): React.ComponentType<{ className?: string }> => {
   switch (type) {
-    case 'Normal': return 'fas fa-info-circle';
-    case 'Warning': return 'fas fa-exclamation-triangle';
-    default: return 'fas fa-circle';
+    case 'Normal': return Info;
+    case 'Warning': return AlertTriangle;
+    default: return Circle;
   }
 };
 
@@ -92,7 +92,10 @@ export const EventsPanel: React.FC<Props> = ({
               {/* 类型 */}
               <td className="px-3 py-2">
                 <div className="flex items-center gap-1.5">
-                  <i className={`${getEventTypeIcon(event.type)} ${getEventTypeColor(event.type)} text-xs`}></i>
+                  {(() => {
+                    const EventIcon = getEventTypeIcon(event.type);
+                    return <EventIcon className={`${getEventTypeColor(event.type)} w-3 h-3`} />;
+                  })()}
                   <span className={`${getEventTypeColor(event.type)} font-medium`}>
                     {event.type}
                   </span>

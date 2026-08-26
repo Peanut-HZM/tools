@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Loader2, Pencil } from 'lucide-react';
 import { getRedisKeyContent, setRedisKey, RedisKeyContent } from '../../../api/redisToolApi';
 import { StreamEditor } from './StreamEditor';
 import { BitmapEditor } from './BitmapEditor';
@@ -101,7 +102,7 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
   if (loading) {
     return (
         <div className="flex justify-center items-center h-full text-ink-faint">
-            <i className="fas fa-spinner fa-spin mr-2"></i> {t.common.loading}
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.common.loading}
         </div>
     );
   }
@@ -128,7 +129,7 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
                   variant="secondary"
                   onClick={() => setEditing(true)}
                 >
-                  <i className="fas fa-pen mr-1"></i> {t.common.edit || 'Edit'}
+                  <Pencil className="w-3.5 h-3.5 mr-1" /> {t.common.edit || 'Edit'}
                 </Button>
               ) : (
                 <>

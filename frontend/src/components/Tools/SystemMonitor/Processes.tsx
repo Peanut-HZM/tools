@@ -1,5 +1,6 @@
 // frontend/src/components/Tools/SystemMonitor/Processes.tsx
 import { useEffect, useState, useCallback } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { useMonitorStore } from '../../../stores/monitorStore';
 import * as monitorApi from '../../../api/monitorApi';
 import type { MonitorProcess } from '../../../api/monitorApi';
@@ -105,7 +106,7 @@ export default function Processes() {
           </SelectContent>
         </Select>
         <Button variant="secondary" size="sm" onClick={load}>
-          <i className="fas fa-sync mr-1.5" />刷新
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />刷新
         </Button>
       </div>
       {error && <div className="text-sm text-danger">{error}</div>}

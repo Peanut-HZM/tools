@@ -1,5 +1,6 @@
 // frontend/src/components/Tools/SystemMonitor/Alerts.tsx
 import { useEffect, useState, useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import { useMonitorStore } from '../../../stores/monitorStore';
 import * as monitorApi from '../../../api/monitorApi';
 import type { AlertRule, AlertLog, MonitorSettings } from '../../../api/monitorApi';
@@ -139,7 +140,7 @@ export default function Alerts() {
           <CardTitle className="text-sm font-medium text-ink">告警规则</CardTitle>
           <button className="px-3 py-1.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-ink-inverse"
             onClick={() => setEditing({ ...EMPTY_FORM, id: '' })}>
-            <i className="fas fa-plus mr-1" />新建规则
+            <Plus className="w-3.5 h-3.5 mr-1" />新建规则
           </button>
         </CardHeader>
         <CardContent className="p-0">

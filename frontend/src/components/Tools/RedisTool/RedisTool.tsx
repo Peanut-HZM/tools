@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Key, LineChart as LineChartIcon, Wrench, Server } from 'lucide-react';
 import { ConnectionList } from './ConnectionList';
 import { KeyExplorer } from './KeyExplorer';
 import { MonitorPanel } from './MonitorPanel';
@@ -81,9 +82,9 @@ const RedisTool: React.FC = () => {
         {selectedConfigId ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'keys' | 'monitor' | 'ops')} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="mx-2 mt-2 bg-surface-2 shrink-0">
-              <TabsTrigger value="keys"><i className="fas fa-key mr-1"></i> 键值浏览</TabsTrigger>
-              <TabsTrigger value="monitor"><i className="fas fa-chart-line mr-1"></i> 监控</TabsTrigger>
-              <TabsTrigger value="ops"><i className="fas fa-tools mr-1"></i> 运维</TabsTrigger>
+              <TabsTrigger value="keys"><Key className="w-3.5 h-3.5 mr-1" /> 键值浏览</TabsTrigger>
+              <TabsTrigger value="monitor"><LineChartIcon className="w-3.5 h-3.5 mr-1" /> 监控</TabsTrigger>
+              <TabsTrigger value="ops"><Wrench className="w-3.5 h-3.5 mr-1" /> 运维</TabsTrigger>
             </TabsList>
             <TabsContent value="keys" className="flex-1 overflow-hidden">
               <KeyExplorer configId={selectedConfigId} />
@@ -97,7 +98,7 @@ const RedisTool: React.FC = () => {
           </Tabs>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-ink-faint">
-            <i className="fas fa-server text-6xl mb-4 opacity-20"></i>
+            <Server className="w-16 h-16 mb-4 opacity-20" />
             <p className="text-lg">{t.redis.selectConnection}</p>
           </div>
         )}

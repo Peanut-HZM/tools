@@ -115,7 +115,7 @@ describe('TabBar', () => {
     expect(inactiveTab?.className).toContain('text-ink-muted');
   });
 
-  it('每个标签渲染状态指示图标（fas fa-cube）', () => {
+  it('每个标签渲染状态指示图标（Box 图标）', () => {
     mockStoreState.openedTabs = [
       { id: 'tab-1', type: 'pod', namespace: 'default', name: 'nginx' },
       { id: 'tab-2', type: 'deployment', namespace: 'default', name: 'api-server' },
@@ -124,8 +124,8 @@ describe('TabBar', () => {
 
     const { container } = render(<TabBar />);
 
-    // 应渲染 2 个状态图标
-    const icons = container.querySelectorAll('i.fas.fa-cube');
+    // 应渲染 2 个状态图标（lucide Box → svg.lucide-box）
+    const icons = container.querySelectorAll('svg.lucide-box');
     expect(icons.length).toBe(2);
   });
 

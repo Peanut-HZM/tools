@@ -1,4 +1,5 @@
 import React from 'react';
+import { Plus, Server, Pencil, Trash2 } from 'lucide-react';
 import { RedisConfig } from '../../../api/redisToolApi';
 import { useI18n, interpolate } from '../../../i18n';
 import { Button } from "@/components/ui/Button";
@@ -26,7 +27,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
             onClick={onAdd}
             title={t.redis.addConnection}
           >
-            <i className="fas fa-plus"></i>
+            <Plus className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -43,7 +44,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
           >
             <div className="truncate flex-1">
               <div className="font-medium flex items-center">
-                <i className="fas fa-server mr-2 text-xs opacity-70"></i>
+                <Server className="w-3 h-3 mr-2 opacity-70" />
                 {config.alias}
               </div>
               <div className={`text-xs truncate ${selectedId === config.id ? 'text-blue-200' : 'text-ink-faint group-hover:text-ink-muted'}`}>
@@ -58,7 +59,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
                 className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-white'}`}
                 title={t.redis.editConnection}
               >
-                <i className="fas fa-pen text-xs"></i>
+                <Pencil className="w-3 h-3" />
               </Button>
               <Button
                 variant="ghost"
@@ -72,7 +73,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
                 className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-danger'}`}
                 title={t.common.delete}
               >
-                 <i className="fas fa-trash text-xs"></i>
+                 <Trash2 className="w-3 h-3" />
               </Button>
             </div>
           </div>

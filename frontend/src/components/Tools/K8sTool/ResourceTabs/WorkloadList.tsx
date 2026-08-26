@@ -5,7 +5,7 @@
  * 字段：类型、名称、就绪、可用、镜像、创建时间
  */
 import React from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Rocket, Database, Settings, Copy, ListChecks, CalendarClock, Box } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sDeployments } from '../../../../hooks/useK8sClient';
 import { useI18n } from '../../../../i18n';
@@ -31,15 +31,15 @@ export const WorkloadList: React.FC = () => {
   };
 
   /** 根据 kind 返回图标 */
-  const getKindIcon = (kind: string): string => {
+  const getKindIcon = (kind: string): React.ComponentType<{ className?: string }> => {
     switch (kind.toLowerCase()) {
-      case 'deployment': return 'fas fa-rocket';
-      case 'statefulset': return 'fas fa-database';
-      case 'daemonset': return 'fas fa-cogs';
-      case 'replicaset': return 'fas fa-clone';
-      case 'job': return 'fas fa-tasks';
-      case 'cronjob': return 'fas fa-calendar-alt';
-      default: return 'fas fa-cube';
+      case 'deployment': return Rocket;
+      case 'statefulset': return Database;
+      case 'daemonset': return Settings;
+      case 'replicaset': return Copy;
+      case 'job': return ListChecks;
+      case 'cronjob': return CalendarClock;
+      default: return Box;
     }
   };
 
@@ -100,7 +100,10 @@ export const WorkloadList: React.FC = () => {
               {/* 类型 */}
               <td className="px-3 py-2">
                 <div className="flex items-center gap-1.5">
-                  <i className={`${getKindIcon(wl.kind)} text-accent-info text-xs`}></i>
+                  {(() => {
+                    const KindIcon = getKindIcon(wl.kind);
+                    return <KindIcon className="w-3 h-3 text-accent-info mr-1" />;
+                  })()}
                   <span className="text-ink-muted text-xs">{wl.kind}</span>
                 </div>
               </td>
