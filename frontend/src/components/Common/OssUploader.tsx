@@ -239,7 +239,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
 
         {uploading ? (
           <div className="space-y-3">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan mx-auto"></div>
             <p className="text-ink-muted">正在上传...</p>
             {uploadFile && (
               <div className="max-w-md mx-auto">
@@ -258,10 +258,10 @@ const OssUploader: React.FC<OssUploaderProps> = ({
           </div>
         ) : value ? (
           <div className="space-y-3">
-            <div className="text-green-400 text-4xl mb-2">
+            <div className="text-success text-4xl mb-2">
               <CheckCircle className="w-4 h-4" />
             </div>
-            <p className="text-white font-medium">上传成功</p>
+            <p className="text-ink font-medium">上传成功</p>
             {uploadFile && (
               <p className="text-ink-faint text-sm">
                 {uploadFile.name} ({formatFileSize(uploadFile.size)})
@@ -273,7 +273,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
                 e.stopPropagation();
                 handleClick();
               }}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors text-sm"
             >
               重新上传
             </button>
@@ -283,7 +283,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
             <div className="text-accent text-5xl mb-4">
               <CloudUpload className="w-4 h-4" />
             </div>
-            <p className="text-white font-medium">点击或拖拽文件到此处上传</p>
+            <p className="text-ink font-medium">点击或拖拽文件到此处上传</p>
             <p className="text-ink-faint text-sm">
               支持 {accept || '所有文件'}，最大 {maxSize}MB
             </p>
@@ -300,7 +300,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
                 <FileIcon className="w-4 h-4 text-accent" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">{value.split('/').pop()}</p>
+                <p className="text-ink font-medium truncate">{value.split('/').pop()}</p>
                 <p className="text-ink-faint text-sm">{value}</p>
               </div>
             </div>
@@ -332,7 +332,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
 
       {/* Error Message */}
       {uploadFile?.status === 'error' && (
-        <div className="bg-danger/10 border border-red-500/30 rounded-xl p-4">
+        <div className="bg-danger/10 border-danger/30 rounded-xl p-4">
           <div className="flex items-center space-x-2 text-danger">
             <AlertCircle className="w-4 h-4" />
             <span className="font-medium">{uploadFile.error}</span>

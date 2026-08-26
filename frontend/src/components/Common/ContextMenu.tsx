@@ -59,8 +59,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
               ${item.disabled
                 ? 'text-ink-faint cursor-not-allowed'
                 : item.danger
-                  ? 'text-danger hover:bg-red-900/20'
-                  : 'text-ink-muted hover:bg-surface-2 hover:text-white'
+                  ? 'text-danger hover:bg-danger/10'
+                  : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
               }
             `}
             onClick={() => {

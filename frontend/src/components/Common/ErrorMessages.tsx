@@ -14,9 +14,9 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
   className = '',
 }) => {
   const typeStyles = {
-    error: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300',
-    warning: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300',
-    info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300',
+    error: 'bg-danger/10 border-danger/30 text-danger',
+    warning: 'bg-warning/10 border-warning/30 text-warning',
+    info: 'bg-accent-info/10 border-accent-info/30 text-accent-info',
   };
 
   const icons = {
@@ -110,7 +110,7 @@ export const ApiError: React.FC<ApiErrorProps> = ({ error, onRetry, className = 
         <div className="mt-4 flex justify-center">
           <button
             onClick={onRetry}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-accent-info text-ink-inverse rounded-lg hover:bg-accent-info/90 transition-colors"
           >
             重试
           </button>
@@ -127,7 +127,7 @@ interface ValidationErrorProps {
 
 export const ValidationError: React.FC<ValidationErrorProps> = ({ field, message }) => {
   return (
-    <div className="text-red-600 dark:text-red-400 text-sm mt-1">
+    <div className="text-danger text-sm mt-1">
       <span className="font-medium">{field}:</span> {message}
     </div>
   );
@@ -171,7 +171,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           />
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-accent-info text-ink-inverse rounded-lg hover:bg-accent-info/90"
           >
             重新加载
           </button>

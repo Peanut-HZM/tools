@@ -40,7 +40,7 @@ export default function LoginModal() {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
       <div className="bg-surface-1 rounded-xl p-8 shadow-md w-full max-w-md mx-4 border border-border">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-xl font-bold text-ink">
             {t.auth.loginTitle}
           </h2>
           <TooltipProvider>
@@ -50,7 +50,7 @@ export default function LoginModal() {
                   onClick={closeLoginModal}
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-ink-faint hover:text-white"
+                  className="h-6 w-6 text-ink-faint hover:text-ink"
                   aria-label="关闭"
                 >
                   <X className="text-lg w-5 h-5" />

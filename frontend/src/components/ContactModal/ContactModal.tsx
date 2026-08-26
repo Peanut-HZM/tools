@@ -104,12 +104,12 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
         {/* 头部 */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-white">{t.contactModal.title}</h3>
+            <h3 className="text-xl font-semibold text-ink">{t.contactModal.title}</h3>
             <p className="text-sm text-ink-faint mt-1">{t.contactModal.subtitle}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-ink-faint hover:text-white transition-colors p-1 rounded-lg hover:bg-surface-2"
+            className="text-ink-faint hover:text-ink transition-colors p-1 rounded-lg hover:bg-surface-2"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -131,8 +131,8 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               value={formData.name}
               onChange={handleChange}
               placeholder={t.contactModal.namePlaceholder}
-              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.name ? 'border-red-500' : 'border-border'
+              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent ${
+                errors.name ? 'border-danger' : 'border-border'
               }`}
             />
             {errors.name && (
@@ -152,8 +152,8 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               value={formData.email}
               onChange={handleChange}
               placeholder={t.contactModal.emailPlaceholder}
-              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.email ? 'border-red-500' : 'border-border'
+              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent ${
+                errors.email ? 'border-danger' : 'border-border'
               }`}
             />
             {errors.email && (
@@ -173,7 +173,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               value={formData.subject}
               onChange={handleChange}
               placeholder={t.contactModal.subjectPlaceholder}
-              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
 
@@ -189,8 +189,8 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               onChange={handleChange}
               placeholder={t.contactModal.contentPlaceholder}
               rows={5}
-              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
-                errors.content ? 'border-red-500' : 'border-border'
+              className={`w-full px-3 py-2 bg-surface-2 border rounded-lg text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent resize-none ${
+                errors.content ? 'border-danger' : 'border-border'
               }`}
             />
             {errors.content && (
@@ -200,13 +200,13 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
           {/* 提交状态提示 */}
           {submitStatus === 'success' && (
-            <div className="p-3 bg-green-900 bg-opacity-50 border border-green-700 rounded-lg text-green-300 text-sm">
+            <div className="p-3 bg-success/10 border-success/30 rounded-lg text-success text-sm">
               {t.contactModal.submitSuccess}
             </div>
           )}
 
           {submitStatus === 'error' && (
-            <div className="p-3 bg-red-900 bg-opacity-50 border border-red-700 rounded-lg text-red-300 text-sm">
+            <div className="p-3 bg-danger/10 border-danger/30 rounded-lg text-danger text-sm">
               {t.contactModal.submitFailed}
             </div>
           )}
@@ -224,7 +224,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? t.contactModal.submitting : t.contactModal.submit}
             </button>

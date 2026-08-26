@@ -100,7 +100,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
-          <div className="text-red-500 mb-4">
+          <div className="text-danger mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -110,11 +110,11 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
               />
             </svg>
           </div>
-          <p className="text-red-600 dark:text-danger mb-4">{error}</p>
+          <p className="text-danger mb-4">{error}</p>
           {onRetry && (
             <button
               onClick={onRetry}
-              className="px-4 py-2 bg-accent-info text-white rounded-lg hover:bg-accent-hover"
+              className="px-4 py-2 bg-accent-info text-ink-inverse rounded-lg hover:bg-accent-hover"
             >
               重试
             </button>

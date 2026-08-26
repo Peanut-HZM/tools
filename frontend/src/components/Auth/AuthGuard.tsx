@@ -29,7 +29,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-cyan mx-auto mb-4"></div>
           <p className="text-ink-muted">验证登录状态...</p>
         </div>
       </div>
