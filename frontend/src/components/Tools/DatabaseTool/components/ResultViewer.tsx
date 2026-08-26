@@ -805,8 +805,13 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
       <ConfirmDialog
         open={showTruncateConfirm}
         onOpenChange={(open) => { if (!open) setShowTruncateConfirm(false); }}
-        title="确认清空表"
-        description={`确定要清空表 ${tableName || ''} 的所有数据吗？此操作不可撤销，表中的所有数据将被删除。`}
+        title={`确认清空表 "${tableName || ''}"`}
+        description={
+          <>
+            将清空表 <span className="font-mono text-accent-warning">{tableName}</span> 中的所有数据。
+            此操作不可撤销。
+          </>
+        }
         confirmText="确认清空"
         variant="destructive"
         onConfirm={handleTruncate}
