@@ -291,7 +291,7 @@ export default function Calendar() {
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
+            <div className="w-8 h-8 bg-danger rounded flex items-center justify-center">
               <CalendarDays className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-lg font-bold">万年历</h1>
@@ -363,11 +363,11 @@ export default function Calendar() {
         {/* 图例 */}
         <Card className="p-3 mb-4 flex items-center gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-green-500 rounded"></span>
+            <span className="w-3 h-3 bg-success rounded"></span>
             <span className="text-ink-muted">法定假日</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-orange-500 rounded"></span>
+            <span className="w-3 h-3 bg-warning rounded"></span>
             <span className="text-ink-muted">调休上班</span>
           </div>
           <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export default function Calendar() {
             <span className="text-ink-muted">今天</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-pink-400 text-xs">节</span>
+            <span className="text-danger text-xs">节</span>
             <span className="text-ink-muted">传统节日</span>
           </div>
         </Card>
@@ -402,14 +402,14 @@ export default function Calendar() {
                 {selectedDayInfo.holiday && (
                   <span className={`px-2 py-1 rounded text-sm ${
                     selectedDayInfo.holiday.isOffDay
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-orange-500/20 text-orange-400'
+                      ? 'bg-success/10 text-success'
+                      : 'bg-warning/10 text-warning'
                   }`}>
                     {selectedDayInfo.holiday.name} - {selectedDayInfo.holiday.isOffDay ? '休息' : '上班'}
                   </span>
                 )}
                 {selectedDayInfo.lunar?.lunar_festival && (
-                  <span className="px-2 py-1 rounded text-sm bg-pink-500/20 text-pink-400">
+                  <span className="px-2 py-1 rounded text-sm bg-danger/10 text-danger">
                     {selectedDayInfo.lunar.lunar_festival}
                   </span>
                 )}
@@ -494,8 +494,8 @@ export default function Calendar() {
                         className={`
                           text-xs px-1.5 py-0.5 rounded font-medium
                           ${dayInfo.holiday!.isOffDay
-                            ? 'bg-green-500 text-white'
-                            : 'bg-orange-500 text-white'}
+                            ? 'bg-success text-ink-inverse'
+                            : 'bg-warning text-ink-inverse'}
                           ${!dayInfo.isCurrentMonth ? 'opacity-50' : ''}
                         `}
                       >
@@ -509,7 +509,7 @@ export default function Calendar() {
                     <div className="mt-1">
                       <span className={`
                         text-xs truncate block
-                        ${hasFestival ? 'text-pink-400 font-medium' : ''}
+                        ${hasFestival ? 'text-danger font-medium' : ''}
                         ${!hasFestival && dayInfo.isCurrentMonth ? 'text-ink-faint' : ''}
                         ${!hasFestival && !dayInfo.isCurrentMonth ? 'text-ink-faint' : ''}
                       `}>
@@ -523,7 +523,7 @@ export default function Calendar() {
                     <div className="mt-0.5">
                       <span className={`
                         text-xs truncate block
-                        ${dayInfo.holiday!.isOffDay ? 'text-green-400' : 'text-orange-400'}
+                        ${dayInfo.holiday!.isOffDay ? 'text-success' : 'text-warning'}
                       `}>
                         {dayInfo.holiday!.name}
                       </span>

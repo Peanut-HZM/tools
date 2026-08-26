@@ -201,7 +201,7 @@ export default function MarkItDownConverter() {
           </svg>
           {t.converter.back}
         </Button>
-        <h1 className="text-2xl font-bold text-ink-inverse">{t.converter.title}</h1>
+        <h1 className="text-2xl font-bold text-ink">{t.converter.title}</h1>
         <div className="w-24"></div> {/* Spacer */}
       </div>
 
@@ -234,11 +234,11 @@ export default function MarkItDownConverter() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <p className="text-base font-medium text-ink-inverse mb-1 truncate px-2">{file.name}</p>
+                <p className="text-base font-medium text-ink mb-1 truncate px-2">{file.name}</p>
                 <p className="text-xs text-ink-muted mb-4">{(file.size / 1024).toFixed(2)} KB</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                  className="text-danger hover:text-red-300 text-xs underline"
+                  className="text-danger hover:text-danger/80 text-xs underline"
                 >
                   {t.converter.remove}
                 </button>
@@ -250,7 +250,7 @@ export default function MarkItDownConverter() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 </div>
-                <p className="text-base font-medium text-ink-inverse mb-1">{t.converter.dragDrop}</p>
+                <p className="text-base font-medium text-ink mb-1">{t.converter.dragDrop}</p>
                 <p className="text-xs text-ink-muted mb-4 px-4">{t.converter.supports}</p>
                 <label
                   htmlFor="file-upload"
@@ -268,7 +268,7 @@ export default function MarkItDownConverter() {
             className={`shrink-0 w-full py-3 rounded-xl font-bold text-base ${
               !file || loading
                 ? 'bg-surface-2 text-ink-faint cursor-not-allowed'
-                : 'bg-gradient-to-r from-accent to-accent-hover hover:from-cyan-400 hover:to-blue-500 text-ink-inverse shadow-lg hover:shadow-cyan-500/25'
+                : 'bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-secondary text-ink-inverse shadow-lg'
             }`}
           >
             {loading ? (

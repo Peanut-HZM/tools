@@ -7,17 +7,17 @@ export default function LearningSharePlatform() {
       <div className="max-w-4xl mx-auto">
         <Card className="p-8">
           <div className="flex items-center mb-6">
-            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mr-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-accent to-accent-secondary rounded-xl flex items-center justify-center mr-4">
               <Presentation className="w-6 h-6 text-ink-inverse" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-ink-inverse">学习分享演示平台</h1>
+              <h1 className="text-2xl font-bold text-ink">学习分享演示平台</h1>
               <p className="text-ink-muted">互动式知识分享与技术演示工具</p>
             </div>
           </div>
 
           <Card className="p-6 mb-6">
-            <h2 className="text-lg font-semibold text-ink-inverse mb-4">🎯 功能介绍</h2>
+            <h2 className="text-lg font-semibold text-ink mb-4">🎯 功能介绍</h2>
             <ul className="space-y-3 text-ink-muted">
               <li className="flex items-start">
                 <CheckCircle className="w-4 h-4 text-accent-secondary mr-3 mt-1" />
@@ -39,7 +39,7 @@ export default function LearningSharePlatform() {
           </Card>
 
           <Card className="p-6 mb-6">
-            <h2 className="text-lg font-semibold text-ink-inverse mb-4">💡 适用场景</h2>
+            <h2 className="text-lg font-semibold text-ink mb-4">💡 适用场景</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-surface-1 rounded-lg p-4">
                 <div className="text-accent-secondary font-semibold mb-2">技术分享</div>

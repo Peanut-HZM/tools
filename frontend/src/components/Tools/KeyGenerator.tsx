@@ -125,7 +125,7 @@ export default function KeyGenerator() {
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-yellow-500 rounded flex items-center justify-center">
+            <div className="w-8 h-8 bg-warning rounded flex items-center justify-center">
               <Key className="w-4 h-4 text-ink-inverse" />
             </div>
             <h1 className="text-lg font-bold">密钥生成器</h1>
@@ -164,7 +164,7 @@ export default function KeyGenerator() {
             <button
               onClick={generateKey}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-ink-inverse py-2.5 rounded-lg font-medium transition-all disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-accent to-accent-secondary hover:from-accent-hover hover:to-accent-secondary text-ink-inverse py-2.5 rounded-lg font-medium transition-all disabled:opacity-50"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />生成中...</>
@@ -389,8 +389,8 @@ export default function KeyGenerator() {
                 {/* API Key */}
                 {generatedKey.api_key && (
                   <div className="bg-surface-1 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2 bg-orange-500/10 border-b border-border">
-                      <span className="text-sm font-medium text-orange-400">
+                    <div className="flex items-center justify-between px-4 py-2 bg-warning/10 border-b border-border">
+                      <span className="text-sm font-medium text-warning">
                         <Code className="w-4 h-4 mr-2" />API Key
                       </span>
                       <Button
@@ -402,7 +402,7 @@ export default function KeyGenerator() {
                       </Button>
                     </div>
                     <div className="p-3 bg-canvas">
-                      <code className="text-orange-400 font-mono text-sm break-all">{generatedKey.api_key}</code>
+                      <code className="text-warning font-mono text-sm break-all">{generatedKey.api_key}</code>
                     </div>
                   </div>
                 )}
@@ -410,8 +410,8 @@ export default function KeyGenerator() {
                 {/* Base64 字符串 */}
                 {generatedKey.base64_string && (
                   <div className="bg-surface-1 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2 bg-pink-500/10 border-b border-border">
-                      <span className="text-sm font-medium text-pink-400">
+                    <div className="flex items-center justify-between px-4 py-2 bg-danger/10 border-b border-border">
+                      <span className="text-sm font-medium text-danger">
                         <Type className="w-4 h-4 mr-2" />Base64 字符串
                       </span>
                       <Button
@@ -423,14 +423,14 @@ export default function KeyGenerator() {
                       </Button>
                     </div>
                     <div className="p-3 bg-canvas">
-                      <code className="text-pink-400 font-mono text-sm break-all">{generatedKey.base64_string}</code>
+                      <code className="text-danger font-mono text-sm break-all">{generatedKey.base64_string}</code>
                     </div>
                   </div>
                 )}
 
                 {/* 安全提示 */}
                 <div className="p-3 bg-accent-warning/10 border border-accent-warning/30 rounded-lg text-xs text-ink-muted">
-                  <AlertTriangle className="w-4 h-4 text-yellow-500 mr-2" />
+                  <AlertTriangle className="w-4 h-4 text-warning mr-2" />
                   私钥请妥善保管，切勿泄露。密钥仅在本地生成，不会上传到服务器。
                 </div>
               </div>

@@ -237,13 +237,13 @@ export default function OpenClawChat() {
       <div className="flex items-center justify-center h-[calc(100vh-120px)]">
         <div className="text-center text-ink-muted">
           <div className="text-6xl mb-4">
-            <MessageSquare className="w-5 h-5 text-violet-500" />
+            <MessageSquare className="w-5 h-5 text-accent-secondary" />
           </div>
-          <p className="text-xl mb-4 text-ink-inverse">OpenClaw AI 对话</p>
+          <p className="text-xl mb-4 text-ink">OpenClaw AI 对话</p>
           <p className="mb-4">需要登录后才能使用此功能</p>
           <button
             onClick={openLoginModal}
-            className="px-6 py-2 bg-violet-600 text-ink-inverse rounded-lg hover:bg-violet-700 transition-colors"
+            className="px-6 py-2 bg-accent-secondary text-ink-inverse rounded-lg hover:opacity-90 transition-colors"
           >
             登录
           </button>
@@ -280,25 +280,25 @@ export default function OpenClawChat() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface-1/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-accent-secondary to-accent rounded-lg flex items-center justify-center">
             <MessageSquare className="w-5 h-5 text-ink-inverse" />
           </div>
           <div>
-            <h2 className="text-ink-inverse font-semibold">OpenClaw AI 对话</h2>
+            <h2 className="text-ink font-semibold">OpenClaw AI 对话</h2>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-sm">
-                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success' : 'bg-danger'}`}></span>
                 <span className="text-ink-muted">{isConnected ? '已连接' : '未连接'}</span>
               </div>
               {!isConnected && (
-                <span className="text-xs text-amber-400/80">服务未连接，请前往管理面板配置 OpenClaw 连接信息</span>
+                <span className="text-xs text-warning/80">服务未连接，请前往管理面板配置 OpenClaw 连接信息</span>
               )}
             </div>
           </div>
         </div>
         <button
           onClick={handleReset}
-          className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink-inverse border border-border rounded-lg hover:border-border transition-colors"
+          className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink border border-border rounded-lg hover:border-border transition-colors"
         >
           <RotateCw className="w-3.5 h-3.5 mr-1" />
           新对话
@@ -309,7 +309,7 @@ export default function OpenClawChat() {
       {error && (
         <div className="px-6 py-2 bg-danger/10 border-b border-danger/30 text-danger text-sm flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-danger hover:text-red-300">
+          <button onClick={() => setError(null)} className="text-danger hover:text-danger/80">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -327,7 +327,7 @@ export default function OpenClawChat() {
           <div className="flex items-center justify-center h-full text-ink-faint">
             <div className="text-center">
               <div className="text-5xl mb-3">
-                <MessageSquare className="w-5 h-5 text-violet-500/50" />
+                <MessageSquare className="w-5 h-5 text-accent-secondary/50" />
               </div>
               <p className="text-lg">发送一条消息开始对话</p>
             </div>
@@ -342,13 +342,13 @@ export default function OpenClawChat() {
                 <div
                   className={`rounded-2xl px-4 py-3 ${
                     msg.role === 'user'
-                      ? 'bg-violet-600 text-ink-inverse rounded-br-md'
+                      ? 'bg-accent-secondary text-ink-inverse rounded-br-md'
                       : 'bg-surface-1 text-ink rounded-bl-md'
                   }`}
                 >
                   <p className="whitespace-pre-wrap break-words">{msg.content || (msg.isStreaming ? 'Thinking...' : '')}</p>
                   {msg.isStreaming && (
-                    <span className="inline-block w-1.5 h-4 bg-violet-400 animate-pulse ml-1"></span>
+                    <span className="inline-block w-1.5 h-4 bg-accent-secondary animate-pulse ml-1"></span>
                   )}
                 </div>
                 <div className={`text-xs text-ink-faint mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
@@ -371,13 +371,13 @@ export default function OpenClawChat() {
             onKeyDown={handleKeyDown}
             placeholder="输入消息... (Shift+Enter 换行，Enter 发送)"
             disabled={!isConnected || isSending}
-            className="flex-1 bg-surface-1 text-ink-inverse placeholder-slate-500 border border-border rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-violet-500 disabled:opacity-50"
+            className="flex-1 bg-surface-1 text-ink placeholder-ink-faint border border-border rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-accent-secondary disabled:opacity-50"
             rows={1}
           />
           {isSending ? (
             <button
               onClick={handleAbort}
-              className="px-4 py-3 bg-red-600 text-ink-inverse rounded-xl hover:bg-red-700 transition-colors self-end"
+              className="px-4 py-3 bg-danger text-ink-inverse rounded-xl hover:opacity-90 transition-colors self-end"
             >
               <Square className="w-4 h-4" />
             </button>
@@ -385,7 +385,7 @@ export default function OpenClawChat() {
             <button
               onClick={handleSend}
               disabled={!inputValue.trim() || !isConnected}
-              className="px-4 py-3 bg-violet-600 text-ink-inverse rounded-xl hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
+              className="px-4 py-3 bg-accent-secondary text-ink-inverse rounded-xl hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
             >
               <Send className="w-4 h-4" />
             </button>

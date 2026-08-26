@@ -117,8 +117,8 @@ const OpenSpecCourse: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-800 to-blue-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <div className="text-ink-inverse text-xl">正在加载课程...</div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent-warning mx-auto mb-4"></div>
+          <div className="text-white text-xl">正在加载课程...</div>
         </div>
       </div>
     );
@@ -127,12 +127,12 @@ const OpenSpecCourse: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-800 to-blue-900 flex items-center justify-center">
-        <div className="text-center bg-red-500/20 border border-red-500 text-red-300 px-6 py-4 rounded-xl">
+        <div className="text-center bg-danger/20 border border-danger text-danger px-6 py-4 rounded-xl">
           <div className="text-xl mb-2">😕 {error}</div>
           <Button
             variant="destructive"
             onClick={() => window.location.reload()}
-            className="mt-4 bg-red-500 hover:bg-red-600"
+            className="mt-4 bg-danger hover:bg-danger/80"
           >
             重新加载
           </Button>
@@ -158,8 +158,8 @@ const OpenSpecCourse: React.FC = () => {
                 </svg>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-ink-inverse">🎓 OpenSpec VibeCoding 课程</h1>
-                <p className="text-sm text-ink-inverse/60">从 AI 小白到 Spec 高手的进阶之路</p>
+                <h1 className="text-2xl font-bold text-white">🎓 OpenSpec VibeCoding 课程</h1>
+                <p className="text-sm text-white/60">从 AI 小白到 Spec 高手的进阶之路</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -198,7 +198,7 @@ const OpenSpecCourse: React.FC = () => {
                 onOpenSpecEditor={() => setShowSpecEditor(true)}
               />
             ) : (
-              <div className="text-center text-ink-inverse/60 py-16">
+              <div className="text-center text-white/60 py-16">
                 请选择一个章节开始学习
               </div>
             )}

@@ -219,8 +219,8 @@ export default function ImageDownloader() {
                 <li>使用 Blob 下载方式，确保图片质量不失真</li>
               </ul>
 
-              <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded">
-                <p className="text-green-400 font-medium mb-1">✨ 新功能：原图下载</p>
+              <div className="mt-3 p-3 bg-success/10 border border-success/30 rounded">
+                <p className="text-success font-medium mb-1">✨ 新功能：原图下载</p>
                 <p className="text-xs">• 使用后端代理 + Blob 下载，保证原图质量</p>
                 <p className="text-xs">• 不会出现图片失真或压缩的问题</p>
                 <p className="text-xs">• 支持批量下载，自动保存到下载文件夹</p>
@@ -232,7 +232,7 @@ export default function ImageDownloader() {
         {/* 错误提示 */}
         {error && (
           <div className="max-w-3xl mx-auto mb-8">
-            <div className="bg-danger/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
+            <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg">
               <AlertCircle className="w-4 h-4 mr-2" />
               {error}
             </div>
@@ -249,7 +249,7 @@ export default function ImageDownloader() {
               <Button
                 onClick={downloadAllImages}
                 disabled={downloading}
-                className="bg-green-500 hover:bg-green-600"
+                className="bg-success hover:opacity-90"
               >
                 {downloading ? (
                   <>

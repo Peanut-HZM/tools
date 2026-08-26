@@ -99,17 +99,17 @@ export default function VideoDownloader() {
       case 'video':
         return 'bg-accent';
       case 'source':
-        return 'bg-green-500';
+        return 'bg-success';
       case 'iframe':
         return 'bg-accent-secondary';
       case 'script':
-        return 'bg-orange-500';
+        return 'bg-accent-warm';
       case 'html':
-        return 'bg-yellow-500';
+        return 'bg-warning';
       case 'data-attribute':
-        return 'bg-pink-500';
+        return 'bg-danger';
       default:
-        return 'bg-gray-500';
+        return 'bg-surface-3';
     }
   };
 
@@ -409,7 +409,7 @@ export default function VideoDownloader() {
                 <p className="text-xs">1. 动态加载的视频（需要JavaScript执行）可能无法检测</p>
                 <p className="text-xs">2. 需要登录才能访问的视频无法提取</p>
                 <p className="text-xs">3. 使用特殊加密的视频链接可能无法检测</p>
-                <p className="text-xs mt-2 text-yellow-300">💡 如果检测不到：打开浏览器开发者工具（F12）→ 网络 → 媒体，播放视频查看实际URL</p>
+                <p className="text-xs mt-2 text-warning">💡 如果检测不到：打开浏览器开发者工具（F12）→ 网络 → 媒体，播放视频查看实际URL</p>
               </div>
             </div>
           </Card>
@@ -492,20 +492,20 @@ export default function VideoDownloader() {
                   {/* 视频信息 */}
                   <div className="p-4">
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
-                      <span className={`${getSourceBadgeColor(video.source)} text-white text-xs px-2 py-1 rounded`}>
+                      <span className={`${getSourceBadgeColor(video.source)} text-ink-inverse text-xs px-2 py-1 rounded`}>
                         {getSourceLabel(video.source)}
                       </span>
                       <span className="bg-surface-2 text-ink-muted text-xs px-2 py-1 rounded">
                         {video.type}
                       </span>
                       {isHLSVideo(video) && (
-                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">
+                        <span className="bg-danger text-ink-inverse text-xs px-2 py-1 rounded">
                           <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                           HLS流媒体
                         </span>
                       )}
                       {video.duration > 0 && (
-                        <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded">
+                        <span className="bg-accent-warm text-ink-inverse text-xs px-2 py-1 rounded">
                           <Clock className="w-3.5 h-3.5 mr-1" />
                           {formatDuration(video.duration)}
                         </span>
@@ -527,7 +527,7 @@ export default function VideoDownloader() {
                             {downloadTasks.get(index)?.status === 'downloading' && (
                               <button
                                 onClick={() => cancelDownload(downloadTasks.get(index)!.task_id, index)}
-                                className="text-xs text-danger hover:text-red-300"
+                                className="text-xs text-danger hover:text-danger/80"
                               >
                                 取消
                               </button>
@@ -537,7 +537,7 @@ export default function VideoDownloader() {
                           {/* 进度条 */}
                           <div className="w-full bg-surface-3 rounded-full h-2 mb-2">
                             <div
-                              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                              className="bg-success h-2 rounded-full transition-all duration-300"
                               style={{ width: `${downloadTasks.get(index)?.progress || 0}%` }}
                             />
                           </div>
@@ -567,7 +567,7 @@ export default function VideoDownloader() {
                       {isHLSVideo(video) && !downloadTasks.has(index) && (
                         <Button
                           onClick={() => downloadWithYtdlp(video.url, index)}
-                          className="w-full bg-green-500 hover:bg-green-600"
+                          className="w-full bg-success hover:opacity-90"
                           size="sm"
                         >
                           <Server className="w-4 h-4 mr-2" />
@@ -588,7 +588,7 @@ export default function VideoDownloader() {
                           </Button>
                           <Button
                             onClick={() => downloadWithYtdlp(video.url, index)}
-                            className="w-full bg-green-500 hover:bg-green-600"
+                            className="w-full bg-success hover:opacity-90"
                             size="sm"
                           >
                             <Server className="w-4 h-4 mr-2" />
@@ -601,7 +601,7 @@ export default function VideoDownloader() {
                       {isHLSVideo(video) && !downloadTasks.has(index) && (
                         <Button
                           onClick={() => downloadVideo(video.url, index)}
-                          className="w-full bg-yellow-500 hover:bg-yellow-600"
+                          className="w-full bg-warning hover:opacity-90"
                           size="sm"
                         >
                           <Info className="w-4 h-4 mr-2" />
@@ -623,7 +623,7 @@ export default function VideoDownloader() {
                           </a>
                           <Button
                             onClick={() => downloadWithYtdlp(video.url, index)}
-                            className="w-full bg-green-500 hover:bg-green-600"
+                            className="w-full bg-success hover:opacity-90"
                             size="sm"
                           >
                             <Server className="w-4 h-4 mr-2" />
@@ -646,7 +646,7 @@ export default function VideoDownloader() {
                           href={video.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 bg-surface-2 hover:bg-surface-3 text-ink-inverse py-2 rounded-lg transition-colors text-sm text-center"
+                          className="flex-1 bg-surface-2 hover:bg-surface-3 text-ink py-2 rounded-lg transition-colors text-sm text-center"
                         >
                           <ExternalLink className="w-4 h-4 mr-2" />
                           打开
@@ -666,8 +666,8 @@ export default function VideoDownloader() {
               </h3>
               <div className="text-sm text-ink-muted space-y-2">
                 <p>• <strong>🚀 服务器下载（推荐）</strong>：使用 yt-dlp 在服务器端下载，支持所有格式包括 HLS 流媒体</p>
-                <div className="ml-6 space-y-1 text-xs bg-green-500/10 p-3 rounded">
-                  <p className="text-green-400">✨ 新功能特点：</p>
+                <div className="ml-6 space-y-1 text-xs bg-success/10 p-3 rounded">
+                  <p className="text-success">✨ 新功能特点：</p>
                   <p>• 支持 YouTube、Vimeo、Bilibili 等1000+网站</p>
                   <p>• 自动处理 HLS/M3U8 流媒体视频</p>
                   <p>• 可选择视频质量（最佳、1080p、720p、480p等）</p>

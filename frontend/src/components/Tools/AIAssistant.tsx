@@ -35,7 +35,7 @@ export default function AIAssistant() {
             href={AI_ASSISTANT_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-ink-muted hover:text-ink-inverse transition-colors flex items-center gap-2 text-sm"
+            className="text-ink-muted hover:text-ink transition-colors flex items-center gap-2 text-sm"
           >
             <ExternalLink className="w-4 h-4" />
             <span className="hidden sm:inline">新窗口打开</span>
@@ -58,8 +58,8 @@ export default function AIAssistant() {
               <Info className="w-8 h-8 mb-3" />
               <p>AI 助手未配置</p>
               <p className="text-xs mt-2 text-ink-faint">
-                请在 <code className="text-pink-400">.env</code> 中设置{' '}
-                <code className="text-pink-400">VITE_AI_ASSISTANT_URL</code>
+                请在 <code className="text-warning">.env</code> 中设置{' '}
+                <code className="text-warning">VITE_AI_ASSISTANT_URL</code>
               </p>
             </div>
           </div>

@@ -242,7 +242,7 @@ const ProductManagerAgent: React.FC = () => {
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
-                <h2 className="text-ink-inverse font-semibold">{currentConversation.title || '新会话'}</h2>
+                <h2 className="text-ink font-semibold">{currentConversation.title || '新会话'}</h2>
                 <span className="text-ink-muted text-sm">{getStageLabel(currentConversation.current_stage)}</span>
               </div>
 

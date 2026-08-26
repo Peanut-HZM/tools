@@ -62,7 +62,7 @@ export default function ASRTool() {
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="flex items-center space-x-3 mb-8">
-        <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+        <div className="w-10 h-10 bg-success rounded-lg flex items-center justify-center">
           <Mic className="w-5 h-5 text-ink-inverse" />
         </div>
         <h1 className="text-2xl font-bold text-ink">{t.tools['asr-tool'].title}</h1>
@@ -125,7 +125,7 @@ export default function ASRTool() {
               className={`w-full py-3 rounded-lg font-medium transition-all flex items-center justify-center space-x-2
                 ${!file || loading 
                   ? 'bg-surface-2 text-ink-muted cursor-not-allowed' 
-                  : 'bg-success hover:bg-success-hover text-ink-inverse shadow-lg shadow-success/30'
+                  : 'bg-success hover:opacity-90 text-ink-inverse shadow-lg shadow-success/30'
                 }
               `}
             >
@@ -157,7 +157,7 @@ export default function ASRTool() {
                     navigator.clipboard.writeText(result.text);
                     success('已复制到剪贴板');
                   }}
-                  className="text-success hover:text-emerald-300 transition-colors flex items-center"
+                  className="text-success hover:text-success/80 transition-colors flex items-center"
                 >
                   <Copy className="w-3.5 h-3.5 mr-1" /> 复制
                 </button>

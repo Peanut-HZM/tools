@@ -100,7 +100,7 @@ export default function JsonFormatter() {
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+            <div className="w-8 h-8 bg-success rounded flex items-center justify-center">
               <Code className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-lg font-bold">JSON格式化</h1>
@@ -131,7 +131,7 @@ export default function JsonFormatter() {
           <Button
             onClick={minifyJson}
             size="sm"
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-warning hover:opacity-90"
           >
             <Minimize2 className="w-3.5 h-3.5 mr-1" />
             压缩
@@ -182,7 +182,7 @@ export default function JsonFormatter() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder='粘贴JSON字符串，例如：{"name":"张三","age":30}'
-            className="flex-1 w-full bg-canvas text-ink-inverse px-4 py-3 font-mono text-sm resize-none focus:outline-none"
+            className="flex-1 w-full bg-canvas text-ink px-4 py-3 font-mono text-sm resize-none focus:outline-none"
             spellCheck={false}
           />
         </div>
@@ -193,7 +193,7 @@ export default function JsonFormatter() {
             <span className="text-sm text-ink-muted">格式化结果</span>
             <button
               onClick={() => copyToClipboard(output)}
-              className="text-xs text-green-500 hover:text-green-400"
+              className="text-xs text-success hover:text-success/80"
               title="复制结果"
             >
               <Copy className="w-3.5 h-3.5 mr-1" />
@@ -204,7 +204,7 @@ export default function JsonFormatter() {
             value={output}
             readOnly
             placeholder="格式化后的JSON将显示在这里..."
-            className="flex-1 w-full bg-canvas text-green-400 px-4 py-3 font-mono text-sm resize-none focus:outline-none"
+            className="flex-1 w-full bg-canvas text-success px-4 py-3 font-mono text-sm resize-none focus:outline-none"
             spellCheck={false}
           />
         </div>
