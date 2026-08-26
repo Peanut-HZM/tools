@@ -74,7 +74,7 @@ describe('TabBar', () => {
     expect(useWorkspaceStore.getState().tabs).toHaveLength(0);
   });
 
-  it('should render tool icons with fas prefix', () => {
+  it('should render tool icons as lucide components', () => {
     useWorkspaceStore.setState({
       tabs: [
         { id: '1', toolId: 'database-tool', toolName: '数据库', toolIcon: 'fa-database', openedAt: Date.now() },
@@ -83,8 +83,13 @@ describe('TabBar', () => {
     });
 
     render(<TabBar />);
-    const icon = document.querySelector('[data-tab-id="1"] i');
-    expect(icon?.className).toContain('fas');
-    expect(icon?.className).toContain('fa-database');
+    // Phase 3 migration: toolIcon 'fa-database' resolves to Database (lucide-react),
+    // which renders as an inline <svg>. Confirm an svg is rendered in the tab and
+    // that the legacy <i class="fas ..."> markup is gone.
+    const iconContainer = document.querySelector('[data-tab-id="1"]');
+    const svg = iconContainer?.querySelector('svg');
+    const legacyIcon = iconContainer?.querySelector('i.fas');
+    expect(svg).not.toBeNull();
+    expect(legacyIcon).toBeNull();
   });
 });

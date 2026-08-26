@@ -13,59 +13,8 @@ import {
   CircleDot,
   Folder,
   ArrowDownAZ,
-  Monitor,
-  Smartphone,
-  Lock,
-  Check,
-  Pencil,
-  Wrench,
-  Code,
-  Database,
-  Globe,
-  Bot,
-  FileText,
-  GraduationCap,
-  Image as ImageIcon,
-  Cpu,
-  Network,
-  Rocket,
-  Sparkles,
-  Zap,
-  Shield,
-  Layers,
-  Workflow,
-  Package,
-  Puzzle,
-  Gamepad2,
-  Settings,
-  Server,
-  Terminal,
-  Key,
-  Plug,
-  Mic,
-  Video,
-  LineChart,
-  Gauge,
-  MessageSquare,
-  History,
-  CalendarDays,
-  FileImage,
-  FileOutput,
-  Share2,
-  Briefcase,
-  Ship,
-  Cloud,
-  List,
-  Table,
-  Clock,
-  Bell,
-  User,
-  Tag,
-  Download,
-  Upload,
-  type LucideIcon,
-  type LucideProps,
 } from 'lucide-react';
+import { resolveIcon, faIconMap, resolveFaIconName } from '../../utils/iconResolver';
 import {
   Select,
   SelectContent,
@@ -74,97 +23,15 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 
-// Mapping for dynamic FA icon strings to lucide-react components
-const faIconMap: Record<string, LucideIcon> = {
-  'fa-wrench': Wrench,
-  'fa-code': Code,
-  'fa-database': Database,
-  'fa-globe': Globe,
-  'fa-robot': Bot,
-  'fa-file': FileText,
-  'fa-file-alt': FileText,
-  'fa-file-lines': FileText,
-  'fa-graduation-cap': GraduationCap,
-  'fa-image': ImageIcon,
-  'fa-microchip': Cpu,
-  'fa-network-wired': Network,
-  'fa-rocket': Rocket,
-  'fa-magic': Sparkles,
-  'fa-wand-magic-sparkles': Sparkles,
-  'fa-bolt': Zap,
-  'fa-shield': Shield,
-  'fa-shield-alt': Shield,
-  'fa-shield-halved': Shield,
-  'fa-layer-group': Layers,
-  'fa-layer': Layers,
-  'fa-sitemap': Workflow,
-  'fa-project-diagram': Workflow,
-  'fa-puzzle-piece': Puzzle,
-  'fa-gamepad': Gamepad2,
-  'fa-box': Package,
-  'fa-cube': Package,
-  'fa-cog': Settings,
-  'fa-gear': Settings,
-  'fa-gears': Settings,
-  'fa-cogs': Settings,
-  'fa-desktop': Monitor,
-  'fa-mobile': Smartphone,
-  'fa-search': Search,
-  'fa-folder': Folder,
-  'fa-lock': Lock,
-  'fa-check': Check,
-  'fa-edit': Pencil,
-  'fa-pen': Pencil,
-  'fa-trash': Trash2,
-  'fa-trash-alt': Trash2,
-  // 后端数据库中实际使用的图标名
-  'fa-server': Server,
-  'fa-terminal': Terminal,
-  'fa-key': Key,
-  'fa-plug': Plug,
-  'fa-microphone': Mic,
-  'fa-video': Video,
-  'fa-chart-line': LineChart,
-  'fa-gauge-high': Gauge,
-  'fa-gauge': Gauge,
-  'fa-tachometer-alt': Gauge,
-  'fa-comments': MessageSquare,
-  'fa-comment': MessageSquare,
-  'fa-clock-rotate-left': History,
-  'fa-history': History,
-  'fa-calendar-alt': CalendarDays,
-  'fa-calendar': CalendarDays,
-  'fa-file-image': FileImage,
-  'fa-file-export': FileOutput,
-  'fa-file-code': Code,
-  'fa-share-alt': Share2,
-  'fa-share': Share2,
-  'fa-user-tie': Briefcase,
-  'fa-dharmachakra': Ship,
-  'fa-pen-to-square': Pencil,
-  'fa-cloud': Cloud,
-  'fa-list': List,
-  'fa-list-ul': List,
-  'fa-table': Table,
-  'fa-clock': Clock,
-  'fa-bell': Bell,
-  'fa-user': User,
-  'fa-tag': Tag,
-  'fa-download': Download,
-  'fa-upload': Upload,
-};
-
-const getFaIcon = (faString: string): LucideIcon => {
-  // Extract just the icon name, e.g. 'fa-code' from 'fas fa-code' or 'fa-code'
-  const match = faString.match(/fa-([a-z-]+)/);
-  const iconName = match ? `fa-${match[1]}` : faString;
-  return faIconMap[iconName] || Wrench; // fallback to Wrench
-};
-
+// DynamicFaIcon 组件：把后端存的 FA class 字符串渲染成 lucide 图标
 const DynamicFaIcon: React.FC<{ iconString: string; className?: string }> = ({ iconString, className = 'w-4 h-4' }) => {
-  const IconComponent = getFaIcon(iconString);
-  return <IconComponent className={className} />;
+  const Icon = resolveIcon(iconString);
+  return <Icon className={className} />;
 };
+
+// 占位输入框中允许的 lucide icon 名下拉建议（供管理员手动选择）
+const availableIconNames = Object.keys(faIconMap).map((k) => k.replace(/^fa-/, ''));
+
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
   const [tools, setTools] = useState<Tool[]>([]);

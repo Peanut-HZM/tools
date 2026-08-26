@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useI18n } from '../../i18n';
+import { resolveIcon } from '../../utils/iconResolver';
 
 export const TabBar: React.FC = () => {
   const { t } = useI18n();
@@ -22,6 +23,7 @@ export const TabBar: React.FC = () => {
       <div className="self-stretch w-px bg-surface-2 mr-1"></div>
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
+        const Icon = resolveIcon(tab.toolIcon);
         return (
           <div
             key={tab.id}
@@ -35,7 +37,7 @@ export const TabBar: React.FC = () => {
             ].join(' ')}
             onClick={() => setActiveTab(tab.id)}
           >
-            <i className={['fas', tab.toolIcon, 'text-xs flex-shrink-0'].join(' ')}></i>
+            <Icon className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">{tab.toolName}</span>
             <button
               className="ml-1 text-ink-faint hover:text-ink hover:bg-surface-3 rounded px-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"

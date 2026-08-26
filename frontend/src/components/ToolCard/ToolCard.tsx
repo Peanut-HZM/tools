@@ -2,6 +2,7 @@ import { Star } from 'lucide-react';
 import { ToolCardProps } from '../../types';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { resolveIcon } from '../../utils/iconResolver';
 
 export default function ToolCard({
   icon,
@@ -14,6 +15,10 @@ export default function ToolCard({
   require_login,
   onClick
 }: ToolCardProps) {
+  // 后端 `tool.icon` 字段仍是 FA class 字符串（如 'fa-image'），通过共享工具
+  // 解析成 lucide 组件，避免运行时依赖 Font Awesome CDN。
+  // 后续后端存储迁完后此组件可直接接收 LucideIcon 类型。
+  const Icon = resolveIcon(icon);
   return (
     <Card
       onClick={onClick}
@@ -29,9 +34,7 @@ export default function ToolCard({
         {custom_icon_url ? (
           <img src={custom_icon_url} alt={title} className="w-6 h-6 object-contain" />
         ) : (
-          // TODO: 图标目前为 API 返回的 Font Awesome class 字符串（如 fa-image/fa-key），
-          // 需要在后续迁移中同步将后端存储改为 lucide-react 图标名（React.ComponentType）
-          <i className={`fas ${icon} text-ink-inverse text-xl`}></i>
+          <Icon className="w-6 h-6 text-ink-inverse" />
         )}
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
