@@ -137,7 +137,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
             </div>
           ) : (
             <div className="border border-border/50 rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-slate-700/50">
+              <table className="min-w-full divide-y divide-border">
                 <thead>
                   <tr className="bg-canvas/70">
                     <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnFile}</th>
@@ -148,7 +148,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
                     <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnActions}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-surface-1/50 divide-y divide-slate-700/30">
+                <tbody className="bg-surface-1/50 divide-y divide-border">
                   {records.map((record) => (
                     <tr key={record.id} className="hover:bg-surface-2/20 transition-colors group/row">
                       <td className="px-3 py-2.5">

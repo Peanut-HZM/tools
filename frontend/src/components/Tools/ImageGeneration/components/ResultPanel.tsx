@@ -69,7 +69,7 @@ export default function ResultPanel() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-4">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-accent-info border-t-transparent rounded-full animate-spin" />
         <p className="text-ink-muted text-sm">{igT.result.generating}</p>
       </div>
     );
@@ -103,7 +103,7 @@ export default function ResultPanel() {
       {/* 图片网格 */}
       {loadingUrls ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-accent-info border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className={`grid gap-3 ${resultUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>

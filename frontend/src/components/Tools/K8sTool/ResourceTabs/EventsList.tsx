@@ -74,7 +74,7 @@ export const EventsList: React.FC = () => {
               <tr
                 key={`${event.object_namespace}/${event.object_kind}/${event.object_name}/${event.reason}-${idx}`}
                 className={`border-b border-border transition-colors ${
-                  isWarning ? 'bg-red-900/10 hover:bg-red-900/20' : 'hover:bg-surface-1/50'
+                  isWarning ? 'bg-danger/10 hover:bg-danger/20' : 'hover:bg-surface-1/50'
                 }`}
               >
                 {/* 类型 */}

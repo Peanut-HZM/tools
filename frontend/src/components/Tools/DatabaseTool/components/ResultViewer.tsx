@@ -374,8 +374,8 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   if (!result.success) {
     return (
-      <div className="h-full flex flex-col bg-red-900/20 border border-red-800/50 rounded-md overflow-hidden">
-        <div className="px-4 py-2 border-b border-red-800/30 flex items-center justify-between">
+      <div className="h-full flex flex-col bg-danger/20 border border-danger/50 rounded-md overflow-hidden">
+        <div className="px-4 py-2 border-b border-danger/30 flex items-center justify-between">
           <h3 className="text-danger font-medium flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             {t.common.error}
@@ -402,7 +402,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
             {result.error_message}
           </pre>
         </div>
-        <div className="px-4 py-2 border-t border-red-800/30 text-xs text-danger/70">
+        <div className="px-4 py-2 border-t border-danger/30 text-xs text-danger/70">
           {interpolate(t.database.executor.duration, { time: result.execution_time_ms.toFixed(2) })}
         </div>
       </div>
@@ -411,7 +411,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
   if (!result.result_data && result.affected_rows !== undefined) {
     return (
-      <div className="h-full p-4 bg-green-900/20 border border-green-800/50 rounded-md flex flex-col items-center justify-center">
+      <div className="h-full p-4 bg-success/20 border border-success/50 rounded-md flex flex-col items-center justify-center">
         <div className="text-success font-medium text-lg mb-2 flex items-center gap-2">
           <CheckCircle className="w-4 h-4" />
           {t.common.success}
@@ -620,7 +620,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         </span>
       </div>
       <div className="flex-1 overflow-auto">
-        <table className="min-w-full divide-y divide-slate-700">
+        <table className="min-w-full divide-y divide-border">
           <thead className="bg-canvas/80 sticky top-0 z-10">
             <tr>
               {enableSelection && (
@@ -664,10 +664,10 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                })}
             </tr>
           </thead>
-          <tbody className="bg-surface-1 divide-y divide-slate-700">
+          <tbody className="bg-surface-1 divide-y divide-border">
             {/* New rows */}
             {newRows.map((newRow, newRowIdx) => (
-              <tr key={`new-${newRowIdx}`} className="bg-green-900/10 hover:bg-green-900/20 transition-colors">
+              <tr key={`new-${newRowIdx}`} className="bg-success/10 hover:bg-success/20 transition-colors">
                 {enableSelection && (
                   <td className="px-4 py-2 w-10">
                     <span className="text-xs text-success font-medium">{t.database.executor.newRow}</span>
@@ -719,7 +719,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 {effectiveVisibleColumns.map((col) => {
                   const isDirty = cellEdits.has(getEditKey(idx, col));
                   return (
-                    <td key={`${idx}-${col}`} className={`px-6 py-4 whitespace-nowrap text-sm max-w-xs ${isDirty ? 'bg-yellow-900/20' : 'text-ink-muted'}`}>
+                    <td key={`${idx}-${col}`} className={`px-6 py-4 whitespace-nowrap text-sm max-w-xs ${isDirty ? 'bg-warning/20' : 'text-ink-muted'}`}>
                       {renderCell(row, idx, col, false)}
                     </td>
                   );

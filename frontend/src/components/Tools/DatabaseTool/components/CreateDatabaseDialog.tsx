@@ -42,7 +42,7 @@ const CreateDatabaseDialog: React.FC<CreateDatabaseDialogProps> = ({ isOpen, onC
         <h3 className="text-lg font-semibold text-ink mb-4">{t.database.dialog.createDatabase.title}</h3>
         
         {error && (
-          <div className="bg-red-900/30 text-danger p-2 rounded text-sm mb-4 border border-red-800/50">
+          <div className="bg-danger/30 text-danger p-2 rounded text-sm mb-4 border border-danger/50">
             {error}
           </div>
         )}

@@ -58,7 +58,7 @@ function HistoryCard({ item }: { item: HistoryItem }) {
       className={`
         p-3 rounded-lg border cursor-pointer transition-all
         ${isSelected
-          ? 'border-blue-500 bg-accent-info/10'
+          ? 'border-accent-info bg-accent-info/10'
           : 'border-border bg-surface-1/50 hover:border-border hover:bg-surface-1'
         }
       `}
@@ -128,7 +128,7 @@ export default function ImagePanel() {
         <div className="h-48 overflow-y-auto p-3 space-y-2">
           {historyLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-accent-info border-t-transparent rounded-full animate-spin" />
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-8 text-ink-faint text-sm">

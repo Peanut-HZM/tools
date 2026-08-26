@@ -61,7 +61,7 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-6">
-      <Card className="bg-red-900/20 border-red-800 p-4">
+      <Card className="bg-danger/20 border-danger p-4">
         <div className="text-sm font-medium text-danger mb-3">危险操作</div>
         <div className="flex space-x-2">
           <Button size="sm" variant="destructive" onClick={() => handleFlush('db')}>FLUSHDB</Button>

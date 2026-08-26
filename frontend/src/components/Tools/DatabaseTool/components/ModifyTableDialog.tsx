@@ -168,7 +168,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
 
                {/* Columns List */}
                <div className="border border-border rounded overflow-hidden">
-                   <table className="min-w-full divide-y divide-slate-700">
+                   <table className="min-w-full divide-y divide-border">
                        <thead className="bg-canvas">
                            <tr>
                                <th className="px-3 py-2 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Name</th>
@@ -181,7 +181,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                <th className="px-3 py-2 text-center text-xs font-medium text-ink-muted uppercase tracking-wider">Action</th>
                            </tr>
                        </thead>
-                       <tbody className="bg-surface-1 divide-y divide-slate-700">
+                       <tbody className="bg-surface-1 divide-y divide-border">
                            {columns.map((col, idx) => (
                                <tr key={idx} className="hover:bg-surface-2/30">
                                    <td className="px-3 py-2">
