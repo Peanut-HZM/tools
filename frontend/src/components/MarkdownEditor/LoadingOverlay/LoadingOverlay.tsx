@@ -19,9 +19,9 @@ export default function LoadingOverlay({
       <div className="bg-surface-1 rounded-lg p-6 flex flex-col items-center gap-4 shadow-md">
         <div className="relative">
           <div className="w-12 h-12 border-4 border-border rounded-full"></div>
-          <div className="absolute top-0 left-0 w-12 h-12 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin"></div>
+          <div className="absolute top-0 left-0 w-12 h-12 border-4 border-accent-cyan rounded-full border-t-transparent animate-spin"></div>
         </div>
-        <span className="text-ink-inverse text-sm">{message}</span>
+        <span className="text-ink text-sm">{message}</span>
       </div>
     </div>
   );

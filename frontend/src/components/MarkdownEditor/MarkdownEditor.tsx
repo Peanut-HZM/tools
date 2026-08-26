@@ -501,11 +501,11 @@ export default function MarkdownEditor() {
       {/* Drag Overlay */}
       {isDragging && (
         <div className="absolute inset-0 bg-canvas/80 z-50 flex items-center justify-center pointer-events-none">
-          <div className="border-4 border-dashed border-cyan-500 rounded-lg p-12 text-center bg-surface-1/50 backdrop-blur-sm m-8 w-full h-full flex flex-col items-center justify-center">
-            <div className="text-6xl mb-6 text-cyan-500 animate-bounce">
+          <div className="border-4 border-dashed border-accent-cyan rounded-lg p-12 text-center bg-surface-1/50 backdrop-blur-sm m-8 w-full h-full flex flex-col items-center justify-center">
+            <div className="text-6xl mb-6 text-accent-cyan animate-bounce">
               <Icons.DocumentChecked /> 
             </div>
-            <h2 className="text-3xl font-bold text-ink-inverse mb-2">Release to Upload</h2>
+            <h2 className="text-3xl font-bold text-ink mb-2">Release to Upload</h2>
             <p className="text-ink-muted text-lg">Drop your Markdown file here to open</p>
           </div>
         </div>
@@ -587,7 +587,7 @@ export default function MarkdownEditor() {
             <button
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'local'
-                  ? 'text-accent border-b-2 border-cyan-400 bg-surface-1/50'
+                  ? 'text-accent border-b-2 border-accent-cyan bg-surface-1/50'
                   : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1/30'
               }`}
               onClick={() => setActiveTab('local')}
@@ -602,7 +602,7 @@ export default function MarkdownEditor() {
             <button
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'oss'
-                  ? 'text-accent border-b-2 border-cyan-400 bg-surface-1/50'
+                  ? 'text-accent border-b-2 border-accent-cyan bg-surface-1/50'
                   : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1/30'
               }`}
               onClick={() => setActiveTab('oss')}
@@ -817,7 +817,7 @@ export default function MarkdownEditor() {
       {/* Open Folder Dialog Overlay */}
       {showFolderSelect && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`bg-card p-6 rounded-lg w-[500px] border border-border shadow-md ${isDark ? 'bg-surface-1 text-ink-inverse' : 'bg-white text-black'}`}>
+          <div className="bg-surface-1 p-6 rounded-lg w-[500px] border border-border shadow-md">
             <h2 className="text-xl font-bold mb-4">{t.common.openFolder || 'Open Folder'}</h2>
             <div className="mb-4">
               <label className="block text-sm mb-2 text-ink-muted">Folder Path</label>
@@ -826,18 +826,18 @@ export default function MarkdownEditor() {
                 value={folderPathInput}
                 onChange={(e) => setFolderPathInput(e.target.value)}
                 placeholder={window.location.hostname === 'localhost' ? "C:\\path\\to\\folder" : "/home/user/docs"}
-                className="w-full p-2 rounded bg-canvas border border-border focus:border-cyan-500 outline-none text-ink-inverse"
+                className="w-full p-2 rounded bg-canvas border border-border focus:border-accent-cyan outline-none text-ink"
               />
               <p className="text-xs text-ink-faint mt-2">
-                {window.location.hostname === 'localhost' 
+                {window.location.hostname === 'localhost'
                   ? 'Enter absolute path to folder on your machine'
                   : 'Enter absolute path to folder on the SERVER (not your local machine)'}
               </p>
             </div>
             <div className="flex justify-end gap-2">
-              <button 
+              <button
                 onClick={() => setShowFolderSelect(false)}
-                className="px-4 py-2 rounded text-ink-muted hover:text-ink-inverse"
+                className="px-4 py-2 rounded text-ink-muted hover:text-ink"
               >
                 {t.common.cancel}
               </button>
@@ -855,7 +855,7 @@ export default function MarkdownEditor() {
       {/* New File Dialog Overlay */}
       {showNewFile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`bg-card p-6 rounded-lg w-[400px] border border-border shadow-md ${isDark ? 'bg-surface-1 text-ink-inverse' : 'bg-white text-black'}`}>
+          <div className="bg-surface-1 p-6 rounded-lg w-[400px] border border-border shadow-md">
             <h2 className="text-xl font-bold mb-4">{t.fileTree.newFile}</h2>
             <div className="mb-4">
               <label className="block text-sm mb-2 text-ink-muted">{t.common.folderName || 'Folder'}</label>
@@ -864,23 +864,23 @@ export default function MarkdownEditor() {
                 value={newFileFolder}
                 onChange={(e) => setNewFileFolder(e.target.value)}
                 placeholder="e.g. docs/guides (leave empty for root)"
-                className="w-full p-2 rounded bg-canvas border border-border focus:border-cyan-500 outline-none text-ink-inverse"
+                className="w-full p-2 rounded bg-canvas border border-border focus:border-accent-cyan outline-none text-ink"
               />
             </div>
             <div className="mb-4">
               <label className="block text-sm mb-2 text-ink-muted">{t.common.fileName || 'File Name'}</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={newFileName}
                 onChange={(e) => setNewFileName(e.target.value)}
                 placeholder="example.md"
-                className="w-full p-2 rounded bg-canvas border border-border focus:border-cyan-500 outline-none text-ink-inverse"
+                className="w-full p-2 rounded bg-canvas border border-border focus:border-accent-cyan outline-none text-ink"
               />
             </div>
             <div className="flex justify-end gap-2">
-              <button 
+              <button
                 onClick={() => setShowNewFile(false)}
-                className="px-4 py-2 rounded text-ink-muted hover:text-ink-inverse"
+                className="px-4 py-2 rounded text-ink-muted hover:text-ink"
               >
                 {t.common.cancel}
               </button>
@@ -897,7 +897,7 @@ export default function MarkdownEditor() {
 
       {/* Error Toast */}
       {fileError && (
-        <div className="fixed bottom-20 right-4 bg-red-500 text-ink-inverse px-4 py-2 rounded-lg shadow-lg z-50">
+        <div className="fixed bottom-20 right-4 bg-danger text-ink-inverse px-4 py-2 rounded-lg shadow-lg z-50">
           {fileError}
           <button
             onClick={clearFileError}
@@ -912,8 +912,8 @@ export default function MarkdownEditor() {
       {fileLoading && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[60]">
           <div className="bg-surface-1 rounded-lg p-4 flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-cyan-500" />
-            <span className="text-ink-inverse">{t.common.loading}</span>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent-cyan" />
+            <span className="text-ink">{t.common.loading}</span>
           </div>
         </div>
       )}

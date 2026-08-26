@@ -19,7 +19,7 @@ const statusLabels: Record<SaveStatus, string> = {
 };
 
 const statusColors: Record<SaveStatus, string> = {
-  saved: 'text-green-400',
+  saved: 'text-success',
   unsaved: 'text-accent-warning',
   saving: 'text-accent',
   error: 'text-danger'

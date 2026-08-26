@@ -59,7 +59,7 @@ export default function UnifiedFileTree() {
             <div
               key={file.file_path}
               className={`file-tree-item flex items-center px-3 py-1.5 cursor-pointer hover:bg-surface-2 ${
-                currentFilePath === file.file_path ? 'bg-cyan-900/30 border-l-2 border-cyan-500' : ''
+                currentFilePath === file.file_path ? 'bg-accent-info/30 border-l-2 border-accent-cyan' : ''
               }`}
               onClick={() => handleFileSelect(file.file_path)}
             >

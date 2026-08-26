@@ -72,7 +72,7 @@ function TreeNode({
         {/* File/Folder Icon */}
         <span className="file-tree-icon">
           {isDirectory ? (
-            <svg className="text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="text-warning" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
             </svg>
           ) : (
@@ -252,13 +252,13 @@ export default function FileTree({
       {showNewFileInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-1 rounded-lg p-4 w-80">
-            <h3 className="text-ink-inverse font-medium mb-3">新建文件</h3>
+            <h3 className="text-ink font-medium mb-3">新建文件</h3>
             <input
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder="文件名.md"
-              className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink-inverse text-sm mb-3"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink text-sm mb-3"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreateFile();
@@ -267,7 +267,7 @@ export default function FileTree({
             />
             <div className="flex justify-end gap-2">
               <button
-                className="px-3 py-1 text-sm text-ink-muted hover:text-ink-inverse cursor-pointer"
+                className="px-3 py-1 text-sm text-ink-muted hover:text-ink cursor-pointer"
                 onClick={() => setShowNewFileInput(false)}
               >
                 取消
@@ -287,13 +287,13 @@ export default function FileTree({
       {showNewDirInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-1 rounded-lg p-4 w-80">
-            <h3 className="text-ink-inverse font-medium mb-3">新建文件夹</h3>
+            <h3 className="text-ink font-medium mb-3">新建文件夹</h3>
             <input
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder="文件夹名称"
-              className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink-inverse text-sm mb-3"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink text-sm mb-3"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreateDirectory();
@@ -302,7 +302,7 @@ export default function FileTree({
             />
             <div className="flex justify-end gap-2">
               <button
-                className="px-3 py-1 text-sm text-ink-muted hover:text-ink-inverse cursor-pointer"
+                className="px-3 py-1 text-sm text-ink-muted hover:text-ink cursor-pointer"
                 onClick={() => setShowNewDirInput(false)}
               >
                 取消

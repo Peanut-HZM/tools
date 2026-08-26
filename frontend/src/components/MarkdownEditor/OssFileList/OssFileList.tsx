@@ -99,7 +99,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-        <h3 className="text-sm font-medium text-ink-inverse flex items-center gap-2">
+        <h3 className="text-sm font-medium text-ink flex items-center gap-2">
           <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
@@ -109,7 +109,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
           <button
             onClick={handleUploadClick}
             disabled={ossFilesLoading || uploading}
-            className="p-1.5 text-accent hover:text-cyan-300 hover:bg-accent/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1.5 text-accent hover:text-accent-cyan hover:bg-accent/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title={t.ossFile?.upload || '上传文件'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,7 +119,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
           <button
             onClick={handleRefresh}
             disabled={ossFilesLoading || uploading}
-            className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title={t.ossFile?.refresh || '刷新列表'}
           >
             <svg className={`w-4 h-4 ${ossFilesLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +133,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
       <div className="flex-1 overflow-y-auto">
         {ossFilesLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-cyan-500"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-accent-cyan"></div>
           </div>
         ) : ossFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -144,7 +144,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
             <p className="text-ink-faint text-xs">{t.ossFile?.emptyDesc || '点击上传按钮上传 Markdown 文件'}</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-700/50">
+          <div className="divide-y divide-border/50">
             {ossFiles.map((file) => (
               <div
                 key={file.file_path}
@@ -162,7 +162,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
                   {/* File Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-ink-inverse font-medium truncate">{file.filename}</span>
+                      <span className="text-sm text-ink font-medium truncate">{file.filename}</span>
                       <span className="text-xs text-ink-faint flex-shrink-0">
                         {formatFileSize(file.size)}
                       </span>
@@ -190,13 +190,13 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-surface-1 rounded-xl p-6 w-full max-w-md border border-border shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-ink-inverse">{t.ossFile?.uploadTitle || '上传 Markdown 文件'}</h3>
+              <h3 className="text-lg font-semibold text-ink">{t.ossFile?.uploadTitle || '上传 Markdown 文件'}</h3>
               <button
                 onClick={() => {
                   setShowUploadModal(false);
                   setSelectedFile(null);
                 }}
-                className="p-1 text-ink-muted hover:text-ink-inverse transition-colors"
+                className="p-1 text-ink-muted hover:text-ink transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -212,7 +212,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
                 type="file"
                 accept=".md,.markdown"
                 onChange={handleFileSelect}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-accent file:text-ink-inverse hover:file:bg-accent cursor-pointer"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-accent file:text-ink-inverse hover:file:bg-accent cursor-pointer"
               />
               <p className="text-xs text-ink-faint mt-1">
                 {t.ossFile?.fileSupported || '支持 .md 和.markdown 格式'}
@@ -221,7 +221,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
 
             {selectedFile && (
               <div className="mb-4 p-3 bg-canvas rounded-lg border border-border">
-                <p className="text-sm text-ink-inverse truncate">{selectedFile.name}</p>
+                <p className="text-sm text-ink truncate">{selectedFile.name}</p>
                 <p className="text-xs text-ink-faint mt-1">
                   {formatFileSize(selectedFile.size)}
                 </p>
@@ -234,7 +234,7 @@ export default function OssFileList({ onFileOpen }: OssFileListProps) {
                   setShowUploadModal(false);
                   setSelectedFile(null);
                 }}
-                className="px-4 py-2 text-sm text-ink-muted hover:text-ink-inverse transition-colors"
+                className="px-4 py-2 text-sm text-ink-muted hover:text-ink transition-colors"
               >
                 {t.common?.cancel || '取消'}
               </button>

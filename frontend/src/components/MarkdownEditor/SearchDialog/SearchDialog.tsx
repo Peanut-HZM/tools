@@ -68,10 +68,10 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
         {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-ink-inverse">搜索</h2>
+            <h2 className="text-lg font-semibold text-ink">搜索</h2>
             <button
               onClick={onClose}
-              className="text-ink-muted hover:text-ink-inverse cursor-pointer"
+              className="text-ink-muted hover:text-ink cursor-pointer"
             >
               ✕
             </button>
@@ -109,7 +109,7 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={searchType === 'file' ? '输入文件名...' : '输入搜索内容...'}
-              className="flex-1 px-3 py-2 bg-surface-2 border border-border rounded text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="flex-1 px-3 py-2 bg-surface-2 border border-border rounded text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent-cyan"
               autoFocus
             />
             <button
@@ -161,7 +161,7 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
                   onClick={() => handleFileClick(result.path)}
                   className="p-3 bg-surface-2/50 rounded-lg hover:bg-surface-2 cursor-pointer"
                 >
-                  <div className="text-ink-inverse text-sm font-medium">{result.name}</div>
+                  <div className="text-ink text-sm font-medium">{result.name}</div>
                   <div className="text-ink-muted text-xs mt-1">{result.path}</div>
                 </div>
               ))}
@@ -177,7 +177,7 @@ export default function SearchDialog({ open, onClose, onFileSelect }: SearchDial
                     onClick={() => handleFileClick(result.file)}
                     className="p-3 bg-surface-2 cursor-pointer hover:bg-surface-3"
                   >
-                    <div className="text-ink-inverse text-sm font-medium">{result.file}</div>
+                    <div className="text-ink text-sm font-medium">{result.file}</div>
                     <div className="text-ink-muted text-xs mt-1">
                       {result.matches.length} 个匹配
                     </div>

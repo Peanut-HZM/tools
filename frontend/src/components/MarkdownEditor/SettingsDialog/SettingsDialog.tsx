@@ -32,10 +32,10 @@ export default function SettingsDialog({
       <div className="bg-surface-1 rounded-xl shadow-lg w-full max-w-md">
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink-inverse">设置</h2>
+          <h2 className="text-lg font-semibold text-ink">设置</h2>
           <button
             onClick={onClose}
-            className="text-ink-muted hover:text-ink-inverse cursor-pointer"
+            className="text-ink-muted hover:text-ink cursor-pointer"
           >
             ✕
           </button>
@@ -182,7 +182,7 @@ export default function SettingsDialog({
         <div className="p-4 border-t border-border flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-ink-muted hover:text-ink-inverse cursor-pointer"
+            className="px-4 py-2 text-sm text-ink-muted hover:text-ink cursor-pointer"
           >
             取消
           </button>
