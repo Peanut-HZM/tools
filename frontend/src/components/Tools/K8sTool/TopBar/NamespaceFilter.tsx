@@ -115,7 +115,7 @@ export const NamespaceFilter: React.FC = () => {
             className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border transition-colors ${
               isAllSelected
                 ? 'bg-accent/20 text-accent-info'
-                : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
+                : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
             }`}
           >
             <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
@@ -136,7 +136,7 @@ export const NamespaceFilter: React.FC = () => {
                 className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
                   isChecked
                     ? 'bg-accent/20 text-accent-info'
-                    : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
+                    : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
                 }`}
               >
                 <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${

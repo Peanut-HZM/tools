@@ -21,8 +21,8 @@ import {
  * 根据测试结果返回健康状态圆点颜色类名
  */
 function getHealthDotClass(conn: K8sConnection): string {
-  if (conn.last_test_error) return 'bg-red-500';
-  if (conn.last_test_at) return 'bg-green-500';
+  if (conn.last_test_error) return 'bg-danger';
+  if (conn.last_test_at) return 'bg-success';
   return 'bg-surface-3';
 }
 
@@ -80,7 +80,7 @@ export const ClusterSwitcher: React.FC = () => {
                 className={`flex items-center gap-2 px-3 py-2 cursor-pointer ${
                   isActive
                     ? 'bg-accent/20 text-accent-info focus:bg-accent/20 focus:text-accent-info'
-                    : 'text-ink-muted focus:text-ink-inverse'
+                    : 'text-ink-muted focus:text-ink'
                 }`}
               >
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getHealthDotClass(conn)}`}></span>

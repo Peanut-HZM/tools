@@ -126,7 +126,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
   const getKindColor = (kind: string): string => {
     switch (kind) {
       case 'ConfigMap': return 'border-accent-info/30 bg-accent-info/10';
-      case 'Secret': return 'border-yellow-500/30 bg-yellow-500/10';
+      case 'Secret': return 'border-warning/30 bg-warning/10';
       case 'PVC': return 'border-accent-secondary/30 bg-accent-secondary/10';
       default: return 'border-border bg-surface-1/50';
     }
@@ -181,7 +181,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
             {rt.node}
           </h4>
           <div className="flex items-center gap-2 px-3 py-2 bg-surface-1/50 border border-border/50 rounded text-xs">
-            <Server className="w-4 h-4 text-green-400" />
+            <Server className="w-4 h-4 text-success" />
             <span className="text-ink font-mono">{pod.node}</span>
           </div>
         </div>

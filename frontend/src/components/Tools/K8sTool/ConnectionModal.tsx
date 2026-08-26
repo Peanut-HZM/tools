@@ -319,7 +319,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
       <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-lg border border-border overflow-hidden">
         {/* 标题栏 */}
         <div className="px-6 pt-5 pb-3 border-b border-border">
-          <h2 className="text-xl font-bold text-ink-inverse">
+          <h2 className="text-xl font-bold text-ink">
             {isEditing ? k8sT.editConnection : k8sT.addConnection}
           </h2>
         </div>
@@ -340,7 +340,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     <Key className="w-3 h-3 text-ink-muted" />
                     <span className="text-sm text-ink-muted">
                       {k8sT.modal.authTypes[initialData.auth_type]}
-                      {initialData.has_auth_data && <CheckCircle2 className="inline w-3.5 h-3.5 ml-1 text-green-400" />}
+                      {initialData.has_auth_data && <CheckCircle2 className="inline w-3.5 h-3.5 ml-1 text-success" />}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -390,7 +390,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     </label>
                     <textarea
                       rows={3}
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-accent-info resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent-info resize-y"
                       placeholder="输入新的证书，留空则保持原值"
                       value={editClientCert}
                       onChange={e => setEditClientCert(e.target.value)}
@@ -403,7 +403,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     </label>
                     <textarea
                       rows={3}
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-accent-info resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent-info resize-y"
                       placeholder="输入新的私钥，留空则保持原值"
                       value={editClientKey}
                       onChange={e => setEditClientKey(e.target.value)}
@@ -449,7 +449,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                 </label>
                 <textarea
                   rows={2}
-                  className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-accent-info resize-y"
+                  className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent-info resize-y"
                   placeholder="输入新的 CA 证书，留空则保持原值"
                   value={editCaCert}
                   onChange={e => setEditCaCert(e.target.value)}
@@ -480,7 +480,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                   {isTesting ? k8sT.testing : k8sT.testConnection}
                 </Button>
                 {testMessage && (
-                  <span className={`text-sm ${testStatus === 'success' ? 'text-green-400' : 'text-danger'}`}>
+                  <span className={`text-sm ${testStatus === 'success' ? 'text-success' : 'text-danger'}`}>
                     {testMessage}
                   </span>
                 )}
@@ -527,7 +527,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     </p>
                     <p className="text-xs text-ink-faint">{k8sT.modal.upload.maxSize}</p>
                     {uploadFile && (
-                      <p className="mt-2 text-sm text-green-400">
+                      <p className="mt-2 text-sm text-success">
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                         {uploadFile.name}
                       </p>
@@ -557,7 +557,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     </label>
                     <textarea
                       rows={8}
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-accent-info resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent-info resize-y"
                       placeholder={k8sT.modal.paste.placeholder}
                       value={pasteText}
                       onChange={e => setPasteText(e.target.value)}
@@ -648,7 +648,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                         </label>
                         <textarea
                           rows={3}
-                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-accent-info resize-y"
+                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent-info resize-y"
                           placeholder="-----BEGIN CERTIFICATE-----"
                           value={manualClientCert}
                           onChange={e => setManualClientCert(e.target.value)}
@@ -660,7 +660,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                         </label>
                         <textarea
                           rows={3}
-                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-accent-info resize-y"
+                          className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent-info resize-y"
                           placeholder="-----BEGIN RSA PRIVATE KEY-----"
                           value={manualClientKey}
                           onChange={e => setManualClientKey(e.target.value)}
@@ -701,7 +701,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     </label>
                     <textarea
                       rows={2}
-                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse font-mono focus:outline-none focus:border-accent-info resize-y"
+                      className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:border-accent-info resize-y"
                       placeholder="-----BEGIN CERTIFICATE-----"
                       value={manualCaCert}
                       onChange={e => setManualCaCert(e.target.value)}
@@ -731,7 +731,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
           {/* 左侧：测试结果显示（编辑模式下） */}
           <div className="text-sm flex-1">
             {!isEditing && testMessage && (
-              <span className={testStatus === 'success' ? 'text-green-400' : 'text-danger'}>
+              <span className={testStatus === 'success' ? 'text-success' : 'text-danger'}>
                 {testMessage}
               </span>
             )}

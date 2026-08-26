@@ -49,7 +49,7 @@ export const ResourceTabs: React.FC = () => {
       <Tabs value={resourceType} onValueChange={(v) => setResourceType(v as 'pods' | 'workloads' | 'nodes' | 'events')} className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="mx-4 bg-transparent h-auto p-0 justify-start border-b border-border bg-surface-1/30">
           {TABS.map((tab) => (
-            <TabsTrigger key={tab.key} value={tab.key} className="rounded-none bg-transparent px-4 py-2.5 text-sm font-medium border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 data-[state=active]:text-accent-info data-[state=inactive]:text-ink-muted">
+            <TabsTrigger key={tab.key} value={tab.key} className="rounded-none bg-transparent px-4 py-2.5 text-sm font-medium border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-accent-info data-[state=active]:text-accent-info data-[state=inactive]:text-ink-muted">
               {(() => {
                 const TabIcon = tab.icon;
                 return <TabIcon className="w-3.5 h-3.5 mr-1.5" />;

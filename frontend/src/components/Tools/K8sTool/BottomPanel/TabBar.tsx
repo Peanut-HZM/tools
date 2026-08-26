@@ -34,7 +34,7 @@ export const TabBar: React.FC = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer transition-colors min-w-[120px] max-w-[200px] ${
               isActive
-                ? 'bg-accent/20 text-blue-300 border border-blue-500/40'
+                ? 'bg-accent/20 text-accent-info border border-accent-info/40'
                 : 'bg-surface-2/50 text-ink-muted hover:bg-surface-2 hover:text-ink border border-transparent'
             }`}
           >

@@ -180,7 +180,7 @@ export const LogsViewer: React.FC<Props> = ({
         parts.push(
           <span
             key={`h-${lineIdx}-${match.index}`}
-            className="bg-yellow-500/40 text-yellow-200 rounded-sm"
+            className="bg-warning/40 text-warning rounded-sm"
           >
             {match[0]}
           </span>
@@ -255,7 +255,7 @@ export const LogsViewer: React.FC<Props> = ({
           onClick={() => setFollow((f) => !f)}
           className={`flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors ${
             follow
-              ? 'bg-green-500/20 border-green-500/30 text-green-400'
+              ? 'bg-success/20 border-success/30 text-success'
               : 'bg-surface-1 border-border text-ink-muted'
           }`}
         >
@@ -364,7 +364,7 @@ export const LogsViewer: React.FC<Props> = ({
             </>
           )}
         </span>
-        <span className={follow ? 'text-green-400' : 'text-ink-faint'}>
+        <span className={follow ? 'text-success' : 'text-ink-faint'}>
           {follow ? '● LIVE' : '○ PAUSED'}
         </span>
       </div>

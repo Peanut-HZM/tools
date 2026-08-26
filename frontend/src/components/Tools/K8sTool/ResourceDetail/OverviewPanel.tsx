@@ -18,9 +18,9 @@ interface Props {
 /** 状态徽章颜色 */
 const getPhaseColor = (phase: string): string => {
   switch (phase.toLowerCase()) {
-    case 'running': return 'bg-green-500/20 text-green-400 border-green-500/30';
-    case 'pending': return 'bg-accent-warning/20 text-accent-warning border-yellow-500/30';
-    case 'failed': return 'bg-danger/20 text-danger border-red-500/30';
+    case 'running': return 'bg-success/20 text-success border-success/30';
+    case 'pending': return 'bg-accent-warning/20 text-accent-warning border-warning/30';
+    case 'failed': return 'bg-danger/20 text-danger border-danger/30';
     case 'succeeded': return 'bg-accent-info/20 text-accent-info border-accent-info/30';
     default: return 'bg-surface-3/20 text-ink-muted border-border/30';
   }
@@ -29,7 +29,7 @@ const getPhaseColor = (phase: string): string => {
 /** 条件状态颜色 */
 const getConditionColor = (status: string): string => {
   switch (status) {
-    case 'True': return 'text-green-400';
+    case 'True': return 'text-success';
     case 'False': return 'text-danger';
     default: return 'text-accent-warning';
   }

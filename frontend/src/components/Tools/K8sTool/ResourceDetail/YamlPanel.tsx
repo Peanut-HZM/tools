@@ -85,7 +85,7 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
           onClick={handleCopy}
           className="h-7 px-2.5 py-1 text-xs"
         >
-          {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+          {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
           {copied ? yt.copied : yt.copy}
         </Button>
       </div>

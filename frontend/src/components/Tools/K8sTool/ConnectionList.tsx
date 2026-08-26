@@ -36,8 +36,8 @@ interface Props {
 }
 
 function getHealthDotClass(conn: K8sConnection): string {
-  if (conn.last_test_error) return 'bg-red-500';
-  if (conn.last_test_at) return 'bg-green-500';
+  if (conn.last_test_error) return 'bg-danger';
+  if (conn.last_test_at) return 'bg-success';
   return 'bg-surface-3';
 }
 
@@ -83,7 +83,7 @@ const SortableConnectionItem: React.FC<{
         'p-2 rounded group flex justify-between items-center transition-colors',
         isSelected
           ? 'bg-accent/20 text-accent-info border border-accent/40'
-          : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse',
+          : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
       ].join(' ')}
       onClick={() => onSelect(conn.id)}
     >

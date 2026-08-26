@@ -18,7 +18,7 @@ interface Props {
 /** 容器状态颜色 */
 const getStateColor = (state: K8sContainerInfo['state']): string => {
   switch (state) {
-    case 'running': return 'text-green-400';
+    case 'running': return 'text-success';
     case 'waiting': return 'text-accent-warning';
     case 'terminated': return 'text-danger';
     default: return 'text-ink-muted';
@@ -89,7 +89,7 @@ const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct:
 
     {/* 就绪 */}
     <td className="px-3 py-2">
-      <span className={`text-xs font-medium ${container.ready ? 'text-green-400' : 'text-danger'}`}>
+      <span className={`text-xs font-medium ${container.ready ? 'text-success' : 'text-danger'}`}>
         {container.ready ? ct.ready : ct.notReady}
       </span>
     </td>

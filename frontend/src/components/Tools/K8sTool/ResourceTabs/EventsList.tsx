@@ -89,7 +89,7 @@ export const EventsList: React.FC = () => {
 
                 {/* 原因 */}
                 <td className="px-3 py-2">
-                  <span className={`text-xs font-mono ${isWarning ? 'text-yellow-300' : 'text-ink-muted'}`}>
+                  <span className={`text-xs font-mono ${isWarning ? 'text-warning' : 'text-ink-muted'}`}>
                     {event.reason}
                   </span>
                 </td>

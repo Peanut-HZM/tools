@@ -106,8 +106,8 @@ describe('TabBar', () => {
     // 激活标签的父元素应包含蓝色样式类
     const activeTab = screen.getByText('nginx').closest('div');
     expect(activeTab?.className).toContain('bg-accent/20');
-    expect(activeTab?.className).toContain('text-blue-300');
-    expect(activeTab?.className).toContain('border-blue-500/40');
+    expect(activeTab?.className).toContain('text-accent-info');
+    expect(activeTab?.className).toContain('border-accent-info/40');
 
     // 非激活标签应包含 slate 样式类
     const inactiveTab = screen.getByText('redis').closest('div');

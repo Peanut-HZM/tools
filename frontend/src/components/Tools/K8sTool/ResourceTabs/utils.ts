@@ -47,12 +47,12 @@ export function formatAge(created_at: string | undefined | null): string {
 export function getStatusColor(phase: string, status?: string): string {
   const lower = (status || phase).toLowerCase();
 
-  if (lower.includes('crashloop') || lower.includes('error')) return 'text-red-400';
-  if (lower === 'running') return 'text-green-400';
-  if (lower === 'pending' || lower === 'containercreating' || lower.includes('waiting')) return 'text-yellow-400';
-  if (lower === 'failed') return 'text-red-400';
-  if (lower === 'succeeded') return 'text-slate-400';
-  return 'text-slate-400';
+  if (lower.includes('crashloop') || lower.includes('error')) return 'text-danger';
+  if (lower === 'running') return 'text-success';
+  if (lower === 'pending' || lower === 'containercreating' || lower.includes('waiting')) return 'text-warning';
+  if (lower === 'failed') return 'text-danger';
+  if (lower === 'succeeded') return 'text-ink-muted';
+  return 'text-ink-muted';
 }
 
 /**
@@ -74,7 +74,7 @@ export function getStatusIcon(phase: string, status?: string): React.ComponentTy
  */
 export function getNodeStatusColor(status: string): string {
   const lower = status.toLowerCase();
-  if (lower === 'ready' || lower === 'true') return 'text-green-400';
-  if (lower.includes('notready') || lower === 'false') return 'text-red-400';
-  return 'text-yellow-400';
+  if (lower === 'ready' || lower === 'true') return 'text-success';
+  if (lower.includes('notready') || lower === 'false') return 'text-danger';
+  return 'text-warning';
 }

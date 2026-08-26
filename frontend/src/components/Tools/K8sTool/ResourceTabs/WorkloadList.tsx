@@ -46,7 +46,7 @@ export const WorkloadList: React.FC = () => {
   /** 就绪状态颜色 */
   const getReadyColor = (ready: string, desired: number): string => {
     const [current] = ready.split('/').map(Number);
-    if (current >= desired) return 'text-green-400';
+    if (current >= desired) return 'text-success';
     if (current > 0) return 'text-accent-warning';
     return 'text-danger';
   };
