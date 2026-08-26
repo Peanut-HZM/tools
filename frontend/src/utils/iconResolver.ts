@@ -14,7 +14,7 @@ import {
   Gamepad2, Package, Settings, Monitor, Smartphone, Search, Folder, Lock, Check,
   Pencil, Trash2, Terminal, Plug, Mic, Video, LineChart, Gauge, MessageSquare,
   History, CalendarDays, FileImage, FileOutput, Share2, Briefcase, Ship, Cloud,
-  List, Table, Clock, Bell, User, Tag, Download, Upload, Wrench,
+  List, Table, Clock, Bell, User, Tag, Download, Upload, Wrench, ScanLine, Palette,
   type LucideIcon,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -94,6 +94,8 @@ export const faIconMap: Record<string, ComponentType<{ className?: string }>> = 
   'fa-download': Download,
   'fa-upload': Upload,
   'fa-wrench': Wrench,
+  'fa-scan': ScanLine,
+  'fa-palette': Palette,
 };
 
 /** 从 'fas fa-server' / 'fa-server' / 'fa-server  extra' 提取出 'fa-server' */

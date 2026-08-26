@@ -84,7 +84,7 @@ TOOLS_DATA = [
     ),
     Tool(
         id="ocr-tool",
-        icon="fa-file-image",
+        icon="fa-scan",
         iconColor="bg-indigo-500",
         title="OCR 文字识别",
         description="基于 Umi-OCR 的离线文字识别，支持截图、批量图片识别和排版解析",
@@ -145,7 +145,7 @@ TOOLS_DATA = [
     Tool(
         id="cross-share",
         icon="fa-share-alt",
-        iconColor="bg-indigo-500",
+        iconColor="bg-accent",
         title="CrossShare 设备传传",
         description="跨设备消息和文件共享工具，登录即用，全平台同步",
         rating=4.9,
@@ -237,7 +237,7 @@ TOOLS_DATA = [
     ),
     Tool(
         id="image-generation",
-        icon="fa-image",
+        icon="fa-palette",
         iconColor="bg-purple-500",
         title="图像生成",
         description="AI 图像生成工具，支持文生图、图生图、局部重绘和上传编辑",
