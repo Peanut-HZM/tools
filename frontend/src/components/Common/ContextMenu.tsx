@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 
 export interface MenuItem {
   label: string;
-  icon?: string;
+  icon?: React.ReactNode;
   action: () => void;
   disabled?: boolean;
   danger?: boolean;
@@ -70,7 +70,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
               }
             }}
           >
-            {item.icon && <i className={`fas ${item.icon} w-4 text-center ${item.danger ? '' : 'text-ink-faint'}`}></i>}
+            {item.icon && <span className={`w-4 flex justify-center ${item.danger ? '' : 'text-ink-faint'}`}>{item.icon}</span>}
             <span>{item.label}</span>
           </div>
         );

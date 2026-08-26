@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, Search } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { Card } from '@/components/ui/Card';
 
@@ -92,14 +93,14 @@ const DatabaseFilterDialog: React.FC<DatabaseFilterDialogProps> = ({
              Filter Databases
           </h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink">
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
           {/* Search */}
           <div className="relative">
-            <i className="fas fa-search absolute left-3 top-2.5 text-ink-faint text-sm"></i>
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-faint" />
             <input
               type="text"
               placeholder={t.common.search || "Search..."}

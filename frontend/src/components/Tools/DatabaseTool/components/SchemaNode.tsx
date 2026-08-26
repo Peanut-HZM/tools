@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Columns, Key, Link, ArrowRight, Loader2, ChevronRight, Folder, Table, Eye, Terminal, RefreshCw, Archive, History, Search, FileCode, Pencil, Trash2 } from 'lucide-react';
 import { DatabaseStructure, TableItem } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
@@ -108,7 +109,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
     const items: MenuItem[] = [
       {
         label: t.database.contextMenu.newSqlConsole || 'New SQL Console',
-        icon: 'fa-terminal',
+        icon: <Terminal className="w-4 h-4" />,
         action: () => {
           if (onOpenSqlConsole) {
             onOpenSqlConsole('', dbName, configId);
@@ -117,7 +118,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       },
       {
         label: t.database.contextMenu.refresh,
-        icon: 'fa-sync',
+        icon: <RefreshCw className="w-4 h-4" />,
         action: async () => {
           setStructure(null);
           await fetchStructure(true); // skipCache=true 强制刷新
@@ -130,12 +131,12 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       },
       {
         label: t.database.contextMenu.backupDatabase,
-        icon: 'fa-archive',
+        icon: <Archive className="w-4 h-4" />,
         action: () => onOpenBackup(dbName)
       },
       {
         label: t.database.contextMenu.backupHistory,
-        icon: 'fa-history',
+        icon: <History className="w-4 h-4" />,
         action: () => onOpenBackupHistory(dbName)
       }
     ];
@@ -150,7 +151,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
     const menuItems: MenuItem[] = [
       {
         label: t.database.contextMenu.newQuery || 'New Query',
-        icon: 'fa-search',
+        icon: <Search className="w-4 h-4" />,
         action: () => {
           if (onOpenSqlConsole) {
             onOpenSqlConsole(`SELECT * FROM "${schemaName}"."${item.name}" LIMIT 100;`, dbName, configId);
@@ -159,19 +160,19 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       },
       {
         label: t.database.contextMenu.viewData,
-        icon: 'fa-table',
+        icon: <Table className="w-4 h-4" />,
         action: () => handleTableClick(item.name)
       },
       {
         label: t.database.contextMenu.viewStructure,
-        icon: 'fa-code',
+        icon: <Code className="w-4 h-4" />,
         action: () => {
           handleTableClick(item.name);
         }
       },
       {
         label: t.database.contextMenu.refreshTableStructure || '刷新表结构',
-        icon: 'fa-sync',
+        icon: <RefreshCw className="w-4 h-4" />,
         action: async () => {
           setStructure(null);
           const data = await fetchStructure(true); // skipCache=true 强制刷新
@@ -188,12 +189,12 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       },
       {
         label: t.database.contextMenu.generateDDL,
-        icon: 'fa-file-code',
+        icon: <FileCode className="w-4 h-4" />,
         action: () => setDdlTable(item.name)
       },
       {
         label: t.database.contextMenu.modifyStructure,
-        icon: 'fa-edit',
+        icon: <Pencil className="w-4 h-4" />,
         action: () => setModifyTable(item.name)
       },
       {
@@ -203,7 +204,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       },
       {
         label: t.database.contextMenu.emptyData,
-        icon: 'fa-eraser',
+        icon: <Trash2 className="w-4 h-4" />,
         danger: true,
         action: async () => {
           if (window.confirm(t.database.contextMenu.confirmTruncateTable.replace('{name}', item.name))) {
@@ -219,7 +220,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       },
       {
         label: t.database.contextMenu.deleteTable,
-        icon: 'fa-trash',
+        icon: <Trash2 className="w-4 h-4" />,
         danger: true,
         action: async () => {
           if (window.confirm(t.database.contextMenu.confirmDeleteTable.replace('{name}', item.name))) {
@@ -270,7 +271,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         {detail.columns && detail.columns.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <i className="fas fa-columns text-[9px] text-accent/70"></i>
+              <Columns className="w-2 h-2 text-accent/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.columns}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.columns.length}</span>
             </div>
@@ -294,7 +295,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         {detail.indexes && detail.indexes.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <i className="fas fa-key text-[9px] text-violet-400/70"></i>
+              <Key className="w-2 h-2 text-violet-400/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.indexes}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.indexes.length}</span>
             </div>
@@ -316,7 +317,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
         {detail.foreign_keys && detail.foreign_keys.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <i className="fas fa-link text-[9px] text-orange-400/70"></i>
+              <Link className="w-2 h-2 text-orange-400/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.foreignKeys}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.foreign_keys.length}</span>
             </div>
@@ -325,7 +326,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                 <div key={fk.name} className="flex items-center gap-1.5 py-0.5 text-[10.5px]">
                   <span className="text-ink font-mono text-[10px] min-w-[60px] truncate">{fk.name}</span>
                   <span className="text-ink-muted font-mono text-[9.5px]">{fk.constrained_columns.join(', ')}</span>
-                  <i className="fas fa-arrow-right text-[7px] text-ink-faint"></i>
+                  <ArrowRight className="w-1.5 h-1.5 text-ink-faint" />
                   <span className="text-orange-400/80 font-mono text-[9.5px]">{fk.referred_table}</span>
                   <span className="text-ink-faint font-mono text-[9.5px]">({fk.referred_columns.join(', ')})</span>
                 </div>
@@ -365,12 +366,12 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
       >
         <span className="w-4 h-4 flex items-center justify-center">
           {loading ? (
-            <i className="fas fa-spinner fa-spin text-[10px]"></i>
+            <Loader2 className="w-2.5 h-2.5 animate-spin" />
           ) : (
-            <i className={`fas fa-chevron-right text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
+            <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
           )}
         </span>
-        <i className="fas fa-folder text-accent/80 text-xs"></i>
+        <Folder className="w-3 h-3 text-accent/80" />
         <span className="truncate">{schemaName}</span>
       </div>
 
@@ -380,7 +381,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
           {filteredTables.length > 0 && (
             <div>
               <div className="flex items-center space-x-2 py-1 px-2 hover:bg-surface-2/50 rounded cursor-pointer text-ink-muted">
-                <i className="fas fa-table text-accent-info text-xs"></i>
+                <Table className="w-3 h-3 text-accent-info" />
                 <span className="truncate text-xs font-medium">Tables</span>
                 <span className="text-[10px] bg-surface-2 px-1 rounded-full">{filteredTables.length}</span>
               </div>
@@ -403,13 +404,13 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                         title="查看表字段"
                       >
                         {loadingDetails.has(item.name) ? (
-                          <i className="fas fa-spinner fa-spin text-[8px]"></i>
+                          <Loader2 className="w-2 h-2 animate-spin" />
                         ) : (
-                          <i className={`fas fa-chevron-right text-[8px] transition-transform ${expandedDetails[item.name] ? 'rotate-90' : ''}`}></i>
+                          <ChevronRight className={`w-2 h-2 transition-transform ${expandedDetails[item.name] ? 'rotate-90' : ''}`} />
                         )}
                       </button>
 
-                      <i className="fas fa-table text-ink-faint text-[10px]"></i>
+                      <Table className="w-2.5 h-2.5 text-ink-faint" />
                       <div className="flex-1 min-w-0">
                         <span
                           className="truncate text-xs cursor-pointer"
@@ -448,7 +449,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
           {filteredViews.length > 0 && (
             <div>
               <div className="flex items-center space-x-2 py-1 px-2 hover:bg-surface-2/50 rounded cursor-pointer text-ink-muted">
-                <i className="fas fa-eye text-accent-secondary text-xs"></i>
+                <Eye className="w-3 h-3 text-accent-secondary" />
                 <span className="truncate text-xs font-medium">Views</span>
                 <span className="text-[10px] bg-surface-2 px-1 rounded-full">{filteredViews.length}</span>
               </div>
@@ -459,7 +460,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                     className="flex items-center space-x-2 py-0.5 px-2 hover:bg-surface-2/50 rounded cursor-pointer text-ink-muted"
                     onClick={() => handleTableClick(item.name)}
                   >
-                    <i className="fas fa-eye text-ink-faint text-[10px]"></i>
+                    <Eye className="w-2.5 h-2.5 text-ink-faint" />
                     <span className="truncate text-xs">{item.name}</span>
                   </div>
                 ))}

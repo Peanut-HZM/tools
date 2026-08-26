@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { Minimize2, Maximize2, Loader2 } from 'lucide-react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { TableItem } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
@@ -97,9 +98,9 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
                 : t.database.executor.enterFullscreen}
               className="text-ink-muted hover:text-accent-info transition-colors"
             >
-              <i className={isFullscreen
-                ? 'fas fa-compress text-sm'
-                : 'fas fa-expand text-sm'} />
+              {isFullscreen
+                ? <Minimize2 className="w-4 h-4" />
+                : <Maximize2 className="w-4 h-4" />}
             </button>
           )}
         </div>
@@ -125,7 +126,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
           }}
           loading={
             <div className="flex items-center justify-center h-full text-ink-faint">
-               <i className="fas fa-spinner fa-spin mr-2"></i> Loading Editor...
+               <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading Editor...
             </div>
           }
         />
@@ -136,7 +137,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
           disabled={loading || !value.trim()}
           className="flex items-center gap-2"
         >
-          {loading && <i className="fas fa-spinner fa-spin"></i>}
+          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           {loading ? t.database.executor.executing : t.database.executor.run}
         </Button>
       </div>

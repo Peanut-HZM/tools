@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, Loader2, Trash2, Plus, Save } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
@@ -143,14 +144,14 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
             Modify Table: {tableName}
           </h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
         
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <i className="fas fa-spinner fa-spin text-2xl text-accent-info"></i>
+              <Loader2 className="w-8 h-8 animate-spin text-accent-info" />
             </div>
           ) : (
             <div className="space-y-4">
@@ -249,7 +250,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                                            className="text-danger hover:text-red-300"
                                            title="Remove Column"
                                        >
-                                           <i className="fas fa-trash"></i>
+                                           <Trash2 className="w-4 h-4" />
                                        </button>
                                    </td>
                                </tr>
@@ -261,7 +262,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                            onClick={handleAddColumn}
                            className="text-accent-info hover:text-accent-info text-xs flex items-center gap-1"
                        >
-                           <i className="fas fa-plus"></i> Add Column
+                           <Plus className="w-4 h-4" /> Add Column
                        </button>
                    </div>
                </div>
@@ -281,7 +282,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
             disabled={saving || loading}
             className="flex items-center gap-2"
           >
-            {saving && <i className="fas fa-spinner fa-spin"></i>}
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             Save Changes
           </Button>
         </div>

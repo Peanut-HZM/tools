@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Archive, X, CheckCircle, Download, Loader2, Table, SlidersHorizontal, Boxes, Workflow, Database, Check, type LucideIcon } from 'lucide-react';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
 import { useI18n } from '../../../../i18n';
@@ -144,11 +145,11 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink flex items-center gap-2">
-            <i className="fas fa-archive text-accent-info"></i>
+            <Archive className="w-4 h-4 text-accent-info" />
             {t.database.dialog.backup.title}
           </h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -159,7 +160,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
             <div className="space-y-4">
               <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-4">
                 <div className="flex items-center gap-2 text-green-400 mb-2">
-                  <i className="fas fa-check-circle"></i>
+                  <CheckCircle className="w-4 h-4" />
                   <span className="font-medium">{t.database.dialog.backup.backupSuccess}</span>
                 </div>
                 <div className="text-sm text-ink-muted space-y-1">
@@ -180,7 +181,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                   onClick={handleDownload}
                   className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors flex items-center gap-2"
                 >
-                  <i className="fas fa-download"></i>
+                  <Download className="w-4 h-4" />
                   {t.database.dialog.backup.download}
                 </button>
               </div>
@@ -202,12 +203,12 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                       {t.database.dialog.backup.selectTables} {t.database.dialog.backup.selectedCount.replace('{selected}', String(tables.filter((t) => t.selected).length)).replace('{total}', String(tables.length))}
                     </span>
                   </label>
-                  {loading && <i className="fas fa-spinner fa-spin text-ink-faint text-xs"></i>}
+                  {loading && <Loader2 className="w-3 h-3 animate-spin text-ink-faint" />}
                 </div>
                 <div className="max-h-48 overflow-y-auto">
                   {loading && tables.length === 0 ? (
                     <div className="p-4 text-center text-ink-faint text-sm">
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       {t.database.dialog.backup.loadingTables}
                     </div>
                   ) : (
@@ -222,7 +223,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                           onChange={() => handleToggleTable(idx)}
                           className="rounded border-border bg-surface-2 text-accent-info"
                         />
-                        <i className="fas fa-table text-ink-faint text-xs"></i>
+                        <Table className="w-3 h-3 text-ink-faint" />
                         <span className="text-sm text-ink flex-1">{table.name}</span>
                         <span className="text-xs text-ink-faint">{formatNumber(table.rowCount)} rows</span>
                       </label>
@@ -234,14 +235,14 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
               {/* Backup Mode */}
               <div className="space-y-2">
                 <p className="text-sm text-ink-muted font-medium flex items-center gap-2">
-                  <i className="fas fa-sliders-h text-xs text-ink-faint"></i>
+                  <SlidersHorizontal className="w-3 h-3 text-ink-faint" />
                   {t.database.dialog.backup.backupMode}
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { value: 'structure_and_data' as BackupMode, label: t.database.dialog.backup.modeStructureData, icon: 'fa-cubes', desc: t.database.dialog.backup.modeDescFull, color: 'blue' },
-                    { value: 'structure_only' as BackupMode, label: t.database.dialog.backup.modeStructureOnly, icon: 'fa-project-diagram', desc: t.database.dialog.backup.modeDescDDL, color: 'amber' },
-                    { value: 'data_only' as BackupMode, label: t.database.dialog.backup.modeDataOnly, icon: 'fa-database', desc: t.database.dialog.backup.modeDescInsert, color: 'emerald' },
+                    { value: 'structure_and_data' as BackupMode, label: t.database.dialog.backup.modeStructureData, Icon: Boxes, desc: t.database.dialog.backup.modeDescFull, color: 'blue' },
+                    { value: 'structure_only' as BackupMode, label: t.database.dialog.backup.modeStructureOnly, Icon: Workflow, desc: t.database.dialog.backup.modeDescDDL, color: 'amber' },
+                    { value: 'data_only' as BackupMode, label: t.database.dialog.backup.modeDataOnly, Icon: Database, desc: t.database.dialog.backup.modeDescInsert, color: 'emerald' },
                   ].map((mode) => {
                     const isActive = backupMode === mode.value;
                     const colorMap: Record<string, { active: string; inactive: string; icon: string }> = {
@@ -277,7 +278,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                           onChange={() => setBackupMode(mode.value)}
                           className="sr-only"
                         />
-                        <i className={`fas ${mode.icon} text-base ${isActive ? colors.icon : 'text-ink-faint'}`}></i>
+                        <mode.Icon className={`text-base ${isActive ? colors.icon : 'text-ink-faint'}`} />
                         <span className={`text-xs font-medium ${isActive ? 'text-ink' : 'text-ink-muted'}`}>{mode.label}</span>
                         <span className="text-[10px] text-ink-faint">{mode.desc}</span>
                       </label>
@@ -292,7 +293,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                     includeDrop ? 'bg-accent border-accent-info' : 'border-border group-hover:border-border'
                   }`}>
-                    {includeDrop && <i className="fas fa-check text-ink-inverse text-[8px]"></i>}
+                    {includeDrop && <Check className="w-2 h-2 text-ink-inverse" />}
                     <input
                       type="checkbox"
                       checked={includeDrop}
@@ -306,7 +307,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                     includeIfNotExists ? 'bg-accent border-accent-info' : 'border-border group-hover:border-border'
                   }`}>
-                    {includeIfNotExists && <i className="fas fa-check text-ink-inverse text-[8px]"></i>}
+                    {includeIfNotExists && <Check className="w-2 h-2 text-ink-inverse" />}
                     <input
                       type="checkbox"
                       checked={includeIfNotExists}
@@ -336,8 +337,8 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
               disabled={backingUp || tables.filter((t) => t.selected).length === 0}
               className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              {backingUp && <i className="fas fa-spinner fa-spin text-xs"></i>}
-              <i className="fas fa-archive"></i>
+              {backingUp && <Loader2 className="w-3 h-3 animate-spin" />}
+              <Archive className="w-4 h-4" />
               {backingUp ? t.database.dialog.backup.backingUp : t.database.dialog.backup.startBackup}
             </button>
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, Loader2, Copy } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
@@ -53,14 +54,14 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
             DDL: {tableName}
           </h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse">
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
         
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <i className="fas fa-spinner fa-spin text-2xl text-accent-info"></i>
+              <Loader2 className="w-8 h-8 animate-spin text-accent-info" />
             </div>
           ) : (
             <pre className="bg-canvas p-4 rounded text-sm text-ink-muted font-mono overflow-auto whitespace-pre-wrap">
@@ -74,7 +75,7 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
             onClick={handleCopy}
             className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
           >
-            <i className="fas fa-copy mr-2"></i>
+            <Copy className="w-4 h-4 mr-2" />
             Copy
           </button>
           <button

@@ -3,6 +3,7 @@ import { DatabaseConfig } from '../../../../types/databaseTool';
 import { Environment } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
+import { Settings, X, Search, ChevronRight, Database, Loader2, Undo2, Check } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -242,7 +243,7 @@ export default function DisplaySettingsDialog({
         {/* 标题栏 */}
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink">
-            <i className="fas fa-cog mr-2 text-ink-muted"></i>
+            <Settings className="w-4 h-4 mr-2 text-ink-muted inline" />
             显示设置
           </h3>
           <button
@@ -250,14 +251,14 @@ export default function DisplaySettingsDialog({
             className="text-ink-muted hover:text-ink transition-colors p-1"
             aria-label="关闭"
           >
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* 搜索框 */}
         <div className="px-4 pt-3">
           <div className="relative">
-            <i className="fas fa-search absolute left-3 top-2.5 text-ink-faint text-sm"></i>
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-faint" />
             <input
               type="text"
               placeholder="搜索连接名称或主机..."
@@ -290,7 +291,7 @@ export default function DisplaySettingsDialog({
 
           {filteredConfigs.length === 0 ? (
             <div className="text-center text-ink-faint py-8 text-sm">
-              <i className="fas fa-search mb-2 block text-lg opacity-50"></i>
+              <Search className="w-5 h-5 mb-2 block opacity-50 mx-auto" />
               未找到匹配的连接
             </div>
           ) : (
@@ -321,9 +322,9 @@ export default function DisplaySettingsDialog({
                       className="text-ink-faint hover:text-ink-muted transition-colors p-0.5"
                       aria-label={isExpanded ? '收起' : '展开'}
                     >
-                      <i
-                        className={`fas fa-chevron-right text-xs transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                      ></i>
+                      <ChevronRight
+                        className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                      />
                     </button>
 
                     {/* 连接复选框 */}
@@ -350,7 +351,7 @@ export default function DisplaySettingsDialog({
                     <div className="ml-8 mt-1 mb-1 space-y-0.5">
                       {isLoading ? (
                         <div className="py-2 text-xs text-ink-faint">
-                          <i className="fas fa-spinner fa-spin mr-1"></i>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                           加载中...
                         </div>
                       ) : allDbs ? (
@@ -387,7 +388,7 @@ export default function DisplaySettingsDialog({
                                 className="rounded border-border bg-surface-2 text-accent-info focus:ring-accent focus:ring-offset-canvas pointer-events-none"
                               />
                               <span className="text-xs text-ink-muted truncate flex-1">{db}</span>
-                              <i className="fas fa-database text-ink-faint text-xs"></i>
+                              <Database className="w-3 h-3 text-ink-faint" />
                             </div>
                           ))}
                         </>
@@ -411,7 +412,7 @@ export default function DisplaySettingsDialog({
             disabled={saving}
             className="px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <i className="fas fa-undo mr-1"></i>
+            <Undo2 className="w-3 h-3 mr-1" />
             重置
           </button>
           <div className="flex space-x-3">
@@ -429,12 +430,12 @@ export default function DisplaySettingsDialog({
             >
               {saving ? (
                 <>
-                  <i className="fas fa-spinner fa-spin mr-1"></i>
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                   保存中...
                 </>
               ) : (
                 <>
-                  <i className="fas fa-check mr-1"></i>
+                  <Check className="w-3 h-3 mr-1" />
                   {t.common.confirm}
                 </>
               )}

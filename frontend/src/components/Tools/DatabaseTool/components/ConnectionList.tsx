@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { LogIn, LogOut, Settings, Terminal, Plus, Search, Database, ChevronRight, Filter, Pencil, Loader2, RefreshCw, Archive, History, Trash2, Table, Eye, Code, FileCode, Columns, Key, Link, ArrowRight, Layers, Copy, Cable, type LucideIcon } from 'lucide-react';
 import { useDatabaseTool } from '../../../../contexts/DatabaseToolContext';
 import { useWorkspaceStore } from '../../../../stores/workspaceStore';
 import { DatabaseConfig, Environment, DatabaseStructure, TableItem, TableDetailResponse } from '../../../../types/databaseTool';
@@ -117,7 +118,9 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
                 className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
                 title={isToolSidebarVisible ? '隐藏工具列表' : '展开工具列表'}
             >
-                <i className={`fas ${isToolSidebarVisible ? 'fa-right-to-bracket' : 'fa-left-to-bracket'}`}></i>
+                {isToolSidebarVisible
+                ? <LogOut className="w-4 h-4" />
+                : <LogIn className="w-4 h-4" />}
             </button>
             <button
                 onClick={() => setShowDisplaySettings(true)}
@@ -125,7 +128,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
                 title="显示设置"
                 aria-label="显示设置"
             >
-                <i className="fas fa-cog"></i>
+                <Settings className="w-4 h-4" />
             </button>
             {onOpenSqlConsole && (
                 <button
@@ -133,7 +136,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
                 className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
                 title={t.database.executor.title}
                 >
-                <i className="fas fa-terminal"></i>
+                <Terminal className="w-4 h-4" />
                 </button>
             )}
             <button
@@ -141,14 +144,14 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
                 className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
                 title={t.database.addConnection}
             >
-                <i className="fas fa-plus"></i>
+                <Plus className="w-4 h-4" />
             </button>
             </div>
         </div>
 
         {/* Search Input */}
         <div className="relative">
-             <i className="fas fa-search absolute left-2 top-1/2 transform -translate-y-1/2 text-ink-faint text-xs"></i>
+             <Search className="w-3 h-3 absolute left-2 top-1/2 transform -translate-y-1/2 text-ink-faint" />
              <input
                  type="text"
                  value={searchTerm}
@@ -198,7 +201,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
 
         {configs.length === 0 && !isLoading && (
           <div className="text-center text-ink-faint py-8 text-sm flex flex-col items-center gap-2">
-            <i className="fas fa-database text-2xl mb-2 opacity-50"></i>
+            <Database className="w-8 h-8 mb-2 opacity-50" />
             <p>{t.database.status.disconnected}</p>
             <p className="text-xs opacity-70">{t.common.create}</p>
           </div>
@@ -417,7 +420,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
     const items: MenuItem[] = [
       {
         label: t.database.contextMenu.newSqlConsole || 'New SQL Console',
-        icon: 'fa-terminal',
+        icon: <Terminal className="w-4 h-4" />,
         action: () => {
           if (onOpenSqlConsole) {
             onOpenSqlConsole('', undefined, config.id);
@@ -426,12 +429,12 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       },
       {
         label: t.database.contextMenu.editConnection,
-        icon: 'fa-edit',
+        icon: <Pencil className="w-4 h-4" />,
         action: onEdit
       },
       {
         label: t.database.contextMenu.testConnection,
-        icon: 'fa-plug',
+        icon: <Cable className="w-4 h-4" />,
         action: async () => {
             const result = await api.testConnectionById(config.id);
             alert(`${result.success ? t.common.success : t.common.error}: ${result.message}`);
@@ -439,7 +442,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       },
       {
         label: t.database.contextMenu.refreshConnection,
-        icon: 'fa-sync',
+        icon: <RefreshCw className="w-4 h-4" />,
         action: async () => {
             await fetchDatabases();
             await onRefreshConfigs();
@@ -452,7 +455,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       },
       {
         label: t.database.contextMenu.backupDatabase,
-        icon: 'fa-archive',
+        icon: <Archive className="w-4 h-4" />,
         action: () => {
           if (dbName) {
             onOpenBackup(config.id, dbName);
@@ -462,7 +465,7 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       },
       {
         label: t.database.contextMenu.backupHistory,
-        icon: 'fa-history',
+        icon: <History className="w-4 h-4" />,
         action: () => onOpenBackupHistory(config.id, dbName || undefined)
       },
       {
@@ -472,12 +475,12 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       },
       {
         label: t.database.contextMenu.newDatabase,
-        icon: 'fa-plus',
+        icon: <Plus className="w-4 h-4" />,
         action: () => setCreateDbDialogOpen(true),
       },
       {
         label: t.database.contextMenu.deleteConnection,
-        icon: 'fa-trash',
+        icon: <Trash2 className="w-4 h-4" />,
         danger: true,
         action: async () => {
             if (window.confirm(t.database.contextMenu.confirmDeleteConnection)) {
@@ -548,13 +551,13 @@ const handleSelectAndExpand = async () => {
              className="p-1 hover:bg-surface-3 rounded text-ink-muted w-6 h-6 flex items-center justify-center"
            >
              {loading ? (
-               <i className="fas fa-spinner fa-spin text-xs"></i>
+               <Loader2 className="w-3 h-3 animate-spin" />
              ) : (
-               <i className={`fas fa-chevron-right text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
+               <ChevronRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
              )}
            </button>
 
-           <i className="fas fa-database text-ink-muted"></i>
+           <Database className="w-4 h-4 text-ink-muted" />
 
            <div className="flex-1 min-w-0">
              <div className="flex items-center space-x-2">
@@ -577,7 +580,7 @@ const handleSelectAndExpand = async () => {
                 }`}
                 title={t.common.filter}
               >
-                <i className="fas fa-filter text-xs"></i>
+                <Filter className="w-3 h-3" />
               </button>
           )}
 
@@ -591,7 +594,7 @@ const handleSelectAndExpand = async () => {
             }`}
             title={t.common.edit}
           >
-            <i className="fas fa-edit text-xs"></i>
+            <Pencil className="w-3 h-3" />
           </button>
         </div>
       </div>
@@ -809,7 +812,7 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
     const items: MenuItem[] = [
       {
         label: t.database.contextMenu.newSqlConsole || 'New SQL Console',
-        icon: 'fa-terminal',
+        icon: <Terminal className="w-4 h-4" />,
         action: () => {
           if (onOpenSqlConsole) {
             onOpenSqlConsole('', dbName, configId);
@@ -818,7 +821,7 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
       },
       {
         label: t.database.contextMenu.newTable,
-        icon: 'fa-plus',
+        icon: <Plus className="w-4 h-4" />,
         action: () => {
              if (onOpenSqlConsole) {
                  const template = `CREATE TABLE new_table (
@@ -837,12 +840,12 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
       },
       {
         label: t.database.contextMenu.backupDatabase,
-        icon: 'fa-archive',
+        icon: <Archive className="w-4 h-4" />,
         action: () => onOpenBackup(dbName)
       },
       {
         label: t.database.contextMenu.backupHistory,
-        icon: 'fa-history',
+        icon: <History className="w-4 h-4" />,
         action: () => onOpenBackupHistory(dbName)
       },
       {
@@ -852,14 +855,14 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
       },
       {
         label: t.database.contextMenu.refresh,
-        icon: 'fa-sync',
+        icon: <RefreshCw className="w-4 h-4" />,
         action: async () => {
             await fetchStructure();
         }
       },
       {
         label: t.database.contextMenu.deleteDatabase,
-        icon: 'fa-trash',
+        icon: <Trash2 className="w-4 h-4" />,
         danger: true,
         action: async () => {
             if (window.confirm(t.database.contextMenu.confirmDeleteDatabase.replace('{name}', dbName))) {
@@ -886,7 +889,7 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
 const items: MenuItem[] = [
            {
              label: t.database.contextMenu.newSqlConsole || 'New SQL Console',
-             icon: 'fa-terminal',
+             icon: <Terminal className="w-4 h-4" />,
              action: () => {
                   if (onOpenSqlConsole) {
                       onOpenSqlConsole('', dbName, configId);
@@ -895,7 +898,7 @@ const items: MenuItem[] = [
            },
            {
              label: t.database.contextMenu.newTable,
-             icon: 'fa-plus',
+             icon: <Plus className="w-4 h-4" />,
              action: () => {
                   if (onOpenSqlConsole) {
                       const template = `CREATE TABLE new_table (
@@ -914,12 +917,12 @@ const items: MenuItem[] = [
           },
           {
               label: t.database.contextMenu.backupSelectedTables,
-              icon: 'fa-archive',
+              icon: <Archive className="w-4 h-4" />,
               action: () => onOpenBackup(dbName)
           },
           {
               label: t.database.contextMenu.backupHistory,
-              icon: 'fa-history',
+              icon: <History className="w-4 h-4" />,
               action: () => onOpenBackupHistory(dbName)
           },
           {
@@ -929,7 +932,7 @@ const items: MenuItem[] = [
           },
           {
               label: t.database.contextMenu.generateAllDDL,
-              icon: 'fa-file-code',
+              icon: <FileCode className="w-4 h-4" />,
               action: async () => {
                   try {
                       const ddl = await api.getDatabaseDDL(configId, dbName);
@@ -941,7 +944,7 @@ const items: MenuItem[] = [
           },
           {
               label: t.database.contextMenu.truncateAllTables,
-              icon: 'fa-eraser',
+              icon: <Trash2 className="w-4 h-4" />,
               danger: true,
               action: async () => {
                   if (window.confirm(t.database.contextMenu.confirmTruncateAllTables.replace('{name}', dbName))) {
@@ -957,7 +960,7 @@ const items: MenuItem[] = [
           },
           {
               label: t.database.contextMenu.deleteAllTables,
-              icon: 'fa-trash',
+              icon: <Trash2 className="w-4 h-4" />,
               danger: true,
               action: async () => {
                   if (window.confirm(t.database.contextMenu.confirmDeleteAllTables.replace('{name}', dbName))) {
@@ -988,12 +991,12 @@ const items: MenuItem[] = [
       >
         <span className="w-4 h-4 flex items-center justify-center">
           {loading ? (
-             <i className="fas fa-spinner fa-spin text-[10px]"></i>
+             <Loader2 className="w-2.5 h-2.5 animate-spin" />
            ) : (
-             <i className={`fas fa-chevron-right text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
+             <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
            )}
         </span>
-        <i className="fas fa-layer-group text-yellow-500/80 text-xs"></i>
+        <Layers className="w-3 h-3 text-yellow-500/80" />
         <span className="truncate">{dbName}</span>
       </div>
 
@@ -1001,10 +1004,10 @@ const items: MenuItem[] = [
         <div className="ml-4 pl-2 border-l border-border mt-1 space-y-1">
           <FolderNode
             name="Tables"
-            icon="fa-table"
+            Icon={Table}
             color="text-accent-info"
             items={structure.tables}
-            itemIcon="fa-table"
+            ItemIcon={Table}
             onItemClick={handleTableClick}
             configId={configId}
             dbName={dbName}
@@ -1018,10 +1021,10 @@ const items: MenuItem[] = [
 
           <FolderNode
             name="Views"
-            icon="fa-eye"
+            Icon={Eye}
             color="text-accent-secondary"
             items={structure.views}
-            itemIcon="fa-eye"
+            ItemIcon={Eye}
             onItemClick={handleTableClick}
             configId={configId}
             dbName={dbName}
@@ -1049,7 +1052,7 @@ const items: MenuItem[] = [
                   {t.database.dialog.databaseDDL.replace('{name}', dbName)}
                 </h3>
                 <button onClick={() => setDbDdl(null)} className="text-ink-muted hover:text-ink-inverse">
-                  <i className="fas fa-times"></i>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -1069,7 +1072,7 @@ const items: MenuItem[] = [
                   }}
                   className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded text-sm transition-colors"
                 >
-                  <i className="fas fa-copy mr-2"></i>
+                  <Copy className="w-4 h-4 mr-2" />
                   {t.common.copy}
                 </button>
                 <button
@@ -1088,10 +1091,10 @@ const items: MenuItem[] = [
 
 interface FolderNodeProps {
   name: string;
-  icon: string;
+  Icon: LucideIcon;
   color: string;
   items: TableItem[];
-  itemIcon: string;
+  ItemIcon: LucideIcon;
   onItemClick: (item: string) => void;
   configId: string;
   dbName: string;
@@ -1103,7 +1106,7 @@ interface FolderNodeProps {
   onContextMenu?: (e: React.MouseEvent) => void;
 }
 
-const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemIcon, onItemClick, configId, dbName, onRefresh, onOpenSqlConsole, onSelectTable, onOpenBackup, searchTerm, onContextMenu }) => {
+const FolderNode: React.FC<FolderNodeProps> = ({ name, Icon, color, items, ItemIcon, onItemClick, configId, dbName, onRefresh, onOpenSqlConsole, onSelectTable, onOpenBackup, searchTerm, onContextMenu }) => {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
@@ -1162,7 +1165,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
       const menuItems: MenuItem[] = [
           {
               label: t.database.contextMenu.newQuery || 'New Query',
-              icon: 'fa-search',
+              icon: <Search className="w-4 h-4" />,
               action: () => {
                   if (onOpenSqlConsole) {
                       onOpenSqlConsole(`SELECT * FROM ${item.name} LIMIT 100;`, dbName, configId);
@@ -1171,12 +1174,12 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
           },
           {
               label: t.database.contextMenu.viewData,
-              icon: 'fa-table',
+              icon: <Table className="w-4 h-4" />,
               action: () => onItemClick(item.name)
           },
           {
               label: t.database.contextMenu.viewStructure,
-              icon: 'fa-code',
+              icon: <Code className="w-4 h-4" />,
               action: () => {
                   if (onSelectTable) {
                       onSelectTable(item.name);
@@ -1191,19 +1194,19 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
           },
           {
               label: t.database.contextMenu.backupThisTable,
-              icon: 'fa-archive',
+              icon: <Archive className="w-4 h-4" />,
               action: () => {
                 if (onOpenBackup) onOpenBackup(item.name);
               }
           },
           {
               label: t.database.contextMenu.generateDDL,
-              icon: 'fa-file-code',
+              icon: <FileCode className="w-4 h-4" />,
               action: () => setDdlTable(item.name)
           },
           {
               label: t.database.contextMenu.modifyStructure,
-              icon: 'fa-edit',
+              icon: <Pencil className="w-4 h-4" />,
               action: () => setModifyTable(item.name)
           },
           {
@@ -1213,7 +1216,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
           },
           {
               label: t.database.contextMenu.emptyData,
-              icon: 'fa-eraser',
+              icon: <Trash2 className="w-4 h-4" />,
               danger: true,
               action: async () => {
                   if (window.confirm(t.database.contextMenu.confirmTruncateTable.replace('{name}', item.name))) {
@@ -1228,7 +1231,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
           },
 {
                label: t.database.contextMenu.deleteTable,
-               icon: 'fa-trash',
+               icon: <Trash2 className="w-4 h-4" />,
                danger: true,
                action: async () => {
                    if (window.confirm(t.database.contextMenu.confirmDeleteTable.replace('{name}', item.name))) {
@@ -1248,7 +1251,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
            },
            {
                label: t.database.contextMenu.refreshTableStructure,
-               icon: 'fa-sync',
+               icon: <RefreshCw className="w-4 h-4" />,
                action: async () => {
                    await onRefresh();
                }
@@ -1265,7 +1268,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
         {detail.columns.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <i className="fas fa-columns text-[9px] text-accent/70"></i>
+              <Columns className="w-2 h-2 text-accent/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.columns}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.columns.length}</span>
             </div>
@@ -1290,7 +1293,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
         {detail.indexes.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <i className="fas fa-key text-[9px] text-violet-400/70"></i>
+              <Key className="w-2 h-2 text-violet-400/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.indexes}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.indexes.length}</span>
             </div>
@@ -1313,7 +1316,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
         {detail.foreign_keys.length > 0 && (
           <div className="bg-canvas/40 rounded-md border border-border/30 overflow-hidden">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-1/60 border-b border-border/30">
-              <i className="fas fa-link text-[9px] text-orange-400/70"></i>
+              <Link className="w-2 h-2 text-orange-400/70" />
               <span className="text-[10px] text-ink-muted font-medium tracking-wide uppercase">{t.database.dialog.tableDetail.foreignKeys}</span>
               <span className="text-[9px] text-ink-faint ml-auto">{detail.foreign_keys.length}</span>
             </div>
@@ -1322,7 +1325,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
                 <div key={fk.name} className="flex items-center gap-1.5 py-0.5 text-[10.5px]">
                   <span className="text-ink font-mono text-[10px] min-w-[60px] truncate">{fk.name}</span>
                   <span className="text-ink-muted font-mono text-[9.5px]">{fk.constrained_columns.join(', ')}</span>
-                  <i className="fas fa-arrow-right text-[7px] text-ink-faint"></i>
+                  <ArrowRight className="w-1.5 h-1.5 text-ink-faint" />
                   <span className="text-orange-400/80 font-mono text-[9.5px]">{fk.referred_table}</span>
                   <span className="text-ink-faint font-mono text-[9.5px]">({fk.referred_columns.join(', ')})</span>
                 </div>
@@ -1342,9 +1345,9 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
         onContextMenu={onContextMenu}
       >
         <span className="w-4 h-4 flex items-center justify-center">
-             <i className={`fas fa-chevron-right text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
+             <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         </span>
-        <i className={`fas ${icon} ${color} text-xs`}></i>
+        <Icon className={`${color} w-3 h-3`} />
         <span className="truncate text-xs font-medium">{name}</span>
         <span className="text-[10px] bg-surface-2 px-1 rounded-full">{filteredItems.length}</span>
       </div>
@@ -1368,13 +1371,13 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, icon, color, items, itemI
                   title="Show structure detail"
                 >
                   {loadingDetails.has(item.name) ? (
-                    <i className="fas fa-spinner fa-spin text-[8px]"></i>
+                    <Loader2 className="w-2 h-2 animate-spin" />
                   ) : (
-                    <i className={`fas fa-chevron-right text-[8px] transition-transform ${expandedDetails[item.name] ? 'rotate-90' : ''}`}></i>
+                    <ChevronRight className={`w-2 h-2 transition-transform ${expandedDetails[item.name] ? 'rotate-90' : ''}`} />
                   )}
                 </button>
 
-                <i className={`fas ${itemIcon} text-ink-faint text-[10px]`}></i>
+                <ItemIcon className="w-2.5 h-2.5 text-ink-faint" />
                 <div className="flex-1 min-w-0">
                   <span
                     className="truncate text-xs cursor-pointer"
@@ -1516,12 +1519,12 @@ const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
         onClick={handleToggle}
       >
         <span className="w-4 h-4 flex items-center justify-center">
-          <i className={`fas fa-chevron-right text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}></i>
+          <ChevronRight className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         </span>
-        <i className="fas fa-database text-accent-info/80 text-xs"></i>
+        <Database className="w-3 h-3 text-accent-info/80" />
         <span className="truncate font-medium">{dbName}</span>
         {loadingSchemas ? (
-          <i className="fas fa-spinner fa-spin text-[10px] text-ink-muted"></i>
+          <Loader2 className="w-2.5 h-2.5 animate-spin text-ink-muted" />
         ) : (
           schemasLoaded && <span className="text-[10px] bg-surface-2 px-1 rounded-full">{filteredSchemas.length}</span>
         )}

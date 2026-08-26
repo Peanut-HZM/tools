@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Code, X, Copy, Check } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { Card } from '@/components/ui/Card';
 
@@ -38,11 +39,11 @@ const JsonViewModal: React.FC<JsonViewModalProps> = ({ isOpen, onClose, data, ti
       <Card className="w-full max-w-3xl border border-border flex flex-col max-h-[85vh]">
         <div className="flex justify-between items-center p-4 border-b border-border bg-surface-1">
           <h3 className="text-lg font-medium text-ink flex items-center gap-2">
-             <i className="fas fa-code text-accent-info"></i>
+             <Code className="w-4 h-4 text-accent-info" />
              {title || "JSON Viewer"}
           </h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink">
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -57,7 +58,7 @@ const JsonViewModal: React.FC<JsonViewModalProps> = ({ isOpen, onClose, data, ti
             onClick={handleCopy}
             className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink-inverse bg-surface-2 hover:bg-surface-3 rounded-md transition-colors flex items-center gap-2"
           >
-            {copied ? <i className="fas fa-check text-green-400"></i> : <i className="fas fa-copy"></i>}
+            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
             {copied ? "Copied" : "Copy JSON"}
           </button>
           <button

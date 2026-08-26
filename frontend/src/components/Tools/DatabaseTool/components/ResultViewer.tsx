@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Table, AlertCircle, CheckCircle, Check, Copy, Pencil, Code, Trash2, Ban, Plus, Save, Undo2, Key, X, Eye, AlertTriangle, Loader2 } from 'lucide-react';
 import { SQLExecutionResult, TableSchema } from '../../../../types/databaseTool';
 import { useI18n, interpolate } from '../../../../i18n';
 import { TruncatedText } from '../../../Common/TruncatedText';
@@ -365,7 +366,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
   if (!result) {
     return (
       <div className="h-full flex items-center justify-center text-ink-faint bg-surface-1 rounded-md border border-dashed border-border flex-col gap-2">
-        <i className="fas fa-table text-2xl opacity-50"></i>
+        <Table className="w-8 h-8 opacity-50" />
         <span className="text-sm">{t.database.executor.noResults}</span>
       </div>
     );
@@ -376,7 +377,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
       <div className="h-full flex flex-col bg-red-900/20 border border-red-800/50 rounded-md overflow-hidden">
         <div className="px-4 py-2 border-b border-red-800/30 flex items-center justify-between">
           <h3 className="text-danger font-medium flex items-center gap-2">
-            <i className="fas fa-exclamation-circle"></i>
+            <AlertCircle className="w-4 h-4" />
             {t.common.error}
           </h3>
           <button
@@ -392,7 +393,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
             className="px-2 py-1 bg-red-800/50 hover:bg-red-700/50 text-red-300 text-xs rounded flex items-center gap-1 transition-colors"
             title="复制错误信息"
           >
-            <i className={`fas ${errorCopied ? 'fa-check text-green-400' : 'fa-copy'}`}></i>
+            {errorCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
             {errorCopied ? '已复制' : '复制错误'}
           </button>
         </div>
@@ -412,7 +413,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
     return (
       <div className="h-full p-4 bg-green-900/20 border border-green-800/50 rounded-md flex flex-col items-center justify-center">
         <div className="text-green-400 font-medium text-lg mb-2 flex items-center gap-2">
-          <i className="fas fa-check-circle"></i>
+          <CheckCircle className="w-4 h-4" />
           {t.common.success}
         </div>
         <div className="text-green-300">
@@ -515,7 +516,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
               className="flex items-center gap-1"
               title={t.database.executor.copyInsert}
             >
-              <i className={`fas ${copyFeedback === 'insert' ? 'fa-check text-green-400' : 'fa-copy'}`}></i>
+              {copyFeedback === 'insert' ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
               {t.database.executor.copyInsert}
             </Button>
             <Button
@@ -530,7 +531,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                   ? t.database.batchDelete.noPrimaryKey
                   : t.database.executor.copyUpdate}
             >
-              <i className={`fas ${copyFeedback === 'update' ? 'fa-check text-green-400' : 'fa-pen-to-square'}`}></i>
+              {copyFeedback === 'update' ? <Check className="w-4 h-4 text-green-400" /> : <Pencil className="w-4 h-4" />}
               {t.database.executor.copyUpdate}
             </Button>
              <Button
@@ -540,7 +541,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                className="flex items-center gap-1"
                title={selectedIndices.size === 0 ? t.database.executor.viewJson : (t.database.executor.viewSelectedJson || t.database.executor.viewJson)}
              >
-               <i className="fas fa-code"></i>
+               <Code className="w-4 h-4" />
                {t.database.executor.viewJson}
              </Button>
               {columns.length > 0 && (
@@ -563,7 +564,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                     ? t.database.batchDelete.noPrimaryKey
                     : t.database.executor.deleteRows}
               >
-                <i className={`fas ${(!primaryKey || primaryKey.length === 0) ? 'fa-ban' : 'fa-trash'}`}></i>
+                {(!primaryKey || primaryKey.length === 0) ? <Ban className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 {t.database.executor.deleteRows}
               </Button>
             {/* Edit buttons */}
@@ -575,7 +576,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                   className="flex items-center gap-1"
                   title={t.database.executor.addRow}
                 >
-                  <i className="fas fa-plus"></i>
+                  <Plus className="w-4 h-4" />
                   {t.database.executor.addRow}
                 </Button>
                 <Button
@@ -585,7 +586,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                   className="flex items-center gap-1"
                   title="清空表数据"
                 >
-                  <i className="fas fa-trash-alt"></i>
+                  <Trash2 className="w-4 h-4" />
                   清空表
                 </Button>
                 {totalChanges > 0 && (
@@ -597,7 +598,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                       className="flex items-center gap-1"
                       title={t.database.executor.saveChanges}
                     >
-                      <i className={`fas ${saving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       {interpolate(t.database.executor.saveChanges, { count: String(totalChanges) })}
                     </Button>
                     <Button
@@ -608,7 +609,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                       className="flex items-center gap-1"
                       title={t.database.executor.discardChanges}
                     >
-                      <i className="fas fa-undo"></i>
+                      <Undo2 className="w-4 h-4" />
                       {t.database.executor.discardChanges}
                     </Button>
                   </>
@@ -651,7 +652,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                    >
                      <div>
                        {col}
-                       {primaryKey?.includes(col) && <i className="fas fa-key text-yellow-500/70 ml-1 text-[10px]" title="Primary Key"></i>}
+                       {primaryKey?.includes(col) && <Key className="w-2.5 h-2.5 text-yellow-500/70 ml-1" title="Primary Key" />}
                      </div>
                      {comment && (
                        <div className="text-[10px] text-ink-faint font-normal normal-case tracking-normal mt-0.5 truncate">
@@ -679,7 +680,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                       className="text-ink-muted hover:text-danger transition-colors p-1"
                       title="Remove row"
                     >
-                      <i className="fas fa-times"></i>
+                      <X className="w-4 h-4" />
                     </button>
                   </td>
                 )}
@@ -711,7 +712,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                         className="text-ink-muted hover:text-accent-info transition-colors p-1"
                         title="View JSON"
                       >
-                        <i className="fas fa-eye"></i>
+                        <Eye className="w-4 h-4" />
                       </button>
                    </td>
                 )}
@@ -740,7 +741,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-1 border border-border rounded-lg shadow-md max-w-md w-full mx-4">
             <div className="px-6 py-4 border-b border-border flex items-center gap-3">
-              <i className="fas fa-exclamation-triangle text-accent-warning text-xl"></i>
+              <AlertTriangle className="w-6 h-6 text-accent-warning" />
               <h3 className="text-lg font-semibold text-ink">{t.database.batchDelete.confirmTitle}</h3>
             </div>
 
@@ -793,7 +794,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                 disabled={deleting}
                 className="flex items-center gap-2"
               >
-                {deleting && <i className="fas fa-spinner fa-spin"></i>}
+                {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
                 {t.database.batchDelete.deleteButton}
               </Button>
             </div>
