@@ -112,7 +112,7 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-4 z-50 border border-gray-700">
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-surface-2 text-ink-inverse px-6 py-3 rounded-lg shadow-lg flex items-center gap-4 z-50 border border-border">
         <span className="text-sm font-medium">
           已选择 {selectedIds.length} 个会话
         </span>
@@ -120,7 +120,7 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
         <div className="flex items-center gap-2">
           <button
             onClick={handleExport}
-            className="p-2 hover:bg-gray-700 rounded transition-colors"
+            className="p-2 hover:bg-surface-3 rounded transition-colors"
             title="批量导出"
             disabled={loading}
           >
@@ -129,7 +129,7 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
 
           <button
             onClick={() => setShowTagModal(true)}
-            className="p-2 hover:bg-gray-700 rounded transition-colors"
+            className="p-2 hover:bg-surface-3 rounded transition-colors"
             title="批量添加标签"
             disabled={loading}
           >
@@ -138,7 +138,7 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
 
           <button
             onClick={onClearSelection}
-            className="p-2 hover:bg-gray-700 rounded transition-colors"
+            className="p-2 hover:bg-surface-3 rounded transition-colors"
             title="取消选择"
             disabled={loading}
           >
@@ -149,15 +149,15 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
 
       {showTagModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowTagModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface-1 rounded-lg p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">批量添加标签</h3>
-              <button onClick={() => setShowTagModal(false)} className="text-gray-500 hover:text-gray-700">
+              <h3 className="text-lg font-semibold text-ink-inverse">批量添加标签</h3>
+              <button onClick={() => setShowTagModal(false)} className="text-ink-muted hover:text-ink-inverse">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-ink-muted mb-4">
               将为 {selectedIds.length} 个会话添加标签
             </p>
 
@@ -169,7 +169,7 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
                 onChange={(e) => setTagName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
                 placeholder="输入标签名称..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-transparent text-ink-inverse"
                 autoFocus
               />
             </div>
@@ -177,13 +177,13 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowTagModal(false)}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                className="px-4 py-2 text-sm text-ink-muted hover:bg-surface-2 rounded transition-colors"
               >
                 取消
               </button>
               <button
                 onClick={handleAddTag}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                className="px-4 py-2 bg-accent text-ink-inverse rounded-lg text-sm hover:bg-accent-hover transition-colors"
                 disabled={!tagName.trim() || loading}
               >
                 确定

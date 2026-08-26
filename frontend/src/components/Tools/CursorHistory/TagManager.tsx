@@ -126,13 +126,13 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
         {tags.map((tag) => (
           <span
             key={tag.id}
-            className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs"
+            className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/15 text-accent rounded text-xs"
           >
             <Tag className="w-3 h-3" />
             {tag.tag_name}
             <button
               onClick={() => removeTag(tag.tag_name)}
-              className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded p-0.5 transition-colors"
+              className="hover:bg-accent/25 rounded p-0.5 transition-colors"
               disabled={loading}
             >
               <X className="w-3 h-3" />
@@ -142,7 +142,7 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
 
         <button
           onClick={() => setShowAddPanel(!showAddPanel)}
-          className="inline-flex items-center gap-1 px-2 py-0.5 border border-dashed border-gray-300 dark:border-gray-600 rounded text-xs text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+          className="inline-flex items-center gap-1 px-2 py-0.5 border border-dashed border-border-strong rounded text-xs text-ink-muted hover:border-accent-cyan hover:text-accent-cyan transition-colors"
           disabled={loading}
         >
           <Plus className="w-3 h-3" />
@@ -151,15 +151,15 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
       </div>
 
       {showAddPanel && (
-        <div className="absolute top-full left-0 mt-1 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 w-64">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">选择预设标签或输入自定义标签</div>
+        <div className="absolute top-full left-0 mt-1 p-3 bg-surface-1 border border-border rounded-lg shadow-lg z-50 w-64">
+          <div className="text-xs text-ink-muted mb-2">选择预设标签或输入自定义标签</div>
 
           <div className="flex flex-wrap gap-1 mb-3">
             {PRESET_TAGS.map((presetTag) => (
               <button
                 key={presetTag}
                 onClick={() => addTag(presetTag)}
-                className="px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 rounded text-xs transition-colors"
+                className="px-2 py-1 bg-surface-2 hover:bg-accent/15 rounded text-xs text-ink-inverse transition-colors"
                 disabled={loading || tags.some(t => t.tag_name === presetTag)}
               >
                 {presetTag}
@@ -174,12 +174,12 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
               onChange={(e) => setCustomTag(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addTag(customTag)}
               placeholder="自定义标签..."
-              className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-transparent"
+              className="flex-1 px-2 py-1 border border-border rounded text-xs bg-transparent text-ink-inverse"
               autoFocus
             />
             <button
               onClick={() => addTag(customTag)}
-              className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+              className="px-3 py-1 bg-accent text-ink-inverse rounded text-xs hover:bg-accent-hover transition-colors"
               disabled={!customTag.trim() || loading}
             >
               添加

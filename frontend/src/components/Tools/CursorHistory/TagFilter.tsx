@@ -43,7 +43,7 @@ export default function TagFilter({ onTagSelect }: TagFilterProps) {
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex items-center gap-1 text-xs text-ink-muted">
         <Filter className="w-3 h-3" />
         标签筛选:
       </div>
@@ -52,8 +52,8 @@ export default function TagFilter({ onTagSelect }: TagFilterProps) {
         onClick={() => handleTagClick(null)}
         className={`px-2 py-1 rounded text-xs transition-colors ${
           !selectedTag
-            ? 'bg-blue-500 text-white'
-            : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+            ? 'bg-accent text-ink-inverse'
+            : 'bg-surface-2 hover:bg-surface-3 text-ink-inverse'
         }`}
       >
         全部
@@ -65,8 +65,8 @@ export default function TagFilter({ onTagSelect }: TagFilterProps) {
           onClick={() => handleTagClick(tag)}
           className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
             selectedTag === tag
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+              ? 'bg-accent text-ink-inverse'
+              : 'bg-surface-2 hover:bg-surface-3 text-ink-inverse'
           }`}
         >
           <Tag className="w-3 h-3" />

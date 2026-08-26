@@ -67,9 +67,9 @@ export default function ResizablePanel({
       </div>
       <div
         onMouseDown={startResize}
-        className="w-1 hover:bg-blue-500 cursor-col-resize transition-colors flex items-center justify-center group"
+        className="w-1 hover:bg-accent-cyan cursor-col-resize transition-colors flex items-center justify-center group"
       >
-        <div className="h-full w-0.5 bg-gray-700 group-hover:bg-blue-500 transition-colors" />
+        <div className="h-full w-0.5 bg-border-strong group-hover:bg-accent-cyan transition-colors" />
       </div>
     </div>
   );

@@ -1036,7 +1036,7 @@ export default function CursorHistory() {
                 value={globalSearch}
                 onChange={e => setGlobalSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doGlobalSearch(globalSearch)}
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-1/60 border border-border/50 rounded-xl text-sm text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-surface-1/60 border border-border/50 rounded-xl text-sm text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-all"
               />
               {globalSearch && (
                 <button
@@ -1090,9 +1090,9 @@ export default function CursorHistory() {
         {/* 同步完成/错误提示 */}
         {!syncStatus.syncing && syncStatus.error && (
           <div className="max-w-[1920px] mx-auto px-6 pb-2">
-            <div className="bg-danger/10 border border-red-500/20 rounded-xl px-4 py-2 flex items-center gap-2">
+            <div className="bg-danger/10 border border-danger/20 rounded-xl px-4 py-2 flex items-center gap-2">
               <i className="fas fa-exclamation-triangle text-danger text-xs" />
-              <span className="text-xs text-red-300">同步失败: {syncStatus.error}</span>
+              <span className="text-xs text-danger">同步失败: {syncStatus.error}</span>
             </div>
           </div>
         )}
@@ -1113,7 +1113,7 @@ export default function CursorHistory() {
                     placeholder="例如: ~/Library/Application Support/Cursor/User"
                     value={pathInput}
                     onChange={e => setPathInput(e.target.value)}
-                    className="w-full px-4 py-2 bg-canvas/60 border border-border/50 rounded-lg text-sm text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all"
+                    className="w-full px-4 py-2 bg-canvas/60 border border-border/50 rounded-lg text-sm text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 transition-all"
                   />
                   {/* 路径有效性提示 */}
                   {pathValid !== null && pathInput && (
@@ -1145,10 +1145,10 @@ export default function CursorHistory() {
       {/* 错误提示 */}
       {error && (
         <div className="max-w-[1920px] mx-auto px-6 py-3">
-          <div className="bg-danger/10 border border-red-500/30 text-danger px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+          <div className="bg-danger/10 border border-danger/30 text-danger px-4 py-3 rounded-xl text-sm flex items-center gap-2">
             <i className="fas fa-exclamation-circle" />
             {error}
-            <button onClick={() => setError(null)} className="ml-auto text-danger hover:text-red-300">
+            <button onClick={() => setError(null)} className="ml-auto text-danger hover:text-danger">
               <i className="fas fa-times" />
             </button>
           </div>
@@ -1349,7 +1349,7 @@ export default function CursorHistory() {
                   placeholder="搜索项目..."
                   value={projectSearch}
                   onChange={e => setProjectSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all"
+                  className="w-full pl-8 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 transition-all"
                 />
               </div>
               {/* 多选模式切换和批量操作按钮 */}
@@ -1393,7 +1393,7 @@ export default function CursorHistory() {
                         disabled={selectedProjectHashes.size === 0}
                         className={`px-2 py-1 text-xs rounded transition-all ${
                           selectedProjectHashes.size > 0
-                            ? 'text-danger hover:text-ink-inverse hover:bg-red-600'
+                            ? 'text-danger hover:text-ink-inverse hover:bg-danger'
                             : 'text-ink-faint cursor-not-allowed'
                         }`}
                       >
@@ -1506,7 +1506,7 @@ export default function CursorHistory() {
                             loadSessions(selectedProject.workspace_hash, e.target.value, selectedFilterTag);
                           }, 300);
                         }}
-                        className="w-full pl-9 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all"
+                        className="w-full pl-9 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 transition-all"
                       />
                     </div>
                     <TagFilter onTagSelect={(tag) => {
@@ -1588,7 +1588,7 @@ export default function CursorHistory() {
                             toggleSessionSelect(session.composer_id);
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="mt-1 w-4 h-4 rounded border-gray-600 text-accent-info focus:ring-accent-info focus:ring-offset-0"
+                          className="mt-1 w-4 h-4 rounded border-border text-accent-info focus:ring-accent-info focus:ring-offset-0"
                         />
                       )}
                       <div className="flex-1 min-w-0">

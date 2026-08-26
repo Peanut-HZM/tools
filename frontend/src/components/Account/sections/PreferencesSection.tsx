@@ -1,30 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { cn } from '@/lib/cn';
+import { useTheme } from '@/lib/theme';
 import SettingCard from '../SettingCard';
 import { Settings, Globe, Moon, Bell } from 'lucide-react';
 
 interface UserPreferences {
   language: 'zh' | 'en';
-  theme: 'dark' | 'light' | 'system';
   emailNotifications: boolean;
   systemNotifications: boolean;
 }
 
+const STORAGE_KEY = 'tk-preferences';
+
+const DEFAULT_PREFS: UserPreferences = {
+  language: 'zh',
+  emailNotifications: true,
+  systemNotifications: true,
+};
+
 export default function PreferencesSection() {
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    language: 'zh',
-    theme: 'dark',
-    emailNotifications: true,
-    systemNotifications: true,
+  const { theme, setTheme } = useTheme();
+
+  const [preferences, setPreferences] = useState<UserPreferences>(() => {
+    if (typeof window === 'undefined') return DEFAULT_PREFS;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return { ...DEFAULT_PREFS, ...JSON.parse(saved) };
+      }
+    } catch {
+      // 忽略解析错误
+    }
+    return DEFAULT_PREFS;
   });
+
+  // 持久化偏好设置到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+    } catch {
+      // 忽略存储错误
+    }
+  }, [preferences]);
 
   const updatePreference = <K extends keyof UserPreferences>(
     key: K,
     value: UserPreferences[K]
   ) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
-    // TODO: 调用 API 保存偏好设置
+    // TODO: 调用 API 同步到后端
+  };
+
+  const handleThemeChange = (nextTheme: 'dark' | 'light' | 'system') => {
+    setTheme(nextTheme);
+  };
+
+  const handleLanguageChange = (lang: 'zh' | 'en') => {
+    updatePreference('language', lang);
+    // 同步更新 <html lang> 以便辅助技术正确识别语言
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    }
   };
 
   return (
@@ -39,7 +75,7 @@ export default function PreferencesSection() {
           <div className="flex gap-2">
             <Button
               key="zh"
-              onClick={() => updatePreference('language', 'zh')}
+              onClick={() => handleLanguageChange('zh')}
               variant={preferences.language === 'zh' ? 'default' : 'secondary'}
               type="button"
             >
@@ -47,7 +83,7 @@ export default function PreferencesSection() {
             </Button>
             <Button
               key="en"
-              onClick={() => updatePreference('language', 'en')}
+              onClick={() => handleLanguageChange('en')}
               variant={preferences.language === 'en' ? 'default' : 'secondary'}
               type="button"
             >
@@ -63,16 +99,16 @@ export default function PreferencesSection() {
             <h4 className="text-ink-inverse font-medium">主题设置</h4>
           </div>
           <div className="flex gap-2">
-            {(['dark', 'light', 'system'] as const).map((theme) => (
+            {(['dark', 'light', 'system'] as const).map((themeOption) => (
               <Button
-                key={theme}
-                onClick={() => updatePreference('theme', theme)}
-                variant={preferences.theme === theme ? 'default' : 'secondary'}
+                key={themeOption}
+                onClick={() => handleThemeChange(themeOption)}
+                variant={theme === themeOption ? 'default' : 'secondary'}
                 type="button"
               >
-                {theme === 'dark' && '深色'}
-                {theme === 'light' && '浅色'}
-                {theme === 'system' && '跟随系统'}
+                {themeOption === 'dark' && '深色'}
+                {themeOption === 'light' && '浅色'}
+                {themeOption === 'system' && '跟随系统'}
               </Button>
             ))}
           </div>

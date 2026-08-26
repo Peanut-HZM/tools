@@ -31,24 +31,24 @@ export default function ThemeSwitcher() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+        className="p-2 hover:bg-surface-2 rounded transition-colors text-ink-muted hover:text-ink-inverse"
         title="切换主题"
       >
         <Palette className="w-4 h-4" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 w-48">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">选择主题</div>
+        <div className="absolute right-0 top-full mt-2 p-3 bg-surface-1 border border-border rounded-lg shadow-lg z-50 w-48">
+          <div className="text-xs text-ink-muted mb-2">选择主题</div>
 
           {themes.map((theme) => (
             <button
               key={theme.id}
               onClick={() => handleThemeChange(theme.id)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm mb-1 transition-colors ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm mb-1 transition-colors text-ink-inverse ${
                 currentTheme === theme.id
-                  ? 'bg-blue-500 text-white'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-accent text-ink-inverse'
+                  : 'hover:bg-surface-2'
               }`}
             >
               <span>{theme.name}</span>
