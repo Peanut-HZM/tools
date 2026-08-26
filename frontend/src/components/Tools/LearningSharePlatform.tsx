@@ -1,8 +1,10 @@
+import { Card } from "@/components/ui/Card";
+
 export default function LearningSharePlatform() {
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-surface-1 rounded-xl p-8 border border-border">
+        <Card className="p-8">
           <div className="flex items-center mb-6">
             <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mr-4">
               <i className="fas fa-chalkboard-teacher text-ink-inverse text-2xl"></i>
@@ -13,7 +15,7 @@ export default function LearningSharePlatform() {
             </div>
           </div>
 
-          <div className="bg-surface-2/50 rounded-lg p-6 mb-6">
+          <Card className="p-6 mb-6">
             <h2 className="text-lg font-semibold text-ink-inverse mb-4">🎯 功能介绍</h2>
             <ul className="space-y-3 text-ink-muted">
               <li className="flex items-start">
@@ -33,9 +35,9 @@ export default function LearningSharePlatform() {
                 <span><strong>资源管理</strong>：系统化管理学习资料和演示文档</span>
               </li>
             </ul>
-          </div>
+          </Card>
 
-          <div className="bg-surface-2/50 rounded-lg p-6 mb-6">
+          <Card className="p-6 mb-6">
             <h2 className="text-lg font-semibold text-ink-inverse mb-4">💡 适用场景</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-surface-1 rounded-lg p-4">
@@ -55,9 +57,9 @@ export default function LearningSharePlatform() {
                 <p className="text-sm text-ink-muted">产品文档和技术文档演示</p>
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-accent-secondary/10 border border-accent-secondary/30 rounded-lg p-6">
+          <Card className="p-6">
             <div className="flex items-center mb-3">
               <i className="fas fa-info-circle text-accent-secondary mr-2"></i>
               <span className="text-accent-secondary font-semibold">开发中</span>
@@ -65,8 +67,8 @@ export default function LearningSharePlatform() {
             <p className="text-ink-muted">
               学习分享演示平台正在开发中，即将上线。请关注我们的更新公告！
             </p>
-          </div>
-        </div>
+          </Card>
+        </Card>
       </div>
     </div>
   );

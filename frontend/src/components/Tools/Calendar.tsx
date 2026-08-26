@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface HolidayDay {
   name: string;
@@ -300,7 +301,7 @@ export default function Calendar() {
       {/* 日历主体 */}
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* 月份导航 */}
-        <div className="bg-surface-1 rounded-lg p-4 mb-4">
+        <Card className="p-4 mb-4">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
@@ -347,10 +348,10 @@ export default function Calendar() {
               <i className="fas fa-chevron-right text-xl"></i>
             </Button>
           </div>
-        </div>
+        </Card>
 
         {/* 图例 */}
-        <div className="bg-surface-1 rounded-lg p-3 mb-4 flex items-center gap-4 text-sm flex-wrap">
+        <Card className="p-3 mb-4 flex items-center gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-green-500 rounded"></span>
             <span className="text-ink-muted">法定假日</span>
@@ -367,11 +368,11 @@ export default function Calendar() {
             <span className="text-pink-400 text-xs">节</span>
             <span className="text-ink-muted">传统节日</span>
           </div>
-        </div>
+        </Card>
 
         {/* 选中日期详情 */}
         {selectedDayInfo && (
-          <div className="bg-surface-1 rounded-lg p-4 mb-4">
+          <Card className="p-4 mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="text-2xl font-bold">{selectedDayInfo.day}</div>
@@ -416,7 +417,7 @@ export default function Calendar() {
                 </Button>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {loading && (
@@ -427,7 +428,7 @@ export default function Calendar() {
         )}
 
         {/* 日历表格 */}
-        <div className="bg-surface-1 rounded-lg overflow-hidden">
+        <Card className="overflow-hidden">
           {/* 星期标题 */}
           <div className="grid grid-cols-7 bg-surface-2">
             {weekDays.map((day, index) => (
@@ -522,10 +523,10 @@ export default function Calendar() {
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* 使用说明 */}
-        <div className="mt-4 bg-surface-1 rounded-lg p-4 text-sm text-ink-muted">
+        <Card className="p-4 text-sm text-ink-muted">
           <p className="mb-2">💡 使用提示：</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
             <li>点击日期可以选中并查看详情</li>
@@ -535,7 +536,7 @@ export default function Calendar() {
             <li>粉色文字表示传统节日（春节、中秋等）</li>
             <li>农历初一显示月份名称</li>
           </ul>
-        </div>
+        </Card>
       </div>
     </div>
   );

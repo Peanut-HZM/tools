@@ -6,6 +6,7 @@ import { useFileStore } from '../../stores/fileStore';
 import Preview from '../MarkdownEditor/Preview/Preview';
 import { useI18n } from '../../i18n';
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface HistoryItem {
   id: string;
@@ -286,7 +287,7 @@ export default function MarkItDownConverter() {
             </div>
           )}
 
-          <div className="flex-1 bg-surface-1/50 rounded-xl border border-border/50 overflow-hidden flex flex-col min-h-0">
+          <Card className="flex-1 overflow-hidden flex flex-col min-h-0 border-border/50">
             <div className="p-3 border-b border-border/50 bg-surface-1/80 backdrop-blur-sm">
               <h4 className="text-ink-muted font-medium text-sm flex items-center gap-2">
                 <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -332,11 +333,11 @@ export default function MarkItDownConverter() {
                 ))
               )}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Right Column: Result & Preview */}
-        <div className="lg:col-span-9 bg-surface-1/50 border border-border rounded-xl flex flex-col overflow-hidden h-full">
+        <Card className="lg:col-span-9 bg-surface-1/50 flex flex-col overflow-hidden h-full">
           <div className="p-3 border-b border-border flex items-center justify-between bg-surface-1">
             <h3 className="font-semibold text-ink text-sm">{t.converter.result}</h3>
             <div className="flex gap-2">
@@ -373,7 +374,7 @@ export default function MarkItDownConverter() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

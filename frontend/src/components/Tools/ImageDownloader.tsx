@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 
 interface ImageInfo {
   url: string;
@@ -176,7 +177,7 @@ export default function ImageDownloader() {
 
         {/* 输入区域 */}
         <div className="max-w-3xl mx-auto mb-8">
-          <div className="bg-surface-1 rounded-xl p-6 border border-border">
+          <Card className="p-6">
             <label className="block text-sm font-medium mb-2">网页URL</label>
             <div className="flex gap-3">
               <Input
@@ -224,7 +225,7 @@ export default function ImageDownloader() {
                 <p className="text-xs">• 支持批量下载，自动保存到下载文件夹</p>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* 错误提示 */}
@@ -265,10 +266,7 @@ export default function ImageDownloader() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {images.map((image, index) => (
-                <div
-                  key={index}
-                  className="bg-surface-1 rounded-xl border border-border overflow-hidden hover:border-primary transition-all group"
-                >
+                <Card className="overflow-hidden hover:border-primary transition-all group">
                   <div className="aspect-square bg-surface-2 flex items-center justify-center overflow-hidden relative">
                     <img
                       src={image.url}
@@ -321,12 +319,12 @@ export default function ImageDownloader() {
                       💡 点击图片或"查看原图"按钮打开原图
                     </p>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
 
             {/* 下载说明 */}
-            <div className="mt-8 bg-accent-info/10 border border-accent-info rounded-xl p-6">
+            <Card className="p-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <i className="fas fa-info-circle text-accent-info"></i>
                 下载说明
@@ -338,7 +336,7 @@ export default function ImageDownloader() {
                 <p>• <strong>查看原图</strong>：点击图片预览或"打开"按钮可以在新窗口查看完整尺寸的原图</p>
                 <p>• <strong>备用方案</strong>：如果自动下载失败，可以右键点击图片选择"图片另存为"</p>
               </div>
-            </div>
+            </Card>
           </div>
         )}
 

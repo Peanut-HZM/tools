@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { useAuth } from '../../stores/authStore';
 import RequireAuthNotice from '../Common/RequireAuthNotice';
 import {
@@ -752,7 +753,7 @@ export default function TokenUsage() {
         </div>
       )}
 
-      <div className="mb-5 grid gap-3 md:grid-cols-5">
+      <Card className="mb-5 grid gap-3 md:grid-cols-5 p-0">
         {[
           { label: '总成本', value: formatCurrency(summary.data.summary.total_cost), icon: Activity },
           { label: '日均成本', value: formatCurrency(summary.data.summary.avg_daily_cost), icon: BarChart3 },
@@ -760,7 +761,7 @@ export default function TokenUsage() {
           { label: '输入 Token', value: formatToken(summary.data.summary.total_input_tokens), icon: HardDrive },
           { label: '输出 Token', value: formatToken(summary.data.summary.total_output_tokens), icon: HardDrive },
         ].map(card => (
-          <div key={card.label} className="rounded-md border border-border bg-canvas p-4">
+          <div key={card.label} className="rounded-md p-4">
             <div className="mb-2 flex items-center justify-between text-xs text-ink-muted">
               <span>{card.label}</span>
               <card.icon className="h-4 w-4" />
@@ -768,7 +769,7 @@ export default function TokenUsage() {
             <div className="text-xl font-semibold text-ink-inverse">{card.value}</div>
           </div>
         ))}
-      </div>
+      </Card>
 
       <div className="mb-5 grid gap-3 xl:grid-cols-4 lg:grid-cols-2 grid-cols-1">
         <DimensionPieCard
@@ -807,7 +808,7 @@ export default function TokenUsage() {
         />
       </div>
 
-      <div className="mb-5 rounded-md border border-border bg-canvas p-4">
+      <Card className="mb-5 p-4">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-medium text-ink-inverse">{chartTitle}</h2>
           {summary.loading && <Loader2 className="h-4 w-4 animate-spin text-ink-muted" />}
@@ -854,9 +855,9 @@ export default function TokenUsage() {
             <div className="flex h-full items-center justify-center text-sm text-ink-faint">暂无图表数据</div>
           )}
         </div>
-      </div>
+      </Card>
 
-      <div className="rounded-md border border-border bg-canvas">
+      <Card className="rounded-md">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-base font-medium text-ink-inverse">明细数据</h2>
           <span className="text-xs text-ink-muted">共 {details.data.total} 条</span>
@@ -916,7 +917,7 @@ export default function TokenUsage() {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {fingerprintMatch && (
         <FingerprintMatchDialog

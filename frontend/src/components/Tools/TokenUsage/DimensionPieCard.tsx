@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Card } from '@/components/ui/Card';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -62,14 +63,14 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   if (processed.type !== 'data') {
     const message = processed.type === 'empty-no-data' ? emptyHint : '暂无 Token 数据';
     return (
-      <div className="rounded-md border border-border bg-canvas p-3 h-80 flex flex-col">
+      <Card className="p-3 h-80 flex flex-col">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium text-ink-inverse">{title}</h2>
         </div>
         <div className="flex-1 flex items-center justify-center text-sm text-ink-faint">
           {message}
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -81,7 +82,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
       : `${formatToken(s.tokens)} Token / ${formatCurrency(s.cost)}`;
 
   return (
-    <div className="rounded-md border border-border bg-canvas p-3 h-80 flex flex-col">
+    <Card className="p-3 h-80 flex flex-col">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-medium text-ink-inverse">{title}</h2>
         <span className="text-xs text-ink-faint">{slices.length} 项</span>
@@ -168,7 +169,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
           ))}
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 

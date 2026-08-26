@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ocrApi, OCRResult, QRCodeResult } from '../../../api/ocrApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
 type Mode = 'image' | 'pdf' | 'qrcode';
 
@@ -133,41 +135,30 @@ export default function OCRTool() {
           <h1 className="text-2xl font-bold text-ink">{t.tools['ocr-tool'].title}</h1>
         </div>
 
-        <div className="flex bg-surface-1 rounded-lg p-1 border border-border">
-          <button
-            onClick={() => switchMode('image')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'image' ? 'bg-accent text-white shadow-md' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            <i className="fas fa-image mr-2"></i>图片识别
-          </button>
-          <button
-            onClick={() => switchMode('pdf')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'pdf' ? 'bg-accent text-white shadow-md' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            <i className="fas fa-file-pdf mr-2"></i>PDF识别
-          </button>
-          <button
-            onClick={() => switchMode('qrcode')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              mode === 'qrcode' ? 'bg-accent text-white shadow-md' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            <i className="fas fa-qrcode mr-2"></i>二维码
-          </button>
+        <div className="flex items-center gap-2">
+          <Tabs value={mode} onValueChange={(v) => switchMode(v as Mode)}>
+            <TabsList>
+              <TabsTrigger value="image">
+                <i className="fas fa-image mr-2"></i>图片识别
+              </TabsTrigger>
+              <TabsTrigger value="pdf">
+                <i className="fas fa-file-pdf mr-2"></i>PDF识别
+              </TabsTrigger>
+              <TabsTrigger value="qrcode">
+                <i className="fas fa-qrcode mr-2"></i>二维码
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-200px)] min-h-[600px]">
         {/* Input Section */}
-        <div className="bg-surface-1 rounded-xl border border-border p-6 shadow-md flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-ink">
+        <Card className="p-6 shadow-md flex flex-col">
+          <CardHeader className="flex-row justify-between items-center mb-4 p-0 space-y-0">
+            <CardTitle className="text-lg">
               {mode === 'image' ? '图片上传' : mode === 'pdf' ? 'PDF上传' : '二维码上传'}
-            </h2>
+            </CardTitle>
             {(file || preview) && (
               <button 
                 onClick={clearFile}
@@ -176,9 +167,9 @@ export default function OCRTool() {
                 <i className="fas fa-trash-alt mr-1"></i> 清除
               </button>
             )}
-          </div>
-          
-          <div 
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col p-0">
+          <div
             onClick={() => !file && fileInputRef.current?.click()}
             onDrop={onDrop}
             onDragOver={onDragOver}
@@ -240,12 +231,13 @@ export default function OCRTool() {
               )}
             </button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Result Section */}
-        <div className="bg-surface-1 rounded-xl border border-border p-6 shadow-md flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-ink">识别结果</h2>
+        <Card className="p-6 shadow-md flex flex-col">
+          <CardHeader className="flex-row justify-between items-center mb-4 p-0 space-y-0">
+            <CardTitle className="text-lg">识别结果</CardTitle>
             {result && (
               <div className="flex items-center space-x-4 text-sm text-ink-muted">
                 <span><i className="fas fa-clock mr-1"></i> {result.processing_time.toFixed(2)}s</span>
@@ -260,8 +252,8 @@ export default function OCRTool() {
                 </button>
               </div>
             )}
-          </div>
-          
+          </CardHeader>
+          <CardContent className="flex-1 p-0">
           <div className="flex-1 bg-canvas rounded-xl border border-border p-4 overflow-hidden relative">
             {result ? (
               <textarea 
@@ -276,7 +268,8 @@ export default function OCRTool() {
               </div>
             )}
           </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

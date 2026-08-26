@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 
 interface VideoInfo {
   url: string;
@@ -354,7 +355,7 @@ export default function VideoDownloader() {
 
         {/* 输入区域 */}
         <div className="max-w-3xl mx-auto mb-8">
-          <div className="bg-surface-1 rounded-xl p-6 border border-border">
+          <Card className="p-6">
             <label className="block text-sm font-medium mb-2">网页URL</label>
             <div className="flex gap-3">
               <Input
@@ -403,7 +404,7 @@ export default function VideoDownloader() {
                 <p className="text-xs mt-2 text-yellow-300">💡 如果检测不到：打开浏览器开发者工具（F12）→ 网络 → 媒体，播放视频查看实际URL</p>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* 错误提示 */}
@@ -444,10 +445,7 @@ export default function VideoDownloader() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videos.map((video, index) => (
-                <div
-                  key={index}
-                  className="bg-surface-1 rounded-xl border border-border overflow-hidden hover:border-primary transition-all"
-                >
+                <Card className="overflow-hidden hover:border-primary transition-all">
                   {/* 视频预览区域 */}
                   <div className="aspect-video bg-canvas flex items-center justify-center overflow-hidden">
                     {canPreview(video) ? (
@@ -647,12 +645,12 @@ export default function VideoDownloader() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
 
             {/* 下载提示 */}
-            <div className="mt-8 bg-accent-info/10 border border-accent-info rounded-xl p-6">
+            <Card className="p-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <i className="fas fa-info-circle text-accent-info"></i>
                 下载说明
@@ -673,7 +671,7 @@ export default function VideoDownloader() {
                 <p>• <strong>嵌入视频</strong>：YouTube等平台视频使用"服务器下载"功能</p>
                 <p>• <strong>手动下载方法</strong>：如果自动下载失败，可以查看手动下载说明</p>
               </div>
-            </div>
+            </Card>
           </div>
         )}
 

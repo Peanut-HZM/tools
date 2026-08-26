@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { asrApi, ASRResult } from '../../../api/asrApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
 export default function ASRTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -68,9 +69,9 @@ export default function ASRTool() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-200px)] min-h-[600px]">
         {/* Input Section */}
-        <div className="bg-surface-1 rounded-xl border border-border p-6 shadow-md flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-ink">音频上传</h2>
+        <Card className="p-6 shadow-md flex flex-col">
+          <CardHeader className="flex-row justify-between items-center mb-4 p-0 space-y-0">
+            <CardTitle className="text-lg">音频上传</CardTitle>
             {file && (
               <button 
                 onClick={clearFile}
@@ -79,9 +80,10 @@ export default function ASRTool() {
                 <i className="fas fa-trash-alt mr-1"></i> 清除
               </button>
             )}
-          </div>
-          
-          <div 
+          </CardHeader>
+
+          <CardContent className="flex-1 flex flex-col p-0">
+          <div
             onClick={() => !file && fileInputRef.current?.click()}
             onDrop={onDrop}
             onDragOver={onDragOver}
@@ -139,12 +141,13 @@ export default function ASRTool() {
               )}
             </button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Result Section */}
-        <div className="bg-surface-1 rounded-xl border border-border p-6 shadow-md flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-ink">识别结果</h2>
+        <Card className="p-6 shadow-md flex flex-col">
+          <CardHeader className="flex-row justify-between items-center mb-4 p-0 space-y-0">
+            <CardTitle className="text-lg">识别结果</CardTitle>
             {result && (
               <div className="flex items-center space-x-4 text-sm text-ink-muted">
                 <span><i className="fas fa-clock mr-1"></i> {result.processing_time.toFixed(2)}s</span>
@@ -159,8 +162,9 @@ export default function ASRTool() {
                 </button>
               </div>
             )}
-          </div>
-          
+          </CardHeader>
+
+          <CardContent className="flex-1 p-0">
           <div className="flex-1 bg-canvas rounded-xl border border-border p-4 overflow-hidden relative">
             {result ? (
               <textarea 
@@ -175,7 +179,8 @@ export default function ASRTool() {
               </div>
             )}
           </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
