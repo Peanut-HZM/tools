@@ -144,9 +144,9 @@ describe('TabBar', () => {
       />
     );
     const dot = (tabId: string) => screen.getByTestId(`tab-dot-${tabId}`);
-    expect(dot('a').className).toContain('bg-green');
-    expect(dot('b').className).toContain('bg-yellow');
-    expect(dot('c').className).toContain('bg-red');
+    expect(dot('a').className).toContain('bg-success');
+    expect(dot('b').className).toContain('bg-warning');
+    expect(dot('c').className).toContain('bg-danger');
     expect(dot('d').className).toContain('bg-surface-3');
   });
 });
