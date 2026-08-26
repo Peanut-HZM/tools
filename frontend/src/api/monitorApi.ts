@@ -99,6 +99,11 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     ...options.headers,
   } as HeadersInit;
   const response = await fetch(url, { ...options, headers });
+  // 401 时触发全局登录弹窗（与 authedFetch 保持一致）
+  if (response.status === 401) {
+    const handler = (window as any).__authFailureHandler;
+    if (handler) handler();
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: '未知错误' }));
     throw new Error(error.detail || `请求失败 (${response.status})`);

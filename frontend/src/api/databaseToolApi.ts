@@ -51,6 +51,11 @@ async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: 
       ...rest,
       signal: controller.signal,
     });
+    // 401 时触发全局登录弹窗（与 authedFetch 保持一致）
+    if (response.status === 401) {
+      const handler = (window as any).__authFailureHandler;
+      if (handler) handler();
+    }
     return response;
   } catch (err: any) {
     if (err.name === 'AbortError') {
