@@ -33,6 +33,12 @@ def _now_utc() -> datetime:
 def _to_naive_or_aware(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is None:
         return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt)
+        except (ValueError, TypeError):
+            logger.warning("[llm_quota] _to_naive_or_aware 无法解析字符串: %r", dt)
+            return None
     if dt.tzinfo is not None:
         return dt.replace(tzinfo=None)
     return dt
