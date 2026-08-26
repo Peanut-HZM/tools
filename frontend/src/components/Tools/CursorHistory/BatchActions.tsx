@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Download, Tag, X, CheckSquare } from 'lucide-react';
 import { API_BASE_URL } from '../../../config/api';
 import { useToast } from '../../../hooks/useToast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 
 interface BatchActionsProps {
   selectedIds: string[];
@@ -118,32 +119,49 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
         </span>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExport}
-            className="p-2 hover:bg-surface-3 rounded transition-colors"
-            title="批量导出"
-            disabled={loading}
-          >
-            <Download className="w-4 h-4" />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleExport}
+                  className="p-2 hover:bg-surface-3 rounded transition-colors"
+                  aria-label="批量导出"
+                  disabled={loading}
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>批量导出</TooltipContent>
+            </Tooltip>
 
-          <button
-            onClick={() => setShowTagModal(true)}
-            className="p-2 hover:bg-surface-3 rounded transition-colors"
-            title="批量添加标签"
-            disabled={loading}
-          >
-            <Tag className="w-4 h-4" />
-          </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setShowTagModal(true)}
+                  className="p-2 hover:bg-surface-3 rounded transition-colors"
+                  aria-label="批量添加标签"
+                  disabled={loading}
+                >
+                  <Tag className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>批量添加标签</TooltipContent>
+            </Tooltip>
 
-          <button
-            onClick={onClearSelection}
-            className="p-2 hover:bg-surface-3 rounded transition-colors"
-            title="取消选择"
-            disabled={loading}
-          >
-            <X className="w-4 h-4" />
-          </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onClearSelection}
+                  className="p-2 hover:bg-surface-3 rounded transition-colors"
+                  aria-label="取消选择"
+                  disabled={loading}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>取消选择</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 

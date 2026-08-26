@@ -2,6 +2,7 @@
  * 富文本编辑器组件
  * 基于 TipTap 的 Markdown 编辑器，支持代码高亮和预览
  */
+import { Bold, Code, Eye, Italic, Link as LinkIcon, List, ListOrdered, Quote, RemoveFormatting, Strikethrough } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -76,7 +77,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="粗体"
               >
-                <i className="fas fa-bold"></i>
+                <Bold className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>粗体</TooltipContent>
@@ -93,7 +94,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="斜体"
               >
-                <i className="fas fa-italic"></i>
+                <Italic className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>斜体</TooltipContent>
@@ -110,7 +111,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="删除线"
               >
-                <i className="fas fa-strikethrough"></i>
+                <Strikethrough className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>删除线</TooltipContent>
@@ -180,7 +181,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="无序列表"
               >
-                <i className="fas fa-list-ul"></i>
+                <List className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>无序列表</TooltipContent>
@@ -197,7 +198,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="有序列表"
               >
-                <i className="fas fa-list-ol"></i>
+                <ListOrdered className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>有序列表</TooltipContent>
@@ -215,7 +216,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="代码块"
               >
-                <i className="fas fa-code"></i>
+                <Code className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>代码块</TooltipContent>
@@ -232,7 +233,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="引用"
               >
-                <i className="fas fa-quote-left"></i>
+                <Quote className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>引用</TooltipContent>
@@ -255,7 +256,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 }`}
                 aria-label="链接"
               >
-                <i className="fas fa-link"></i>
+                <LinkIcon className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>链接</TooltipContent>
@@ -268,7 +269,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 className="p-2 rounded-lg bg-surface-2/50 text-ink-faint hover:bg-surface-3 transition-all"
                 aria-label="清除格式"
               >
-                <i className="fas fa-remove-format"></i>
+                <RemoveFormatting className="w-4 h-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent>清除格式</TooltipContent>
@@ -283,7 +284,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
-            <i className="fas fa-eye mr-2"></i>
+            <Eye className="w-4 h-4 mr-2" />
             {showPreviewState ? '隐藏预览' : '显示预览'}
           </button>
         </div>
@@ -301,7 +302,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           {showPreviewState && (
             <div className="w-1/2 overflow-y-auto border border-border/50 rounded-b-xl bg-canvas/50 p-4">
               <h3 className="text-sm font-semibold text-ink-faint mb-3 flex items-center">
-                <i className="fas fa-eye text-accent mr-2"></i>
+                <Eye className="w-4 h-4 text-accent mr-2" />
                 预览
               </h3>
               <div

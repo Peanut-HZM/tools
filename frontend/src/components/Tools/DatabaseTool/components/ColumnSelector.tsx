@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TableSchema } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
+import { Columns } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 
 interface ColumnSelectorProps {
@@ -70,7 +71,7 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
               : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-2'
           }`}
         >
-          <i className="fas fa-columns text-sm"></i>
+          <Columns className="w-4 h-4" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0 max-h-[400px] flex flex-col">

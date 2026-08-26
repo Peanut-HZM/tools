@@ -3,6 +3,7 @@
  * 与首页工具卡片风格一致
  */
 import React from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 
 interface CourseCardProps {
   id: number;
@@ -144,18 +145,30 @@ const CourseCard: React.FC<CourseCardProps> = ({
             {progress ? '继续学习' : '立即学习'}
           </button>
           <div className="flex items-center space-x-2">
-            <button
-              className="p-2 text-ink-muted hover:text-pink-400 hover:bg-pink-400/10 rounded-lg transition-all"
-              title="点赞"
-            >
-              <i className="fas fa-heart"></i>
-            </button>
-            <button
-              className="p-2 text-ink-muted hover:text-accent-info hover:bg-accent-info/10 rounded-lg transition-all"
-              title="收藏"
-            >
-              <i className="fas fa-bookmark"></i>
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="p-2 text-ink-muted hover:text-pink-400 hover:bg-pink-400/10 rounded-lg transition-all"
+                    aria-label="点赞"
+                  >
+                    <i className="fas fa-heart"></i>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>点赞</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="p-2 text-ink-muted hover:text-accent-info hover:bg-accent-info/10 rounded-lg transition-all"
+                    aria-label="收藏"
+                  >
+                    <i className="fas fa-bookmark"></i>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>收藏</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
