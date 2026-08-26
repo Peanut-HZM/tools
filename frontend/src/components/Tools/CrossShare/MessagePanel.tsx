@@ -432,7 +432,7 @@ const MessagePanel: React.FC = () => {
               contentRefs.current.set(msg.id, el);
             }
           }}
-          className={`prose prose-invert prose-sm max-w-none transition-all duration-300 ${
+          className={`prose prose-sm dark:prose-invert max-w-none transition-all duration-300 ${
             !isExpanded && needsCollapse ? 'overflow-hidden' : ''
           }`}
           style={
@@ -449,7 +449,7 @@ const MessagePanel: React.FC = () => {
             <Button
               variant="default"
               onClick={() => toggleExpand(msg.id)}
-              className="pointer-events-auto text-ink-inverse shadow-lg flex items-center space-x-2"
+              className="pointer-events-auto shadow-lg flex items-center space-x-2"
             >
               <span>展开</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -480,7 +480,7 @@ const MessagePanel: React.FC = () => {
           <Button
             variant="default"
             onClick={loadMessages}
-            className="px-6 py-2 text-ink-inverse font-semibold"
+            className="px-6 py-2 font-semibold"
           >
             重试
           </Button>
@@ -575,7 +575,7 @@ const MessagePanel: React.FC = () => {
                 size="sm"
                 variant="default"
                 onClick={handleScrollToBottom}
-                className="shadow-lg text-ink-inverse flex items-center gap-2"
+                className="shadow-lg flex items-center gap-2"
                 title="滚动到底部"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -590,7 +590,7 @@ const MessagePanel: React.FC = () => {
                 size="sm"
                 variant="secondary"
                 onClick={handleScrollToTop}
-                className="bg-surface-3 shadow-lg text-ink-inverse flex items-center gap-2"
+                className="shadow-lg flex items-center gap-2"
                 title="滚动到顶部"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -619,7 +619,7 @@ const MessagePanel: React.FC = () => {
             variant="default"
             onClick={handleSend}
             disabled={!inputValue.trim() || sending}
-            className="px-6 py-3 text-ink-inverse font-semibold disabled:bg-surface-3 disabled:cursor-not-allowed h-auto"
+            className="px-6 py-3 font-semibold disabled:bg-surface-3 disabled:text-ink-muted disabled:cursor-not-allowed h-auto"
           >
             {sending ? '发送中...' : '发送'}
           </Button>
@@ -630,7 +630,7 @@ const MessagePanel: React.FC = () => {
       {showPasteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="p-6 max-w-md mx-4 shadow-lg">
-            <div className="text-lg font-semibold text-ink-inverse mb-2">检测到链接</div>
+            <div className="text-lg font-semibold text-ink mb-2">检测到链接</div>
             <div className="text-ink-muted text-sm mb-4 break-all bg-canvas p-3 rounded-lg max-h-32 overflow-y-auto">
               {pasteContent}
             </div>
@@ -646,7 +646,6 @@ const MessagePanel: React.FC = () => {
                 size="sm"
                 variant="default"
                 onClick={() => handlePasteConfirm(true)}
-                className="text-ink-inverse"
               >
                 立即发送
               </Button>

@@ -140,7 +140,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
             />
 
             {/* Upload Button */}
-            <label className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-10">
+            <label className="px-4 py-2 bg-accent hover:bg-accent-hover text-white font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-10">
               📤 上传文件
               <input
                 type="file"
@@ -209,7 +209,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
                   size="sm"
                   variant="ghost"
                   onClick={() => handleDelete(file.id)}
-                  className="text-danger bg-red-900/30 hover:bg-red-900/50"
+                  className="text-accent-danger bg-red-500/10 hover:bg-red-500/20"
                 >
                   🗑️ 删除
                 </Button>

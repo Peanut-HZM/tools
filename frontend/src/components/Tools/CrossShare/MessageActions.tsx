@@ -71,11 +71,11 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* 复制纯文本 */}
       <button
         onClick={handleCopyText}
-        className={`${buttonBase} bg-surface-3/60 hover:bg-surface-3 text-ink-muted hover:text-ink-inverse`}
+        className={`${buttonBase} bg-surface-3/60 hover:bg-surface-3 text-ink-muted hover:text-ink`}
         title="复制纯文本"
       >
         {copyFeedback === 'text' ? (
-          <span className="text-green-400">✓</span>
+          <span className="text-accent-success">✓</span>
         ) : (
           <Copy size={12} strokeWidth={1.5} />
         )}
@@ -85,11 +85,11 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* 复制 Markdown */}
       <button
         onClick={handleCopyMarkdown}
-        className={`${buttonBase} bg-surface-3/60 hover:bg-surface-3 text-ink-muted hover:text-ink-inverse`}
+        className={`${buttonBase} bg-surface-3/60 hover:bg-surface-3 text-ink-muted hover:text-ink`}
         title="复制 Markdown 源码"
       >
         {copyFeedback === 'markdown' ? (
-          <span className="text-green-400">✓</span>
+          <span className="text-accent-success">✓</span>
         ) : (
           <FileText size={12} strokeWidth={1.5} />
         )}
@@ -100,7 +100,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {needsCollapse && onToggleExpand && (
         <button
           onClick={onToggleExpand}
-          className={`${buttonBase} bg-accent/60 hover:bg-accent-hover text-accent-info hover:text-ink-inverse`}
+          className={`${buttonBase} bg-accent hover:bg-accent-hover text-white`}
           title={isExpanded ? '折叠' : '展开'}
         >
           {isExpanded ? (
@@ -120,7 +120,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* 删除 */}
       <button
         onClick={handleDelete}
-        className={`${buttonBase} bg-red-600/40 hover:bg-red-500/70 text-red-300 hover:text-ink-inverse`}
+        className={`${buttonBase} bg-red-500/10 hover:bg-red-500/20 text-accent-danger`}
         title="删除消息"
       >
         <Trash2 size={12} strokeWidth={1.5} />

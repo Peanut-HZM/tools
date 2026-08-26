@@ -56,7 +56,7 @@ export const TextViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) =>
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-danger">
+      <div className="w-full h-full flex items-center justify-center text-accent-danger">
         <div className="text-center">
           <div className="text-4xl mb-2">❌</div>
           <div>文件加载失败</div>
@@ -71,7 +71,7 @@ export const TextViewer: React.FC<PreviewProps> = ({ url, fileName, fileId }) =>
         size="sm"
         variant="secondary"
         onClick={handleCopy}
-        className="absolute top-4 right-4 text-ink-inverse flex items-center space-x-1 z-10"
+        className="absolute top-4 right-4 flex items-center space-x-1 z-10"
       >
         <span>{copySuccess ? '✓ 已复制' : '📋 复制'}</span>
       </Button>

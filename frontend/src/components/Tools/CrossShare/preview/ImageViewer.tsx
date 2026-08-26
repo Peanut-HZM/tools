@@ -10,7 +10,7 @@ export const ImageViewer: React.FC<PreviewProps> = ({ url, fileName }) => {
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-danger">
+      <div className="w-full h-full flex items-center justify-center text-accent-danger">
         <div className="text-center">
           <div className="text-4xl mb-2">❌</div>
           <div>图片加载失败</div>

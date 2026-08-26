@@ -28,8 +28,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onSelectPanel }) => {
               onClick={() => onSelectPanel(item.id)}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                 activePanel === item.id
-                  ? 'bg-accent border-2 border-blue-400 text-ink-inverse'
-                  : 'bg-surface-2/50 border border-border text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
+                  ? 'bg-accent border-2 border-accent text-white'
+                  : 'bg-surface-2/50 border border-border text-ink-muted hover:bg-surface-2 hover:text-ink'
               }`}
             >
               <span className="text-2xl">{item.icon}</span>
@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePanel, onSelectPanel }) => {
         </div>
 
         {/* Quick Tips */}
-        <div className="mt-8 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
+        <div className="mt-8 p-4 bg-accent/10 border border-border rounded-lg">
           <div className="flex items-start space-x-2">
             <span className="text-xl">💡</span>
             <div className="text-ink-muted text-sm">

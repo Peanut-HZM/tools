@@ -26,7 +26,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({ icon, title, onClick, sho
     variant="ghost"
     type="button"
     onClick={onClick}
-    className="text-ink-muted hover:text-ink-inverse"
+    className="text-ink-muted hover:text-ink"
     title={`${title}${shortcut ? ` (${shortcut})` : ''}`}
   >
     {icon}
@@ -197,14 +197,14 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
           size="sm"
           variant="secondary"
           onClick={onCancel}
-          className="bg-surface-3 text-ink-inverse hover:bg-surface-3"
+          className="bg-surface-3 text-ink hover:bg-surface-3"
         >
           取消
         </Button>
         <Button
           variant="default"
           onClick={() => onSave(value)}
-          className="text-ink-inverse"
+          className="text-white"
         >
           保存
         </Button>

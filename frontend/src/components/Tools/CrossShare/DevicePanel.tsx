@@ -123,7 +123,7 @@ const DevicePanel: React.FC = () => {
                           size="sm"
                           variant="secondary"
                           onClick={() => handleUpdateName(device.id)}
-                          className="bg-green-500 text-ink-inverse hover:bg-green-600"
+                          className="bg-accent-success text-white hover:bg-accent-success/90"
                         >
                           保存
                         </Button>
@@ -140,7 +140,7 @@ const DevicePanel: React.FC = () => {
                         <div className="text-ink font-medium flex items-center space-x-2">
                           <span>{device.device_name}</span>
                           {online && (
-                            <span className="px-2 py-0.5 bg-green-900/30 text-green-400 text-xs rounded-full">
+                            <span className="px-2 py-0.5 bg-green-500/10 text-accent-success text-xs rounded-full">
                               在线
                             </span>
                           )}
@@ -168,7 +168,7 @@ const DevicePanel: React.FC = () => {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDeleteDevice(device.id, device.device_name)}
-                    className="text-danger bg-red-900/30 hover:bg-red-900/50"
+                    className="text-accent-danger bg-red-500/10 hover:bg-red-500/20"
                   >
                     🗑️ 删除
                   </Button>

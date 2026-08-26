@@ -183,7 +183,7 @@ const SettingsPanel: React.FC = () => {
           variant="default"
           onClick={handleSave}
           disabled={saving}
-          className="w-full px-6 py-3 text-ink-inverse font-semibold disabled:bg-surface-3 disabled:cursor-not-allowed h-auto"
+          className="w-full px-6 py-3 font-semibold disabled:bg-surface-3 disabled:cursor-not-allowed h-auto"
         >
           {saving ? '保存中...' : '保存设置'}
         </Button>

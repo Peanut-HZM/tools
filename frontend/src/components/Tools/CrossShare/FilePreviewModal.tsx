@@ -108,7 +108,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
               size="sm"
               variant="default"
               onClick={onDownload}
-              className="text-ink-inverse"
+              className="text-white"
             >
               ⬇️ 下载
             </Button>

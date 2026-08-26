@@ -113,7 +113,7 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={handleDelete}
-              className="text-danger focus:text-danger"
+              className="text-accent-danger focus:text-accent-danger"
             >
               <span className="text-xs mr-2">🗑️</span>
               删除消息
