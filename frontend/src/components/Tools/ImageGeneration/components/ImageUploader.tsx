@@ -84,7 +84,7 @@ export default function ImageUploader({ label, file, preview, onChange, error: e
           />
           <button
             onClick={handleClear}
-            className="absolute top-2 right-2 px-2 py-1 text-xs bg-red-600/80 hover:bg-red-600 text-ink-inverse rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 px-2 py-1 text-xs bg-danger/80 hover:bg-danger text-ink-inverse rounded opacity-0 group-hover:opacity-100 transition-opacity"
           >
             {igT.form.remove}
           </button>

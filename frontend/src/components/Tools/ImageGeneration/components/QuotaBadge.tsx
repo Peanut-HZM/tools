@@ -30,9 +30,9 @@ export default function QuotaBadge() {
     : 0;
 
   const barColor =
-    dailyPct > 50 ? 'bg-emerald-500' :
-    dailyPct > 20 ? 'bg-amber-500' :
-    'bg-red-500';
+    dailyPct > 50 ? 'bg-success' :
+    dailyPct > 20 ? 'bg-warning' :
+    'bg-danger';
 
   return (
     <Card className="flex items-center gap-4 px-4 py-2 border-border/50">
