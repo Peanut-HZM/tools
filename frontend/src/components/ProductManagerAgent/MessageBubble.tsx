@@ -36,7 +36,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       
       // Code blocks
       if (line.startsWith('```')) {
-        return <pre key={index} className="bg-gray-100 p-2 rounded my-2 overflow-x-auto">{line.slice(3)}</pre>;
+        return <pre key={index} className="bg-surface-2 p-2 rounded my-2 overflow-x-auto">{line.slice(3)}</pre>;
       }
       
       // Inline code
@@ -46,7 +46,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <p key={index} className="my-1">
             {parts.map((part, i) => 
               part.startsWith('`') && part.endsWith('`') 
-                ? <code key={i} className="bg-gray-100 px-1 rounded">{part.slice(1, -1)}</code>
+                ? <code key={i} className="bg-surface-2 px-1 rounded">{part.slice(1, -1)}</code>
                 : part
             )}
           </p>
@@ -84,8 +84,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         <div 
           className={`max-w-[80%] rounded-lg p-4 ${
             isUser 
-              ? 'bg-blue-500 text-white' 
-              : 'bg-gray-100 text-gray-800'
+              ? 'bg-accent text-ink-inverse' 
+              : 'bg-surface-2 text-ink'
           }`}
         >
           {formatContent(message.content)}
@@ -101,8 +101,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         <div 
           className={`max-w-[90%] rounded-lg p-4 ${
             isUser 
-              ? 'bg-blue-500 text-white' 
-              : 'bg-gray-100 text-gray-800'
+              ? 'bg-accent text-ink-inverse' 
+              : 'bg-surface-2 text-ink'
           }`}
         >
           <pre className="text-sm overflow-x-auto">
@@ -119,20 +119,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       <div 
         className={`max-w-[80%] rounded-lg px-4 py-2 ${
           isUser 
-            ? 'bg-blue-500 text-white' 
+            ? 'bg-accent text-ink-inverse' 
             : isAgent
-              ? 'bg-gray-100 text-gray-800'
-              : 'bg-gray-200 text-gray-800'
+              ? 'bg-surface-2 text-ink'
+              : 'bg-surface-2 text-ink'
         }`}
       >
         {isAgent && (
-          <div className="text-xs text-gray-500 mb-1">🤖 AI 助手</div>
+          <div className="text-xs text-ink-muted mb-1">🤖 AI 助手</div>
         )}
         <div className="whitespace-pre-wrap break-words">
           {formatContent(message.content)}
         </div>
         {message.sent_at && (
-          <div className={`text-xs mt-1 ${isUser ? 'text-blue-100' : 'text-gray-400'}`}>
+          <div className={`text-xs mt-1 ${isUser ? 'text-ink-inverse/80' : 'text-ink-faint'}`}>
             {new Date(message.sent_at).toLocaleTimeString()}
           </div>
         )}

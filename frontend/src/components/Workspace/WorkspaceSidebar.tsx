@@ -64,7 +64,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.workspace.searchPlaceholder}
-            className="w-full bg-canvas border border-border rounded-md pl-7 pr-2 py-1.5 text-xs text-ink-muted placeholder-slate-500 focus:outline-none focus:border-border"
+            className="w-full bg-canvas border border-border rounded-md pl-7 pr-2 py-1.5 text-xs text-ink-muted placeholder-ink-muted focus:outline-none focus:border-border"
           />
         </div>
       </div>
@@ -85,8 +85,8 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
                 className={[
                   'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors',
                   isOpened
-                    ? 'bg-accent/20 text-blue-300'
-                    : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse',
+                    ? 'bg-accent/20 text-accent'
+                    : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
                 ].join(' ')}
                 onClick={() => handleToolClick(tool)}
               >

@@ -175,9 +175,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
         className={`
           relative border-2 border-dashed rounded-lg p-6 cursor-pointer
           transition-all duration-200 ease-in-out
-          ${state.isDragging 
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-            : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
+          ${state.isDragging
+            ? 'border-accent bg-accent-info/10'
+            : 'border-border hover:border-accent'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
@@ -193,7 +193,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
         <div className="text-center">
           {/* Upload Icon */}
-          <div className="mx-auto h-12 w-12 text-gray-400">
+          <div className="mx-auto h-12 w-12 text-ink-muted">
             {state.isUploading ? (
               <svg className="animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -208,25 +208,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
           {/* Text */}
           <div className="mt-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-sm text-ink-muted">
               {state.isUploading ? (
                 <span>上传中... {state.progress}%</span>
               ) : state.isDragging ? (
-                <span className="text-blue-600 dark:text-blue-400">松开以上传文件</span>
+                <span className="text-accent-info">松开以上传文件</span>
               ) : (
-                <span>拖拽文件到此处，或<span className="text-blue-600 dark:text-blue-400">点击选择</span></span>
+                <span>拖拽文件到此处，或<span className="text-accent-info">点击选择</span></span>
               )}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-ink-faint mt-1">
               支持 Markdown (.md), Word (.docx), PDF (.pdf) | 最大 10MB
             </p>
           </div>
 
           {/* Progress Bar */}
           {state.isUploading && (
-            <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="mt-4 w-full bg-surface-2 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-200"
+                className="bg-accent-info h-2 rounded-full transition-all duration-200"
                 style={{ width: `${state.progress}%` }}
               />
             </div>
@@ -234,7 +234,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
           {/* Success Message */}
           {state.success && (
-            <div className="mt-4 p-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
+            <div className="mt-4 p-2 bg-success/10 text-success rounded">
               <svg className="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
@@ -244,7 +244,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
           {/* Error Message */}
           {state.error && (
-            <div className="mt-4 p-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded">
+            <div className="mt-4 p-2 bg-danger/10 text-danger rounded">
               <svg className="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>

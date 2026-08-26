@@ -44,10 +44,10 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
       <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-md mx-4 border border-border">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="text-lg font-semibold text-ink-inverse">回滚 PRD 版本</h2>
+          <h2 className="text-lg font-semibold text-ink">回滚 PRD 版本</h2>
           <button
             onClick={onClose}
-            className="p-1 text-ink-muted hover:text-ink-inverse transition-colors"
+            className="p-1 text-ink-muted hover:text-ink transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -59,8 +59,8 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
         <div className="p-5">
           {/* Warning Icon */}
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
@@ -68,7 +68,7 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
 
           {/* Warning Message */}
           <div className="text-center mb-6">
-            <p className="text-ink-inverse font-medium mb-2">
+            <p className="text-ink font-medium mb-2">
               确定要回滚到版本 {targetVersion.version_number} 吗？
             </p>
             <p className="text-sm text-ink-muted">
@@ -80,7 +80,7 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
           <div className="bg-surface-2/50 rounded-lg p-4 mb-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-ink-muted text-sm">目标版本</span>
-              <span className="text-ink-inverse font-medium">V{targetVersion.version_number}</span>
+              <span className="text-ink font-medium">V{targetVersion.version_number}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-ink-muted text-sm">创建时间</span>
@@ -95,7 +95,7 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
             <input
               type="checkbox"
               id="confirm-rollback"
-              className="w-4 h-4 rounded border-border bg-surface-2 text-amber-500 focus:ring-amber-500"
+              className="w-4 h-4 rounded border-border bg-surface-2 text-warning focus:ring-warning"
             />
             <span className="text-sm text-ink-muted">
               我了解回滚将创建一个新的版本
@@ -107,7 +107,7 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
         <div className="flex items-center justify-end gap-3 p-5 border-t border-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
+            className="px-4 py-2 text-ink-muted hover:text-ink transition-colors"
             disabled={confirming}
           >
             取消
@@ -115,7 +115,7 @@ const RollbackDialog: React.FC<RollbackDialogProps> = ({
           <button
             onClick={handleConfirm}
             disabled={confirming}
-            className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 bg-accent-warning text-ink-inverse rounded-lg hover:bg-accent-warning/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {confirming ? (
               <>

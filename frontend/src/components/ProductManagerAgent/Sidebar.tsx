@@ -20,11 +20,11 @@ const stageNames: Record<string, string> = {
 
 // Stage colors
 const stageColors: Record<string, string> = {
-  'requirement_clarification': 'bg-blue-100 text-blue-800',
-  'market_research': 'bg-purple-100 text-purple-800',
-  'architecture_design': 'bg-yellow-100 text-yellow-800',
-  'detailed_design': 'bg-green-100 text-green-800',
-  'integration_output': 'bg-gray-100 text-gray-800',
+  'requirement_clarification': 'bg-accent-info/20 text-accent-info',
+  'market_research': 'bg-accent-secondary/20 text-accent-secondary',
+  'architecture_design': 'bg-warning/20 text-warning',
+  'detailed_design': 'bg-success/20 text-success',
+  'integration_output': 'bg-surface-2 text-ink',
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -60,11 +60,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className="w-72 bg-surface-1 h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-bold text-ink-inverse mb-3">对话列表</h2>
+        <h2 className="text-lg font-bold text-ink mb-3">对话列表</h2>
         <button
           onClick={onNewConversation}
           disabled={loading}
-          className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+          className="w-full px-4 py-2 bg-accent text-ink-inverse rounded-lg hover:bg-accent disabled:bg-surface-2 disabled:cursor-not-allowed transition-colors"
         >
           + 新建对话
         </button>
@@ -73,11 +73,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
         {loading && conversations.length === 0 ? (
-          <div className="p-4 text-center text-gray-400">
+          <div className="p-4 text-center text-ink-muted">
             加载中...
           </div>
         ) : conversations.length === 0 ? (
-          <div className="p-4 text-center text-gray-400">
+          <div className="p-4 text-center text-ink-muted">
             <p>暂无对话</p>
             <p className="text-sm mt-1">点击上方按钮开始新对话</p>
           </div>
@@ -89,8 +89,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onSelectConversation(conversation.id)}
                 className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
                   currentConversationId === conversation.id
-                    ? 'bg-accent text-white'
-                    : 'text-gray-300 hover:bg-surface-2'
+                    ? 'bg-accent text-ink-inverse'
+                    : 'text-ink-muted hover:bg-surface-2'
                 }`}
               >
                 <div className="font-medium truncate">
@@ -99,15 +99,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center justify-between mt-1">
                   <span className={`text-xs px-2 py-0.5 rounded ${
                     currentConversationId === conversation.id
-                      ? 'bg-accent-hover text-blue-100'
-                      : stageColors[conversation.current_stage] || 'bg-gray-600 text-gray-300'
+                      ? 'bg-accent-hover text-ink-inverse'
+                      : stageColors[conversation.current_stage] || 'bg-surface-2 text-ink-muted'
                   }`}>
                     {stageNames[conversation.current_stage] || conversation.current_stage}
                   </span>
                   <span className={`text-xs ${
                     currentConversationId === conversation.id
                       ? 'text-accent-info'
-                      : 'text-gray-500'
+                      : 'text-ink-faint'
                   }`}>
                     {formatDate(conversation.updated_at)}
                   </span>

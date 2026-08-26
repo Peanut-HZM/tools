@@ -52,7 +52,7 @@ export const WorkspacePage: React.FC = () => {
     return (
       <div className="h-screen bg-canvas flex items-center justify-center">
         <div className="text-center text-ink-muted">
-          <AlertTriangle className="w-10 h-10 mb-4 text-amber-500" />
+          <AlertTriangle className="w-10 h-10 mb-4 text-warning" />
           <p>{error}</p>
         </div>
       </div>

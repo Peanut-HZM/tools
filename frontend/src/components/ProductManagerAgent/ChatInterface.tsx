@@ -63,7 +63,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="flex items-center justify-center h-full text-ink-muted">
             <div className="text-center">
               <p className="text-lg mb-2">👋 开始对话</p>
               <p className="text-sm">输入您的需求，让我帮您生成 PRD</p>
@@ -80,7 +80,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         
         {sending && (
           <div className="flex items-center justify-center py-2">
-            <div className="flex items-center space-x-2 text-gray-500">
+            <div className="flex items-center space-x-2 text-ink-muted">
               <div className="animate-bounce">•</div>
               <div className="animate-bounce" style={{ animationDelay: '0.1s' }}>•</div>
               <div className="animate-bounce" style={{ animationDelay: '0.2s' }}>•</div>
@@ -92,7 +92,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
       
       {/* Input Area */}
-      <div className="border-t border-gray-200 p-4 bg-white">
+      <div className="border-t border-border p-4 bg-surface-1">
         {/* File Upload Button */}
         {conversationId && (
           <div className="mb-3">
@@ -112,7 +112,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="输入您的需求..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent resize-none"
               rows={2}
               disabled={disabled || isSending}
             />
@@ -120,7 +120,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <button
             type="submit"
             disabled={!input.trim() || disabled || isSending}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-accent text-ink-inverse rounded-lg hover:bg-accent-hover disabled:bg-surface-2 disabled:cursor-not-allowed transition-colors"
           >
             {isSending ? '发送中...' : '发送'}
           </button>

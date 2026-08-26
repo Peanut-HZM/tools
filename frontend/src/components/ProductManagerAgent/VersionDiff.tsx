@@ -24,7 +24,7 @@ const VersionDiff: React.FC<VersionDiffProps> = ({
   const renderDiffLine = (line: string, index: number) => {
     if (line.startsWith('+')) {
       return (
-        <div key={index} className="bg-green-500/20 text-green-400 px-2 py-0.5">
+        <div key={index} className="bg-success/20 text-success px-2 py-0.5">
           {line}
         </div>
       );
@@ -48,14 +48,14 @@ const VersionDiff: React.FC<VersionDiffProps> = ({
       <div className="bg-surface-1 rounded-lg w-full max-w-6xl h-[90vh] flex flex-col m-4">
         <div className="p-4 border-b border-border flex justify-between items-center">
           <div>
-            <h3 className="text-ink-inverse font-semibold text-lg">版本对比</h3>
+            <h3 className="text-ink font-semibold text-lg">版本对比</h3>
             <p className="text-ink-muted text-sm mt-1">
               版本 {fromVersion.version_number} → 版本 {toVersion.version_number}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-ink-muted hover:text-ink-inverse text-xl"
+            className="text-ink-muted hover:text-ink text-xl"
           >
             ×
           </button>
@@ -100,7 +100,7 @@ const VersionDiff: React.FC<VersionDiffProps> = ({
         <div className="p-4 border-t border-border flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-surface-2 text-ink-inverse rounded hover:bg-surface-3"
+            className="px-4 py-2 bg-surface-2 text-ink rounded hover:bg-surface-3"
           >
             关闭
           </button>

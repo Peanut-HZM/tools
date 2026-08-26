@@ -240,7 +240,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
       {/* 头部工具栏 */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-ink-inverse">PRD 预览</h2>
+          <h2 className="text-lg font-semibold text-ink">PRD 预览</h2>
           
           {/* 版本选择 */}
           <Select
@@ -271,8 +271,8 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
               onClick={() => setActiveTab('preview')}
               className={`px-3 py-1 text-sm rounded ${
                 activeTab === 'preview'
-                  ? 'bg-accent text-white'
-                  : 'text-ink-muted hover:text-ink-inverse'
+                  ? 'bg-accent text-ink-inverse'
+                  : 'text-ink-muted hover:text-ink'
               }`}
             >
               预览
@@ -281,8 +281,8 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
               onClick={() => setActiveTab('source')}
               className={`px-3 py-1 text-sm rounded ${
                 activeTab === 'source'
-                  ? 'bg-accent text-white'
-                  : 'text-ink-muted hover:text-ink-inverse'
+                  ? 'bg-accent text-ink-inverse'
+                  : 'text-ink-muted hover:text-ink'
               }`}
             >
               源码
@@ -292,7 +292,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           {/* 导出按钮 */}
           <button
             onClick={onExport}
-            className="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent-hover flex items-center gap-1"
+            className="px-3 py-1.5 bg-accent text-ink-inverse text-sm rounded hover:bg-accent-hover flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

@@ -54,13 +54,13 @@ const PRDSectionEditor: React.FC<PRDSectionEditorProps> = ({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-transparent text-ink-inverse text-xl font-semibold focus:outline-none focus:border-b-2 focus:border-accent-info"
+              className="w-full bg-transparent text-ink text-xl font-semibold focus:outline-none focus:border-b-2 focus:border-accent-info"
               placeholder="章节标题"
             />
           </div>
           <button
             onClick={onCancel}
-            className="ml-4 p-2 text-ink-muted hover:text-ink-inverse transition-colors"
+            className="ml-4 p-2 text-ink-muted hover:text-ink transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -94,7 +94,7 @@ const PRDSectionEditor: React.FC<PRDSectionEditorProps> = ({
         <div className="flex items-center justify-end gap-3 p-4 border-t border-border">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
+            className="px-4 py-2 text-ink-muted hover:text-ink transition-colors"
             disabled={saving}
           >
             取消
@@ -102,7 +102,7 @@ const PRDSectionEditor: React.FC<PRDSectionEditorProps> = ({
           <button
             onClick={handleSave}
             disabled={saving || !title.trim() || !content.trim()}
-            className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 bg-accent text-ink-inverse rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {saving ? (
               <>

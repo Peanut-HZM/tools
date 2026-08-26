@@ -46,7 +46,7 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       draft: 'bg-accent-warning/20 text-accent-warning',
-      confirmed: 'bg-green-500/20 text-green-400',
+      confirmed: 'bg-success/20 text-success',
       archived: 'bg-surface-2/20 text-ink-muted',
     };
     const labels: Record<string, string> = {
@@ -64,11 +64,11 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
   return (
     <div className="bg-surface-1 rounded-lg border border-border">
       <div className="p-4 border-b border-border flex justify-between items-center">
-        <h3 className="text-ink-inverse font-semibold">版本历史</h3>
+        <h3 className="text-ink font-semibold">版本历史</h3>
         {selectedVersions.length === 2 && (
           <button
             onClick={handleCompare}
-            className="px-3 py-1 bg-accent text-white rounded text-sm hover:bg-accent-hover"
+            className="px-3 py-1 bg-accent text-ink-inverse rounded text-sm hover:bg-accent-hover"
           >
             对比选中版本
           </button>
@@ -102,7 +102,7 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
                     }}
                     className="w-4 h-4 rounded border-border"
                   />
-                  <span className="text-ink-inverse font-medium">
+                  <span className="text-ink font-medium">
                     版本 {version.version_number}
                   </span>
                   {getStatusBadge(version.status)}
