@@ -51,7 +51,7 @@ const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct:
     <td className="px-3 py-2">
       <div className="flex items-center gap-2">
         {isInit && (
-          <Badge variant="outline" className="px-1 py-0.5 text-xs">
+          <Badge variant="tint-info" className="px-1 py-0.5 text-xs">
             init
           </Badge>
         )}

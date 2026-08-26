@@ -243,9 +243,9 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
           </span>
           {pod?.phase && (
             <Badge variant={
-              pod.phase === 'Running' ? 'success' :
-              pod.phase === 'Failed' ? 'destructive' :
-              'warning'
+              pod.phase === 'Running' ? 'tint-success' :
+              pod.phase === 'Failed' ? 'tint-danger' :
+              'tint-warning'
             }>
               {pod.phase}
             </Badge>

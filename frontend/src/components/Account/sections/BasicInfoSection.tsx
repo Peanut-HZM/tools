@@ -30,7 +30,7 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
 
   const getRoleBadge = (role: string) => {
     if (role === 'admin') {
-      return <Badge>{role}</Badge>;
+      return <Badge variant="tint-secondary">{role}</Badge>;
     }
     return <Badge variant="secondary">{role}</Badge>;
   };

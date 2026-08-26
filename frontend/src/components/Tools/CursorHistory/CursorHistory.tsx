@@ -20,6 +20,7 @@ import TagFilter from './TagFilter';
 import BatchActions from './BatchActions';
 import ThemeSwitcher from './ThemeSwitcher';
 import ResizablePanel from './ResizablePanel';
+import { Badge } from '@/components/ui/Badge';
 
 // ==================== 类型定义 ====================
 
@@ -711,13 +712,16 @@ export default function CursorHistory() {
                 {msg.tool_call.toolName || '工具调用'}
               </span>
               {msg.tool_call.status && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                  msg.tool_call.status === 'completed' ? 'bg-success/10 text-success' :
-                  msg.tool_call.status === 'error' ? 'bg-danger/10 text-danger' :
-                  'bg-surface-2/50 text-ink-muted'
-                }`}>
+                <Badge
+                  variant={
+                    msg.tool_call.status === 'completed' ? 'tint-success' :
+                    msg.tool_call.status === 'error' ? 'tint-danger' :
+                    'secondary'
+                  }
+                  className="text-[10px] px-1.5 py-0.5 font-normal"
+                >
                   {msg.tool_call.status === 'completed' ? '完成' : msg.tool_call.status === 'error' ? '失败' : msg.tool_call.status}
-                </span>
+                </Badge>
               )}
               {msg.timestamp && (
                 <span className="text-[10px] text-ink-faint ml-1">{formatMessageTime(msg.timestamp)}</span>
@@ -1185,9 +1189,9 @@ export default function CursorHistory() {
                   {item.match_type === 'title' ? (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">标题匹配</span>
                   ) : (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${item.message_type === 1 ? 'bg-accent-info/10 text-accent-info' : 'bg-success/10 text-success'}`}>
+                    <Badge variant={item.message_type === 1 ? 'tint-info' : 'tint-success'} className="text-xs px-1.5 py-0.5 rounded">
                       {item.message_type === 1 ? '用户' : 'AI'}
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <p className="text-sm text-ink-muted line-clamp-3">{item.matched_text}</p>

@@ -254,12 +254,14 @@ export default function ProvidersTab() {
 
       <ConfirmDialog
         open={showDeleteModal}
-        onOpenChange={(open) => { if (!open) { setShowDeleteModal(false); setDeleting(null); } }}
+        onOpenChange={(open) => { if (!open && !submitting) { setShowDeleteModal(false); setDeleting(null); } }}
         title="确认删除"
         description={`确定要删除配置 "${deleting?.name || ''}" 吗？此操作不可恢复，请谨慎操作！`}
         confirmText="确认删除"
         variant="destructive"
         onConfirm={handleDelete}
+        loading={submitting}
+        loadingText="删除中..."
       />
     </div>
   );

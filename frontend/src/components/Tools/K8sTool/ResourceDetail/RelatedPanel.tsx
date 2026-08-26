@@ -234,7 +234,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
                 <span className="text-ink-muted font-mono truncate max-w-[200px]">
                   {item.name}
                 </span>
-                <Badge variant="secondary" className="text-[10px]">{item.kind}</Badge>
+                <Badge variant="tint-secondary" className="text-[10px]">{item.kind}</Badge>
               </button>
             ))}
           </div>

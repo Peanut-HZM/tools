@@ -115,7 +115,7 @@ export const EventsPanel: React.FC<Props> = ({
               {/* 次数 */}
               <td className="px-3 py-2 text-ink-muted text-center">
                 {event.count > 1 ? (
-                  <Badge variant="warning" className="text-xs">
+                  <Badge variant="tint-warning" className="text-xs">
                     {event.count}
                   </Badge>
                 ) : (
