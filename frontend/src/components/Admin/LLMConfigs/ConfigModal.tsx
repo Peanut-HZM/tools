@@ -223,7 +223,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                   type="checkbox"
                   checked={formData.is_default}
                   onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
+                  className="w-4 h-4 rounded border-border bg-canvas text-accent-info focus:ring-accent"
                 />
                 <span className="text-ink-muted">设为默认配置</span>
               </label>
@@ -233,7 +233,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
+                  className="w-4 h-4 rounded border-border bg-canvas text-accent-info focus:ring-accent"
                 />
                 <span className="text-ink-muted">启用配置</span>
               </label>

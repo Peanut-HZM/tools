@@ -119,7 +119,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                 setBatchMode(!batchMode);
                 setSelectedKeys(new Set());
               }}
-              className={batchMode ? 'bg-accent text-white border-blue-600 hover:bg-accent hover:text-ink' : ''}
+              className={batchMode ? 'bg-accent text-ink-inverse border-accent-hover hover:bg-accent-hover hover:text-ink-inverse' : ''}
               title={batchMode ? '退出批量' : '批量模式'}
             >
               <CheckSquare className="w-4 h-4" />
@@ -214,7 +214,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                         else newSet.delete(k.key);
                         setSelectedKeys(newSet);
                       }}
-                      className="mr-2 w-4 h-4 rounded border-border bg-surface-1 text-blue-600 focus:ring-blue-500"
+                      className="mr-2 w-4 h-4 rounded border-border bg-surface-1 text-accent-info focus:ring-accent-info"
                     />
                   )}
                   <div className="truncate flex-1 mr-2">

@@ -203,7 +203,7 @@ export default function RetentionConfigPanel() {
           <Button
             onClick={handleTrigger}
             disabled={triggering}
-            className="bg-accent-warm hover:bg-orange-700 disabled:bg-surface-3 disabled:cursor-not-allowed text-white"
+            className="bg-accent-warm hover:opacity-90 disabled:bg-surface-3 disabled:cursor-not-allowed text-white"
           >
             {triggering ? igT.triggering : igT.triggerCleanup}
           </Button>

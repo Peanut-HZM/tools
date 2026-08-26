@@ -152,10 +152,10 @@ export default function ContactMessagesManagement() {
 
   const getStatusBadgeClass = (status: string) => {
     const classes = {
-      unread: 'bg-accent-info text-accent-info border-accent-info',
-      read: 'bg-gray-700 text-gray-300 border-gray-600',
-      processing: 'bg-warning text-warning border-warning',
-      resolved: 'bg-success text-success border-success',
+      unread: 'bg-accent-info/15 text-accent-info border-accent-info/40',
+      read: 'bg-surface-2 text-ink-muted border-border',
+      processing: 'bg-warning/15 text-warning border-warning/40',
+      resolved: 'bg-success/15 text-success border-success/40',
     };
     return classes[status as keyof typeof classes] || classes.read;
   };

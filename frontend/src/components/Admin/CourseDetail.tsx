@@ -179,7 +179,7 @@ export default function CourseDetail() {
           {/* 编辑课程按钮 */}
           <button
             onClick={handleEditCourse}
-            className="group px-5 py-2.5 bg-gradient-to-r bg-accent-secondary/10 to-pink-500/10 hover:bg-accent-secondary/20 hover:to-pink-500/20 border border-accent-secondary/30 hover:border-accent-secondary text-accent-secondary rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent-secondary/10 hover:shadow-accent-secondary/20"
+            className="group px-5 py-2.5 bg-gradient-to-r from-accent-secondary/10 to-pink-500/10 hover:from-accent-secondary/20 hover:to-pink-500/20 border border-accent-secondary/30 hover:border-accent-secondary text-accent-secondary rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent-secondary/10 hover:shadow-accent-secondary/20"
           >
             <Pencil className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>编辑课程</span>

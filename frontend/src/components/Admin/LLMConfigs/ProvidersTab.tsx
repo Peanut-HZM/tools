@@ -213,7 +213,7 @@ export default function ProvidersTab() {
                       <button
                         onClick={() => handleTest(p.id)}
                         disabled={testingId === p.id}
-                        className="px-2 py-1 text-xs bg-accent-info/20 text-accent-info border border-accent-info/30 rounded hover:bg-blue-600/30 transition-colors disabled:opacity-50"
+                        className="px-2 py-1 text-xs bg-accent-info/20 text-accent-info border border-accent-info/30 rounded hover:bg-accent-info/30 transition-colors disabled:opacity-50"
                       >
                         {testingId === p.id ? '测试中...' : '测试'}
                       </button>

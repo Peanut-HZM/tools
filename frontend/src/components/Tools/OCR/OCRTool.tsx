@@ -175,7 +175,7 @@ export default function OCRTool() {
             onDrop={onDrop}
             onDragOver={onDragOver}
             className={`flex-1 border-2 border-dashed rounded-xl transition-all relative flex flex-col items-center justify-center overflow-hidden
-              ${(file || preview) ? 'border-border bg-canvas' : 'border-border hover:border-indigo-500 hover:bg-surface-2/50 cursor-pointer'}
+              ${(file || preview) ? 'border-border bg-canvas' : 'border-border hover:border-accent-info hover:bg-surface-2/50 cursor-pointer'}
             `}
           >
             <input 
@@ -247,7 +247,7 @@ export default function OCRTool() {
                     navigator.clipboard.writeText(result.text);
                     success('已复制到剪贴板');
                   }}
-                  className="text-accent hover:text-indigo-300 transition-colors flex items-center"
+                  className="text-accent hover:text-accent-hover transition-colors flex items-center"
                 >
                   <Copy className="w-3.5 h-3.5 mr-1" /> 复制
                 </button>

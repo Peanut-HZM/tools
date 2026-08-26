@@ -264,7 +264,7 @@ export default function DisplaySettingsDialog({
               placeholder="搜索连接名称或主机..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-canvas border border-border rounded-md py-2 pl-9 pr-3 text-sm text-ink placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-canvas border border-border rounded-md py-2 pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
               aria-label="搜索连接"
             />
           </div>

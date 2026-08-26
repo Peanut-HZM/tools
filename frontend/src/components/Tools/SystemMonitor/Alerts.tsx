@@ -201,7 +201,7 @@ export default function Alerts() {
         {logs.length === 0 ? (
           <div className="text-center text-ink-faint py-8 text-sm">暂无告警记录</div>
         ) : (
-          <div className="divide-y divide-slate-800/50">
+          <div className="divide-y divide-border">
             {logs.map((log) => (
               <div key={log.id} className={`px-4 py-2.5 flex items-center gap-3 ${log.is_read ? 'opacity-60' : ''}`}>
                 <span className={`h-2 w-2 rounded-full shrink-0 ${log.status === 'firing' ? 'bg-danger' : 'bg-success'}`} />

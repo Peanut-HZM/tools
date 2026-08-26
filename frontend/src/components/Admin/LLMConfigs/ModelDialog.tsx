@@ -231,7 +231,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                   type="checkbox"
                   checked={formData.is_default}
                   onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
+                  className="w-4 h-4 rounded border-border bg-canvas text-accent-info focus:ring-accent"
                 />
                 <span className="text-ink-muted">全局默认</span>
               </label>
@@ -240,7 +240,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                   type="checkbox"
                   checked={formData.is_default_for_category}
                   onChange={(e) => setFormData({ ...formData, is_default_for_category: e.target.checked })}
-                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
+                  className="w-4 h-4 rounded border-border bg-canvas text-accent-info focus:ring-accent"
                 />
                 <span className="text-ink-muted">分类默认</span>
               </label>
@@ -249,7 +249,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
+                  className="w-4 h-4 rounded border-border bg-canvas text-accent-info focus:ring-accent"
                 />
                 <span className="text-ink-muted">启用</span>
               </label>

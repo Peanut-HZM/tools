@@ -173,7 +173,7 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-border bg-canvas text-cyan-600 focus:ring-accent"
+                  className="w-4 h-4 rounded border-border bg-canvas text-accent-info focus:ring-accent"
                 />
                 <span className="text-ink-muted">启用</span>
               </label>

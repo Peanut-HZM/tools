@@ -92,7 +92,7 @@ export const NamespaceFilter: React.FC = () => {
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="搜索命名空间..."
-                className="flex-1 bg-transparent text-sm text-ink-muted placeholder-slate-600 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-ink-muted placeholder:text-ink-faint focus:outline-none"
                 onClick={(e) => e.stopPropagation()}
               />
               {searchText && (

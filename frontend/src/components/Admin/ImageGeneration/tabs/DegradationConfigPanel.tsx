@@ -177,7 +177,7 @@ export default function DegradationConfigPanel() {
             id="enabled"
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
-            className="w-4 h-4 text-cyan-600 bg-surface-2 border-border rounded focus:ring-accent"
+            className="w-4 h-4 text-accent-info bg-surface-2 border-border rounded focus:ring-accent"
           />
           <label htmlFor="enabled" className="text-sm text-ink-muted">
             {igT.enableAutoDegradation}
