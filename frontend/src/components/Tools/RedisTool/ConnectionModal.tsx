@@ -80,7 +80,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-md p-6 border border-border">
-        <h2 className="text-xl font-bold mb-4 text-ink-inverse">
+        <h2 className="text-xl font-bold mb-4 text-ink">
           {initialData ? t.redis.editConnection : t.redis.addConnection}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">

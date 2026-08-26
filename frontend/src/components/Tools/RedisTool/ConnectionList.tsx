@@ -38,7 +38,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
             className={`p-2 rounded cursor-pointer group flex justify-between items-center ${
               selectedId === config.id
                 ? 'bg-accent text-white'
-                : 'text-ink-muted hover:bg-surface-2 hover:text-ink-inverse'
+                : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
             }`}
             onClick={() => onSelect(config.id)}
           >
@@ -47,7 +47,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
                 <Server className="w-3 h-3 mr-2 opacity-70" />
                 {config.alias}
               </div>
-              <div className={`text-xs truncate ${selectedId === config.id ? 'text-blue-200' : 'text-ink-faint group-hover:text-ink-muted'}`}>
+              <div className={`text-xs truncate ${selectedId === config.id ? 'text-ink' : 'text-ink-faint group-hover:text-ink-muted'}`}>
                 {config.host}:{config.port} (DB {config.db})
               </div>
             </div>
@@ -56,7 +56,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
                 variant="ghost"
                 size="icon"
                 onClick={(e) => { e.stopPropagation(); onEdit(config); }}
-                className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-white'}`}
+                className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-ink-inverse' : 'hover:bg-surface-3 text-ink-muted hover:text-ink'}`}
                 title={t.redis.editConnection}
               >
                 <Pencil className="w-3 h-3" />
@@ -70,7 +70,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, selectedId, onSelect,
                     onDelete(config.id);
                   }
                 }}
-                className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-3 text-ink-muted hover:text-danger'}`}
+                className={`h-8 w-8 p-1 ${selectedId === config.id ? 'hover:bg-accent-hover text-ink-inverse' : 'hover:bg-surface-3 text-ink-muted hover:text-danger'}`}
                 title={t.common.delete}
               >
                  <Trash2 className="w-3 h-3" />

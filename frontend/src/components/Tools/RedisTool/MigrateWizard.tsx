@@ -86,7 +86,7 @@ export const MigrateWizard: React.FC<Props> = ({ configId, onClose }) => {
       )}
       {step === 4 && result && (
         <div className="space-y-2">
-          <div className="text-sm text-green-400">迁移完成</div>
+          <div className="text-sm text-success">迁移完成</div>
           <div className="text-xs text-ink-muted">成功: {result.migrated_count}</div>
           <div className="text-xs text-ink-muted">失败: {result.failed_count}</div>
           {result.errors?.length > 0 && (

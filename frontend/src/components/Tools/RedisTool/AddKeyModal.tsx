@@ -58,7 +58,7 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-md p-6 border border-border">
-        <h2 className="text-xl font-bold mb-4 text-ink-inverse">{t.redis.addKey}</h2>
+        <h2 className="text-xl font-bold mb-4 text-ink">{t.redis.addKey}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.keys}</label>
@@ -103,7 +103,7 @@ export const AddKeyModal: React.FC<Props> = ({ isOpen, onClose, configId, onSucc
             <textarea
               required
               rows={4}
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent-info font-mono"
               value={value}
               onChange={e => setValue(e.target.value)}
               placeholder={type === 'string' ? 'Value' : 'JSON content'}

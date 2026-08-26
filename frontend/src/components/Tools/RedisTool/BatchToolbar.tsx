@@ -45,7 +45,7 @@ export const BatchToolbar: React.FC<Props> = ({
     return (
       <div className="p-2 text-xs text-ink-faint flex justify-between items-center">
         <span>批量模式：点击选择 key</span>
-        <button onClick={onClear} className="text-ink-muted hover:text-ink-inverse">取消</button>
+        <button onClick={onClear} className="text-ink-muted hover:text-ink">取消</button>
       </div>
     );
   }

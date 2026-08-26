@@ -175,7 +175,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.privateKey}</label>
             <textarea
               rows={4}
-              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-blue-500"
+              className="w-full bg-canvas border border-border rounded-md px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent-info"
               value={formData.private_key}
               onChange={e => setFormData({ ...formData, private_key: e.target.value })}
               placeholder={initialData ? t.common.leaveBlankToKeep : ''}

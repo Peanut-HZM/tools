@@ -19,9 +19,9 @@ interface Props {
 }
 
 const DOT_COLORS: Record<ConnectionStatus, string> = {
-  connected: 'bg-green-400',
-  connecting: 'bg-yellow-400 animate-pulse',
-  error: 'bg-red-500',
+  connected: 'bg-success',
+  connecting: 'bg-warning animate-pulse',
+  error: 'bg-danger',
   disconnected: 'bg-surface-3',
 };
 
@@ -57,7 +57,7 @@ export const TabBar: React.FC<Props> = ({ tabs, statuses, activeTabId, onActivat
               role="tab"
               aria-selected={active}
               className={`flex items-center gap-2 px-3 py-2 text-xs border-r border-border cursor-pointer select-none shrink-0 ${
-                active ? 'bg-surface-1 text-ink-inverse' : 'text-ink-muted hover:bg-surface-1/60'
+                active ? 'bg-surface-1 text-ink' : 'text-ink-muted hover:bg-surface-1/60'
               }`}
               onClick={() => onActivate(tab.tabId)}
               onAuxClick={e => handleAuxClick(e, tab)}
@@ -78,7 +78,7 @@ export const TabBar: React.FC<Props> = ({ tabs, statuses, activeTabId, onActivat
                 type="button"
                 aria-label={t.ssh.closeTab}
                 title={t.ssh.closeTab}
-                className="ml-1 text-ink-muted hover:text-ink-inverse"
+                className="ml-1 text-ink-muted hover:text-ink"
                 onClick={e => {
                   e.stopPropagation();
                   handleClose(tab);

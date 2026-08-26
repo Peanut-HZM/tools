@@ -41,7 +41,7 @@ export const HyperLogLogEditor: React.FC<Props> = ({ configId, keyName }) => {
   return (
     <div className="space-y-4">
       <div className="text-sm text-ink-muted">
-        Cardinality (estimated unique elements): <span className="text-ink-inverse font-mono text-lg">{info?.cardinality || 0}</span>
+        Cardinality (estimated unique elements): <span className="text-ink font-mono text-lg">{info?.cardinality || 0}</span>
       </div>
 
       <Card className="p-3 space-y-2">

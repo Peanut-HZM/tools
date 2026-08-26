@@ -170,7 +170,7 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 w-full bg-surface-1 border border-border rounded-md text-ink font-mono text-sm p-4 focus:outline-none focus:border-blue-500 resize-none"
+              className="flex-1 w-full bg-surface-1 border border-border rounded-md text-ink font-mono text-sm p-4 focus:outline-none focus:border-accent-info resize-none"
             />
           </div>
         ) : (

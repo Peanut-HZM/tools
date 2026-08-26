@@ -87,12 +87,12 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
 
   const getKeyTypeColor = (type: string) => {
     switch (type) {
-      case 'string': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'list': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-accent-info';
-      case 'set': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-accent-secondary';
-      case 'zset': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'hash': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-accent-warning';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
+      case 'string': return 'bg-success/15 text-success';
+      case 'list': return 'bg-accent-info/15 text-accent-info';
+      case 'set': return 'bg-accent-secondary/15 text-accent-secondary';
+      case 'zset': return 'bg-warning/15 text-warning';
+      case 'hash': return 'bg-accent-warm/15 text-accent-warm';
+      default: return 'bg-surface-2 text-ink-muted';
     }
   };
 
@@ -119,7 +119,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                 setBatchMode(!batchMode);
                 setSelectedKeys(new Set());
               }}
-              className={batchMode ? 'bg-accent text-white border-blue-600 hover:bg-accent hover:text-white' : ''}
+              className={batchMode ? 'bg-accent text-white border-blue-600 hover:bg-accent hover:text-ink' : ''}
               title={batchMode ? '退出批量' : '批量模式'}
             >
               <CheckSquare className="w-4 h-4" />
@@ -189,8 +189,8 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                     selectedKey === k.key && !batchMode
                         ? 'bg-accent text-white'
                         : selectedKeys.has(k.key) && batchMode
-                        ? 'bg-blue-900/40 text-ink-inverse'
-                        : 'text-ink-muted hover:bg-surface-1 hover:text-ink-inverse'
+                        ? 'bg-accent-info/40 text-ink-inverse'
+                        : 'text-ink-muted hover:bg-surface-1 hover:text-ink'
                   }`}
                   onClick={() => {
                     if (batchMode) {
@@ -236,7 +236,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                       size="icon"
                       onClick={(e) => { e.stopPropagation(); handleDeleteKey(k.key); }}
                       className={`h-8 w-8 opacity-0 group-hover:opacity-100 ${
-                          selectedKey === k.key ? 'hover:bg-accent-hover text-blue-100' : 'hover:bg-surface-2 text-ink-muted hover:text-danger'
+                          selectedKey === k.key ? 'hover:bg-accent-hover text-ink-inverse' : 'hover:bg-surface-2 text-ink-muted hover:text-danger'
                       }`}
                       title={t.redis.deleteKey}
                     >

@@ -80,7 +80,7 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
                   ))}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <Button variant="link" size="sm" onClick={() => handleDelete(entry.id)} className="h-auto px-0 py-0 text-danger hover:text-red-300">Delete</Button>
+                  <Button variant="link" size="sm" onClick={() => handleDelete(entry.id)} className="h-auto px-0 py-0 text-danger hover:text-danger">Delete</Button>
                 </td>
               </tr>
             ))}

@@ -24,7 +24,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
           <h2 className="font-semibold text-ink">{t.ssh.connections}</h2>
           <button
             onClick={onAdd}
-            className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2 rounded transition-colors"
+            className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-2 rounded transition-colors"
             title={t.ssh.addConnection}
           >
             <Plus className="w-4 h-4" />
@@ -35,7 +35,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
         {configs.map(config => (
           <div
             key={config.id}
-            className="p-2 rounded cursor-pointer group flex justify-between items-center text-ink-muted hover:bg-surface-2 hover:text-ink-inverse"
+            className="p-2 rounded cursor-pointer group flex justify-between items-center text-ink-muted hover:bg-surface-2 hover:text-ink"
             onClick={() => onSelect(config.id)}
           >
             <div className="truncate flex-1">
@@ -50,7 +50,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => { e.stopPropagation(); onEdit(config); }}
-                className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink-inverse"
+                className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink"
                 title={t.ssh.editConnection}
               >
                 <Pencil className="w-3 h-3" />
