@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react';
 import React from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { toolComponentMap } from './toolComponents';
@@ -27,7 +28,7 @@ export const TabPanels: React.FC = () => {
               className="h-full items-center justify-center text-ink-faint"
             >
               <div className="text-center">
-                <i className="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                <AlertTriangle className="w-10 h-10 mb-4" />
                 <p>{t.workspace.unknownTool}: {tab.toolId}</p>
               </div>
             </div>

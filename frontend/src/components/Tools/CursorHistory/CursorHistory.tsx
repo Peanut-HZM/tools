@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { AlertCircle, AlertTriangle, ArrowLeft, BarChart3, Brain, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Copy, Database, Download, FileCode, FileText, Folder, FolderOpen, FolderTree, History, Inbox, Loader2, MessageSquare, RefreshCw, Search, Star, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -674,12 +675,12 @@ export default function CursorHistory() {
               className="flex items-center gap-2 cursor-pointer select-none"
               onClick={() => toggleThinking(msg.message_id)}
             >
-              <i className="fas fa-brain text-amber-400/70 text-xs" />
+              <Brain className="w-3 h-3" />
               <span className="text-xs font-medium text-amber-400/80">AI 思考过程</span>
               {msg.timestamp && (
                 <span className="text-[10px] text-ink-faint ml-1">{formatMessageTime(msg.timestamp)}</span>
               )}
-              <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'} text-amber-400/50 text-[10px] ml-auto`} />
+              {isExpanded ? <ChevronUp className="w-2.5 h-2.5 text-amber-400/50 text-[10px] ml-auto" /> : <ChevronDown className="w-2.5 h-2.5 text-amber-400/50 text-[10px] ml-auto" />}
             </div>
             {isExpanded && thinkingText && (
               <div className="mt-2 text-xs text-ink-muted whitespace-pre-wrap break-words leading-relaxed max-h-[300px] overflow-y-auto italic">
@@ -754,7 +755,7 @@ export default function CursorHistory() {
                 className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded transition-all"
                 title="复制纯文本"
               >
-                <i className="fas fa-copy text-xs" />
+                <Copy className="w-3 h-3" />
               </button>
               {!isUser && (
                 <button
@@ -762,7 +763,7 @@ export default function CursorHistory() {
                   className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded transition-all"
                   title="复制 Markdown"
                 >
-                  <i className="fas fa-file-code text-xs" />
+                  <FileCode className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -808,7 +809,7 @@ export default function CursorHistory() {
                       className="absolute top-2 right-2 p-1.5 bg-surface-1/80 hover:bg-surface-2 border border-border/50 rounded text-ink-muted hover:text-ink-inverse opacity-0 group-hover/code:opacity-100 transition-all"
                       title="复制代码"
                     >
-                      <i className="fas fa-copy text-xs" />
+                      <Copy className="w-3 h-3" />
                     </button>
                   </div>
                 );
@@ -963,7 +964,7 @@ export default function CursorHistory() {
         <div className="max-w-[1920px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => navigate('/')} className="text-ink-muted hover:text-ink-inverse transition-colors">
-              <i className="fas fa-arrow-left text-lg" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
             <button
               onClick={() => setShowProjectPanel(prev => !prev)}
@@ -978,7 +979,7 @@ export default function CursorHistory() {
               className={`text-ink-muted hover:text-ink-inverse transition-colors relative ${showRecentPanel ? 'text-violet-400' : ''}`}
               title="最近访问"
             >
-              <i className="fas fa-history text-lg" />
+              <History className="w-5 h-5" />
               {recentSessions.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 rounded-full text-[10px] flex items-center justify-center">
                   {Math.min(recentSessions.length, 9)}
@@ -991,7 +992,7 @@ export default function CursorHistory() {
               className={`text-ink-muted hover:text-ink-inverse transition-colors relative ${showFavoritesPanel ? 'text-amber-400' : ''}`}
               title="收藏夹"
             >
-              <i className="fas fa-star text-lg" />
+              <Star className="w-5 h-5" />
             </button>
             {/* 统计按钮 */}
             <button
@@ -999,7 +1000,7 @@ export default function CursorHistory() {
               className={`text-ink-muted hover:text-ink-inverse transition-colors relative ${showStatsPanel ? 'text-accent' : ''}`}
               title="数据统计"
             >
-              <i className="fas fa-chart-bar text-lg" />
+              <BarChart3 className="w-5 h-5" />
             </button>
             {/* 同步数据按钮 */}
             <button
@@ -1017,7 +1018,7 @@ export default function CursorHistory() {
             </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                <i className="fas fa-clock-rotate-left text-violet-400 text-lg" />
+                <History className="w-5 h-5" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-ink-inverse">Cursor 对话历史</h1>
@@ -1029,7 +1030,7 @@ export default function CursorHistory() {
           <div className="flex items-center gap-3">
             {/* 全局搜索 */}
             <div className="relative w-96">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="搜索所有对话内容..."
@@ -1043,7 +1044,7 @@ export default function CursorHistory() {
                   onClick={() => { setGlobalSearch(''); setIsSearchMode(false); setSearchResults([]); setSearchPage(1); setSearchTotalPages(1); setSearchTotal(0); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-inverse"
                 >
-                  <i className="fas fa-times text-sm" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -1057,7 +1058,7 @@ export default function CursorHistory() {
               }`}
               title="设置 Cursor 数据路径"
             >
-              <i className="fas fa-folder-tree" />
+              <FolderTree className="w-4 h-4" />
             </button>
             {/* 主题切换按钮 */}
             <ThemeSwitcher />
@@ -1070,7 +1071,7 @@ export default function CursorHistory() {
             <div className="bg-accent-info/10 border border-accent-info/20 rounded-xl px-4 py-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <i className="fas fa-sync fa-spin text-accent-info text-xs" />
+                  <RefreshCw className="w-3 h-3 fa-spin" />
                   <span className="text-xs text-accent-info">{syncStatus.current_step}</span>
                 </div>
                 <span className="text-xs text-accent-info">
@@ -1091,7 +1092,7 @@ export default function CursorHistory() {
         {!syncStatus.syncing && syncStatus.error && (
           <div className="max-w-[1920px] mx-auto px-6 pb-2">
             <div className="bg-danger/10 border border-danger/20 rounded-xl px-4 py-2 flex items-center gap-2">
-              <i className="fas fa-exclamation-triangle text-danger text-xs" />
+              <AlertTriangle className="w-3 h-3" />
               <span className="text-xs text-danger">同步失败: {syncStatus.error}</span>
             </div>
           </div>
@@ -1102,7 +1103,7 @@ export default function CursorHistory() {
           <div className="max-w-[1920px] mx-auto px-6 pb-4">
             <div className="bg-surface-1/60 border border-border/50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
-                <i className="fas fa-folder-tree text-violet-400 text-sm" />
+                <FolderTree className="w-3.5 h-3.5" />
                 <span className="text-sm font-medium text-ink-inverse">Cursor 数据目录</span>
                 <span className="text-xs text-ink-faint">（留空使用默认路径）</span>
               </div>
@@ -1146,10 +1147,10 @@ export default function CursorHistory() {
       {error && (
         <div className="max-w-[1920px] mx-auto px-6 py-3">
           <div className="bg-danger/10 border border-danger/30 text-danger px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-            <i className="fas fa-exclamation-circle" />
+            <AlertCircle className="w-4 h-4" />
             {error}
             <button onClick={() => setError(null)} className="ml-auto text-danger hover:text-danger">
-              <i className="fas fa-times" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -1164,7 +1165,7 @@ export default function CursorHistory() {
             <span className="text-sm text-ink-muted">
               (共 {searchTotal} 条，第 {searchPage}/{searchTotalPages} 页)
             </span>
-            {loading.search && <i className="fas fa-spinner fa-spin text-violet-400 text-sm" />}
+            {loading.search && <Loader2 className="w-3.5 h-3.5 fa-spin" />}
           </div>
           {/* 搜索结果列表（可滚动） */}
           <div className="flex-1 overflow-y-auto space-y-3 pb-4">
@@ -1190,7 +1191,7 @@ export default function CursorHistory() {
             ))}
             {!loading.search && searchResults.length === 0 && (
               <div className="text-center py-12 text-ink-faint">
-                <i className="fas fa-search text-3xl mb-3 block opacity-30" />
+                <Search className="w-8 h-8 mb-3 block opacity-30" />
                 <p>未找到匹配结果</p>
               </div>
             )}
@@ -1210,7 +1211,7 @@ export default function CursorHistory() {
                 disabled={searchPage <= 1 || loading.search}
                 className="px-3 py-1.5 text-xs rounded-lg bg-surface-1 text-ink-muted hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                <i className="fas fa-chevron-left mr-1" />上一页
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" />上一页
               </button>
               <span className="text-xs text-ink-muted px-3">
                 {searchPage} / {searchTotalPages}
@@ -1220,7 +1221,7 @@ export default function CursorHistory() {
                 disabled={searchPage >= searchTotalPages || loading.search}
                 className="px-3 py-1.5 text-xs rounded-lg bg-surface-1 text-ink-muted hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                下一页<i className="fas fa-chevron-right ml-1" />
+                下一页<ChevronRight className="w-3.5 h-3.5 ml-1" />
               </button>
               <button
                 onClick={() => doGlobalSearch(globalSearch, searchTotalPages)}
@@ -1271,20 +1272,20 @@ export default function CursorHistory() {
           <div className="w-72 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20">
             <div className="p-3 border-b border-border/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <i className="fas fa-history text-violet-400 text-sm" />
+                <History className="w-3.5 h-3.5" />
                 <span className="text-sm font-semibold text-ink-inverse">最近访问</span>
               </div>
               <button
                 onClick={() => setShowRecentPanel(false)}
                 className="text-ink-faint hover:text-ink-inverse transition-colors"
               >
-                <i className="fas fa-times text-xs" />
+                <X className="w-3 h-3" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {recentSessions.length === 0 ? (
                 <div className="text-center py-8 text-ink-faint text-sm">
-                  <i className="fas fa-history text-2xl mb-2 block opacity-30" />
+                  <History className="w-6 h-6 mb-2 block opacity-30" />
                   <p>暂无最近访问</p>
                 </div>
               ) : (
@@ -1329,7 +1330,7 @@ export default function CursorHistory() {
                   }}
                   className="w-full py-2 text-xs text-ink-muted hover:text-ink-inverse transition-colors"
                 >
-                  <i className="fas fa-trash mr-2" />
+                  <Trash2 className="w-4 h-4 mr-2" />
                   清空记录
                 </button>
               </div>
@@ -1343,7 +1344,7 @@ export default function CursorHistory() {
           <div className="w-full h-full border-r border-border/30 flex flex-col bg-canvas/40">
             <div className="pl-1 pr-2 py-3 border-b border-border/30">
               <div className="relative">
-                <i className="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-faint text-xs" />
+                <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="搜索项目..."
@@ -1367,7 +1368,7 @@ export default function CursorHistory() {
                     }`}
                     title={projectSelectMode ? '退出多选' : '多选模式'}
                   >
-                    <i className="fas fa-check-square mr-1" />
+                    <CheckSquare className="w-4 h-4 mr-1" />
                     {projectSelectMode ? '退出多选' : '多选'}
                   </button>
                   {projectSelectMode && (
@@ -1397,7 +1398,7 @@ export default function CursorHistory() {
                             : 'text-ink-faint cursor-not-allowed'
                         }`}
                       >
-                        <i className="fas fa-trash-alt mr-1" />
+                        <Trash2 className="w-4 h-4 mr-1" />
                         删除({selectedProjectHashes.size})
                       </button>
                     </>
@@ -1408,18 +1409,18 @@ export default function CursorHistory() {
             <div className="flex-1 overflow-y-auto">
               {loading.projects ? (
                 <div className="flex items-center justify-center py-8">
-                  <i className="fas fa-spinner fa-spin text-violet-400" />
+                  <Loader2 className="w-4 h-4 fa-spin" />
                 </div>
               ) : projects.length === 0 ? (
                 <div className="text-center py-10 px-4">
-                  <i className="fas fa-database text-3xl mb-3 block text-violet-400/40" />
+                  <Database className="w-8 h-8 mb-3 block" />
                   <p className="text-sm text-ink-muted mb-1">暂无缓存数据</p>
                   <p className="text-xs text-ink-faint mb-4">请先同步 Cursor 对话数据到本地数据库</p>
                   <button
                     onClick={triggerSync}
                     className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-ink-inverse text-xs rounded-lg transition-all inline-flex items-center gap-2"
                   >
-                    <i className="fas fa-sync-alt" />
+                    <RefreshCw className="w-4 h-4" />
                     同步数据
                   </button>
                 </div>
@@ -1450,7 +1451,7 @@ export default function CursorHistory() {
                           className="w-3.5 h-3.5 rounded border-border text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer"
                         />
                       )}
-                      <i className="fas fa-folder text-violet-400/70 text-sm" />
+                      <Folder className="w-3.5 h-3.5" />
                       <span className="text-sm font-medium text-ink-inverse truncate flex-1">{project.project_name}</span>
                       {!projectSelectMode && (
                         <button
@@ -1463,12 +1464,12 @@ export default function CursorHistory() {
                           className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-danger transition-all p-1"
                           title="删除项目"
                         >
-                          <i className="fas fa-trash-alt text-xs" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       )}
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-xs text-ink-faint">
-                      <i className="fas fa-comments text-[10px]" />
+                      <MessageSquare className="w-2.5 h-2.5" />
                       <span>{project.session_count} 个会话</span>
                     </div>
                   </div>
@@ -1489,12 +1490,12 @@ export default function CursorHistory() {
               {selectedProject ? (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <i className="fas fa-folder-open text-violet-400 text-sm" />
+                    <FolderOpen className="w-3.5 h-3.5" />
                     <span className="text-sm font-semibold text-ink-inverse truncate">{selectedProject.project_name}</span>
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="relative">
-                      <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint text-xs" />
+                      <Search className="w-3 h-3 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         placeholder="搜索会话..."
@@ -1522,11 +1523,11 @@ export default function CursorHistory() {
             <div className="flex-1 overflow-y-auto">
               {loading.sessions ? (
                 <div className="flex items-center justify-center py-8">
-                  <i className="fas fa-spinner fa-spin text-violet-400" />
+                  <Loader2 className="w-4 h-4 fa-spin" />
                 </div>
               ) : !selectedProject ? (
                 <div className="text-center py-12 text-ink-faint">
-                  <i className="fas fa-comments text-3xl mb-3 block opacity-20" />
+                  <MessageSquare className="w-8 h-8 mb-3 block opacity-20" />
                   <p className="text-sm">选择项目查看会话</p>
                 </div>
               ) : sessions.length === 0 ? (
@@ -1604,7 +1605,7 @@ export default function CursorHistory() {
                             className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-danger transition-all p-1 flex-shrink-0"
                             title="删除会话"
                           >
-                            <i className="fas fa-trash-alt text-xs" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                         <div className="mt-1 flex items-center gap-3 text-xs text-ink-faint">
@@ -1630,14 +1631,14 @@ export default function CursorHistory() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                        <i className="fas fa-comments text-violet-400 text-sm" />
+                        <MessageSquare className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-sm font-semibold text-ink-inverse truncate">{selectedSession.name || `会话 ${selectedSession.composer_id.slice(0, 8)}`}</h3>
                         <div className="flex items-center gap-3 text-xs text-ink-faint mt-1 flex-wrap">
                           <span>已加载 {messages.length} / {totalMessages} 条消息</span>
                           {selectedSession.created_at && (
-                            <span><i className="fas fa-clock mr-1" />{formatTime(selectedSession.created_at)}</span>
+                            <span><Clock className="w-4 h-4 mr-1" />{formatTime(selectedSession.created_at)}</span>
                           )}
                           <TagManager composerId={selectedSession.composer_id} />
                         </div>
@@ -1654,7 +1655,7 @@ export default function CursorHistory() {
                         }`}
                         title={isFavorite ? '取消收藏' : '收藏会话'}
                       >
-                        <i className={`fas fa-star ${isFavorite ? 'fas' : 'far'}`} />
+                        <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
                       </button>
                       {/* 导出按钮 */}
                       <button
@@ -1662,7 +1663,7 @@ export default function CursorHistory() {
                         className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/40 rounded-lg text-xs text-violet-400 hover:bg-violet-500/30 transition-all flex items-center gap-1.5"
                         title="导出会话"
                       >
-                        <i className="fas fa-download" />
+                        <Download className="w-4 h-4" />
                         <span>导出</span>
                       </button>
                     </div>
@@ -1673,11 +1674,11 @@ export default function CursorHistory() {
                 <div ref={messageListRef} className="flex-1 overflow-y-auto p-6 space-y-4">
                   {loading.messages ? (
                     <div className="flex items-center justify-center py-12">
-                      <i className="fas fa-spinner fa-spin text-violet-400 text-xl" />
+                      <Loader2 className="w-5 h-5 fa-spin" />
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="text-center py-12 text-ink-faint">
-                      <i className="fas fa-inbox text-3xl mb-3 block opacity-30" />
+                      <Inbox className="w-8 h-8 mb-3 block opacity-30" />
                       <p>暂无消息</p>
                     </div>
                   ) : (
@@ -1694,14 +1695,14 @@ export default function CursorHistory() {
                             onClick={loadMoreMessages}
                             className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
                           >
-                            <i className="fas fa-angle-up mr-1" />
+                            <ChevronUp className="w-4 h-4 mr-1" />
                             向上滚动或点击加载更早消息（还有 {totalMessages - messages.length} 条）
                           </button>
                         </div>
                       )}
                       {loadingMore && (
                         <div className="flex items-center justify-center py-4">
-                          <i className="fas fa-spinner fa-spin text-violet-400 mr-2" />
+                          <Loader2 className="w-4 h-4 fa-spin  mr-2" />
                           <span className="text-xs text-ink-faint">加载历史消息...</span>
                         </div>
                       )}
@@ -1717,7 +1718,7 @@ export default function CursorHistory() {
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-20 h-20 rounded-2xl bg-surface-1/50 flex items-center justify-center mx-auto mb-4">
-                    <i className="fas fa-clock-rotate-left text-3xl text-ink-faint" />
+                    <History className="w-8 h-8" />
                   </div>
                   <h3 className="text-lg font-semibold text-ink-muted mb-2">选择一个会话查看内容</h3>
                   <p className="text-sm text-ink-faint">从左侧选择项目和会话，或使用顶部搜索</p>
@@ -1735,7 +1736,7 @@ export default function CursorHistory() {
           <div className="bg-surface-1 border border-border rounded-2xl p-6 w-full max-w-md shadow-lg">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                <i className="fas fa-download text-violet-400 text-lg" />
+                <Download className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-ink-inverse">导出会话</h3>
@@ -1757,9 +1758,9 @@ export default function CursorHistory() {
                         : 'bg-surface-2/30 border-border/50 text-ink-muted hover:border-border'
                     }`}
                   >
-                    {format === 'markdown' && <><i className="fas fa-file-alt mr-2" />MD</>}
-                    {format === 'json' && <><i className="fas fa-file-code mr-2" />JSON</>}
-                    {format === 'html' && <><i className="fas fa-file-html mr-2" />HTML</>}
+                    {format === 'markdown' && <><FileText className="w-4 h-4 mr-2" />MD</>}
+                    {format === 'json' && <><FileCode className="w-4 h-4 mr-2" />JSON</>}
+                    {format === 'html' && <><FileCode className="w-4 h-4 mr-2" />HTML</>}
                   </button>
                 ))}
               </div>
@@ -1814,12 +1815,12 @@ export default function CursorHistory() {
               >
                 {exportLoading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin" />
+                    <Loader2 className="w-4 h-4 fa-spin" />
                     <span>导出中...</span>
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-download" />
+                    <Download className="w-4 h-4" />
                     <span>导出</span>
                   </>
                 )}
@@ -1895,24 +1896,24 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
     <div className="w-72 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20">
       <div className="p-3 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <i className="fas fa-star text-amber-400 text-sm" />
+          <Star className="w-3.5 h-3.5" />
           <span className="text-sm font-semibold text-ink-inverse">收藏夹</span>
         </div>
         <button
           onClick={onClose}
           className="text-ink-faint hover:text-ink-inverse transition-colors"
         >
-          <i className="fas fa-times text-xs" />
+          <X className="w-3 h-3" />
         </button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <i className="fas fa-spinner fa-spin text-violet-400" />
+            <Loader2 className="w-4 h-4 fa-spin" />
           </div>
         ) : favorites.length === 0 ? (
           <div className="text-center py-8 text-ink-faint text-sm">
-            <i className="fas fa-star text-2xl mb-2 block opacity-30" />
+            <Star className="w-6 h-6 mb-2 block opacity-30" />
             <p>暂无收藏</p>
           </div>
         ) : (
@@ -1932,7 +1933,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
                   onClick={(e) => handleDelete(fav.composer_id, e)}
                   className="text-ink-faint hover:text-danger transition-colors p-1"
                 >
-                  <i className="fas fa-trash text-xs" />
+                  <Trash2 className="w-3 h-3" />
                 </button>
               </div>
             </div>
@@ -1987,21 +1988,21 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
     <div className="w-96 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20 overflow-y-auto">
       <div className="p-3 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <i className="fas fa-chart-bar text-accent text-sm" />
+          <BarChart3 className="w-3.5 h-3.5" />
           <span className="text-sm font-semibold text-ink-inverse">数据统计</span>
         </div>
         <button
           onClick={onClose}
           className="text-ink-faint hover:text-ink-inverse transition-colors"
         >
-          <i className="fas fa-times text-xs" />
+          <X className="w-3 h-3" />
         </button>
       </div>
 
       <div className="p-4 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <i className="fas fa-spinner fa-spin text-violet-400" />
+            <Loader2 className="w-4 h-4 fa-spin" />
           </div>
         ) : (
           <>

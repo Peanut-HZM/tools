@@ -1,3 +1,4 @@
+import { Wrench } from 'lucide-react';
 import React from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useI18n } from '../../i18n';
@@ -32,7 +33,7 @@ export const EmptyWorkspace: React.FC<Props> = ({ tools }: Props) => {
   return (
     <div className="flex-1 flex items-center justify-center bg-canvas">
       <div className="text-center max-w-md">
-        <i className="fas fa-tools text-6xl text-ink-faint mb-6"></i>
+        <Wrench className="w-16 h-16 text-ink-faint mb-6" />
         <h2 className="text-2xl font-bold text-ink mb-2">{t.workspace.welcome}</h2>
         <p className="text-ink-muted mb-8">
           {t.workspace.welcomeHint}

@@ -2,6 +2,7 @@
  * OSS 文件上传组件
  * 支持拖拽上传、进度显示、文件类型验证
  */
+import { AlertCircle, CheckCircle, CloudUpload, Copy, ExternalLink, File as FileIcon } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { Card } from '@/components/ui/Card';
@@ -258,7 +259,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
         ) : value ? (
           <div className="space-y-3">
             <div className="text-green-400 text-4xl mb-2">
-              <i className="fas fa-check-circle"></i>
+              <CheckCircle className="w-4 h-4" />
             </div>
             <p className="text-white font-medium">上传成功</p>
             {uploadFile && (
@@ -280,7 +281,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
         ) : (
           <div className="space-y-3">
             <div className="text-accent text-5xl mb-4">
-              <i className="fas fa-cloud-upload-alt"></i>
+              <CloudUpload className="w-4 h-4" />
             </div>
             <p className="text-white font-medium">点击或拖拽文件到此处上传</p>
             <p className="text-ink-faint text-sm">
@@ -296,7 +297,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <i className="fas fa-file text-accent"></i>
+                <FileIcon className="w-4 h-4 text-accent" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium truncate">{value.split('/').pop()}</p>
@@ -311,7 +312,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
                 className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                 title="查看文件"
               >
-                <i className="fas fa-external-link-alt text-ink-faint"></i>
+                <ExternalLink className="w-4 h-4 text-ink-faint" />
               </a>
               <button
                 type="button"
@@ -322,7 +323,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
                 className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                 title="复制链接"
               >
-                <i className="fas fa-copy text-ink-faint"></i>
+                <Copy className="w-4 h-4 text-ink-faint" />
               </button>
             </div>
           </div>
@@ -333,7 +334,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
       {uploadFile?.status === 'error' && (
         <div className="bg-danger/10 border border-red-500/30 rounded-xl p-4">
           <div className="flex items-center space-x-2 text-danger">
-            <i className="fas fa-exclamation-circle"></i>
+            <AlertCircle className="w-4 h-4" />
             <span className="font-medium">{uploadFile.error}</span>
           </div>
         </div>

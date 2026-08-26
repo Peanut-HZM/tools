@@ -192,7 +192,7 @@ export default function OCRTool() {
             ) : file && mode === 'pdf' ? (
               <div className="text-center p-6">
                  <div className="w-16 h-16 bg-surface-1 rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
-                   <i className="fas fa-file-pdf text-3xl text-danger"></i>
+                   <FileText className="w-8 h-8 text-danger" />
                  </div>
                  <p className="text-lg text-ink font-medium">{file.name}</p>
                  <p className="text-sm text-ink-muted mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
@@ -221,12 +221,12 @@ export default function OCRTool() {
             >
               {loading ? (
                 <>
-                  <i className="fas fa-spinner fa-spin"></i>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>识别中...</span>
                 </>
               ) : (
                 <>
-                  <i className="fas fa-magic"></i>
+                  <Sparkles className="w-4 h-4" />
                   <span>开始识别</span>
                 </>
               )}
@@ -241,7 +241,7 @@ export default function OCRTool() {
             <CardTitle className="text-lg">识别结果</CardTitle>
             {result && (
               <div className="flex items-center space-x-4 text-sm text-ink-muted">
-                <span><i className="fas fa-clock mr-1"></i> {result.processing_time.toFixed(2)}s</span>
+                <span><Clock className="w-3.5 h-3.5 mr-1" /> {result.processing_time.toFixed(2)}s</span>
                 <button 
                   onClick={() => {
                     navigator.clipboard.writeText(result.text);
@@ -249,7 +249,7 @@ export default function OCRTool() {
                   }}
                   className="text-accent hover:text-indigo-300 transition-colors flex items-center"
                 >
-                  <i className="fas fa-copy mr-1"></i> 复制
+                  <Copy className="w-3.5 h-3.5 mr-1" /> 复制
                 </button>
               </div>
             )}
@@ -264,7 +264,7 @@ export default function OCRTool() {
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-ink-faint flex-col">
-                <i className="fas fa-align-left text-4xl mb-4 opacity-30"></i>
+                <AlignLeft className="w-10 h-10 mb-4 opacity-30" />
                 <p>等待识别结果...</p>
               </div>
             )}

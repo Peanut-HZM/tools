@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
@@ -51,7 +52,7 @@ export const WorkspacePage: React.FC = () => {
     return (
       <div className="h-screen bg-canvas flex items-center justify-center">
         <div className="text-center text-ink-muted">
-          <i className="fas fa-exclamation-triangle text-4xl mb-4 text-amber-500"></i>
+          <AlertTriangle className="w-10 h-10 mb-4 text-amber-500" />
           <p>{error}</p>
         </div>
       </div>

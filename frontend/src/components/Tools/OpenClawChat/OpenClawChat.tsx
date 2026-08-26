@@ -1,3 +1,4 @@
+import { MessageSquare, RotateCw, Send, Square, X } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../stores/authStore';
 import { useLoginModalStore } from '../../../stores/loginModalStore';
@@ -236,7 +237,7 @@ export default function OpenClawChat() {
       <div className="flex items-center justify-center h-[calc(100vh-120px)]">
         <div className="text-center text-ink-muted">
           <div className="text-6xl mb-4">
-            <i className="fas fa-comments text-violet-500"></i>
+            <MessageSquare className="w-5 h-5 text-violet-500" />
           </div>
           <p className="text-xl mb-4 text-ink-inverse">OpenClaw AI 对话</p>
           <p className="mb-4">需要登录后才能使用此功能</p>
@@ -280,7 +281,7 @@ export default function OpenClawChat() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface-1/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <i className="fas fa-comments text-ink-inverse"></i>
+            <MessageSquare className="w-5 h-5 text-ink-inverse" />
           </div>
           <div>
             <h2 className="text-ink-inverse font-semibold">OpenClaw AI 对话</h2>
@@ -299,7 +300,7 @@ export default function OpenClawChat() {
           onClick={handleReset}
           className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink-inverse border border-border rounded-lg hover:border-border transition-colors"
         >
-          <i className="fas fa-rotate mr-1"></i>
+          <RotateCw className="w-3.5 h-3.5 mr-1" />
           新对话
         </button>
       </div>
@@ -309,7 +310,7 @@ export default function OpenClawChat() {
         <div className="px-6 py-2 bg-danger/10 border-b border-danger/30 text-danger text-sm flex items-center justify-between">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="text-danger hover:text-red-300">
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -326,7 +327,7 @@ export default function OpenClawChat() {
           <div className="flex items-center justify-center h-full text-ink-faint">
             <div className="text-center">
               <div className="text-5xl mb-3">
-                <i className="fas fa-comments text-violet-500/50"></i>
+                <MessageSquare className="w-5 h-5 text-violet-500/50" />
               </div>
               <p className="text-lg">发送一条消息开始对话</p>
             </div>
@@ -378,7 +379,7 @@ export default function OpenClawChat() {
               onClick={handleAbort}
               className="px-4 py-3 bg-red-600 text-ink-inverse rounded-xl hover:bg-red-700 transition-colors self-end"
             >
-              <i className="fas fa-stop"></i>
+              <Square className="w-4 h-4" />
             </button>
           ) : (
             <button
@@ -386,7 +387,7 @@ export default function OpenClawChat() {
               disabled={!inputValue.trim() || !isConnected}
               className="px-4 py-3 bg-violet-600 text-ink-inverse rounded-xl hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
             >
-              <i className="fas fa-paper-plane"></i>
+              <Send className="w-4 h-4" />
             </button>
           )}
         </div>

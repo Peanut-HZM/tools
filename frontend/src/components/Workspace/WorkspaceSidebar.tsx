@@ -1,3 +1,4 @@
+import { Home, Search } from 'lucide-react';
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
@@ -49,7 +50,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
           onClick={handleGoHome}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md text-sm font-medium transition-colors"
         >
-          <i className="fas fa-home"></i>
+          <Home className="w-4 h-4" />
           <span>{t.workspace.home}</span>
         </button>
       </div>
@@ -57,7 +58,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({ tools }) => {
       {/* 搜索框 */}
       <div className="px-3 py-2 border-b border-border">
         <div className="relative">
-          <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-ink-faint text-xs"></i>
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-ink-faint w-3 h-3" />
           <input
             type="text"
             value={searchQuery}
