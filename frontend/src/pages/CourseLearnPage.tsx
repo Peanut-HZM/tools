@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Loader2, AlertCircle, ArrowLeft, GraduationCap, BookOpen, PlayCircle, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -167,7 +168,7 @@ const CourseLearnPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-spinner fa-spin text-4xl text-accent mb-4"></i>
+          <Loader2 className="w-8 h-8 animate-spin text-accent mb-4 mx-auto" />
           <p className="text-ink-muted">正在加载课程...</p>
         </div>
       </div>
@@ -178,7 +179,7 @@ const CourseLearnPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-exclamation-circle text-6xl text-danger mb-4"></i>
+          <AlertCircle className="w-12 h-12 text-danger mb-4 mx-auto" />
           <p className="text-ink-inverse text-xl">课程不存在</p>
           <button
             onClick={() => navigate('/courses')}
@@ -202,7 +203,7 @@ const CourseLearnPage: React.FC = () => {
                 onClick={() => navigate(`/courses/${slug}`)}
                 className="text-ink-inverse/80 hover:text-ink-inverse transition-colors"
               >
-                <i className="fas fa-arrow-left"></i>
+                <ArrowLeft className="w-4 h-4" />
               </button>
               <div>
                 <h1 className="text-xl font-bold text-ink-inverse">{course.title}</h1>
@@ -282,7 +283,7 @@ const CourseLearnPage: React.FC = () => {
               <div className="max-w-3xl mx-auto">
                 <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 p-8 text-center">
                   <div className="mb-6">
-                    <i className="fas fa-graduation-cap text-6xl text-accent"></i>
+                    <GraduationCap className="w-12 h-12 text-accent mx-auto" />
                   </div>
                   <h2 className="text-2xl font-bold text-ink-inverse mb-4">
                     报名课程以开始学习
@@ -314,7 +315,7 @@ const CourseLearnPage: React.FC = () => {
                     onClick={handleEnroll}
                     className="px-8 py-4 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent/25"
                   >
-                    <i className="fas fa-book-open mr-2"></i>
+                    <BookOpen className="w-4 h-4 mr-2 inline" />
                     免费报名开始学习
                   </button>
                 </div>
@@ -340,7 +341,7 @@ const CourseLearnPage: React.FC = () => {
                   <div className="mb-8 bg-surface-1/50 rounded-xl p-6 border border-border/50">
                     <div className="aspect-video bg-canvas rounded-lg flex items-center justify-center">
                       <div className="text-center">
-                        <i className="fas fa-play-circle text-6xl text-accent mb-4"></i>
+                        <PlayCircle className="w-12 h-12 text-accent mb-4 mx-auto" />
                         <div className="text-ink-inverse/60">视频区域</div>
                         <div className="text-sm text-ink-faint mt-2">{currentChapter.video_url}</div>
                       </div>
@@ -398,14 +399,14 @@ const CourseLearnPage: React.FC = () => {
                     onClick={() => setShowContent('intro')}
                     className="px-6 py-3 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-xl transition-colors font-medium"
                   >
-                    <i className="fas fa-arrow-left mr-2"></i>
+                    <ArrowLeft className="w-4 h-4 mr-2 inline" />
                     返回章节列表
                   </button>
                   <button
                     onClick={() => handleCompleteChapter(currentChapter.id)}
                     className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all font-medium"
                   >
-                    <i className="fas fa-check mr-2"></i>
+                    <Check className="w-4 h-4 mr-2 inline" />
                     完成本章
                   </button>
                 </div>

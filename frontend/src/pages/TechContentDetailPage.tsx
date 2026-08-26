@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { AlertCircle, Eye, ThumbsUp, Bookmark, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useI18n } from '../i18n/index.ts';
@@ -97,7 +98,7 @@ export default function TechContentDetailPage() {
     return (
       <div className="bg-canvas min-h-screen flex items-center justify-center">
         <div className="text-center text-ink-muted">
-          <i className="fas fa-exclamation-circle text-4xl mb-4"></i>
+          <AlertCircle className="w-8 h-8 mb-4 mx-auto" />
           <p className="mb-4">{error || '内容不存在'}</p>
           <button
             onClick={() => navigate('/tech-contents')}
@@ -177,15 +178,15 @@ export default function TechContentDetailPage() {
           {/* 统计信息 */}
           <div className="flex gap-6 pt-4 text-ink-muted text-sm">
             <span className="flex items-center gap-1.5">
-              <i className="fas fa-eye"></i>
+              <Eye className="w-4 h-4" />
               {content.views} 阅读
             </span>
             <span className="flex items-center gap-1.5">
-              <i className="fas fa-thumbs-up"></i>
+              <ThumbsUp className="w-4 h-4" />
               {content.likes} 点赞
             </span>
             <span className="flex items-center gap-1.5">
-              <i className="fas fa-bookmark"></i>
+              <Bookmark className="w-4 h-4" />
               {content.bookmarks} 收藏
             </span>
           </div>
@@ -232,15 +233,15 @@ export default function TechContentDetailPage() {
           {/* 互动区 */}
           <div className="flex items-center gap-4 mt-12 pt-8 border-t border-border">
             <button className="flex items-center gap-2 px-4 py-2 bg-surface-1 text-ink-muted rounded-lg hover:bg-surface-2 transition-colors">
-              <i className="fas fa-thumbs-up"></i>
+              <ThumbsUp className="w-4 h-4" />
               点赞 ({content.likes})
             </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-surface-1 text-ink-muted rounded-lg hover:bg-surface-2 transition-colors">
-              <i className="fas fa-bookmark"></i>
+              <Bookmark className="w-4 h-4" />
               收藏 ({content.bookmarks})
             </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-surface-1 text-ink-muted rounded-lg hover:bg-surface-2 transition-colors">
-              <i className="fas fa-share"></i>
+              <Share2 className="w-4 h-4" />
               分享
             </button>
           </div>

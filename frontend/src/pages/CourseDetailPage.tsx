@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Loader2, AlertCircle, GraduationCap, Star, User, Eye, Book, MessagesSquare, Inbox } from 'lucide-react';
 import { getCourseDetail, getCourseReviews, submitReview } from '../services/coursePlatform';
 import type { CourseDetail, Review } from '../services/coursePlatform';
 
@@ -48,7 +49,7 @@ const CourseDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-spinner fa-spin text-4xl text-accent mb-4"></i>
+          <Loader2 className="w-8 h-8 animate-spin text-accent mb-4 mx-auto" />
           <p className="text-ink-muted">加载中...</p>
         </div>
       </div>
@@ -59,7 +60,7 @@ const CourseDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-exclamation-circle text-6xl text-danger mb-4"></i>
+          <AlertCircle className="w-12 h-12 text-danger mb-4 mx-auto" />
           <p className="text-ink-inverse text-xl">课程不存在</p>
           <button
             onClick={() => navigate('/courses')}
@@ -80,7 +81,7 @@ const CourseDetailPage: React.FC = () => {
           <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-accent/20 to-accent-hover/20 flex items-center justify-center">
-            <i className="fas fa-graduation-cap text-8xl text-accent/50"></i>
+            <GraduationCap className="w-20 h-20 text-accent/50" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-canvas to-transparent"></div>
@@ -95,7 +96,7 @@ const CourseDetailPage: React.FC = () => {
           {/* 统计数据 */}
           <div className="flex items-center space-x-6 mb-6">
             <div className="flex items-center">
-              <i className="fas fa-star text-accent-warning mr-2"></i>
+              <Star className="w-4 h-4 text-accent-warning mr-2" />
               <span className="text-ink-inverse font-semibold">
                 {course.statistics?.avg_rating.toFixed(1) || '0.0'}
               </span>
@@ -104,14 +105,14 @@ const CourseDetailPage: React.FC = () => {
               </span>
             </div>
             <div className="flex items-center">
-              <i className="fas fa-user text-accent mr-2"></i>
+              <User className="w-4 h-4 text-accent mr-2" />
               <span className="text-ink-inverse">
                 {course.statistics?.enroll_count || 0}
               </span>
               <span className="text-ink-muted text-sm ml-1">人在学</span>
             </div>
             <div className="flex items-center">
-              <i className="fas fa-eye text-ink-muted mr-2"></i>
+              <Eye className="w-4 h-4 text-ink-muted mr-2" />
               <span className="text-ink-inverse">
                 {course.statistics?.view_count || 0}
               </span>
@@ -143,7 +144,7 @@ const CourseDetailPage: React.FC = () => {
                   : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-2/30'
               }`}
             >
-              <i className="fas fa-book mr-2"></i>
+              <Book className="w-4 h-4 mr-2" />
               课程章节
               <span className="ml-2 px-2 py-0.5 bg-surface-2 rounded-full text-xs">
                 {course.chapters?.length || 0}
@@ -187,7 +188,7 @@ const CourseDetailPage: React.FC = () => {
         {/* 学员评价 - 底部区域 */}
         <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 p-6">
           <h3 className="text-xl font-semibold text-ink-inverse mb-6 flex items-center">
-            <i className="fas fa-comments text-accent mr-3"></i>
+            <MessagesSquare className="w-4 h-4 text-accent mr-3" />
             学员评价
             <span className="ml-3 px-3 py-1 bg-surface-2 rounded-full text-sm text-ink-muted">
               {course.statistics?.review_count || 0}
@@ -204,7 +205,7 @@ const CourseDetailPage: React.FC = () => {
                   onClick={() => setNewReview({ ...newReview, rating: star })}
                   className={`text-2xl ${star <= newReview.rating ? 'text-accent-warning' : 'text-ink-faint'}`}
                 >
-                  <i className="fas fa-star"></i>
+                  <Star className="w-6 h-6" />
                 </button>
               ))}
             </div>
@@ -237,10 +238,10 @@ const CourseDetailPage: React.FC = () => {
                         <p className="text-ink-inverse font-medium">学员{review.user_id.slice(-4)}</p>
                         <div className="flex items-center">
                           {[...Array(5)].map((_, i) => (
-                            <i
+                            <Star
                               key={i}
-                              className={`fas fa-star ${i < review.rating ? 'text-accent-warning' : 'text-ink-faint'}`}
-                            ></i>
+                              className={`w-4 h-4 ${i < review.rating ? 'text-accent-warning' : 'text-ink-faint'}`}
+                            />
                           ))}
                         </div>
                       </div>
@@ -257,7 +258,7 @@ const CourseDetailPage: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-8 text-ink-muted">
-              <i className="fas fa-inbox text-4xl mb-3"></i>
+              <Inbox className="w-8 h-8 mb-3 mx-auto" />
               <p>暂无评价，快来发表第一条评论吧！</p>
             </div>
           )}

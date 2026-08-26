@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BookOpen, Play, Inbox } from 'lucide-react';
 import CourseCard from '../components/Courses/CourseCard';
 import { getMyCourses, type Course } from '../services/coursePlatform';
 
@@ -62,7 +63,7 @@ const MyCoursesPage: React.FC = () => {
       <div className="bg-surface-1/50 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-4xl font-bold text-ink-inverse mb-2">
-            <i className="fas fa-book-reader text-accent mr-3"></i>
+            <BookOpen className="w-8 h-8 text-accent mr-3 inline" />
             我的课程
           </h1>
           <p className="text-ink-muted">
@@ -127,7 +128,7 @@ const MyCoursesPage: React.FC = () => {
         ) : filteredCourses.length === 0 ? (
           /* 空状态 */
           <div className="text-center py-20">
-            <i className="fas fa-inbox text-6xl text-ink-faint mb-4"></i>
+            <Inbox className="w-12 h-12 text-ink-faint mb-4 mx-auto" />
             <p className="text-ink-muted text-lg">
               {filter === 'all' ? '还没有报名任何课程' : '没有符合条件的课程'}
             </p>
@@ -165,7 +166,7 @@ const MyCoursesPage: React.FC = () => {
                   onClick={() => handleContinueLearning(item.course)}
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
                 >
-                  <i className="fas fa-play mr-2"></i>
+                  <Play className="w-4 h-4 mr-2 inline" />
                   继续学习
                 </button>
               </div>

@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GraduationCap, Search, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
 import CourseCard from '../components/Courses/CourseCard';
 import FilterSidebar from '../components/Courses/FilterSidebar';
 import { getCourseList, getCourseCategories, type Course } from '../services/coursePlatform';
@@ -64,7 +65,7 @@ const CoursesPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-ink-inverse mb-2">
-                <i className="fas fa-graduation-cap text-accent mr-3"></i>
+                <GraduationCap className="w-8 h-8 text-accent mr-3 inline" />
                 课程中心
               </h1>
               <p className="text-ink-muted">
@@ -82,7 +83,7 @@ const CoursesPage: React.FC = () => {
                 onKeyPress={(e) => e.key === 'Enter' && loadCourses()}
                 className="w-80 px-5 py-3 pl-12 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-400 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
-              <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted"></i>
+              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" />
             </div>
           </div>
         </div>
@@ -129,7 +130,7 @@ const CoursesPage: React.FC = () => {
             ) : courses.length === 0 ? (
               /* 空状态 */
               <div className="text-center py-20">
-                <i className="fas fa-inbox text-6xl text-ink-faint mb-4"></i>
+                <Inbox className="w-12 h-12 text-ink-faint mb-4 mx-auto" />
                 <p className="text-ink-muted text-lg">暂无课程</p>
                 <button
                   onClick={handleReset}
@@ -165,7 +166,7 @@ const CoursesPage: React.FC = () => {
                   disabled={page === 1}
                   className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink-inverse transition-colors"
                 >
-                  <i className="fas fa-chevron-left"></i>
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
                 <span className="px-4 py-2 bg-accent text-white rounded-lg font-medium">
                   {page}
@@ -175,7 +176,7 @@ const CoursesPage: React.FC = () => {
                   disabled={page * limit >= total}
                   className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink-inverse transition-colors"
                 >
-                  <i className="fas fa-chevron-right"></i>
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             )}

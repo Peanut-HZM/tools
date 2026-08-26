@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Inbox } from 'lucide-react';
 import TechContentCard from '../components/TechContent/TechContentCard.tsx';
 import { useI18n } from '../i18n/index.ts';
 import { API_BASE_URL } from '../config/api.ts';
@@ -128,7 +129,7 @@ export default function TechContentsPage() {
         ) : contents.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center text-ink-muted">
-              <i className="fas fa-inbox text-4xl mb-4"></i>
+              <Inbox className="w-8 h-8 mb-4 mx-auto" />
               <p>暂无内容</p>
             </div>
           </div>
