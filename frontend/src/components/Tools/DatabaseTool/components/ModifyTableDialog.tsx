@@ -5,6 +5,7 @@ import { useToast } from '../../../../hooks/useToast';
 import { ColumnDefinition, TableModificationRequest } from '../../../../types/databaseTool';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
 
 interface ModifyTableDialogProps {
   isOpen: boolean;
@@ -136,7 +137,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-surface-1 rounded-lg shadow-md w-11/12 max-w-6xl max-h-[90vh] flex flex-col border border-border">
+      <Card className="w-11/12 max-w-6xl max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink">
             Modify Table: {tableName}
@@ -284,7 +285,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
             Save Changes
           </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

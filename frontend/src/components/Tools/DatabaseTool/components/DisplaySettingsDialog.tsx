@@ -3,6 +3,8 @@ import { DatabaseConfig } from '../../../../types/databaseTool';
 import { Environment } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface DisplayPreferences {
   visible_connections: string[] | null;
@@ -18,12 +20,12 @@ interface DisplaySettingsDialogProps {
 }
 
 /** 获取环境标签颜色 */
-function getEnvBadgeClass(env?: Environment): string {
+function getEnvBadgeVariant(env?: Environment): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
   switch (env) {
-    case Environment.PROD: return 'bg-red-900/30 text-danger border border-red-800/50';
-    case Environment.TEST: return 'bg-yellow-900/30 text-accent-warning border border-yellow-800/50';
-    case Environment.DEV: return 'bg-green-900/30 text-green-400 border border-green-800/50';
-    default: return 'bg-surface-2 text-ink-muted border border-border';
+    case Environment.PROD: return 'destructive';
+    case Environment.TEST: return 'warning';
+    case Environment.DEV: return 'success';
+    default: return 'secondary';
   }
 }
 
@@ -232,8 +234,8 @@ export default function DisplaySettingsDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
-      <div
-        className="bg-surface-1 rounded-lg shadow-md w-full max-w-lg border border-border flex flex-col max-h-[85vh]"
+      <Card
+        className="w-full max-w-lg border border-border flex flex-col max-h-[85vh]"
         role="dialog"
         aria-label="显示设置"
       >
@@ -337,9 +339,9 @@ export default function DisplaySettingsDialog({
 
                     {/* 环境标签 */}
                     {config.environment && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${getEnvBadgeClass(config.environment)}`}>
+                      <Badge variant={getEnvBadgeVariant(config.environment)}>
                         {config.environment}
-                      </span>
+                      </Badge>
                     )}
                   </div>
 
@@ -439,7 +441,7 @@ export default function DisplaySettingsDialog({
             </button>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -3,6 +3,8 @@ import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
 import { useI18n } from '../../../../i18n';
 import { BackupRecord } from '../../../../types/databaseTool';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface BackupHistoryDialogProps {
   isOpen: boolean;
@@ -77,10 +79,10 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
   };
 
   const getModeBadge = (mode: string) => {
-    const styles: Record<string, string> = {
-      structure_and_data: 'bg-accent-info/10 text-accent-info border-accent-info/20',
-      structure_only: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-      data_only: 'bg-success/10 text-emerald-300 border-emerald-500/20',
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
+      structure_and_data: 'default',
+      structure_only: 'warning',
+      data_only: 'success',
     };
     const icons: Record<string, string> = {
       structure_and_data: 'fa-cubes',
@@ -93,10 +95,10 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
       data_only: t.database.dialog.backup.modeDataOnly,
     };
     return (
-      <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium ${styles[mode] || 'bg-surface-2 text-ink-muted border-border'}`}>
+      <Badge variant={variants[mode] || 'secondary'} className="gap-1 text-[10px] py-0.5">
         <i className={`fas ${icons[mode] || 'fa-file'} text-[8px]`}></i>
         {labels[mode] || mode.replace(/_/g, ' ')}
-      </span>
+      </Badge>
     );
   };
 
@@ -106,7 +108,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-3xl max-h-[85vh] flex flex-col border border-border">
+      <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink flex items-center gap-2">
@@ -217,7 +219,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

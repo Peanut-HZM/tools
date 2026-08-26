@@ -5,6 +5,7 @@ import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import { useAuth } from '../../../stores';
+import { Card } from '@/components/ui/Card';
 
 interface DatabaseConfigPanelProps {
   editConfigId?: string | null;
@@ -135,7 +136,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b border-border">
           <h2 className="text-xl font-semibold text-ink">
             {editConfigId ? t.database.editConnection : t.database.addConnection}
@@ -315,7 +316,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
              </div>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

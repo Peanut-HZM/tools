@@ -3,6 +3,7 @@ import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
 import { useI18n } from '../../../../i18n';
 import { BackupMode } from '../../../../types/databaseTool';
+import { Card } from '@/components/ui/Card';
 
 interface BackupDialogProps {
   isOpen: boolean;
@@ -139,7 +140,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-2xl max-h-[90vh] flex flex-col border border-border">
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink flex items-center gap-2">
@@ -341,7 +342,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
             </button>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 };

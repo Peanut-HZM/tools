@@ -3,6 +3,8 @@ import { API_BASE_URL } from '../../../../config/api';
 import { Collection, HttpRequest, fetchCollections, fetchCollections as apiFetchCollections, importCurl, exportCollection } from '../../../../services/httpClientApi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 interface ImportExportModalProps {
   isOpen: boolean;
@@ -146,7 +148,7 @@ export default function ImportExportModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <Card className="w-full max-w-2xl max-h-[80vh] flex flex-col">
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">导入/导出</h2>
@@ -156,63 +158,42 @@ export default function ImportExportModal({
         </div>
 
         {/* 标签页 */}
-        <div className="flex items-center gap-1 px-6 border-b border-border">
-          <button
-            onClick={() => {
-              setActiveTab('import-postman');
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            const next = v as 'import-postman' | 'import-curl' | 'export';
+            if (next === 'import-postman') {
               setImportResult(null);
               setError(null);
-            }}
-            className={`
-              px-4 py-3 text-sm transition-colors border-b-2
-              ${activeTab === 'import-postman'
-                ? 'text-accent-secondary border-accent-secondary'
-                : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-            `}
-          >
-            <i className="fas fa-file-code mr-2"></i>
-            Postman
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('import-curl');
+            } else if (next === 'import-curl') {
               setCurlResult(null);
               setError(null);
-            }}
-            className={`
-              px-4 py-3 text-sm transition-colors border-b-2
-              ${activeTab === 'import-curl'
-                ? 'text-accent-secondary border-accent-secondary'
-                : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-            `}
-          >
-            <i className="fas fa-terminal mr-2"></i>
-            cURL
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('export');
+            } else {
               setError(null);
-            }}
-            className={`
-              px-4 py-3 text-sm transition-colors border-b-2
-              ${activeTab === 'export'
-                ? 'text-accent-secondary border-accent-secondary'
-                : 'text-ink-muted border-transparent hover:text-ink-muted'
             }
-            `}
-          >
-            <i className="fas fa-upload mr-2"></i>
-            导出
-          </button>
-        </div>
+            setActiveTab(next);
+          }}
+          className="flex flex-col flex-1 overflow-hidden"
+        >
+          <TabsList className="px-6 w-full justify-start rounded-none border-b border-border bg-transparent">
+            <TabsTrigger value="import-postman" className="gap-2">
+              <i className="fas fa-file-code"></i>
+              Postman
+            </TabsTrigger>
+            <TabsTrigger value="import-curl" className="gap-2">
+              <i className="fas fa-terminal"></i>
+              cURL
+            </TabsTrigger>
+            <TabsTrigger value="export" className="gap-2">
+              <i className="fas fa-upload"></i>
+              导出
+            </TabsTrigger>
+          </TabsList>
 
-        {/* 内容区域 */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Postman 导入 */}
-          {activeTab === 'import-postman' && (
+          {/* 内容区域 */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* Postman 导入 */}
+            <TabsContent value="import-postman">
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-ink-muted mb-2 block">
@@ -284,10 +265,10 @@ export default function ImportExportModal({
                 </Button>
               </div>
             </div>
-          )}
+          </TabsContent>
 
           {/* cURL 导入 */}
-          {activeTab === 'import-curl' && (
+          <TabsContent value="import-curl">
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-ink-muted mb-2 block">
@@ -375,10 +356,10 @@ export default function ImportExportModal({
                 </Button>
               </div>
             </div>
-          )}
+          </TabsContent>
 
           {/* 导出 */}
-          {activeTab === 'export' && (
+          <TabsContent value="export">
             <div className="space-y-4">
               <p className="text-ink-muted text-sm">
                 选择要导出的集合，导出为 Postman Collection v2.1 格式
@@ -468,9 +449,10 @@ export default function ImportExportModal({
                 </Button>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </TabsContent>
+          </div>
+        </Tabs>
+      </Card>
     </div>
   );
 }

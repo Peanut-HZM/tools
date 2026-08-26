@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
+import { Card } from '@/components/ui/Card';
 
 interface DDLDialogProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-surface-1 rounded-lg shadow-md w-3/4 max-w-4xl max-h-[90vh] flex flex-col border border-border">
+      <Card className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink">
             DDL: {tableName}
@@ -83,7 +84,7 @@ const DDLDialog: React.FC<DDLDialogProps> = ({ isOpen, onClose, configId, databa
             {t.common.close}
           </button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

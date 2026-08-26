@@ -4,6 +4,7 @@
 
 import { RequestHistory } from '../../../../services/httpClientApi';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 
 interface HistoryPanelProps {
   history: RequestHistory[];
@@ -21,15 +22,15 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
     return 'text-ink-muted';
   };
 
-  const getMethodBadge = (method: string) => {
-    const colors: Record<string, string> = {
-      GET: 'bg-green-500/20 text-green-400',
-      POST: 'bg-accent-info/20 text-accent-info',
-      PUT: 'bg-accent-warning/20 text-accent-warning',
-      DELETE: 'bg-danger/20 text-danger',
-      PATCH: 'bg-accent-secondary/20 text-accent-secondary',
+  const getMethodBadgeVariant = (method: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
+      GET: 'success',
+      POST: 'default',
+      PUT: 'warning',
+      DELETE: 'destructive',
+      PATCH: 'secondary',
     };
-    return colors[method] || 'bg-surface-3/20 text-ink-muted';
+    return variants[method] || 'secondary';
   };
 
   const formatTime = (timestamp: string) => {
@@ -93,9 +94,9 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
             </span>
 
             {/* 方法 */}
-            <span className={`px-1.5 py-0.5 rounded text-xs font-mono font-bold ${getMethodBadge(item.method)}`}>
+            <Badge variant={getMethodBadgeVariant(item.method)} className="font-mono">
               {item.method}
-            </span>
+            </Badge>
 
             {/* URL */}
             <span className="flex-1 text-ink-muted truncate text-xs font-mono" title={item.url}>

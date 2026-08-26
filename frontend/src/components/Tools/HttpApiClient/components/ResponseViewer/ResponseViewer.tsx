@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SendRequestResponse, HttpRequest } from '../../../../../services/httpClientApi';
 import { generateSnippet } from '../../../../../utils/codeSnippetGenerator';
 import { Button } from '@/components/ui/Button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import HtmlPreview from '../ResponsePreview/HtmlPreview';
 import ImagePreview from '../ResponsePreview/ImagePreview';
 import JsonView from 'react18-json-view';
@@ -166,181 +167,153 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
       </div>
 
       {/* 标签页 */}
-      <div className="flex items-center gap-1 px-4 border-b border-border bg-surface-1/30 flex-shrink-0">
-        <button
-          onClick={() => setActiveTab('body')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'body'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-code mr-2"></i>
-          Body
-        </button>
-        <button
-          onClick={() => setActiveTab('headers')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'headers'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-heading mr-2"></i>
-          Headers
-        </button>
-        {request && (
-          <button
-            onClick={() => setActiveTab('code')}
-            className={`
-              px-4 py-2 text-sm transition-colors border-b-2
-              ${activeTab === 'code'
-                ? 'text-accent-secondary border-accent-secondary'
-                : 'text-ink-muted border-transparent hover:text-ink-muted'
-              }
-            `}
-          >
-            <i className="fas fa-file-code mr-2"></i>
-            Code
-          </button>
-        )}
-        <button
-          onClick={() => setActiveTab('preview')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'preview'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-eye mr-2"></i>
-          Preview
-        </button>
-      </div>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as 'body' | 'headers' | 'code' | 'preview')}
+        className="flex flex-col flex-1 overflow-hidden"
+      >
+        <TabsList className="px-4 bg-surface-1/30 flex-shrink-0 w-full justify-start rounded-none border-b border-border">
+          <TabsTrigger value="body" className="gap-2">
+            <i className="fas fa-code"></i>
+            Body
+          </TabsTrigger>
+          <TabsTrigger value="headers" className="gap-2">
+            <i className="fas fa-heading"></i>
+            Headers
+          </TabsTrigger>
+          {request && (
+            <TabsTrigger value="code" className="gap-2">
+              <i className="fas fa-file-code"></i>
+              Code
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="preview" className="gap-2">
+            <i className="fas fa-eye"></i>
+            Preview
+          </TabsTrigger>
+        </TabsList>
 
-      {/* 内容区域 */}
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === 'body' && (
-          <div>
-            {/* Body 子标签 */}
-            {isJson && (
-              <div className="flex items-center gap-1 px-4 py-1 border-b border-border/50 bg-surface-1/20">
-                {(['raw', 'formatted', 'tree'] as const).map(view => (
-                  <button
-                    key={view}
-                    onClick={() => setBodyView(view)}
-                    className={`
-                      px-2 py-1 text-xs rounded transition-colors
-                      ${bodyView === view
-                        ? 'bg-accent-secondary/20 text-accent-secondary'
-                        : 'text-ink-faint hover:text-ink-muted'
-                      }
-                    `}
+        {/* 内容区域 */}
+        <div className="flex-1 overflow-y-auto">
+          <TabsContent value="body">
+            <div>
+              {/* Body 子标签 */}
+              {isJson && (
+                <div className="flex items-center gap-1 px-4 py-1 border-b border-border/50 bg-surface-1/20">
+                  {(['raw', 'formatted', 'tree'] as const).map(view => (
+                    <button
+                      key={view}
+                      onClick={() => setBodyView(view)}
+                      className={`
+                        px-2 py-1 text-xs rounded transition-colors
+                        ${bodyView === view
+                          ? 'bg-accent-secondary/20 text-accent-secondary'
+                          : 'text-ink-faint hover:text-ink-muted'
+                        }
+                      `}
+                    >
+                      {view === 'raw' ? 'Raw' : view === 'formatted' ? 'Formatted' : 'Tree'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="p-4">
+                {isJson && bodyView === 'tree' ? (
+                  <JsonView src={JSON.parse(response.body)} theme="dark" collapsed={1} />
+                ) : (
+                  <pre className="font-mono text-sm text-ink-muted whitespace-pre-wrap break-word">
+                    {formattedBody}
+                  </pre>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="headers">
+            <div className="p-4">
+              <div className="space-y-1">
+                {Object.entries(response.headers).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex items-start gap-4 py-1.5 border-b border-border/50 last:border-0"
                   >
-                    {view === 'raw' ? 'Raw' : view === 'formatted' ? 'Formatted' : 'Tree'}
-                  </button>
+                    <span className="font-mono text-xs text-accent-secondary min-w-[200px]">
+                      {key}
+                    </span>
+                    <span className="font-mono text-xs text-ink-muted flex-1 break-all">
+                      {value}
+                    </span>
+                  </div>
                 ))}
               </div>
-            )}
+            </div>
+          </TabsContent>
 
-            <div className="p-4">
-              {isJson && bodyView === 'tree' ? (
-                <JsonView src={JSON.parse(response.body)} theme="dark" collapsed={1} />
-              ) : (
-                <pre className="font-mono text-sm text-ink-muted whitespace-pre-wrap break-word">
-                  {formattedBody}
+          {request && (
+            <TabsContent value="code">
+              <div className="p-4">
+                {/* 语言选择 */}
+                <div className="flex items-center gap-2 mb-3">
+                  {(['curl', 'python', 'javascript', 'go'] as const).map(lang => (
+                    <button
+                      key={lang}
+                      onClick={() => setSnippetLang(lang)}
+                      className={`
+                        px-3 py-1 rounded text-xs font-medium transition-colors
+                        ${snippetLang === lang
+                          ? 'bg-accent-secondary/20 text-accent-secondary border border-accent-secondary'
+                          : 'bg-surface-2 text-ink-muted border border-transparent hover:bg-surface-3'
+                        }
+                      `}
+                    >
+                      {lang === 'curl' ? 'cURL' : lang === 'python' ? 'Python' : lang === 'javascript' ? 'JavaScript' : 'Go'}
+                    </button>
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText(codeSnippet)}
+                    className="ml-auto text-xs text-ink-muted hover:text-ink-inverse"
+                    title="复制代码"
+                  >
+                    <i className="fas fa-copy mr-1"></i>
+                    复制
+                  </Button>
+                </div>
+
+                <pre className="font-mono text-sm text-ink-muted bg-canvas/50 p-4 rounded-lg overflow-x-auto whitespace-pre">
+                  {codeSnippet}
                 </pre>
+              </div>
+            </TabsContent>
+          )}
+
+          <TabsContent value="preview">
+            <div className="p-4 h-full">
+              {contentType === 'html' && <HtmlPreview html={response.body} />}
+              {contentType === 'image' && imageBase64 !== null && (
+                <ImagePreview
+                  base64Data={imageBase64}
+                  contentType={response.content_type || 'image/png'}
+                />
+              )}
+              {contentType === 'image' && imageBase64 === null && (
+                <div className="text-ink-faint text-sm text-center py-8">
+                  <i className="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                  <p>图片数据编码失败，无法预览，请切换到 Body 标签查看</p>
+                </div>
+              )}
+              {(contentType === 'json' || contentType === 'xml' || contentType === 'text' || contentType === 'binary') && (
+                <div className="text-ink-faint text-sm text-center py-8">
+                  <i className="fas fa-info-circle text-2xl mb-2"></i>
+                  <p>此响应类型不支持预览，请切换到 Body 标签查看</p>
+                </div>
               )}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'headers' && (
-          <div className="p-4">
-            <div className="space-y-1">
-              {Object.entries(response.headers).map(([key, value]) => (
-                <div
-                  key={key}
-                  className="flex items-start gap-4 py-1.5 border-b border-border/50 last:border-0"
-                >
-                  <span className="font-mono text-xs text-accent-secondary min-w-[200px]">
-                    {key}
-                  </span>
-                  <span className="font-mono text-xs text-ink-muted flex-1 break-all">
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'code' && request && (
-          <div className="p-4">
-            {/* 语言选择 */}
-            <div className="flex items-center gap-2 mb-3">
-              {(['curl', 'python', 'javascript', 'go'] as const).map(lang => (
-                <button
-                  key={lang}
-                  onClick={() => setSnippetLang(lang)}
-                  className={`
-                    px-3 py-1 rounded text-xs font-medium transition-colors
-                    ${snippetLang === lang
-                      ? 'bg-accent-secondary/20 text-accent-secondary border border-accent-secondary'
-                      : 'bg-surface-2 text-ink-muted border border-transparent hover:bg-surface-3'
-                    }
-                  `}
-                >
-                  {lang === 'curl' ? 'cURL' : lang === 'python' ? 'Python' : lang === 'javascript' ? 'JavaScript' : 'Go'}
-                </button>
-              ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigator.clipboard.writeText(codeSnippet)}
-                className="ml-auto text-xs text-ink-muted hover:text-ink-inverse"
-                title="复制代码"
-              >
-                <i className="fas fa-copy mr-1"></i>
-                复制
-              </Button>
-            </div>
-
-            <pre className="font-mono text-sm text-ink-muted bg-canvas/50 p-4 rounded-lg overflow-x-auto whitespace-pre">
-              {codeSnippet}
-            </pre>
-          </div>
-        )}
-
-        {activeTab === 'preview' && (
-          <div className="p-4 h-full">
-            {contentType === 'html' && <HtmlPreview html={response.body} />}
-            {contentType === 'image' && imageBase64 !== null && (
-              <ImagePreview
-                base64Data={imageBase64}
-                contentType={response.content_type || 'image/png'}
-              />
-            )}
-            {contentType === 'image' && imageBase64 === null && (
-              <div className="text-ink-faint text-sm text-center py-8">
-                <i className="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                <p>图片数据编码失败，无法预览，请切换到 Body 标签查看</p>
-              </div>
-            )}
-            {(contentType === 'json' || contentType === 'xml' || contentType === 'text' || contentType === 'binary') && (
-              <div className="text-ink-faint text-sm text-center py-8">
-                <i className="fas fa-info-circle text-2xl mb-2"></i>
-                <p>此响应类型不支持预览，请切换到 Body 标签查看</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }

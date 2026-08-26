@@ -15,6 +15,8 @@ import DisplaySettingsDialog from './DisplaySettingsDialog';
 import SchemaNode from './SchemaNode';
 import { DisplayPreferences } from '../../../../types/databaseTool';
 import { toast } from 'sonner';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface ConnectionListProps {
   onAddConfig: () => void;
@@ -82,12 +84,12 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
     }
   };
 
-  const getEnvColor = (env?: Environment) => {
+  const getEnvColor = (env?: Environment): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' => {
     switch (env) {
-      case Environment.PROD: return 'bg-red-900/30 text-danger border border-red-800/50';
-      case Environment.TEST: return 'bg-yellow-900/30 text-accent-warning border border-yellow-800/50';
-      case Environment.DEV: return 'bg-green-900/30 text-green-400 border border-green-800/50';
-      default: return 'bg-surface-2 text-ink-muted border border-border';
+      case Environment.PROD: return 'destructive';
+      case Environment.TEST: return 'warning';
+      case Environment.DEV: return 'success';
+      default: return 'secondary';
     }
   };
 
@@ -244,7 +246,7 @@ interface ConnectionNodeProps {
   onEdit: () => void;
   onSelectTable: (configId: string, databaseName: string | undefined, tableName: string, schemaName?: string) => void;
   onSelectDatabase: (configId: string, dbName: string, schemaName?: string) => void;
-  getEnvColor: (env?: Environment) => string;
+  getEnvColor: (env?: Environment) => 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
   onRefreshConfigs: () => Promise<void>;
   onOpenSqlConsole?: (initialSql?: string, databaseName?: string, configId?: string, schemaName?: string) => void;
   onOpenBackup: (configId: string, dbName: string, tables?: string[]) => void;
@@ -558,9 +560,9 @@ const handleSelectAndExpand = async () => {
              <div className="flex items-center space-x-2">
                 <span className="font-medium truncate text-sm">{config.alias}</span>
                 {config.environment && (
-                  <span className={`text-[10px] px-1.5 py-0 rounded font-medium ${getEnvColor(config.environment)}`}>
+                  <Badge variant={getEnvColor(config.environment)} className="text-[10px] px-1.5 py-0">
                     {config.environment}
-                  </span>
+                  </Badge>
                 )}
              </div>
            </div>
@@ -1041,7 +1043,7 @@ const items: MenuItem[] = [
 
       {dbDdl && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div className="bg-surface-1 rounded-lg shadow-md w-3/4 max-w-4xl max-h-[90vh] flex flex-col border border-border">
+            <Card className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
               <div className="flex justify-between items-center p-4 border-b border-border">
                 <h3 className="text-lg font-medium text-ink">
                   {t.database.dialog.databaseDDL.replace('{name}', dbName)}
@@ -1077,7 +1079,7 @@ const items: MenuItem[] = [
                   {t.common.close}
                 </button>
               </div>
-            </div>
+            </Card>
           </div>
       )}
     </div>

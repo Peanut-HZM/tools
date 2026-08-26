@@ -4,6 +4,7 @@ import FormDataEditor from '../FormDataEditor/FormDataEditor';
 import ScriptEditor from '../ScriptEditor/ScriptEditor';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 interface RequestEditorProps {
   request: HttpRequest;
@@ -145,115 +146,76 @@ export default function RequestEditor({
       </div>
 
       {/* 标签页 */}
-      <div className="flex items-center gap-1 px-4 border-b border-border bg-surface-1/50 flex-shrink-0">
-        <button
-          onClick={() => setActiveTab('params')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'params'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-table mr-2"></i>
-          Params
-        </button>
-        <button
-          onClick={() => setActiveTab('headers')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'headers'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-heading mr-2"></i>
-          Headers
-        </button>
-        <button
-          onClick={() => setActiveTab('body')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'body'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-code mr-2"></i>
-          Body
-        </button>
-        <button
-          onClick={() => setActiveTab('auth')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'auth'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-lock mr-2"></i>
-          Auth
-        </button>
-        <button
-          onClick={() => setActiveTab('docs')}
-          className={`
-            px-4 py-2 text-sm transition-colors border-b-2
-            ${activeTab === 'docs'
-              ? 'text-accent-secondary border-accent-secondary'
-              : 'text-ink-muted border-transparent hover:text-ink-muted'
-            }
-          `}
-        >
-          <i className="fas fa-book mr-2"></i>
-          Docs
-        </button>
-      </div>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as 'params' | 'headers' | 'body' | 'auth' | 'docs')}
+        className="flex flex-col flex-1 overflow-hidden"
+      >
+        <TabsList className="px-4 bg-surface-1/50 flex-shrink-0 w-full justify-start rounded-none border-b border-border">
+          <TabsTrigger value="params" className="gap-2">
+            <i className="fas fa-table"></i>
+            Params
+          </TabsTrigger>
+          <TabsTrigger value="headers" className="gap-2">
+            <i className="fas fa-heading"></i>
+            Headers
+          </TabsTrigger>
+          <TabsTrigger value="body" className="gap-2">
+            <i className="fas fa-code"></i>
+            Body
+          </TabsTrigger>
+          <TabsTrigger value="auth" className="gap-2">
+            <i className="fas fa-lock"></i>
+            Auth
+          </TabsTrigger>
+          <TabsTrigger value="docs" className="gap-2">
+            <i className="fas fa-book"></i>
+            Docs
+          </TabsTrigger>
+        </TabsList>
 
-      {/* 内容区域 */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'params' && (
-          <ParamsPanel
-            params={request.params}
-            onChange={(params) => onUpdate({ params })}
-            envVariables={envVariables}
-          />
-        )}
-        {activeTab === 'headers' && (
-          <HeadersPanel
-            headers={request.headers}
-            onChange={(headers) => onUpdate({ headers })}
-            envVariables={envVariables}
-          />
-        )}
-        {activeTab === 'body' && (
-          <BodyPanel
-            bodyType={request.body_type}
-            body={request.body}
-            formData={request.form_data}
-            onBodyTypeChange={(bodyType) => onUpdate({ body_type: bodyType as any })}
-            onBodyChange={handleBodyChange}
-            onFormDataChange={(entries) => onUpdate({ form_data: entries })}
-          />
-        )}
-        {activeTab === 'auth' && (
-          <AuthPanel
-            authType={request.auth_type}
-            authConfig={request.auth_config}
-            onAuthTypeChange={(authType) => onUpdate({ auth_type: authType as any })}
-            onAuthConfigChange={(authConfig) => onUpdate({ auth_config: authConfig })}
-          />
-        )}
-        {activeTab === 'docs' && (
-          <DocsPanel
-            description={request.description || ''}
-            onChange={(description) => onUpdate({ description })}
-          />
-        )}
-      </div>
+        {/* 内容区域 */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <TabsContent value="params">
+            <ParamsPanel
+              params={request.params}
+              onChange={(params) => onUpdate({ params })}
+              envVariables={envVariables}
+            />
+          </TabsContent>
+          <TabsContent value="headers">
+            <HeadersPanel
+              headers={request.headers}
+              onChange={(headers) => onUpdate({ headers })}
+              envVariables={envVariables}
+            />
+          </TabsContent>
+          <TabsContent value="body">
+            <BodyPanel
+              bodyType={request.body_type}
+              body={request.body}
+              formData={request.form_data}
+              onBodyTypeChange={(bodyType) => onUpdate({ body_type: bodyType as any })}
+              onBodyChange={handleBodyChange}
+              onFormDataChange={(entries) => onUpdate({ form_data: entries })}
+            />
+          </TabsContent>
+          <TabsContent value="auth">
+            <AuthPanel
+              authType={request.auth_type}
+              authConfig={request.auth_config}
+              onAuthTypeChange={(authType) => onUpdate({ auth_type: authType as any })}
+              onAuthConfigChange={(authConfig) => onUpdate({ auth_config: authConfig })}
+            />
+          </TabsContent>
+          <TabsContent value="docs">
+            <DocsPanel
+              description={request.description || ''}
+              onChange={(description) => onUpdate({ description })}
+            />
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }

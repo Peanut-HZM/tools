@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useI18n } from '../../../../i18n';
+import { Card } from '@/components/ui/Card';
 
 interface JsonViewModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ const JsonViewModal: React.FC<JsonViewModalProps> = ({ isOpen, onClose, data, ti
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
-      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-3xl border border-border flex flex-col max-h-[85vh]">
+      <Card className="w-full max-w-3xl border border-border flex flex-col max-h-[85vh]">
         <div className="flex justify-between items-center p-4 border-b border-border bg-surface-1">
           <h3 className="text-lg font-medium text-ink flex items-center gap-2">
              <i className="fas fa-code text-accent-info"></i>
@@ -66,7 +67,7 @@ const JsonViewModal: React.FC<JsonViewModalProps> = ({ isOpen, onClose, data, ti
             {t.common.close || "Close"}
           </button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

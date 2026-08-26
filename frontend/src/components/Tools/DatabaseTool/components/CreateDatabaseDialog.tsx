@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../../../i18n';
+import { Card } from '@/components/ui/Card';
 
 interface CreateDatabaseDialogProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ const CreateDatabaseDialog: React.FC<CreateDatabaseDialogProps> = ({ isOpen, onC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-surface-1 rounded-lg shadow-md border border-border w-96 p-4">
+      <Card className="w-96 p-4">
         <h3 className="text-lg font-semibold text-ink mb-4">{t.database.dialog.createDatabase.title}</h3>
         
         {error && (
@@ -92,7 +93,7 @@ const CreateDatabaseDialog: React.FC<CreateDatabaseDialogProps> = ({ isOpen, onC
             </button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };
