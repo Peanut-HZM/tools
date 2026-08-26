@@ -106,7 +106,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
                 />
                 <label
                   htmlFor={`file-${index}`}
-                  className="flex-1 bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm cursor-pointer hover:bg-surface-3"
+                  className="flex-1 bg-surface-2 text-ink px-3 py-2 rounded border border-border text-sm cursor-pointer hover:bg-surface-3"
                 >
                   {entry.file ? entry.file.name : '选择文件...'}
                 </label>

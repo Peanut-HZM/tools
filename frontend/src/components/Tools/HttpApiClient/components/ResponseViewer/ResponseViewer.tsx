@@ -88,9 +88,9 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
   // 计算状态码颜色
   const getStatusColor = (status: number) => {
     if (status === 0) return 'text-danger';
-    if (status >= 200 && status < 300) return 'text-green-400';
+    if (status >= 200 && status < 300) return 'text-success';
     if (status >= 300 && status < 400) return 'text-accent-warning';
-    if (status >= 400 && status < 500) return 'text-orange-400';
+    if (status >= 400 && status < 500) return 'text-warning';
     if (status >= 500) return 'text-danger';
     return 'text-ink-muted';
   };
@@ -158,7 +158,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
             variant="ghost"
             size="sm"
             onClick={() => navigator.clipboard.writeText(response.body)}
-            className="text-xs text-ink-muted hover:text-ink-inverse"
+            className="text-xs text-ink-muted hover:text-ink"
             title="复制响应体"
           >
             <Copy className="w-3 h-3 mr-1" />
@@ -275,7 +275,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                     variant="ghost"
                     size="sm"
                     onClick={() => navigator.clipboard.writeText(codeSnippet)}
-                    className="ml-auto text-xs text-ink-muted hover:text-ink-inverse"
+                    className="ml-auto text-xs text-ink-muted hover:text-ink"
                     title="复制代码"
                   >
                     <Copy className="w-3 h-3 mr-1" />

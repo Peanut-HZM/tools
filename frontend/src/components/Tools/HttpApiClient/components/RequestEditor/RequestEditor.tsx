@@ -56,7 +56,7 @@ export default function RequestEditor({
 
   const getMethodColor = (method: string) => {
     const colors: Record<string, string> = {
-      GET: 'text-green-400',
+      GET: 'text-success',
       POST: 'text-accent-info',
       PUT: 'text-accent-warning',
       DELETE: 'text-danger',
@@ -143,7 +143,7 @@ export default function RequestEditor({
               onClick={onDelete}
               title="删除"
               className="px-4 py-2 rounded-lg font-medium text-sm transition-colors
-                         bg-danger/20 text-danger border border-red-500 hover:bg-red-500/30"
+                         bg-danger/20 text-danger border border-danger hover:bg-danger/30"
             >
               <Trash2 className="w-4 h-4 mr-1" />
               删除
@@ -389,7 +389,7 @@ function BodyPanel({
               ? 'key1=value1&key2=value2'
               : '输入请求体...'
           }
-          className="w-full h-64 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+          className="w-full h-64 bg-canvas text-ink px-4 py-3 rounded-lg
                      border border-border font-mono text-sm resize-none
                      focus:border-accent-secondary focus:outline-none"
         />
@@ -561,13 +561,13 @@ function DocsPanel({ description, onChange }: DocsPanelProps) {
               {description.split('\n').map((line, i) => {
                 // 简易 Markdown 渲染
                 if (line.startsWith('### ')) {
-                  return <h3 key={i} className="text-lg font-bold text-ink-inverse mt-4 mb-2">{line.slice(4)}</h3>;
+                  return <h3 key={i} className="text-lg font-bold text-ink mt-4 mb-2">{line.slice(4)}</h3>;
                 }
                 if (line.startsWith('## ')) {
-                  return <h2 key={i} className="text-xl font-bold text-ink-inverse mt-4 mb-2">{line.slice(3)}</h2>;
+                  return <h2 key={i} className="text-xl font-bold text-ink mt-4 mb-2">{line.slice(3)}</h2>;
                 }
                 if (line.startsWith('# ')) {
-                  return <h1 key={i} className="text-2xl font-bold text-ink-inverse mt-4 mb-2">{line.slice(2)}</h1>;
+                  return <h1 key={i} className="text-2xl font-bold text-ink mt-4 mb-2">{line.slice(2)}</h1>;
                 }
                 if (line.startsWith('- ') || line.startsWith('* ')) {
                   return <li key={i} className="ml-4">{line.slice(2)}</li>;
@@ -590,7 +590,7 @@ function DocsPanel({ description, onChange }: DocsPanelProps) {
           value={description}
           onChange={(e) => onChange(e.target.value)}
           placeholder="输入请求描述，支持 Markdown 语法..."
-          className="w-full h-64 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+          className="w-full h-64 bg-canvas text-ink px-4 py-3 rounded-lg
                      border border-border text-sm resize-none focus:border-accent-secondary focus:outline-none"
         />
       )}

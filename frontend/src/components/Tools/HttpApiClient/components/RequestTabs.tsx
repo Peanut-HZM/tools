@@ -61,7 +61,7 @@ export default function RequestTabs({
             flex items-center gap-2 px-4 py-2 border-r border-border cursor-pointer
             transition-colors text-sm min-w-[160px] max-w-[240px]
             ${tab.requestId === activeTabId
-              ? 'bg-surface-2 text-ink-inverse border-t-2 border-t-accent-secondary'
+              ? 'bg-surface-2 text-ink border-t-2 border-t-accent-secondary'
               : 'text-ink-muted hover:bg-surface-2/50 border-t-2 border-t-transparent'
             }
           `}
@@ -113,7 +113,7 @@ export default function RequestTabs({
             </>
           )}
           {tab.isModified && (
-            <span className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"></span>
+            <span className="w-2 h-2 bg-warning rounded-full flex-shrink-0"></span>
           )}
           <Button
             variant="ghost"

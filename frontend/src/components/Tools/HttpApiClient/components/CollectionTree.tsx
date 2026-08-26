@@ -245,7 +245,7 @@ export default function CollectionTree({
                   >
                     <span className={`
                       font-mono font-bold w-12 flex-shrink-0
-                      ${request.method === 'GET' ? 'text-green-400' :
+                      ${request.method === 'GET' ? 'text-success' :
                         request.method === 'POST' ? 'text-accent-info' :
                         request.method === 'PUT' ? 'text-accent-warning' :
                         request.method === 'DELETE' ? 'text-danger' :

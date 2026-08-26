@@ -16,9 +16,9 @@ interface HistoryPanelProps {
 
 export default function HistoryPanel({ history, loading, onReplay, onClear }: HistoryPanelProps) {
   const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return 'text-green-400';
+    if (status >= 200 && status < 300) return 'text-success';
     if (status >= 300 && status < 400) return 'text-accent-warning';
-    if (status >= 400 && status < 500) return 'text-orange-400';
+    if (status >= 400 && status < 500) return 'text-warning';
     if (status >= 500) return 'text-danger';
     return 'text-ink-muted';
   };
@@ -74,7 +74,7 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
           variant="ghost"
           size="sm"
           onClick={onClear}
-          className="text-xs text-danger hover:text-red-300"
+          className="text-xs text-danger hover:text-danger"
         >
           <Trash2 className="w-4 h-4 mr-1" />
           清空历史

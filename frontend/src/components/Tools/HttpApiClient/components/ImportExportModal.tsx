@@ -223,14 +223,14 @@ export default function ImportExportModal({
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
                   placeholder='{"info": {"name": "My API", "schema": "..."}, "item": [...]}'
-                  className="w-full h-64 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+                  className="w-full h-64 bg-canvas text-ink px-4 py-3 rounded-lg
                              border border-border font-mono text-sm resize-none
                              focus:border-accent-secondary focus:outline-none"
                 />
               </div>
 
               {error && (
-                <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
+                <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg text-sm">
                   <AlertCircle className="w-4 h-4 mr-2" />
                   {error}
                 </div>
@@ -240,8 +240,8 @@ export default function ImportExportModal({
                 <div className={`
                   px-4 py-3 rounded-lg text-sm
                   ${importResult.success
-                    ? 'bg-green-500/10 border border-green-500 text-green-400'
-                    : 'bg-danger/10 border border-red-500 text-danger'
+                    ? 'bg-success/10 border border-success text-success'
+                    : 'bg-danger/10 border border-danger text-danger'
                   }
                 `}>
                   <div className="flex items-center mb-2">
@@ -302,7 +302,7 @@ export default function ImportExportModal({
                   value={curlText}
                   onChange={(e) => setCurlText(e.target.value)}
                   placeholder={"curl -X POST https://api.example.com/users \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\": \"test\"}'"}
-                  className="w-full h-48 bg-canvas text-ink-inverse px-4 py-3 rounded-lg
+                  className="w-full h-48 bg-canvas text-ink px-4 py-3 rounded-lg
                              border border-border font-mono text-sm resize-none
                              focus:border-accent-secondary focus:outline-none"
                 />
@@ -335,14 +335,14 @@ export default function ImportExportModal({
               </div>
 
               {error && (
-                <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
+                <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg text-sm">
                   <AlertCircle className="w-4 h-4 mr-2" />
                   {error}
                 </div>
               )}
 
               {curlResult && (
-                <div className="bg-green-500/10 border border-green-500 text-green-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-success/10 border border-success text-success px-4 py-3 rounded-lg text-sm">
                   <div className="flex items-center mb-2">
                     <CheckCircle className="w-4 h-4 mr-2" />
                     cURL 导入成功
@@ -441,7 +441,7 @@ export default function ImportExportModal({
               )}
 
               {error && (
-                <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
+                <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg text-sm">
                   <AlertCircle className="w-4 h-4 mr-2" />
                   {error}
                 </div>

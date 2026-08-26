@@ -756,7 +756,7 @@ export default function HttpApiClient() {
               <div>
                 <label className="text-sm text-ink-muted mb-1 block">目标集合</label>
                 {collections.length === 0 ? (
-                  <div className="text-sm text-orange-400 bg-orange-500/10 px-3 py-2 rounded border border-orange-500/30">
+                  <div className="text-sm text-warning bg-warning/10 px-3 py-2 rounded border border-warning/30">
                     <AlertTriangle className="w-4 h-4 mr-2" />
                     暂无集合，请先创建集合
                   </div>
