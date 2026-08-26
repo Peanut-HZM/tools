@@ -4,6 +4,7 @@
  */
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
+import { Card } from '@/components/ui/Card';
 
 interface OssUploaderProps {
   value?: string;
@@ -291,7 +292,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
 
       {/* File Preview */}
       {value && !uploading && (
-        <div className="bg-surface-1/50 rounded-xl p-4 border border-border/50">
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -325,7 +326,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Error Message */}

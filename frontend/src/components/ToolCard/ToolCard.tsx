@@ -1,4 +1,6 @@
 import { ToolCardProps } from '../../types';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 export default function ToolCard({
   icon,
@@ -12,15 +14,15 @@ export default function ToolCard({
   onClick
 }: ToolCardProps) {
   return (
-    <div
+    <Card
       onClick={onClick}
-      className="tool-card bg-surface-2 rounded-xl p-6 border border-border hover:border-accent transition-all cursor-pointer relative"
+      className="p-6 hover:border-accent transition-all cursor-pointer relative"
     >
       {/* 需登录标签 */}
       {require_login && (
-        <span className="absolute top-3 right-3 bg-accent-warning/20 text-accent-warning text-[10px] px-1.5 py-0.5 rounded border border-accent-warning/30">
+        <Badge variant="warning" className="absolute top-3 right-3 text-[10px]">
           需登录
-        </span>
+        </Badge>
       )}
       <div className={`w-12 h-12 ${iconColor} rounded-lg flex items-center justify-center mb-4`}>
         {custom_icon_url ? (
@@ -37,6 +39,6 @@ export default function ToolCard({
         <span className="mx-2">•</span>
         <span>{usageCount} 使用</span>
       </div>
-    </div>
+    </Card>
   );
 }

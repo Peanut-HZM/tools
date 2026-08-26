@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card } from '@/components/ui/Card';
 
 interface SettingCardProps {
   title: string;
@@ -9,7 +10,7 @@ interface SettingCardProps {
 
 export default function SettingCard({ title, icon, children, className = '' }: SettingCardProps) {
   return (
-    <div className={`bg-surface-1/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 hover:border-border/50 transition-all duration-200 ${className}`}>
+    <Card className={`p-6 transition-all duration-200 ${className}`}>
       {title && (
         <h3 className="text-lg font-semibold text-ink-inverse mb-4 flex items-center gap-2">
           {icon}
@@ -19,6 +20,6 @@ export default function SettingCard({ title, icon, children, className = '' }: S
       <div>
         {children}
       </div>
-    </div>
+    </Card>
   );
 }

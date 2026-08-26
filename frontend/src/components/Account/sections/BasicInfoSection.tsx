@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserResponse } from '@/api/authApi';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import SettingCard from '../SettingCard';
 import InfoRow from '../InfoRow';
 import UserAvatar from '../components/UserAvatar';
@@ -27,11 +28,11 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
     }
   };
 
-  const getRoleBadgeClass = (role: string) => {
+  const getRoleBadge = (role: string) => {
     if (role === 'admin') {
-      return 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30';
+      return <Badge>{role}</Badge>;
     }
-    return 'bg-surface-3/50 text-ink-muted border-border/30';
+    return <Badge variant="secondary">{role}</Badge>;
   };
 
   if (loading) {
@@ -63,9 +64,7 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
         <UserAvatar username={user.username} size="lg" />
         <div className="flex-1 pt-2">
           <h4 className="text-xl font-semibold text-ink-inverse">{user.username}</h4>
-          <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded border ${getRoleBadgeClass(user.role)}`}>
-            {user.role}
-          </span>
+          <div className="mt-1">{getRoleBadge(user.role)}</div>
         </div>
       </div>
 
@@ -86,11 +85,7 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
         />
         <InfoRow
           label="角色"
-          value={
-            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleBadgeClass(user.role)}`}>
-              {user.role}
-            </span>
-          }
+          value={getRoleBadge(user.role)}
         />
         <InfoRow
           label="注册时间"

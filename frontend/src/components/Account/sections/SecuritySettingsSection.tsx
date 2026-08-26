@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
 import SettingCard from '../SettingCard';
 import InfoRow from '../InfoRow';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
@@ -24,7 +25,7 @@ export default function SecuritySettingsSection({ onPasswordChangeSuccess }: Sec
       <SettingCard title="安全设置" icon={<Shield className="w-5 h-5 text-accent" />}>
         <div className="space-y-6">
           {/* 修改密码 */}
-          <div className="p-4 bg-canvas/50 rounded-lg border border-border/50">
+          <Card className="p-4 bg-canvas/50">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -48,7 +49,7 @@ export default function SecuritySettingsSection({ onPasswordChangeSuccess }: Sec
                 修改密码
               </Button>
             </div>
-          </div>
+          </Card>
 
           {/* 登录信息 */}
           <div className="space-y-1">
