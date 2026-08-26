@@ -106,7 +106,7 @@ const CourseManagement: React.FC = () => {
     <div className="h-full flex flex-col">      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-ink-inverse flex items-center">
+          <h1 className="text-3xl font-bold text-ink flex items-center">
             <GraduationCap className="w-5 h-5 text-accent mr-3" />
             课程管理
           </h1>
@@ -147,7 +147,7 @@ const CourseManagement: React.FC = () => {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="搜索课程或章节内容..."
-                className="px-4 py-2 pl-10 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-accent w-72"
+                className="px-4 py-2 pl-10 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent w-72"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
@@ -176,7 +176,7 @@ const CourseManagement: React.FC = () => {
 
       {/* Course List */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-ink-inverse mb-3">课程列表</h2>
+        <h2 className="text-lg font-semibold text-ink mb-3">课程列表</h2>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
@@ -196,7 +196,7 @@ const CourseManagement: React.FC = () => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3
-                      className="text-ink-inverse font-semibold mb-2 group-hover:text-accent transition-colors cursor-pointer"
+                      className="text-ink font-semibold mb-2 group-hover:text-accent transition-colors cursor-pointer"
                       onClick={() => handleViewCourseDetail(course.id)}
                     >
                       {course.title}

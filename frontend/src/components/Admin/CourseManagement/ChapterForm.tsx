@@ -99,7 +99,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               {chapterId ? <Pencil className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-ink-inverse">
+              <h2 className="text-xl font-bold text-ink">
                 {chapterId ? '编辑章节' : '新增章节'}
               </h2>
               <p className="text-ink-muted text-xs">填写章节信息</p>
@@ -145,7 +145,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                     value={formData.slug}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                     placeholder="chapter-1-intro"
                   />
                 </div>
@@ -160,7 +160,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                     value={formData.title}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                     placeholder="章节标题"
                   />
                 </div>
@@ -198,7 +198,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                     name="order"
                     value={formData.order}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                   />
                 </div>
               </div>
@@ -214,7 +214,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                   name="video_url"
                   value={formData.video_url}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                  className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                   placeholder="https://example.com/video.mp4"
                 />
               </div>
@@ -231,8 +231,8 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                     className="w-5 h-5 mt-0.5 bg-surface-2 border border-border rounded text-accent focus:ring-accent/50"
                   />
                   <label htmlFor="is_locked" className="flex-1 cursor-pointer">
-                    <div className="font-medium text-ink-inverse flex items-center">
-                      <Lock className="w-4 h-4 text-amber-400 mr-2" />
+                    <div className="font-medium text-ink flex items-center">
+                      <Lock className="w-4 h-4 text-warning mr-2" />
                       锁定章节
                     </div>
                     <p className="text-ink-muted text-sm mt-1">启用后，用户需要完成前一章节才能学习本章</p>
@@ -271,7 +271,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
           {showPreview && (
             <div className="w-1/2 border-l border-border/50 overflow-y-auto p-6 bg-canvas/50">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
+                <h3 className="text-lg font-semibold text-ink flex items-center">
                   <Eye className="w-4 h-4 text-accent mr-2" />
                   预览
                 </h3>
@@ -328,13 +328,13 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
 // 简单的 Markdown 转 HTML 预览
 function renderMarkdownPreview(markdown: string): string {
   let html = markdown
-    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-ink-inverse mb-4">$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-ink-inverse mb-3">$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-ink-inverse mb-2">$1</h3>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong class="text-ink-inverse">$1</strong>')
+    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-ink mb-4">$1</h1>')
+    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-ink mb-3">$1</h2>')
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-ink mb-2">$1</h3>')
+    .replace(/\*\*(.*)\*\*/gim, '<strong class="text-ink">$1</strong>')
     .replace(/\*(.*)\*/gim, '<em class="text-ink-muted">$1</em>')
-    .replace(/```(\w+)?\n([\s\S]*?)```/gim, '<pre class="bg-surface-1 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-green-400">$2</code></pre>')
-    .replace(/`([^`]+)`/gim, '<code class="bg-surface-2 px-2 py-1 rounded text-pink-400">$1</code>')
+    .replace(/```(\w+)?\n([\s\S]*?)```/gim, '<pre class="bg-surface-1 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-success">$2</code></pre>')
+    .replace(/`([^`]+)`/gim, '<code class="bg-surface-2 px-2 py-1 rounded text-danger">$1</code>')
     .replace(/^- (.*$)/gim, '<li class="text-ink-muted ml-4">$1</li>')
     .replace(/\n/gim, '<br>');
   return html;

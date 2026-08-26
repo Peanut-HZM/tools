@@ -80,12 +80,12 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
       <Card className="relative shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-1/50">
-          <h3 className="text-lg font-semibold text-ink-inverse">
+          <h3 className="text-lg font-semibold text-ink">
             {editingConfig ? '编辑配置' : '添加新配置'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-ink-muted hover:text-ink-inverse transition-colors"
+            className="p-1 text-ink-muted hover:text-ink transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -105,7 +105,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：OpenAI GPT-4"
                 required
               />
@@ -121,7 +121,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                 list="provider-suggestions"
                 value={formData.provider_type}
                 onChange={(e) => setFormData({ ...formData, provider_type: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 required
               />
               <datalist id="provider-suggestions">
@@ -165,7 +165,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                 type="url"
                 value={formData.base_url}
                 onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="https://api.openai.com/v1"
                 required
               />
@@ -180,7 +180,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                 type="text"
                 value={formData.model_name}
                 onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：gpt-4"
                 required
               />
@@ -196,7 +196,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
                 type="password"
                 value={formData.api_key}
                 onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder={editingConfig ? '••••••••' : '请输入 API Key'}
                 required={!editingConfig}
               />
@@ -210,7 +210,7 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="可选备注，方便识别此配置"
                 rows={2}
               />

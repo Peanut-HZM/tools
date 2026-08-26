@@ -123,7 +123,7 @@ export default function DifyConfigPanel() {
         <div
           className={`px-4 py-3 rounded-lg ${
             message.type === 'success'
-              ? 'bg-green-500/10 border border-green-500 text-green-400'
+              ? 'bg-success/10 border border-success text-success'
               : 'bg-danger/10 border border-danger text-danger'
           }`}
         >
@@ -143,7 +143,7 @@ export default function DifyConfigPanel() {
             value={apiUrl}
             onChange={(e) => setApiUrl(e.target.value)}
             placeholder={igT.apiUrlPlaceholder}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+            className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
         </div>
 
@@ -159,7 +159,7 @@ export default function DifyConfigPanel() {
             value={appApiKey}
             onChange={(e) => setAppApiKey(e.target.value)}
             placeholder={igT.apiKeyPlaceholder}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+            className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
         </div>
 
@@ -170,7 +170,7 @@ export default function DifyConfigPanel() {
               type="text"
               value={text2imgWorkflowId}
               onChange={(e) => setText2imgWorkflowId(e.target.value)}
-              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+              className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
           <div>
@@ -179,7 +179,7 @@ export default function DifyConfigPanel() {
               type="text"
               value={img2imgWorkflowId}
               onChange={(e) => setImg2imgWorkflowId(e.target.value)}
-              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+              className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
           <div>
@@ -188,7 +188,7 @@ export default function DifyConfigPanel() {
               type="text"
               value={inpaintWorkflowId}
               onChange={(e) => setInpaintWorkflowId(e.target.value)}
-              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+              className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
           <div>
@@ -197,7 +197,7 @@ export default function DifyConfigPanel() {
               type="text"
               value={uploadEditWorkflowId}
               onChange={(e) => setUploadEditWorkflowId(e.target.value)}
-              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+              className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function DifyConfigPanel() {
             max="300"
             value={timeoutSeconds}
             onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+            className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
           <p className="text-xs text-ink-faint mt-1">{igT.timeoutRange}</p>
         </div>

@@ -55,12 +55,12 @@ export default function OssManagement() {
     ? files.filter(f => f.uploaded_by === user.user_id)
     : files;
 
-  if (loading) return <div className="text-ink-inverse">加载中...</div>;
+  if (loading) return <div className="text-ink">加载中...</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-ink-inverse">OSS 文件管理</h2>
+        <h2 className="text-2xl font-bold text-ink">OSS 文件管理</h2>
         
         <Card className="flex items-center space-x-2 bg-surface-2 px-3 py-1.5">
           <input
@@ -68,7 +68,7 @@ export default function OssManagement() {
             id="showMyFiles"
             checked={showMyFilesOnly}
             onChange={(e) => setShowMyFilesOnly(e.target.checked)}
-            className="w-4 h-4 text-cyan-500 rounded focus:ring-accent bg-surface-1 border-border"
+            className="w-4 h-4 text-accent-info rounded focus:ring-accent bg-surface-1 border-border"
           />
           <label htmlFor="showMyFiles" className="text-sm text-ink-muted cursor-pointer select-none">
             只看我的文件
@@ -130,7 +130,7 @@ export default function OssManagement() {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleDelete(file.path)}
-                      className="text-danger hover:text-red-300 transition-colors text-sm"
+                      className="text-danger hover:text-danger transition-colors text-sm"
                     >
                       删除
                     </button>

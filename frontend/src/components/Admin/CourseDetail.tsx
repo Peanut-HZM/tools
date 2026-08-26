@@ -141,7 +141,7 @@ export default function CourseDetail() {
 
           {/* 课程标题 */}
           <div className="flex flex-col">
-            <h1 className="text-3xl font-bold text-ink-inverse flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-ink flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center shadow-lg shadow-accent/20">
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
@@ -159,7 +159,7 @@ export default function CourseDetail() {
           {/* 导出按钮 */}
           <button
             onClick={handleOpenExportDialog}
-            className="group px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500/20 hover:to-green-500/20 border border-emerald-500/30 hover:border-emerald-400/50 text-emerald-400 rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20"
+            className="group px-5 py-2.5 bg-gradient-to-r from-success/10 to-success/10 hover:from-success/20 hover:to-success/20 border border-success/30 hover:border-success/50 text-success rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-success/10 hover:shadow-success/20"
           >
             <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>导出</span>
@@ -168,7 +168,7 @@ export default function CourseDetail() {
           {/* 导入按钮 */}
           <button
             onClick={handleOpenImportDialog}
-            className="group px-5 py-2.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 border border-amber-500/30 hover:border-amber-400/50 text-amber-400 rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20"
+            className="group px-5 py-2.5 bg-gradient-to-r from-warning/10 to-accent-warm/10 hover:from-warning/20 hover:to-accent-warm/20 border border-warning/30 hover:border-warning/50 text-warning rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-warning/10 hover:shadow-warning/20"
           >
             <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>导入</span>
@@ -218,15 +218,15 @@ export default function CourseDetail() {
               <span
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium ${
                   course.status === 'published'
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    ? 'bg-success/20 text-success border border-success/30'
                     : course.status === 'draft'
                     ? 'bg-surface-3/20 text-ink-muted border border-surface-3/30'
-                    : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                    : 'bg-accent-warm/20 text-accent-warm border border-accent-warm/30'
                 }`}
               >
                 <span className={`w-2 h-2 rounded-full ${
-                  course.status === 'published' ? 'bg-green-400 animate-pulse' :
-                  course.status === 'draft' ? 'bg-surface-3' : 'bg-orange-400'
+                  course.status === 'published' ? 'bg-success animate-pulse' :
+                  course.status === 'draft' ? 'bg-surface-3' : 'bg-accent-warm'
                 }`}></span>
                 {course.status === 'published' ? '已发布' : course.status === 'draft' ? '草稿' : '已归档'}
               </span>
@@ -238,7 +238,7 @@ export default function CourseDetail() {
                   </div>
                   {course.statistics?.enroll_count || 0} 人学习
                 </span>
-                <span className="flex items-center gap-1.5 hover:text-amber-400 transition-colors">
+                <span className="flex items-center gap-1.5 hover:text-warning transition-colors">
                   <div className="w-5 h-5 rounded-lg bg-surface-2/50 flex items-center justify-center">
                     <Star className="w-3 h-3" />
                   </div>
@@ -273,15 +273,15 @@ export default function CourseDetail() {
                       rehypePlugins={[rehypeHighlight]}
                       components={{
                         p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
-                        strong: ({children}) => <strong className="text-ink-inverse font-semibold">{children}</strong>,
+                        strong: ({children}) => <strong className="text-ink font-semibold">{children}</strong>,
                         em: ({children}) => <em className="text-accent">{children}</em>,
-                        h1: ({children}) => <h1 className="text-xl font-bold text-ink-inverse mb-3">{children}</h1>,
-                        h2: ({children}) => <h2 className="text-lg font-semibold text-ink-inverse mb-2">{children}</h2>,
-                        h3: ({children}) => <h3 className="text-base font-medium text-ink-inverse mb-1">{children}</h3>,
+                        h1: ({children}) => <h1 className="text-xl font-bold text-ink mb-3">{children}</h1>,
+                        h2: ({children}) => <h2 className="text-lg font-semibold text-ink mb-2">{children}</h2>,
+                        h3: ({children}) => <h3 className="text-base font-medium text-ink mb-1">{children}</h3>,
                         ul: ({children}) => <ul className="list-disc list-inside space-y-1 my-2 text-ink-muted">{children}</ul>,
                         ol: ({children}) => <ol className="list-decimal list-inside space-y-1 my-2 text-ink-muted">{children}</ol>,
                         li: ({children}) => <li className="text-ink-muted">{children}</li>,
-                        code: ({children}) => <code className="px-1.5 py-0.5 bg-surface-2/50 rounded text-pink-400 text-xs">{children}</code>,
+                        code: ({children}) => <code className="px-1.5 py-0.5 bg-surface-2/50 rounded text-danger text-xs">{children}</code>,
                         pre: ({children}) => <pre className="bg-canvas/50 rounded-lg p-3 my-2 overflow-x-auto border border-border/30">{children}</pre>,
                         blockquote: ({children}) => <blockquote className="border-l-4 border-accent/50 pl-4 my-2 text-ink-muted italic">{children}</blockquote>,
                       }}
@@ -305,7 +305,7 @@ export default function CourseDetail() {
             className={`group relative px-5 py-3 font-medium transition-all duration-200 rounded-t-lg ${
               activeTab === tab
                 ? 'text-accent'
-                : 'text-ink-muted hover:text-ink-inverse'
+                : 'text-ink-muted hover:text-ink'
             }`}
           >
             {/* 选中背景 */}
@@ -320,7 +320,7 @@ export default function CourseDetail() {
 
             {/* 标签内容 */}
             <span className={`relative flex items-center gap-2 ${
-                activeTab === tab ? 'text-accent' : 'group-hover:text-ink-inverse transition-colors'
+                activeTab === tab ? 'text-accent' : 'group-hover:text-ink transition-colors'
               }`}>
                 {getTabIcon(tab)}
                 {getTabLabel(tab)}

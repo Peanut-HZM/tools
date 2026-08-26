@@ -99,7 +99,7 @@ export default function UserQuotaTable() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg">
+        <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -108,8 +108,8 @@ export default function UserQuotaTable() {
         <div
           className={`px-4 py-3 rounded-lg ${
             message.type === 'success'
-              ? 'bg-green-500/10 border border-green-500 text-green-400'
-              : 'bg-danger/10 border border-red-500 text-danger'
+              ? 'bg-success/10 border border-success text-success'
+              : 'bg-danger/10 border border-danger text-danger'
           }`}
         >
           {message.text}
@@ -124,7 +124,7 @@ export default function UserQuotaTable() {
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           placeholder={igT.enterUserId}
-          className="flex-1 bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+          className="flex-1 bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
         />
         <Button
           onClick={handleSearch}
@@ -133,7 +133,7 @@ export default function UserQuotaTable() {
         </Button>
         <button
           onClick={() => handleOpenGrantDialog()}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors"
+          className="bg-success hover:opacity-90 text-ink-inverse px-6 py-2 rounded-lg transition-colors"
         >
           {igT.grantQuota}
         </button>
@@ -176,9 +176,9 @@ export default function UserQuotaTable() {
               ) : (
                 data.items.map((user) => (
                   <tr key={user.user_id} className="hover:bg-surface-2/50">
-                    <td className="px-4 py-3 text-sm text-ink-inverse font-mono">{user.user_id}</td>
+                    <td className="px-4 py-3 text-sm text-ink font-mono">{user.user_id}</td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="text-ink-inverse">
+                      <div className="text-ink">
                         {user.daily_used} / {user.daily_limit}
                       </div>
                       <div className="text-xs text-ink-muted">
@@ -186,7 +186,7 @@ export default function UserQuotaTable() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="text-ink-inverse">
+                      <div className="text-ink">
                         {user.monthly_used} / {user.monthly_limit}
                       </div>
                       <div className="text-xs text-ink-muted">
@@ -207,7 +207,7 @@ export default function UserQuotaTable() {
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {user.is_valid ? (
-                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                        <span className="px-2 py-1 bg-success/20 text-success rounded text-xs">
                           {igT.valid}
                         </span>
                       ) : (
@@ -230,14 +230,14 @@ export default function UserQuotaTable() {
                         </button>
                         <button
                           onClick={() => handleReset(user.user_id)}
-                          className="text-orange-400 hover:text-orange-300 transition-colors"
+                          className="text-accent-warm hover:text-accent-warm transition-colors"
                           title={igT.resetCounters}
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleRevoke(user.user_id)}
-                          className="text-danger hover:text-red-300 transition-colors"
+                          className="text-danger hover:text-danger transition-colors"
                           title={igT.revokeQuota}
                         >
                           <Trash2 className="w-4 h-4" />

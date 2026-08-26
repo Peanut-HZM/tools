@@ -64,11 +64,11 @@ export default function SystemSettingsPage() {
     }
   };
 
-  if (loading) return <div className="text-ink-inverse">加载中...</div>;
+  if (loading) return <div className="text-ink">加载中...</div>;
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-ink-inverse mb-6">系统设置</h2>
+      <h2 className="text-2xl font-bold text-ink mb-6">系统设置</h2>
       
       {/* LLM Stats Section */}
       <Card className="mb-6">

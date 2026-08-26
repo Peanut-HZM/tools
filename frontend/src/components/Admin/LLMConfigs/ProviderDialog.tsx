@@ -75,10 +75,10 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
       <Card className="relative shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-1/50">
-          <h3 className="text-lg font-semibold text-ink-inverse">
+          <h3 className="text-lg font-semibold text-ink">
             {editing ? '编辑供应商' : '新建供应商'}
           </h3>
-          <button onClick={onClose} className="p-1 text-ink-muted hover:text-ink-inverse transition-colors">
+          <button onClick={onClose} className="p-1 text-ink-muted hover:text-ink transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -97,7 +97,7 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：OpenAI-peanut"
                 required
               />
@@ -132,7 +132,7 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
                 type="url"
                 value={formData.base_url}
                 onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="https://api.openai.com/v1"
                 required
               />
@@ -148,7 +148,7 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
                 type="password"
                 value={formData.api_key}
                 onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder={editing ? '••••••••' : '请输入 API Key'}
                 required={!editing}
               />
@@ -160,7 +160,7 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="可选备注"
                 rows={2}
               />

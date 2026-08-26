@@ -57,14 +57,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
         components={{
-          h1: ({ children }) => <h1 className="text-2xl font-bold text-ink-inverse mb-4">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-xl font-semibold text-ink-inverse mb-3">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-lg font-medium text-ink-inverse mb-2">{children}</h3>,
+          h1: ({ children }) => <h1 className="text-2xl font-bold text-ink mb-4">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-xl font-semibold text-ink mb-3">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-lg font-medium text-ink mb-2">{children}</h3>,
           p: ({ children }) => <p className="mb-4 text-ink-muted leading-relaxed">{children}</p>,
-          strong: ({ children }) => <strong className="text-ink-inverse font-semibold">{children}</strong>,
+          strong: ({ children }) => <strong className="text-ink font-semibold">{children}</strong>,
           em: ({ children }) => <em className="text-accent">{children}</em>,
           code: ({ children }) => (
-            <code className="px-1.5 py-0.5 bg-surface-2/50 rounded text-pink-400 text-xs">
+            <code className="px-1.5 py-0.5 bg-surface-2/50 rounded text-danger text-xs">
               {children}
             </code>
           ),

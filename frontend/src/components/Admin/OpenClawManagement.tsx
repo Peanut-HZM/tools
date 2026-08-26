@@ -155,7 +155,7 @@ export default function OpenClawManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent-info"></div>
       </div>
     );
   }
@@ -163,52 +163,52 @@ export default function OpenClawManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-ink-inverse">OpenClaw 管理</h1>
+        <h1 className="text-2xl font-bold text-ink">OpenClaw 管理</h1>
         <p className="text-ink-muted mt-1">管理 OpenClaw Gateway 连接配置和状态</p>
       </div>
 
       {error && (
-        <div className="bg-danger/10 border border-red-500/30 text-danger px-4 py-3 rounded-lg">
+        <div className="bg-danger/10 border border-danger/30 text-danger px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
 
       {saveSuccess && (
-        <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg">
+        <div className="bg-success/10 border border-success/30 text-success px-4 py-3 rounded-lg">
           {saveSuccess}
         </div>
       )}
 
       {/* 状态卡片 */}
       <div className="bg-surface-1/50 rounded-xl p-6 border border-border/50">
-        <h2 className="text-lg font-semibold text-ink-inverse mb-4">连接状态</h2>
+        <h2 className="text-lg font-semibold text-ink mb-4">连接状态</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-ink-muted text-sm">状态</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${config?.connected ? 'bg-green-500' : 'bg-red-500'}`}></span>
-              <span className="text-ink-inverse font-medium">{config?.connected ? '已连接' : '未连接'}</span>
+              <span className={`w-2.5 h-2.5 rounded-full ${config?.connected ? 'bg-success' : 'bg-danger'}`}></span>
+              <span className="text-ink font-medium">{config?.connected ? '已连接' : '未连接'}</span>
             </div>
           </div>
           <div>
             <p className="text-ink-muted text-sm">启用状态</p>
-            <p className="text-ink-inverse font-medium mt-1">{enabled === 'true' ? '已启用' : '已禁用'}</p>
+            <p className="text-ink font-medium mt-1">{enabled === 'true' ? '已启用' : '已禁用'}</p>
           </div>
           <div>
             <p className="text-ink-muted text-sm">认证方式</p>
-            <p className="text-ink-inverse font-medium mt-1">{config?.auth_mode === 'token_with_password' ? '双重认证' : 'Token 认证'}</p>
+            <p className="text-ink font-medium mt-1">{config?.auth_mode === 'token_with_password' ? '双重认证' : 'Token 认证'}</p>
           </div>
           <div>
             <p className="text-ink-muted text-sm">Gateway 地址</p>
-            <p className="text-ink-inverse font-mono text-sm mt-1">{config?.gateway_url || '-'}</p>
+            <p className="text-ink font-mono text-sm mt-1">{config?.gateway_url || '-'}</p>
           </div>
           <div>
             <p className="text-ink-muted text-sm">用户名</p>
-            <p className="text-ink-inverse font-mono text-sm mt-1">{config?.username || '-'}</p>
+            <p className="text-ink font-mono text-sm mt-1">{config?.username || '-'}</p>
           </div>
           <div>
             <p className="text-ink-muted text-sm">Token</p>
-            <p className="text-ink-inverse font-mono text-sm mt-1">{config?.token_masked || '(未设置)'}</p>
+            <p className="text-ink font-mono text-sm mt-1">{config?.token_masked || '(未设置)'}</p>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
@@ -246,7 +246,7 @@ export default function OpenClawManagement() {
           </Button>
         </div>
         {statusTestResult && (
-          <div className={`mt-3 text-sm ${statusTestResult.ok ? 'text-green-400' : 'text-danger'}`}>
+          <div className={`mt-3 text-sm ${statusTestResult.ok ? 'text-success' : 'text-danger'}`}>
             {statusTestResult.ok ? (
                           <CheckCircle className="w-4 h-4 mr-1" />
                         ) : (
@@ -259,7 +259,7 @@ export default function OpenClawManagement() {
 
       {/* 配置表单 */}
       <div className="bg-surface-1/50 rounded-xl p-6 border border-border/50">
-        <h2 className="text-lg font-semibold text-ink-inverse mb-4">连接配置</h2>
+        <h2 className="text-lg font-semibold text-ink mb-4">连接配置</h2>
         <div className="space-y-4">
           <div>
             <label className="block text-ink-muted text-sm mb-1">Gateway URL</label>
@@ -268,7 +268,7 @@ export default function OpenClawManagement() {
               value={gatewayUrl}
               onChange={(e) => setGatewayUrl(e.target.value)}
               placeholder="ws://127.0.0.1:18081"
-              className="w-full bg-canvas text-ink-inverse border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
+              className="w-full bg-canvas text-ink border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-accent-info font-mono"
             />
           </div>
           <div>
@@ -293,7 +293,7 @@ export default function OpenClawManagement() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="留空表示不修改"
-                  className="w-full bg-canvas text-ink-inverse border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 font-mono"
+                  className="w-full bg-canvas text-ink border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-accent-info font-mono"
                 />
               </div>
               {/* 密码 */}
@@ -305,12 +305,12 @@ export default function OpenClawManagement() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="留空表示不修改"
-                    className="w-full bg-canvas text-ink-inverse border border-border rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-canvas text-ink border border-border rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-accent-info font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink-inverse transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
                   >
                     {showPassword ? (
                             <EyeOff className="w-4 h-4" />
@@ -331,12 +331,12 @@ export default function OpenClawManagement() {
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="留空表示不修改"
-                className="w-full bg-canvas text-ink-inverse border border-border rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-cyan-500 font-mono"
+                className="w-full bg-canvas text-ink border border-border rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-accent-info font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink-inverse transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
               >
                 {showToken ? (
                             <EyeOff className="w-4 h-4" />
@@ -345,7 +345,7 @@ export default function OpenClawManagement() {
                           )}
               </button>
             </div>
-            <p className="text-amber-400/70 text-xs mt-1">💡 保存配置后将自动尝试连接，如果连接失败会在页面顶部显示错误信息。建议先点击"测试连接"验证配置</p>
+            <p className="text-warning/70 text-xs mt-1">💡 保存配置后将自动尝试连接，如果连接失败会在页面顶部显示错误信息。建议先点击"测试连接"验证配置</p>
           </div>
           <div>
             <label className="block text-ink-muted text-sm mb-1">功能开关</label>
@@ -353,7 +353,7 @@ export default function OpenClawManagement() {
               <button
                 onClick={() => setEnabled(enabled === 'true' ? 'false' : 'true')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  enabled === 'true' ? 'bg-green-500' : 'bg-surface-3'
+                  enabled === 'true' ? 'bg-success' : 'bg-surface-3'
                 }`}
               >
                 <span
@@ -362,7 +362,7 @@ export default function OpenClawManagement() {
                   }`}
                 />
               </button>
-              <span className="text-ink-inverse">{enabled === 'true' ? '已启用' : '已禁用'}</span>
+              <span className="text-ink">{enabled === 'true' ? '已启用' : '已禁用'}</span>
             </div>
           </div>
         </div>
@@ -393,7 +393,7 @@ export default function OpenClawManagement() {
           </Button>
         </div>
         {testResult && (
-          <div className={`mt-3 text-sm ${testResult.ok ? 'text-green-400' : 'text-danger'}`}>
+          <div className={`mt-3 text-sm ${testResult.ok ? 'text-success' : 'text-danger'}`}>
             {testResult.ok ? (
                           <CheckCircle className="w-4 h-4 mr-1" />
                         ) : (

@@ -97,13 +97,13 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
         <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <Check className="w-12 h-12 text-ink-inverse" />
+            <div className="w-20 h-20 bg-gradient-to-br from-success to-success rounded-full flex items-center justify-center shadow-lg shadow-success/30">
+              <Check className="w-12 h-12 text-ink" />
             </div>
-            <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute -inset-2 bg-success/20 rounded-full blur-xl animate-pulse"></div>
           </div>
 
-          <h3 className="text-2xl font-bold text-ink-inverse mb-2">密码重置成功</h3>
+          <h3 className="text-2xl font-bold text-ink mb-2">密码重置成功</h3>
           <p className="text-ink-muted mb-6">
             系统已为用户 <span className="text-accent font-semibold">{username}</span> 生成随机密码
           </p>
@@ -122,8 +122,8 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
             disabled={copied}
             className={`w-full mb-3 px-4 py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-base ${
               copied
-                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-ink-inverse shadow-lg shadow-emerald-500/25 cursor-default'
-                : 'bg-surface-2 hover:bg-surface-3 text-ink-inverse hover:shadow-lg hover:shadow-surface-2/25 active:scale-[0.98]'
+                ? 'bg-gradient-to-r from-success to-success text-ink shadow-lg shadow-success/25 cursor-default'
+                : 'bg-surface-2 hover:bg-surface-3 text-ink hover:shadow-lg hover:shadow-surface-2/25 active:scale-[0.98]'
             }`}
           >
             {copied ? (
@@ -153,13 +153,13 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
         <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <Check className="w-12 h-12 text-ink-inverse" />
+            <div className="w-20 h-20 bg-gradient-to-br from-success to-success rounded-full flex items-center justify-center shadow-lg shadow-success/30">
+              <Check className="w-12 h-12 text-ink" />
             </div>
-            <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute -inset-2 bg-success/20 rounded-full blur-xl animate-pulse"></div>
           </div>
 
-          <h3 className="text-2xl font-bold text-ink-inverse mb-2">密码重置成功</h3>
+          <h3 className="text-2xl font-bold text-ink mb-2">密码重置成功</h3>
           <p className="text-ink-muted mb-8">用户 <span className="text-accent font-semibold">{username}</span> 的密码已更新</p>
 
           <button
@@ -177,7 +177,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fadeIn">
       <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 animate-scaleIn">
-        <h3 className="text-2xl font-bold text-ink-inverse mb-6">重置密码 - {username}</h3>
+        <h3 className="text-2xl font-bold text-ink mb-6">重置密码 - {username}</h3>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
@@ -192,7 +192,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
                   onChange={() => setMode('random')}
                   className="text-accent focus:ring-accent focus:ring-2"
                 />
-                <span className="text-ink-inverse text-sm group-hover:text-accent transition-colors">随机生成密码</span>
+                <span className="text-ink text-sm group-hover:text-accent transition-colors">随机生成密码</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input
@@ -203,7 +203,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
                   onChange={() => setMode('direct')}
                   className="text-accent focus:ring-accent focus:ring-2"
                 />
-                <span className="text-ink-inverse text-sm group-hover:text-accent transition-colors">自行设置密码</span>
+                <span className="text-ink text-sm group-hover:text-accent transition-colors">自行设置密码</span>
               </label>
             </div>
           </div>
@@ -216,7 +216,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="至少 8 位，包含大小写字母、数字和特殊字符"
-                className="w-full bg-canvas/80 border border-border rounded-xl px-4 py-3 text-ink-inverse focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-sm transition-all"
+                className="w-full bg-canvas/80 border border-border rounded-xl px-4 py-3 text-ink focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-sm transition-all"
               />
               <p className="text-ink-faint text-xs mt-2">
                 密码要求：8-100 位，至少包含大写字母、小写字母、数字和特殊字符各一个

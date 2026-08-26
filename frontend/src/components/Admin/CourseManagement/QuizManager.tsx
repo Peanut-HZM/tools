@@ -63,7 +63,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
       {/* Chapter List */}
       <div className="w-80 border-r border-border/50 pr-4">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
+          <h3 className="text-lg font-semibold text-ink flex items-center">
             <BookOpen className="w-4 h-4 mr-2 text-accent" />
             选择章节
           </h3>
@@ -78,7 +78,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 onClick={() => handleSelectChapter(chapter.id)}
                 className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
                   selectedChapterId === chapter.id
-                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 border border-accent shadow-lg shadow-cyan-500/10'
+                    ? 'bg-gradient-to-r from-accent-info/20 to-accent-info/10 border border-accent shadow-lg shadow-accent-info/10'
                     : 'bg-surface-2/30 border border-border/50 hover:bg-surface-2/50 hover:border-border'
                 }`}
               >
@@ -92,7 +92,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                   ) : (
                     <Video className="w-4 h-4 text-ink-faint" />
                   )}
-                      <span className="text-ink-inverse font-medium truncate">{chapter.title}</span>
+                      <span className="text-ink font-medium truncate">{chapter.title}</span>
                     </div>
                   </div>
                   {hasQuiz ? (
@@ -117,7 +117,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
           <>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-ink-inverse flex items-center">
+                <h3 className="text-2xl font-bold text-ink flex items-center">
                   <ClipboardCheck className="w-5 h-5 text-accent mr-3" />
                   测验：{chapters.find((c) => c.id === selectedChapterId)?.title}
                 </h3>
@@ -126,7 +126,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
               <Button
                 onClick={handleCreateQuiz}
                 variant="default"
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
+                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-accent-info/20 hover:shadow-accent-info/30 flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 {selectedQuiz ? '编辑测验' : '创建测验'}
@@ -136,7 +136,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
             {loadingQuizId === selectedChapterId ? (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-info mx-auto mb-4"></div>
                   <p className="text-ink-muted">加载中...</p>
                 </div>
               </div>
@@ -145,10 +145,10 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-2xl flex items-center justify-center">
-                      <ClipboardList className="w-8 h-8 text-ink-inverse" />
+                      <ClipboardList className="w-8 h-8 text-ink" />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-ink-inverse">{selectedQuiz.title}</h4>
+                      <h4 className="text-xl font-bold text-ink">{selectedQuiz.title}</h4>
                       <p className="text-ink-muted text-sm">测验基本信息</p>
                     </div>
                   </div>
@@ -168,11 +168,11 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-ink-muted text-sm mb-1">及格分数</p>
-                      <p className="text-ink-inverse font-medium">{selectedQuiz.passing_score}%</p>
+                      <p className="text-ink font-medium">{selectedQuiz.passing_score}%</p>
                     </div>
                     <div>
                       <p className="text-ink-muted text-sm mb-1">题目数量</p>
-                      <p className="text-ink-inverse font-medium">{selectedQuiz.questions.length} 题</p>
+                      <p className="text-ink font-medium">{selectedQuiz.questions.length} 题</p>
                     </div>
                   </div>
                 </div>
@@ -192,12 +192,12 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                   <div className="w-24 h-24 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-6">
                     <CircleHelp className="w-20 h-20 text-ink-faint" />
                   </div>
-                  <p className="text-ink-inverse text-lg font-medium mb-2">该章节还没有测验</p>
+                  <p className="text-ink text-lg font-medium mb-2">该章节还没有测验</p>
                   <p className="text-ink-muted text-sm mb-6">创建一个测验来检验学习成果吧</p>
                   <Button
                     onClick={handleCreateQuiz}
                     variant="default"
-                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
+                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-accent-info/20 hover:shadow-accent-info/30 inline-flex items-center"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     创建测验

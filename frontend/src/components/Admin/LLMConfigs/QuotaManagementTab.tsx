@@ -137,7 +137,7 @@ export default function QuotaManagementTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜索用户 ID..."
-              className="px-3 py-1.5 bg-surface-1 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none w-48"
+              className="px-3 py-1.5 bg-surface-1 text-ink text-sm rounded-lg border border-border focus:border-accent focus:outline-none w-48"
             />
             <Button type="submit" size="sm">
               搜索
@@ -152,7 +152,7 @@ export default function QuotaManagementTab() {
       {/* 列表 */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-info"></div>
           <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : (
@@ -165,7 +165,7 @@ export default function QuotaManagementTab() {
           {items.length === 0 ? (
             <Card className="bg-surface-2 p-12 text-center">
               <div className="text-6xl mb-4"></div>
-              <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无配额记录</h3>
+              <h3 className="text-lg font-medium text-ink mb-2">暂无配额记录</h3>
               <p className="text-ink-muted mb-4">点击「分配额度」为用户创建配额</p>
             </Card>
           ) : (
@@ -185,7 +185,7 @@ export default function QuotaManagementTab() {
               {items.map((info) => (
                 <tr key={info.user_id} className="hover:bg-surface-3/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-ink-inverse font-medium text-sm truncate max-w-[200px]" title={info.user_id}>
+                    <div className="text-ink font-medium text-sm truncate max-w-[200px]" title={info.user_id}>
                       {info.username || <span className="text-ink-muted">?</span>}
                     </div>
                     <div className="text-xs text-ink-faint font-mono truncate max-w-[200px]" title={info.user_id}>
@@ -221,14 +221,14 @@ export default function QuotaManagementTab() {
                       <button
                         onClick={() => handleReset(info.user_id)}
                         disabled={resettingId === info.user_id}
-                        className="px-2 py-1 text-xs bg-yellow-600/20 text-accent-warning border border-yellow-500/30 rounded hover:bg-yellow-600/30 transition-colors disabled:opacity-50"
+                        className="px-2 py-1 text-xs bg-warning/20 text-accent-warning border border-warning/30 rounded hover:bg-warning/30 transition-colors disabled:opacity-50"
                       >
                         {resettingId === info.user_id ? '重置中...' : '重置'}
                       </button>
                       <button
                         onClick={() => handleRevoke(info.user_id)}
                         disabled={deletingId === info.user_id}
-                        className="px-2 py-1 text-xs bg-red-600/20 text-danger border border-danger/30 rounded hover:bg-red-600/30 transition-colors disabled:opacity-50"
+                        className="px-2 py-1 text-xs bg-danger/20 text-danger border border-danger/30 rounded hover:bg-danger/30 transition-colors disabled:opacity-50"
                       >
                         {deletingId === info.user_id ? '撤销中...' : '撤销'}
                       </button>
@@ -391,7 +391,7 @@ function GrantModal({
         className="bg-surface-1 rounded-xl p-6 w-full max-w-md border border-border shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-bold text-ink-inverse mb-4">
+        <h3 className="text-lg font-bold text-ink mb-4">
           {currentQuota ? '修改配额' : '分配额度'}
         </h3>
 
@@ -402,7 +402,7 @@ function GrantModal({
             {isEditMode && selectedUser ? (
               <div className="flex items-center justify-between px-3 py-2 bg-surface-2 border border-border rounded-lg">
                 <div>
-                  <div className="text-ink-inverse text-sm font-medium">{selectedUser.username}</div>
+                  <div className="text-ink text-sm font-medium">{selectedUser.username}</div>
                   <div className="text-xs text-ink-faint font-mono">{selectedUser.user_id}</div>
                 </div>
                 <span className="text-xs text-ink-faint">（已有配额，仅修改配置）</span>
@@ -410,7 +410,7 @@ function GrantModal({
             ) : selectedUser ? (
               <div className="flex items-center justify-between px-3 py-2 bg-surface-2 border border-accent rounded-lg">
                 <div>
-                  <div className="text-ink-inverse text-sm font-medium">{selectedUser.username}</div>
+                  <div className="text-ink text-sm font-medium">{selectedUser.username}</div>
                   <div className="text-xs text-ink-muted">{selectedUser.email} · {selectedUser.role}</div>
                   <div className="text-xs text-ink-faint font-mono">{selectedUser.user_id}</div>
                 </div>
@@ -426,7 +426,7 @@ function GrantModal({
               <button
                 type="button"
                 onClick={() => setShowUserPicker(true)}
-                className="w-full px-3 py-2 bg-surface-2 text-ink-muted text-sm rounded-lg border border-border hover:border-accent hover:text-ink-inverse transition-colors text-left"
+                className="w-full px-3 py-2 bg-surface-2 text-ink-muted text-sm rounded-lg border border-border hover:border-accent hover:text-ink transition-colors text-left"
               >
                 + 选择系统用户
               </button>
@@ -440,7 +440,7 @@ function GrantModal({
                   value={userSearch}
                   onChange={(e) => handleUserSearch(e.target.value)}
                   placeholder="搜索用户名/邮箱..."
-                  className="w-full px-3 py-2 bg-surface-1 text-ink-inverse text-sm border-b border-border focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 bg-surface-1 text-ink text-sm border-b border-border focus:outline-none focus:border-accent"
                   autoFocus
                 />
                 <div className="max-h-48 overflow-y-auto">
@@ -456,7 +456,7 @@ function GrantModal({
                         onClick={() => { setSelectedUser(u); setShowUserPicker(false); }}
                         className="w-full px-3 py-2 text-left hover:bg-surface-3 transition-colors border-b border-border last:border-b-0"
                       >
-                        <div className="text-ink-inverse text-sm">{u.username}</div>
+                        <div className="text-ink text-sm">{u.username}</div>
                         <div className="text-xs text-ink-muted">{u.email} · {u.role}</div>
                         <div className="text-xs text-ink-faint font-mono">{u.user_id}</div>
                       </button>
@@ -495,7 +495,7 @@ function GrantModal({
                   value={dailyLimit}
                   onChange={(e) => setDailyLimit(e.target.value)}
                   min={0}
-                  className="w-full px-3 py-2 bg-surface-2 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
+                  className="w-full px-3 py-2 bg-surface-2 text-ink text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
                   placeholder="每日最大次数"
                 />
               </div>
@@ -506,7 +506,7 @@ function GrantModal({
                   value={monthlyLimit}
                   onChange={(e) => setMonthlyLimit(e.target.value)}
                   min={0}
-                  className="w-full px-3 py-2 bg-surface-2 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
+                  className="w-full px-3 py-2 bg-surface-2 text-ink text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
                   placeholder="每月最大次数"
                 />
               </div>
@@ -523,7 +523,7 @@ function GrantModal({
                   value={tokenLimit}
                   onChange={(e) => setTokenLimit(e.target.value)}
                   min={0}
-                  className="w-full px-3 py-2 bg-surface-2 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
+                  className="w-full px-3 py-2 bg-surface-2 text-ink text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
                   placeholder="Token 上限"
                 />
               </div>
@@ -565,7 +565,7 @@ function GrantModal({
                   value={validFrom}
                   disabled={permanent}
                   onChange={(e) => setValidFrom(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-2 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 bg-surface-2 text-ink text-sm rounded-lg border border-border focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
@@ -575,7 +575,7 @@ function GrantModal({
                   value={validUntil}
                   disabled={permanent}
                   onChange={(e) => setValidUntil(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-2 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 bg-surface-2 text-ink text-sm rounded-lg border border-border focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <p className="text-xs text-ink-faint mt-1">
                   {permanent
@@ -593,7 +593,7 @@ function GrantModal({
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-2 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
+              className="w-full px-3 py-2 bg-surface-2 text-ink text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
               placeholder="可选备注"
             />
           </div>
@@ -603,7 +603,7 @@ function GrantModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-ink-muted hover:text-ink-inverse transition-colors"
+              className="px-4 py-2 text-sm text-ink-muted hover:text-ink transition-colors"
             >
               取消
             </button>

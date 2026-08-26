@@ -152,10 +152,10 @@ export default function ContactMessagesManagement() {
 
   const getStatusBadgeClass = (status: string) => {
     const classes = {
-      unread: 'bg-blue-900 text-blue-300 border-blue-700',
+      unread: 'bg-accent-info text-accent-info border-accent-info',
       read: 'bg-gray-700 text-gray-300 border-gray-600',
-      processing: 'bg-yellow-900 text-yellow-300 border-yellow-700',
-      resolved: 'bg-green-900 text-green-300 border-green-700',
+      processing: 'bg-warning text-warning border-warning',
+      resolved: 'bg-success text-success border-success',
     };
     return classes[status as keyof typeof classes] || classes.read;
   };
@@ -175,7 +175,7 @@ export default function ContactMessagesManagement() {
   return (
     <div>      {/* 页面标题 */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-ink-inverse mb-2">{t.admin.contactMessages.title}</h2>
+        <h2 className="text-3xl font-bold text-ink mb-2">{t.admin.contactMessages.title}</h2>
         <p className="text-ink-muted">{t.admin.contactMessages.listTitle}</p>
       </div>
 
@@ -204,7 +204,7 @@ export default function ContactMessagesManagement() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder={t.admin.contactMessages.keywordSearch}
-              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent-info w-64"
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
             <Button
@@ -221,19 +221,19 @@ export default function ContactMessagesManagement() {
               <span className="text-ink-muted text-sm">已选择 {selectedIds.length} 条</span>
               <button
                 onClick={() => handleBatchUpdate('read')}
-                className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-ink-inverse rounded text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-surface-3 hover:bg-ink-faint text-ink rounded text-sm cursor-pointer"
               >
                 标记为已读
               </button>
               <button
                 onClick={() => handleBatchUpdate('processing')}
-                className="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-500 text-ink-inverse rounded text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-warning hover:bg-warning text-ink-inverse rounded text-sm cursor-pointer"
               >
                 处理中
               </button>
               <button
                 onClick={() => handleBatchUpdate('resolved')}
-                className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-ink-inverse rounded text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-success hover:opacity-90 text-ink-inverse rounded text-sm cursor-pointer"
               >
                 已完成
               </button>
@@ -253,7 +253,7 @@ export default function ContactMessagesManagement() {
       <Card className="overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent-info"></div>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center py-12 text-ink-muted">
@@ -297,7 +297,7 @@ export default function ContactMessagesManagement() {
                 <tr
                   key={message.id}
                   className={`hover:bg-surface-2/50 transition-colors ${
-                    message.status === 'unread' ? 'bg-blue-900/10' : ''
+                    message.status === 'unread' ? 'bg-accent-info/10' : ''
                   }`}
                 >
                   <td className="px-4 py-3">
@@ -308,7 +308,7 @@ export default function ContactMessagesManagement() {
                       className="cursor-pointer"
                     />
                   </td>
-                  <td className="px-4 py-3 text-ink-inverse">{message.name}</td>
+                  <td className="px-4 py-3 text-ink">{message.name}</td>
                   <td className="px-4 py-3 text-ink-muted">{message.email}</td>
                   <td className="px-4 py-3 text-ink-muted max-w-xs truncate" title={message.subject || ''}>
                     {message.subject || '-'}
@@ -392,10 +392,10 @@ export default function ContactMessagesManagement() {
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setSelectedMessage(null)} />
           <div className="relative bg-surface-1 rounded-xl shadow-lg w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-surface-1 z-10">
-              <h3 className="text-xl font-semibold text-ink-inverse">{t.admin.contactMessages.detailTitle}</h3>
+              <h3 className="text-xl font-semibold text-ink">{t.admin.contactMessages.detailTitle}</h3>
               <button
                 onClick={() => setSelectedMessage(null)}
-                className="text-ink-muted hover:text-ink-inverse transition-colors p-1 rounded-lg hover:bg-surface-2 cursor-pointer"
+                className="text-ink-muted hover:text-ink transition-colors p-1 rounded-lg hover:bg-surface-2 cursor-pointer"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -408,30 +408,30 @@ export default function ContactMessagesManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-ink-muted">{t.admin.contactMessages.name}</label>
-                  <p className="text-ink-inverse">{selectedMessage.name}</p>
+                  <p className="text-ink">{selectedMessage.name}</p>
                 </div>
                 <div>
                   <label className="text-sm text-ink-muted">{t.admin.contactMessages.email}</label>
-                  <p className="text-ink-inverse">{selectedMessage.email}</p>
+                  <p className="text-ink">{selectedMessage.email}</p>
                 </div>
                 <div>
                   <label className="text-sm text-ink-muted">{t.admin.contactMessages.subject}</label>
-                  <p className="text-ink-inverse">{selectedMessage.subject || '-'}</p>
+                  <p className="text-ink">{selectedMessage.subject || '-'}</p>
                 </div>
                 <div>
                   <label className="text-sm text-ink-muted">{t.admin.contactMessages.status}</label>
-                  <p className="text-ink-inverse">{getStatusLabel(selectedMessage.status)}</p>
+                  <p className="text-ink">{getStatusLabel(selectedMessage.status)}</p>
                 </div>
                 <div>
                   <label className="text-sm text-ink-muted">{t.admin.contactMessages.createdAt}</label>
-                  <p className="text-ink-inverse">{new Date(selectedMessage.created_at).toLocaleString('zh-CN')}</p>
+                  <p className="text-ink">{new Date(selectedMessage.created_at).toLocaleString('zh-CN')}</p>
                 </div>
               </div>
 
               {/* 留言内容 */}
               <div>
                 <label className="text-sm text-ink-muted mb-1 block">{t.admin.contactMessages.content}</label>
-                <div className="bg-surface-2 rounded-lg p-4 text-ink-inverse whitespace-pre-wrap">
+                <div className="bg-surface-2 rounded-lg p-4 text-ink whitespace-pre-wrap">
                   {selectedMessage.content}
                 </div>
               </div>
@@ -444,7 +444,7 @@ export default function ContactMessagesManagement() {
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder={t.admin.contactMessages.replyPlaceholder}
                   rows={4}
-                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent-info resize-none"
                 />
               </div>
 

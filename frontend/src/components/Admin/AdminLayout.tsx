@@ -34,7 +34,7 @@ export default function AdminLayout() {
   }, [isAuthenticated, user, isLoading, navigate]);
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-canvas text-ink-inverse">
+    return <div className="min-h-screen flex items-center justify-center bg-canvas text-ink">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
     </div>;
   }
@@ -72,9 +72,9 @@ export default function AdminLayout() {
           <div className="bg-gradient-to-br from-surface-1 to-canvas rounded-xl p-4 border border-border/50 shadow-xl">
             <div className="flex items-center space-x-3 mb-6 px-4">
               <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-info rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-ink-inverse" />
+                <Shield className="w-5 h-5 text-ink" />
               </div>
-              <h2 className="text-xl font-bold text-ink-inverse">后台管理</h2>
+              <h2 className="text-xl font-bold text-ink">后台管理</h2>
             </div>
             <nav className="space-y-1">
               {menuItems.map((item) => (
@@ -84,10 +84,10 @@ export default function AdminLayout() {
                   className={`group flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     location.pathname === item.path
                       ? 'bg-gradient-to-r from-accent/20 to-accent-info/10 text-accent border border-accent/30 shadow-lg shadow-accent/10'
-                      : 'text-ink-muted hover:bg-surface-2/50 hover:text-ink-inverse hover:translate-x-1'
+                      : 'text-ink-muted hover:bg-surface-2/50 hover:text-ink hover:translate-x-1'
                   }`}
                 >
-                  <span className={`w-5 text-center flex items-center justify-center ${location.pathname === item.path ? 'text-accent' : 'text-ink-faint group-hover:text-ink-inverse'}`}>
+                  <span className={`w-5 text-center flex items-center justify-center ${location.pathname === item.path ? 'text-accent' : 'text-ink-faint group-hover:text-ink'}`}>
                     {item.icon}
                   </span>
                   <span className="font-medium">{item.label}</span>

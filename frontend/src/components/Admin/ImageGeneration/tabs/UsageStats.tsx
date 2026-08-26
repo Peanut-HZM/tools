@@ -85,7 +85,7 @@ export default function UsageStats() {
         <Card>
           <CardContent className="p-4">
             <div className="text-ink-muted text-xs mb-1">{igT.totalCalls}</div>
-            <div className="text-2xl font-bold text-ink-inverse">{stats.total_calls}</div>
+            <div className="text-2xl font-bold text-ink">{stats.total_calls}</div>
           </CardContent>
         </Card>
         <Card>
@@ -158,7 +158,7 @@ export default function UsageStats() {
                     style={{ width: `${(d.count / maxDailyCount) * 100}%` }}
                   ></div>
                 </div>
-                <div className="text-ink-inverse text-sm w-16 text-right">{d.count}</div>
+                <div className="text-ink text-sm w-16 text-right">{d.count}</div>
               </div>
             ))}
           </div>

@@ -46,12 +46,12 @@ const ChapterList: React.FC<ChapterListProps> = ({
 
   const getTypeIcon = (type: string) => {
     const icons: Record<string, ReactNode> = {
-      story: <BookOpen className="w-4 h-4 text-cyan-400" />,
-      code: <Code className="w-4 h-4 text-cyan-400" />,
-      quiz: <ClipboardCheck className="w-4 h-4 text-cyan-400" />,
-      video: <Video className="w-4 h-4 text-cyan-400" />,
+      story: <BookOpen className="w-4 h-4 text-accent-info" />,
+      code: <Code className="w-4 h-4 text-accent-info" />,
+      quiz: <ClipboardCheck className="w-4 h-4 text-accent-info" />,
+      video: <Video className="w-4 h-4 text-accent-info" />,
     };
-    return icons[type] || <File className="w-4 h-4 text-cyan-400" />;
+    return icons[type] || <File className="w-4 h-4 text-accent-info" />;
   };
 
   const getTypeLabel = (type: string) => {
@@ -91,7 +91,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
                 onClick={() => onSelect(chapter.id)}
                 className={`cursor-pointer transition-all duration-200 ${
                   selectedChapterId === chapter.id
-                    ? 'bg-cyan-500/10 border-l-2 border-cyan-500'
+                    ? 'bg-accent-info/10 border-l-2 border-accent-info'
                     : 'hover:bg-surface-2/30 border-l-2 border-transparent'
                 }`}
               >
@@ -105,7 +105,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-accent-info/20 to-blue-500/20 rounded-lg flex items-center justify-center mr-3">
                       {getTypeIcon(chapter.chapter_type)}
                     </div>
                     <span className="text-white font-medium">{chapter.title}</span>

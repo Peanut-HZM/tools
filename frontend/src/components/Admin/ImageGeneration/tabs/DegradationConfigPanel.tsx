@@ -133,13 +133,13 @@ export default function DegradationConfigPanel() {
             <Card className="bg-surface-2">
               <CardContent className="p-4">
                 <div className="text-ink-muted text-xs mb-1">{igT.failureCount}</div>
-                <div className="text-lg font-bold text-ink-inverse">{status.failure_count}</div>
+                <div className="text-lg font-bold text-ink">{status.failure_count}</div>
               </CardContent>
             </Card>
             <Card className="bg-surface-2">
               <CardContent className="p-4">
                 <div className="text-ink-muted text-xs mb-1">{igT.degradedAt}</div>
-                <div className="text-sm text-ink-inverse">
+                <div className="text-sm text-ink">
                   {status.degraded_at
                     ? new Date(status.degraded_at).toLocaleString()
                     : '-'}
@@ -192,7 +192,7 @@ export default function DegradationConfigPanel() {
             max="100"
             value={failureThreshold}
             onChange={(e) => setFailureThreshold(Number(e.target.value))}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+            className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
           <p className="text-xs text-ink-faint mt-1">{igT.failureThresholdRange}</p>
         </div>
@@ -205,7 +205,7 @@ export default function DegradationConfigPanel() {
             max="86400"
             value={degradeDurationSeconds}
             onChange={(e) => setDegradeDurationSeconds(Number(e.target.value))}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+            className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
           <p className="text-xs text-ink-faint mt-1">{igT.degradeDurationRange}</p>
         </div>

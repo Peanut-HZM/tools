@@ -100,10 +100,10 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
       <Card className="rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-xl font-bold text-ink-inverse">
+          <h2 className="text-xl font-bold text-ink">
             {resourceId ? '编辑资源' : '添加资源'}
           </h2>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -143,7 +143,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
                 value={formData.title}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-accent"
                 placeholder="资源标题"
               />
             </div>
@@ -182,7 +182,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
                     ...prev,
                     extra_data: { ...prev.extra_data, video_url: e.target.value },
                   }))}
-                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-accent"
                   placeholder="https://..."
                 />
               </div>

@@ -94,7 +94,7 @@ const LLMConfigManager: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-ink-inverse">大模型配置管理</h2>
+        <h2 className="text-2xl font-bold text-ink">大模型配置管理</h2>
         <Button onClick={() => setShowForm(true)}>
           添加配置
         </Button>
@@ -103,7 +103,7 @@ const LLMConfigManager: React.FC = () => {
       {showForm && (
         <Card className="p-6 mb-6">
           <CardContent className="p-0">
-          <h3 className="text-lg font-semibold text-ink-inverse mb-4">
+          <h3 className="text-lg font-semibold text-ink mb-4">
             {editingId ? '编辑配置' : '添加配置'}
           </h3>
           <form onSubmit={handleSubmit}>
@@ -114,7 +114,7 @@ const LLMConfigManager: React.FC = () => {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink rounded"
                 required
               />
             </div>
@@ -143,7 +143,7 @@ const LLMConfigManager: React.FC = () => {
                 type="text"
                 value={formData.base_url}
                 onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink rounded"
                 required
               />
             </div>
@@ -153,7 +153,7 @@ const LLMConfigManager: React.FC = () => {
                 type="text"
                 value={formData.model_name}
                 onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink rounded"
                 required
               />
             </div>
@@ -163,7 +163,7 @@ const LLMConfigManager: React.FC = () => {
                 type="password"
                 value={formData.api_key}
                 onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
+                className="w-full px-3 py-2 bg-surface-2 text-ink rounded"
                 required={!editingId}
                 placeholder={editingId ? '留空则保持不变' : ''}
               />
@@ -190,7 +190,7 @@ const LLMConfigManager: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="text-ink-inverse">加载中...</div>
+        <div className="text-ink">加载中...</div>
       ) : (
         <Card className="overflow-hidden">
           <table className="w-full">
@@ -207,7 +207,7 @@ const LLMConfigManager: React.FC = () => {
             <tbody>
               {configs.map((config) => (
                 <tr key={config.id} className="border-t border-border">
-                  <td className="px-4 py-3 text-ink-inverse">{config.name}</td>
+                  <td className="px-4 py-3 text-ink">{config.name}</td>
                   <td className="px-4 py-3 text-ink-muted">{config.provider_type}</td>
                   <td className="px-4 py-3 text-ink-muted">{config.model_name}</td>
                   <td className="px-4 py-3">

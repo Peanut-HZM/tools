@@ -122,12 +122,12 @@ export default function ModelsTab() {
     voice: '语音', embedding: '向量', ocr: 'OCR',
   };
   const CATEGORY_COLORS: Record<string, string> = {
-    text: 'bg-accent-info/20 text-accent-info border-blue-500/30',
-    vision: 'bg-accent-secondary/20 text-accent-secondary border-purple-500/30',
-    image_gen: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-    voice: 'bg-green-500/20 text-green-400 border-green-500/30',
-    embedding: 'bg-accent-warning/20 text-accent-warning border-yellow-500/30',
-    ocr: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    text: 'bg-accent-info/20 text-accent-info border-accent-info/30',
+    vision: 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30',
+    image_gen: 'bg-danger/20 text-danger border-danger/30',
+    voice: 'bg-success/20 text-success border-success/30',
+    embedding: 'bg-accent-warning/20 text-accent-warning border-warning/30',
+    ocr: 'bg-accent-warm/20 text-accent-warm border-accent-warm/30',
   };
   const getCategoryLabel = (c: string) => CATEGORY_LABELS[c] || c;
   const getCategoryColor = (c: string) =>
@@ -167,7 +167,7 @@ export default function ModelsTab() {
       ) : filtered.length === 0 ? (
         <Card className="bg-surface-2 p-12 text-center">
           <div className="text-6xl mb-4">🤖</div>
-          <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无模型</h3>
+          <h3 className="text-lg font-medium text-ink mb-2">暂无模型</h3>
           <p className="text-ink-muted mb-4">新建模型以开始使用大模型功能</p>
           <Button onClick={handleAdd}>
             新建模型
@@ -192,7 +192,7 @@ export default function ModelsTab() {
               {filtered.map((m) => (
                 <tr key={m.id} className="hover:bg-surface-3/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-ink-inverse font-medium">{m.name}</div>
+                    <div className="text-ink font-medium">{m.name}</div>
                     {m.notes && (
                       <div className="text-xs text-ink-faint mt-1 truncate max-w-[180px]" title={m.notes}>
                         📝 {m.notes}
@@ -211,7 +211,7 @@ export default function ModelsTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="font-mono text-sm text-amber-300">{m.priority ?? 100}</span>
+                    <span className="font-mono text-sm text-warning">{m.priority ?? 100}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
@@ -250,13 +250,13 @@ export default function ModelsTab() {
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={() => handleEdit(m)}
-                        className="px-2 py-1 text-xs bg-yellow-600/20 text-accent-warning border border-yellow-500/30 rounded hover:bg-yellow-600/30 transition-colors"
+                        className="px-2 py-1 text-xs bg-warning/20 text-accent-warning border border-warning/30 rounded hover:bg-warning/30 transition-colors"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDeleteClick(m)}
-                        className="px-2 py-1 text-xs bg-red-600/20 text-danger border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
+                        className="px-2 py-1 text-xs bg-danger/20 text-danger border border-danger/30 rounded hover:bg-danger/30 transition-colors"
                       >
                         删除
                       </button>

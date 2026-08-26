@@ -136,10 +136,10 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
       <Card className="rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col my-8">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-xl font-bold text-ink-inverse">
+          <h2 className="text-xl font-bold text-ink">
             {quizId ? '编辑测验' : '创建测验'}
           </h2>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-inverse transition-colors">
+          <button onClick={onClose} className="text-ink-muted hover:text-ink transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -158,7 +158,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
                 value={formData.title}
                 onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                 required
-                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-accent"
                 placeholder="章节测验"
               />
             </div>
@@ -173,14 +173,14 @@ const QuizForm: React.FC<QuizFormProps> = ({ chapterId, quizId, onClose }) => {
                 onChange={(e) => setFormData((prev) => ({ ...prev, passing_score: parseInt(e.target.value) || 0 }))}
                 min="0"
                 max="100"
-                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-accent"
               />
             </div>
 
             {/* Questions */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-ink-inverse">题目列表</h3>
+                <h3 className="text-lg font-medium text-ink">题目列表</h3>
                 <Button
                   type="button"
                   onClick={handleAddQuestion}
@@ -348,7 +348,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               value={question.question_text}
               onChange={(e) => onUpdate({ question_text: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-accent"
               placeholder="请输入题目内容"
             />
           </div>
@@ -371,7 +371,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     type="text"
                     value={option.option_text}
                     onChange={(e) => handleOptionChange(optIndex, e.target.value)}
-                    className="flex-1 px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+                    className="flex-1 px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-accent"
                     placeholder={`选项 ${optionsLabels[optIndex]} 的内容`}
                   />
                 </div>
@@ -388,7 +388,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               value={question.explanation}
               onChange={(e) => onUpdate({ explanation: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink focus:outline-none focus:border-accent"
               placeholder="请解释为什么这个答案是正确的"
             />
           </div>

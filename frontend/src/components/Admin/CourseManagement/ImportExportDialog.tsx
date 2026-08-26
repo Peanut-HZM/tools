@@ -215,21 +215,21 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
               mode === 'export'
-                ? 'bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30'
+                ? 'bg-gradient-to-br from-success/20 to-success/20 border border-success/30'
                 : mode === 'import'
-                ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30'
-                : 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-accent/30'
+                ? 'bg-gradient-to-br from-warning/20 to-accent-warm/20 border border-warning/30'
+                : 'bg-gradient-to-br from-accent-info/20 to-blue-500/20 border border-accent/30'
             }`}>
               {mode === 'export' ? (
                 <Download className="w-5 h-5 text-success" />
               ) : mode === 'import' ? (
-                <Upload className="w-5 h-5 text-amber-400" />
+                <Upload className="w-5 h-5 text-warning" />
               ) : (
                 <Eye className="w-5 h-5 text-accent" />
               )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-ink-inverse">
+              <h2 className="text-2xl font-bold text-ink">
                 {mode === 'export' && '导出课程数据'}
                 {mode === 'import' && '导入课程数据'}
                 {mode === 'preview' && '导入预览'}
@@ -243,7 +243,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded-lg transition-all"
+            className="p-2 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all"
           >
             <X className="w-5 h-5" />
           </button>
@@ -254,13 +254,13 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           {mode === 'export' && (
             <div className="space-y-6">
               {/* 导出说明卡片 */}
-              <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-xl border border-emerald-500/20 p-5">
+              <div className="bg-gradient-to-br from-success/10 to-success/10 rounded-xl border border-success/20 p-5">
                 <h3 className="text-success font-semibold mb-2 flex items-center gap-2">
                   <Info className="w-4 h-4" />
                   导出说明
                 </h3>
                 <p className="text-ink-muted text-sm leading-relaxed">
-                  将当前课程的所有章节、测验和资源数据导出为 <strong className="text-ink-inverse">JSON 格式</strong> 文件。
+                  将当前课程的所有章节、测验和资源数据导出为 <strong className="text-ink">JSON 格式</strong> 文件。
                   导出的文件可用于数据备份或在其他环境中恢复课程数据。
                 </p>
               </div>
@@ -270,9 +270,9 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                 <label className="text-ink-muted text-sm font-medium">当前课程:</label>
                 <div className="px-4 py-3 bg-surface-2/50 border border-border/50 rounded-lg flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center">
-                    <GraduationCap className="w-4 h-4 text-ink-inverse" />
+                    <GraduationCap className="w-4 h-4 text-ink" />
                   </div>
-                  <span className="text-ink-inverse font-medium">{courseTitle || '未命名课程'}</span>
+                  <span className="text-ink font-medium">{courseTitle || '未命名课程'}</span>
                 </div>
               </div>
 
@@ -297,7 +297,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                   <button
                     onClick={handleExportZip}
                     disabled={loading}
-                    className="px-4 py-3 bg-surface-2/50 border border-border rounded-lg text-ink-muted hover:border-emerald-500/50 hover:bg-success/10 hover:text-success transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-3 bg-surface-2/50 border border-border rounded-lg text-ink-muted hover:border-success/50 hover:bg-success/10 hover:text-success transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <FileArchive className="w-4 h-4" />
@@ -309,18 +309,18 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
 
                 {/* 格式说明 */}
                 <div className="mt-3 p-4 bg-surface-2/30 rounded-lg border border-border/50">
-                  <h4 className="text-ink-inverse font-medium text-sm mb-2 flex items-center gap-2">
+                  <h4 className="text-ink font-medium text-sm mb-2 flex items-center gap-2">
                     <Info className="w-4 h-4 text-accent" />
                     格式说明
                   </h4>
                   <ul className="text-ink-muted text-xs space-y-1.5">
                     <li className="flex items-start gap-2">
                       <span className="text-accent mt-0.5">•</span>
-                      <span><strong className="text-ink-inverse">JSON 格式</strong> - 适合程序化处理，完整保留所有数据结构</span>
+                      <span><strong className="text-ink">JSON 格式</strong> - 适合程序化处理，完整保留所有数据结构</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-success mt-0.5">•</span>
-                      <span><strong className="text-ink-inverse">ZIP 压缩包</strong> - 包含 JSON 数据和 Markdown 章节文件，便于手动编辑和版本控制</span>
+                      <span><strong className="text-ink">ZIP 压缩包</strong> - 包含 JSON 数据和 Markdown 章节文件，便于手动编辑和版本控制</span>
                     </li>
                   </ul>
                 </div>
@@ -331,20 +331,20 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           {mode === 'import' && (
             <div className="space-y-6">
               {/* 导入说明卡片 */}
-              <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 p-5">
-                <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
+              <div className="bg-gradient-to-br from-warning/10 to-accent-warm/10 rounded-xl border border-warning/20 p-5">
+                <h3 className="text-warning font-semibold mb-2 flex items-center gap-2">
                   <Lightbulb className="w-4 h-4" />
                   导入说明
                 </h3>
                 <p className="text-ink-muted text-sm leading-relaxed mb-4">
-                  选择之前导出的 <strong className="text-ink-inverse">JSON 文件</strong> 进行导入。
+                  选择之前导出的 <strong className="text-ink">JSON 文件</strong> 进行导入。
                   建议先预览导入内容，确认数据无误后再执行导入操作。
                 </p>
 
                 {/* 导入策略 */}
                 <div className="space-y-3">
                   <label className="text-ink-muted text-sm font-medium flex items-center gap-2">
-                    <SettingsIcon className="w-4 h-4 text-amber-400" />
+                    <SettingsIcon className="w-4 h-4 text-warning" />
                     选择导入策略:
                   </label>
                   <Select
@@ -365,7 +365,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                   <div className="mt-3 p-3 bg-surface-1/50 rounded-lg border border-border/50">
                     {importStrategy === 'replace' && (
                       <p className="text-ink-muted text-xs">
-                        <span className="text-amber-400 font-medium">替换模式（推荐）：</span>
+                        <span className="text-warning font-medium">替换模式（推荐）：</span>
                         对于已存在的章节 slug 将更新内容，同时导入新的章节。适合批量更新课程数据。
                       </p>
                     )}
@@ -388,7 +388,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               {/* 文件选择 */}
               <div className="space-y-3">
                 <label className="text-ink-muted text-sm font-medium flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-amber-400" />
+                  <FileText className="w-4 h-4 text-warning" />
                   选择 JSON 文件:
                 </label>
                 <div
@@ -396,7 +396,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                   className={`relative px-6 py-8 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
                     selectedFile
                       ? 'border-accent/30 bg-accent/10'
-                      : 'border-border hover:border-amber-500/50 hover:bg-amber-500/10'
+                      : 'border-border hover:border-warning/50 hover:bg-warning/10'
                   }`}
                 >
                   <input
@@ -416,7 +416,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                     </div>
                     {selectedFile ? (
                       <>
-                        <p className="text-ink-inverse font-medium mb-1">{selectedFile.name}</p>
+                        <p className="text-ink font-medium mb-1">{selectedFile.name}</p>
                         <p className="text-ink-muted text-xs">
                           {(selectedFile.size / 1024).toFixed(2)} KB
                         </p>
@@ -437,23 +437,23 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
             <div className="space-y-5">
               {/* 统计卡片 */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl border border-cyan-500/20 p-4">
+                <div className="bg-gradient-to-br from-accent-info/10 to-accent-info/10 rounded-xl border border-accent-info/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">导入章节</div>
-                  <div className="text-ink-inverse text-3xl font-bold">{previewData.chapters_to_import || 0}</div>
+                  <div className="text-ink text-3xl font-bold">{previewData.chapters_to_import || 0}</div>
                 </div>
-                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 p-4">
+                <div className="bg-gradient-to-br from-warning/10 to-accent-warm/10 rounded-xl border border-warning/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">更新章节</div>
-                  <div className="text-ink-inverse text-3xl font-bold">{previewData.chapters_to_update || 0}</div>
+                  <div className="text-ink text-3xl font-bold">{previewData.chapters_to_update || 0}</div>
                 </div>
                 <div className="bg-gradient-to-br from-surface-3/10 to-surface-3/10 rounded-xl border border-border/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">跳过章节</div>
-                  <div className="text-ink-inverse text-3xl font-bold">{previewData.chapters_to_skip || 0}</div>
+                  <div className="text-ink text-3xl font-bold">{previewData.chapters_to_skip || 0}</div>
                 </div>
               </div>
 
               {/* 章节列表 */}
               <div className="bg-surface-2/30 rounded-xl border border-border/50 p-4">
-                <h3 className="text-ink-inverse font-semibold mb-3 flex items-center gap-2">
+                <h3 className="text-ink font-semibold mb-3 flex items-center gap-2">
                   <List className="w-4 h-4 text-accent" />
                   章节变更列表
                 </h3>
@@ -465,22 +465,22 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                         key={index}
                         className={`flex items-center gap-3 p-3 rounded-lg border ${
                           conflict.conflict_type === 'new'
-                            ? 'bg-success/10 border-emerald-500/20'
+                            ? 'bg-success/10 border-success/20'
                             : conflict.conflict_type === 'will_update'
-                            ? 'bg-amber-500/10 border-amber-500/20'
+                            ? 'bg-warning/10 border-warning/20'
                             : 'bg-surface-3/10 border-border/20'
                         }`}
                       >
                         <span className="text-lg">{status.icon}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-ink-inverse text-sm font-medium truncate">{conflict.chapter_title}</div>
+                          <div className="text-ink text-sm font-medium truncate">{conflict.chapter_title}</div>
                           <div className="text-ink-muted text-xs truncate">{conflict.chapter_slug}</div>
                         </div>
                         <span className={`text-xs px-2.5 py-1 rounded-full ${
                           conflict.conflict_type === 'new'
-                            ? 'bg-emerald-500/20 text-success'
+                            ? 'bg-success/20 text-success'
                             : conflict.conflict_type === 'will_update'
-                            ? 'bg-amber-500/20 text-amber-400'
+                            ? 'bg-warning/20 text-warning'
                             : 'bg-surface-3/20 text-ink-muted'
                         }`}>
                           {status.label}
@@ -493,15 +493,15 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
 
               {/* 警告信息 */}
               {previewData.warnings?.length > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-                  <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
+                <div className="bg-warning/10 border border-warning/30 rounded-xl p-4">
+                  <h3 className="text-warning font-semibold mb-2 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
                     警告
                   </h3>
                   <ul className="text-ink-muted text-sm space-y-1.5">
                     {previewData.warnings.map((warning: string, index: number) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-amber-400 mt-0.5">•</span>
+                        <span className="text-warning mt-0.5">•</span>
                         <span>{warning}</span>
                       </li>
                     ))}
@@ -518,14 +518,14 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
             <>
               <button
                 onClick={onClose}
-                className="px-5 py-2.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded-lg transition-all"
+                className="px-5 py-2.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all"
               >
                 取消
               </button>
               <button
                 onClick={handleExport}
                 disabled={loading}
-                className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-ink-inverse rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 flex items-center gap-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-success to-success hover:from-success hover:to-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -546,14 +546,14 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
             <>
               <button
                 onClick={onClose}
-                className="px-5 py-2.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded-lg transition-all"
+                className="px-5 py-2.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all"
               >
                 取消
               </button>
               <button
                 onClick={handlePreviewImport}
                 disabled={!selectedFile || loading}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-ink-inverse rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:-translate-y-0.5 flex items-center gap-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-warning/20 hover:shadow-warning/30 hover:-translate-y-0.5 flex items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -577,7 +577,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                   setMode(initialMode === 'export' ? 'import' : 'import');
                   setPreviewData(null);
                 }}
-                className="px-5 py-2.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded-lg transition-all flex items-center gap-1.5"
+                className="px-5 py-2.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>返回</span>
@@ -585,7 +585,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               <button
                 onClick={handleDoImport}
                 disabled={loading}
-                className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-ink-inverse rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-green-500/20 hover:shadow-green-500/30 hover:-translate-y-0.5 flex items-center gap-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-success to-success hover:from-success hover:to-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2"
               >
                 {loading ? (
                   <>

@@ -13,7 +13,7 @@ export default function LLMConfigsPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-ink-inverse mb-6">大模型配置管理</h2>
+      <h2 className="text-2xl font-bold text-ink mb-6">大模型配置管理</h2>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
         <TabsList className="mb-6">

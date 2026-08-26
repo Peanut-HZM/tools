@@ -265,19 +265,19 @@ export default function UserManagement() {
     return pages;
   }, [page, totalPages]);
 
-  if (loading) return <div className="text-ink-inverse">加载中...</div>;
+  if (loading) return <div className="text-ink">加载中...</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-ink-inverse">用户管理</h2>
+        <h2 className="text-2xl font-bold text-ink">用户管理</h2>
         <div className="flex gap-3">
           <button
             onClick={toggleBatchMode}
             className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
               batchMode
-                ? 'bg-orange-500 hover:bg-orange-600 text-ink-inverse'
-                : 'bg-surface-3 text-ink-inverse'
+                ? 'bg-accent-warm hover:bg-accent-warm text-ink-inverse'
+                : 'bg-surface-3 text-ink'
             }`}
           >
             {batchMode ? (
@@ -299,7 +299,7 @@ export default function UserManagement() {
       {/* Batch operation toolbar */}
       {batchMode && selectedUserIds.size > 0 && (
         <div className="mb-4 p-4 bg-surface-2/50 border border-border rounded-lg flex items-center justify-between">
-          <span className="text-ink-inverse text-sm">
+          <span className="text-ink text-sm">
             已选择 <span className="text-accent font-bold">{selectedUserIds.size}</span> 个用户
           </span>
           <div className="flex items-center gap-3">
@@ -341,7 +341,7 @@ export default function UserManagement() {
             onChange={(e) => setSearch(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="搜索用户名或邮箱..."
-            className="flex-1 bg-surface-1 border border-border rounded-lg px-4 py-2 text-ink-inverse text-sm focus:border-accent outline-none"
+            className="flex-1 bg-surface-1 border border-border rounded-lg px-4 py-2 text-ink text-sm focus:border-accent outline-none"
           />
           <button
             onClick={handleSearch}
@@ -352,7 +352,7 @@ export default function UserManagement() {
           </button>
           <button
             onClick={handleReset}
-            className="px-4 py-2 bg-surface-3 text-ink-inverse rounded-lg transition-colors text-sm"
+            className="px-4 py-2 bg-surface-3 text-ink rounded-lg transition-colors text-sm"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             重置
@@ -441,7 +441,7 @@ export default function UserManagement() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleResetPassword(user.user_id, user.username)}
-                        className="text-orange-400 hover:text-orange-300 transition-colors text-sm"
+                        className="text-accent-warm hover:text-accent-warm transition-colors text-sm"
                       >
                         重置密码
                       </button>
@@ -552,7 +552,7 @@ export default function UserManagement() {
       {isModalOpen && !generatedPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border">
-            <h3 className="text-xl font-bold text-ink-inverse mb-4">添加新用户</h3>
+            <h3 className="text-xl font-bold text-ink mb-4">添加新用户</h3>
             <form onSubmit={handleAddUser}>
               <div className="mb-4">
                 <label className="block text-ink-muted mb-2 text-sm">用户名</label>
@@ -561,7 +561,7 @@ export default function UserManagement() {
                   required
                   value={newUser.username}
                   onChange={e => setNewUser({ ...newUser, username: e.target.value })}
-                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink-inverse focus:border-accent outline-none"
+                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink focus:border-accent outline-none"
                 />
               </div>
               <div className="mb-4">
@@ -571,7 +571,7 @@ export default function UserManagement() {
                   required
                   value={newUser.email}
                   onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink-inverse focus:border-accent outline-none"
+                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink focus:border-accent outline-none"
                 />
               </div>
               <div className="mb-6">
@@ -590,7 +590,7 @@ export default function UserManagement() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-ink-muted hover:text-ink-inverse transition-colors"
+                  className="px-4 py-2 text-ink-muted hover:text-ink transition-colors"
                 >
                   取消
                 </button>
@@ -610,10 +610,10 @@ export default function UserManagement() {
       {generatedPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border text-center">
-            <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-ink-inverse mb-2">用户创建成功</h3>
+            <h3 className="text-xl font-bold text-ink mb-2">用户创建成功</h3>
             <p className="text-ink-muted mb-6">请复制下方生成的随机密码并发送给用户。</p>
 
             <div className="bg-canvas p-4 rounded mb-6 select-all font-mono text-accent text-lg break-all border border-border">

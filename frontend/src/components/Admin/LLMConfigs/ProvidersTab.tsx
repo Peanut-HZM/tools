@@ -149,13 +149,13 @@ export default function ProvidersTab() {
 
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-info"></div>
           <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : providers.length === 0 ? (
         <Card className="bg-surface-2 p-12 text-center">
           <div className="text-6xl mb-4">🔑</div>
-          <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无供应商</h3>
+          <h3 className="text-lg font-medium text-ink mb-2">暂无供应商</h3>
           <p className="text-ink-muted mb-4">新建供应商以开始配置大模型</p>
           <Button onClick={handleAdd}>
             新建供应商
@@ -178,7 +178,7 @@ export default function ProvidersTab() {
               {providers.map((p) => (
                 <tr key={p.id} className="hover:bg-surface-3/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-ink-inverse font-medium">{p.name}</div>
+                    <div className="text-ink font-medium">{p.name}</div>
                     {p.notes && (
                       <div className="text-xs text-ink-faint mt-1 truncate max-w-[200px]" title={p.notes}>
                         📝 {p.notes}
@@ -213,25 +213,25 @@ export default function ProvidersTab() {
                       <button
                         onClick={() => handleTest(p.id)}
                         disabled={testingId === p.id}
-                        className="px-2 py-1 text-xs bg-accent-info/20 text-accent-info border border-blue-500/30 rounded hover:bg-blue-600/30 transition-colors disabled:opacity-50"
+                        className="px-2 py-1 text-xs bg-accent-info/20 text-accent-info border border-accent-info/30 rounded hover:bg-blue-600/30 transition-colors disabled:opacity-50"
                       >
                         {testingId === p.id ? '测试中...' : '测试'}
                       </button>
                       <button
                         onClick={() => handleReveal(p.id)}
-                        className="px-2 py-1 text-xs bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded hover:bg-emerald-600/30 transition-colors"
+                        className="px-2 py-1 text-xs bg-success/20 text-success border border-success/30 rounded hover:bg-success/30 transition-colors"
                       >
                         {revealedKey[p.id] ? '隐藏' : 'Key'}
                       </button>
                       <button
                         onClick={() => handleEdit(p)}
-                        className="px-2 py-1 text-xs bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 rounded hover:bg-yellow-600/30 transition-colors"
+                        className="px-2 py-1 text-xs bg-warning/20 text-warning border border-warning/30 rounded hover:bg-warning/30 transition-colors"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDeleteClick(p)}
-                        className="px-2 py-1 text-xs bg-danger/20 text-danger border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
+                        className="px-2 py-1 text-xs bg-danger/20 text-danger border border-danger/30 rounded hover:bg-danger/30 transition-colors"
                       >
                         删除
                       </button>

@@ -60,12 +60,12 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
 
   const getResourceIcon = (type: string) => {
     const icons: Record<string, ReactNode> = {
-      code_sample: <Code className="w-5 h-5 text-ink-inverse" />,
-      contrast: <Scale className="w-5 h-5 text-ink-inverse" />,
-      video: <Video className="w-5 h-5 text-ink-inverse" />,
-      template: <FileText className="w-5 h-5 text-ink-inverse" />,
+      code_sample: <Code className="w-5 h-5 text-ink" />,
+      contrast: <Scale className="w-5 h-5 text-ink" />,
+      video: <Video className="w-5 h-5 text-ink" />,
+      template: <FileText className="w-5 h-5 text-ink" />,
     };
-    return icons[type] || <File className="w-5 h-5 text-ink-inverse" />;
+    return icons[type] || <File className="w-5 h-5 text-ink" />;
   };
 
   const getResourceColor = (type: string) => {
@@ -73,7 +73,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
       code_sample: 'from-blue-500 to-cyan-500',
       contrast: 'from-purple-500 to-pink-500',
       video: 'from-red-500 to-orange-500',
-      template: 'from-green-500 to-emerald-500',
+      template: 'from-success to-emerald-500',
     };
     return colors[type] || 'from-slate-500 to-gray-500';
   };
@@ -93,7 +93,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
       {/* Chapter List */}
       <div className="w-80 border-r border-border/50 pr-4">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
+          <h3 className="text-lg font-semibold text-ink flex items-center">
             <BookOpen className="w-4 h-4 mr-2 text-accent" />
             选择章节
           </h3>
@@ -108,12 +108,12 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                 onClick={() => handleSelectChapter(chapter.id)}
                 className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
                   selectedChapterId === chapter.id
-                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 border border-accent shadow-lg shadow-cyan-500/10'
+                    ? 'bg-gradient-to-r from-accent-info/20 to-accent-info/10 border border-accent shadow-lg shadow-accent-info/10'
                     : 'bg-surface-2/30 border border-border/50 hover:bg-surface-2/50 hover:border-border'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-ink-inverse font-medium truncate">{chapter.title}</span>
+                  <span className="text-ink font-medium truncate">{chapter.title}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center px-2 py-1 bg-surface-3/50 text-ink-muted border border-border/50 rounded text-xs">
@@ -134,7 +134,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
           <>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-ink-inverse flex items-center">
+                <h3 className="text-2xl font-bold text-ink flex items-center">
                   <FolderOpen className="w-5 h-5 text-accent mr-3" />
                   资源：{chapters.find((c) => c.id === selectedChapterId)?.title}
                 </h3>
@@ -143,7 +143,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
               <Button
                 onClick={handleCreateResource}
                 variant="default"
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
+                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-accent-info/20 hover:shadow-accent-info/30 flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 添加资源
@@ -153,7 +153,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
             {loadingResourceId === selectedChapterId ? (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-info mx-auto mb-4"></div>
                   <p className="text-ink-muted">加载中...</p>
                 </div>
               </div>
@@ -170,7 +170,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                           {getResourceIcon(resource.resource_type)}
                         </div>
                         <div>
-                          <h4 className="text-ink-inverse font-semibold">{resource.title}</h4>
+                          <h4 className="text-ink font-semibold">{resource.title}</h4>
                           <p className="text-ink-muted text-sm">{getTypeLabel(resource.resource_type)}</p>
                         </div>
                       </div>
@@ -205,12 +205,12 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                   <div className="w-24 h-24 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-6">
                     <FolderOpen className="w-20 h-20 text-ink-faint" />
                   </div>
-                  <p className="text-ink-inverse text-lg font-medium mb-2">该章节还没有资源</p>
+                  <p className="text-ink text-lg font-medium mb-2">该章节还没有资源</p>
                   <p className="text-ink-muted text-sm mb-6">添加学习资源来帮助理解课程内容</p>
                   <Button
                     onClick={handleCreateResource}
                     variant="default"
-                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
+                    className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-accent-info/20 hover:shadow-accent-info/30 inline-flex items-center"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     添加资源

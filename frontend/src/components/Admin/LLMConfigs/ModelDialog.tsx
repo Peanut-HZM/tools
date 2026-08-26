@@ -89,10 +89,10 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
       <Card className="relative shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-1/50">
-          <h3 className="text-lg font-semibold text-ink-inverse">
+          <h3 className="text-lg font-semibold text-ink">
             {editing ? '编辑模型' : '新建模型'}
           </h3>
-          <button onClick={onClose} className="p-1 text-ink-muted hover:text-ink-inverse transition-colors">
+          <button onClick={onClose} className="p-1 text-ink-muted hover:text-ink transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -119,7 +119,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                   }
                   setFormData({ ...formData, ...updates });
                 }}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：GPT-4o"
                 required
               />
@@ -135,7 +135,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                 value={formData.model_name}
                 onFocus={() => { modelNameManualRef.current = true; }}
                 onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="例如：gpt-4o"
                 required
               />
@@ -193,7 +193,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
                 max={9999}
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) || 100 })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <div className="text-xs text-ink-faint mt-1">数字越小越优先，默认 100</div>
             </div>
@@ -206,7 +206,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
               <textarea
                 value={formData.request_params}
                 onChange={(e) => setFormData({ ...formData, request_params: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
                 placeholder='{"temperature": 0.7, "max_tokens": 4096}'
                 rows={3}
               />
@@ -218,7 +218,7 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="可选备注"
                 rows={2}
               />

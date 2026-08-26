@@ -61,7 +61,7 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
   if (loading && providerCount === 0) {
     return (
       <div className="flex items-center justify-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-info"></div>
       </div>
     );
   }
@@ -70,7 +70,7 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
     return (
       <div className="bg-danger/10 border border-danger/30 rounded-lg p-4">
         <p className="text-danger">{error}</p>
-        <button onClick={loadStats} className="mt-2 text-sm text-red-300 hover:text-red-100">
+        <button onClick={loadStats} className="mt-2 text-sm text-danger hover:text-danger">
           重试
         </button>
       </div>
@@ -95,15 +95,15 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
       <Card className="bg-surface-2">
         <CardContent className="pt-4">
           <div className="text-sm text-accent font-medium">供应商数</div>
-          <div className="text-2xl font-bold text-ink-inverse mt-1">{providerCount}</div>
+          <div className="text-2xl font-bold text-ink mt-1">{providerCount}</div>
         </CardContent>
       </Card>
 
       {/* 模型总数 */}
       <Card className="bg-surface-2">
         <CardContent className="pt-4">
-          <div className="text-sm text-green-400 font-medium">模型总数</div>
-          <div className="text-2xl font-bold text-ink-inverse mt-1">{modelCount}</div>
+          <div className="text-sm text-success font-medium">模型总数</div>
+          <div className="text-2xl font-bold text-ink mt-1">{modelCount}</div>
         </CardContent>
       </Card>
 
@@ -111,15 +111,15 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
       <Card className="bg-surface-2">
         <CardContent className="pt-4">
           <div className="text-sm text-accent-secondary font-medium">活跃模型</div>
-          <div className="text-2xl font-bold text-ink-inverse mt-1">{activeModelCount}</div>
+          <div className="text-2xl font-bold text-ink mt-1">{activeModelCount}</div>
         </CardContent>
       </Card>
 
       {/* 活跃率 */}
       <Card className="bg-surface-2">
         <CardContent className="pt-4">
-          <div className="text-sm text-orange-400 font-medium">活跃率</div>
-          <div className="text-2xl font-bold text-ink-inverse mt-1">
+          <div className="text-sm text-accent-warm font-medium">活跃率</div>
+          <div className="text-2xl font-bold text-ink mt-1">
             {modelCount > 0 ? `${((activeModelCount / modelCount) * 100).toFixed(0)}%` : '0%'}
           </div>
         </CardContent>

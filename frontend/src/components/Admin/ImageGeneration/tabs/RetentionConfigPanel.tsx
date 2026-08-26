@@ -130,13 +130,13 @@ export default function RetentionConfigPanel() {
             <Card className="bg-surface-2">
               <CardContent className="p-4">
                 <div className="text-ink-muted text-xs mb-1">{igT.totalFiles}</div>
-                <div className="text-lg font-bold text-ink-inverse">{config.total_files}</div>
+                <div className="text-lg font-bold text-ink">{config.total_files}</div>
               </CardContent>
             </Card>
             <Card className="bg-surface-2">
               <CardContent className="p-4">
                 <div className="text-ink-muted text-xs mb-1">{igT.totalSize}</div>
-                <div className="text-lg font-bold text-ink-inverse">
+                <div className="text-lg font-bold text-ink">
                   {config.total_size_mb.toFixed(2)} MB
                 </div>
               </CardContent>
@@ -175,7 +175,7 @@ export default function RetentionConfigPanel() {
             max="3650"
             value={nDays}
             onChange={(e) => setNDays(Number(e.target.value))}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+            className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
           <p className="text-xs text-ink-faint mt-1">{igT.retentionDaysRange}</p>
         </div>
@@ -187,7 +187,7 @@ export default function RetentionConfigPanel() {
             value={cleanupCron}
             onChange={(e) => setCleanupCron(e.target.value)}
             placeholder={igT.cleanupCronPlaceholder}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+            className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
           />
           <p className="text-xs text-ink-faint mt-1">{igT.cleanupCronExample}</p>
         </div>
@@ -203,7 +203,7 @@ export default function RetentionConfigPanel() {
           <Button
             onClick={handleTrigger}
             disabled={triggering}
-            className="bg-orange-600 hover:bg-orange-700 disabled:bg-surface-3 disabled:cursor-not-allowed text-white"
+            className="bg-accent-warm hover:bg-orange-700 disabled:bg-surface-3 disabled:cursor-not-allowed text-white"
           >
             {triggering ? igT.triggering : igT.triggerCleanup}
           </Button>

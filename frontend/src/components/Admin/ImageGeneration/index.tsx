@@ -29,7 +29,7 @@ export default function ImageGenerationAdmin() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-ink-inverse mb-6">{igT.admin.title}</h2>
+      <h2 className="text-2xl font-bold text-ink mb-6">{igT.admin.title}</h2>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
         <TabsList className="mb-6">

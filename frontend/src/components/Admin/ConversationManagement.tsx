@@ -52,18 +52,18 @@ export default function ConversationManagement() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-ink-inverse mb-6">对话管理</h2>
+      <h2 className="text-2xl font-bold text-ink mb-6">对话管理</h2>
 
       {/* 统计卡片 */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-surface-2 rounded-lg p-4 border border-border">
             <p className="text-ink-muted text-sm">总对话数</p>
-            <p className="text-2xl font-bold text-ink-inverse">{formatNumber(stats.total_conversations)}</p>
+            <p className="text-2xl font-bold text-ink">{formatNumber(stats.total_conversations)}</p>
           </div>
           <div className="bg-surface-2 rounded-lg p-4 border border-border">
             <p className="text-ink-muted text-sm">总消息数</p>
-            <p className="text-2xl font-bold text-ink-inverse">{formatNumber(stats.total_messages)}</p>
+            <p className="text-2xl font-bold text-ink">{formatNumber(stats.total_messages)}</p>
           </div>
           <div className="bg-surface-2 rounded-lg p-4 border border-border">
             <p className="text-ink-muted text-sm">总Token消耗</p>
@@ -71,7 +71,7 @@ export default function ConversationManagement() {
           </div>
           <div className="bg-surface-2 rounded-lg p-4 border border-border">
             <p className="text-ink-muted text-sm">今日Token消耗</p>
-            <p className="text-2xl font-bold text-green-400">{formatNumber(stats.today_tokens)}</p>
+            <p className="text-2xl font-bold text-success">{formatNumber(stats.today_tokens)}</p>
           </div>
         </div>
       )}
@@ -79,11 +79,11 @@ export default function ConversationManagement() {
       {/* 模型使用统计 */}
       {modelStats.length > 0 && (
         <div className="bg-surface-2 rounded-lg p-6 mb-6 border border-border">
-          <h3 className="text-lg font-semibold text-ink-inverse mb-4">模型使用统计</h3>
+          <h3 className="text-lg font-semibold text-ink mb-4">模型使用统计</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {modelStats.map((stat) => (
               <div key={stat.model_name} className="bg-surface-1 rounded-lg p-4">
-                <p className="text-ink-inverse font-medium">{stat.model_name}</p>
+                <p className="text-ink font-medium">{stat.model_name}</p>
                 <p className="text-ink-muted text-sm">
                   调用: {stat.usage_count} 次 | Token: {formatNumber(stat.total_tokens)}
                 </p>
@@ -103,7 +103,7 @@ export default function ConversationManagement() {
       {/* 对话列表 */}
       <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
         <div className="p-4 border-b border-border flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-ink-inverse">对话列表</h3>
+          <h3 className="text-lg font-semibold text-ink">对话列表</h3>
           <button
             onClick={loadData}
             disabled={loading}
@@ -133,7 +133,7 @@ export default function ConversationManagement() {
               {conversations.map((conv) => (
                 <tr key={conv.id} className="hover:bg-surface-3/50">
                   <td className="px-4 py-3">
-                    <div className="text-ink-inverse font-medium truncate max-w-[200px]">
+                    <div className="text-ink font-medium truncate max-w-[200px]">
                       {conv.title || '未命名对话'}
                     </div>
                     <div className="text-xs text-ink-muted">{conv.current_stage}</div>

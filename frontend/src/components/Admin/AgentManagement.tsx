@@ -104,7 +104,7 @@ export default function AgentManagement() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-ink-inverse">Agent管理</h2>
+        <h2 className="text-2xl font-bold text-ink">Agent管理</h2>
         <button
           onClick={() => setShowForm(true)}
           className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors flex items-center gap-2"
@@ -117,7 +117,7 @@ export default function AgentManagement() {
       {/* Agent表单 */}
       {showForm && (
         <div className="bg-surface-2 rounded-lg p-6 mb-6 border border-border">
-          <h3 className="text-lg font-semibold text-ink-inverse mb-4">
+          <h3 className="text-lg font-semibold text-ink mb-4">
             {editingId ? '编辑Agent' : '添加新Agent'}
           </h3>
           <form onSubmit={handleSubmit}>
@@ -130,7 +130,7 @@ export default function AgentManagement() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="例如：产品经理助手"
                   required
                 />
@@ -144,7 +144,7 @@ export default function AgentManagement() {
                   type="text"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="例如：AI工具"
                   required
                 />
@@ -158,7 +158,7 @@ export default function AgentManagement() {
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="简短描述Agent的功能"
                   required
                 />
@@ -171,7 +171,7 @@ export default function AgentManagement() {
                 <textarea
                   value={formData.system_prompt}
                   onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent h-32"
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent h-32"
                   placeholder="定义Agent的角色和能力..."
                   required
                 />
@@ -191,7 +191,7 @@ export default function AgentManagement() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2 bg-surface-3 hover:bg-surface-3 text-ink-inverse rounded-lg transition-colors"
+                className="px-6 py-2 bg-surface-3 hover:bg-surface-3 text-ink rounded-lg transition-colors"
               >
                 取消
               </button>
@@ -209,7 +209,7 @@ export default function AgentManagement() {
       ) : agents.length === 0 ? (
         <div className="bg-surface-2 rounded-lg p-12 text-center border border-border">
           <div className="text-6xl mb-4">🤖</div>
-          <h3 className="text-lg font-medium text-ink-inverse mb-2">暂无Agent</h3>
+          <h3 className="text-lg font-medium text-ink mb-2">暂无Agent</h3>
           <p className="text-ink-muted mb-4">添加一个Agent以开始使用</p>
           <button
             onClick={() => setShowForm(true)}
@@ -234,7 +234,7 @@ export default function AgentManagement() {
               {agents.map((agent) => (
                 <tr key={agent.id} className="hover:bg-surface-3/50 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-ink-inverse font-medium">{agent.name}</div>
+                    <div className="text-ink font-medium">{agent.name}</div>
                     <div className="text-xs text-ink-muted">{agent.category}</div>
                   </td>
                   <td className="px-4 py-3 text-ink-muted max-w-[300px] truncate">
@@ -263,13 +263,13 @@ export default function AgentManagement() {
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleEdit(agent)}
-                        className="px-3 py-1 text-sm bg-yellow-600/20 text-yellow-400 border border-yellow-500/30 rounded hover:bg-yellow-600/30 transition-colors"
+                        className="px-3 py-1 text-sm bg-warning/20 text-warning border border-warning/30 rounded hover:bg-warning/30 transition-colors"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDelete(agent.id, agent.name)}
-                        className="px-3 py-1 text-sm bg-red-600/20 text-danger border border-red-500/30 rounded hover:bg-red-600/30 transition-colors"
+                        className="px-3 py-1 text-sm bg-danger/20 text-danger border border-danger/30 rounded hover:bg-danger/30 transition-colors"
                       >
                         删除
                       </button>

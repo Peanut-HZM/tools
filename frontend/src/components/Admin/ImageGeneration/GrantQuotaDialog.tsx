@@ -64,13 +64,13 @@ export default function GrantQuotaDialog({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="p-6 max-w-md w-full">
-        <h3 className="text-xl font-bold text-ink-inverse mb-4">
+        <h3 className="text-xl font-bold text-ink mb-4">
           {existing ? igT.editQuota : igT.grantQuota}
         </h3>
 
         <div className="mb-4">
           <div className="text-sm text-ink-muted mb-1">{igT.userId}</div>
-          <div className="text-ink-inverse text-sm bg-surface-2 px-3 py-2 rounded">
+          <div className="text-ink text-sm bg-surface-2 px-3 py-2 rounded">
             {userId}
           </div>
         </div>
@@ -91,7 +91,7 @@ export default function GrantQuotaDialog({
               value={dailyLimit}
               onChange={(e) => setDailyLimit(Number(e.target.value))}
               required
-              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+              className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
             <p className="text-xs text-ink-faint mt-1">{igT.dailyLimitRange}</p>
           </div>
@@ -105,7 +105,7 @@ export default function GrantQuotaDialog({
               value={monthlyLimit}
               onChange={(e) => setMonthlyLimit(Number(e.target.value))}
               required
-              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+              className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
             />
             <p className="text-xs text-ink-faint mt-1">{igT.monthlyLimitRange}</p>
           </div>
@@ -117,7 +117,7 @@ export default function GrantQuotaDialog({
                 type="datetime-local"
                 value={validFrom}
                 onChange={(e) => setValidFrom(e.target.value)}
-                className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+                className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
               />
             </div>
             <div>
@@ -126,7 +126,7 @@ export default function GrantQuotaDialog({
                 type="datetime-local"
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
-                className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
+                className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent"
               />
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function GrantQuotaDialog({
               maxLength={200}
               rows={3}
               placeholder={igT.notesPlaceholder}
-              className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent resize-none"
+              className="w-full bg-surface-2 border border-border text-ink px-3 py-2 rounded focus:outline-none focus:border-accent resize-none"
             />
           </div>
 

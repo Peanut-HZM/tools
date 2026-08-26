@@ -89,7 +89,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
               {courseId ? <Pencil className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-ink-inverse">
+              <h2 className="text-xl font-bold text-ink">
                 {courseId ? '编辑课程' : '新增课程'}
               </h2>
               <p className="text-ink-muted text-xs">填写课程基本信息</p>
@@ -135,7 +135,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                     value={formData.title}
                     onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                     required
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                     placeholder="OpenSpec VibeCoding 课程"
                   />
                 </div>
@@ -150,7 +150,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                     value={formData.slug}
                     onChange={handleSlugChange}
                     required
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                     placeholder="openspec-vibecoding"
                   />
                   <p className="text-xs text-ink-faint mt-1">
@@ -198,7 +198,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                     name="cover_image"
                     value={formData.cover_image}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                     placeholder="https://example.com/cover.jpg"
                   />
                 </div>
@@ -240,8 +240,8 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                     className="w-5 h-5 mt-0.5 bg-surface-2 border border-border rounded text-accent focus:ring-accent/50"
                   />
                   <label htmlFor="is_published" className="flex-1 cursor-pointer">
-                    <div className="font-medium text-ink-inverse flex items-center">
-                      <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+                    <div className="font-medium text-ink flex items-center">
+                      <CheckCircle className="w-4 h-4 text-success mr-2" />
                       发布课程
                     </div>
                     <p className="text-ink-muted text-sm mt-1">
@@ -257,7 +257,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
           {showPreview && (
             <div className="w-1/2 border-l border-border/50 overflow-y-auto p-6 bg-canvas/50">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
+                <h3 className="text-lg font-semibold text-ink flex items-center">
                   <Eye className="w-4 h-4 text-accent mr-2" />
                   预览效果
                 </h3>
@@ -265,7 +265,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
               </div>
               <div className="bg-surface-1/50 rounded-xl overflow-hidden border border-border/50">
                 {/* 封面图预览 */}
-                <div className="aspect-video bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center relative overflow-hidden">
+                <div className="aspect-video bg-gradient-to-br from-accent-info/20 to-blue-600/20 flex items-center justify-center relative overflow-hidden">
                   {formData.cover_image ? (
                     <img
                       src={formData.cover_image}
@@ -281,7 +281,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                 </div>
                 {/* 课程信息预览 */}
                 <div className="p-4">
-                  <h4 className="text-lg font-bold text-ink-inverse mb-2 line-clamp-2">
+                  <h4 className="text-lg font-bold text-ink mb-2 line-clamp-2">
                     {formData.title || '课程标题'}
                   </h4>
                   <p className="text-ink-muted text-sm line-clamp-3">

@@ -401,12 +401,12 @@ export default function ToolManagement() {
   const hasActiveFilters = toolSearch || toolStatusFilter || toolCategoryFilter ||
     showPcFilter !== 'all' || showMobileFilter !== 'all' || requireLoginFilter !== 'all';
 
-  if (loading) return <div className="text-ink-inverse">加载中...</div>;
+  if (loading) return <div className="text-ink">加载中...</div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-ink-inverse">后台管理</h2>
+        <h2 className="text-2xl font-bold text-ink">后台管理</h2>
         <div className="flex space-x-2">
           <Button
             variant={activeTab === 'tools' ? 'default' : 'secondary'}
@@ -461,7 +461,7 @@ export default function ToolManagement() {
               )}
               <button
                 onClick={handleResetFilters}
-                className="text-xs text-danger hover:text-red-300 ml-2 transition-colors cursor-pointer"
+                className="text-xs text-danger hover:text-danger ml-2 transition-colors cursor-pointer"
               >
                 <CircleX className="w-4 h-4 mr-1" />重置
               </button>
@@ -470,10 +470,10 @@ export default function ToolManagement() {
 
           {/* 批量操作栏 */}
           {selectedToolIds.size > 0 && (
-            <div className="bg-accent/10 border border-blue-500/30 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+            <div className="bg-accent/10 border border-accent-info/30 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-sm text-blue-300">
-                  已选择 <strong className="text-blue-200">{selectedToolIds.size}</strong> 个工具
+                <span className="text-sm text-accent-info">
+                  已选择 <strong className="text-ink">{selectedToolIds.size}</strong> 个工具
                 </span>
                 <button onClick={clearSelection} className="text-xs text-ink-muted hover:text-ink-muted cursor-pointer">
                   取消选择
@@ -482,19 +482,19 @@ export default function ToolManagement() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleBatchEnable}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-success hover:opacity-90 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />批量启用
                 </button>
                 <button
                   onClick={handleBatchDisable}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-warning hover:bg-warning text-ink text-sm rounded-md transition-colors cursor-pointer"
                 >
                   <PauseCircle className="w-4 h-4 mr-1" />批量停用
                 </button>
                 <button
                   onClick={handleBatchDelete}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-danger hover:bg-danger text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4 mr-1" />批量删除
                 </button>
@@ -506,22 +506,22 @@ export default function ToolManagement() {
           <div className="bg-surface-1/50 p-3 rounded-xl mb-4 border border-border/50">
             <div className="flex flex-wrap gap-2 items-center">
               {/* 搜索框 */}
-              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 min-w-[200px] flex-1 max-w-[320px] transition-colors duration-200 ${toolSearch ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 min-w-[200px] flex-1 max-w-[320px] transition-colors duration-200 ${toolSearch ? 'border-accent-info' : 'border-border hover:border-border'}`}>
                 <Search className="w-3 h-3 text-ink-faint" />
                 <input
                   type="text"
                   placeholder="搜索名称/描述..."
                   value={toolSearch}
                   onChange={(e) => { setToolSearch(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-ink-inverse text-sm outline-none w-full placeholder-slate-500"
+                  className="bg-transparent text-ink text-sm outline-none w-full placeholder-ink-faint"
                 />
               </div>
 
               {/* 状态筛选 */}
-              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolStatusFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolStatusFilter ? 'border-accent-info' : 'border-border hover:border-border'}`}>
                 <CircleDot className="w-3 h-3 text-ink-faint" />
                 <Select value={toolStatusFilter} onValueChange={(v) => { setToolStatusFilter(v); setToolPage(1); }}>
-                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink">
                     <SelectValue placeholder="全部状态" />
                   </SelectTrigger>
                   <SelectContent>
@@ -533,10 +533,10 @@ export default function ToolManagement() {
               </div>
 
               {/* 分类筛选 */}
-              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolCategoryFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolCategoryFilter ? 'border-accent-info' : 'border-border hover:border-border'}`}>
                 <Folder className="w-3 h-3 text-ink-faint" />
                 <Select value={toolCategoryFilter} onValueChange={(v) => { setToolCategoryFilter(v); setToolPage(1); }}>
-                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink">
                     <SelectValue placeholder="全部分类" />
                   </SelectTrigger>
                   <SelectContent>
@@ -549,10 +549,10 @@ export default function ToolManagement() {
               </div>
 
               {/* 排序 */}
-              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'usage_count' || toolSortOrder !== 'desc') ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'usage_count' || toolSortOrder !== 'desc') ? 'border-accent-info' : 'border-border hover:border-border'}`}>
                 <ArrowDownAZ className="w-3 h-3 text-ink-faint" />
                 <Select value={`${toolSortBy}-${toolSortOrder}`} onValueChange={(v) => { const [by, order] = v.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}>
-                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -569,11 +569,11 @@ export default function ToolManagement() {
               </div>
 
               {/* PC 展示筛选 */}
-              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showPcFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showPcFilter !== 'all' ? 'border-accent-info' : 'border-border hover:border-border'}`}>
                 <Monitor className="w-3 h-3 text-ink-faint" />
                 <span className="text-xs text-ink-muted">PC</span>
                 <Select value={showPcFilter} onValueChange={(v) => { setShowPcFilter(v); setToolPage(1); }}>
-                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -585,11 +585,11 @@ export default function ToolManagement() {
               </div>
 
               {/* 移动端展示筛选 */}
-              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showMobileFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showMobileFilter !== 'all' ? 'border-accent-info' : 'border-border hover:border-border'}`}>
                 <Smartphone className="w-3 h-3 text-ink-faint" />
                 <span className="text-xs text-ink-muted">移动</span>
                 <Select value={showMobileFilter} onValueChange={(v) => { setShowMobileFilter(v); setToolPage(1); }}>
-                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -601,11 +601,11 @@ export default function ToolManagement() {
               </div>
 
               {/* 登录要求筛选 */}
-              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${requireLoginFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
+              <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${requireLoginFilter !== 'all' ? 'border-accent-info' : 'border-border hover:border-border'}`}>
                 <Lock className="w-3 h-3 text-ink-faint" />
                 <span className="text-xs text-ink-muted">登录</span>
                 <Select value={requireLoginFilter} onValueChange={(v) => { setRequireLoginFilter(v); setToolPage(1); }}>
-                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -632,11 +632,11 @@ export default function ToolManagement() {
                   <label className="flex items-center justify-center cursor-pointer">
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                       tools.length > 0 && selectedToolIds.size === tools.length
-                        ? 'bg-accent border-blue-500'
+                        ? 'bg-accent border-accent-info'
                         : 'border-border hover:border-border'
                     }`}>
                       {tools.length > 0 && selectedToolIds.size === tools.length && (
-                        <Check className="w-3 h-3 text-ink-inverse" />
+                        <Check className="w-3 h-3 text-ink" />
                       )}
                     </div>
                   </label>
@@ -664,11 +664,11 @@ export default function ToolManagement() {
                     <label className="flex items-center justify-center cursor-pointer">
                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                         selectedToolIds.has(tool.id)
-                          ? 'bg-accent border-blue-500'
+                          ? 'bg-accent border-accent-info'
                           : 'border-border hover:border-border'
                       }`}>
                         {selectedToolIds.has(tool.id) && (
-                          <Check className="w-3 h-3 text-ink-inverse" />
+                          <Check className="w-3 h-3 text-ink" />
                         )}
                       </div>
                     </label>
@@ -677,12 +677,12 @@ export default function ToolManagement() {
                     {tool.custom_icon_url ? (
                       <img src={tool.custom_icon_url} alt={tool.title} className="w-8 h-8 rounded object-contain mr-3 bg-surface-3" />
                     ) : (
-                      <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-ink-inverse mr-3`}>
+                      <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-ink mr-3`}>
                         <DynamicFaIcon iconString={tool.icon} className="w-4 h-4" />
                       </div>
                     )}
                     <div>
-                      <div className="font-medium text-ink-inverse">{tool.title}</div>
+                      <div className="font-medium text-ink">{tool.title}</div>
                       <div className="text-xs text-ink-faint">{tool.id}</div>
                     </div>
                   </td>
@@ -710,7 +710,7 @@ export default function ToolManagement() {
                         onChange={() => handleStatusChange(tool.id, tool.status)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success"></div>
                     </label>
                   </td>
 
@@ -736,7 +736,7 @@ export default function ToolManagement() {
                         onChange={() => handleMobileToggle(tool.id, tool.show_mobile !== false)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-secondary"></div>
                     </label>
                   </td>
 
@@ -749,7 +749,7 @@ export default function ToolManagement() {
                         onChange={() => handleLoginToggle(tool.id, tool.require_login ?? false)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                      <div className="w-9 h-5 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-warm"></div>
                     </label>
                   </td>
 
@@ -758,7 +758,7 @@ export default function ToolManagement() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEditTool(tool)}
-                        className="text-accent-info hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
+                        className="text-accent-info hover:text-accent-info text-sm font-medium transition-colors cursor-pointer"
                         title="编辑"
                       >
                         <Pencil className="w-4 h-4" />
@@ -767,8 +767,8 @@ export default function ToolManagement() {
                         onClick={() => handleRowStatusChange(tool.id, tool.status)}
                         className={`text-sm font-medium transition-colors cursor-pointer ${
                           tool.status === 'online'
-                            ? 'text-amber-400 hover:text-amber-300'
-                            : 'text-green-400 hover:text-green-300'
+                            ? 'text-warning hover:text-warning'
+                            : 'text-success hover:text-success'
                         }`}
                         title={tool.status === 'online' ? '停用' : '启用'}
                       >
@@ -780,7 +780,7 @@ export default function ToolManagement() {
                       </button>
                       <button
                         onClick={() => handleDeleteTool(tool.id)}
-                        className="text-danger hover:text-red-300 text-sm font-medium transition-colors cursor-pointer"
+                        className="text-danger hover:text-danger text-sm font-medium transition-colors cursor-pointer"
                         title="删除"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -866,7 +866,7 @@ export default function ToolManagement() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={handleCloseModal}>
             <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-ink-inverse mb-6">编辑工具：{editingTool.title}</h3>
+                <h3 className="text-xl font-semibold text-ink mb-6">编辑工具：{editingTool.title}</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
@@ -875,7 +875,7 @@ export default function ToolManagement() {
                       type="text"
                       value={toolForm.title || ''}
                       onChange={(e) => setToolForm({...toolForm, title: e.target.value})}
-                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
+                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent-info"
                     />
                   </div>
 
@@ -884,7 +884,7 @@ export default function ToolManagement() {
                     <textarea
                       value={toolForm.description || ''}
                       onChange={(e) => setToolForm({...toolForm, description: e.target.value})}
-                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
+                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent-info"
                       rows={3}
                     />
                   </div>
@@ -909,7 +909,7 @@ export default function ToolManagement() {
                       type="text"
                       value={toolForm.iconColor || ''}
                       onChange={(e) => setToolForm({...toolForm, iconColor: e.target.value})}
-                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
+                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent-info"
                     />
                   </div>
 
@@ -924,7 +924,7 @@ export default function ToolManagement() {
                             <p className="text-sm text-ink-muted">已上传自定义图标</p>
                             <button
                               onClick={handleDeleteIcon}
-                              className="text-xs text-danger hover:text-red-300 mt-1"
+                              className="text-xs text-danger hover:text-danger mt-1"
                             >
                               删除自定义图标（恢复默认）
                             </button>
@@ -985,7 +985,7 @@ export default function ToolManagement() {
                           onChange={(e) => setToolForm({...toolForm, status: e.target.checked ? 'online' : 'offline'})}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-success"></div>
                       </label>
                     </div>
 
@@ -998,7 +998,7 @@ export default function ToolManagement() {
                           onChange={(e) => setToolForm({...toolForm, require_login: e.target.checked})}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                        <div className="w-11 h-6 bg-surface-3 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-warm"></div>
                       </label>
                     </div>
                   </div>
@@ -1027,7 +1027,7 @@ export default function ToolManagement() {
         <div>
           <Card className="p-6 mb-8">
             <CardContent className="p-0">
-            <h3 className="text-xl font-semibold text-ink-inverse mb-4">
+            <h3 className="text-xl font-semibold text-ink mb-4">
               {isEditingCategory ? '编辑分类' : '新建分类'}
             </h3>
             <form onSubmit={handleCategorySubmit} className="space-y-4">
@@ -1038,7 +1038,7 @@ export default function ToolManagement() {
                     type="text"
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
-                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent-info"
                     required
                   />
                 </div>
@@ -1048,7 +1048,7 @@ export default function ToolManagement() {
                     type="number"
                     value={categoryForm.sort_order}
                     onChange={(e) => setCategoryForm({...categoryForm, sort_order: parseInt(e.target.value) || 0})}
-                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent-info"
                   />
                 </div>
                 <div>
@@ -1057,7 +1057,7 @@ export default function ToolManagement() {
                     type="text"
                     value={categoryForm.description || ''}
                     onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
-                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent-info"
                   />
                 </div>
                 <div>
@@ -1066,7 +1066,7 @@ export default function ToolManagement() {
                     type="text"
                     value={categoryForm.icon || ''}
                     onChange={(e) => setCategoryForm({...categoryForm, icon: e.target.value})}
-                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
+                    className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink focus:outline-none focus:border-accent-info"
                     placeholder="fa-folder"
                   />
                 </div>
@@ -1107,10 +1107,10 @@ export default function ToolManagement() {
                   <tr key={cat.id} className="hover:bg-surface-2/50">
                     <td className="px-6 py-4 flex items-center">
                        {cat.icon && <DynamicFaIcon iconString={cat.icon} className="w-4 h-4 mr-2 text-ink-muted" />}
-                       <span className="font-medium text-ink-inverse">{cat.name}</span>
+                       <span className="font-medium text-ink">{cat.name}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cat.tool_count ? 'text-green-400' : 'text-ink-faint'}>
+                      <span className={cat.tool_count ? 'text-success' : 'text-ink-faint'}>
                         {cat.tool_count || 0}
                       </span>
                       {!cat.tool_count && <span className="ml-2 text-xs text-ink-faint">未使用</span>}
@@ -1120,13 +1120,13 @@ export default function ToolManagement() {
                     <td className="px-6 py-4 flex space-x-3">
                       <button
                         onClick={() => handleEditCategory(cat)}
-                        className="text-accent-info hover:text-blue-300 text-sm font-medium"
+                        className="text-accent-info hover:text-accent-info text-sm font-medium"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDeleteCategory(cat.id)}
-                        className="text-danger hover:text-red-300 text-sm font-medium"
+                        className="text-danger hover:text-danger text-sm font-medium"
                       >
                         删除
                       </button>

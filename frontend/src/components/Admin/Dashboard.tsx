@@ -99,7 +99,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-bold text-ink flex items-center">
-              <Trophy className="w-5 h-5 text-yellow-500 mr-3" />
+              <Trophy className="w-5 h-5 text-warning mr-3" />
               热门工具排行
             </h3>
             <p className="text-ink-muted text-sm mt-1">查看最受欢迎的工具</p>
@@ -133,7 +133,7 @@ export default function Dashboard() {
                   <tr key={tool.tool_id} className="hover:bg-surface-3 transition-colors">
                     <td className="px-6 py-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                        index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                        index === 0 ? 'bg-warning/20 text-warning' :
                         index === 1 ? 'bg-ink-faint/20 text-ink-muted' :
                         index === 2 ? 'bg-accent-warm/20 text-accent-warm' :
                         'bg-surface-3 text-ink-muted'

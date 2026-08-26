@@ -66,7 +66,7 @@ export default function ApiKeyDisplay({ apiKeySuffix, fullApiKey, onCopy }: ApiK
               <button
                 type="button"
                 onClick={handleCopy}
-                className="p-1.5 text-ink-muted hover:text-cyan-400 transition-colors"
+                className="p-1.5 text-ink-muted hover:text-accent-info transition-colors"
                 aria-label="复制"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
