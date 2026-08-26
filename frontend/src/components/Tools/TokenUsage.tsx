@@ -66,7 +66,7 @@ import { useTokenUsageDetails } from './hooks/useTokenUsageDetails';
 import { useTokenUsagePolling } from './hooks/useTokenUsagePolling';
 import DimensionPieCard, { type PieSlice } from './TokenUsage/DimensionPieCard';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+const COLORS = ['var(--accent-info)', 'var(--accent-success)', 'var(--accent-warning)', 'var(--accent-danger)', 'var(--accent-secondary)', 'var(--accent-warm)', 'var(--accent-cyan)', 'var(--accent-primary)'];
 const PAGE_SIZE = 50;
 
 function formatToken(num: number): string {
@@ -552,7 +552,7 @@ export default function TokenUsage() {
     <div className="min-h-0 overflow-y-auto bg-canvas p-6 text-ink">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-ink-inverse">
+          <h1 className="text-2xl font-semibold tracking-normal text-ink">
             Token 消耗统计
             <span className="ml-3 inline-flex items-center gap-1 text-sm font-normal text-ink-muted">
               <Database className="h-3.5 w-3.5" />
@@ -764,25 +764,25 @@ export default function TokenUsage() {
 
       {(error || refreshError || refreshErrors.length > 0 || deviceError || pollError || summary.data.auto_expanded) && (
         <div className="mb-5 space-y-2">
-          {error && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red-200">{error}</div>}
-          {refreshError && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-red-200">{refreshError}</div>}
+          {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">{error}</div>}
+          {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">{refreshError}</div>}
           {refreshErrors.length > 0 && (
             <div className="space-y-2">
               {refreshErrors.map((err, idx) => (
                 <div key={idx} className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-400" />
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-accent-warning" />
                     <div className="flex-1">
-                      <div className="font-medium text-amber-200">
+                      <div className="font-medium text-accent-warning">
                         {err.source}: {err.error}
                       </div>
                       {err.error_code && (
-                        <div className="mt-1 text-xs text-amber-300">
+                        <div className="mt-1 text-xs text-accent-warning">
                           错误代码: {err.error_code}
                         </div>
                       )}
                       {err.remediation && (
-                        <div className="mt-1 text-xs text-amber-200">
+                        <div className="mt-1 text-xs text-accent-warning">
                           建议: {err.remediation}
                         </div>
                       )}
@@ -792,9 +792,9 @@ export default function TokenUsage() {
               ))}
             </div>
           )}
-          {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{deviceError}</div>}
+          {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-accent-warning">{deviceError}</div>}
           {pollError && <div className="rounded-md border border-border bg-canvas px-4 py-3 text-sm text-ink-muted">后台轮询失败：{pollError}</div>}
-          {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
+          {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-accent-warning">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
         </div>
       )}
 
@@ -811,7 +811,7 @@ export default function TokenUsage() {
               <span>{card.label}</span>
               <card.icon className="h-4 w-4" />
             </div>
-            <div className="text-xl font-semibold text-ink-inverse">{card.value}</div>
+            <div className="text-xl font-semibold text-ink">{card.value}</div>
           </div>
         ))}
       </Card>
@@ -855,37 +855,37 @@ export default function TokenUsage() {
 
       <Card className="mb-5 p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-medium text-ink-inverse">{chartTitle}</h2>
+          <h2 className="text-base font-medium text-ink">{chartTitle}</h2>
           {summary.loading && <Loader2 className="h-4 w-4 animate-spin text-ink-muted" />}
         </div>
         <div className="h-80">
           {(groupBy === 'none' ? chartData : groupedData).length ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={groupBy === 'none' ? chartData : groupedData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={formatToken} />
-                {groupBy === 'none' && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={value => `$${value}`} />}
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#e2e8f0' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} tickFormatter={formatToken} />
+                {groupBy === 'none' && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} tickFormatter={value => `$${value}`} />}
+                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-surface-2)', border: '1px solid var(--border-default)', color: 'var(--ink-default)' }} />
                 <Legend />
                 {groupBy === 'none' ? (
                   <>
                     {chartType === 'bar' ? (
                       <>
-                        <Bar yAxisId="left" dataKey="inputTokens" stackId="tokens" fill="#3b82f6" name="输入" />
-                        <Bar yAxisId="left" dataKey="outputTokens" stackId="tokens" fill="#10b981" name="输出" />
-                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="#f59e0b" name="缓存">
-                          <LabelList dataKey="totalTokens" formatter={formatToken} position="top" style={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 500 }} />
+                        <Bar yAxisId="left" dataKey="inputTokens" stackId="tokens" fill="var(--accent-info)" name="输入" />
+                        <Bar yAxisId="left" dataKey="outputTokens" stackId="tokens" fill="var(--accent-success)" name="输出" />
+                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="var(--accent-warning)" name="缓存">
+                          <LabelList dataKey="totalTokens" formatter={formatToken} position="top" style={{ fill: 'var(--ink-default)', fontSize: 10, fontWeight: 500 }} />
                         </Bar>
                       </>
                     ) : (
                       <>
-                        <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="#3b82f6" strokeWidth={2} name="输入" dot={{ r: 3 }} />
-                        <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="#10b981" strokeWidth={2} name="输出" dot={{ r: 3 }} />
-                        <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="#f59e0b" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="var(--accent-info)" strokeWidth={2} name="输入" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="var(--accent-success)" strokeWidth={2} name="输出" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="var(--accent-warning)" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
                       </>
                     )}
-                    <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#ef4444" strokeWidth={2} name="成本" dot={{ r: 3 }} />
+                    <Line yAxisId="right" type="monotone" dataKey="cost" stroke="var(--accent-danger)" strokeWidth={2} name="成本" dot={{ r: 3 }} />
                   </>
                 ) : (
                   Object.keys(groupedData[0] || {}).filter(key => key !== 'date').map((key, index) => (
@@ -904,7 +904,7 @@ export default function TokenUsage() {
 
       <Card className="rounded-md">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-base font-medium text-ink-inverse">明细数据</h2>
+          <h2 className="text-base font-medium text-ink">明细数据</h2>
           <span className="text-xs text-ink-muted">共 {details.data.total} 条</span>
         </div>
         <div className="overflow-auto">
@@ -944,8 +944,8 @@ export default function TokenUsage() {
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.output_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.cache_creation_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.cache_read_tokens)}</td>
-                  <td className="px-4 py-3 text-right font-mono font-medium text-ink-inverse">{formatToken(item.total_tokens)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-emerald-300">{formatCurrency(item.total_cost)}</td>
+                  <td className="px-4 py-3 text-right font-mono font-medium text-ink">{formatToken(item.total_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-accent-success">{formatCurrency(item.total_cost)}</td>
                   <td className="max-w-[240px] truncate px-4 py-3 text-ink-muted" title={formatModelsUsed(item.models_used)}>{formatModelsUsed(item.models_used)}</td>
                   <td className="px-4 py-3 text-xs text-ink-faint">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
                 </tr>

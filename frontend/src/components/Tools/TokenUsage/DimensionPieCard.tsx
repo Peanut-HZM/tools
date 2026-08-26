@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card } from '@/components/ui/Card';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+const COLORS = ['var(--accent-info)', 'var(--accent-success)', 'var(--accent-warning)', 'var(--accent-danger)', 'var(--accent-secondary)', 'var(--accent-warm)', 'var(--accent-cyan)', 'var(--accent-primary)'];
 
 export interface PieSlice {
   key: string;
@@ -65,7 +65,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
     return (
       <Card className="p-3 h-80 flex flex-col">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-ink-inverse">{title}</h2>
+          <h2 className="text-sm font-medium text-ink">{title}</h2>
         </div>
         <div className="flex-1 flex items-center justify-center text-sm text-ink-faint">
           {message}
@@ -84,7 +84,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   return (
     <Card className="p-3 h-80 flex flex-col">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-ink-inverse">{title}</h2>
+        <h2 className="text-sm font-medium text-ink">{title}</h2>
         <span className="text-xs text-ink-faint">{slices.length} 项</span>
       </div>
       <div className="flex-1 min-h-0 flex flex-col">
@@ -110,7 +110,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                     <Cell
                       key={s.key}
                       fill={fill}
-                      stroke={isSelected ? '#e2e8f0' : 'none'}
+                      stroke={isSelected ? 'var(--ink-default)' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                     />
                   );
@@ -128,7 +128,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                   const pct = `${(slice.percent ?? 0).toFixed(1)}%`;
                   return (
                     <div className="rounded border border-border bg-canvas px-3 py-2 text-xs text-ink shadow-lg">
-                      <div className="mb-1 font-medium text-ink-inverse">{title}</div>
+                      <div className="mb-1 font-medium text-ink">{title}</div>
                       <div className="mb-1 text-ink-muted">{slice.label}</div>
                       {metric === 'cost' ? (
                         <>
@@ -148,8 +148,8 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-base font-semibold text-ink-inverse">{formatToken(totalTokens)}</span>
-            <span className="text-xs text-emerald-300">Token</span>
+            <span className="text-base font-semibold text-ink">{formatToken(totalTokens)}</span>
+            <span className="text-xs text-accent-success">Token</span>
           </div>
         </div>
         <div className="mt-2 flex-1 overflow-y-auto space-y-1">
