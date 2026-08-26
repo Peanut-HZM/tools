@@ -4,10 +4,12 @@
  * 多选下拉，支持 "所有命名空间" 选项
  * 选中的命名空间用于过滤资源查询
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Filter, Search, X, Check, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sNamespaces } from '../../../../hooks/useK8sClient';
 import { useI18n } from '../../../../i18n';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/Popover';
 
 export const NamespaceFilter: React.FC = () => {
   const { t } = useI18n();
@@ -16,7 +18,6 @@ export const NamespaceFilter: React.FC = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 查询命名空间列表（自动同步到 store）
   const { isError } = useK8sNamespaces(activeConnectionId);
@@ -31,17 +32,6 @@ export const NamespaceFilter: React.FC = () => {
       setSelectedNamespaces(activeConnection.namespace_filter);
     }
   }, [activeConnectionId, connections, setSelectedNamespaces]);
-
-  // 点击外部关闭下拉
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   /** 检查是否选中了"所有命名空间" */
   const isAllSelected = selectedNamespaces.length === 0;
@@ -81,24 +71,22 @@ export const NamespaceFilter: React.FC = () => {
     : namespaces;
 
   return (
-    <div ref={dropdownRef} className="relative">
-      {/* 触发按钮 */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border transition-colors min-w-[150px] max-w-[240px]"
-      >
-        <i className="fas fa-filter text-xs text-ink-muted"></i>
-        <span className="truncate">{displayText}</span>
-        <i className={`fas fa-chevron-down ml-auto text-xs text-ink-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
-      </button>
-
-      {/* 下拉菜单 */}
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-64 max-h-72 overflow-y-auto bg-surface-1 border border-border rounded-md shadow-lg z-50">
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <button
+          aria-label="命名空间过滤"
+          className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border transition-colors min-w-[150px] max-w-[240px]"
+        >
+          <Filter className="w-3 h-3 text-ink-muted" />
+          <span className="truncate">{displayText}</span>
+          <ChevronDown className={`w-3 h-3 ml-auto text-ink-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-0 max-h-72 overflow-y-auto">
           {/* 搜索框 */}
           <div className="sticky top-0 bg-surface-1 border-b border-border p-2">
             <div className="flex items-center gap-2 px-2 py-1 bg-canvas border border-border rounded">
-              <i className="fas fa-search text-xs text-ink-faint"></i>
+              <Search className="w-3 h-3 text-ink-faint" />
               <input
                 type="text"
                 value={searchText}
@@ -115,7 +103,7 @@ export const NamespaceFilter: React.FC = () => {
                   }}
                   className="text-ink-faint hover:text-ink-muted"
                 >
-                  <i className="fas fa-times text-xs"></i>
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -133,7 +121,7 @@ export const NamespaceFilter: React.FC = () => {
             <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
               isAllSelected ? 'bg-accent border-accent' : 'border-border'
             }`}>
-              {isAllSelected && <i className="fas fa-check text-[10px] text-ink-inverse"></i>}
+              {isAllSelected && <Check className="w-2.5 h-2.5 text-ink-inverse" />}
             </div>
             <span className="text-sm font-medium">{k8sT.topBar.allNamespaces}</span>
           </div>
@@ -154,7 +142,7 @@ export const NamespaceFilter: React.FC = () => {
                 <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
                   isChecked ? 'bg-accent border-accent' : 'border-border'
                 }`}>
-                  {isChecked && <i className="fas fa-check text-[10px] text-ink-inverse"></i>}
+                  {isChecked && <Check className="w-2.5 h-2.5 text-ink-inverse" />}
                 </div>
                 <span className="text-sm truncate">{ns}</span>
               </div>
@@ -171,7 +159,7 @@ export const NamespaceFilter: React.FC = () => {
             <div className="px-3 py-4 text-sm text-center">
               {isError ? (
                 <div className="text-accent-warning">
-                  <i className="fas fa-exclamation-triangle mr-2"></i>
+                  <AlertTriangle className="w-4 h-4 mr-2" />
                   无法获取命名空间列表
                   <br />
                   <span className="text-xs text-ink-faint">
@@ -183,8 +171,7 @@ export const NamespaceFilter: React.FC = () => {
               )}
             </div>
           )}
-        </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 };

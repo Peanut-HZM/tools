@@ -13,9 +13,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
+  Legend,
 } from 'recharts';
+import { Loader2, LineChart as LineChartIcon } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { usePodMetrics } from '../../../../hooks/useK8sClient';
@@ -126,7 +127,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
   if (isLoading && dataPoints.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-ink-faint">
-        <i className="fas fa-spinner fa-spin mr-2"></i>
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         {t.common.loading}
       </div>
     );
@@ -136,7 +137,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
   if (isError && dataPoints.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-ink-faint gap-2">
-        <i className="fas fa-chart-line text-3xl text-ink-faint"></i>
+        <LineChartIcon className="w-8 h-8 text-ink-faint" />
         <div>{mt.unavailable}</div>
         <div className="text-xs text-ink-faint">{t.tools['k8s-tool'].errors.METRICS_UNAVAILABLE}</div>
       </div>
@@ -147,7 +148,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
   if (dataPoints.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-ink-faint gap-2">
-        <i className="fas fa-chart-line text-3xl text-ink-faint"></i>
+        <LineChartIcon className="w-8 h-8 text-ink-faint" />
         <div>{mt.noData}</div>
       </div>
     );

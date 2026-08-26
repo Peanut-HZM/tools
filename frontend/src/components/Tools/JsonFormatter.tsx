@@ -1,3 +1,4 @@
+import { AlertCircle, ArrowLeft, Code, Copy, Eraser, FileInput, Minimize2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
@@ -94,12 +95,12 @@ export default function JsonFormatter() {
             onClick={() => navigate('/')}
             className="flex items-center gap-2"
           >
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
-              <i className="fas fa-code text-white text-sm"></i>
+              <Code className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-lg font-bold">JSON格式化</h1>
           </div>
@@ -119,7 +120,7 @@ export default function JsonFormatter() {
             onClick={formatJson}
             size="sm"
           >
-            <i className="fas fa-magic mr-1"></i>
+            <Sparkles className="w-3.5 h-3.5 mr-1" />
             格式化
           </Button>
           <Button
@@ -127,7 +128,7 @@ export default function JsonFormatter() {
             size="sm"
             className="bg-orange-500 hover:bg-orange-600"
           >
-            <i className="fas fa-compress mr-1"></i>
+            <Minimize2 className="w-3.5 h-3.5 mr-1" />
             压缩
           </Button>
           <Button
@@ -135,7 +136,7 @@ export default function JsonFormatter() {
             onClick={clearAll}
             size="sm"
           >
-            <i className="fas fa-eraser mr-1"></i>
+            <Eraser className="w-3.5 h-3.5 mr-1" />
             清空
           </Button>
           <Button
@@ -144,7 +145,7 @@ export default function JsonFormatter() {
             size="icon"
             title="加载示例"
           >
-            <i className="fas fa-file-import"></i>
+            <FileInput className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -152,7 +153,7 @@ export default function JsonFormatter() {
       {/* 错误提示 - 只在有错误时显示 */}
       {error && (
         <div className="bg-danger/20 border-b border-danger text-danger px-4 py-2 text-sm flex-shrink-0">
-          <i className="fas fa-exclamation-circle mr-2"></i>
+          <AlertCircle className="w-4 h-4 mr-2" />
           {error}
         </div>
       )}
@@ -168,7 +169,7 @@ export default function JsonFormatter() {
               className="text-xs text-ink-faint hover:text-ink-muted"
               title="复制输入"
             >
-              <i className="fas fa-copy mr-1"></i>
+              <Copy className="w-3.5 h-3.5 mr-1" />
               复制
             </button>
           </div>
@@ -190,7 +191,7 @@ export default function JsonFormatter() {
               className="text-xs text-green-500 hover:text-green-400"
               title="复制结果"
             >
-              <i className="fas fa-copy mr-1"></i>
+              <Copy className="w-3.5 h-3.5 mr-1" />
               复制
             </button>
           </div>

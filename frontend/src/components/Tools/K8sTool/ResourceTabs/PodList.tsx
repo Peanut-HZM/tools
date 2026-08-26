@@ -5,6 +5,7 @@
  * 点击行触发 openResourceTab 打开对应标签页
  */
 import React, { useState } from 'react';
+import { Search, X, Loader2, AlertTriangle, Download } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sPods } from '../../../../hooks/useK8sClient';
 import { useI18n } from '../../../../i18n';
@@ -64,7 +65,7 @@ export const PodList: React.FC = () => {
       {/* 搜索框 */}
       <div className="px-3 py-2 border-b border-border bg-surface-1/50 shrink-0">
         <div className="flex items-center gap-2">
-          <i className="fas fa-search text-xs text-ink-faint"></i>
+          <Search className="w-3 h-3 text-ink-faint" />
           <Input
             type="text"
             value={searchText}
@@ -77,7 +78,7 @@ export const PodList: React.FC = () => {
               onClick={() => setSearchText('')}
               className="text-ink-faint hover:text-ink-muted px-1"
             >
-              <i className="fas fa-times text-xs"></i>
+              <X className="w-3 h-3" />
             </button>
           )}
         </div>
@@ -102,7 +103,7 @@ export const PodList: React.FC = () => {
           {isLoading && (
             <tr>
               <td colSpan={7} className="px-3 py-8 text-center text-ink-faint">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 {t.common.loading}
               </td>
             </tr>
@@ -112,7 +113,7 @@ export const PodList: React.FC = () => {
           {isError && (
             <tr>
               <td colSpan={7} className="px-3 py-8 text-center text-danger">
-                <i className="fas fa-exclamation-triangle mr-2"></i>
+                <AlertTriangle className="w-4 h-4 mr-2" />
                 {errorMessage}
               </td>
             </tr>
@@ -137,7 +138,10 @@ export const PodList: React.FC = () => {
               {/* 状态图标 */}
               <td className="px-3 py-2">
                 <div className="flex items-center gap-1.5">
-                  <i className={`${getStatusIcon(pod.phase, pod.status)} ${getStatusColor(pod.phase, pod.status)}`}></i>
+                  {(() => {
+                    const StatusIcon = getStatusIcon(pod.phase, pod.status);
+                    return <StatusIcon className={`w-4 h-4 ${getStatusColor(pod.phase, pod.status)}`} />;
+                  })()}
                   <span className={`${getStatusColor(pod.phase, pod.status)} text-xs`}>
                     {pod.phase}
                   </span>
@@ -186,7 +190,7 @@ export const PodList: React.FC = () => {
                   className="text-ink-muted hover:text-accent-info transition-colors"
                   title="下载日志"
                 >
-                  <i className="fas fa-download text-xs"></i>
+                  <Download className="w-3 h-3" />
                 </button>
               </td>
             </tr>

@@ -52,9 +52,10 @@ const renderViewer = (props: Record<string, unknown> = {}) =>
   );
 
 const openColumnSelector = (container: HTMLElement) => {
-  const colButton = container.querySelector('button[title="列"]')!;
+  const colButton = container.querySelector('button[aria-label="列"]')!;
   fireEvent.click(colButton);
-  return container.querySelectorAll('.absolute.top-full .cursor-pointer');
+  // Radix Popover 使用 Portal，渲染到 document.body
+  return document.body.querySelectorAll('[data-radix-popper-content-wrapper] .cursor-pointer, .cursor-pointer');
 };
 
 describe('ResultViewer 列可见性管理', () => {

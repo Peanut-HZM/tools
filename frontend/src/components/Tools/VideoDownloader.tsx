@@ -1,9 +1,17 @@
+import { AlertCircle, AlertTriangle, ArrowLeft, Clock, Copy, Download, ExternalLink, Gauge, Info, Loader2, Play, PlayCircle, Search, Server, Video as VideoIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface VideoInfo {
   url: string;
@@ -338,14 +346,14 @@ export default function VideoDownloader() {
           onClick={() => navigate('/')}
           className="mb-6 flex items-center gap-2"
         >
-          <i className="fas fa-arrow-left"></i>
+          <ArrowLeft className="w-4 h-4" />
           返回首页
         </Button>
 
         {/* 标题 */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-accent-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-video text-white text-2xl"></i>
+            <VideoIcon className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-4xl font-bold mb-4">网页视频下载器</h1>
           <p className="text-xl text-ink-muted max-w-2xl mx-auto">
@@ -373,12 +381,12 @@ export default function VideoDownloader() {
               >
                 {loading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     提取中...
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-search mr-2"></i>
+                    <Search className="w-4 h-4 mr-2" />
                     提取视频
                   </>
                 )}
@@ -411,7 +419,7 @@ export default function VideoDownloader() {
         {error && (
           <div className="max-w-3xl mx-auto mb-8">
             <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg">
-              <i className="fas fa-exclamation-circle mr-2"></i>
+              <AlertCircle className="w-4 h-4 mr-2" />
               {error}
             </div>
           </div>
@@ -428,18 +436,19 @@ export default function VideoDownloader() {
               {/* 质量选择器 */}
               <div className="flex items-center gap-3">
                 <label className="text-sm text-ink-muted">下载质量:</label>
-                <select
-                  value={selectedQuality}
-                  onChange={(e) => setSelectedQuality(e.target.value)}
-                  className="bg-surface-1 text-white px-4 py-2 rounded-lg border border-border focus:border-primary focus:outline-none"
-                >
-                  <option value="best">最佳质量</option>
-                  <option value="1080p">1080p</option>
-                  <option value="720p">720p</option>
-                  <option value="480p">480p</option>
-                  <option value="360p">360p</option>
-                  <option value="worst">最低质量</option>
-                </select>
+                <Select value={selectedQuality} onValueChange={setSelectedQuality}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="best">最佳质量</SelectItem>
+                    <SelectItem value="1080p">1080p</SelectItem>
+                    <SelectItem value="720p">720p</SelectItem>
+                    <SelectItem value="480p">480p</SelectItem>
+                    <SelectItem value="360p">360p</SelectItem>
+                    <SelectItem value="worst">最低质量</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -459,7 +468,7 @@ export default function VideoDownloader() {
                           (e.target as HTMLVideoElement).style.display = 'none';
                           const parent = (e.target as HTMLVideoElement).parentElement;
                           if (parent) {
-                            parent.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-ink-faint"><i class="fas fa-video text-4xl mb-2"></i><p class="text-sm">无法预览</p></div>';
+                            parent.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-ink-faint"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg><p class="text-sm">无法预览</p></div>';
                           }
                         }}
                       >
@@ -467,13 +476,13 @@ export default function VideoDownloader() {
                       </video>
                     ) : video.source === 'iframe' ? (
                       <div className="flex flex-col items-center justify-center h-full text-ink-muted">
-                        <i className="fas fa-play-circle text-5xl mb-3"></i>
+                        <PlayCircle className="w-12 h-12 mb-3" />
                         <p className="text-sm">嵌入式视频</p>
                         <p className="text-xs text-ink-faint mt-1">点击下方按钮观看</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-ink-faint">
-                        <i className="fas fa-video text-4xl mb-2"></i>
+                        <VideoIcon className="w-10 h-10 mb-2" />
                         <p className="text-sm">{video.type}</p>
                         <p className="text-xs text-ink-faint mt-1">不支持预览</p>
                       </div>
@@ -491,13 +500,13 @@ export default function VideoDownloader() {
                       </span>
                       {isHLSVideo(video) && (
                         <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">
-                          <i className="fas fa-exclamation-triangle mr-1"></i>
+                          <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                           HLS流媒体
                         </span>
                       )}
                       {video.duration > 0 && (
                         <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded">
-                          <i className="fas fa-clock mr-1"></i>
+                          <Clock className="w-3.5 h-3.5 mr-1" />
                           {formatDuration(video.duration)}
                         </span>
                       )}
@@ -539,13 +548,13 @@ export default function VideoDownloader() {
                             <div className="flex gap-3">
                               {downloadTasks.get(index)?.speed && (
                                 <span>
-                                  <i className="fas fa-tachometer-alt mr-1"></i>
+                                  <Gauge className="w-3.5 h-3.5 mr-1" />
                                   {downloadTasks.get(index)?.speed}
                                 </span>
                               )}
                               {downloadTasks.get(index)?.eta && (
                                 <span>
-                                  <i className="fas fa-clock mr-1"></i>
+                                  <Clock className="w-3.5 h-3.5 mr-1" />
                                   {downloadTasks.get(index)?.eta}
                                 </span>
                               )}
@@ -561,7 +570,7 @@ export default function VideoDownloader() {
                           className="w-full bg-green-500 hover:bg-green-600"
                           size="sm"
                         >
-                          <i className="fas fa-server mr-2"></i>
+                          <Server className="w-4 h-4 mr-2" />
                           服务器下载 (支持HLS)
                         </Button>
                       )}
@@ -574,7 +583,7 @@ export default function VideoDownloader() {
                             className="w-full"
                             size="sm"
                           >
-                            <i className="fas fa-download mr-2"></i>
+                            <Download className="w-4 h-4 mr-2" />
                             直接下载
                           </Button>
                           <Button
@@ -582,7 +591,7 @@ export default function VideoDownloader() {
                             className="w-full bg-green-500 hover:bg-green-600"
                             size="sm"
                           >
-                            <i className="fas fa-server mr-2"></i>
+                            <Server className="w-4 h-4 mr-2" />
                             服务器下载
                           </Button>
                         </>
@@ -595,7 +604,7 @@ export default function VideoDownloader() {
                           className="w-full bg-yellow-500 hover:bg-yellow-600"
                           size="sm"
                         >
-                          <i className="fas fa-info-circle mr-2"></i>
+                          <Info className="w-4 h-4 mr-2" />
                           查看手动下载方法
                         </Button>
                       )}
@@ -609,7 +618,7 @@ export default function VideoDownloader() {
                             rel="noopener noreferrer"
                             className="bg-accent-secondary hover:bg-accent-secondary text-white py-2 rounded-lg transition-colors text-sm text-center"
                           >
-                            <i className="fas fa-play mr-2"></i>
+                            <Play className="w-4 h-4 mr-2" />
                             观看视频
                           </a>
                           <Button
@@ -617,7 +626,7 @@ export default function VideoDownloader() {
                             className="w-full bg-green-500 hover:bg-green-600"
                             size="sm"
                           >
-                            <i className="fas fa-server mr-2"></i>
+                            <Server className="w-4 h-4 mr-2" />
                             服务器下载
                           </Button>
                         </>
@@ -629,7 +638,7 @@ export default function VideoDownloader() {
                           className="flex-1"
                           size="sm"
                         >
-                          <i className="fas fa-copy mr-2"></i>
+                          <Copy className="w-4 h-4 mr-2" />
                           复制链接
                         </Button>
 
@@ -639,7 +648,7 @@ export default function VideoDownloader() {
                           rel="noopener noreferrer"
                           className="flex-1 bg-surface-2 hover:bg-surface-3 text-ink-inverse py-2 rounded-lg transition-colors text-sm text-center"
                         >
-                          <i className="fas fa-external-link-alt mr-2"></i>
+                          <ExternalLink className="w-4 h-4 mr-2" />
                           打开
                         </a>
                       </div>
@@ -652,7 +661,7 @@ export default function VideoDownloader() {
             {/* 下载提示 */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <i className="fas fa-info-circle text-accent-info"></i>
+                <Info className="w-4 h-4 text-accent-info" />
                 下载说明
               </h3>
               <div className="text-sm text-ink-muted space-y-2">
@@ -678,7 +687,7 @@ export default function VideoDownloader() {
         {/* 空状态 */}
         {!loading && videos.length === 0 && !error && (
           <div className="max-w-3xl mx-auto text-center py-16">
-            <i className="fas fa-video text-ink-faint text-6xl mb-4"></i>
+            <VideoIcon className="w-16 h-16 text-ink-faint mb-4" />
             <p className="text-ink-muted text-lg">
               输入网页URL开始提取视频
             </p>

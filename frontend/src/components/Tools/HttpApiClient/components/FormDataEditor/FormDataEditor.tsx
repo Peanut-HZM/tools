@@ -4,8 +4,16 @@
  */
 import { useState } from 'react';
 import { FormDataEntry } from '../../../../../services/httpClientApi';
+import { X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface FormDataEditorProps {
   formData: FormDataEntry[];
@@ -60,14 +68,15 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
         entries.map((entry, index) => (
           <div key={index} className="flex items-center gap-2">
             {/* 类型选择 */}
-            <select
-              value={entry.type}
-              onChange={(e) => handleChange(index, 'type', e.target.value)}
-              className="bg-surface-2 text-ink-inverse px-2 py-2 rounded border border-border text-sm"
-            >
-              <option value="text">Text</option>
-              <option value="file">File</option>
-            </select>
+            <Select value={entry.type} onValueChange={(v) => handleChange(index, 'type', v)}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="file">File</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Key 输入 */}
             <Input
@@ -111,7 +120,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
               onClick={() => handleRemove(index)}
               className="text-ink-faint hover:text-danger"
             >
-              <i className="fas fa-times"></i>
+              <X className="w-4 h-4" />
             </Button>
           </div>
         ))
@@ -123,7 +132,7 @@ export default function FormDataEditor({ formData, onChange }: FormDataEditorPro
         onClick={handleAdd}
         className="text-accent-secondary hover:text-accent-secondary"
       >
-        <i className="fas fa-plus mr-2"></i>
+        <Plus className="w-4 h-4 mr-2" />
         添加 Form-data
       </Button>
     </div>

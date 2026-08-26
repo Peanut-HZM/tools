@@ -6,6 +6,7 @@
  * 使用可滚动 div 实现日志显示，自动限制最大行数防止内存溢出
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Search, Trash2, Workflow } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import { buildLogsWebSocketUrl, downloadPodLogs } from '../../../../api/k8sToolApi';
@@ -273,7 +274,7 @@ export const LogsViewer: React.FC<Props> = ({
 
         {/* 搜索框 */}
         <div className="flex items-center gap-1 flex-1 min-w-[140px]">
-          <i className="fas fa-search text-xs text-ink-faint"></i>
+          <Search className="w-3 h-3 text-ink-faint" />
           <Input
             type="text"
             value={searchText}
@@ -304,7 +305,7 @@ export const LogsViewer: React.FC<Props> = ({
           className="h-7 px-2"
           title={lt.clear}
         >
-          <i className="fas fa-trash text-xs"></i>
+          <Trash2 className="w-3 h-3" />
         </Button>
       </div>
 
@@ -315,7 +316,7 @@ export const LogsViewer: React.FC<Props> = ({
       >
         {lines.length === 0 ? (
           <div className="flex items-center justify-center h-full text-ink-faint text-sm">
-            <i className="fas fa-stream mr-2"></i>
+            <Workflow className="w-4 h-4 mr-2" />
             {lt.noLogs}
           </div>
         ) : (

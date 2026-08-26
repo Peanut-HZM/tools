@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Collection } from '../../../../services/httpClientApi';
 import { Button } from '@/components/ui/Button';
 
@@ -51,7 +52,7 @@ export default function CollectionContextMenu({
         }}
         className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal"
       >
-        <i className="fas fa-pencil mr-2 text-ink-faint"></i>
+        <Pencil className="w-4 h-4 mr-2 text-ink-faint" />
         重命名
       </Button>
       <Button
@@ -63,7 +64,7 @@ export default function CollectionContextMenu({
         }}
         className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal text-danger hover:bg-danger/10 hover:text-danger"
       >
-        <i className="fas fa-trash mr-2"></i>
+        <Trash2 className="w-4 h-4 mr-2" />
         删除集合
       </Button>
     </div>

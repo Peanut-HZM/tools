@@ -9,6 +9,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { common, createLowlight } from 'lowlight';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 
 interface RichTextEditorProps {
   content: string;
@@ -59,234 +60,296 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="flex items-center flex-wrap gap-2 p-3 bg-surface-1/50 border border-border/50 rounded-t-xl">
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('bold')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="粗体"
-        >
-          <i className="fas fa-bold"></i>
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('italic')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="斜体"
-        >
-          <i className="fas fa-italic"></i>
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('strike')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="删除线"
-        >
-          <i className="fas fa-strikethrough"></i>
-        </button>
-        <div className="w-px h-6 bg-surface-3 mx-2"></div>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('heading', { level: 1 })
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="标题 1"
-        >
-          <span className="font-bold">H1</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('heading', { level: 2 })
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="标题 2"
-        >
-          <span className="font-bold">H2</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('heading', { level: 3 })
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="标题 3"
-        >
-          <span className="font-bold">H3</span>
-        </button>
-        <div className="w-px h-6 bg-surface-3 mx-2"></div>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('bulletList')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="无序列表"
-        >
-          <i className="fas fa-list-ul"></i>
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('orderedList')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="有序列表"
-        >
-          <i className="fas fa-list-ol"></i>
-        </button>
-        <div className="w-px h-6 bg-surface-3 mx-2"></div>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('codeBlock')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="代码块"
-        >
-          <i className="fas fa-code"></i>
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('blockquote')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="引用"
-        >
-          <i className="fas fa-quote-left"></i>
-        </button>
-        <div className="w-px h-6 bg-surface-3 mx-2"></div>
-        <button
-          type="button"
-          onClick={() => {
-            const url = window.prompt('输入链接地址:');
-            if (url) {
-              editor.chain().focus().setLink({ href: url }).run();
-            }
-          }}
-          className={`p-2 rounded-lg transition-all ${
-            editor.isActive('link')
-              ? 'bg-accent/20 text-accent'
-              : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
-          }`}
-          title="链接"
-        >
-          <i className="fas fa-link"></i>
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().unsetAllMarks().run()}
-          className="p-2 rounded-lg bg-surface-2/50 text-ink-faint hover:bg-surface-3 transition-all"
-          title="清除格式"
-        >
-          <i className="fas fa-remove-format"></i>
-        </button>
-        <div className="flex-1"></div>
-        <button
-          type="button"
-          onClick={() => setShowPreviewState(!showPreviewState)}
-          className={`px-4 py-2 rounded-lg transition-all font-medium ${
-            showPreviewState
-              ? 'bg-accent/20 text-accent border border-accent/30'
-              : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
-          }`}
-        >
-          <i className="fas fa-eye mr-2"></i>
-          {showPreviewState ? '隐藏预览' : '显示预览'}
-        </button>
-      </div>
-
-      {/* Editor Content */}
-      <div className={`flex-1 flex ${showPreviewState ? 'divide-x divide-border/50' : ''}`}>
-        <div className={`flex-1 overflow-y-auto border border-border/50 rounded-b-xl ${showPreviewState ? 'w-1/2' : 'w-full'}`}>
-          <EditorContent
-            editor={editor}
-            className="prose prose-invert prose-lg max-w-none p-4 h-full editor-content"
-          />
+    <TooltipProvider>
+      <div className="flex flex-col h-full">
+        {/* Toolbar */}
+        <div className="flex items-center flex-wrap gap-2 p-3 bg-surface-1/50 border border-border/50 rounded-t-xl">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('bold')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="粗体"
+              >
+                <i className="fas fa-bold"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>粗体</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('italic')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="斜体"
+              >
+                <i className="fas fa-italic"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>斜体</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('strike')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="删除线"
+              >
+                <i className="fas fa-strikethrough"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>删除线</TooltipContent>
+          </Tooltip>
+          <div className="w-px h-6 bg-surface-3 mx-2"></div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('heading', { level: 1 })
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="标题 1"
+              >
+                <span className="font-bold">H1</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>标题 1</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('heading', { level: 2 })
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="标题 2"
+              >
+                <span className="font-bold">H2</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>标题 2</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('heading', { level: 3 })
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="标题 3"
+              >
+                <span className="font-bold">H3</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>标题 3</TooltipContent>
+          </Tooltip>
+          <div className="w-px h-6 bg-surface-3 mx-2"></div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('bulletList')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="无序列表"
+              >
+                <i className="fas fa-list-ul"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>无序列表</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('orderedList')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="有序列表"
+              >
+                <i className="fas fa-list-ol"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>有序列表</TooltipContent>
+          </Tooltip>
+          <div className="w-px h-6 bg-surface-3 mx-2"></div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('codeBlock')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="代码块"
+              >
+                <i className="fas fa-code"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>代码块</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('blockquote')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="引用"
+              >
+                <i className="fas fa-quote-left"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>引用</TooltipContent>
+          </Tooltip>
+          <div className="w-px h-6 bg-surface-3 mx-2"></div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = window.prompt('输入链接地址:');
+                  if (url) {
+                    editor.chain().focus().setLink({ href: url }).run();
+                  }
+                }}
+                className={`p-2 rounded-lg transition-all ${
+                  editor.isActive('link')
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-surface-2/50 text-ink-faint hover:bg-surface-3'
+                }`}
+                aria-label="链接"
+              >
+                <i className="fas fa-link"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>链接</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().unsetAllMarks().run()}
+                className="p-2 rounded-lg bg-surface-2/50 text-ink-faint hover:bg-surface-3 transition-all"
+                aria-label="清除格式"
+              >
+                <i className="fas fa-remove-format"></i>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>清除格式</TooltipContent>
+          </Tooltip>
+          <div className="flex-1"></div>
+          <button
+            type="button"
+            onClick={() => setShowPreviewState(!showPreviewState)}
+            className={`px-4 py-2 rounded-lg transition-all font-medium ${
+              showPreviewState
+                ? 'bg-accent/20 text-accent border border-accent/30'
+                : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
+            }`}
+          >
+            <i className="fas fa-eye mr-2"></i>
+            {showPreviewState ? '隐藏预览' : '显示预览'}
+          </button>
         </div>
 
-        {/* Preview Panel */}
-        {showPreviewState && (
-          <div className="w-1/2 overflow-y-auto border border-border/50 rounded-b-xl bg-canvas/50 p-4">
-            <h3 className="text-sm font-semibold text-ink-faint mb-3 flex items-center">
-              <i className="fas fa-eye text-accent mr-2"></i>
-              预览
-            </h3>
-            <div
-              className="prose prose-invert prose-lg max-w-none preview-content"
-              dangerouslySetInnerHTML={{ __html: editor.getHTML() }}
+        {/* Editor Content */}
+        <div className={`flex-1 flex ${showPreviewState ? 'divide-x divide-border/50' : ''}`}>
+          <div className={`flex-1 overflow-y-auto border border-border/50 rounded-b-xl ${showPreviewState ? 'w-1/2' : 'w-full'}`}>
+            <EditorContent
+              editor={editor}
+              className="prose prose-invert prose-lg max-w-none p-4 h-full editor-content"
             />
           </div>
-        )}
-      </div>
 
-      <style>{`
-        .editor-content {
-          min-height: ${height};
-        }
-        .editor-content:focus {
-          outline: none;
-        }
-        .ProseMirror {
-          outline: none;
-        }
-        .ProseMirror p.is-editor-empty:first-child::before {
-          color: #64748b;
-          content: attr(data-placeholder);
-          float: left;
-          height: 0;
-          pointer-events: none;
-        }
-        .ProseMirror code {
-          background: #1e293b;
-          padding: 0.2em 0.4em;
-          border-radius: 0.25rem;
-          font-size: 0.875em;
-        }
-        .ProseMirror pre {
-          background: #0f172a;
-          border-radius: 0.5rem;
-          padding: 1rem;
-          overflow-x: auto;
-        }
-        .ProseMirror blockquote {
-          border-left: 4px solid #06b6d4;
-          padding-left: 1rem;
-          margin-left: 0;
-          color: #94a3b8;
-        }
-      `}</style>
-    </div>
+          {/* Preview Panel */}
+          {showPreviewState && (
+            <div className="w-1/2 overflow-y-auto border border-border/50 rounded-b-xl bg-canvas/50 p-4">
+              <h3 className="text-sm font-semibold text-ink-faint mb-3 flex items-center">
+                <i className="fas fa-eye text-accent mr-2"></i>
+                预览
+              </h3>
+              <div
+                className="prose prose-invert prose-lg max-w-none preview-content"
+                dangerouslySetInnerHTML={{ __html: editor.getHTML() }}
+              />
+            </div>
+          )}
+        </div>
+
+        <style>{`
+          .editor-content {
+            min-height: ${height};
+          }
+          .editor-content:focus {
+            outline: none;
+          }
+          .ProseMirror {
+            outline: none;
+          }
+          .ProseMirror p.is-editor-empty:first-child::before {
+            color: #64748b;
+            content: attr(data-placeholder);
+            float: left;
+            height: 0;
+            pointer-events: none;
+          }
+          .ProseMirror code {
+            background: #1e293b;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+          }
+          .ProseMirror pre {
+            background: #0f172a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+          }
+          .ProseMirror blockquote {
+            border-left: 4px solid #06b6d4;
+            padding-left: 1rem;
+            margin-left: 0;
+            color: #94a3b8;
+          }
+        `}</style>
+      </div>
+    </TooltipProvider>
   );
 };
 

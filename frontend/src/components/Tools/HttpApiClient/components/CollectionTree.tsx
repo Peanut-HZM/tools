@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Collection, HttpRequest, fetchRequests } from '../../../../services/httpClientApi';
+import { ChevronRight, Folder, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -178,13 +179,13 @@ export default function CollectionTree({
             }}
             className="h-6 w-6 text-ink-faint hover:text-ink-muted"
           >
-            <i
-              className={`fas fa-chevron-right text-xs transition-transform ${
+            <ChevronRight
+              className={`w-3 h-3 transition-transform ${
                 isExpanded ? 'rotate-90' : ''
               }`}
-            ></i>
+            />
           </Button>
-          <i className="fas fa-folder text-ink-faint text-xs"></i>
+          <Folder className="w-3 h-3 text-ink-faint" />
           <span className="truncate flex-1">{collection.name}</span>
           {onCollectionRename && (
             <Button
@@ -197,7 +198,7 @@ export default function CollectionTree({
               }}
               className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted"
             >
-              <i className="fas fa-pencil"></i>
+              <Pencil className="w-3 h-3" />
             </Button>
           )}
           {onCollectionDelete && (
@@ -211,7 +212,7 @@ export default function CollectionTree({
               }}
               className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger"
             >
-              <i className="fas fa-trash"></i>
+              <Trash2 className="w-3 h-3" />
             </Button>
           )}
         </div>
@@ -221,7 +222,7 @@ export default function CollectionTree({
           <div className="ml-4">
             {isLoading ? (
               <div className="py-2 text-xs text-ink-faint">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
                 加载中...
               </div>
             ) : requests.length === 0 ? (
@@ -287,7 +288,7 @@ export default function CollectionTree({
                             }}
                             className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-ink-muted"
                           >
-                            <i className="fas fa-pencil"></i>
+                            <Pencil className="w-3 h-3" />
                           </Button>
                         )}
                         {onRequestDelete && (
@@ -301,7 +302,7 @@ export default function CollectionTree({
                             }}
                             className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-faint hover:text-danger"
                           >
-                            <i className="fas fa-trash"></i>
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         )}
                       </>

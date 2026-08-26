@@ -1,3 +1,4 @@
+import { AlertCircle, AlertTriangle, ArrowLeft, Code, Copy, Download, Fingerprint, Key, Loader2, Lock, RefreshCw, Sparkles, Type, Unlock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
@@ -119,12 +120,12 @@ export default function KeyGenerator() {
             onClick={() => navigate('/')}
             className="flex items-center gap-2"
           >
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-yellow-500 rounded flex items-center justify-center">
-              <i className="fas fa-key text-ink-inverse text-sm"></i>
+              <Key className="w-4 h-4 text-ink-inverse" />
             </div>
             <h1 className="text-lg font-bold">密钥生成器</h1>
           </div>
@@ -161,9 +162,9 @@ export default function KeyGenerator() {
               className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-ink-inverse py-2.5 rounded-lg font-medium transition-all disabled:opacity-50"
             >
               {loading ? (
-                <><i className="fas fa-spinner fa-spin mr-2"></i>生成中...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />生成中...</>
               ) : (
-                <><i className="fas fa-magic mr-2"></i>生成密钥</>
+                <><Sparkles className="w-4 h-4 mr-2" />生成密钥</>
               )}
             </button>
           </div>
@@ -221,7 +222,7 @@ export default function KeyGenerator() {
           {/* 错误提示 */}
           {error && (
             <div className="bg-danger/10 border-b border-danger text-danger px-4 py-2 text-sm flex-shrink-0">
-              <i className="fas fa-exclamation-circle mr-2"></i>{error}
+              <AlertCircle className="w-4 h-4 mr-2" />{error}
             </div>
           )}
 
@@ -230,7 +231,7 @@ export default function KeyGenerator() {
             {!generatedKey ? (
               <div className="h-full flex items-center justify-center text-ink-faint">
                 <div className="text-center">
-                  <i className="fas fa-key text-6xl mb-4 opacity-20"></i>
+                  <Key className="w-16 h-16 mb-4 opacity-20" />
                   <p>选择算法后点击"生成密钥"</p>
                 </div>
               </div>
@@ -249,7 +250,7 @@ export default function KeyGenerator() {
                     onClick={generateKey}
                     size="sm"
                   >
-                    <i className="fas fa-redo mr-1"></i>重新生成
+                    <RefreshCw className="w-3.5 h-3.5 mr-1" />重新生成
                   </Button>
                 </div>
 
@@ -260,7 +261,7 @@ export default function KeyGenerator() {
                     <div className="bg-surface-1 rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between px-4 py-2 bg-danger/10 border-b border-border">
                         <span className="text-sm font-medium text-danger">
-                          <i className="fas fa-lock mr-2"></i>私钥 (Private Key)
+                          <Lock className="w-4 h-4 mr-2" />私钥 (Private Key)
                         </span>
                         <div className="flex gap-2">
                           <Button
@@ -268,14 +269,14 @@ export default function KeyGenerator() {
                             size="sm"
                             onClick={() => copyToClipboard(generatedKey.private_key!, '私钥')}
                           >
-                            <i className="fas fa-copy mr-1"></i>复制
+                            <Copy className="w-3.5 h-3.5 mr-1" />复制
                           </Button>
                           <Button
                             variant="secondary"
                             size="sm"
                             onClick={() => downloadKey(generatedKey.private_key!, `${generatedKey.algorithm}_private.pem`)}
                           >
-                            <i className="fas fa-download mr-1"></i>下载
+                            <Download className="w-3.5 h-3.5 mr-1" />下载
                           </Button>
                         </div>
                       </div>
@@ -290,7 +291,7 @@ export default function KeyGenerator() {
                     <div className="bg-surface-1 rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between px-4 py-2 bg-accent-info/10 border-b border-border">
                         <span className="text-sm font-medium text-accent-info">
-                          <i className="fas fa-unlock mr-2"></i>公钥 (Public Key)
+                          <Unlock className="w-4 h-4 mr-2" />公钥 (Public Key)
                         </span>
                         <div className="flex gap-2">
                           <Button
@@ -298,14 +299,14 @@ export default function KeyGenerator() {
                             size="sm"
                             onClick={() => copyToClipboard(generatedKey.public_key!, '公钥')}
                           >
-                            <i className="fas fa-copy mr-1"></i>复制
+                            <Copy className="w-3.5 h-3.5 mr-1" />复制
                           </Button>
                           <Button
                             variant="secondary"
                             size="sm"
                             onClick={() => downloadKey(generatedKey.public_key!, `${generatedKey.algorithm}_public.pem`)}
                           >
-                            <i className="fas fa-download mr-1"></i>下载
+                            <Download className="w-3.5 h-3.5 mr-1" />下载
                           </Button>
                         </div>
                       </div>
@@ -324,14 +325,14 @@ export default function KeyGenerator() {
                     <div className="bg-surface-1 rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between px-4 py-2 bg-accent-warning/10 border-b border-border">
                         <span className="text-sm font-medium text-accent-warning">
-                          <i className="fas fa-key mr-2"></i>Hex 格式
+                          <Key className="w-4 h-4 mr-2" />Hex 格式
                         </span>
                         <Button
                           variant="secondary"
                           size="sm"
                           onClick={() => copyToClipboard(generatedKey.key_hex!, 'Hex密钥')}
                         >
-                          <i className="fas fa-copy mr-1"></i>复制
+                          <Copy className="w-3.5 h-3.5 mr-1" />复制
                         </Button>
                       </div>
                       <div className="p-3 bg-canvas">
@@ -342,14 +343,14 @@ export default function KeyGenerator() {
                     <div className="bg-surface-1 rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between px-4 py-2 bg-accent/10 border-b border-border">
                         <span className="text-sm font-medium text-accent">
-                          <i className="fas fa-key mr-2"></i>Base64 格式
+                          <Key className="w-4 h-4 mr-2" />Base64 格式
                         </span>
                         <Button
                           variant="secondary"
                           size="sm"
                           onClick={() => copyToClipboard(generatedKey.key_base64!, 'Base64密钥')}
                         >
-                          <i className="fas fa-copy mr-1"></i>复制
+                          <Copy className="w-3.5 h-3.5 mr-1" />复制
                         </Button>
                       </div>
                       <div className="p-3 bg-canvas">
@@ -364,14 +365,14 @@ export default function KeyGenerator() {
                   <div className="bg-surface-1 rounded-lg overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-2 bg-accent-secondary/10 border-b border-border">
                       <span className="text-sm font-medium text-accent-secondary">
-                        <i className="fas fa-fingerprint mr-2"></i>UUID
+                        <Fingerprint className="w-4 h-4 mr-2" />UUID
                       </span>
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => copyToClipboard(generatedKey.uuid!, 'UUID')}
                       >
-                        <i className="fas fa-copy mr-1"></i>复制
+                        <Copy className="w-3.5 h-3.5 mr-1" />复制
                       </Button>
                     </div>
                     <div className="p-4 bg-canvas text-center">
@@ -385,14 +386,14 @@ export default function KeyGenerator() {
                   <div className="bg-surface-1 rounded-lg overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-2 bg-orange-500/10 border-b border-border">
                       <span className="text-sm font-medium text-orange-400">
-                        <i className="fas fa-code mr-2"></i>API Key
+                        <Code className="w-4 h-4 mr-2" />API Key
                       </span>
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => copyToClipboard(generatedKey.api_key!, 'API Key')}
                       >
-                        <i className="fas fa-copy mr-1"></i>复制
+                        <Copy className="w-3.5 h-3.5 mr-1" />复制
                       </Button>
                     </div>
                     <div className="p-3 bg-canvas">
@@ -406,14 +407,14 @@ export default function KeyGenerator() {
                   <div className="bg-surface-1 rounded-lg overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-2 bg-pink-500/10 border-b border-border">
                       <span className="text-sm font-medium text-pink-400">
-                        <i className="fas fa-font mr-2"></i>Base64 字符串
+                        <Type className="w-4 h-4 mr-2" />Base64 字符串
                       </span>
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => copyToClipboard(generatedKey.base64_string!, 'Base64 字符串')}
                       >
-                        <i className="fas fa-copy mr-1"></i>复制
+                        <Copy className="w-3.5 h-3.5 mr-1" />复制
                       </Button>
                     </div>
                     <div className="p-3 bg-canvas">
@@ -424,7 +425,7 @@ export default function KeyGenerator() {
 
                 {/* 安全提示 */}
                 <div className="p-3 bg-accent-warning/10 border border-accent-warning/30 rounded-lg text-xs text-ink-muted">
-                  <i className="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 mr-2" />
                   私钥请妥善保管，切勿泄露。密钥仅在本地生成，不会上传到服务器。
                 </div>
               </div>

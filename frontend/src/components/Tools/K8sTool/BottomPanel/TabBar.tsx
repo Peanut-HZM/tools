@@ -3,15 +3,16 @@
  * 显示所有打开的资源标签，支持切换和关闭
  */
 import React from 'react';
+import { Box, X } from 'lucide-react';
 import { useK8sStore, type ResourceTab } from '../../../../stores/k8sStore';
 
 /**
  * 根据资源类型返回对应的状态指示图标
  * 当前统一使用通用图标，后续可按 type 区分
  */
-const getStatusIcon = (_tab: ResourceTab): string => {
+const getStatusIcon = (_tab: ResourceTab): React.ReactNode => {
   // 可以通过 query 获取 pod 状态，这里先用通用图标
-  return 'fas fa-cube';
+  return <Box className="w-3 h-3 flex-shrink-0" />;
 };
 
 export const TabBar: React.FC = () => {
@@ -32,7 +33,7 @@ export const TabBar: React.FC = () => {
             }`}
           >
             {/* 状态指示图标 */}
-            <i className={`${getStatusIcon(tab)} text-xs flex-shrink-0`}></i>
+            {getStatusIcon(tab)}
             {/* 资源名称，超长截断 */}
             <span className="text-xs truncate flex-1">{tab.name}</span>
             {/* 命名空间 */}
@@ -48,7 +49,7 @@ export const TabBar: React.FC = () => {
               }`}
               title="关闭标签"
             >
-              <i className="fas fa-times text-xs"></i>
+              <X className="w-3 h-3" />
             </button>
           </div>
         );

@@ -6,6 +6,7 @@
  */
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link, Zap, Server, Box } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import * as api from '../../../../api/k8sToolApi';
@@ -162,11 +163,11 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
                   name: ref.name,
                 })}
               >
-                <i className="fas fa-link text-accent-info"></i>
+                <Link className="w-4 h-4 text-accent-info" />
                 <span className="text-accent-info font-medium">{ref.kind}</span>
                 <span className="text-ink-muted">/</span>
                 <span className="text-ink font-mono">{ref.name}</span>
-                <i className="fas fa-bolt text-ink-faint ml-auto" title={rt.viewEvents}></i>
+                <Zap className="w-4 h-4 text-ink-faint ml-auto" title={rt.viewEvents} />
               </div>
             ))}
           </div>
@@ -180,7 +181,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
             {rt.node}
           </h4>
           <div className="flex items-center gap-2 px-3 py-2 bg-surface-1/50 border border-border/50 rounded text-xs">
-            <i className="fas fa-server text-green-400"></i>
+            <Server className="w-4 h-4 text-green-400" />
             <span className="text-ink font-mono">{pod.node}</span>
           </div>
         </div>
@@ -198,7 +199,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
                 key={c.name}
                 className="flex items-center gap-2 px-3 py-1.5 bg-surface-1/30 border border-border/30 rounded text-xs"
               >
-                <i className="fas fa-cube text-ink-faint"></i>
+                <Box className="w-4 h-4 text-ink-faint" />
                 <span className="text-ink-muted">{c.name}:</span>
                 <span
                   className="text-ink-muted font-mono truncate"

@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { Loader2, ArrowLeft, GraduationCap, Download, Upload, Pencil, Plus, Users, Star, BookOpen, ChevronRight, ClipboardCheck, FolderOpen } from 'lucide-react';
 import { useChapterStore, useQuizStore, useResourceStore, useCourseAdminStore } from '../../stores/courseAdminStore';
 import ChapterList from './CourseManagement/ChapterList';
 import ChapterForm from './CourseManagement/ChapterForm';
@@ -101,9 +102,9 @@ export default function CourseDetail() {
 
   const getTabIcon = (tab: TabType) => {
     switch (tab) {
-      case 'chapters': return 'fa-book';
-      case 'quiz': return 'fa-clipboard-check';
-      case 'resources': return 'fa-folder-open';
+      case 'chapters': return <BookOpen className="w-4 h-4" />;
+      case 'quiz': return <ClipboardCheck className="w-4 h-4" />;
+      case 'resources': return <FolderOpen className="w-4 h-4" />;
     }
   };
 
@@ -118,7 +119,7 @@ export default function CourseDetail() {
   if (!course) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-ink-muted">
-        <i className="fas fa-spinner fa-spin text-4xl mb-4"></i>
+        <Loader2 className="w-16 h-16 mb-4 animate-spin" />
         <p>加载中...</p>
       </div>
     );
@@ -135,14 +136,14 @@ export default function CourseDetail() {
             className="group p-2.5 rounded-xl bg-surface-1/50 border border-border/50 hover:bg-surface-2/50 hover:border-accent/50 transition-all duration-200"
             title="返回课程列表"
           >
-            <i className="fas fa-arrow-left text-ink-muted group-hover:text-accent transition-colors"></i>
+            <ArrowLeft className="w-5 h-5 text-ink-muted group-hover:text-accent transition-colors" />
           </button>
 
           {/* 课程标题 */}
           <div className="flex flex-col">
             <h1 className="text-3xl font-bold text-ink-inverse flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center shadow-lg shadow-accent/20">
-                <i className="fas fa-graduation-cap text-white text-lg"></i>
+                <GraduationCap className="w-5 h-5 text-white" />
               </div>
               {course.title}
             </h1>
@@ -160,7 +161,7 @@ export default function CourseDetail() {
             onClick={handleOpenExportDialog}
             className="group px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500/20 hover:to-green-500/20 border border-emerald-500/30 hover:border-emerald-400/50 text-emerald-400 rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20"
           >
-            <i className="fas fa-download group-hover:scale-110 transition-transform"></i>
+            <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>导出</span>
           </button>
 
@@ -169,7 +170,7 @@ export default function CourseDetail() {
             onClick={handleOpenImportDialog}
             className="group px-5 py-2.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 border border-amber-500/30 hover:border-amber-400/50 text-amber-400 rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20"
           >
-            <i className="fas fa-upload group-hover:scale-110 transition-transform"></i>
+            <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>导入</span>
           </button>
 
@@ -180,7 +181,7 @@ export default function CourseDetail() {
             onClick={handleEditCourse}
             className="group px-5 py-2.5 bg-gradient-to-r bg-accent-secondary/10 to-pink-500/10 hover:bg-accent-secondary/20 hover:to-pink-500/20 border border-accent-secondary/30 hover:border-accent-secondary text-accent-secondary rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent-secondary/10 hover:shadow-accent-secondary/20"
           >
-            <i className="fas fa-pen-to-square group-hover:scale-110 transition-transform"></i>
+            <Pencil className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>编辑课程</span>
           </button>
 
@@ -189,7 +190,7 @@ export default function CourseDetail() {
             onClick={handleCreateChapter}
             className="group px-5 py-2.5 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent/30 hover:shadow-accent/50 hover:-translate-y-0.5"
           >
-            <i className="fas fa-plus group-hover:rotate-90 transition-transform duration-200"></i>
+            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
             <span>新增章节</span>
           </button>
         </div>
@@ -233,19 +234,19 @@ export default function CourseDetail() {
               <div className="flex items-center gap-4 text-ink-muted text-sm">
                 <span className="flex items-center gap-1.5 hover:text-accent transition-colors">
                   <div className="w-5 h-5 rounded-lg bg-surface-2/50 flex items-center justify-center">
-                    <i className="fas fa-users text-xs"></i>
+                    <Users className="w-3 h-3" />
                   </div>
                   {course.statistics?.enroll_count || 0} 人学习
                 </span>
                 <span className="flex items-center gap-1.5 hover:text-amber-400 transition-colors">
                   <div className="w-5 h-5 rounded-lg bg-surface-2/50 flex items-center justify-center">
-                    <i className="fas fa-star text-xs"></i>
+                    <Star className="w-3 h-3" />
                   </div>
                   {course.statistics?.avg_rating ? course.statistics.avg_rating.toFixed(1) : '0.0'} 分
                 </span>
                 <span className="flex items-center gap-1.5 hover:text-accent-secondary transition-colors">
                   <div className="w-5 h-5 rounded-lg bg-surface-2/50 flex items-center justify-center">
-                    <i className="fas fa-book text-xs"></i>
+                    <BookOpen className="w-3 h-3" />
                   </div>
                   {chapters.length} 个章节
                 </span>
@@ -259,7 +260,7 @@ export default function CourseDetail() {
                 onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
                 className="flex items-center gap-2 text-sm text-ink-muted hover:text-accent transition-colors mb-2"
               >
-                <i className={`fas fa-chevron-right text-xs transition-transform duration-200 ${isDescriptionExpanded ? 'rotate-90' : ''}`}></i>
+                <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${isDescriptionExpanded ? 'rotate-90' : ''}`} />
                 <span className="font-medium">课程简介</span>
               </button>
 
@@ -318,12 +319,12 @@ export default function CourseDetail() {
             )}
 
             {/* 标签内容 */}
-            <span className="relative flex items-center gap-2">
-              <i className={`fas ${getTabIcon(tab)} ${
+            <span className={`relative flex items-center gap-2 ${
                 activeTab === tab ? 'text-accent' : 'group-hover:text-ink-inverse transition-colors'
-              }`}></i>
-              {getTabLabel(tab)}
-            </span>
+              }`}>
+                {getTabIcon(tab)}
+                {getTabLabel(tab)}
+              </span>
           </button>
         ))}
       </div>

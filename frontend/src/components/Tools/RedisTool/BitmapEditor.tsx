@@ -4,6 +4,13 @@ import { useToast } from '../../../hooks/useToast';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface Props {
   configId: string;
@@ -55,14 +62,18 @@ export const BitmapEditor: React.FC<Props> = ({ configId, keyName }) => {
             placeholder="Offset"
             className="w-32"
           />
-          <select
-            value={bitValue}
-            onChange={e => setBitValue(parseInt(e.target.value))}
-            className="bg-canvas border border-border rounded px-2 py-1 text-sm text-ink"
+          <Select
+            value={String(bitValue)}
+            onValueChange={(v) => setBitValue(parseInt(v))}
           >
-            <option value={1}>1</option>
-            <option value={0}>0</option>
-          </select>
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1</SelectItem>
+              <SelectItem value="0">0</SelectItem>
+            </SelectContent>
+          </Select>
           <Button size="sm" onClick={handleSetBit}>Set</Button>
         </div>
       </Card>

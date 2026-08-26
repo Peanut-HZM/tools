@@ -1,7 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '../../stores/authStore';
 import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
 import Header from '../Header/Header';
+import {
+  LineChart,
+  Wrench,
+  Users,
+  Mail,
+  MessagesSquare,
+  Bot,
+  Settings,
+  CloudUpload,
+  Brain,
+  GraduationCap,
+  Image as ImageIcon,
+  Shield,
+} from 'lucide-react';
 
 export default function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -29,19 +43,19 @@ export default function AdminLayout() {
     return null;
   }
 
-  const menuItems = [
-    { path: '/admin', label: '仪表盘', icon: 'fa-chart-line' },
-    { path: '/admin/tools', label: '工具管理', icon: 'fa-toolbox' },
-    { path: '/admin/users', label: '用户管理', icon: 'fa-users' },
-    { path: '/admin/contact-messages', label: '留言管理', icon: 'fa-envelope' },
-    { path: '/admin/conversations', label: '对话管理', icon: 'fa-comments' },
-    { path: '/admin/agents', label: 'Agent 管理', icon: 'fa-robot' },
-    { path: '/admin/settings', label: '系统设置', icon: 'fa-cog' },
-    { path: '/admin/oss', label: 'OSS 文件管理', icon: 'fa-cloud-upload-alt' },
-    { path: '/admin/llm-configs', label: '大模型配置', icon: 'fa-brain' },
-    { path: '/admin/course', label: '课程管理', icon: 'fa-graduation-cap' },
-    { path: '/admin/openclaw', label: 'OpenClaw 管理', icon: 'fa-comments' },
-    { path: '/admin/image-generation', label: '图像生成管理', icon: 'fa-image' },
+  const menuItems: Array<{ path: string; label: string; icon: ReactNode }> = [
+    { path: '/admin', label: '仪表盘', icon: <LineChart className="w-5 h-5" /> },
+    { path: '/admin/tools', label: '工具管理', icon: <Wrench className="w-5 h-5" /> },
+    { path: '/admin/users', label: '用户管理', icon: <Users className="w-5 h-5" /> },
+    { path: '/admin/contact-messages', label: '留言管理', icon: <Mail className="w-5 h-5" /> },
+    { path: '/admin/conversations', label: '对话管理', icon: <MessagesSquare className="w-5 h-5" /> },
+    { path: '/admin/agents', label: 'Agent 管理', icon: <Bot className="w-5 h-5" /> },
+    { path: '/admin/settings', label: '系统设置', icon: <Settings className="w-5 h-5" /> },
+    { path: '/admin/oss', label: 'OSS 文件管理', icon: <CloudUpload className="w-5 h-5" /> },
+    { path: '/admin/llm-configs', label: '大模型配置', icon: <Brain className="w-5 h-5" /> },
+    { path: '/admin/course', label: '课程管理', icon: <GraduationCap className="w-5 h-5" /> },
+    { path: '/admin/openclaw', label: 'OpenClaw 管理', icon: <MessagesSquare className="w-5 h-5" /> },
+    { path: '/admin/image-generation', label: '图像生成管理', icon: <ImageIcon className="w-5 h-5" /> },
   ];
 
   return (
@@ -58,7 +72,7 @@ export default function AdminLayout() {
           <div className="bg-gradient-to-br from-surface-1 to-canvas rounded-xl p-4 border border-border/50 shadow-xl">
             <div className="flex items-center space-x-3 mb-6 px-4">
               <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-info rounded-lg flex items-center justify-center">
-                <i className="fas fa-shield-alt text-ink-inverse text-lg"></i>
+                <Shield className="w-5 h-5 text-ink-inverse" />
               </div>
               <h2 className="text-xl font-bold text-ink-inverse">后台管理</h2>
             </div>
@@ -73,7 +87,9 @@ export default function AdminLayout() {
                       : 'text-ink-muted hover:bg-surface-2/50 hover:text-ink-inverse hover:translate-x-1'
                   }`}
                 >
-                  <i className={`fas ${item.icon} w-5 text-center ${location.pathname === item.path ? 'text-accent' : 'text-ink-faint group-hover:text-ink-inverse'}`}></i>
+                  <span className={`w-5 text-center flex items-center justify-center ${location.pathname === item.path ? 'text-accent' : 'text-ink-faint group-hover:text-ink-inverse'}`}>
+                    {item.icon}
+                  </span>
                   <span className="font-medium">{item.label}</span>
                 </Link>
               ))}

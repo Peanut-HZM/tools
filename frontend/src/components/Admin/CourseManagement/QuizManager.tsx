@@ -2,6 +2,7 @@
  * 测验管理组件
  */
 import React, { useState } from 'react';
+import { BookOpen, Code as CodeIcon, Video, CheckCircle, Circle, ClipboardCheck, Plus, ClipboardList, Pencil, ClipboardQuestion, ArrowLeft, ReactNode } from 'lucide-react';
 import { useQuizStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import QuizForm from './QuizForm';
@@ -63,7 +64,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
       <div className="w-80 border-r border-border/50 pr-4">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
-            <i className="fas fa-book mr-2 text-accent"></i>
+            <BookOpen className="w-4 h-4 mr-2 text-accent" />
             选择章节
           </h3>
           <p className="text-ink-faint text-sm mt-1">点击章节加载对应测验</p>
@@ -84,17 +85,23 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <i className={`fas ${chapter.chapter_type === 'story' ? 'fa-book' : chapter.chapter_type === 'code' ? 'fa-code' : 'fa-video'} text-ink-faint`}></i>
+                      {chapter.chapter_type === 'story' ? (
+                    <BookOpen className="w-4 h-4 text-ink-faint" />
+                  ) : chapter.chapter_type === 'code' ? (
+                    <CodeIcon className="w-4 h-4 text-ink-faint" />
+                  ) : (
+                    <Video className="w-4 h-4 text-ink-faint" />
+                  )}
                       <span className="text-ink-inverse font-medium truncate">{chapter.title}</span>
                     </div>
                   </div>
                   {hasQuiz ? (
                     <span className="inline-flex items-center px-2 py-1 bg-success/20 text-success border border-success/30 rounded text-xs">
-                      <i className="fas fa-check-circle mr-1"></i>已创建
+                      <CheckCircle className="w-4 h-4 mr-1" />已创建
                     </span>
                   ) : (
                     <span className="inline-flex items-center px-2 py-1 bg-surface-3/50 text-ink-muted border border-border/50 rounded text-xs">
-                      <i className="fas fa-circle mr-1"></i>未创建
+                      <Circle className="w-4 h-4 mr-1" />未创建
                     </span>
                   )}
                 </div>
@@ -111,7 +118,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-2xl font-bold text-ink-inverse flex items-center">
-                  <i className="fas fa-clipboard-check text-accent mr-3"></i>
+                  <ClipboardCheck className="w-5 h-5 text-accent mr-3" />
                   测验：{chapters.find((c) => c.id === selectedChapterId)?.title}
                 </h3>
                 <p className="text-ink-muted text-sm mt-1">管理和编辑章节测验</p>

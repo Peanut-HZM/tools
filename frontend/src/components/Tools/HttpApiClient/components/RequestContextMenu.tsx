@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { HttpRequest, Collection } from '../../../../services/httpClientApi';
+import { Pencil, Copy, ChevronRight, Trash2, Folder } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface ContextMenuProps {
@@ -83,7 +84,7 @@ export default function RequestContextMenu({
             }}
             className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal"
           >
-            <i className="fas fa-pencil mr-2 text-ink-faint"></i>
+            <Pencil className="w-4 h-4 mr-2 text-ink-faint" />
             重命名
           </Button>
         )}
@@ -97,10 +98,10 @@ export default function RequestContextMenu({
             className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal flex justify-between"
           >
             <span>
-              <i className="fas fa-copy mr-2 text-ink-faint"></i>
+              <Copy className="w-4 h-4 mr-2 text-ink-faint inline" />
               复制请求
             </span>
-            <i className="fas fa-chevron-right text-xs text-ink-faint"></i>
+            <ChevronRight className="w-3 h-3 text-ink-faint" />
           </Button>
         </div>
 
@@ -111,7 +112,7 @@ export default function RequestContextMenu({
           onClick={handleDelete}
           className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal text-danger hover:bg-danger/10 hover:text-danger"
         >
-          <i className="fas fa-trash mr-2"></i>
+          <Trash2 className="w-4 h-4 mr-2" />
           删除请求
         </Button>
       </div>
@@ -133,7 +134,7 @@ export default function RequestContextMenu({
                 onClick={(e) => handleDuplicate(c.id, e)}
                 className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal"
               >
-                <i className="fas fa-folder mr-2 text-ink-faint text-xs"></i>
+                <Folder className="w-3 h-3 mr-2 text-ink-faint" />
                 <span className="truncate">{c.name}</span>
               </Button>
             ))

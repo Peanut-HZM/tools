@@ -1,3 +1,4 @@
+import { Clock, CloudUpload, Copy, FileMusic, Loader2, Mic, Mic2, Trash2, AlignLeft } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { asrApi, ASRResult } from '../../../api/asrApi';
 import { useToast } from '../../../hooks/useToast';
@@ -62,7 +63,7 @@ export default function ASRTool() {
     <div className="container mx-auto px-6 py-8">
       <div className="flex items-center space-x-3 mb-8">
         <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-          <i className="fas fa-microphone text-ink-inverse text-xl"></i>
+          <Mic className="w-5 h-5 text-ink-inverse" />
         </div>
         <h1 className="text-2xl font-bold text-ink">{t.tools['asr-tool'].title}</h1>
       </div>
@@ -77,7 +78,7 @@ export default function ASRTool() {
                 onClick={clearFile}
                 className="text-ink-muted hover:text-danger text-sm transition-colors flex items-center"
               >
-                <i className="fas fa-trash-alt mr-1"></i> 清除
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> 清除
               </button>
             )}
           </CardHeader>
@@ -101,7 +102,7 @@ export default function ASRTool() {
             {file ? (
               <div className="text-center p-6">
                 <div className="w-16 h-16 bg-surface-1 rounded-full flex items-center justify-center mx-auto mb-4 border border-border animate-pulse">
-                  <i className="fas fa-music text-3xl text-success"></i>
+                  <FileMusic className="w-8 h-8 text-success" />
                 </div>
                 <p className="text-lg text-ink font-medium break-all">{file.name}</p>
                 <p className="text-sm text-ink-muted mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
@@ -109,7 +110,7 @@ export default function ASRTool() {
             ) : (
               <div className="text-center p-6">
                 <div className="w-16 h-16 bg-surface-2 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-cloud-upload-alt text-3xl text-success"></i>
+                  <CloudUpload className="w-8 h-8 text-success" />
                 </div>
                 <p className="text-lg text-ink mb-2">点击或拖拽音频文件到这里</p>
                 <p className="text-sm text-ink-muted">支持 mp3, wav, m4a, flac, ogg 等格式</p>
@@ -130,12 +131,12 @@ export default function ASRTool() {
             >
               {loading ? (
                 <>
-                  <i className="fas fa-spinner fa-spin"></i>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>识别中...</span>
                 </>
               ) : (
                 <>
-                  <i className="fas fa-microphone-alt"></i>
+                  <Mic2 className="w-4 h-4" />
                   <span>开始识别</span>
                 </>
               )}
@@ -150,7 +151,7 @@ export default function ASRTool() {
             <CardTitle className="text-lg">识别结果</CardTitle>
             {result && (
               <div className="flex items-center space-x-4 text-sm text-ink-muted">
-                <span><i className="fas fa-clock mr-1"></i> {result.processing_time.toFixed(2)}s</span>
+                <span><Clock className="w-3.5 h-3.5 mr-1" /> {result.processing_time.toFixed(2)}s</span>
                 <button 
                   onClick={() => {
                     navigator.clipboard.writeText(result.text);
@@ -158,7 +159,7 @@ export default function ASRTool() {
                   }}
                   className="text-success hover:text-emerald-300 transition-colors flex items-center"
                 >
-                  <i className="fas fa-copy mr-1"></i> 复制
+                  <Copy className="w-3.5 h-3.5 mr-1" /> 复制
                 </button>
               </div>
             )}
@@ -174,7 +175,7 @@ export default function ASRTool() {
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-ink-faint flex-col">
-                <i className="fas fa-align-left text-4xl mb-4 opacity-30"></i>
+                <AlignLeft className="w-10 h-10 mb-4 opacity-30" />
                 <p>等待识别结果...</p>
               </div>
             )}

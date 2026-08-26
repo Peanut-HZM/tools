@@ -8,6 +8,13 @@ import type { Course, CourseCategory } from '../../../services/coursePlatform';
 import { MarkdownEditor } from './MarkdownEditor';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface CourseEditorProps {
   courseId?: number;
@@ -159,23 +166,26 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                     <i className="fas fa-folder mr-2 text-accent"></i>
                     课程分类
                   </label>
-                  <select
-                    name="category_id"
-                    value={formData.category_id || ''}
-                    onChange={(e) =>
+                  <Select
+                    value={String(formData.category_id || '')}
+                    onValueChange={(v) =>
                       setFormData((prev) => ({
                         ...prev,
-                        category_id: e.target.value ? Number(e.target.value) : undefined,
+                        category_id: v ? Number(v) : undefined,
                       }))
                     }
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
                   >
-                    <option value="">选择分类</option>
-                    <option value="1">💻 编程开发</option>
-                    <option value="2">📊 数据分析</option>
-                    <option value="3">🎨 设计创意</option>
-                    <option value="4">📈 产品运营</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择分类" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">选择分类</SelectItem>
+                      <SelectItem value="1">💻 编程开发</SelectItem>
+                      <SelectItem value="2">📊 数据分析</SelectItem>
+                      <SelectItem value="3">🎨 设计创意</SelectItem>
+                      <SelectItem value="4">📈 产品运营</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">

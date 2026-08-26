@@ -10,6 +10,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import 'xterm/css/xterm.css';
+import { Redo2 } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import { getAuthToken } from '../../../../api/authApi';
@@ -264,7 +265,7 @@ export const K8sTerminalPanel: React.FC<Props> = ({
           onClick={handleReconnect}
           className="h-7 px-2"
         >
-          <i className="fas fa-redo text-xs"></i>
+          <Redo2 className="w-3 h-3" />
           {tt.reconnect}
         </Button>
       </div>

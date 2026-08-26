@@ -1,3 +1,4 @@
+import { Star } from 'lucide-react';
 import { ToolCardProps } from '../../types';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -34,7 +35,7 @@ export default function ToolCard({
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <p className="text-ink-muted text-sm mb-4">{description}</p>
       <div className="flex items-center text-xs text-ink-faint">
-        <i className="fas fa-star mr-1"></i>
+        <Star className="w-3 h-3 mr-1" />
         <span>{rating}</span>
         <span className="mx-2">•</span>
         <span>{usageCount} 使用</span>

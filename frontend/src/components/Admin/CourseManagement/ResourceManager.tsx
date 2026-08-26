@@ -2,6 +2,7 @@
  * 资源管理组件
  */
 import React, { useState } from 'react';
+import { BookOpen, Folder, FolderOpen, Plus, Pencil, Trash2, ArrowLeft, ReactNode, Code, Scale, Video, FileText, File } from 'lucide-react';
 import { useResourceStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import ResourceForm from './ResourceForm';
@@ -58,13 +59,13 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
   const selectedResources = selectedChapterId ? (resources[selectedChapterId] || []) : [];
 
   const getResourceIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      code_sample: 'fa-code',
-      contrast: 'fa-scale-balanced',
-      video: 'fa-video',
-      template: 'fa-file-lines',
+    const icons: Record<string, ReactNode> = {
+      code_sample: <Code className="w-5 h-5 text-ink-inverse" />,
+      contrast: <Scale className="w-5 h-5 text-ink-inverse" />,
+      video: <Video className="w-5 h-5 text-ink-inverse" />,
+      template: <FileText className="w-5 h-5 text-ink-inverse" />,
     };
-    return icons[type] || 'fa-file';
+    return icons[type] || <File className="w-5 h-5 text-ink-inverse" />;
   };
 
   const getResourceColor = (type: string) => {
@@ -93,7 +94,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
       <div className="w-80 border-r border-border/50 pr-4">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
-            <i className="fas fa-book mr-2 text-accent"></i>
+            <BookOpen className="w-4 h-4 mr-2 text-accent" />
             选择章节
           </h3>
           <p className="text-ink-faint text-sm mt-1">点击章节加载对应资源</p>
@@ -116,7 +117,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center px-2 py-1 bg-surface-3/50 text-ink-muted border border-border/50 rounded text-xs">
-                    <i className="fas fa-folder mr-1"></i>
+                    <Folder className="w-4 h-4 mr-1" />
                     {resourceCount} 个资源
                   </span>
                   <span className="text-ink-faint text-xs">{chapter.chapter_type}</span>
@@ -134,7 +135,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-2xl font-bold text-ink-inverse flex items-center">
-                  <i className="fas fa-folder-open text-accent mr-3"></i>
+                  <FolderOpen className="w-5 h-5 text-accent mr-3" />
                   资源：{chapters.find((c) => c.id === selectedChapterId)?.title}
                 </h3>
                 <p className="text-ink-muted text-sm mt-1">管理和编辑章节学习资源</p>
@@ -144,7 +145,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                 variant="default"
                 className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
               >
-                <i className="fas fa-plus mr-2"></i>
+                <Plus className="w-4 h-4 mr-2" />
                 添加资源
               </Button>
             </div>
@@ -166,7 +167,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className={`w-12 h-12 bg-gradient-to-br ${getResourceColor(resource.resource_type)} rounded-xl flex items-center justify-center`}>
-                          <i className={`fas ${getResourceIcon(resource.resource_type)} text-ink-inverse text-lg`}></i>
+                          {getResourceIcon(resource.resource_type)}
                         </div>
                         <div>
                           <h4 className="text-ink-inverse font-semibold">{resource.title}</h4>
@@ -181,7 +182,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                         variant="outline"
                         className="flex-1 px-3 py-2 rounded-lg transition-all text-sm text-center"
                       >
-                        <i className="fas fa-edit mr-1"></i>编辑
+                        <Pencil className="w-4 h-4 mr-1" />编辑
                       </Button>
                       <Button
                         onClick={async () => {
@@ -192,7 +193,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                         variant="destructive"
                         className="px-3 py-2 rounded-lg transition-all text-sm"
                       >
-                        <i className="fas fa-trash"></i>
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </Card>
@@ -202,7 +203,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
               <div className="flex items-center justify-center py-16">
                 <div className="text-center max-w-md">
                   <div className="w-24 h-24 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i className="fas fa-folder-open text-5xl text-ink-faint"></i>
+                    <FolderOpen className="w-20 h-20 text-ink-faint" />
                   </div>
                   <p className="text-ink-inverse text-lg font-medium mb-2">该章节还没有资源</p>
                   <p className="text-ink-muted text-sm mb-6">添加学习资源来帮助理解课程内容</p>
@@ -211,7 +212,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                     variant="default"
                     className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
                   >
-                    <i className="fas fa-plus mr-2"></i>
+                    <Plus className="w-4 h-4 mr-2" />
                     添加资源
                   </Button>
                 </div>
@@ -222,7 +223,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <div className="w-20 h-20 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-arrow-left text-3xl text-ink-faint"></i>
+                <ArrowLeft className="w-12 h-12 text-ink-faint" />
               </div>
               <p className="text-ink-muted">请从左侧选择一个章节</p>
             </div>

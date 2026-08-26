@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Bot, ExternalLink, Info } from 'lucide-react';
 import { Button } from "@/components/ui/Button";
 
 // AI 助手外部地址，从构建时环境变量注入（见 .env.example）
@@ -18,12 +19,12 @@ export default function AIAssistant() {
             onClick={() => navigate('/')}
             className="flex items-center gap-2"
           >
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center">
-              <i className="fas fa-robot text-white text-sm"></i>
+              <Bot className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-lg font-bold">AI助手</h1>
           </div>
@@ -36,7 +37,7 @@ export default function AIAssistant() {
             rel="noopener noreferrer"
             className="text-ink-muted hover:text-ink-inverse transition-colors flex items-center gap-2 text-sm"
           >
-            <i className="fas fa-external-link-alt"></i>
+            <ExternalLink className="w-4 h-4" />
             <span className="hidden sm:inline">新窗口打开</span>
           </a>
         )}
@@ -54,7 +55,7 @@ export default function AIAssistant() {
         ) : (
           <div className="w-full h-full flex items-center justify-center text-ink-muted">
             <div className="text-center">
-              <i className="fas fa-info-circle text-3xl mb-3"></i>
+              <Info className="w-8 h-8 mb-3" />
               <p>AI 助手未配置</p>
               <p className="text-xs mt-2 text-ink-faint">
                 请在 <code className="text-pink-400">.env</code> 中设置{' '}

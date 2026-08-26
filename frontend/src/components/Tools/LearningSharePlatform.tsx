@@ -1,3 +1,4 @@
+import { CheckCircle, Info, Presentation } from 'lucide-react';
 import { Card } from "@/components/ui/Card";
 
 export default function LearningSharePlatform() {
@@ -7,7 +8,7 @@ export default function LearningSharePlatform() {
         <Card className="p-8">
           <div className="flex items-center mb-6">
             <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mr-4">
-              <i className="fas fa-chalkboard-teacher text-ink-inverse text-2xl"></i>
+              <Presentation className="w-6 h-6 text-ink-inverse" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-ink-inverse">学习分享演示平台</h1>
@@ -19,19 +20,19 @@ export default function LearningSharePlatform() {
             <h2 className="text-lg font-semibold text-ink-inverse mb-4">🎯 功能介绍</h2>
             <ul className="space-y-3 text-ink-muted">
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-accent-secondary mr-3 mt-1"></i>
+                <CheckCircle className="w-4 h-4 text-accent-secondary mr-3 mt-1" />
                 <span><strong>互动演示</strong>：创建生动的技术演示，支持代码高亮和实时预览</span>
               </li>
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-accent-secondary mr-3 mt-1"></i>
+                <CheckCircle className="w-4 h-4 text-accent-secondary mr-3 mt-1" />
                 <span><strong>知识分享</strong>：支持图文、视频、代码等多种形式的知识内容</span>
               </li>
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-accent-secondary mr-3 mt-1"></i>
+                <CheckCircle className="w-4 h-4 text-accent-secondary mr-3 mt-1" />
                 <span><strong>协作学习</strong>：多人在线协作，实时讨论和反馈</span>
               </li>
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-accent-secondary mr-3 mt-1"></i>
+                <CheckCircle className="w-4 h-4 text-accent-secondary mr-3 mt-1" />
                 <span><strong>资源管理</strong>：系统化管理学习资料和演示文档</span>
               </li>
             </ul>
@@ -61,7 +62,7 @@ export default function LearningSharePlatform() {
 
           <Card className="p-6">
             <div className="flex items-center mb-3">
-              <i className="fas fa-info-circle text-accent-secondary mr-2"></i>
+              <Info className="w-4 h-4 text-accent-secondary mr-2" />
               <span className="text-accent-secondary font-semibold">开发中</span>
             </div>
             <p className="text-ink-muted">

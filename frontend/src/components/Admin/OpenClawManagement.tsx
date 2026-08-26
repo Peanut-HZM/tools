@@ -9,6 +9,13 @@ import {
   type OpenClawConfig,
 } from '../../api/openclawApi';
 import { Button } from '@/components/ui/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export default function OpenClawManagement() {
   const [config, setConfig] = useState<OpenClawConfig | null>(null);
@@ -261,14 +268,15 @@ export default function OpenClawManagement() {
           </div>
           <div>
             <label className="block text-ink-muted text-sm mb-1">认证方式</label>
-            <select
-              value={authMode}
-              onChange={(e) => setAuthMode(e.target.value)}
-              className="w-full bg-canvas text-ink-inverse border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500"
-            >
-              <option value="token">仅 Token 鉴权</option>
-              <option value="token_with_password">Token + 用户名密码双重认证</option>
-            </select>
+            <Select value={authMode} onValueChange={setAuthMode}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="token">仅 Token 鉴权</SelectItem>
+                <SelectItem value="token_with_password">Token + 用户名密码双重认证</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {authMode === 'token_with_password' && (
             <>

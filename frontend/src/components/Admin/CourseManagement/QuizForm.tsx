@@ -6,6 +6,13 @@ import { useQuizStore } from '../../../stores/courseAdminStore';
 import type { CourseQuiz as Quiz, QuizCreate, QuizUpdate, CourseQuizQuestion as QuizQuestion, CourseQuizOption as QuizOption } from '../../../services/coursePlatform';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface QuizFormProps {
   chapterId: number;
@@ -315,18 +322,22 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             <label className="block text-sm font-medium text-ink-muted mb-1">
               题目类型
             </label>
-            <select
+            <Select
               value={question.question_type}
-              onChange={(e) => onUpdate({
-                question_type: e.target.value as 'single' | 'multiple' | 'true_false',
+              onValueChange={(v) => onUpdate({
+                question_type: v as 'single' | 'multiple' | 'true_false',
                 correct_answer: ''
               })}
-              className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
             >
-              <option value="single">单选题</option>
-              <option value="multiple">多选题</option>
-              <option value="true_false">判断题</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="single">单选题</SelectItem>
+                <SelectItem value="multiple">多选题</SelectItem>
+                <SelectItem value="true_false">判断题</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { LLMConfig, CreateLLMConfigRequest, LLMConfigCategory } from '../../../services/llmConfigApi';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface ConfigModalProps {
   isOpen: boolean;
@@ -135,14 +142,18 @@ export default function ConfigModal({ isOpen, onClose, onSubmit, editingConfig, 
               <label className="block text-sm font-medium text-ink-muted mb-2">
                 分类 <span className="text-danger">*</span>
               </label>
-              <select
+              <Select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as LLMConfigCategory })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse focus:outline-none focus:ring-2 focus:ring-accent"
+                onValueChange={(v) => setFormData({ ...formData, category: v as LLMConfigCategory })}
               >
-                <option value="chat">对话类型</option>
-                <option value="code">编程类型</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chat">对话类型</SelectItem>
+                  <SelectItem value="code">编程类型</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Base URL */}

@@ -2,6 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { X, Monitor, Merge, Undo2, Edit3, AlertCircle } from 'lucide-react';
 import type { DeviceInfo } from '../../../api/tokenUsageApi';
 import { Button } from '@/components/ui/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface Props {
   devices: DeviceInfo[];
@@ -138,21 +145,21 @@ export default function DeviceManagerModal({
             </button>
             {selectedIds.size >= 2 && (
               <>
-                <select
-                  value={mergeTarget}
-                  onChange={e => setMergeTarget(e.target.value)}
-                  className="rounded-md border border-border bg-surface-1 px-2 py-1.5 text-xs text-ink"
-                >
-                  <option value="">选择合并目标...</option>
-                  {Array.from(selectedIds).map(id => {
-                    const d = devices.find(dev => dev.id === id);
-                    return (
-                      <option key={id} value={id}>
-                        {d?.name || id}
-                      </option>
-                    );
-                  })}
-                </select>
+                <Select value={mergeTarget} onValueChange={setMergeTarget}>
+                  <SelectTrigger className="text-xs">
+                    <SelectValue placeholder="选择合并目标..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from(selectedIds).map(id => {
+                      const d = devices.find(dev => dev.id === id);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {d?.name || id}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
                 <Button
                   onClick={handleMerge}
                   disabled={!mergeTarget || processing}

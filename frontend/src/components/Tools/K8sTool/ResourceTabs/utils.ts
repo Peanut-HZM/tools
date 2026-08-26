@@ -3,6 +3,13 @@
  *
  * 提供时间格式化、状态颜色等通用辅助
  */
+import {
+  XCircle,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  HelpCircle,
+} from 'lucide-react';
 
 /**
  * 将 ISO 时间字符串转换为人类可读的"运行时间"
@@ -49,17 +56,17 @@ export function getStatusColor(phase: string, status?: string): string {
 }
 
 /**
- * 根据 Pod phase 返回状态图标
+ * 根据 Pod phase 返回状态图标组件
  */
-export function getStatusIcon(phase: string, status?: string): string {
+export function getStatusIcon(phase: string, status?: string): React.ComponentType<{ className?: string }> {
   const lower = (status || phase).toLowerCase();
 
-  if (lower.includes('crashloop') || lower.includes('error')) return 'fas fa-times-circle';
-  if (lower === 'running') return 'fas fa-check-circle';
-  if (lower === 'pending' || lower === 'containercreating' || lower.includes('waiting')) return 'fas fa-clock';
-  if (lower === 'failed') return 'fas fa-exclamation-circle';
-  if (lower === 'succeeded') return 'fas fa-check-circle';
-  return 'fas fa-question-circle';
+  if (lower.includes('crashloop') || lower.includes('error')) return XCircle;
+  if (lower === 'running') return CheckCircle2;
+  if (lower === 'pending' || lower === 'containercreating' || lower.includes('waiting')) return Clock;
+  if (lower === 'failed') return AlertCircle;
+  if (lower === 'succeeded') return CheckCircle2;
+  return HelpCircle;
 }
 
 /**

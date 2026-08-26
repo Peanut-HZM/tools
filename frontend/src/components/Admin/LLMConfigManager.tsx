@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { llmConfigApi, LLMConfig } from '../../services/llmConfigApi';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 const LLMConfigManager: React.FC = () => {
   const [configs, setConfigs] = useState<LLMConfig[]>([]);
@@ -113,18 +120,22 @@ const LLMConfigManager: React.FC = () => {
             </div>
             <div>
               <label className="block text-ink-muted mb-2">供应商</label>
-              <select
+              <Select
                 value={formData.provider_type}
-                onChange={(e) => setFormData({ ...formData, provider_type: e.target.value })}
-                className="w-full px-3 py-2 bg-surface-2 text-ink-inverse rounded"
+                onValueChange={(v) => setFormData({ ...formData, provider_type: v })}
               >
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="azure_openai">Azure OpenAI</option>
-                <option value="baidu">百度文心</option>
-                <option value="aliyun">阿里通义</option>
-                <option value="other">其他</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="openai">OpenAI</SelectItem>
+                  <SelectItem value="anthropic">Anthropic</SelectItem>
+                  <SelectItem value="azure_openai">Azure OpenAI</SelectItem>
+                  <SelectItem value="baidu">百度文心</SelectItem>
+                  <SelectItem value="aliyun">阿里通义</SelectItem>
+                  <SelectItem value="other">其他</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-ink-muted mb-2">Base URL</label>

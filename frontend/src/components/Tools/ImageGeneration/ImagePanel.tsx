@@ -3,6 +3,7 @@
  * 包含：生成结果展示 + 内嵌历史列表
  */
 import { useCallback } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { useImageGenStore } from '../../../stores/imageGenerationStore';
 import { useImageGenHistory } from '../../../hooks/useImageGenHistory';
 import { useImageGenerate } from '../../../hooks/useImageGenerate';
@@ -80,7 +81,7 @@ function HistoryCard({ item }: { item: HistoryItem }) {
         <button
           onClick={handleDelete}
           className="p-1 text-ink-faint hover:text-danger transition-colors"
-          title="删除"
+          aria-label="删除"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -106,15 +107,22 @@ export default function ImagePanel() {
       <div className="border-t border-border bg-surface-1/30 flex-shrink-0">
         <div className="px-4 py-2 border-b border-border flex items-center justify-between">
           <h3 className="text-sm font-medium text-ink-muted">{igT.history.title}</h3>
-          <button
-            onClick={refresh}
-            className="text-xs text-ink-muted hover:text-ink transition-colors"
-            title="刷新"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={refresh}
+                  className="text-xs text-ink-muted hover:text-ink transition-colors"
+                  aria-label="刷新"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>刷新</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div className="h-48 overflow-y-auto p-3 space-y-2">

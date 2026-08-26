@@ -4,6 +4,13 @@ import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
   const [tools, setTools] = useState<Tool[]>([]);
@@ -492,94 +499,100 @@ export default function ToolManagement() {
               {/* 状态筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolStatusFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
                 <i className="fas fa-circle-dot text-ink-faint text-xs"></i>
-                <select
-                  value={toolStatusFilter}
-                  onChange={(e) => { setToolStatusFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer"
-                >
-                  <option value="" className="bg-surface-1">全部状态</option>
-                  <option value="online" className="bg-surface-1">在线</option>
-                  <option value="offline" className="bg-surface-1">离线</option>
-                </select>
+                <Select value={toolStatusFilter} onValueChange={(v) => { setToolStatusFilter(v); setToolPage(1); }}>
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
+                    <SelectValue placeholder="全部状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">全部状态</SelectItem>
+                    <SelectItem value="online">在线</SelectItem>
+                    <SelectItem value="offline">离线</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* 分类筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolCategoryFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
                 <i className="fas fa-folder text-ink-faint text-xs"></i>
-                <select
-                  value={toolCategoryFilter}
-                  onChange={(e) => { setToolCategoryFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer"
-                >
-                  <option value="" className="bg-surface-1">全部分类</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.name} className="bg-surface-1">{cat.name}</option>
-                  ))}
-                </select>
+                <Select value={toolCategoryFilter} onValueChange={(v) => { setToolCategoryFilter(v); setToolPage(1); }}>
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
+                    <SelectValue placeholder="全部分类" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">全部分类</SelectItem>
+                    {categories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* 排序 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'usage_count' || toolSortOrder !== 'desc') ? 'border-blue-500' : 'border-border hover:border-border'}`}>
                 <i className="fas fa-arrow-down-a-z text-ink-faint text-xs"></i>
-                <select
-                  value={`${toolSortBy}-${toolSortOrder}`}
-                  onChange={(e) => { const [by, order] = e.target.value.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}
-                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer"
-                >
-                  <option value="title-asc" className="bg-surface-1">名称 A-Z</option>
-                  <option value="title-desc" className="bg-surface-1">名称 Z-A</option>
-                  <option value="rating-desc" className="bg-surface-1">评分 高→低</option>
-                  <option value="rating-asc" className="bg-surface-1">评分 低→高</option>
-                  <option value="usage_count-desc" className="bg-surface-1">使用次数 多→少</option>
-                  <option value="usage_count-asc" className="bg-surface-1">使用次数 少→多</option>
-                  <option value="created_at-desc" className="bg-surface-1">最新创建</option>
-                  <option value="created_at-asc" className="bg-surface-1">最早创建</option>
-                </select>
+                <Select value={`${toolSortBy}-${toolSortOrder}`} onValueChange={(v) => { const [by, order] = v.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}>
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="title-asc">名称 A-Z</SelectItem>
+                    <SelectItem value="title-desc">名称 Z-A</SelectItem>
+                    <SelectItem value="rating-desc">评分 高→低</SelectItem>
+                    <SelectItem value="rating-asc">评分 低→高</SelectItem>
+                    <SelectItem value="usage_count-desc">使用次数 多→少</SelectItem>
+                    <SelectItem value="usage_count-asc">使用次数 少→多</SelectItem>
+                    <SelectItem value="created_at-desc">最新创建</SelectItem>
+                    <SelectItem value="created_at-asc">最早创建</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* PC 展示筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showPcFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
                 <i className="fas fa-desktop text-ink-faint text-xs"></i>
                 <span className="text-xs text-ink-muted">PC</span>
-                <select
-                  value={showPcFilter}
-                  onChange={(e) => { setShowPcFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
-                >
-                  <option value="all" className="bg-surface-1">全部</option>
-                  <option value="true" className="bg-surface-1">展示</option>
-                  <option value="false" className="bg-surface-1">隐藏</option>
-                </select>
+                <Select value={showPcFilter} onValueChange={(v) => { setShowPcFilter(v); setToolPage(1); }}>
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="true">展示</SelectItem>
+                    <SelectItem value="false">隐藏</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* 移动端展示筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showMobileFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
                 <i className="fas fa-mobile text-ink-faint text-xs"></i>
                 <span className="text-xs text-ink-muted">移动</span>
-                <select
-                  value={showMobileFilter}
-                  onChange={(e) => { setShowMobileFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
-                >
-                  <option value="all" className="bg-surface-1">全部</option>
-                  <option value="true" className="bg-surface-1">展示</option>
-                  <option value="false" className="bg-surface-1">隐藏</option>
-                </select>
+                <Select value={showMobileFilter} onValueChange={(v) => { setShowMobileFilter(v); setToolPage(1); }}>
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="true">展示</SelectItem>
+                    <SelectItem value="false">隐藏</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* 登录要求筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${requireLoginFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
                 <i className="fas fa-lock text-ink-faint text-xs"></i>
                 <span className="text-xs text-ink-muted">登录</span>
-                <select
-                  value={requireLoginFilter}
-                  onChange={(e) => { setRequireLoginFilter(e.target.value); setToolPage(1); }}
-                  className="bg-transparent text-ink-inverse text-sm outline-none appearance-none pr-2 cursor-pointer w-[60px]"
-                >
-                  <option value="all" className="bg-surface-1">全部</option>
-                  <option value="true" className="bg-surface-1">需登录</option>
-                  <option value="false" className="bg-surface-1">免登录</option>
-                </select>
+                <Select value={requireLoginFilter} onValueChange={(v) => { setRequireLoginFilter(v); setToolPage(1); }}>
+                  <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="true">需登录</SelectItem>
+                    <SelectItem value="false">免登录</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -759,15 +772,16 @@ export default function ToolManagement() {
                 <span>共 {toolTotal} 条记录，第 {toolPage}/{toolTotalPages} 页</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs">每页</span>
-                  <select
-                    value={toolPageSize}
-                    onChange={(e) => { setToolPageSize(Number(e.target.value)); setToolPage(1); }}
-                    className="bg-surface-1 border border-border rounded px-2 py-1 text-xs text-ink-inverse focus:outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select>
+                  <Select value={String(toolPageSize)} onValueChange={(v) => { setToolPageSize(Number(v)); setToolPage(1); }}>
+                    <SelectTrigger className="w-20 h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex space-x-1">
@@ -850,15 +864,16 @@ export default function ToolManagement() {
 
                   <div>
                     <label className="block text-sm font-medium text-ink-muted mb-1">分类</label>
-                    <select
-                      value={toolForm.category || ''}
-                      onChange={(e) => setToolForm({...toolForm, category: e.target.value})}
-                      className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-ink-inverse focus:outline-none focus:border-blue-500"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
-                      ))}
-                    </select>
+                    <Select value={toolForm.category || ''} onValueChange={(v) => setToolForm({...toolForm, category: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(cat => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>

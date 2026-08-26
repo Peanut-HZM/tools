@@ -7,6 +7,7 @@ import SQLEditor from './components/SQLEditor';
 import ResultViewer from './components/ResultViewer';
 import SQLHistoryPanel from './components/SQLHistoryPanel';
 import { useI18n } from '../../../i18n';
+import { Loader2, History, Database, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const MIN_EDITOR_H = 200;
 const MAX_EDITOR_RATIO = 0.9;
@@ -329,7 +330,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
               </select>
               {dbLoading && (
                 <div className="absolute right-2 top-1.5 pointer-events-none">
-                  <i className="fas fa-spinner fa-spin text-xs text-ink-muted"></i>
+                  <Loader2 className="w-3 h-3 animate-spin text-ink-muted" />
                 </div>
               )}
             </div>
@@ -353,7 +354,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
               </select>
               {schemaLoading && (
                 <div className="absolute right-2 top-1.5 pointer-events-none">
-                  <i className="fas fa-spinner fa-spin text-xs text-ink-muted"></i>
+                  <Loader2 className="w-3 h-3 animate-spin text-ink-muted" />
                 </div>
               )}
             </div>
@@ -370,14 +371,14 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
             }`}
             title="SQL 历史记录"
           >
-            <i className="fas fa-history text-sm"></i>
+            <History className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {!configId ? (
         <div className="flex-1 flex items-center justify-center text-ink-faint bg-canvas flex-col gap-4">
-           <i className="fas fa-database text-4xl opacity-50"></i>
+           <Database className="w-10 h-10 opacity-50" />
            <p>{t.database.status.disconnected}</p>
         </div>
       ) : (
@@ -434,7 +435,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
                         onClick={() => handlePageChange(page - 1)}
                         className="px-2 py-1 bg-surface-1 border border-border rounded text-ink-muted hover:bg-surface-2 disabled:opacity-50 transition-colors"
                       >
-                        <i className="fas fa-chevron-left"></i>
+                        <ChevronLeft className="w-4 h-4" />
                       </button>
                       <span className="text-ink-muted bg-surface-1 border border-border px-2 py-1 rounded">
                         Page {page}
@@ -444,7 +445,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
                         onClick={() => handlePageChange(page + 1)}
                         className="px-2 py-1 bg-surface-1 border border-border rounded text-ink-muted hover:bg-surface-2 disabled:opacity-50 transition-colors"
                       >
-                        <i className="fas fa-chevron-right"></i>
+                        <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
                   )}

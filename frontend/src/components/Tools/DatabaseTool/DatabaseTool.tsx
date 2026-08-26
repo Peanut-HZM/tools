@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { DatabaseToolProvider, useDatabaseTool } from '../../../contexts/DatabaseToolContext';
+import { Terminal, Table, X, Plus, Database } from 'lucide-react';
 import ConnectionList from './components/ConnectionList';
 import SQLExecutor from './SQLExecutor';
 import DatabaseConfigPanel from './DatabaseConfigPanel';
@@ -206,13 +207,17 @@ const DatabaseToolContent: React.FC = () => {
                 ${activeTabId === tab.id ? 'bg-canvas text-accent-info border-t-2 border-t-accent-info' : 'bg-surface-1 text-ink-muted hover:bg-surface-2 border-t-2 border-t-transparent'}
               `}
             >
-              <i className={`fas ${tab.type === 'sql' ? 'fa-terminal' : 'fa-table'} text-xs`}></i>
+              {tab.type === 'sql' ? (
+                <Terminal className="w-3 h-3" />
+              ) : (
+                <Table className="w-3 h-3" />
+              )}
               <span className="text-sm truncate flex-1" title={tab.title}>{tab.title}</span>
               <button
                 onClick={(e) => handleCloseTab(e, tab.id)}
                 className="opacity-0 group-hover:opacity-100 hover:text-danger focus:outline-none transition-opacity px-1"
               >
-                <i className="fas fa-times text-xs"></i>
+                <X className="w-3 h-3" />
               </button>
             </div>
           ))}
@@ -221,7 +226,7 @@ const DatabaseToolContent: React.FC = () => {
                 className="px-3 py-2 text-ink-faint hover:text-accent-info transition-colors"
                 title="New SQL Console"
               >
-                <i className="fas fa-plus text-xs"></i>
+                <Plus className="w-3 h-3" />
               </button>
         </div>
 
@@ -259,7 +264,7 @@ const DatabaseToolContent: React.FC = () => {
           
           {tabs.length === 0 && (
              <div className="h-full flex flex-col items-center justify-center text-ink-faint">
-                <i className="fas fa-database text-4xl mb-4 opacity-30"></i>
+                <Database className="w-10 h-10 mb-4 opacity-30" />
                 <p>Select a table or open SQL Console</p>
                 <button 
                     onClick={() => handleOpenSqlConsole()}

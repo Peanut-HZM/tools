@@ -2,8 +2,15 @@
  * 复制下拉菜单组件
  * 提供多种复制选项
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/Button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/DropdownMenu';
 
 interface CopyDropdownProps {
   content: string;
@@ -15,12 +22,9 @@ interface CopyDropdownProps {
 type CopyType = 'text' | 'markdown' | 'html';
 
 const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelete, onCopySuccess }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const copyToClipboard = async (text: string, type: CopyType) => {
+  const copyToClipboard = async (text: string, _type: CopyType) => {
     try {
       await navigator.clipboard.writeText(text);
-      setIsOpen(false);
       onCopySuccess?.();
     } catch (err) {
       console.error('Failed to copy:', err);
@@ -73,84 +77,51 @@ const CopyDropdown: React.FC<CopyDropdownProps> = ({ content, messageId, onDelet
 
   const handleDelete = () => {
     if (messageId && onDelete) {
-      setIsOpen(false);
       onDelete(messageId);
     }
   };
 
   return (
-    <div className="relative">
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-1"
-        title="复制选项"
-      >
-        <span>📋</span>
-        <span>复制</span>
-        <span className="text-[10px]">▼</span>
-      </Button>
-
-      {isOpen && (
-        <>
-          {/* 遮罩层 */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-
-          {/* 下拉菜单 */}
-          <div className="absolute right-0 top-full mt-1 w-48 bg-surface-2 border border-border rounded-lg shadow-md z-20 overflow-hidden">
-            <div className="py-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleCopyText}
-                className="w-full justify-start px-4 py-2 text-sm flex items-center space-x-2"
-              >
-                <span className="text-xs">📄</span>
-                <span>复制内容（纯文本）</span>
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleCopyMarkdown}
-                className="w-full justify-start px-4 py-2 text-sm flex items-center space-x-2"
-              >
-                <span className="text-xs">📝</span>
-                <span>复制 Markdown 源码</span>
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleCopyHtml}
-                className="w-full justify-start px-4 py-2 text-sm flex items-center space-x-2"
-              >
-                <span className="text-xs">🌐</span>
-                <span>复制渲染 HTML</span>
-              </Button>
-            </div>
-            {onDelete && messageId && (
-              <>
-                <div className="border-t border-border" />
-                <div className="py-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleDelete}
-                    className="w-full justify-start px-4 py-2 text-sm text-danger hover:bg-red-900/30 hover:text-red-300 flex items-center space-x-2"
-                  >
-                    <span className="text-xs">🗑️</span>
-                    <span>删除消息</span>
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          size="sm"
+          variant="secondary"
+          aria-label="复制选项"
+          className="flex items-center space-x-1"
+        >
+          <span>📋</span>
+          <span>复制</span>
+          <span className="text-[10px]">▼</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={handleCopyText}>
+          <span className="text-xs mr-2">📄</span>
+          复制内容（纯文本）
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={handleCopyMarkdown}>
+          <span className="text-xs mr-2">📝</span>
+          复制 Markdown 源码
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={handleCopyHtml}>
+          <span className="text-xs mr-2">🌐</span>
+          复制渲染 HTML
+        </DropdownMenuItem>
+        {onDelete && messageId && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={handleDelete}
+              className="text-danger focus:text-danger"
+            >
+              <span className="text-xs mr-2">🗑️</span>
+              删除消息
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

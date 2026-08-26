@@ -2,9 +2,17 @@ import { useState } from 'react';
 import { HttpRequest, FormDataEntry } from '../../../../../services/httpClientApi';
 import FormDataEditor from '../FormDataEditor/FormDataEditor';
 import ScriptEditor from '../ScriptEditor/ScriptEditor';
+import { Loader2, Send, Save, Trash2, Table, Heading, Code, Lock, BookOpen, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface RequestEditorProps {
   request: HttpRequest;
@@ -65,19 +73,18 @@ export default function RequestEditor({
       <div className="p-4 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           {/* 方法选择器 */}
-          <select
-            value={request.method}
-            onChange={(e) => handleMethodChange(e.target.value)}
-            className={`
-              bg-surface-2 text-ink-inverse px-3 py-2 rounded-lg font-mono text-sm
-              border border-border focus:border-accent-secondary focus:outline-none
-              ${getMethodColor(request.method)}
-            `}
-          >
-            {HTTP_METHODS.map(method => (
-              <option key={method} value={method}>{method}</option>
-            ))}
-          </select>
+          <Select value={request.method} onValueChange={handleMethodChange}>
+            <SelectTrigger
+              className={`bg-surface-2 px-3 py-2 font-mono text-sm focus:border-accent-secondary ${getMethodColor(request.method)}`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {HTTP_METHODS.map(method => (
+                <SelectItem key={method} value={method}>{method}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {/* URL 输入框（支持 {{变量}} 高亮） */}
           <div className="flex-1">
@@ -105,12 +112,12 @@ export default function RequestEditor({
           >
             {sending ? (
               <>
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 发送中...
               </>
             ) : (
               <>
-                <i className="fas fa-paper-plane mr-2"></i>
+                <Send className="w-4 h-4 mr-2" />
                 发送
               </>
             )}
@@ -125,7 +132,7 @@ export default function RequestEditor({
               disabled={!isModified}
               title="保存"
             >
-              <i className="fas fa-save mr-1"></i>
+              <Save className="w-4 h-4 mr-1" />
               保存
             </Button>
           )}
@@ -138,7 +145,7 @@ export default function RequestEditor({
               className="px-4 py-2 rounded-lg font-medium text-sm transition-colors
                          bg-danger/20 text-danger border border-red-500 hover:bg-red-500/30"
             >
-              <i className="fas fa-trash mr-1"></i>
+              <Trash2 className="w-4 h-4 mr-1" />
               删除
             </button>
           )}
@@ -153,23 +160,23 @@ export default function RequestEditor({
       >
         <TabsList className="px-4 bg-surface-1/50 flex-shrink-0 w-full justify-start rounded-none border-b border-border">
           <TabsTrigger value="params" className="gap-2">
-            <i className="fas fa-table"></i>
+            <Table className="w-4 h-4" />
             Params
           </TabsTrigger>
           <TabsTrigger value="headers" className="gap-2">
-            <i className="fas fa-heading"></i>
+            <Heading className="w-4 h-4" />
             Headers
           </TabsTrigger>
           <TabsTrigger value="body" className="gap-2">
-            <i className="fas fa-code"></i>
+            <Code className="w-4 h-4" />
             Body
           </TabsTrigger>
           <TabsTrigger value="auth" className="gap-2">
-            <i className="fas fa-lock"></i>
+            <Lock className="w-4 h-4" />
             Auth
           </TabsTrigger>
           <TabsTrigger value="docs" className="gap-2">
-            <i className="fas fa-book"></i>
+            <BookOpen className="w-4 h-4" />
             Docs
           </TabsTrigger>
         </TabsList>
@@ -517,7 +524,7 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
 
       {authType === 'none' && (
         <div className="text-ink-faint text-sm text-center py-8">
-          <i className="fas fa-unlock text-4xl mb-3 opacity-30"></i>
+          <Unlock className="w-10 h-10 mb-3 opacity-30" />
           <p>此请求不需要认证</p>
         </div>
       )}

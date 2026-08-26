@@ -8,6 +8,7 @@ import { useAuth } from '../../stores/authStore';
 import { useLoginModalStore } from '../../stores/loginModalStore';
 import { useI18n } from '../../i18n';
 import { Button } from '@/components/ui/Button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import LoginForm from '../Auth/LoginForm';
 import RegisterForm from '../Auth/RegisterForm';
 
@@ -41,15 +42,22 @@ export default function LoginModal() {
           <h2 className="text-xl font-bold text-white">
             {t.auth.loginTitle}
           </h2>
-          <Button
-            onClick={closeLoginModal}
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-ink-faint hover:text-white"
-            title="关闭"
-          >
-            <i className="fa-solid fa-xmark text-lg"></i>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={closeLoginModal}
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-ink-faint hover:text-white"
+                  aria-label="关闭"
+                >
+                  <i className="fa-solid fa-xmark text-lg"></i>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>关闭</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {showRegister ? (

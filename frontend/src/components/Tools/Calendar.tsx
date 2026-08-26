@@ -1,8 +1,16 @@
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface HolidayDay {
   name: string;
@@ -279,12 +287,12 @@ export default function Calendar() {
             onClick={() => navigate('/')}
             className="flex items-center gap-2"
           >
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
-              <i className="fas fa-calendar-alt text-white text-sm"></i>
+              <CalendarDays className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-lg font-bold">万年历</h1>
           </div>
@@ -308,29 +316,31 @@ export default function Calendar() {
               size="icon"
               onClick={goToPrevMonth}
             >
-              <i className="fas fa-chevron-left text-xl"></i>
+              <ChevronLeft className="w-5 h-5" />
             </Button>
 
             <div className="flex items-center gap-4">
-              <select
-                value={currentYear}
-                onChange={(e) => setCurrentYear(Number(e.target.value))}
-                className="bg-surface-2 text-ink-inverse px-3 py-2 rounded-lg border border-border"
-              >
-                {Array.from({ length: 30 }, (_, i) => today.getFullYear() - 15 + i).map((year) => (
-                  <option key={year} value={year}>{year}年</option>
-                ))}
-              </select>
+              <Select value={String(currentYear)} onValueChange={(v) => setCurrentYear(Number(v))}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 30 }, (_, i) => today.getFullYear() - 15 + i).map((year) => (
+                    <SelectItem key={year} value={String(year)}>{year}年</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <select
-                value={currentMonth}
-                onChange={(e) => setCurrentMonth(Number(e.target.value))}
-                className="bg-surface-2 text-ink-inverse px-3 py-2 rounded-lg border border-border"
-              >
-                {monthNames.map((name, index) => (
-                  <option key={index} value={index}>{name}</option>
-                ))}
-              </select>
+              <Select value={String(currentMonth)} onValueChange={(v) => setCurrentMonth(Number(v))}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthNames.map((name, index) => (
+                    <SelectItem key={index} value={String(index)}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <Button
                 onClick={goToToday}
@@ -345,7 +355,7 @@ export default function Calendar() {
               size="icon"
               onClick={goToNextMonth}
             >
-              <i className="fas fa-chevron-right text-xl"></i>
+              <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
         </Card>
@@ -413,7 +423,7 @@ export default function Calendar() {
                   size="icon"
                   onClick={() => setSelectedDate(null)}
                 >
-                  <i className="fas fa-times"></i>
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -422,7 +432,7 @@ export default function Calendar() {
 
         {loading && (
           <div className="text-center py-4 text-ink-muted">
-            <i className="fas fa-spinner fa-spin mr-2"></i>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             加载数据中...
           </div>
         )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AlertCircle, Wrench, LineChart, Calculator, Trophy, Inbox } from 'lucide-react';
 import { getDashboardStats, DashboardStats } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 
@@ -37,7 +38,7 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <i className="fas fa-exclamation-circle text-5xl text-danger mb-4"></i>
+          <AlertCircle className="w-20 h-20 text-danger mb-4" />
           <p className="text-ink text-lg">无法加载数据</p>
         </div>
       </div>
@@ -58,7 +59,7 @@ export default function Dashboard() {
         <div className="group bg-surface-2 rounded-xl p-6 border border-border hover:border-accent transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center">
-              <i className="fas fa-toolbox text-white text-lg"></i>
+              <Wrench className="w-5 h-5 text-white" />
             </div>
             <span className="text-xs text-ink-faint uppercase font-medium">实时数据</span>
           </div>
@@ -70,7 +71,7 @@ export default function Dashboard() {
         <div className="group bg-surface-2 rounded-xl p-6 border border-border hover:border-accent transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-accent-secondary to-accent rounded-lg flex items-center justify-center">
-              <i className="fas fa-chart-line text-white text-lg"></i>
+              <LineChart className="w-5 h-5 text-white" />
             </div>
             <span className="text-xs text-ink-faint uppercase font-medium">累计统计</span>
           </div>
@@ -82,7 +83,7 @@ export default function Dashboard() {
         <div className="group bg-surface-2 rounded-xl p-6 border border-border hover:border-accent-secondary transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-accent-secondary to-purple-500 rounded-lg flex items-center justify-center">
-              <i className="fas fa-calculator text-white text-lg"></i>
+              <Calculator className="w-5 h-5 text-white" />
             </div>
             <span className="text-xs text-ink-faint uppercase font-medium">平均值</span>
           </div>
@@ -98,7 +99,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-bold text-ink flex items-center">
-              <i className="fas fa-trophy text-yellow-500 mr-3"></i>
+              <Trophy className="w-5 h-5 text-yellow-500 mr-3" />
               热门工具排行
             </h3>
             <p className="text-ink-muted text-sm mt-1">查看最受欢迎的工具</p>
@@ -123,7 +124,7 @@ export default function Dashboard() {
               {stats.popular_tools.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
-                    <i className="fas fa-inbox text-4xl text-ink-faint mb-4"></i>
+                    <Inbox className="w-16 h-16 text-ink-faint mb-4" />
                     <p className="text-ink-faint">暂无数据</p>
                   </td>
                 </tr>

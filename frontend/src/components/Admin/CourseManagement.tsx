@@ -3,12 +3,20 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GraduationCap, Plus, Search, Inbox, Users, Pencil, List, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCourseAdminStore } from '../../stores/courseAdminStore';
 import CourseEditor from './CourseManagement/CourseEditor';
 import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 const CourseManagement: React.FC = () => {
   const navigate = useNavigate();
   const { toasts, addToast, removeToast, error, success } = useToast();
@@ -99,7 +107,7 @@ const CourseManagement: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-ink-inverse flex items-center">
-            <i className="fas fa-graduation-cap text-accent mr-3"></i>
+            <GraduationCap className="w-5 h-5 text-accent mr-3" />
             课程管理
           </h1>
           <p className="text-ink-muted text-sm mt-1">管理课程内容和章节</p>
@@ -109,7 +117,7 @@ const CourseManagement: React.FC = () => {
             onClick={handleCreateCourse}
             className="px-6 py-3 bg-gradient-to-r from-accent-secondary to-accent-secondary-hover hover:from-accent-secondary-hover hover:to-accent-secondary-hover shadow-lg shadow-accent-secondary/20 hover:shadow-accent-secondary/30 hover:-translate-y-0.5"
           >
-            <i className="fas fa-plus mr-2"></i>
+            <Plus className="w-4 h-4 mr-2" />
             新增课程
           </Button>
         </div>
@@ -120,16 +128,17 @@ const CourseManagement: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* 状态筛选 */}
           <div className="flex items-center gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
-            >
-              <option value="all">全部</option>
-              <option value="published">已发布</option>
-              <option value="draft">草稿</option>
-              <option value="archived">已归档</option>
-            </select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部</SelectItem>
+                <SelectItem value="published">已发布</SelectItem>
+                <SelectItem value="draft">草稿</SelectItem>
+                <SelectItem value="archived">已归档</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* 关键词搜索 */}
             <div className="relative">
@@ -141,28 +150,26 @@ const CourseManagement: React.FC = () => {
                 className="px-4 py-2 pl-10 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-accent w-72"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"></i>
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
             </div>
             <Button onClick={handleSearch} size="sm" className="cursor-pointer">
-              <i className="fas fa-search mr-1"></i> 搜索
+              <Search className="w-4 h-4 mr-1" /> 搜索
             </Button>
           </div>
 
           {/* 每页数量 */}
           <div className="flex items-center gap-2">
             <span className="text-ink-muted text-sm">每页:</span>
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
-              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
-            >
-              <option value={9}>9</option>
-              <option value={15}>15</option>
-              <option value={30}>30</option>
-            </select>
+            <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="9">9</SelectItem>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </Card>
@@ -176,7 +183,7 @@ const CourseManagement: React.FC = () => {
           </div>
         ) : courses.length === 0 ? (
           <div className="flex items-center justify-center py-12 text-ink-muted">
-            <i className="fas fa-inbox text-4xl mb-4"></i>
+            <Inbox className="w-16 h-16 mb-4" />
             <p>暂无课程</p>
           </div>
         ) : (
@@ -218,7 +225,7 @@ const CourseManagement: React.FC = () => {
                       {course.status === 'published' ? '已发布' : course.status === 'draft' ? '草稿' : '已归档'}
                     </Badge>
                     <span className="text-ink-faint">
-                      <i className="fas fa-users mr-1"></i>
+                      <Users className="w-4 h-4 mr-1" />
                       {course.statistics?.enroll_count || 0} 人学习
                     </span>
                   </div>
@@ -231,7 +238,7 @@ const CourseManagement: React.FC = () => {
                       className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                       title="编辑课程"
                     >
-                      <i className="fas fa-edit text-ink-muted hover:text-accent"></i>
+                      <Pencil className="w-4 h-4 text-ink-muted hover:text-accent" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -241,7 +248,7 @@ const CourseManagement: React.FC = () => {
                       className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                       title="管理章节"
                     >
-                      <i className="fas fa-list text-ink-muted hover:text-accent-info"></i>
+                      <List className="w-4 h-4 text-ink-muted hover:text-accent-info" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -251,7 +258,7 @@ const CourseManagement: React.FC = () => {
                       className="p-2 hover:bg-surface-2 rounded-lg transition-colors"
                       title="删除课程"
                     >
-                      <i className="fas fa-trash text-ink-muted hover:text-danger"></i>
+                      <Trash2 className="w-4 h-4 text-ink-muted hover:text-danger" />
                     </button>
                   </div>
                 </div>
@@ -274,7 +281,7 @@ const CourseManagement: React.FC = () => {
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
             >
-              <i className="fas fa-chevron-left mr-1"></i>上一页
+              <ChevronLeft className="w-4 h-4 mr-1" />上一页
             </Button>
             <Button
               variant="secondary"
@@ -282,7 +289,7 @@ const CourseManagement: React.FC = () => {
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
             >
-              下一页<i className="fas fa-chevron-right ml-1"></i>
+              下一页<ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>

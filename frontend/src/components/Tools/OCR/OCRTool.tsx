@@ -1,3 +1,4 @@
+import { Clock, Copy, FileImage, FileText, Image as ImageIcon, Loader2, QrCode, Sparkles, Trash2, AlignLeft } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { ocrApi, OCRResult, QRCodeResult } from '../../../api/ocrApi';
 import { useToast } from '../../../hooks/useToast';
@@ -130,7 +131,7 @@ export default function OCRTool() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-accent-hover rounded-lg flex items-center justify-center">
-            <i className="fas fa-file-image text-white text-xl"></i>
+            <FileImage className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-ink">{t.tools['ocr-tool'].title}</h1>
         </div>
@@ -139,13 +140,13 @@ export default function OCRTool() {
           <Tabs value={mode} onValueChange={(v) => switchMode(v as Mode)}>
             <TabsList>
               <TabsTrigger value="image">
-                <i className="fas fa-image mr-2"></i>图片识别
+                <ImageIcon className="w-4 h-4 mr-2" />图片识别
               </TabsTrigger>
               <TabsTrigger value="pdf">
-                <i className="fas fa-file-pdf mr-2"></i>PDF识别
+                <FileText className="w-4 h-4 mr-2" />PDF识别
               </TabsTrigger>
               <TabsTrigger value="qrcode">
-                <i className="fas fa-qrcode mr-2"></i>二维码
+                <QrCode className="w-4 h-4 mr-2" />二维码
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -164,7 +165,7 @@ export default function OCRTool() {
                 onClick={clearFile}
                 className="text-ink-muted hover:text-danger text-sm transition-colors flex items-center"
               >
-                <i className="fas fa-trash-alt mr-1"></i> 清除
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> 清除
               </button>
             )}
           </CardHeader>

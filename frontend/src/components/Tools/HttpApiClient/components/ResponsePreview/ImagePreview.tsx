@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Image } from 'lucide-react';
 
 /**
  * 图片预览组件接口
@@ -26,7 +27,7 @@ export default function ImagePreview({ base64Data, contentType }: ImagePreviewPr
   if (error) {
     return (
       <div className="text-center py-8 text-ink-faint">
-        <i className="fas fa-image text-4xl mb-3 opacity-30"></i>
+        <Image className="w-10 h-10 mb-3 opacity-30" />
         <p>图片加载失败</p>
       </div>
     );

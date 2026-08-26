@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Box, Loader2, AlertTriangle } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import * as api from '../../../../api/k8sToolApi';
@@ -115,7 +116,7 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
     if (currentTab.type !== 'pod') {
       return (
         <div className="flex flex-col items-center justify-center h-full text-ink-faint gap-2">
-          <i className="fas fa-cube text-3xl text-ink-faint"></i>
+          <Box className="w-8 h-8 text-ink-faint" />
           <div className="text-sm">
             资源类型 <span className="text-accent-info font-mono">{currentTab.type}</span> 的详情面板暂未实现
           </div>
@@ -127,7 +128,7 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center h-full text-ink-faint">
-          <i className="fas fa-spinner fa-spin mr-2"></i>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           {t.common.loading}
         </div>
       );
@@ -136,7 +137,7 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
     if (isError || !pod) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-danger gap-2">
-          <i className="fas fa-exclamation-triangle text-2xl"></i>
+          <AlertTriangle className="w-8 h-8" />
           <div className="text-sm">{k8sT.errors.NOT_FOUND}</div>
         </div>
       );
@@ -222,7 +223,7 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
       {/* 头部：Pod 名称 + 命名空间 + 状态 */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-1/50 shrink-0">
         <div className="flex items-center gap-2">
-          <i className="fas fa-cube text-accent-info"></i>
+          <Box className="w-4 h-4 text-accent-info" />
           <h3 className="text-sm font-semibold text-ink truncate max-w-[300px]">
             {currentTab.name}
           </h3>

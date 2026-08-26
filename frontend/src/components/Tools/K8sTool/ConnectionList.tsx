@@ -20,6 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { FileUp, ClipboardPaste, Keyboard, Server, GripVertical, Pencil, Trash2, Plus } from 'lucide-react';
 import type { K8sConnection } from './types';
 import { useI18n, interpolate } from '../../../i18n';
 import { Button } from '@/components/ui/Button';
@@ -40,12 +41,12 @@ function getHealthDotClass(conn: K8sConnection): string {
   return 'bg-surface-3';
 }
 
-function getSourceIcon(sourceType: K8sConnection['source_type']): string {
+function getSourceIcon(sourceType: K8sConnection['source_type']): React.ReactNode {
   switch (sourceType) {
-    case 'kubeconfig_file': return 'fas fa-file-upload';
-    case 'kubeconfig_text': return 'fas fa-paste';
-    case 'manual': return 'fas fa-keyboard';
-    default: return 'fas fa-server';
+    case 'kubeconfig_file': return <FileUp className="w-3 h-3 mr-1.5 opacity-60 flex-shrink-0" />;
+    case 'kubeconfig_text': return <ClipboardPaste className="w-3 h-3 mr-1.5 opacity-60 flex-shrink-0" />;
+    case 'manual': return <Keyboard className="w-3 h-3 mr-1.5 opacity-60 flex-shrink-0" />;
+    default: return <Server className="w-3 h-3 mr-1.5 opacity-60 flex-shrink-0" />;
   }
 }
 
@@ -93,7 +94,7 @@ const SortableConnectionItem: React.FC<{
         className="cursor-grab active:cursor-grabbing text-ink-faint hover:text-ink-muted mr-1 flex-shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <i className="fas fa-grip-vertical text-xs"></i>
+        <GripVertical className="w-3 h-3" />
       </div>
 
       <div className="truncate flex-1 min-w-0">
@@ -108,7 +109,7 @@ const SortableConnectionItem: React.FC<{
                   : undefined
             }
           ></span>
-          <i className={[getSourceIcon(conn.source_type), 'mr-1.5 text-xs opacity-60 flex-shrink-0'].join(' ')}></i>
+          {getSourceIcon(conn.source_type)}
           <span className="truncate">{conn.name}</span>
         </div>
         <div className="text-xs truncate text-ink-faint group-hover:text-ink-muted ml-4">
@@ -124,7 +125,7 @@ const SortableConnectionItem: React.FC<{
           className="h-7 w-7 p-0"
           title={k8sT.editConnection}
         >
-          <i className="fas fa-pen text-xs"></i>
+          <Pencil className="w-3 h-3" />
         </Button>
         <Button
           variant="ghost"
@@ -138,7 +139,7 @@ const SortableConnectionItem: React.FC<{
           className="h-7 w-7 p-0 hover:text-danger"
           title={t.common.delete}
         >
-          <i className="fas fa-trash text-xs"></i>
+          <Trash2 className="w-3 h-3" />
         </Button>
       </div>
     </div>
@@ -190,7 +191,7 @@ export const ConnectionList: React.FC<Props> = ({
             className="h-8 w-8 p-0"
             title={k8sT.addConnection}
           >
-            <i className="fas fa-plus"></i>
+            <Plus className="w-4 h-4" />
           </Button>
         </div>
       </div>

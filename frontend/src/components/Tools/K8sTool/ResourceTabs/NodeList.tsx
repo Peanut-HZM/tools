@@ -5,6 +5,7 @@
  * 点击行触发 setSelectedResource
  */
 import React from 'react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sNodes } from '../../../../hooks/useK8sClient';
 import { useI18n } from '../../../../i18n';
@@ -59,7 +60,7 @@ export const NodeList: React.FC = () => {
           {isLoading && (
             <tr>
               <td colSpan={6} className="px-3 py-8 text-center text-ink-faint">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Loading...
               </td>
             </tr>
@@ -68,7 +69,7 @@ export const NodeList: React.FC = () => {
           {isError && (
             <tr>
               <td colSpan={6} className="px-3 py-8 text-center text-danger">
-                <i className="fas fa-exclamation-triangle mr-2"></i>
+                <AlertTriangle className="w-4 h-4 mr-2" />
                 {errorMessage}
               </td>
             </tr>

@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Loader2, Zap } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/k8sToolApi';
 import { formatAge } from '../ResourceTabs/utils';
@@ -58,7 +59,7 @@ export const EventsPanel: React.FC<Props> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-ink-faint">
-        <i className="fas fa-spinner fa-spin mr-2"></i>
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         {t.common.loading}
       </div>
     );
@@ -67,7 +68,7 @@ export const EventsPanel: React.FC<Props> = ({
   if (events.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-ink-faint text-sm">
-        <i className="fas fa-bolt mr-2 text-ink-faint"></i>
+        <Zap className="w-4 h-4 mr-2 text-ink-faint" />
         {et.noEvents}
       </div>
     );

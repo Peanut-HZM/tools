@@ -5,6 +5,7 @@ import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import { useAuth } from '../../../stores';
+import { X } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 interface DatabaseConfigPanelProps {
@@ -142,7 +143,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
             {editConfigId ? t.database.editConnection : t.database.addConnection}
           </h2>
           <button onClick={onClose} className="text-ink-muted hover:text-ink transition-colors">
-            <i className="fas fa-times text-xl"></i>
+            <X className="w-6 h-6" />
           </button>
         </div>
 

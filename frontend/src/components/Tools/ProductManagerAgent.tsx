@@ -1,3 +1,4 @@
+import { BarChart3, FileText, FileDown } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
@@ -286,7 +287,7 @@ const ProductManagerAgent: React.FC = () => {
                   variant={showPRDPreview ? "default" : "ghost"}
                   size="sm"
                 >
-                  <i className="fas fa-file-alt mr-1"></i>
+                  <FileText className="w-3.5 h-3.5 mr-1" />
                   PRD
                 </Button>
                 <Button
@@ -294,7 +295,7 @@ const ProductManagerAgent: React.FC = () => {
                   onClick={() => setShowExportDialog(true)}
                   size="sm"
                 >
-                  <i className="fas fa-file-export mr-1"></i>
+                  <FileDown className="w-3.5 h-3.5 mr-1" />
                   导出
                 </Button>
                 <Button
@@ -302,7 +303,7 @@ const ProductManagerAgent: React.FC = () => {
                   onClick={() => setShowCompetitorAnalysis(!showCompetitorAnalysis)}
                   size="sm"
                 >
-                  <i className="fas fa-chart-bar mr-1"></i>
+                  <BarChart3 className="w-3.5 h-3.5 mr-1" />
                   分析竞品
                 </Button>
               </div>

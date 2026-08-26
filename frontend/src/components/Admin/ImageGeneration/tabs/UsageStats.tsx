@@ -6,6 +6,13 @@ import { useEffect, useState } from 'react';
 import { getStats, StatsResponse } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export default function UsageStats() {
   const { t } = useI18n();
@@ -60,16 +67,17 @@ export default function UsageStats() {
       {/* 时间窗口选择 */}
       <div className="flex items-center gap-3">
         <label className="text-ink-muted text-sm">{igT.window}</label>
-        <select
-          value={days}
-          onChange={(e) => setDays(Number(e.target.value))}
-          className="bg-surface-2 border border-border text-ink-inverse px-3 py-1.5 rounded text-sm focus:outline-none focus:border-accent"
-        >
-          <option value={7}>{igT.window7}</option>
-          <option value={14}>{igT.window14}</option>
-          <option value={30}>{igT.window30}</option>
-          <option value={90}>{igT.window90}</option>
-        </select>
+        <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">{igT.window7}</SelectItem>
+            <SelectItem value="14">{igT.window14}</SelectItem>
+            <SelectItem value="30">{igT.window30}</SelectItem>
+            <SelectItem value="90">{igT.window90}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* 总览卡片 */}

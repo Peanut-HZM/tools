@@ -1,10 +1,30 @@
 import { useState, useEffect } from 'react';
+import {
+  X,
+  FileCode,
+  Terminal,
+  Upload,
+  AlertCircle,
+  Loader2,
+  Download,
+  CheckCircle,
+  XCircle,
+  Folder,
+  FolderOpen,
+} from 'lucide-react';
 import { API_BASE_URL } from '../../../../config/api';
 import { Collection, HttpRequest, fetchCollections, fetchCollections as apiFetchCollections, importCurl, exportCollection } from '../../../../services/httpClientApi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface ImportExportModalProps {
   isOpen: boolean;
@@ -153,7 +173,7 @@ export default function ImportExportModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">导入/导出</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
-            <i className="fas fa-times"></i>
+            <X className="w-4 h-4" />
           </Button>
         </div>
 
@@ -177,15 +197,15 @@ export default function ImportExportModal({
         >
           <TabsList className="px-6 w-full justify-start rounded-none border-b border-border bg-transparent">
             <TabsTrigger value="import-postman" className="gap-2">
-              <i className="fas fa-file-code"></i>
+              <FileCode className="w-4 h-4" />
               Postman
             </TabsTrigger>
             <TabsTrigger value="import-curl" className="gap-2">
-              <i className="fas fa-terminal"></i>
+              <Terminal className="w-4 h-4" />
               cURL
             </TabsTrigger>
             <TabsTrigger value="export" className="gap-2">
-              <i className="fas fa-upload"></i>
+              <Upload className="w-4 h-4" />
               导出
             </TabsTrigger>
           </TabsList>
@@ -211,7 +231,7 @@ export default function ImportExportModal({
 
               {error && (
                 <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
-                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  <AlertCircle className="w-4 h-4 mr-2" />
                   {error}
                 </div>
               )}
@@ -225,7 +245,11 @@ export default function ImportExportModal({
                   }
                 `}>
                   <div className="flex items-center mb-2">
-                    <i className={`fas mr-2 ${importResult.success ? 'fa-check-circle' : 'fa-times-circle'}`}></i>
+                    {importResult.success ? (
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                    ) : (
+                      <XCircle className="w-4 h-4 mr-2" />
+                    )}
                     {importResult.success ? '导入成功' : '导入失败'}
                   </div>
                   {importResult.success && (
@@ -253,12 +277,12 @@ export default function ImportExportModal({
                 >
                   {loading ? (
                     <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       导入中...
                     </>
                   ) : (
                     <>
-                      <i className="fas fa-download mr-2"></i>
+                      <Download className="w-4 h-4 mr-2" />
                       导入
                     </>
                   )}
@@ -297,22 +321,22 @@ export default function ImportExportModal({
                 </div>
                 <div>
                   <label className="text-sm text-ink-muted mb-1 block">目标集合</label>
-                  <select
-                    value={curlCollectionId}
-                    onChange={(e) => setCurlCollectionId(e.target.value)}
-                    className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border text-sm"
-                  >
-                    <option value="">请选择集合</option>
-                    {collections.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <Select value={curlCollectionId} onValueChange={setCurlCollectionId}>
+                    <SelectTrigger className="w-full text-sm">
+                      <SelectValue placeholder="请选择集合" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {collections.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               {error && (
                 <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
-                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  <AlertCircle className="w-4 h-4 mr-2" />
                   {error}
                 </div>
               )}
@@ -320,7 +344,7 @@ export default function ImportExportModal({
               {curlResult && (
                 <div className="bg-green-500/10 border border-green-500 text-green-400 px-4 py-3 rounded-lg text-sm">
                   <div className="flex items-center mb-2">
-                    <i className="fas fa-check-circle mr-2"></i>
+                    <CheckCircle className="w-4 h-4 mr-2" />
                     cURL 导入成功
                   </div>
                   <div className="font-mono text-xs space-y-1 mt-2">
@@ -344,12 +368,12 @@ export default function ImportExportModal({
                 >
                   {curlLoading ? (
                     <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       导入中...
                     </>
                   ) : (
                     <>
-                      <i className="fas fa-terminal mr-2"></i>
+                      <Terminal className="w-4 h-4 mr-2" />
                       导入 cURL
                     </>
                   )}
@@ -367,7 +391,7 @@ export default function ImportExportModal({
 
               {collections.length === 0 ? (
                 <div className="text-center py-8 text-ink-faint">
-                  <i className="fas fa-folder-open text-2xl mb-2 opacity-50"></i>
+                  <FolderOpen className="w-8 h-8 mb-2 opacity-50" />
                   <p className="text-sm">暂无集合</p>
                 </div>
               ) : (
@@ -408,7 +432,7 @@ export default function ImportExportModal({
                           onChange={() => toggleCollection(c.id)}
                           className="h-4 w-4 p-0 cursor-pointer"
                         />
-                        <i className="fas fa-folder text-ink-faint text-xs"></i>
+                        <Folder className="w-3 h-3 text-ink-faint" />
                         <span className="truncate">{c.name}</span>
                       </label>
                     ))}
@@ -418,7 +442,7 @@ export default function ImportExportModal({
 
               {error && (
                 <div className="bg-danger/10 border border-red-500 text-danger px-4 py-3 rounded-lg text-sm">
-                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  <AlertCircle className="w-4 h-4 mr-2" />
                   {error}
                 </div>
               )}
@@ -437,12 +461,12 @@ export default function ImportExportModal({
                 >
                   {exportLoading ? (
                     <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       导出中...
                     </>
                   ) : (
                     <>
-                      <i className="fas fa-upload mr-2"></i>
+                      <Upload className="w-4 h-4 mr-2" />
                       导出
                     </>
                   )}

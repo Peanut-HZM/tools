@@ -5,6 +5,7 @@
  * 数据来源：K8sPodDetail 类型（由后端 /pods/{name} 返回）
  */
 import React from 'react';
+import { Link } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { formatAge } from '../ResourceTabs/utils';
 import type { K8sPodDetail } from '../types';
@@ -199,7 +200,7 @@ export const OverviewPanel: React.FC<Props> = ({ pod }) => {
                 key={ref.uid}
                 className="flex items-center gap-2 px-2 py-1.5 bg-surface-1/50 border border-border/50 rounded text-xs"
               >
-                <i className="fas fa-link text-accent-info text-xs"></i>
+                <Link className="w-3 h-3 text-accent-info" />
                 <span className="text-accent-info font-medium">{ref.kind}</span>
                 <span className="text-ink-muted">/</span>
                 <span className="text-ink font-mono">{ref.name}</span>

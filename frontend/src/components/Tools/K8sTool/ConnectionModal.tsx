@@ -11,6 +11,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { Server, Key, Shield, CloudUpload, CheckCircle2 } from 'lucide-react';
 import type { K8sConnection, CreateK8sManualRequest } from './types';
 import * as api from '../../../api/k8sToolApi';
 import { useI18n } from '../../../i18n';
@@ -331,18 +332,18 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                 <div className="text-xs text-ink-faint mb-2">连接信息</div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-server text-xs text-ink-muted"></i>
+                    <Server className="w-3 h-3 text-ink-muted" />
                     <span className="text-sm text-ink-muted">{initialData.server}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-key text-xs text-ink-muted"></i>
+                    <Key className="w-3 h-3 text-ink-muted" />
                     <span className="text-sm text-ink-muted">
                       {k8sT.modal.authTypes[initialData.auth_type]}
-                      {initialData.has_auth_data && <i className="fas fa-check-circle ml-1 text-green-400"></i>}
+                      {initialData.has_auth_data && <CheckCircle2 className="inline w-3.5 h-3.5 ml-1 text-green-400" />}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-shield-alt text-xs text-ink-muted"></i>
+                    <Shield className="w-3 h-3 text-ink-muted" />
                     <span className="text-sm text-ink-muted">
                       {initialData.has_ca_cert ? '已配置 CA 证书' : '使用系统 CA'}
                     </span>
@@ -519,14 +520,14 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                     ].join(' ')}
                   >
                     <input {...getInputProps()} />
-                    <i className="fas fa-cloud-upload-alt text-3xl text-ink-faint mb-3"></i>
+                    <CloudUpload className="w-8 h-8 text-ink-faint mb-3" />
                     <p className="text-sm text-ink-muted mb-1">
                       {isDragActive ? '松开以上传' : k8sT.modal.upload.hint}
                     </p>
                     <p className="text-xs text-ink-faint">{k8sT.modal.upload.maxSize}</p>
                     {uploadFile && (
                       <p className="mt-2 text-sm text-green-400">
-                        <i className="fas fa-check-circle mr-1"></i>
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                         {uploadFile.name}
                       </p>
                     )}

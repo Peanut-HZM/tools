@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../../../i18n';
+import { Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 interface CreateDatabaseDialogProps {
@@ -88,7 +89,7 @@ const CreateDatabaseDialog: React.FC<CreateDatabaseDialogProps> = ({ isOpen, onC
               className="px-3 py-1.5 bg-accent text-ink-inverse rounded hover:bg-accent-hover transition-colors disabled:opacity-50 flex items-center"
               disabled={loading || !name.trim()}
             >
-              {loading && <i className="fas fa-spinner fa-spin mr-2"></i>}
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {t.database.dialog.createDatabase.create}
             </button>
           </div>

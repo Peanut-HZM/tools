@@ -3,10 +3,18 @@
  */
 import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
+import { Pencil, Plus, Eye, X, Tag, Heading, Shapes, ArrowUpDown, Video, Lock, Info, Loader2, Save, Code } from 'lucide-react';
 import { useChapterStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter, CourseChapter, CourseChapterCreate as ChapterCreate, CourseChapterUpdate as ChapterUpdate } from '../../../services/coursePlatform';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface ChapterFormProps {
   chapterId: number | null;
@@ -88,7 +96,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface-1/50">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center">
-              <i className={`fas ${chapterId ? 'fa-edit' : 'fa-plus'} text-white`}></i>
+              {chapterId ? <Pencil className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
             </div>
             <div>
               <h2 className="text-xl font-bold text-ink-inverse">
@@ -107,14 +115,14 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                   : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
               }`}
             >
-              <i className="fas fa-eye mr-2"></i>
+              <Eye className="w-4 h-4 mr-2" />
               {showPreview ? '隐藏预览' : '显示预览'}
             </button>
             <button
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-2 hover:bg-danger/20 text-ink-muted hover:text-danger transition-all"
             >
-              <i className="fas fa-times"></i>
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -128,7 +136,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-tag mr-2 text-accent"></i>
+                    <Tag className="w-4 h-4 mr-2 text-accent" />
                     标识符 (slug) *
                   </label>
                   <input
@@ -143,7 +151,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-heading mr-2 text-accent"></i>
+                    <Heading className="w-4 h-4 mr-2 text-accent" />
                     标题 *
                   </label>
                   <input
@@ -162,24 +170,27 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-shapes mr-2 text-accent"></i>
+                    <Shapes className="w-4 h-4 mr-2 text-accent" />
                     类型
                   </label>
-                  <select
-                    name="chapter_type"
+                  <Select
                     value={formData.chapter_type}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-surface-2/50 border border-border rounded-xl text-ink-inverse focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, chapter_type: v as any }))}
                   >
-                    <option value="story">📖 故事</option>
-                    <option value="code">💻 代码</option>
-                    <option value="quiz">📝 测验</option>
-                    <option value="video">🎬 视频</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="story">📖 故事</SelectItem>
+                      <SelectItem value="code">💻 代码</SelectItem>
+                      <SelectItem value="quiz">📝 测验</SelectItem>
+                      <SelectItem value="video">🎬 视频</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-sort mr-2 text-accent"></i>
+                    <ArrowUpDown className="w-4 h-4 mr-2 text-accent" />
                     顺序
                   </label>
                   <input
@@ -195,7 +206,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               {/* 视频链接 */}
               <div>
                 <label className="block text-sm font-medium text-ink-muted mb-2">
-                  <i className="fas fa-video mr-2 text-accent"></i>
+                  <Video className="w-4 h-4 mr-2 text-accent" />
                   视频链接
                 </label>
                 <input
@@ -221,7 +232,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
                   />
                   <label htmlFor="is_locked" className="flex-1 cursor-pointer">
                     <div className="font-medium text-ink-inverse flex items-center">
-                      <i className="fas fa-lock text-amber-400 mr-2"></i>
+                      <Lock className="w-4 h-4 text-amber-400 mr-2" />
                       锁定章节
                     </div>
                     <p className="text-ink-muted text-sm mt-1">启用后，用户需要完成前一章节才能学习本章</p>
@@ -232,7 +243,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               {/* Markdown 编辑器 */}
               <div>
                 <label className="block text-sm font-medium text-ink-muted mb-2">
-                  <i className="fab fa-markdown mr-2 text-accent"></i>
+                  <Code className="w-4 h-4 mr-2 text-accent" />
                   章节内容 (Markdown) *
                 </label>
                 <div className="border border-border rounded-xl overflow-hidden shadow-lg">
@@ -261,7 +272,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
             <div className="w-1/2 border-l border-border/50 overflow-y-auto p-6 bg-canvas/50">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
-                  <i className="fas fa-eye text-accent mr-2"></i>
+                  <Eye className="w-4 h-4 text-accent mr-2" />
                   预览
                 </h3>
                 <span className="text-xs text-ink-faint">Markdown 渲染效果</span>
@@ -276,7 +287,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-surface-1/50">
           <p className="text-ink-faint text-sm">
-            <i className="fas fa-info-circle mr-2"></i>
+            <Info className="w-4 h-4 mr-2" />
             带 * 的字段为必填项
           </p>
           <div className="flex items-center space-x-3">
@@ -297,12 +308,12 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
             >
               {loading ? (
                 <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   保存中...
                 </>
               ) : (
                 <>
-                  <i className="fas fa-save mr-2"></i>
+                  <Save className="w-4 h-4 mr-2" />
                   保存
                 </>
               )}

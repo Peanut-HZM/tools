@@ -1,3 +1,4 @@
+import { AlertCircle, ArrowLeft, Download, ExternalLink, Image as ImageIcon, Info, Loader2, Search, ZoomIn } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
@@ -160,14 +161,14 @@ export default function ImageDownloader() {
           onClick={() => navigate('/')}
           className="mb-6 flex items-center gap-2"
         >
-          <i className="fas fa-arrow-left"></i>
+          <ArrowLeft className="w-4 h-4" />
           返回首页
         </Button>
 
         {/* 标题 */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-download text-white text-2xl"></i>
+            <Download className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-4xl font-bold mb-4">网页图片下载器</h1>
           <p className="text-xl text-ink-muted max-w-2xl mx-auto">
@@ -195,12 +196,12 @@ export default function ImageDownloader() {
               >
                 {loading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     提取中...
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-search mr-2"></i>
+                    <Search className="w-4 h-4 mr-2" />
                     提取图片
                   </>
                 )}
@@ -232,7 +233,7 @@ export default function ImageDownloader() {
         {error && (
           <div className="max-w-3xl mx-auto mb-8">
             <div className="bg-danger/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg">
-              <i className="fas fa-exclamation-circle mr-2"></i>
+              <AlertCircle className="w-4 h-4 mr-2" />
               {error}
             </div>
           </div>
@@ -252,12 +253,12 @@ export default function ImageDownloader() {
               >
                 {downloading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     下载中...
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-download mr-2"></i>
+                    <Download className="w-4 h-4 mr-2" />
                     下载全部原图
                   </>
                 )}
@@ -281,7 +282,7 @@ export default function ImageDownloader() {
                     {/* 悬停提示 */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                       <span className="text-white text-sm">
-                        <i className="fas fa-search-plus mr-2"></i>
+                        <ZoomIn className="w-4 h-4 mr-2" />
                         点击查看原图
                       </span>
                     </div>
@@ -301,7 +302,7 @@ export default function ImageDownloader() {
                         className="flex-1"
                         size="sm"
                       >
-                        <i className="fas fa-download mr-2"></i>
+                        <Download className="w-4 h-4 mr-2" />
                         下载原图
                       </Button>
                       <Button
@@ -311,7 +312,7 @@ export default function ImageDownloader() {
                         size="sm"
                         title="在新窗口查看原图"
                       >
-                        <i className="fas fa-external-link-alt mr-2"></i>
+                        <ExternalLink className="w-4 h-4 mr-2" />
                         查看原图
                       </Button>
                     </div>
@@ -326,7 +327,7 @@ export default function ImageDownloader() {
             {/* 下载说明 */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <i className="fas fa-info-circle text-accent-info"></i>
+                <Info className="w-4 h-4 text-accent-info" />
                 下载说明
               </h3>
               <div className="text-sm text-ink-muted space-y-2">
@@ -343,7 +344,7 @@ export default function ImageDownloader() {
         {/* 空状态 */}
         {!loading && images.length === 0 && !error && (
           <div className="max-w-3xl mx-auto text-center py-16">
-            <i className="fas fa-image text-ink-faint text-6xl mb-4"></i>
+            <ImageIcon className="w-16 h-16 text-ink-faint mb-4" />
             <p className="text-ink-muted text-lg">
               输入网页URL开始提取图片
             </p>

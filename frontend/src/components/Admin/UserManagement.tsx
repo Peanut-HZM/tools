@@ -3,6 +3,13 @@ import { listUsers, updateUserRole, deleteUser, createUser, batchDeleteUsers, ba
 import { UserResponse } from '../../api/authApi';
 import { useToast } from '../../hooks/useToast';
 import PasswordResetModal from './PasswordResetModal';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 20;
@@ -292,14 +299,15 @@ export default function UserManagement() {
           </span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <select
-                value={batchRole}
-                onChange={(e) => setBatchRole(e.target.value)}
-                className="bg-surface-1 border border-border rounded px-3 py-1.5 text-sm text-ink-inverse focus:border-accent outline-none"
-              >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-              </select>
+              <Select value={batchRole} onValueChange={setBatchRole}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
               <button
                 onClick={handleBatchUpdateRole}
                 className="px-3 py-1.5 bg-accent hover:bg-accent text-white rounded text-sm transition-colors"
@@ -347,15 +355,16 @@ export default function UserManagement() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-ink-muted text-sm">角色:</span>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="bg-surface-1 border border-border rounded-lg px-3 py-2 text-ink-inverse text-sm focus:border-accent outline-none"
-          >
-            <option value="">全部</option>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-28">
+              <SelectValue placeholder="全部" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">全部</SelectItem>
+              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -397,14 +406,18 @@ export default function UserManagement() {
                 <td className="px-6 py-4">{user.email}</td>
                 <td className="px-6 py-4">
                   {!batchMode ? (
-                    <select
+                    <Select
                       value={user.role}
-                      onChange={(e) => handleRoleChange(user.user_id, e.target.value)}
-                      className="bg-canvas border border-border rounded px-2 py-1 text-sm focus:border-accent outline-none"
+                      onValueChange={(v) => handleRoleChange(user.user_id, v)}
                     >
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                      <SelectTrigger className="w-24 h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       user.role === 'admin'
@@ -449,15 +462,16 @@ export default function UserManagement() {
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
         <div className="flex items-center gap-2">
           <span className="text-ink-muted text-sm">每页显示:</span>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="bg-surface-1 border border-border rounded px-2 py-1 text-sm text-ink-inverse focus:border-accent outline-none"
-          >
-            {PAGE_SIZE_OPTIONS.map(size => (
-              <option key={size} value={size}>{size}</option>
-            ))}
-          </select>
+          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+            <SelectTrigger className="w-20 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map(size => (
+                <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <span className="text-ink-muted text-sm">
             共 <span className="text-accent font-medium">{total}</span> 条记录
           </span>
@@ -557,14 +571,15 @@ export default function UserManagement() {
               </div>
               <div className="mb-6">
                 <label className="block text-ink-muted mb-2 text-sm">角色</label>
-                <select
-                  value={newUser.role}
-                  onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full bg-canvas border border-border rounded px-3 py-2 text-ink-inverse focus:border-accent outline-none"
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
+                <Select value={newUser.role} onValueChange={(v) => setNewUser({ ...newUser, role: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex justify-end gap-3">
                 <button

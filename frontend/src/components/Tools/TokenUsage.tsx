@@ -15,6 +15,13 @@ import {
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { useAuth } from '../../stores/authStore';
 import RequireAuthNotice from '../Common/RequireAuthNotice';
 import {
@@ -611,58 +618,82 @@ export default function TokenUsage() {
       <div className="mb-5 grid gap-3 rounded-md border border-border bg-canvas p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">工具</span>
-          <select
+          <Select
             value={selectedTool}
-            onChange={event => {
-              setSelectedTool(event.target.value);
+            onValueChange={(v) => {
+              setSelectedTool(v);
               setSelectedModel('');
             }}
-            className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm"
           >
-            <option value="">全部工具</option>
-            {toolOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="全部工具" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">全部工具</SelectItem>
+              {toolOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">模型</span>
-          <select value={selectedModel} onChange={event => setSelectedModel(event.target.value)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
-            <option value="">全部模型</option>
-            {modelOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="全部模型" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">全部模型</SelectItem>
+              {modelOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">维度</span>
-          <select value={reportType} onChange={event => setReportType(event.target.value as TokenUsageReportType)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
-            <option value="daily">按天</option>
-            <option value="weekly">按周</option>
-            <option value="monthly">按月</option>
-          </select>
+          <Select value={reportType} onValueChange={(v) => setReportType(v as TokenUsageReportType)}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">按天</SelectItem>
+              <SelectItem value="weekly">按周</SelectItem>
+              <SelectItem value="monthly">按月</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">时间范围</span>
-          <select value={days} onChange={event => setDays(Number(event.target.value))} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
-            {timeRangeOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+          <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {timeRangeOptions.map(option => (
+                <SelectItem key={option.value} value={String(option.value)}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">设备</span>
           <div className="flex gap-1">
-            <select value={selectedDevice} onChange={event => setSelectedDevice(event.target.value)} className="h-9 min-w-0 flex-1 rounded-md border border-border bg-canvas px-2 text-sm">
-              <option value="">全部设备</option>
-              {devices.filter(device => !device.canonical_id).map(device => (
-                <option key={device.id} value={device.id}>{device.name}</option>
-              ))}
-            </select>
+            <Select value={selectedDevice} onValueChange={setSelectedDevice}>
+              <SelectTrigger className="h-9 min-w-0 flex-1">
+                <SelectValue placeholder="全部设备" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">全部设备</SelectItem>
+                {devices.filter(device => !device.canonical_id).map(device => (
+                  <SelectItem key={device.id} value={device.id}>{device.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               size="icon"
@@ -686,34 +717,48 @@ export default function TokenUsage() {
 
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">分组</span>
-          <select value={groupBy} onChange={event => setGroupBy(event.target.value as TokenUsageGroupBy)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
-            <option value="none">按日期汇总</option>
-            <option value="device">按设备对比</option>
-            <option value="tool">按工具对比</option>
-            <option value="model">按模型分析</option>
-          </select>
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as TokenUsageGroupBy)}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">按日期汇总</SelectItem>
+              <SelectItem value="device">按设备对比</SelectItem>
+              <SelectItem value="tool">按工具对比</SelectItem>
+              <SelectItem value="model">按模型分析</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">排序</span>
-          <select value={sortBy} onChange={event => setSortBy(event.target.value as TokenUsageSortBy)} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
-            <option value="created_at">更新时间</option>
-            <option value="date">日期</option>
-            <option value="created_at">更新时间</option>
-            <option value="total_tokens">总 Token</option>
-            <option value="total_cost">成本</option>
-            <option value="input_tokens">输入</option>
-            <option value="output_tokens">输出</option>
-            <option value="cache_tokens">缓存</option>
-          </select>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as TokenUsageSortBy)}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_at">更新时间</SelectItem>
+              <SelectItem value="date">日期</SelectItem>
+              <SelectItem value="total_tokens">总 Token</SelectItem>
+              <SelectItem value="total_cost">成本</SelectItem>
+              <SelectItem value="input_tokens">输入</SelectItem>
+              <SelectItem value="output_tokens">输出</SelectItem>
+              <SelectItem value="cache_tokens">缓存</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">图表</span>
-          <select value={chartType} onChange={event => setChartType(event.target.value as 'bar' | 'line')} className="h-9 w-full rounded-md border border-border bg-canvas px-2 text-sm">
-            <option value="bar">柱状图</option>
-            <option value="line">折线图</option>
-          </select>
+          <Select value={chartType} onValueChange={(v) => setChartType(v as 'bar' | 'line')}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bar">柱状图</SelectItem>
+              <SelectItem value="line">折线图</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
       </div>
 

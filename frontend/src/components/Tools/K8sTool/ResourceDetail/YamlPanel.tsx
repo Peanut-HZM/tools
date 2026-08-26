@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Highlight, themes } from 'prism-react-renderer';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import * as api from '../../../../api/k8sToolApi';
@@ -58,7 +59,7 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-ink-faint">
-        <i className="fas fa-spinner fa-spin mr-2"></i>
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         {yt.loading}
       </div>
     );
@@ -68,7 +69,7 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
   if (isError) {
     return (
       <div className="flex items-center justify-center h-full text-danger">
-        <i className="fas fa-exclamation-triangle mr-2"></i>
+        <AlertTriangle className="w-4 h-4 mr-2" />
         {yt.error}
       </div>
     );

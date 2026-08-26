@@ -3,6 +3,7 @@
  */
 
 import { RequestHistory } from '../../../../services/httpClientApi';
+import { Loader2, History, Trash2, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 
@@ -49,7 +50,7 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
   if (loading) {
     return (
       <div className="text-center py-8 text-ink-faint text-sm">
-        <i className="fas fa-spinner fa-spin mr-2"></i>
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         加载历史中...
       </div>
     );
@@ -58,7 +59,7 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
   if (history.length === 0) {
     return (
       <div className="text-center py-12 text-ink-faint">
-        <i className="fas fa-clock-rotate-left text-4xl mb-3 opacity-30"></i>
+        <History className="w-10 h-10 mb-3 opacity-30" />
         <p className="text-sm">暂无请求历史</p>
         <p className="text-xs mt-1 text-ink-faint">发送的请求将自动记录在这里</p>
       </div>
@@ -75,7 +76,7 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
           onClick={onClear}
           className="text-xs text-danger hover:text-red-300"
         >
-          <i className="fas fa-trash mr-1"></i>
+          <Trash2 className="w-4 h-4 mr-1" />
           清空历史
         </Button>
       </div>
@@ -124,7 +125,7 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
               className="h-6 w-6 text-ink-faint group-hover:text-accent-secondary opacity-0 group-hover:opacity-100"
               title="重放"
             >
-              <i className="fas fa-rotate-right"></i>
+              <RotateCw className="w-4 h-4" />
             </Button>
           </div>
         ))}

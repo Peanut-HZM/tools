@@ -4,6 +4,13 @@
 import React from 'react';
 import * as XLSX from 'xlsx';
 import { PreviewProps } from './types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export const ExcelViewer: React.FC<PreviewProps> = ({ url }) => {
   const [data, setData] = React.useState<Record<string, any>[][]>([]);
@@ -73,19 +80,23 @@ export const ExcelViewer: React.FC<PreviewProps> = ({ url }) => {
       {/* Sheet 选择器 */}
       {sheetNames.length > 1 && (
         <div className="flex-shrink-0 p-4 border-b border-border">
-          <select
+          <Select
             value={currentSheet}
-            onChange={(e) => {
-              setCurrentSheet(e.target.value);
+            onValueChange={(v) => {
+              setCurrentSheet(v);
             }}
-            className="px-4 py-2 bg-surface-2 border border-border rounded text-ink focus:outline-none"
           >
-            {sheetNames.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sheetNames.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 

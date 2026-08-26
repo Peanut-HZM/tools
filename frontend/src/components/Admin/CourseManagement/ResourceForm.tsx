@@ -7,6 +7,13 @@ import { useResourceStore } from '../../../stores/courseAdminStore';
 import type { ResourceCreate, ResourceUpdate, CourseResource as Resource } from '../../../services/coursePlatform';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface ResourceFormProps {
   chapterId: number;
@@ -110,17 +117,20 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
               <label className="block text-sm font-medium text-ink-muted mb-1">
                 资源类型 *
               </label>
-              <select
-                name="resource_type"
+              <Select
                 value={formData.resource_type}
-                onChange={handleChange}
-                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse focus:outline-none focus:border-accent"
+                onValueChange={(v) => setFormData((prev) => ({ ...prev, resource_type: v as any }))}
               >
-                <option value="code_sample">💻 代码示例</option>
-                <option value="contrast">⚖️ 对比材料</option>
-                <option value="video">🎬 视频</option>
-                <option value="template">📄 模板</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="code_sample">💻 代码示例</SelectItem>
+                  <SelectItem value="contrast">⚖️ 对比材料</SelectItem>
+                  <SelectItem value="video">🎬 视频</SelectItem>
+                  <SelectItem value="template">📄 模板</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

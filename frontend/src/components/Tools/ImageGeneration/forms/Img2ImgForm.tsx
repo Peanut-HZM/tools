@@ -9,6 +9,7 @@ import ImageUploader from '../components/ImageUploader';
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Slider } from '@/components/ui/Slider';
 
 export default function Img2ImgForm() {
   const { t } = useI18n();
@@ -48,14 +49,13 @@ export default function Img2ImgForm() {
           <label className="text-sm font-medium text-ink-muted">{igT.form.strength}</label>
           <span className="text-xs text-ink-muted tabular-nums">{params.strength.toFixed(2)}</span>
         </div>
-        <input
-          type="range"
+        <Slider
           min={0}
           max={1}
           step={0.05}
-          value={params.strength}
-          onChange={(e) => setParams({ strength: parseFloat(e.target.value) })}
-          className="w-full h-2 bg-surface-2 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          value={[params.strength]}
+          onValueChange={(v) => setParams({ strength: v[0] })}
+          className="w-full"
         />
         <div className="flex justify-between text-[10px] text-ink-faint">
           <span>{igT.form.strengthMin}</span>

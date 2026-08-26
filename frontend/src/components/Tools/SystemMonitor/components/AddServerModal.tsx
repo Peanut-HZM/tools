@@ -5,6 +5,13 @@ import * as monitorApi from '../../../../api/monitorApi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface AddServerModalProps {
   open: boolean;
@@ -95,16 +102,16 @@ export default function AddServerModal({ open, onClose, onSaved, sshConfigs }: A
             {sshConfigs.length === 0 ? (
               <div className="text-sm text-ink-faint py-3">暂无 SSH 配置，请先在 SSH 工具中添加</div>
             ) : (
-              <select
-                className="w-full bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse focus:outline-none focus:border-emerald-500"
-                value={sshConfigId}
-                onChange={(e) => setSshConfigId(e.target.value)}
-              >
-                <option value="">请选择 SSH 配置</option>
-                {sshConfigs.map((c) => (
-                  <option key={c.id} value={c.id}>{c.alias}（{c.host}）</option>
-                ))}
-              </select>
+              <Select value={sshConfigId} onValueChange={setSshConfigId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择 SSH 配置" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sshConfigs.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.alias}（{c.host}）</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             <div className="text-xs text-ink-faint mt-2">导入后凭据独立管理，与 SSH 工具互不影响</div>
           </div>

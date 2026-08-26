@@ -6,6 +6,23 @@ import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import ResultViewer from './components/ResultViewer';
 import { resolveDefaultSort } from '../../../utils/defaultSortResolver';
+import {
+  Table,
+  Play,
+  RefreshCw,
+  Loader2,
+  Download,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+} from '@/components/ui/DropdownMenu';
 
 interface TableDataViewerProps {
   configId: string;
@@ -31,7 +48,6 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
 
   // Export state
   const [exporting, setExporting] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const fetchSchema = useCallback(async (): Promise<TableSchema | null> => {
     try {
@@ -112,14 +128,6 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     return () => { cancelled = true; };
   }, [configId, databaseName, tableName, schemaName]);
 
-  // Close export menu when clicking outside
-  useEffect(() => {
-    if (!showExportMenu) return;
-    const handleClick = () => setShowExportMenu(false);
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [showExportMenu]);
-
   /** 导出数据 */
   const handleExport = useCallback(async (format: 'csv' | 'excel' | 'json' | 'sql') => {
     if (!result?.success || !tableName) {
@@ -128,7 +136,6 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
     }
 
     setExporting(true);
-    setShowExportMenu(false);
 
     try {
       const fullTableName = schemaName
@@ -221,7 +228,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       <div className="p-4 border-b border-border bg-surface-1 space-y-4">
         <div className="flex items-center justify-between">
            <div className="flex items-center space-x-2 text-ink">
-              <i className="fas fa-table text-accent-info"></i>
+              <Table className="w-4 h-4 text-accent-info" />
               <span className="font-semibold">{tableName}</span>
               {schemaName && <span className="text-ink-faint text-sm">({schemaName}{databaseName ? `.${databaseName}` : ''})</span>}
               {!schemaName && databaseName && <span className="text-ink-faint text-sm">({databaseName})</span>}
@@ -233,7 +240,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                disabled={loading}
                className="bg-accent text-ink-inverse px-3 py-1.5 rounded text-sm hover:bg-accent-hover disabled:opacity-50 flex items-center space-x-1"
              >
-               <i className="fas fa-play text-xs"></i>
+               <Play className="w-3 h-3" />
                <span>Run</span>
              </button>
              <button
@@ -241,7 +248,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                disabled={loading}
                className="bg-surface-2 text-ink-muted px-3 py-1.5 rounded text-sm hover:bg-surface-3 disabled:opacity-50"
              >
-               <i className="fas fa-sync-alt"></i>
+               <RefreshCw className="w-4 h-4" />
              </button>
 
              {/* Quick Export button */}
@@ -252,41 +259,37 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                title={t.database.export.quickExport}
              >
                {exporting ? (
-                 <><i className="fas fa-spinner fa-spin text-xs"></i><span>{t.database.export.exporting}</span></>
+                 <><Loader2 className="w-3 h-3 animate-spin" /><span>{t.database.export.exporting}</span></>
                ) : (
-                 <><i className="fas fa-download text-xs"></i><span>{t.database.export.quickExport}</span></>
+                 <><Download className="w-3 h-3" /><span>{t.database.export.quickExport}</span></>
                )}
              </button>
 
              {/* Advanced Export dropdown */}
-             <div className="relative" onClick={(e) => e.stopPropagation()}>
-               <button
-                 onClick={() => setShowExportMenu(!showExportMenu)}
+             <DropdownMenu>
+               <DropdownMenuTrigger
                  disabled={exporting || !result?.success}
-                 className="bg-surface-2 text-ink-muted px-2 py-1.5 rounded text-sm hover:bg-surface-3 disabled:opacity-50"
-                 title={t.database.export.advancedExport}
+                 aria-label={t.database.export.advancedExport}
+                 className="bg-surface-2 text-ink-muted px-2 py-1.5 rounded text-sm hover:bg-surface-3 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-accent"
                >
-                 <i className="fas fa-chevron-down text-xs"></i>
-               </button>
-
-               {showExportMenu && (
-                 <div className="absolute right-0 mt-1 w-32 bg-surface-1 rounded shadow-lg border border-border py-1 z-50">
-                   <div className="px-3 py-1 text-xs text-ink-faint border-b border-border">
-                     {t.database.export.format}
-                   </div>
-                   {(['csv', 'excel', 'json', 'sql'] as const).map((fmt) => (
-                     <button
-                       key={fmt}
-                       onClick={(e) => { e.stopPropagation(); handleExport(fmt); }}
-                       disabled={exporting}
-                       className="block w-full text-left px-3 py-1.5 text-sm text-ink-muted hover:bg-surface-2 hover:text-ink-inverse disabled:opacity-50"
-                     >
-                       {fmt.toUpperCase()}
-                     </button>
-                   ))}
-                 </div>
-               )}
-             </div>
+                 <ChevronDown className="w-3 h-3" />
+               </DropdownMenuTrigger>
+               <DropdownMenuContent align="end" className="w-32">
+                 <DropdownMenuLabel className="px-3 py-1 text-xs text-ink-faint">
+                   {t.database.export.format}
+                 </DropdownMenuLabel>
+                 {(['csv', 'excel', 'json', 'sql'] as const).map((fmt) => (
+                   <DropdownMenuItem
+                     key={fmt}
+                     disabled={exporting}
+                     onSelect={() => handleExport(fmt)}
+                     className="px-3 py-1.5 text-sm text-ink-muted focus:text-ink-inverse"
+                   >
+                     {fmt.toUpperCase()}
+                   </DropdownMenuItem>
+                 ))}
+               </DropdownMenuContent>
+             </DropdownMenu>
            </div>
         </div>
 
@@ -327,7 +330,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       <div className="flex-1 overflow-hidden p-4">
         {loading && !result ? (
            <div className="h-full flex items-center justify-center text-ink-faint">
-              <i className="fas fa-spinner fa-spin text-2xl mr-2"></i>
+              <Loader2 className="w-8 h-8 mr-2 animate-spin" />
               Loading...
            </div>
         ) : (
@@ -371,7 +374,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                onClick={() => handlePageChange(page - 1)}
                className="hover:text-ink-inverse disabled:opacity-30"
              >
-               <i className="fas fa-chevron-left"></i> Previous
+               <ChevronLeft className="w-4 h-4" /> Previous
              </button>
              <span>Page {page}</span>
              <button
@@ -385,7 +388,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                onClick={() => handlePageChange(page + 1)}
                className="hover:text-ink-inverse disabled:opacity-30"
              >
-               Next <i className="fas fa-chevron-right"></i>
+               Next <ChevronRight className="w-4 h-4" />
              </button>
           </div>
       </div>

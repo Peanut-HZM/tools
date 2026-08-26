@@ -6,6 +6,13 @@ import { CreateModelRequest, LLMModel, ModelCategory } from '../../../services/l
 import { LLMProvider } from '../../../services/llmProviderApi';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 const STORAGE_KEY_LAST_PROVIDER = 'llm_model_last_provider_id';
 
@@ -139,17 +146,19 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
               <label className="block text-sm font-medium text-ink-muted mb-2">
                 供应商 <span className="text-danger">*</span>
               </label>
-              <select
+              <Select
                 value={formData.provider_id}
-                onChange={(e) => setFormData({ ...formData, provider_id: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse focus:outline-none focus:ring-2 focus:ring-accent"
-                required
+                onValueChange={(v) => setFormData({ ...formData, provider_id: v })}
               >
-                <option value="">请选择供应商</option>
-                {providers.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.provider_type})</option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择供应商" />
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name} ({p.provider_type})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 分类 */}
@@ -157,18 +166,22 @@ export default function ModelDialog({ isOpen, onClose, onSubmit, editing, provid
               <label className="block text-sm font-medium text-ink-muted mb-2">
                 分类 <span className="text-danger">*</span>
               </label>
-              <select
+              <Select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as ModelCategory })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse focus:outline-none focus:ring-2 focus:ring-accent"
+                onValueChange={(v) => setFormData({ ...formData, category: v as ModelCategory })}
               >
-                <option value="text">文本 (text)</option>
-                <option value="vision">视觉理解 (vision)</option>
-                <option value="image_gen">图像生成 (image_gen)</option>
-                <option value="voice">语音 (voice)</option>
-                <option value="embedding">向量 (embedding)</option>
-                <option value="ocr">OCR 识别 (ocr)</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">文本 (text)</SelectItem>
+                  <SelectItem value="vision">视觉理解 (vision)</SelectItem>
+                  <SelectItem value="image_gen">图像生成 (image_gen)</SelectItem>
+                  <SelectItem value="voice">语音 (voice)</SelectItem>
+                  <SelectItem value="embedding">向量 (embedding)</SelectItem>
+                  <SelectItem value="ocr">OCR 识别 (ocr)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 优先级 */}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { OpenTab } from '../../../../stores/httpClientStore';
+import { Plus, FileCode, Pencil, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -44,7 +45,7 @@ export default function RequestTabs({
           onClick={onCreateNewRequest}
           className="text-accent-secondary hover:text-accent-secondary"
         >
-          <i className="fas fa-plus mr-2"></i>
+          <Plus className="w-4 h-4 mr-2" />
           新建请求
         </Button>
       </div>
@@ -66,11 +67,11 @@ export default function RequestTabs({
           `}
           onClick={() => onTabClick(tab.requestId)}
         >
-          <i
-            className={`fas fa-file-code text-xs ${
+          <FileCode
+            className={`w-3 h-3 ${
               tab.requestId === activeTabId ? 'text-accent-secondary' : 'text-ink-faint'
             }`}
-          ></i>
+          />
           {editingId === tab.requestId ? (
             <Input
               autoFocus
@@ -106,7 +107,7 @@ export default function RequestTabs({
                   }}
                   className="h-6 w-6 text-ink-faint hover:text-ink-muted"
                 >
-                  <i className="fas fa-pencil"></i>
+                  <Pencil className="w-3 h-3" />
                 </Button>
               )}
             </>
@@ -123,7 +124,7 @@ export default function RequestTabs({
             }}
             className="h-6 w-6 text-ink-faint hover:text-danger"
           >
-            <i className="fas fa-times"></i>
+            <X className="w-3 h-3" />
           </Button>
         </div>
       ))}

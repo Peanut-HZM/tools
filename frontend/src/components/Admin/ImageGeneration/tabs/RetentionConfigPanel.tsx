@@ -12,6 +12,13 @@ import {
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export default function RetentionConfigPanel() {
   const { t } = useI18n();
@@ -148,15 +155,16 @@ export default function RetentionConfigPanel() {
 
         <div>
           <label className="block text-sm text-ink-muted mb-2">{igT.cleanupMode}</label>
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as typeof mode)}
-            className="w-full bg-surface-2 border border-border text-ink-inverse px-3 py-2 rounded focus:outline-none focus:border-accent"
-          >
-            <option value="keep_forever">{igT.cleanupModeKeepForever}</option>
-            <option value="delete_after_n_days">{igT.cleanupModeDeleteAfterDays}</option>
-            <option value="delete_if_unused_for_n_days">{igT.cleanupModeDeleteIfUnused}</option>
-          </select>
+          <Select value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="keep_forever">{igT.cleanupModeKeepForever}</SelectItem>
+              <SelectItem value="delete_after_n_days">{igT.cleanupModeDeleteAfterDays}</SelectItem>
+              <SelectItem value="delete_if_unused_for_n_days">{igT.cleanupModeDeleteIfUnused}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>

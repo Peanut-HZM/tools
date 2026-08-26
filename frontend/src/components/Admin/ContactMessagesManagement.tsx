@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Search, Inbox } from 'lucide-react';
 import { useI18n } from '../../i18n';
 import {
   getContactMessages,
@@ -11,6 +12,13 @@ import {
 import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 type MessageStatus = 'unread' | 'read' | 'processing' | 'resolved';
 
 export default function ContactMessagesManagement() {
@@ -177,17 +185,18 @@ export default function ContactMessagesManagement() {
           {/* 筛选器 */}
           <div className="flex items-center gap-3">
             {/* 状态筛选 */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink-inverse text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="all">{t.admin.contactMessages.filter.all}</option>
-              <option value="unread">{t.admin.contactMessages.filter.unread}</option>
-              <option value="read">{t.admin.contactMessages.filter.read}</option>
-              <option value="processing">{t.admin.contactMessages.filter.processing}</option>
-              <option value="resolved">{t.admin.contactMessages.filter.resolved}</option>
-            </select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.admin.contactMessages.filter.all}</SelectItem>
+                <SelectItem value="unread">{t.admin.contactMessages.filter.unread}</SelectItem>
+                <SelectItem value="read">{t.admin.contactMessages.filter.read}</SelectItem>
+                <SelectItem value="processing">{t.admin.contactMessages.filter.processing}</SelectItem>
+                <SelectItem value="resolved">{t.admin.contactMessages.filter.resolved}</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* 关键词搜索 */}
             <input
@@ -202,7 +211,7 @@ export default function ContactMessagesManagement() {
               onClick={handleSearch}
               size="sm"
             >
-              <i className="fas fa-search mr-1"></i> 搜索
+              <Search className="w-4 h-4 mr-1" /> 搜索
             </Button>
           </div>
 
@@ -248,7 +257,7 @@ export default function ContactMessagesManagement() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center py-12 text-ink-muted">
-            <i className="fas fa-inbox text-4xl mb-4"></i>
+            <Inbox className="w-16 h-16 mb-4" />
             <p>{t.admin.contactMessages.noData}</p>
           </div>
         ) : (
@@ -305,16 +314,20 @@ export default function ContactMessagesManagement() {
                     {message.subject || '-'}
                   </td>
                   <td className="px-4 py-3">
-                    <select
+                    <Select
                       value={message.status}
-                      onChange={(e) => handleStatusChange(message.id, e.target.value as MessageStatus)}
-                      className={`px-2 py-1 rounded text-xs border cursor-pointer ${getStatusBadgeClass(message.status)}`}
+                      onValueChange={(v) => handleStatusChange(message.id, v as MessageStatus)}
                     >
-                      <option value="unread">{t.admin.contactMessages.status.unread}</option>
-                      <option value="read">{t.admin.contactMessages.status.read}</option>
-                      <option value="processing">{t.admin.contactMessages.status.processing}</option>
-                      <option value="resolved">{t.admin.contactMessages.status.resolved}</option>
-                    </select>
+                      <SelectTrigger className={`px-2 py-1 rounded text-xs border cursor-pointer ${getStatusBadgeClass(message.status)}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unread">{t.admin.contactMessages.status.unread}</SelectItem>
+                        <SelectItem value="read">{t.admin.contactMessages.status.read}</SelectItem>
+                        <SelectItem value="processing">{t.admin.contactMessages.status.processing}</SelectItem>
+                        <SelectItem value="resolved">{t.admin.contactMessages.status.resolved}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-4 py-3 text-ink-muted text-sm">
                     {new Date(message.created_at).toLocaleString('zh-CN')}
@@ -437,16 +450,20 @@ export default function ContactMessagesManagement() {
 
               {/* 操作按钮 */}
               <div className="flex justify-end gap-3 pt-4 border-t border-border">
-                <select
+                <Select
                   value={selectedMessage.status}
-                  onChange={(e) => handleStatusChange(selectedMessage.id, e.target.value as MessageStatus)}
-                  className={`px-3 py-2 rounded border cursor-pointer ${getStatusBadgeClass(selectedMessage.status)}`}
+                  onValueChange={(v) => handleStatusChange(selectedMessage.id, v as MessageStatus)}
                 >
-                  <option value="unread">{t.admin.contactMessages.status.unread}</option>
-                  <option value="read">{t.admin.contactMessages.status.read}</option>
-                  <option value="processing">{t.admin.contactMessages.status.processing}</option>
-                  <option value="resolved">{t.admin.contactMessages.status.resolved}</option>
-                </select>
+                  <SelectTrigger className={`px-3 py-2 rounded border cursor-pointer ${getStatusBadgeClass(selectedMessage.status)}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unread">{t.admin.contactMessages.status.unread}</SelectItem>
+                    <SelectItem value="read">{t.admin.contactMessages.status.read}</SelectItem>
+                    <SelectItem value="processing">{t.admin.contactMessages.status.processing}</SelectItem>
+                    <SelectItem value="resolved">{t.admin.contactMessages.status.resolved}</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   onClick={() => handleReply(selectedMessage.id)}
                 >

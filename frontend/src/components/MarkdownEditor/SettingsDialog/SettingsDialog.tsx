@@ -2,6 +2,7 @@
  * SettingsDialog Component - Editor configuration
  */
 import { useCallback } from 'react';
+import { Slider } from '@/components/ui/Slider';
 import type { EditorConfig } from '../../../types/markdownEditor';
 
 interface SettingsDialogProps {
@@ -105,12 +106,11 @@ export default function SettingsDialog({
             <label className="block text-sm font-medium text-ink-muted mb-2">
               字体大小: {config.fontSize}px
             </label>
-            <input
-              type="range"
-              min="8"
-              max="32"
-              value={config.fontSize}
-              onChange={(e) => onConfigChange({ fontSize: parseInt(e.target.value) })}
+            <Slider
+              min={8}
+              max={32}
+              value={[config.fontSize]}
+              onValueChange={(v) => onConfigChange({ fontSize: v[0] })}
               className="w-full"
             />
           </div>
@@ -120,12 +120,11 @@ export default function SettingsDialog({
             <label className="block text-sm font-medium text-ink-muted mb-2">
               Tab 大小: {config.tabSize}
             </label>
-            <input
-              type="range"
-              min="1"
-              max="8"
-              value={config.tabSize}
-              onChange={(e) => onConfigChange({ tabSize: parseInt(e.target.value) })}
+            <Slider
+              min={1}
+              max={8}
+              value={[config.tabSize]}
+              onValueChange={(v) => onConfigChange({ tabSize: v[0] })}
               className="w-full"
             />
           </div>
@@ -135,13 +134,12 @@ export default function SettingsDialog({
             <label className="block text-sm font-medium text-ink-muted mb-2">
               自动保存间隔: {config.autoSaveInterval}秒
             </label>
-            <input
-              type="range"
-              min="5"
-              max="300"
-              step="5"
-              value={config.autoSaveInterval}
-              onChange={(e) => onConfigChange({ autoSaveInterval: parseInt(e.target.value) })}
+            <Slider
+              min={5}
+              max={300}
+              step={5}
+              value={[config.autoSaveInterval]}
+              onValueChange={(v) => onConfigChange({ autoSaveInterval: v[0] })}
               className="w-full"
             />
           </div>

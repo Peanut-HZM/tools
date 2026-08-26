@@ -3,6 +3,15 @@ import * as api from '../../../../api/databaseToolApi';
 import { ExecutionHistory } from '../../../../types/databaseTool';
 import { useToast } from '../../../../hooks/useToast';
 import { useI18n } from '../../../../i18n';
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  History,
+  X,
+  Search,
+  Loader2,
+} from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 
 interface SQLHistoryPanelProps {
@@ -42,9 +51,9 @@ const SQLHistoryPanel: React.FC<SQLHistoryPanelProps> = ({ isOpen, onClose, onRe
   };
 
   const getStatusIcon = (status: string) => {
-    if (status === 'success') return <i className="fas fa-check-circle text-green-400"></i>;
-    if (status === 'failed') return <i className="fas fa-times-circle text-danger"></i>;
-    return <i className="fas fa-clock text-accent-warning"></i>;
+    if (status === 'success') return <CheckCircle className="w-4 h-4 text-green-400" />;
+    if (status === 'failed') return <XCircle className="w-4 h-4 text-danger" />;
+    return <Clock className="w-4 h-4 text-accent-warning" />;
   };
 
   const getSqlTypeColor = (type?: string) => {
@@ -89,21 +98,21 @@ const SQLHistoryPanel: React.FC<SQLHistoryPanelProps> = ({ isOpen, onClose, onRe
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-1">
         <div className="flex items-center gap-2">
-          <i className="fas fa-history text-ink-muted"></i>
+          <History className="w-4 h-4 text-ink-muted" />
           <span className="text-sm font-medium text-ink">SQL 历史记录</span>
         </div>
         <button
           onClick={onClose}
           className="p-1.5 hover:bg-surface-2 rounded text-ink-muted hover:text-ink transition-colors"
         >
-          <i className="fas fa-times text-xs"></i>
+          <X className="w-3 h-3" />
         </button>
       </div>
 
       {/* Search and Filter */}
       <div className="px-4 py-2 border-b border-border space-y-2 bg-surface-1">
         <div className="relative">
-          <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-ink-faint text-xs"></i>
+          <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-ink-faint" />
           <Input
             type="text"
             value={searchTerm}
@@ -133,12 +142,12 @@ const SQLHistoryPanel: React.FC<SQLHistoryPanelProps> = ({ isOpen, onClose, onRe
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full text-ink-faint">
-            <i className="fas fa-spinner fa-spin mr-2"></i>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             加载中...
           </div>
         ) : filteredHistory.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-ink-faint py-8">
-            <i className="fas fa-history text-3xl mb-2 opacity-30"></i>
+            <History className="w-8 h-8 mb-2 opacity-30" />
             <p className="text-xs">暂无历史记录</p>
           </div>
         ) : (

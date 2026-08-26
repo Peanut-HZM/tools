@@ -14,6 +14,13 @@ import {
 import { useToast } from '../../../hooks/useToast';
 import { generateTimestampFilename } from '../../../utils/filenameUtils';
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface ImportExportDialogProps {
   courseId?: number;
@@ -318,15 +325,19 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                     <i className="fas fa-cog text-amber-400"></i>
                     选择导入策略:
                   </label>
-                  <select
+                  <Select
                     value={importStrategy}
-                    onChange={(e) => setImportStrategy(e.target.value as 'merge' | 'replace' | 'skip_existing')}
-                    className="w-full px-4 py-2.5 bg-surface-2/80 border border-border rounded-lg text-ink-inverse text-sm focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer"
+                    onValueChange={(v) => setImportStrategy(v as 'merge' | 'replace' | 'skip_existing')}
                   >
-                    <option value="replace">🔄 替换（更新已存在的章节 slug）- 推荐</option>
-                    <option value="merge">🔀 合并（跳过已存在的章节 slug）</option>
-                    <option value="skip_existing">⏭️ 完全跳过（不导入任何已存在的章节）</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="replace">🔄 替换（更新已存在的章节 slug）- 推荐</SelectItem>
+                      <SelectItem value="merge">🔀 合并（跳过已存在的章节 slug）</SelectItem>
+                      <SelectItem value="skip_existing">⏭️ 完全跳过（不导入任何已存在的章节）</SelectItem>
+                    </SelectContent>
+                  </Select>
 
                   {/* 策略说明 */}
                   <div className="mt-3 p-3 bg-surface-1/50 rounded-lg border border-border/50">

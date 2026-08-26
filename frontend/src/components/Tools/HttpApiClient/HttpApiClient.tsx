@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Plug,
+  FileInput,
+  History,
+  Plus,
+  Loader2,
+  FolderOpen,
+  X,
+  AlertTriangle,
+} from 'lucide-react';
 import { useHttpClientStore } from '../../../stores/httpClientStore';
 import { useAuth } from '../../../stores/authStore';
 import RequireAuthNotice from '../../Common/RequireAuthNotice';
@@ -36,6 +47,13 @@ import RequestContextMenu from './components/RequestContextMenu';
 import CollectionContextMenu from './components/CollectionContextMenu';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export default function HttpApiClient() {
   const navigate = useNavigate();
@@ -437,12 +455,12 @@ export default function HttpApiClient() {
             onClick={() => navigate('/')}
             className="flex items-center gap-2"
           >
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent-secondary rounded flex items-center justify-center">
-              <i className="fas fa-plug text-ink-inverse text-sm"></i>
+              <Plug className="w-4 h-4 text-ink-inverse" />
             </div>
             <h1 className="text-lg font-bold">HTTP API 客户端</h1>
           </div>
@@ -462,7 +480,7 @@ export default function HttpApiClient() {
             title="导入/导出"
             onClick={() => setIsImportExportModalOpen(true)}
           >
-            <i className="fas fa-file-import mr-1"></i>
+            <FileInput className="w-4 h-4 mr-1" />
             导入/导出
           </Button>
 
@@ -473,7 +491,7 @@ export default function HttpApiClient() {
             title="请求历史"
             onClick={handleToggleHistory}
           >
-            <i className="fas fa-clock-rotate-left mr-1"></i>
+            <History className="w-4 h-4 mr-1" />
             历史
           </Button>
 
@@ -483,7 +501,7 @@ export default function HttpApiClient() {
             size="sm"
             onClick={() => setShowNewRequestForm(true)}
           >
-            <i className="fas fa-plus mr-1"></i>
+            <Plus className="w-4 h-4 mr-1" />
             新建请求
           </Button>
         </div>
@@ -507,18 +525,18 @@ export default function HttpApiClient() {
                 setCollectionModalName('');
               }}
             >
-              <i className="fas fa-plus"></i>
+              <Plus className="w-4 h-4" />
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto">
             {loadingCollections ? (
               <div className="text-center py-8 text-ink-faint text-sm">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 加载中...
               </div>
             ) : collections.length === 0 ? (
               <div className="text-center py-8 text-ink-faint text-xs">
-                <i className="fas fa-folder-open text-2xl mb-2 opacity-50"></i>
+                <FolderOpen className="w-8 h-8 mb-2 opacity-50" />
                 <p>暂无集合</p>
                 <p className="mt-1">点击"+"创建</p>
               </div>
@@ -587,7 +605,7 @@ export default function HttpApiClient() {
             ) : (
               <div className="flex-1 flex items-center justify-center text-ink-faint">
                 <div className="text-center">
-                  <i className="fas fa-plug text-6xl mb-4 opacity-20"></i>
+                  <Plug className="w-16 h-16 mb-4 opacity-20" />
                   <p>选择一个请求或创建新请求</p>
                 </div>
               </div>
@@ -632,7 +650,7 @@ export default function HttpApiClient() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h2 className="text-lg font-semibold">请求历史</h2>
               <Button variant="ghost" size="icon" onClick={() => setShowHistoryPanel(false)}>
-                <i className="fas fa-times"></i>
+                <X className="w-4 h-4" />
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
@@ -739,37 +757,38 @@ export default function HttpApiClient() {
                 <label className="text-sm text-ink-muted mb-1 block">目标集合</label>
                 {collections.length === 0 ? (
                   <div className="text-sm text-orange-400 bg-orange-500/10 px-3 py-2 rounded border border-orange-500/30">
-                    <i className="fas fa-exclamation-triangle mr-2"></i>
+                    <AlertTriangle className="w-4 h-4 mr-2" />
                     暂无集合，请先创建集合
                   </div>
                 ) : (
-                  <select
-                    value={newRequestCollectionId}
-                    onChange={(e) => setNewRequestCollectionId(e.target.value)}
-                    className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border"
-                  >
-                    <option value="">请选择集合</option>
-                    {collections.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <Select value={newRequestCollectionId} onValueChange={setNewRequestCollectionId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="请选择集合" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {collections.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
               <div>
                 <label className="text-sm text-ink-muted mb-1 block">方法</label>
-                <select
-                  value={newRequestMethod}
-                  onChange={(e) => setNewRequestMethod(e.target.value)}
-                  className="w-full bg-surface-2 text-ink-inverse px-3 py-2 rounded border border-border"
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="DELETE">DELETE</option>
-                  <option value="PATCH">PATCH</option>
-                  <option value="HEAD">HEAD</option>
-                  <option value="OPTIONS">OPTIONS</option>
-                </select>
+                <Select value={newRequestMethod} onValueChange={setNewRequestMethod}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GET">GET</SelectItem>
+                    <SelectItem value="POST">POST</SelectItem>
+                    <SelectItem value="PUT">PUT</SelectItem>
+                    <SelectItem value="DELETE">DELETE</SelectItem>
+                    <SelectItem value="PATCH">PATCH</SelectItem>
+                    <SelectItem value="HEAD">HEAD</SelectItem>
+                    <SelectItem value="OPTIONS">OPTIONS</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm text-ink-muted mb-1 block">URL</label>

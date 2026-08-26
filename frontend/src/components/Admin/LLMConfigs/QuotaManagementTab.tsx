@@ -9,6 +9,13 @@ import { UserResponse } from '@/api/authApi';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export default function QuotaManagementTab() {
   const [items, setItems] = useState<QuotaInfo[]>([]);
@@ -522,15 +529,16 @@ function GrantModal({
               </div>
               <div>
                 <label className="block text-sm text-ink-muted mb-1">Token 周期</label>
-                <select
-                  value={tokenPeriod}
-                  onChange={(e) => setTokenPeriod(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-2 text-ink-inverse text-sm rounded-lg border border-border focus:border-accent focus:outline-none"
-                >
-                  <option value="daily">每日</option>
-                  <option value="monthly">每月</option>
-                  <option value="total">总量</option>
-                </select>
+                <Select value={tokenPeriod} onValueChange={setTokenPeriod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">每日</SelectItem>
+                    <SelectItem value="monthly">每月</SelectItem>
+                    <SelectItem value="total">总量</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </>
           )}

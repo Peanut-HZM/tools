@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SendRequestResponse, HttpRequest } from '../../../../../services/httpClientApi';
 import { generateSnippet } from '../../../../../utils/codeSnippetGenerator';
+import { Copy, Code, Heading, FileCode, Eye, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import HtmlPreview from '../ResponsePreview/HtmlPreview';
@@ -160,7 +161,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
             className="text-xs text-ink-muted hover:text-ink-inverse"
             title="复制响应体"
           >
-            <i className="fas fa-copy mr-1"></i>
+            <Copy className="w-3 h-3 mr-1" />
             复制
           </Button>
         </div>
@@ -174,21 +175,21 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
       >
         <TabsList className="px-4 bg-surface-1/30 flex-shrink-0 w-full justify-start rounded-none border-b border-border">
           <TabsTrigger value="body" className="gap-2">
-            <i className="fas fa-code"></i>
+            <Code className="w-4 h-4" />
             Body
           </TabsTrigger>
           <TabsTrigger value="headers" className="gap-2">
-            <i className="fas fa-heading"></i>
+            <Heading className="w-4 h-4" />
             Headers
           </TabsTrigger>
           {request && (
             <TabsTrigger value="code" className="gap-2">
-              <i className="fas fa-file-code"></i>
+              <FileCode className="w-4 h-4" />
               Code
             </TabsTrigger>
           )}
           <TabsTrigger value="preview" className="gap-2">
-            <i className="fas fa-eye"></i>
+            <Eye className="w-4 h-4" />
             Preview
           </TabsTrigger>
         </TabsList>
@@ -277,7 +278,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                     className="ml-auto text-xs text-ink-muted hover:text-ink-inverse"
                     title="复制代码"
                   >
-                    <i className="fas fa-copy mr-1"></i>
+                    <Copy className="w-3 h-3 mr-1" />
                     复制
                   </Button>
                 </div>
@@ -300,13 +301,13 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
               )}
               {contentType === 'image' && imageBase64 === null && (
                 <div className="text-ink-faint text-sm text-center py-8">
-                  <i className="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                  <AlertTriangle className="w-8 h-8 mb-2" />
                   <p>图片数据编码失败，无法预览，请切换到 Body 标签查看</p>
                 </div>
               )}
               {(contentType === 'json' || contentType === 'xml' || contentType === 'text' || contentType === 'binary') && (
                 <div className="text-ink-faint text-sm text-center py-8">
-                  <i className="fas fa-info-circle text-2xl mb-2"></i>
+                  <Info className="w-8 h-8 mb-2" />
                   <p>此响应类型不支持预览，请切换到 Body 标签查看</p>
                 </div>
               )}

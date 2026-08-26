@@ -5,6 +5,13 @@ import { useState, useEffect } from 'react';
 import { CreateProviderRequest, LLMProvider } from '../../../services/llmProviderApi';
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface ProviderDialogProps {
   isOpen: boolean;
@@ -101,15 +108,19 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
               <label className="block text-sm font-medium text-ink-muted mb-2">
                 供应商类型 <span className="text-danger">*</span>
               </label>
-              <select
+              <Select
                 value={formData.provider_type}
-                onChange={(e) => setFormData({ ...formData, provider_type: e.target.value })}
-                className="w-full px-3 py-2 bg-canvas border border-border rounded-lg text-ink-inverse focus:outline-none focus:ring-2 focus:ring-accent"
+                onValueChange={(v) => setFormData({ ...formData, provider_type: v })}
               >
-                {PROVIDER_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDER_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Base URL */}

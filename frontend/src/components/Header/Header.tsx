@@ -8,6 +8,7 @@ import { useAuth } from '../../stores/authStore';
 import { useTheme } from '../../lib/theme';
 import { safeGetItem, safeSetItem } from '../../utils/localStorage';
 import { Button } from "@/components/ui/Button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip";
 
 interface HeaderProps {
   searchValue: string;
@@ -37,17 +38,24 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
   if (isCollapsed) {
     return (
       <header className="sticky top-0 z-40 bg-surface-1 border-b border-border h-8 flex items-center justify-center">
-        <Button
-          onClick={toggleCollapse}
-          variant="ghost"
-          size="sm"
-          className="text-ink-faint hover:text-ink"
-          title="展开导航"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={toggleCollapse}
+                variant="ghost"
+                size="sm"
+                className="text-ink-faint hover:text-ink"
+                aria-label="展开导航"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>展开导航</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </header>
     );
   }
@@ -105,16 +113,23 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             >
               {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : ''}
             </Button>
-            <Button
-              onClick={toggleCollapse}
-              variant="secondary"
-              size="sm"
-              title="折叠导航"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="18 15 12 9 6 15" />
-              </svg>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={toggleCollapse}
+                    variant="secondary"
+                    size="sm"
+                    aria-label="折叠导航"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="18 15 12 9 6 15" />
+                    </svg>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>折叠导航</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <LoginButton />
           </div>
         </div>
