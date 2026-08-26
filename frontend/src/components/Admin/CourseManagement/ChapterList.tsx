@@ -2,6 +2,7 @@
  * 章节列表组件
  */
 import React, { useState } from 'react';
+import { ArrowUpDown, GripVertical, Lock, Unlock, Pencil, Trash2, BookOpen, ReactNode, Code, ClipboardCheck, Video, File } from 'lucide-react';
 import { useChapterStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import { Button } from "@/components/ui/Button";
@@ -44,13 +45,13 @@ const ChapterList: React.FC<ChapterListProps> = ({
   };
 
   const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      story: 'fa-book',
-      code: 'fa-code',
-      quiz: 'fa-clipboard-check',
-      video: 'fa-video',
+    const icons: Record<string, ReactNode> = {
+      story: <BookOpen className="w-4 h-4 text-cyan-400" />,
+      code: <Code className="w-4 h-4 text-cyan-400" />,
+      quiz: <ClipboardCheck className="w-4 h-4 text-cyan-400" />,
+      video: <Video className="w-4 h-4 text-cyan-400" />,
     };
-    return icons[type] || 'fa-file';
+    return icons[type] || <File className="w-4 h-4 text-cyan-400" />;
   };
 
   const getTypeLabel = (type: string) => {
@@ -70,7 +71,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
           <thead className="bg-gradient-to-r from-surface-2/50 to-surface-1/50">
             <tr>
               <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">
-                <i className="fas fa-sort mr-2"></i>顺序
+                <ArrowUpDown className="w-4 h-4 mr-2" />顺序
               </th>
               <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">标题</th>
               <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">类型</th>
@@ -96,7 +97,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
               >
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <i className="fas fa-grip-vertical text-ink-faint mr-3 cursor-grab"></i>
+                    <GripVertical className="w-4 h-4 text-ink-faint mr-3 cursor-grab" />
                     <span className="inline-flex items-center justify-center w-8 h-8 bg-surface-2/50 rounded-lg text-white font-medium">
                       {chapter.order}
                     </span>
@@ -105,7 +106,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
                 <td className="px-6 py-4">
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg flex items-center justify-center mr-3">
-                      <i className={`fas ${getTypeIcon(chapter.chapter_type)} text-cyan-400`}></i>
+                      {getTypeIcon(chapter.chapter_type)}
                     </div>
                     <span className="text-white font-medium">{chapter.title}</span>
                   </div>
@@ -122,11 +123,11 @@ const ChapterList: React.FC<ChapterListProps> = ({
                   <Badge variant={chapter.is_locked ? 'warning' : 'success'}>
                     {chapter.is_locked ? (
                       <>
-                        <i className="fas fa-lock mr-1"></i>锁定
+                        <Lock className="w-3 h-3 mr-1" />锁定
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-lock-open mr-1"></i>未锁定
+                        <Unlock className="w-3 h-3 mr-1" />未锁定
                       </>
                     )}
                   </Badge>
@@ -141,7 +142,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
                       variant="outline"
                       className="px-4 py-2 rounded-lg text-sm transition-all"
                     >
-                      <i className="fas fa-edit mr-1"></i>编辑
+                      <Pencil className="w-4 h-4 mr-1" />编辑
                     </Button>
                     <Button
                       onClick={(e) => {
@@ -151,7 +152,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
                       variant="destructive"
                       className="px-4 py-2 rounded-lg text-sm transition-all"
                     >
-                      <i className="fas fa-trash mr-1"></i>删除
+                      <Trash2 className="w-4 h-4 mr-1" />删除
                     </Button>
                   </div>
                 </td>
@@ -163,7 +164,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
       {chapters.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="w-20 h-20 bg-surface-2/30 rounded-full flex items-center justify-center mb-4">
-            <i className="fas fa-book text-4xl text-ink-faint"></i>
+            <BookOpen className="w-16 h-16 text-ink-faint" />
           </div>
           <p className="text-ink-muted text-lg mb-2">暂无章节</p>
           <p className="text-ink-faint text-sm">点击右上角"新增章节"创建第一个章节</p>

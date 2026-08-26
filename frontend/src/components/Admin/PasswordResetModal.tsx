@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Check, Key, Copy, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -97,7 +98,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <i className="fa-solid fa-check text-3xl text-ink-inverse"></i>
+              <Check className="w-12 h-12 text-ink-inverse" />
             </div>
             <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-xl animate-pulse"></div>
           </div>
@@ -110,7 +111,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
           {/* 密码显示框 */}
           <div className="relative bg-canvas/80 p-5 rounded-xl mb-6 font-mono text-accent text-lg break-all border-2 border-accent/30 shadow-inner">
             <div className="absolute right-3 top-3 text-accent/60">
-              <i className="fa-solid fa-key"></i>
+              <Key className="w-4 h-4" />
             </div>
             <div className="pr-8 select-all">{generatedPassword}</div>
           </div>
@@ -125,7 +126,11 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
                 : 'bg-surface-2 hover:bg-surface-3 text-ink-inverse hover:shadow-lg hover:shadow-surface-2/25 active:scale-[0.98]'
             }`}
           >
-            <i className={`fa-${copied ? 'solid fa-check' : 'regular fa-copy'}`}></i>
+            {copied ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
             {copied ? '已复制' : '复制密码'}
           </button>
 
@@ -149,7 +154,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <i className="fa-solid fa-check text-3xl text-ink-inverse"></i>
+              <Check className="w-12 h-12 text-ink-inverse" />
             </div>
             <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-xl animate-pulse"></div>
           </div>
@@ -221,7 +226,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
 
           {error && (
             <div className="mb-6 p-4 bg-danger/10 border border-danger/30 rounded-xl text-danger text-sm flex items-center gap-2">
-              <i className="fa-solid fa-circle-exclamation"></i>
+              <AlertCircle className="w-4 h-4" />
               {error}
             </div>
           )}
@@ -242,7 +247,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   重置中...
                 </span>
               ) : '确认重置'}

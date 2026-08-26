@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useCourseAdminStore } from '../../../stores/courseAdminStore';
+import { Pencil, Plus, Eye, X, GraduationCap, Link as LinkIcon, Info, Folder, Image as ImageIcon, AlignLeft, Code, CheckCircle, Loader2, Save } from 'lucide-react';
 import type { Course, CourseCategory } from '../../../services/coursePlatform';
 import { MarkdownEditor } from './MarkdownEditor';
 import { Button } from "@/components/ui/Button";
@@ -85,7 +86,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface-1/50">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center">
-              <i className={`fas ${courseId ? 'fa-edit' : 'fa-plus'} text-white`}></i>
+              {courseId ? <Pencil className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
             </div>
             <div>
               <h2 className="text-xl font-bold text-ink-inverse">
@@ -104,14 +105,14 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                   : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
               }`}
             >
-              <i className="fas fa-eye mr-2"></i>
+              <Eye className="w-4 h-4 mr-2" />
               {showPreview ? '隐藏预览' : '显示预览'}
             </button>
             <button
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-2 hover:bg-danger/20 text-ink-muted hover:text-danger transition-all"
             >
-              <i className="fas fa-times"></i>
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -125,7 +126,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-graduation-cap mr-2 text-accent"></i>
+                    <GraduationCap className="w-4 h-4 mr-2 text-accent" />
                     课程标题 *
                   </label>
                   <input
@@ -140,7 +141,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-link mr-2 text-accent"></i>
+                    <LinkIcon className="w-4 h-4 mr-2 text-accent" />
                     课程标识符 (slug) *
                   </label>
                   <input
@@ -153,7 +154,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                     placeholder="openspec-vibecoding"
                   />
                   <p className="text-xs text-ink-faint mt-1">
-                    <i className="fas fa-info-circle mr-1"></i>
+                    <Info className="w-4 h-4 mr-1" />
                     根据标题自动生成，用于 URL 访问
                   </p>
                 </div>
@@ -163,7 +164,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-folder mr-2 text-accent"></i>
+                    <Folder className="w-4 h-4 mr-2 text-accent" />
                     课程分类
                   </label>
                   <Select
@@ -189,7 +190,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
-                    <i className="fas fa-image mr-2 text-accent"></i>
+                    <ImageIcon className="w-4 h-4 mr-2 text-accent" />
                     封面图片 URL
                   </label>
                   <input
@@ -206,7 +207,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
               {/* 课程描述 - Markdown 编辑器 */}
               <div>
                 <label className="block text-sm font-medium text-ink-muted mb-2">
-                  <i className="fas fa-align-left mr-2 text-accent"></i>
+                  <AlignLeft className="w-4 h-4 mr-2 text-accent" />
                   课程描述 *
                 </label>
                 <MarkdownEditor
@@ -222,7 +223,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                   height="300px"
                 />
                 <p className="text-xs text-ink-faint mt-2">
-                  <i className="fas fa-markdown mr-1"></i>
+                  <Code className="w-4 h-4 mr-1" />
                   支持 Markdown 格式，点击"并排预览"查看实时效果
                 </p>
               </div>
@@ -240,7 +241,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                   />
                   <label htmlFor="is_published" className="flex-1 cursor-pointer">
                     <div className="font-medium text-ink-inverse flex items-center">
-                      <i className="fas fa-check-circle text-green-400 mr-2"></i>
+                      <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
                       发布课程
                     </div>
                     <p className="text-ink-muted text-sm mt-1">
@@ -257,7 +258,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
             <div className="w-1/2 border-l border-border/50 overflow-y-auto p-6 bg-canvas/50">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-ink-inverse flex items-center">
-                  <i className="fas fa-eye text-accent mr-2"></i>
+                  <Eye className="w-4 h-4 text-accent mr-2" />
                   预览效果
                 </h3>
                 <span className="text-xs text-ink-faint">课程卡片展示效果</span>
@@ -275,7 +276,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
                       }}
                     />
                   ) : (
-                    <i className="fas fa-graduation-cap text-6xl text-accent/50"></i>
+                    <GraduationCap className="w-24 h-24 text-accent/50" />
                   )}
                 </div>
                 {/* 课程信息预览 */}
@@ -295,7 +296,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-surface-1/50">
           <p className="text-ink-faint text-sm">
-            <i className="fas fa-info-circle mr-2"></i>
+            <Info className="w-4 h-4 mr-2" />
             带 * 的字段为必填项
           </p>
           <div className="flex items-center space-x-3">
@@ -316,12 +317,12 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
             >
               {loading ? (
                 <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   保存中...
                 </>
               ) : (
                 <>
-                  <i className="fas fa-save mr-2"></i>
+                  <Save className="w-4 h-4 mr-2" />
                   保存
                 </>
               )}

@@ -3,6 +3,26 @@
  */
 import React, { useState, useRef } from 'react';
 import {
+  X,
+  Info,
+  GraduationCap,
+  FileCode,
+  FileArchive,
+  Lightbulb,
+  Settings as SettingsIcon,
+  FileText,
+  List,
+  AlertTriangle,
+  Loader2,
+  Download,
+  Eye,
+  ArrowLeft,
+  Check,
+  ReactNode,
+  Upload,
+  CloudUpload,
+} from 'lucide-react';
+import {
   exportCourseData,
   downloadCourseExport,
   downloadCourseExportZip,
@@ -200,11 +220,13 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                 ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30'
                 : 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-accent/30'
             }`}>
-              <i className={`fas text-lg ${
-                mode === 'export' ? 'fa-download text-success' :
-                mode === 'import' ? 'fa-upload text-amber-400' :
-                'fa-eye text-accent'
-              }`}></i>
+              {mode === 'export' ? (
+                <Download className="w-5 h-5 text-success" />
+              ) : mode === 'import' ? (
+                <Upload className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Eye className="w-5 h-5 text-accent" />
+              )}
             </div>
             <div>
               <h2 className="text-2xl font-bold text-ink-inverse">
@@ -223,7 +245,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
             onClick={onClose}
             className="p-2 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded-lg transition-all"
           >
-            <i className="fas fa-times text-xl"></i>
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -234,7 +256,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               {/* 导出说明卡片 */}
               <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-xl border border-emerald-500/20 p-5">
                 <h3 className="text-success font-semibold mb-2 flex items-center gap-2">
-                  <i className="fas fa-info-circle"></i>
+                  <Info className="w-4 h-4" />
                   导出说明
                 </h3>
                 <p className="text-ink-muted text-sm leading-relaxed">
@@ -248,7 +270,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                 <label className="text-ink-muted text-sm font-medium">当前课程:</label>
                 <div className="px-4 py-3 bg-surface-2/50 border border-border/50 rounded-lg flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center">
-                    <i className="fas fa-graduation-cap text-ink-inverse text-sm"></i>
+                    <GraduationCap className="w-4 h-4 text-ink-inverse" />
                   </div>
                   <span className="text-ink-inverse font-medium">{courseTitle || '未命名课程'}</span>
                 </div>
@@ -265,7 +287,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                     className="px-4 py-3 bg-surface-2/50 border border-border rounded-lg text-ink-muted hover:border-accent/30 hover:bg-accent/10 hover:text-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <i className="fas fa-file-code"></i>
+                      <FileCode className="w-4 h-4" />
                       <span className="font-medium">JSON 格式</span>
                     </div>
                     <p className="text-xs text-ink-faint text-left">完整数据，包含所有测验和资源</p>
@@ -278,7 +300,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                     className="px-4 py-3 bg-surface-2/50 border border-border rounded-lg text-ink-muted hover:border-emerald-500/50 hover:bg-success/10 hover:text-success transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <i className="fas fa-file-archive"></i>
+                      <FileArchive className="w-4 h-4" />
                       <span className="font-medium">ZIP 压缩包</span>
                     </div>
                     <p className="text-xs text-ink-faint text-left">JSON + 所有章节 Markdown 文件</p>
@@ -288,7 +310,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                 {/* 格式说明 */}
                 <div className="mt-3 p-4 bg-surface-2/30 rounded-lg border border-border/50">
                   <h4 className="text-ink-inverse font-medium text-sm mb-2 flex items-center gap-2">
-                    <i className="fas fa-info-circle text-accent"></i>
+                    <Info className="w-4 h-4 text-accent" />
                     格式说明
                   </h4>
                   <ul className="text-ink-muted text-xs space-y-1.5">
@@ -311,7 +333,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               {/* 导入说明卡片 */}
               <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/20 p-5">
                 <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
-                  <i className="fas fa-lightbulb"></i>
+                  <Lightbulb className="w-4 h-4" />
                   导入说明
                 </h3>
                 <p className="text-ink-muted text-sm leading-relaxed mb-4">
@@ -322,7 +344,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                 {/* 导入策略 */}
                 <div className="space-y-3">
                   <label className="text-ink-muted text-sm font-medium flex items-center gap-2">
-                    <i className="fas fa-cog text-amber-400"></i>
+                    <SettingsIcon className="w-4 h-4 text-amber-400" />
                     选择导入策略:
                   </label>
                   <Select
@@ -366,7 +388,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               {/* 文件选择 */}
               <div className="space-y-3">
                 <label className="text-ink-muted text-sm font-medium flex items-center gap-2">
-                  <i className="fas fa-file-import text-amber-400"></i>
+                  <FileText className="w-4 h-4 text-amber-400" />
                   选择 JSON 文件:
                 </label>
                 <div
@@ -386,9 +408,11 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                   />
                   <div className="text-center">
                     <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-surface-2/50 flex items-center justify-center">
-                      <i className={`fas text-2xl ${
-                        selectedFile ? 'fa-file-code text-accent' : 'fa-cloud-upload-alt text-ink-muted'
-                      }`}></i>
+                      {selectedFile ? (
+                        <FileCode className="w-8 h-8 text-accent" />
+                      ) : (
+                        <CloudUpload className="w-8 h-8 text-ink-muted" />
+                      )}
                     </div>
                     {selectedFile ? (
                       <>
@@ -430,7 +454,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               {/* 章节列表 */}
               <div className="bg-surface-2/30 rounded-xl border border-border/50 p-4">
                 <h3 className="text-ink-inverse font-semibold mb-3 flex items-center gap-2">
-                  <i className="fas fa-list text-accent"></i>
+                  <List className="w-4 h-4 text-accent" />
                   章节变更列表
                 </h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -471,7 +495,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               {previewData.warnings?.length > 0 && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
                   <h3 className="text-amber-400 font-semibold mb-2 flex items-center gap-2">
-                    <i className="fas fa-exclamation-triangle"></i>
+                    <AlertTriangle className="w-4 h-4" />
                     警告
                   </h3>
                   <ul className="text-ink-muted text-sm space-y-1.5">
@@ -505,12 +529,12 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               >
                 {loading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin"></i>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>导出中...</span>
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-download"></i>
+                    <Download className="w-4 h-4" />
                     <span>导出数据</span>
                   </>
                 )}
@@ -533,12 +557,12 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               >
                 {loading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin"></i>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>处理中...</span>
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-eye"></i>
+                    <Eye className="w-4 h-4" />
                     <span>预览导入</span>
                   </>
                 )}
@@ -555,7 +579,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                 }}
                 className="px-5 py-2.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded-lg transition-all flex items-center gap-1.5"
               >
-                <i className="fas fa-arrow-left"></i>
+                <ArrowLeft className="w-4 h-4" />
                 <span>返回</span>
               </button>
               <button
@@ -565,12 +589,12 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               >
                 {loading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin"></i>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>导入中...</span>
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-check"></i>
+                    <Check className="w-4 h-4" />
                     <span>确认导入</span>
                   </>
                 )}

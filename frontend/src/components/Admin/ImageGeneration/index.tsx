@@ -10,6 +10,7 @@ import DifyConfigPanel from './tabs/DifyConfigPanel';
 import DegradationConfigPanel from './tabs/DegradationConfigPanel';
 import RetentionConfigPanel from './tabs/RetentionConfigPanel';
 import UserQuotaTable from './tabs/UserQuotaTable';
+import { LineChart, Plug, Shield, Trash2, Users, type ReactNode } from 'lucide-react';
 
 type TabKey = 'stats' | 'dify' | 'degradation' | 'retention' | 'quota';
 
@@ -18,12 +19,12 @@ export default function ImageGenerationAdmin() {
   const igT = t.imageGeneration;
   const [activeTab, setActiveTab] = useState<TabKey>('stats');
 
-  const tabs: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'stats', label: igT.tabs.stats, icon: 'fa-chart-line' },
-    { key: 'dify', label: igT.tabs.difyConfig, icon: 'fa-plug' },
-    { key: 'degradation', label: igT.tabs.degradation, icon: 'fa-shield-alt' },
-    { key: 'retention', label: igT.tabs.retention, icon: 'fa-trash-alt' },
-    { key: 'quota', label: igT.tabs.userQuota, icon: 'fa-users' },
+  const tabs: { key: TabKey; label: string; icon: ReactNode }[] = [
+    { key: 'stats', label: igT.tabs.stats, icon: <LineChart className="w-4 h-4" /> },
+    { key: 'dify', label: igT.tabs.difyConfig, icon: <Plug className="w-4 h-4" /> },
+    { key: 'degradation', label: igT.tabs.degradation, icon: <Shield className="w-4 h-4" /> },
+    { key: 'retention', label: igT.tabs.retention, icon: <Trash2 className="w-4 h-4" /> },
+    { key: 'quota', label: igT.tabs.userQuota, icon: <Users className="w-4 h-4" /> },
   ];
 
   return (
@@ -34,7 +35,7 @@ export default function ImageGenerationAdmin() {
         <TabsList className="mb-6">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.key} value={tab.key} className="flex items-center gap-2">
-              <i className={`fas ${tab.icon}`}></i>
+              {tab.icon}
               <span>{tab.label}</span>
             </TabsTrigger>
           ))}

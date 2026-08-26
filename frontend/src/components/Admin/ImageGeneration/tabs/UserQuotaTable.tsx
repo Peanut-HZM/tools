@@ -3,6 +3,7 @@
  * 搜索 + 分页 + 编辑/分配/撤销/重置操作
  */
 import { useEffect, useState } from 'react';
+import { Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import {
   listQuotaUsers,
   revokeQuota,
@@ -225,21 +226,21 @@ export default function UserQuotaTable() {
                           className="text-accent hover:text-accent transition-colors"
                           title={igT.edit}
                         >
-                          <i className="fas fa-edit"></i>
+                          <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleReset(user.user_id)}
                           className="text-orange-400 hover:text-orange-300 transition-colors"
                           title={igT.resetCounters}
                         >
-                          <i className="fas fa-redo"></i>
+                          <RotateCcw className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleRevoke(user.user_id)}
                           className="text-danger hover:text-red-300 transition-colors"
                           title={igT.revokeQuota}
                         >
-                          <i className="fas fa-trash"></i>
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

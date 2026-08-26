@@ -1,9 +1,46 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, ReactNode } from 'react';
 import { listToolsPaginated, updateToolStatus, updateTool, uploadToolIcon, deleteToolIcon, deleteTool, batchUpdateToolStatus, batchDeleteTools, Tool, listCategories, createCategory, updateCategory, deleteCategory, ToolCategory, ToolsListParams } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import {
+  CircleX,
+  CheckCircle,
+  PauseCircle,
+  Trash2,
+  Search,
+  CircleDot,
+  Folder,
+  ArrowDownAZ,
+  Monitor,
+  Smartphone,
+  Lock,
+  Check,
+  Pencil,
+  Wrench,
+  Code,
+  Database,
+  Globe,
+  Bot,
+  FileText,
+  GraduationCap,
+  Image as ImageIcon,
+  Cpu,
+  Network,
+  Rocket,
+  Sparkles,
+  Zap,
+  Shield,
+  Layers,
+  Workflow,
+  Package,
+  Puzzle,
+  Gamepad2,
+  Settings,
+  type LucideIcon,
+  type LucideProps,
+} from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -11,6 +48,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+
+// Mapping for dynamic FA icon strings to lucide-react components
+const faIconMap: Record<string, LucideIcon> = {
+  'fa-wrench': Wrench,
+  'fa-code': Code,
+  'fa-database': Database,
+  'fa-globe': Globe,
+  'fa-robot': Bot,
+  'fa-file': FileText,
+  'fa-file-alt': FileText,
+  'fa-file-lines': FileText,
+  'fa-graduation-cap': GraduationCap,
+  'fa-image': ImageIcon,
+  'fa-microchip': Cpu,
+  'fa-network-wired': Network,
+  'fa-rocket': Rocket,
+  'fa-magic': Sparkles,
+  'fa-wand-magic-sparkles': Sparkles,
+  'fa-bolt': Zap,
+  'fa-shield': Shield,
+  'fa-shield-alt': Shield,
+  'fa-shield-halved': Shield,
+  'fa-layer-group': Layers,
+  'fa-layer': Layers,
+  'fa-sitemap': Workflow,
+  'fa-project-diagram': Workflow,
+  'fa-puzzle-piece': Puzzle,
+  'fa-gamepad': Gamepad2,
+  'fa-box': Package,
+  'fa-cube': Package,
+  'fa-cog': Settings,
+  'fa-gear': Settings,
+  'fa-gears': Settings,
+  'fa-cogs': Settings,
+  'fa-desktop': Monitor,
+  'fa-mobile': Smartphone,
+  'fa-search': Search,
+  'fa-folder': Folder,
+  'fa-lock': Lock,
+  'fa-check': Check,
+  'fa-edit': Pencil,
+  'fa-pen': Pencil,
+  'fa-trash': Trash2,
+  'fa-trash-alt': Trash2,
+};
+
+const getFaIcon = (faString: string): LucideIcon => {
+  // Extract just the icon name, e.g. 'fa-code' from 'fas fa-code' or 'fa-code'
+  const match = faString.match(/fa-([a-z-]+)/);
+  const iconName = match ? `fa-${match[1]}` : faString;
+  return faIconMap[iconName] || Wrench; // fallback to Wrench
+};
+
+const DynamicFaIcon: React.FC<{ iconString: string; className?: string }> = ({ iconString, className = 'w-4 h-4' }) => {
+  const IconComponent = getFaIcon(iconString);
+  return <IconComponent className={className} />;
+};
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
   const [tools, setTools] = useState<Tool[]>([]);
@@ -442,7 +536,7 @@ export default function ToolManagement() {
                 onClick={handleResetFilters}
                 className="text-xs text-danger hover:text-red-300 ml-2 transition-colors cursor-pointer"
               >
-                <i className="fas fa-times-circle mr-1"></i>重置
+                <CircleX className="w-4 h-4 mr-1" />重置
               </button>
             </div>
           )}
@@ -463,19 +557,19 @@ export default function ToolManagement() {
                   onClick={handleBatchEnable}
                   className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
-                  <i className="fas fa-check-circle mr-1"></i>批量启用
+                  <CheckCircle className="w-4 h-4 mr-1" />批量启用
                 </button>
                 <button
                   onClick={handleBatchDisable}
                   className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
-                  <i className="fas fa-pause-circle mr-1"></i>批量停用
+                  <PauseCircle className="w-4 h-4 mr-1" />批量停用
                 </button>
                 <button
                   onClick={handleBatchDelete}
                   className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-ink-inverse text-sm rounded-md transition-colors cursor-pointer"
                 >
-                  <i className="fas fa-trash-alt mr-1"></i>批量删除
+                  <Trash2 className="w-4 h-4 mr-1" />批量删除
                 </button>
               </div>
             </div>
@@ -486,7 +580,7 @@ export default function ToolManagement() {
             <div className="flex flex-wrap gap-2 items-center">
               {/* 搜索框 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 min-w-[200px] flex-1 max-w-[320px] transition-colors duration-200 ${toolSearch ? 'border-blue-500' : 'border-border hover:border-border'}`}>
-                <i className="fas fa-search text-ink-faint text-xs"></i>
+                <Search className="w-3 h-3 text-ink-faint" />
                 <input
                   type="text"
                   placeholder="搜索名称/描述..."
@@ -498,7 +592,7 @@ export default function ToolManagement() {
 
               {/* 状态筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolStatusFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
-                <i className="fas fa-circle-dot text-ink-faint text-xs"></i>
+                <CircleDot className="w-3 h-3 text-ink-faint" />
                 <Select value={toolStatusFilter} onValueChange={(v) => { setToolStatusFilter(v); setToolPage(1); }}>
                   <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
                     <SelectValue placeholder="全部状态" />
@@ -513,7 +607,7 @@ export default function ToolManagement() {
 
               {/* 分类筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${toolCategoryFilter ? 'border-blue-500' : 'border-border hover:border-border'}`}>
-                <i className="fas fa-folder text-ink-faint text-xs"></i>
+                <Folder className="w-3 h-3 text-ink-faint" />
                 <Select value={toolCategoryFilter} onValueChange={(v) => { setToolCategoryFilter(v); setToolPage(1); }}>
                   <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
                     <SelectValue placeholder="全部分类" />
@@ -529,7 +623,7 @@ export default function ToolManagement() {
 
               {/* 排序 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${(toolSortBy !== 'usage_count' || toolSortOrder !== 'desc') ? 'border-blue-500' : 'border-border hover:border-border'}`}>
-                <i className="fas fa-arrow-down-a-z text-ink-faint text-xs"></i>
+                <ArrowDownAZ className="w-3 h-3 text-ink-faint" />
                 <Select value={`${toolSortBy}-${toolSortOrder}`} onValueChange={(v) => { const [by, order] = v.split('-'); setToolSortBy(by); setToolSortOrder(order as 'asc'|'desc'); }}>
                   <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 text-ink-inverse">
                     <SelectValue />
@@ -549,7 +643,7 @@ export default function ToolManagement() {
 
               {/* PC 展示筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showPcFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
-                <i className="fas fa-desktop text-ink-faint text-xs"></i>
+                <Monitor className="w-3 h-3 text-ink-faint" />
                 <span className="text-xs text-ink-muted">PC</span>
                 <Select value={showPcFilter} onValueChange={(v) => { setShowPcFilter(v); setToolPage(1); }}>
                   <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
@@ -565,7 +659,7 @@ export default function ToolManagement() {
 
               {/* 移动端展示筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${showMobileFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
-                <i className="fas fa-mobile text-ink-faint text-xs"></i>
+                <Smartphone className="w-3 h-3 text-ink-faint" />
                 <span className="text-xs text-ink-muted">移动</span>
                 <Select value={showMobileFilter} onValueChange={(v) => { setShowMobileFilter(v); setToolPage(1); }}>
                   <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
@@ -581,7 +675,7 @@ export default function ToolManagement() {
 
               {/* 登录要求筛选 */}
               <div className={`flex items-center bg-surface-1 border rounded-lg px-3 py-2 gap-2 transition-colors duration-200 cursor-pointer ${requireLoginFilter !== 'all' ? 'border-blue-500' : 'border-border hover:border-border'}`}>
-                <i className="fas fa-lock text-ink-faint text-xs"></i>
+                <Lock className="w-3 h-3 text-ink-faint" />
                 <span className="text-xs text-ink-muted">登录</span>
                 <Select value={requireLoginFilter} onValueChange={(v) => { setRequireLoginFilter(v); setToolPage(1); }}>
                   <SelectTrigger className="border-0 bg-transparent shadow-none h-auto p-0 w-14 text-ink-inverse">
@@ -615,7 +709,7 @@ export default function ToolManagement() {
                         : 'border-border hover:border-border'
                     }`}>
                       {tools.length > 0 && selectedToolIds.size === tools.length && (
-                        <i className="fas fa-check text-ink-inverse text-[10px]"></i>
+                        <Check className="w-3 h-3 text-ink-inverse" />
                       )}
                     </div>
                   </label>
@@ -647,7 +741,7 @@ export default function ToolManagement() {
                           : 'border-border hover:border-border'
                       }`}>
                         {selectedToolIds.has(tool.id) && (
-                          <i className="fas fa-check text-ink-inverse text-[10px]"></i>
+                          <Check className="w-3 h-3 text-ink-inverse" />
                         )}
                       </div>
                     </label>
@@ -656,7 +750,9 @@ export default function ToolManagement() {
                     {tool.custom_icon_url ? (
                       <img src={tool.custom_icon_url} alt={tool.title} className="w-8 h-8 rounded object-contain mr-3 bg-surface-3" />
                     ) : (
-                      <i className={`fa-solid ${tool.icon} w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-ink-inverse mr-3`}></i>
+                      <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-ink-inverse mr-3`}>
+                        <DynamicFaIcon iconString={tool.icon} className="w-4 h-4" />
+                      </div>
                     )}
                     <div>
                       <div className="font-medium text-ink-inverse">{tool.title}</div>
@@ -738,7 +834,7 @@ export default function ToolManagement() {
                         className="text-accent-info hover:text-blue-300 text-sm font-medium transition-colors cursor-pointer"
                         title="编辑"
                       >
-                        <i className="fas fa-edit"></i>
+                        <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleRowStatusChange(tool.id, tool.status)}
@@ -749,14 +845,18 @@ export default function ToolManagement() {
                         }`}
                         title={tool.status === 'online' ? '停用' : '启用'}
                       >
-                        <i className={`fas ${tool.status === 'online' ? 'fa-pause-circle' : 'fa-check-circle'}`}></i>
+                        {tool.status === 'online' ? (
+                          <PauseCircle className="w-4 h-4" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
                       </button>
                       <button
                         onClick={() => handleDeleteTool(tool.id)}
                         className="text-danger hover:text-red-300 text-sm font-medium transition-colors cursor-pointer"
                         title="删除"
                       >
-                        <i className="fas fa-trash-alt"></i>
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -1079,7 +1179,7 @@ export default function ToolManagement() {
                 {categories.map((cat) => (
                   <tr key={cat.id} className="hover:bg-surface-2/50">
                     <td className="px-6 py-4 flex items-center">
-                       {cat.icon && <i className={`fa-solid ${cat.icon} mr-2 text-ink-muted`}></i>}
+                       {cat.icon && <DynamicFaIcon iconString={cat.icon} className="w-4 h-4 mr-2 text-ink-muted" />}
                        <span className="font-medium text-ink-inverse">{cat.name}</span>
                     </td>
                     <td className="px-6 py-4">

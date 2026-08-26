@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { ListChecks, Check, Plus, Trash2, Search, RotateCcw, ChevronLeft, ChevronRight, UserPen } from 'lucide-react';
 import { listUsers, updateUserRole, deleteUser, createUser, batchDeleteUsers, batchUpdateUserRole, UserListResponse, resetUserPassword } from '../../api/adminApi';
 import { UserResponse } from '../../api/authApi';
 import { useToast } from '../../hooks/useToast';
@@ -279,14 +280,18 @@ export default function UserManagement() {
                 : 'bg-surface-3 text-ink-inverse'
             }`}
           >
-            <i className={`fa-solid ${batchMode ? 'fa-check' : 'fa-list-check'} mr-2`}></i>
+            {batchMode ? (
+              <Check className="w-4 h-4 mr-2" />
+            ) : (
+              <ListChecks className="w-4 h-4 mr-2" />
+            )}
             {batchMode ? '完成选择' : '批量操作'}
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
             className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm font-medium"
           >
-            <i className="fa-solid fa-plus mr-2"></i>添加用户
+            <Plus className="w-4 h-4 mr-2" />添加用户
           </button>
         </div>
       </div>
@@ -312,7 +317,7 @@ export default function UserManagement() {
                 onClick={handleBatchUpdateRole}
                 className="px-3 py-1.5 bg-accent hover:bg-accent text-white rounded text-sm transition-colors"
               >
-                <i className="fa-solid fa-user-pen mr-1"></i>
+                <UserPen className="w-4 h-4 mr-1" />
                 批量改角色
               </button>
             </div>
@@ -320,7 +325,7 @@ export default function UserManagement() {
               onClick={handleBatchDelete}
               className="px-3 py-1.5 bg-danger hover:bg-danger text-ink-inverse rounded text-sm transition-colors"
             >
-              <i className="fa-solid fa-trash mr-1"></i>
+              <Trash2 className="w-4 h-4 mr-1" />
               批量删除
             </button>
           </div>
@@ -342,14 +347,14 @@ export default function UserManagement() {
             onClick={handleSearch}
             className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors text-sm"
           >
-            <i className="fa-solid fa-search mr-2"></i>
+            <Search className="w-4 h-4 mr-2" />
             搜索
           </button>
           <button
             onClick={handleReset}
             className="px-4 py-2 bg-surface-3 text-ink-inverse rounded-lg transition-colors text-sm"
           >
-            <i className="fa-solid fa-rotate-left mr-2"></i>
+            <RotateCcw className="w-4 h-4 mr-2" />
             重置
           </button>
         </div>
@@ -498,7 +503,7 @@ export default function UserManagement() {
                 : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
-            <i className="fa-solid fa-chevron-left"></i>
+            <ChevronLeft className="w-4 h-4" />
           </button>
 
           {paginationControls.map((p, index) => (
@@ -527,7 +532,7 @@ export default function UserManagement() {
                 : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
             }`}
           >
-            <i className="fa-solid fa-chevron-right"></i>
+            <ChevronRight className="w-4 h-4" />
           </button>
           <button
             onClick={() => handlePageChange(totalPages)}
@@ -606,7 +611,7 @@ export default function UserManagement() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border text-center">
             <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="fa-solid fa-check text-2xl"></i>
+              <Check className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-bold text-ink-inverse mb-2">用户创建成功</h3>
             <p className="text-ink-muted mb-6">请复制下方生成的随机密码并发送给用户。</p>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { RotateCw, PlugZap, Plug, CheckCircle, CircleX, Eye, EyeOff, Save } from 'lucide-react';
 import {
   getOpenClawConfig,
   updateOpenClawConfig,
@@ -215,7 +216,7 @@ export default function OpenClawManagement() {
             onClick={handleReconnect}
             disabled={actionLoading !== null && actionLoading !== 'test'}
           >
-            <i className="fas fa-rotate mr-1"></i>
+            <RotateCw className="w-4 h-4 mr-1" />
             重新连接
           </Button>
           <Button
@@ -223,7 +224,7 @@ export default function OpenClawManagement() {
             onClick={handleDisconnect}
             disabled={(actionLoading !== null && actionLoading !== 'test') || !config?.connected}
           >
-            <i className="fas fa-plug-circle-xmark mr-1"></i>
+            <PlugZap className="w-4 h-4 mr-1" />
             断开连接
           </Button>
           <Button
@@ -238,7 +239,7 @@ export default function OpenClawManagement() {
               </>
             ) : (
               <>
-                <i className="fas fa-plug mr-1"></i>
+                <Plug className="w-4 h-4 mr-1" />
                 测试连接
               </>
             )}
@@ -246,7 +247,11 @@ export default function OpenClawManagement() {
         </div>
         {statusTestResult && (
           <div className={`mt-3 text-sm ${statusTestResult.ok ? 'text-green-400' : 'text-danger'}`}>
-            <i className={`fas ${statusTestResult.ok ? 'fa-check-circle' : 'fa-times-circle'} mr-1`}></i>
+            {statusTestResult.ok ? (
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                        ) : (
+                          <CircleX className="w-4 h-4 mr-1" />
+                        )}
             {statusTestResult.message}
           </div>
         )}
@@ -307,7 +312,11 @@ export default function OpenClawManagement() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink-inverse transition-colors"
                   >
-                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                   </button>
                 </div>
                 <p className="text-ink-faint text-xs mt-1">输入新密码将覆盖当前密码，留空不修改</p>
@@ -329,7 +338,11 @@ export default function OpenClawManagement() {
                 onClick={() => setShowToken(!showToken)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink-inverse transition-colors"
               >
-                <i className={`fas ${showToken ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                {showToken ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
               </button>
             </div>
             <p className="text-amber-400/70 text-xs mt-1">💡 保存配置后将自动尝试连接，如果连接失败会在页面顶部显示错误信息。建议先点击"测试连接"验证配置</p>
@@ -358,7 +371,7 @@ export default function OpenClawManagement() {
             onClick={handleSave}
             disabled={saving || testing}
           >
-            <i className="fas fa-save mr-1"></i>
+            <Save className="w-4 h-4 mr-1" />
             {saving ? '保存中...' : '保存配置'}
           </Button>
           <Button
@@ -373,7 +386,7 @@ export default function OpenClawManagement() {
               </>
             ) : (
               <>
-                <i className="fas fa-plug mr-1"></i>
+                <Plug className="w-4 h-4 mr-1" />
                 测试连接
               </>
             )}
@@ -381,7 +394,11 @@ export default function OpenClawManagement() {
         </div>
         {testResult && (
           <div className={`mt-3 text-sm ${testResult.ok ? 'text-green-400' : 'text-danger'}`}>
-            <i className={`fas ${testResult.ok ? 'fa-check-circle' : 'fa-times-circle'} mr-1`}></i>
+            {testResult.ok ? (
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                        ) : (
+                          <CircleX className="w-4 h-4 mr-1" />
+                        )}
             {testResult.message}
           </div>
         )}

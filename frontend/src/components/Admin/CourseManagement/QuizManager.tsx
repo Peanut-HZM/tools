@@ -2,7 +2,7 @@
  * 测验管理组件
  */
 import React, { useState } from 'react';
-import { BookOpen, Code as CodeIcon, Video, CheckCircle, Circle, ClipboardCheck, Plus, ClipboardList, Pencil, ClipboardQuestion, ArrowLeft, ReactNode } from 'lucide-react';
+import { BookOpen, Code as CodeIcon, Video, CheckCircle, Circle, ClipboardCheck, Plus, ClipboardList, Pencil, CircleHelp, ArrowLeft, ReactNode } from 'lucide-react';
 import { useQuizStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import QuizForm from './QuizForm';
@@ -128,7 +128,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 variant="default"
                 className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center"
               >
-                <i className="fas fa-plus mr-2"></i>
+                <Plus className="w-4 h-4 mr-2" />
                 {selectedQuiz ? '编辑测验' : '创建测验'}
               </Button>
             </div>
@@ -145,7 +145,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-2xl flex items-center justify-center">
-                      <i className="fas fa-clipboard-list text-ink-inverse text-2xl"></i>
+                      <ClipboardList className="w-8 h-8 text-ink-inverse" />
                     </div>
                     <div>
                       <h4 className="text-xl font-bold text-ink-inverse">{selectedQuiz.title}</h4>
@@ -182,7 +182,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                   variant="outline"
                   className="mt-6 px-6 py-3 rounded-xl transition-all font-medium flex items-center"
                 >
-                  <i className="fas fa-edit mr-2"></i>
+                  <Pencil className="w-4 h-4 mr-2" />
                   编辑测验
                 </Button>
               </Card>
@@ -190,7 +190,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
               <div className="flex items-center justify-center py-16">
                 <div className="text-center max-w-md">
                   <div className="w-24 h-24 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i className="fas fa-clipboard-question text-5xl text-ink-faint"></i>
+                    <CircleHelp className="w-20 h-20 text-ink-faint" />
                   </div>
                   <p className="text-ink-inverse text-lg font-medium mb-2">该章节还没有测验</p>
                   <p className="text-ink-muted text-sm mb-6">创建一个测验来检验学习成果吧</p>
@@ -199,7 +199,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                     variant="default"
                     className="px-8 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 inline-flex items-center"
                   >
-                    <i className="fas fa-plus mr-2"></i>
+                    <Plus className="w-4 h-4 mr-2" />
                     创建测验
                   </Button>
                 </div>
@@ -210,7 +210,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <div className="w-20 h-20 bg-surface-2/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-arrow-left text-3xl text-ink-faint"></i>
+                <ArrowLeft className="w-12 h-12 text-ink-faint" />
               </div>
               <p className="text-ink-muted">请从左侧选择一个章节</p>
             </div>

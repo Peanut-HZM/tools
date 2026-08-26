@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { File } from 'lucide-react';
 import { listOssFiles, deleteOssFile, OssFile } from '../../api/adminApi';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../stores/authStore';
@@ -110,7 +111,7 @@ export default function OssManagement() {
                       </div>
                     ) : (
                       <div className="w-12 h-12 bg-surface-1 rounded flex items-center justify-center text-ink-faint">
-                        <i className="fa-solid fa-file"></i>
+                        <File className="w-6 h-6" />
                       </div>
                     )}
                   </td>

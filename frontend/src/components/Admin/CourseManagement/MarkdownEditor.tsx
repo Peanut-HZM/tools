@@ -7,6 +7,7 @@ import Editor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { Pencil, Columns2, Info } from 'lucide-react';
 import 'highlight.js/styles/atom-one-dark.css';
 
 interface MarkdownEditorProps {
@@ -128,7 +129,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 : 'bg-surface-3 text-ink-muted hover:bg-accent-hover'
             }`}
           >
-            <i className="fas fa-edit mr-1.5"></i>
+            <Pencil className="w-4 h-4 mr-1.5" />
             编辑
           </button>
           <button
@@ -140,7 +141,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 : 'bg-surface-3 text-ink-muted hover:bg-accent-hover'
             }`}
           >
-            <i className="fas fa-columns mr-1.5"></i>
+            <Columns2 className="w-4 h-4 mr-1.5" />
             并排预览
           </button>
         </div>
@@ -179,7 +180,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       {/* Footer - 字符计数 */}
       <div className="px-4 py-2 bg-surface-2/30 border-t border-border flex items-center justify-between">
         <p className="text-xs text-ink-muted">
-          <i className="fas fa-info-circle mr-1"></i>
+          <Info className="w-4 h-4 mr-1" />
           支持 Markdown 格式
         </p>
         <p className="text-xs text-ink-muted">
