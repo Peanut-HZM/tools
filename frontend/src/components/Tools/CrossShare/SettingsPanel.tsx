@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { configApi, UserConfig, formatFileSize } from '../../../services/crossShare';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 
 const SettingsPanel: React.FC = () => {
   const [config, setConfig] = useState<UserConfig | null>(null);
@@ -43,22 +44,22 @@ const SettingsPanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-surface-1 rounded-xl shadow-md border border-border">
+      <Card className="w-full h-full flex items-center justify-center shadow-md">
         <div className="text-ink-muted">加载中...</div>
-      </div>
+      </Card>
     );
   }
 
   if (!config) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-surface-1 rounded-xl shadow-md border border-border">
+      <Card className="w-full h-full flex items-center justify-center shadow-md">
         <div className="text-ink-muted">加载失败</div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-surface-1 rounded-xl shadow-md border border-border overflow-hidden">
+    <Card className="w-full h-full flex flex-col shadow-md overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 p-6 border-b border-border">
         <h2 className="text-xl font-bold text-ink">⚙️ 设置</h2>
@@ -187,7 +188,7 @@ const SettingsPanel: React.FC = () => {
           {saving ? '保存中...' : '保存设置'}
         </Button>
       </div>
-    </div>
+    </Card>
   );
 };
 

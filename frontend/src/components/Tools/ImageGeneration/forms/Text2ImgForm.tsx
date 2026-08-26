@@ -8,6 +8,7 @@ import { useImageGenerate } from '../../../../hooks/useImageGenerate';
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
 import type { ImageSize, ModelPreference } from '../../../../api/imageGenerationApi';
 
 export default function Text2ImgForm() {
@@ -81,7 +82,7 @@ export default function Text2ImgForm() {
 
       {/* 生成结果显示 */}
       {chatStatus === 'generated' && currentResult && currentResult.image_urls.length > 0 && (
-        <div className="mb-4 p-4 bg-surface-1 rounded-lg">
+        <Card className="mb-4 p-4">
           <img
             src={currentResult.image_urls[0]}
             alt="generated"
@@ -112,12 +113,12 @@ export default function Text2ImgForm() {
               {igT.chat.newConversation}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* 参数面板（首次对话时显示，可折叠） */}
       {history.length === 0 && (
-        <div className="mb-4 p-3 bg-surface-1 rounded-lg space-y-2 text-sm">
+        <Card className="mb-4 p-3 space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <label className="text-ink-muted w-20">{igT.form.size}</label>
             <select
@@ -145,7 +146,7 @@ export default function Text2ImgForm() {
               <option value={4}>4 张</option>
             </select>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* 输入框 */}

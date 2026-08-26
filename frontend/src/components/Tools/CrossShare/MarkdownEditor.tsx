@@ -5,6 +5,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface MarkdownEditorProps {
   initialValue: string;
@@ -122,7 +123,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
   }, []);
 
   return (
-    <div className="bg-surface-1 rounded-xl border border-border overflow-hidden">
+    <Card className="overflow-hidden">
       {/* 工具栏 */}
       <div className="flex items-center justify-between px-2 py-2 bg-surface-2 border-b border-border">
         <div className="flex items-center space-x-1">
@@ -184,7 +185,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
           className={`h-full bg-surface-2/50 overflow-y-auto ${previewPosition === 'bottom' ? 'border-t' : 'border-l'} border-border`}
           style={{ [previewPosition === 'right' ? 'width' : 'height']: `${100 - splitRatio}%` }}
         >
-          <div className="p-4 prose prose-invert prose-sm max-w-none">
+          <div className="p-4 prose prose-sm max-w-none">
             <ReactMarkdown>{value}</ReactMarkdown>
           </div>
         </div>
@@ -208,7 +209,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ initialValue, onSave, o
           保存
         </Button>
       </div>
-    </div>
+    </Card>
   );
 };
 

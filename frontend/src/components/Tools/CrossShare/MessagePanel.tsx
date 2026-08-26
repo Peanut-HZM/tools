@@ -12,6 +12,7 @@ import HighlightText from './HighlightText';
 import { detectContentType, countLines, isUrl } from './utils/contentDetector';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 
 const COLLAPSE_HEIGHT = 200; // 折叠高度阈值（px）
 
@@ -463,15 +464,15 @@ const MessagePanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-surface-1 rounded-xl shadow-md border border-border">
+      <Card className="w-full h-full flex items-center justify-center shadow-md">
         <div className="text-ink-muted">加载中...</div>
-      </div>
+      </Card>
     );
   }
 
   if (loadError) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-surface-1 rounded-xl shadow-md border border-border">
+      <Card className="w-full h-full flex items-center justify-center shadow-md">
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <div className="text-ink text-xl font-semibold mb-2">加载消息失败</div>
@@ -484,12 +485,12 @@ const MessagePanel: React.FC = () => {
             重试
           </Button>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-surface-1 rounded-xl shadow-md border border-border overflow-hidden">
+    <Card className="w-full h-full flex flex-col shadow-md overflow-hidden">
       {/* 搜索栏 */}
       <div className="flex-shrink-0 px-6 pt-4 pb-2 border-b border-border/50">
         <div className="relative">
@@ -628,7 +629,7 @@ const MessagePanel: React.FC = () => {
       {/* 粘贴 URL 确认对话框 */}
       {showPasteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-xl p-6 border border-border max-w-md mx-4 shadow-lg">
+          <Card className="p-6 max-w-md mx-4 shadow-lg">
             <div className="text-lg font-semibold text-ink-inverse mb-2">检测到链接</div>
             <div className="text-ink-muted text-sm mb-4 break-all bg-canvas p-3 rounded-lg max-h-32 overflow-y-auto">
               {pasteContent}
@@ -650,10 +651,10 @@ const MessagePanel: React.FC = () => {
                 立即发送
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 

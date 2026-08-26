@@ -4,6 +4,8 @@
 import { useImageGenQuota } from '../../../../hooks/useImageGenQuota';
 import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import { useI18n } from '../../../../i18n';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 
 export default function QuotaBadge() {
   const { t } = useI18n();
@@ -13,9 +15,9 @@ export default function QuotaBadge() {
 
   if (!quota && !quotaLoadError) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-2/50 text-ink-muted text-sm">
+      <Badge variant="secondary">
         <span className="animate-pulse">{igT.admin.loading}</span>
-      </div>
+      </Badge>
     );
   }
 
@@ -33,7 +35,7 @@ export default function QuotaBadge() {
     'bg-red-500';
 
   return (
-    <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-surface-1/80 border border-border/50">
+    <Card className="flex items-center gap-4 px-4 py-2 border-border/50">
       {/* 日配额 */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-ink-muted">{igT.quota.daily}</span>
@@ -55,6 +57,6 @@ export default function QuotaBadge() {
           {quota.monthly_remaining}/{quota.monthly_limit}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }

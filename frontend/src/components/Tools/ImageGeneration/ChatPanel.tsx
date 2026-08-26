@@ -11,6 +11,7 @@ import { useI18n } from '../../../i18n';
 import RequireAuthNotice from '../../Common/RequireAuthNotice';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 
 // 公共组件
 import QuotaBadge from './components/QuotaBadge';
@@ -133,20 +134,24 @@ export default function ChatPanel() {
       </div>
 
       {/* Tab 栏 */}
-      <div className="flex gap-1 p-2 border-b border-border bg-surface-1/50 flex-shrink-0">
-        {TABS.map((tab) => (
-          <Button
-            key={tab.key}
-            variant={operation === tab.key ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setOperation(tab.key)}
-            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium"
-            title={TAB_LABELS[tab.labelKey]}
-          >
-            <span className="text-sm">{tab.icon}</span>
-          </Button>
-        ))}
-      </div>
+      <Tabs
+        value={operation}
+        onValueChange={(v) => setOperation(v as Operation)}
+        className="flex gap-1 p-2 border-b border-border bg-surface-1/50 flex-shrink-0"
+      >
+        <TabsList className="flex w-full gap-1 h-auto bg-transparent p-0">
+          {TABS.map((tab) => (
+            <TabsTrigger
+              key={tab.key}
+              value={tab.key}
+              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium"
+              title={TAB_LABELS[tab.labelKey]}
+            >
+              <span className="text-sm">{tab.icon}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* 聊天历史 */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">

@@ -6,6 +6,8 @@ import { useImageGenStore } from '../../../../stores/imageGenerationStore';
 import { getResultUrl } from '../../../../api/imageGenerationApi';
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 
 export default function ResultPanel() {
   const { t } = useI18n();
@@ -89,9 +91,9 @@ export default function ResultPanel() {
       {/* 结果信息 */}
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-3">
-          <span className="px-2 py-0.5 rounded bg-surface-2 text-ink-muted text-xs">
+          <Badge variant="secondary">
             {currentResult.model_used}
-          </span>
+          </Badge>
           <span className="text-ink-faint">
             {currentResult.duration_ms ? `${(currentResult.duration_ms / 1000).toFixed(1)}s` : ''}
           </span>
@@ -106,7 +108,7 @@ export default function ResultPanel() {
       ) : (
         <div className={`grid gap-3 ${resultUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {resultUrls.map((url, i) => (
-            <div key={i} className="group relative rounded-lg overflow-hidden border border-border bg-surface-1">
+            <Card key={i} className="group relative overflow-hidden">
               <img
                 src={url}
                 alt={igT.result.imageAlt.replace('{index}', String(i + 1))}
@@ -138,7 +140,7 @@ export default function ResultPanel() {
                   </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

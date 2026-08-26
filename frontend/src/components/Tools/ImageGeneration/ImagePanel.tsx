@@ -9,6 +9,7 @@ import { useImageGenerate } from '../../../hooks/useImageGenerate';
 import { getResultUrl } from '../../../api/imageGenerationApi';
 import { useI18n } from '../../../i18n';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import ResultPanel from './components/ResultPanel';
 import type { HistoryItem } from '../../../api/imageGenerationApi';
 
@@ -64,9 +65,9 @@ function HistoryCard({ item }: { item: HistoryItem }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-1.5 py-0.5 text-[10px] bg-surface-2 text-ink-muted rounded">
+            <Badge variant="secondary">
               {operationLabels[item.operation] || item.operation}
-            </span>
+            </Badge>
             <span className={`text-xs ${statusColor}`}>{statusIcon}</span>
           </div>
           <p className="text-xs text-ink-muted truncate">{item.prompt}</p>

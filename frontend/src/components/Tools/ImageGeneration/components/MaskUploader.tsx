@@ -3,6 +3,7 @@
  */
 import { useCallback, useRef, useState } from 'react';
 import { useI18n } from '../../../../i18n';
+import { Card } from '@/components/ui/Card';
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -55,7 +56,7 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
       </p>
 
       {preview ? (
-        <div className="relative group rounded-lg overflow-hidden border border-border bg-surface-1">
+        <Card className="relative group overflow-hidden">
           <img
             src={preview}
             alt={igT.form.maskImage}
@@ -67,7 +68,7 @@ export default function MaskUploader({ file, preview, onChange }: Props) {
           >
             {igT.form.remove}
           </button>
-        </div>
+        </Card>
       ) : (
         <div
           onDrop={handleDrop}

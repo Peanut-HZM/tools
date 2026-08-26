@@ -4,6 +4,7 @@
 import React from 'react';
 import { CrossFile } from '../../../services/crossShare';
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import {
   ImageViewer,
   VideoViewer,
@@ -82,7 +83,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
       />
 
       {/* 模态框内容 */}
-      <div className="relative w-[90vw] h-[90vh] bg-surface-1 rounded-xl shadow-lg overflow-hidden flex flex-col">
+      <Card className="relative w-[90vw] h-[90vh] shadow-lg overflow-hidden flex flex-col">
         {/* 头部 */}
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center space-x-3">
@@ -138,7 +139,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
             </span>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

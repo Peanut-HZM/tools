@@ -3,6 +3,7 @@
  */
 import { useCallback, useRef, useState } from 'react';
 import { useI18n } from '../../../../i18n';
+import { Card } from '@/components/ui/Card';
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -75,7 +76,7 @@ export default function ImageUploader({ label, file, preview, onChange, error: e
       <label className="text-sm font-medium text-ink-muted">{defaultLabel}</label>
 
       {preview ? (
-        <div className="relative group rounded-lg overflow-hidden border border-border bg-surface-1">
+        <Card className="relative group overflow-hidden">
           <img
             src={preview}
             alt={igT.form.preview}
@@ -87,7 +88,7 @@ export default function ImageUploader({ label, file, preview, onChange, error: e
           >
             {igT.form.remove}
           </button>
-        </div>
+        </Card>
       ) : (
         <div
           onDrop={handleDrop}
