@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import ProviderDialog from './ProviderDialog';
-import DeleteConfirmModal from './DeleteConfirmModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import ApiKeyDisplay from './ApiKeyDisplay';
 
 export default function ProvidersTab() {
@@ -252,12 +252,14 @@ export default function ProvidersTab() {
         isLoading={submitting}
       />
 
-      <DeleteConfirmModal
-        isOpen={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setDeleting(null); }}
+      <ConfirmDialog
+        open={showDeleteModal}
+        onOpenChange={(open) => { if (!open) { setShowDeleteModal(false); setDeleting(null); } }}
+        title="确认删除"
+        description={`确定要删除配置 "${deleting?.name || ''}" 吗？此操作不可恢复，请谨慎操作！`}
+        confirmText="确认删除"
+        variant="destructive"
         onConfirm={handleDelete}
-        configName={deleting?.name || ''}
-        isLoading={submitting}
       />
     </div>
   );

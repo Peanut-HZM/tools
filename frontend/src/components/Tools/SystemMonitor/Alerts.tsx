@@ -3,10 +3,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { useMonitorStore } from '../../../stores/monitorStore';
 import * as monitorApi from '../../../api/monitorApi';
 import type { AlertRule, AlertLog, MonitorSettings } from '../../../api/monitorApi';
-import ConfirmModal from './components/ConfirmModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 const METRIC_OPTIONS = [
   { value: 'cpu_percent', label: 'CPU 使用率' },
@@ -227,21 +234,33 @@ export default function Alerts() {
           <Card className="p-5 w-[420px] space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="text-ink font-medium">{editing.id ? '编辑规则' : '新建规则'}</div>
             <div className="flex gap-3">
-              <select className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink"
-                value={editing.server_id} onChange={(e) => setEditing({ ...editing, server_id: e.target.value })}>
-                <option value="all">全部服务器</option>
-                {servers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <select className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink"
-                value={editing.metric} onChange={(e) => setEditing({ ...editing, metric: e.target.value })}>
-                {METRIC_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
+              <Select value={editing.server_id} onValueChange={(v) => setEditing({ ...editing, server_id: v })}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部服务器</SelectItem>
+                  {servers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={editing.metric} onValueChange={(v) => setEditing({ ...editing, metric: v })}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METRIC_OPTIONS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-3">
-              <select className="w-24 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink"
-                value={editing.operator} onChange={(e) => setEditing({ ...editing, operator: e.target.value })}>
-                {OPERATORS.map((op) => <option key={op} value={op}>{op}</option>)}
-              </select>
+              <Select value={editing.operator} onValueChange={(v) => setEditing({ ...editing, operator: v })}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OPERATORS.map((op) => <SelectItem key={op} value={op}>{op}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Input className="flex-1"
                 placeholder="阈值" value={editing.threshold} onChange={(e) => setEditing({ ...editing, threshold: e.target.value })} />
               <Input className="w-28"
@@ -260,18 +279,18 @@ export default function Alerts() {
         </div>
       )}
 
-      <ConfirmModal
+      <ConfirmDialog
         open={!!deleting}
+        onOpenChange={(open) => { if (!open) setDeleting(null); }}
         title="删除规则"
-        message={`确定删除该告警规则（${deleting ? METRIC_LABELS[deleting.metric] : ''} ${deleting?.operator} ${deleting?.threshold}）？`}
+        description={`确定删除该告警规则（${deleting ? METRIC_LABELS[deleting.metric] : ''} ${deleting?.operator} ${deleting?.threshold}）？`}
+        confirmText="删除"
+        variant="destructive"
         onConfirm={async () => {
           if (!deleting) return;
           await monitorApi.deleteAlert(deleting.id);
-          setDeleting(null);
           await loadRules();
         }}
-        onCancel={() => setDeleting(null)}
-        danger
       />
     </div>
   );

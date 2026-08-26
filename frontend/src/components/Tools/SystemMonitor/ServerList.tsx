@@ -5,7 +5,7 @@ import * as monitorApi from '../../../api/monitorApi';
 import * as sshApi from '../../../api/sshToolApi';
 import { ServerCard } from './components/ServerCard';
 import AddServerModal from './components/AddServerModal';
-import ConfirmModal from './components/ConfirmModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -131,13 +131,14 @@ export default function ServerList() {
           </Card>
         </div>
       )}
-      <ConfirmModal
+      <ConfirmDialog
         open={!!deleting}
+        onOpenChange={(open) => { if (!open) setDeleting(null); }}
         title="删除服务器"
-        message={`确定删除监控服务器「${deleting?.name}」？其历史指标与关联告警记录将保留。`}
+        description={`确定删除监控服务器「${deleting?.name}」？其历史指标与关联告警记录将保留。`}
+        confirmText="删除"
+        variant="destructive"
         onConfirm={handleDelete}
-        onCancel={() => setDeleting(null)}
-        danger
       />
     </div>
   );

@@ -9,6 +9,7 @@ import * as api from '../../../../api/databaseToolApi';
 import { useToast } from '../../../../hooks/useToast';
 import ColumnSelector from './ColumnSelector';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface ResultViewerProps {
   result: SQLExecutionResult | null;
@@ -800,45 +801,15 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
         </div>
       )}
 
-      {showTruncateConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 border border-border rounded-lg shadow-md max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-border flex items-center gap-3">
-              <i className="fas fa-exclamation-triangle text-danger text-xl"></i>
-              <h3 className="text-lg font-semibold text-ink">确认清空表</h3>
-            </div>
-
-            <div className="px-6 py-4 space-y-3">
-              <p className="text-ink-muted">
-                确定要清空表 <span className="font-mono text-accent-warning">{tableName}</span> 的所有数据吗？
-              </p>
-              <p className="text-danger text-sm">
-                <i className="fas fa-exclamation-circle mr-1"></i>
-                此操作不可撤销，表中的所有数据将被删除。
-              </p>
-            </div>
-
-            <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => setShowTruncateConfirm(false)}
-                disabled={truncating}
-              >
-                取消
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleTruncate}
-                disabled={truncating}
-                className="flex items-center gap-2"
-              >
-                {truncating && <i className="fas fa-spinner fa-spin"></i>}
-                确认清空
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showTruncateConfirm}
+        onOpenChange={(open) => { if (!open) setShowTruncateConfirm(false); }}
+        title="确认清空表"
+        description={`确定要清空表 ${tableName || ''} 的所有数据吗？此操作不可撤销，表中的所有数据将被删除。`}
+        confirmText="确认清空"
+        variant="destructive"
+        onConfirm={handleTruncate}
+      />
     </div>
   );
 };

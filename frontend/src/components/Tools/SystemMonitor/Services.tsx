@@ -4,7 +4,7 @@ import { useMonitorStore } from '../../../stores/monitorStore';
 import * as monitorApi from '../../../api/monitorApi';
 import type { ServiceInfo } from '../../../api/monitorApi';
 import ServerSelector from './components/ServerSelector';
-import ConfirmModal from './components/ConfirmModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -118,12 +118,12 @@ export default function Services() {
         </table>
         </CardContent>
       </Card>
-      <ConfirmModal
+      <ConfirmDialog
         open={!!confirm}
+        onOpenChange={(open) => { if (!open) setConfirm(null); }}
         title="服务操作"
-        message={`确定要${confirm?.action === 'start' ? '启动' : confirm?.action === 'stop' ? '停止' : '重启'}服务 ${confirm?.unit}？`}
+        description={`确定要${confirm?.action === 'start' ? '启动' : confirm?.action === 'stop' ? '停止' : '重启'}服务 ${confirm?.unit}？`}
         onConfirm={doAction}
-        onCancel={() => setConfirm(null)}
       />
     </div>
   );

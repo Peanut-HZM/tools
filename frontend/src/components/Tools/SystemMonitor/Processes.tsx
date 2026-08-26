@@ -4,11 +4,18 @@ import { useMonitorStore } from '../../../stores/monitorStore';
 import * as monitorApi from '../../../api/monitorApi';
 import type { MonitorProcess } from '../../../api/monitorApi';
 import ServerSelector from './components/ServerSelector';
-import ConfirmModal from './components/ConfirmModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 const KNOWN_TYPES = ['all', 'FastAPI', 'Django', 'Flask', 'Celery', 'Gunicorn', 'Python',
   'Java', 'Node.js', 'Nginx', 'MySQL', 'PostgreSQL', 'Redis', 'Docker', 'Other'];
@@ -87,13 +94,16 @@ export default function Processes() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
-        <select
-          className="bg-canvas border border-border rounded-lg px-3 py-1.5 text-sm text-ink-inverse focus:outline-none"
-          value={projectType}
-          onChange={(e) => { setProjectType(e.target.value); setPage(1); }}
-        >
-          {KNOWN_TYPES.map((t) => <option key={t} value={t}>{t === 'all' ? '全部类型' : t}</option>)}
-        </select>
+        <Select value={projectType} onValueChange={(v) => { setProjectType(v); setPage(1); }}>
+          <SelectTrigger className="bg-canvas border border-border rounded-lg">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {KNOWN_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>{t === 'all' ? '全部类型' : t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button variant="secondary" size="sm" onClick={load}>
           <i className="fas fa-sync mr-1.5" />刷新
         </Button>
@@ -152,13 +162,14 @@ export default function Processes() {
           </div>
         </div>
       )}
-      <ConfirmModal
+      <ConfirmDialog
         open={!!killing}
+        onOpenChange={(open) => { if (!open) setKilling(null); }}
         title="结束进程"
-        message={`确定结束进程 ${killing?.pid}（${killing?.name}）？该操作不可撤销。`}
+        description={`确定结束进程 ${killing?.pid}（${killing?.name}）？该操作不可撤销。`}
+        confirmText="结束"
+        variant="destructive"
         onConfirm={handleKill}
-        onCancel={() => setKilling(null)}
-        danger
       />
     </div>
   );

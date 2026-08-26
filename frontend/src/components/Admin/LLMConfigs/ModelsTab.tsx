@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import ModelDialog from './ModelDialog';
-import DeleteConfirmModal from './DeleteConfirmModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 /**
  * 按 priority 升序排序模型列表；priority 相同时按 id 字典序稳定排序
@@ -278,12 +278,14 @@ export default function ModelsTab() {
         isLoading={submitting}
       />
 
-      <DeleteConfirmModal
-        isOpen={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setDeleting(null); }}
+      <ConfirmDialog
+        open={showDeleteModal}
+        onOpenChange={(open) => { if (!open) { setShowDeleteModal(false); setDeleting(null); } }}
+        title="确认删除"
+        description={`确定要删除模型 "${deleting?.name || ''}" 吗？此操作不可恢复，请谨慎操作！`}
+        confirmText="确认删除"
+        variant="destructive"
         onConfirm={handleDelete}
-        configName={deleting?.name || ''}
-        isLoading={submitting}
       />
     </div>
   );
