@@ -13,6 +13,13 @@ const badgeVariants = cva(
         outline: "text-ink",
         success: "border-transparent bg-accent-success text-white",
         warning: "border-transparent bg-accent-warning text-white",
+        // Tint variants — transparent backgrounds + matching text + soft border
+        "tint-success": "border-success/30 bg-success/10 text-success",
+        "tint-danger": "border-danger/30 bg-danger/10 text-danger",
+        "tint-warning": "border-warning/30 bg-warning/10 text-warning",
+        "tint-info": "border-accent-info/30 bg-accent-info/10 text-accent-info",
+        "tint-accent": "border-accent/30 bg-accent/10 text-accent",
+        "tint-secondary": "border-accent-secondary/30 bg-accent-secondary/10 text-accent-secondary",
       },
     },
     defaultVariants: {
