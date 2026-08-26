@@ -36,7 +36,7 @@ export default function ThemeSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="p-2 hover:bg-surface-2 rounded transition-colors text-ink-muted hover:text-ink-inverse outline-none"
+        className="p-2 hover:bg-surface-2 rounded transition-colors text-ink-muted hover:text-ink outline-none"
         title="切换主题"
         aria-label="切换主题"
       >

@@ -113,7 +113,7 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-surface-2 text-ink-inverse px-6 py-3 rounded-lg shadow-lg flex items-center gap-4 z-50 border border-border">
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-surface-2 text-ink px-6 py-3 rounded-lg shadow-lg flex items-center gap-4 z-50 border border-border">
         <span className="text-sm font-medium">
           已选择 {selectedIds.length} 个会话
         </span>
@@ -169,8 +169,8 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowTagModal(false)}>
           <div className="bg-surface-1 rounded-lg p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-ink-inverse">批量添加标签</h3>
-              <button onClick={() => setShowTagModal(false)} className="text-ink-muted hover:text-ink-inverse">
+              <h3 className="text-lg font-semibold text-ink">批量添加标签</h3>
+              <button onClick={() => setShowTagModal(false)} className="text-ink-muted hover:text-ink">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -187,7 +187,7 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
                 onChange={(e) => setTagName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
                 placeholder="输入标签名称..."
-                className="w-full px-3 py-2 border border-border rounded-lg bg-transparent text-ink-inverse"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-transparent text-ink"
                 autoFocus
               />
             </div>

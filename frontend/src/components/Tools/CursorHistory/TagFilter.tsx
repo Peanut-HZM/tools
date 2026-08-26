@@ -53,7 +53,7 @@ export default function TagFilter({ onTagSelect }: TagFilterProps) {
         className={`px-2 py-1 rounded text-xs transition-colors ${
           !selectedTag
             ? 'bg-accent text-ink-inverse'
-            : 'bg-surface-2 hover:bg-surface-3 text-ink-inverse'
+            : 'bg-surface-2 hover:bg-surface-3 text-ink'
         }`}
       >
         全部
@@ -66,7 +66,7 @@ export default function TagFilter({ onTagSelect }: TagFilterProps) {
           className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
             selectedTag === tag
               ? 'bg-accent text-ink-inverse'
-              : 'bg-surface-2 hover:bg-surface-3 text-ink-inverse'
+              : 'bg-surface-2 hover:bg-surface-3 text-ink'
           }`}
         >
           <Tag className="w-3 h-3" />

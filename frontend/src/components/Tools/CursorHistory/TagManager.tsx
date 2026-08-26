@@ -159,7 +159,7 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
               <button
                 key={presetTag}
                 onClick={() => addTag(presetTag)}
-                className="px-2 py-1 bg-surface-2 hover:bg-accent/15 rounded text-xs text-ink-inverse transition-colors"
+                className="px-2 py-1 bg-surface-2 hover:bg-accent/15 rounded text-xs text-ink transition-colors"
                 disabled={loading || tags.some(t => t.tag_name === presetTag)}
               >
                 {presetTag}
@@ -174,7 +174,7 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
               onChange={(e) => setCustomTag(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addTag(customTag)}
               placeholder="自定义标签..."
-              className="flex-1 px-2 py-1 border border-border rounded text-xs bg-transparent text-ink-inverse"
+              className="flex-1 px-2 py-1 border border-border rounded text-xs bg-transparent text-ink"
               autoFocus
             />
             <button

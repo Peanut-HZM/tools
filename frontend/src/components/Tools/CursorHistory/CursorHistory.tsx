@@ -671,17 +671,17 @@ export default function CursorHistory() {
       const thinkingText = msg.thinking || msg.text || '';
       return (
         <div className="flex justify-start group">
-          <div className="max-w-[80%] rounded-2xl px-5 py-3 bg-amber-500/5 border border-amber-500/15">
+          <div className="max-w-[80%] rounded-2xl px-5 py-3 bg-warning/5 border border-warning/15">
             <div
               className="flex items-center gap-2 cursor-pointer select-none"
               onClick={() => toggleThinking(msg.message_id)}
             >
               <Brain className="w-3 h-3" />
-              <span className="text-xs font-medium text-amber-400/80">AI 思考过程</span>
+              <span className="text-xs font-medium text-warning/80">AI 思考过程</span>
               {msg.timestamp && (
                 <span className="text-[10px] text-ink-faint ml-1">{formatMessageTime(msg.timestamp)}</span>
               )}
-              {isExpanded ? <ChevronUp className="w-2.5 h-2.5 text-amber-400/50 text-[10px] ml-auto" /> : <ChevronDown className="w-2.5 h-2.5 text-amber-400/50 text-[10px] ml-auto" />}
+              {isExpanded ? <ChevronUp className="w-2.5 h-2.5 text-warning/50 text-[10px] ml-auto" /> : <ChevronDown className="w-2.5 h-2.5 text-warning/50 text-[10px] ml-auto" />}
             </div>
             {isExpanded && thinkingText && (
               <div className="mt-2 text-xs text-ink-muted whitespace-pre-wrap break-words leading-relaxed max-h-[300px] overflow-y-auto italic">
@@ -742,14 +742,14 @@ export default function CursorHistory() {
       <div className={`flex group ${isUser ? 'justify-end' : 'justify-start'}`}>
         <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 ${
           isUser
-            ? 'bg-violet-500/20 border border-violet-500/20'
+            ? 'bg-accent-secondary/20 border border-accent-secondary/20'
             : 'bg-surface-1/60 border border-border/30'
         }`}>
           {/* 消息头：角色 + 时间 + 复制按钮 */}
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
-              {isUser ? <User className="w-3 h-3 text-violet-400" /> : <Bot className="w-3 h-3 text-success" />}
-              <span className={`text-xs font-medium ${isUser ? 'text-violet-400' : 'text-success'}`}>
+              {isUser ? <User className="w-3 h-3 text-accent-secondary" /> : <Bot className="w-3 h-3 text-success" />}
+              <span className={`text-xs font-medium ${isUser ? 'text-accent-secondary' : 'text-success'}`}>
                 {isUser ? '用户' : 'AI 助手'}
               </span>
               {msg.timestamp && (
@@ -760,7 +760,7 @@ export default function CursorHistory() {
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleCopyMessage(msg, 'text')}
-                className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded transition-all"
+                className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded transition-all"
                 title="复制纯文本"
               >
                 <Copy className="w-3 h-3" />
@@ -768,7 +768,7 @@ export default function CursorHistory() {
               {!isUser && (
                 <button
                   onClick={() => handleCopyMessage(msg, 'markdown')}
-                  className="p-1.5 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded transition-all"
+                  className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded transition-all"
                   title="复制 Markdown"
                 >
                   <FileCode className="w-3 h-3" />
@@ -783,14 +783,14 @@ export default function CursorHistory() {
             </div>
           ) : (
             <div className="prose prose-invert prose-sm max-w-none text-ink break-words
-              prose-headings:text-ink-inverse prose-headings:font-semibold
+              prose-headings:text-ink prose-headings:font-semibold
               prose-p:text-ink-muted prose-p:leading-relaxed prose-p:my-2
-              prose-strong:text-ink-inverse prose-em:text-accent-info
-              prose-code:text-emerald-300 prose-code:bg-canvas/60 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+              prose-strong:text-ink prose-em:text-accent-info
+              prose-code:text-success prose-code:bg-canvas/60 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
               prose-pre:bg-canvas/80 prose-pre:border prose-pre:border-border/40 prose-pre:rounded-lg prose-pre:my-3
               prose-a:text-accent prose-a:no-underline hover:prose-a:underline
               prose-li:text-ink-muted prose-li:my-0.5
-              prose-blockquote:border-l-violet-500 prose-blockquote:text-ink-muted
+              prose-blockquote:border-l-accent-secondary prose-blockquote:text-ink-muted
               prose-table:text-sm prose-th:text-ink-muted prose-td:text-ink-muted
               prose-hr:border-border
             ">
@@ -814,7 +814,7 @@ export default function CursorHistory() {
                     </pre>
                     <button
                       onClick={() => handleCopyCodeBlock(codeText)}
-                      className="absolute top-2 right-2 p-1.5 bg-surface-1/80 hover:bg-surface-2 border border-border/50 rounded text-ink-muted hover:text-ink-inverse opacity-0 group-hover/code:opacity-100 transition-all"
+                      className="absolute top-2 right-2 p-1.5 bg-surface-1/80 hover:bg-surface-2 border border-border/50 rounded text-ink-muted hover:text-ink opacity-0 group-hover/code:opacity-100 transition-all"
                       title="复制代码"
                     >
                       <Copy className="w-3 h-3" />
@@ -966,17 +966,17 @@ export default function CursorHistory() {
   // ==================== 渲染 ====================
 
   return (
-    <div className="min-h-screen bg-canvas text-ink-inverse">
+    <div className="min-h-screen bg-canvas text-ink">
       {/* 顶部导航栏 */}
       <div className="bg-canvas/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-30">
         <div className="max-w-[1920px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/')} className="text-ink-muted hover:text-ink-inverse transition-colors">
+            <button onClick={() => navigate('/')} className="text-ink-muted hover:text-ink transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <button
               onClick={() => setShowProjectPanel(prev => !prev)}
-              className="text-ink-muted hover:text-ink-inverse transition-colors"
+              className="text-ink-muted hover:text-ink transition-colors"
               title={showProjectPanel ? '隐藏项目列表' : '显示项目列表'}
             >
               {showProjectPanel ? <Indent className="w-5 h-5" /> : <Outdent className="w-5 h-5" />}
@@ -984,12 +984,12 @@ export default function CursorHistory() {
             {/* 最近访问按钮 */}
             <button
               onClick={() => setShowRecentPanel(prev => !prev)}
-              className={`text-ink-muted hover:text-ink-inverse transition-colors relative ${showRecentPanel ? 'text-violet-400' : ''}`}
+              className={`text-ink-muted hover:text-ink transition-colors relative ${showRecentPanel ? 'text-accent-secondary' : ''}`}
               title="最近访问"
             >
               <History className="w-5 h-5" />
               {recentSessions.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 rounded-full text-[10px] flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent-secondary rounded-full text-[10px] flex items-center justify-center">
                   {Math.min(recentSessions.length, 9)}
                 </span>
               )}
@@ -997,7 +997,7 @@ export default function CursorHistory() {
             {/* 收藏夹按钮 */}
             <button
               onClick={() => setShowFavoritesPanel(prev => !prev)}
-              className={`text-ink-muted hover:text-ink-inverse transition-colors relative ${showFavoritesPanel ? 'text-amber-400' : ''}`}
+              className={`text-ink-muted hover:text-ink transition-colors relative ${showFavoritesPanel ? 'text-warning' : ''}`}
               title="收藏夹"
             >
               <Star className="w-5 h-5" />
@@ -1005,7 +1005,7 @@ export default function CursorHistory() {
             {/* 统计按钮 */}
             <button
               onClick={() => setShowStatsPanel(prev => !prev)}
-              className={`text-ink-muted hover:text-ink-inverse transition-colors relative ${showStatsPanel ? 'text-accent' : ''}`}
+              className={`text-ink-muted hover:text-ink transition-colors relative ${showStatsPanel ? 'text-accent' : ''}`}
               title="数据统计"
             >
               <BarChart3 className="w-5 h-5" />
@@ -1017,7 +1017,7 @@ export default function CursorHistory() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 syncStatus.syncing
                   ? 'bg-accent-info/20 text-accent-info cursor-not-allowed'
-                  : 'bg-emerald-500/20 text-success hover:bg-emerald-500/30 border border-emerald-500/30'
+                  : 'bg-success/20 text-success hover:bg-success/30 border border-success/30'
               }`}
               title={syncStatus.last_sync_time ? `上次同步: ${syncStatus.last_sync_time}` : '同步 Cursor 数据到本地缓存'}
             >
@@ -1025,11 +1025,11 @@ export default function CursorHistory() {
               {syncStatus.syncing ? '同步中...' : '同步数据'}
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-accent-secondary/20 flex items-center justify-center">
                 <History className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-ink-inverse">Cursor 对话历史</h1>
+                <h1 className="text-lg font-bold text-ink">Cursor 对话历史</h1>
                 <p className="text-xs text-ink-muted">浏览和搜索 Cursor AI 历史对话</p>
               </div>
             </div>
@@ -1045,12 +1045,12 @@ export default function CursorHistory() {
                 value={globalSearch}
                 onChange={e => setGlobalSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doGlobalSearch(globalSearch)}
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-1/60 border border-border/50 rounded-xl text-sm text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-surface-1/60 border border-border/50 rounded-xl text-sm text-ink placeholder-ink-faint focus:outline-none focus:border-accent-secondary/50 focus:ring-1 focus:ring-accent-secondary/30 transition-all"
               />
               {globalSearch && (
                 <button
                   onClick={() => { setGlobalSearch(''); setIsSearchMode(false); setSearchResults([]); setSearchPage(1); setSearchTotalPages(1); setSearchTotal(0); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink-inverse"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -1061,8 +1061,8 @@ export default function CursorHistory() {
               onClick={() => { setShowPathSettings(prev => !prev); setPathInput(customBasePath); }}
               className={`px-3 py-2.5 rounded-xl border text-sm transition-all ${
                 customBasePath
-                  ? 'bg-violet-500/20 border-violet-500/40 text-violet-400 hover:bg-violet-500/30'
-                  : 'bg-surface-1/60 border-border/50 text-ink-muted hover:text-ink-inverse hover:border-border'
+                  ? 'bg-accent-secondary/20 border-accent-secondary/40 text-accent-secondary hover:bg-accent-secondary/30'
+                  : 'bg-surface-1/60 border-border/50 text-ink-muted hover:text-ink hover:border-border'
               }`}
               title="设置 Cursor 数据路径"
             >
@@ -1112,7 +1112,7 @@ export default function CursorHistory() {
             <div className="bg-surface-1/60 border border-border/50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
                 <FolderTree className="w-3.5 h-3.5" />
-                <span className="text-sm font-medium text-ink-inverse">Cursor 数据目录</span>
+                <span className="text-sm font-medium text-ink">Cursor 数据目录</span>
                 <span className="text-xs text-ink-faint">（留空使用默认路径）</span>
               </div>
               <div className="flex items-center gap-3">
@@ -1122,7 +1122,7 @@ export default function CursorHistory() {
                     placeholder="例如: ~/Library/Application Support/Cursor/User"
                     value={pathInput}
                     onChange={e => setPathInput(e.target.value)}
-                    className="w-full px-4 py-2 bg-canvas/60 border border-border/50 rounded-lg text-sm text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 transition-all"
+                    className="w-full px-4 py-2 bg-canvas/60 border border-border/50 rounded-lg text-sm text-ink placeholder-ink-faint focus:outline-none focus:border-accent-secondary/50 transition-all"
                   />
                   {/* 路径有效性提示 */}
                   {pathValid !== null && pathInput && (
@@ -1133,14 +1133,14 @@ export default function CursorHistory() {
                 </div>
                 <button
                   onClick={applyCustomPath}
-                  className="px-4 py-2 bg-violet-500/20 border border-violet-500/40 rounded-lg text-sm text-violet-400 hover:bg-violet-500/30 transition-all"
+                  className="px-4 py-2 bg-accent-secondary/20 border border-accent-secondary/40 rounded-lg text-sm text-accent-secondary hover:bg-accent-secondary/30 transition-all"
                 >
                   应用
                 </button>
                 {customBasePath && (
                   <button
                     onClick={() => { setCustomBasePath(''); setPathInput(''); setShowPathSettings(false); }}
-                    className="px-4 py-2 bg-surface-2/40 border border-border/50 rounded-lg text-sm text-ink-muted hover:text-ink-inverse transition-all"
+                    className="px-4 py-2 bg-surface-2/40 border border-border/50 rounded-lg text-sm text-ink-muted hover:text-ink transition-all"
                   >
                     重置
                   </button>
@@ -1169,7 +1169,7 @@ export default function CursorHistory() {
         <div className="max-w-[1920px] mx-auto px-6 flex flex-col" style={{ height: showPathSettings ? 'calc(100vh - 170px)' : 'calc(100vh - 73px)' }}>
           {/* 搜索结果头部 */}
           <div className="flex items-center gap-2 py-4 flex-shrink-0">
-            <h2 className="text-lg font-semibold text-ink-inverse">搜索结果</h2>
+            <h2 className="text-lg font-semibold text-ink">搜索结果</h2>
             <span className="text-sm text-ink-muted">
               (共 {searchTotal} 条，第 {searchPage}/{searchTotalPages} 页)
             </span>
@@ -1181,13 +1181,13 @@ export default function CursorHistory() {
               <div
                 key={`${item.composer_id}-${idx}`}
                 onClick={() => handleSearchResultClick(item)}
-                className="bg-canvas/60 border border-border/30 rounded-xl p-4 hover:border-violet-500/40 cursor-pointer transition-all group"
+                className="bg-canvas/60 border border-border/30 rounded-xl p-4 hover:border-accent-secondary/40 cursor-pointer transition-all group"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-medium text-violet-400 bg-violet-400/10 px-2 py-0.5 rounded-full">{item.project_name}</span>
+                  <span className="text-xs font-medium text-accent-secondary bg-accent-secondary/10 px-2 py-0.5 rounded-full">{item.project_name}</span>
                   {item.session_name && <span className="text-xs text-ink-faint">/ {item.session_name}</span>}
                   {item.match_type === 'title' ? (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">标题匹配</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning">标题匹配</span>
                   ) : (
                     <Badge variant={item.message_type === 1 ? 'tint-info' : 'tint-success'} className="text-xs px-1.5 py-0.5 rounded">
                       {item.message_type === 1 ? '用户' : 'AI'}
@@ -1281,11 +1281,11 @@ export default function CursorHistory() {
             <div className="p-3 border-b border-border/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <History className="w-3.5 h-3.5" />
-                <span className="text-sm font-semibold text-ink-inverse">最近访问</span>
+                <span className="text-sm font-semibold text-ink">最近访问</span>
               </div>
               <button
                 onClick={() => setShowRecentPanel(false)}
-                className="text-ink-faint hover:text-ink-inverse transition-colors"
+                className="text-ink-faint hover:text-ink transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -1320,9 +1320,9 @@ export default function CursorHistory() {
                     }}
                     className="px-4 py-3 cursor-pointer border-b border-border/50 transition-all hover:bg-surface-1/50"
                   >
-                    <div className="text-sm font-medium text-ink-inverse truncate">{session.session_name}</div>
+                    <div className="text-sm font-medium text-ink truncate">{session.session_name}</div>
                     <div className="text-xs text-ink-faint truncate mt-1">{session.project_name}</div>
-                    <div className="text-xs text-violet-400 mt-1">{formatVisitedTime(session.visited_at)}</div>
+                    <div className="text-xs text-accent-secondary mt-1">{formatVisitedTime(session.visited_at)}</div>
                   </div>
                 ))
               )}
@@ -1336,7 +1336,7 @@ export default function CursorHistory() {
                       setRecentSessions([]);
                     }
                   }}
-                  className="w-full py-2 text-xs text-ink-muted hover:text-ink-inverse transition-colors"
+                  className="w-full py-2 text-xs text-ink-muted hover:text-ink transition-colors"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   清空记录
@@ -1358,7 +1358,7 @@ export default function CursorHistory() {
                   placeholder="搜索项目..."
                   value={projectSearch}
                   onChange={e => setProjectSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 transition-all"
+                  className="w-full pl-8 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink placeholder-ink-faint focus:outline-none focus:border-accent-secondary/50 transition-all"
                 />
               </div>
               {/* 多选模式切换和批量操作按钮 */}
@@ -1371,8 +1371,8 @@ export default function CursorHistory() {
                     }}
                     className={`px-2 py-1 text-xs rounded transition-all ${
                       projectSelectMode
-                        ? 'bg-violet-600 text-ink-inverse'
-                        : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50'
+                        ? 'bg-accent-secondary text-ink-inverse'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface-2/50'
                     }`}
                     title={projectSelectMode ? '退出多选' : '多选模式'}
                   >
@@ -1389,7 +1389,7 @@ export default function CursorHistory() {
                             setSelectedProjectHashes(new Set(projects.map(p => p.workspace_hash)));
                           }
                         }}
-                        className="px-2 py-1 text-xs text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50 rounded transition-all"
+                        className="px-2 py-1 text-xs text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded transition-all"
                       >
                         {selectedProjectHashes.size === projects.length ? '取消全选' : '全选'}
                       </button>
@@ -1426,7 +1426,7 @@ export default function CursorHistory() {
                   <p className="text-xs text-ink-faint mb-4">请先同步 Cursor 对话数据到本地数据库</p>
                   <button
                     onClick={triggerSync}
-                    className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-ink-inverse text-xs rounded-lg transition-all inline-flex items-center gap-2"
+                    className="px-4 py-2 bg-accent-secondary hover:bg-accent-secondary text-ink-inverse text-xs rounded-lg transition-all inline-flex items-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" />
                     同步数据
@@ -1445,9 +1445,9 @@ export default function CursorHistory() {
                     }}
                     className={`group pl-1 pr-2 py-3 cursor-pointer border-b border-border/50 transition-all hover:bg-surface-1/50 ${
                       selectedProject?.workspace_hash === project.workspace_hash
-                        ? 'bg-violet-500/10'
+                        ? 'bg-accent-secondary/10'
                         : ''
-                    } ${selectedProjectHashes.has(project.workspace_hash) ? 'bg-violet-500/5' : ''}`}
+                    } ${selectedProjectHashes.has(project.workspace_hash) ? 'bg-accent-secondary/5' : ''}`}
                   >
                     <div className="flex items-center gap-2">
                       {projectSelectMode && (
@@ -1456,11 +1456,11 @@ export default function CursorHistory() {
                           checked={selectedProjectHashes.has(project.workspace_hash)}
                           onChange={() => toggleProjectSelect(project.workspace_hash)}
                           onClick={e => e.stopPropagation()}
-                          className="w-3.5 h-3.5 rounded border-border text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer"
+                          className="w-3.5 h-3.5 rounded border-border text-accent-secondary focus:ring-accent-secondary focus:ring-offset-0 cursor-pointer"
                         />
                       )}
                       <Folder className="w-3.5 h-3.5" />
-                      <span className="text-sm font-medium text-ink-inverse truncate flex-1">{project.project_name}</span>
+                      <span className="text-sm font-medium text-ink truncate flex-1">{project.project_name}</span>
                       {!projectSelectMode && (
                         <button
                           onClick={(e) => {
@@ -1499,7 +1499,7 @@ export default function CursorHistory() {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <FolderOpen className="w-3.5 h-3.5" />
-                    <span className="text-sm font-semibold text-ink-inverse truncate">{selectedProject.project_name}</span>
+                    <span className="text-sm font-semibold text-ink truncate">{selectedProject.project_name}</span>
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="relative">
@@ -1515,7 +1515,7 @@ export default function CursorHistory() {
                             loadSessions(selectedProject.workspace_hash, e.target.value, selectedFilterTag);
                           }, 300);
                         }}
-                        className="w-full pl-9 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink-inverse placeholder-ink-faint focus:outline-none focus:border-violet-500/50 transition-all"
+                        className="w-full pl-9 pr-3 py-2 bg-surface-1/60 border border-border/50 rounded-lg text-xs text-ink placeholder-ink-faint focus:outline-none focus:border-accent-secondary/50 transition-all"
                       />
                     </div>
                     <TagFilter onTagSelect={(tag) => {
@@ -1551,7 +1551,7 @@ export default function CursorHistory() {
                         onClick={() => setSelectMode(!selectMode)}
                         className={`px-2 py-1 rounded text-xs transition-colors ${
                           selectMode
-                            ? 'bg-violet-500 text-ink-inverse'
+                            ? 'bg-accent-secondary text-ink-inverse'
                             : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
                         }`}
                       >
@@ -1580,7 +1580,7 @@ export default function CursorHistory() {
                       onClick={() => handleSessionClick(session)}
                       className={`group px-4 py-3 cursor-pointer border-b border-border/30 transition-all hover:bg-surface-1/40 flex items-start gap-3 ${
                         selectedSession?.composer_id === session.composer_id
-                          ? 'bg-violet-500/10 border-l-2 border-l-violet-500'
+                          ? 'bg-accent-secondary/10 border-l-2 border-l-accent-secondary'
                           : ''
                       } ${
                         selectMode && selectedSessionIds.includes(session.composer_id)
@@ -1602,7 +1602,7 @@ export default function CursorHistory() {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-ink-inverse truncate flex-1">{session.name || `会话 ${session.composer_id.slice(0, 8)}`}</span>
+                          <span className="text-sm font-medium text-ink truncate flex-1">{session.name || `会话 ${session.composer_id.slice(0, 8)}`}</span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1638,11 +1638,11 @@ export default function CursorHistory() {
                 <div className="p-4 border-b border-border/30 bg-canvas/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-accent-secondary/20 flex items-center justify-center">
                         <MessageSquare className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-semibold text-ink-inverse truncate">{selectedSession.name || `会话 ${selectedSession.composer_id.slice(0, 8)}`}</h3>
+                        <h3 className="text-sm font-semibold text-ink truncate">{selectedSession.name || `会话 ${selectedSession.composer_id.slice(0, 8)}`}</h3>
                         <div className="flex items-center gap-3 text-xs text-ink-faint mt-1 flex-wrap">
                           <span>已加载 {messages.length} / {totalMessages} 条消息</span>
                           {selectedSession.created_at && (
@@ -1658,8 +1658,8 @@ export default function CursorHistory() {
                         onClick={handleToggleFavorite}
                         className={`p-2 rounded-lg transition-all ${
                           isFavorite
-                            ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                            : 'bg-surface-2/50 text-ink-muted hover:text-amber-400'
+                            ? 'bg-warning/20 text-warning hover:bg-warning/30'
+                            : 'bg-surface-2/50 text-ink-muted hover:text-warning'
                         }`}
                         title={isFavorite ? '取消收藏' : '收藏会话'}
                       >
@@ -1668,7 +1668,7 @@ export default function CursorHistory() {
                       {/* 导出按钮 */}
                       <button
                         onClick={() => setShowExportDialog(true)}
-                        className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/40 rounded-lg text-xs text-violet-400 hover:bg-violet-500/30 transition-all flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-accent-secondary/20 border border-accent-secondary/40 rounded-lg text-xs text-accent-secondary hover:bg-accent-secondary/30 transition-all flex items-center gap-1.5"
                         title="导出会话"
                       >
                         <Download className="w-4 h-4" />
@@ -1701,7 +1701,7 @@ export default function CursorHistory() {
                         <div className="text-center py-3">
                           <button
                             onClick={loadMoreMessages}
-                            className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                            className="text-xs text-accent-secondary hover:text-accent-secondary transition-colors"
                           >
                             <ChevronUp className="w-4 h-4 mr-1" />
                             向上滚动或点击加载更早消息（还有 {totalMessages - messages.length} 条）
@@ -1743,11 +1743,11 @@ export default function CursorHistory() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-surface-1 border border-border rounded-2xl p-6 w-full max-w-md shadow-lg">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-accent-secondary/20 flex items-center justify-center">
                 <Download className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-ink-inverse">导出会话</h3>
+                <h3 className="text-lg font-semibold text-ink">导出会话</h3>
                 <p className="text-xs text-ink-muted">选择导出格式和选项</p>
               </div>
             </div>
@@ -1762,7 +1762,7 @@ export default function CursorHistory() {
                     onClick={() => setExportFormat(format)}
                     className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
                       exportFormat === format
-                        ? 'bg-violet-500/20 border-violet-500/50 text-violet-400'
+                        ? 'bg-accent-secondary/20 border-accent-secondary/50 text-accent-secondary'
                         : 'bg-surface-2/30 border-border/50 text-ink-muted hover:border-border'
                     }`}
                   >
@@ -1781,7 +1781,7 @@ export default function CursorHistory() {
                   type="checkbox"
                   checked={exportOptions.includeCodeBlocks}
                   onChange={e => setExportOptions(prev => ({ ...prev, includeCodeBlocks: e.target.checked }))}
-                  className="w-4 h-4 rounded border-border text-violet-500 focus:ring-violet-500/50 bg-surface-2"
+                  className="w-4 h-4 rounded border-border text-accent-secondary focus:ring-accent-secondary/50 bg-surface-2"
                 />
                 <span className="text-sm text-ink-muted">包含代码块</span>
               </label>
@@ -1790,7 +1790,7 @@ export default function CursorHistory() {
                   type="checkbox"
                   checked={exportOptions.includeTimestamps}
                   onChange={e => setExportOptions(prev => ({ ...prev, includeTimestamps: e.target.checked }))}
-                  className="w-4 h-4 rounded border-border text-violet-500 focus:ring-violet-500/50 bg-surface-2"
+                  className="w-4 h-4 rounded border-border text-accent-secondary focus:ring-accent-secondary/50 bg-surface-2"
                 />
                 <span className="text-sm text-ink-muted">包含序号</span>
               </label>
@@ -1800,7 +1800,7 @@ export default function CursorHistory() {
                     type="checkbox"
                     checked={exportOptions.includeAvatars}
                     onChange={e => setExportOptions(prev => ({ ...prev, includeAvatars: e.target.checked }))}
-                    className="w-4 h-4 rounded border-border text-violet-500 focus:ring-violet-500/50 bg-surface-2"
+                    className="w-4 h-4 rounded border-border text-accent-secondary focus:ring-accent-secondary/50 bg-surface-2"
                   />
                   <span className="text-sm text-ink-muted">包含头像图标 (HTML)</span>
                 </label>
@@ -1812,14 +1812,14 @@ export default function CursorHistory() {
               <button
                 onClick={() => setShowExportDialog(false)}
                 disabled={exportLoading}
-                className="flex-1 px-4 py-2.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-2/50 text-ink-inverse rounded-xl transition-all text-sm font-medium"
+                className="flex-1 px-4 py-2.5 bg-surface-2 hover:bg-surface-3 disabled:bg-surface-2/50 text-ink rounded-xl transition-all text-sm font-medium"
               >
                 取消
               </button>
               <button
                 onClick={handleExport}
                 disabled={exportLoading}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 text-ink-inverse rounded-xl transition-all text-sm font-medium flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-accent-secondary to-accent hover:from-accent-secondary hover:to-accent disabled:opacity-50 text-ink-inverse rounded-xl transition-all text-sm font-medium flex items-center justify-center gap-2"
               >
                 {exportLoading ? (
                   <>
@@ -1905,11 +1905,11 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
       <div className="p-3 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Star className="w-3.5 h-3.5" />
-          <span className="text-sm font-semibold text-ink-inverse">收藏夹</span>
+          <span className="text-sm font-semibold text-ink">收藏夹</span>
         </div>
         <button
           onClick={onClose}
-          className="text-ink-faint hover:text-ink-inverse transition-colors"
+          className="text-ink-faint hover:text-ink transition-colors"
         >
           <X className="w-3 h-3" />
         </button>
@@ -1933,7 +1933,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-amber-400 truncate">{fav.session_name || '未命名会话'}</div>
+                  <div className="text-sm font-medium text-warning truncate">{fav.session_name || '未命名会话'}</div>
                   <div className="text-xs text-ink-faint truncate mt-1">{fav.project_name || '未知项目'}</div>
                   <div className="text-xs text-ink-faint mt-1">{new Date(fav.created_at).toLocaleDateString('zh-CN')}</div>
                 </div>
@@ -1997,11 +1997,11 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
       <div className="p-3 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-3.5 h-3.5" />
-          <span className="text-sm font-semibold text-ink-inverse">数据统计</span>
+          <span className="text-sm font-semibold text-ink">数据统计</span>
         </div>
         <button
           onClick={onClose}
-          className="text-ink-faint hover:text-ink-inverse transition-colors"
+          className="text-ink-faint hover:text-ink transition-colors"
         >
           <X className="w-3 h-3" />
         </button>
@@ -2018,11 +2018,11 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-surface-1/60 border border-border/50 rounded-xl p-3">
                 <div className="text-xs text-ink-muted mb-1">总会话</div>
-                <div className="text-2xl font-bold text-ink-inverse">{stats.overview.total_sessions}</div>
+                <div className="text-2xl font-bold text-ink">{stats.overview.total_sessions}</div>
               </div>
               <div className="bg-surface-1/60 border border-border/50 rounded-xl p-3">
                 <div className="text-xs text-ink-muted mb-1">总消息</div>
-                <div className="text-2xl font-bold text-ink-inverse">{stats.overview.total_messages}</div>
+                <div className="text-2xl font-bold text-ink">{stats.overview.total_messages}</div>
               </div>
               <div className="bg-surface-1/60 border border-border/50 rounded-xl p-3">
                 <div className="text-xs text-ink-muted mb-1">今日会话</div>
@@ -2043,7 +2043,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
                     <div className="text-xs text-ink-faint w-12">{item.date.slice(5)}</div>
                     <div className="flex-1 h-6 bg-surface-2/30 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
+                        className="h-full bg-gradient-to-r from-accent-secondary to-accent rounded-full"
                         style={{ width: `${Math.max(5, (item.sessions / Math.max(...stats.trends.map(t => t.sessions))) * 100)}%` }}
                       />
                     </div>
