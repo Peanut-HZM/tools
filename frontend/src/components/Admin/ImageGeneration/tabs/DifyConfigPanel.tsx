@@ -12,7 +12,7 @@ import {
 } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 
 export default function DifyConfigPanel() {
   const { t } = useI18n();
@@ -131,7 +131,8 @@ export default function DifyConfigPanel() {
         </div>
       )}
 
-      <Card className="p-6 space-y-4">
+      <Card>
+        <CardContent className="space-y-4">
         <div>
           <label className="block text-sm text-ink-muted mb-2">
             {igT.apiUrl}
@@ -231,6 +232,7 @@ export default function DifyConfigPanel() {
             {testing ? igT.testing : igT.testConnection}
           </Button>
         </div>
+        </CardContent>
       </Card>
     </div>
   );

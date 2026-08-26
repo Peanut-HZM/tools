@@ -11,7 +11,7 @@ import {
 } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 export default function RetentionConfigPanel() {
   const { t } = useI18n();
@@ -114,26 +114,37 @@ export default function RetentionConfigPanel() {
 
       {/* OSS 用量 */}
       {config && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-ink-inverse mb-4">{igT.ossUsage}</h3>
+        <Card>
+          <CardHeader>
+            <CardTitle>{igT.ossUsage}</CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-surface-2 p-4">
-              <div className="text-ink-muted text-xs mb-1">{igT.totalFiles}</div>
-              <div className="text-lg font-bold text-ink-inverse">{config.total_files}</div>
+            <Card className="bg-surface-2">
+              <CardContent className="p-4">
+                <div className="text-ink-muted text-xs mb-1">{igT.totalFiles}</div>
+                <div className="text-lg font-bold text-ink-inverse">{config.total_files}</div>
+              </CardContent>
             </Card>
-            <Card className="bg-surface-2 p-4">
-              <div className="text-ink-muted text-xs mb-1">{igT.totalSize}</div>
-              <div className="text-lg font-bold text-ink-inverse">
-                {config.total_size_mb.toFixed(2)} MB
-              </div>
+            <Card className="bg-surface-2">
+              <CardContent className="p-4">
+                <div className="text-ink-muted text-xs mb-1">{igT.totalSize}</div>
+                <div className="text-lg font-bold text-ink-inverse">
+                  {config.total_size_mb.toFixed(2)} MB
+                </div>
+              </CardContent>
             </Card>
           </div>
+          </CardContent>
         </Card>
       )}
 
       {/* 策略配置 */}
-      <Card className="p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-ink-inverse">{igT.retentionConfig}</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>{igT.retentionConfig}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
 
         <div>
           <label className="block text-sm text-ink-muted mb-2">{igT.cleanupMode}</label>
@@ -189,6 +200,7 @@ export default function RetentionConfigPanel() {
             {triggering ? igT.triggering : igT.triggerCleanup}
           </Button>
         </div>
+        </CardContent>
       </Card>
     </div>
   );

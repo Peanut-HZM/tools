@@ -4,7 +4,7 @@
  */
 import { useState } from 'react';
 import { useI18n } from '../../../i18n';
-import { Button } from '@/components/ui/Button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import UsageStats from './tabs/UsageStats';
 import DifyConfigPanel from './tabs/DifyConfigPanel';
 import DegradationConfigPanel from './tabs/DegradationConfigPanel';
@@ -30,27 +30,22 @@ export default function ImageGenerationAdmin() {
     <div>
       <h2 className="text-2xl font-bold text-ink-inverse mb-6">{igT.admin.title}</h2>
 
-      {/* Tab 切换 */}
-      <div className="flex gap-1 mb-6 bg-surface-2 rounded-lg p-1 border border-border overflow-x-auto">
-        {tabs.map((tab) => (
-          <Button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            variant={activeTab === tab.key ? 'default' : 'ghost'}
-            className="flex-1 whitespace-nowrap flex items-center justify-center gap-2"
-          >
-            <i className={`fas ${tab.icon}`}></i>
-            <span>{tab.label}</span>
-          </Button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
+        <TabsList className="mb-6">
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key} className="flex items-center gap-2">
+              <i className={`fas ${tab.icon}`}></i>
+              <span>{tab.label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {/* Tab 内容 */}
-      {activeTab === 'stats' && <UsageStats />}
-      {activeTab === 'dify' && <DifyConfigPanel />}
-      {activeTab === 'degradation' && <DegradationConfigPanel />}
-      {activeTab === 'retention' && <RetentionConfigPanel />}
-      {activeTab === 'quota' && <UserQuotaTable />}
+        <TabsContent value="stats"><UsageStats /></TabsContent>
+        <TabsContent value="dify"><DifyConfigPanel /></TabsContent>
+        <TabsContent value="degradation"><DegradationConfigPanel /></TabsContent>
+        <TabsContent value="retention"><RetentionConfigPanel /></TabsContent>
+        <TabsContent value="quota"><UserQuotaTable /></TabsContent>
+      </Tabs>
     </div>
   );
 }

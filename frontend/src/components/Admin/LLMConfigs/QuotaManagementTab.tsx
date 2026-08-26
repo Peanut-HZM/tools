@@ -8,6 +8,7 @@ import { listUsers as fetchSystemUsers } from '@/api/adminApi';
 import { UserResponse } from '@/api/authApi';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 export default function QuotaManagementTab() {
   const [items, setItems] = useState<QuotaInfo[]>([]);
@@ -185,27 +186,17 @@ export default function QuotaManagementTab() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                      info.quota_mode === 'count'
-                        ? 'bg-accent-info/20 text-accent-info border-accent-info/30'
-                        : info.quota_mode === 'token'
-                        ? 'bg-accent-secondary/20 text-accent-secondary border-purple-500/30'
-                        : 'bg-amber-500/20 text-accent-warning border-amber-500/30'
-                    }`}>
+                    <Badge variant={info.quota_mode === 'count' ? 'default' : info.quota_mode === 'token' ? 'default' : 'warning'}>
                       {getModeLabel(info.quota_mode)}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3">
                     {renderRemaining(info)}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      info.is_valid
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-red-500/20 text-danger'
-                    }`}>
+                    <Badge variant={info.is_valid ? 'success' : 'destructive'}>
                       {info.is_valid ? '有效' : '失效'}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-xs text-ink-faint truncate max-w-[200px]" title={info.notes || undefined}>

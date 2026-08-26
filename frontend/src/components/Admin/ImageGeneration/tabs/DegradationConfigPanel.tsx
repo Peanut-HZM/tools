@@ -11,7 +11,7 @@ import {
 } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 export default function DegradationConfigPanel() {
   const { t } = useI18n();
@@ -112,30 +112,39 @@ export default function DegradationConfigPanel() {
 
       {/* 当前状态 */}
       {status && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-ink-inverse mb-4">{igT.currentDegradationStatus}</h3>
+        <Card>
+          <CardHeader>
+            <CardTitle>{igT.currentDegradationStatus}</CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-surface-2 p-4">
-              <div className="text-ink-muted text-xs mb-1">{igT.degradationStatus}</div>
-              <div
-                className={`text-lg font-bold ${
-                  status.is_degraded ? 'text-danger' : 'text-success'
-                }`}
-              >
-                {status.is_degraded ? igT.degraded : igT.normal}
-              </div>
+            <Card className="bg-surface-2">
+              <CardContent className="p-4">
+                <div className="text-ink-muted text-xs mb-1">{igT.degradationStatus}</div>
+                <div
+                  className={`text-lg font-bold ${
+                    status.is_degraded ? 'text-danger' : 'text-success'
+                  }`}
+                >
+                  {status.is_degraded ? igT.degraded : igT.normal}
+                </div>
+              </CardContent>
             </Card>
-            <Card className="bg-surface-2 p-4">
-              <div className="text-ink-muted text-xs mb-1">{igT.failureCount}</div>
-              <div className="text-lg font-bold text-ink-inverse">{status.failure_count}</div>
+            <Card className="bg-surface-2">
+              <CardContent className="p-4">
+                <div className="text-ink-muted text-xs mb-1">{igT.failureCount}</div>
+                <div className="text-lg font-bold text-ink-inverse">{status.failure_count}</div>
+              </CardContent>
             </Card>
-            <Card className="bg-surface-2 p-4">
-              <div className="text-ink-muted text-xs mb-1">{igT.degradedAt}</div>
-              <div className="text-sm text-ink-inverse">
-                {status.degraded_at
-                  ? new Date(status.degraded_at).toLocaleString()
-                  : '-'}
-              </div>
+            <Card className="bg-surface-2">
+              <CardContent className="p-4">
+                <div className="text-ink-muted text-xs mb-1">{igT.degradedAt}</div>
+                <div className="text-sm text-ink-inverse">
+                  {status.degraded_at
+                    ? new Date(status.degraded_at).toLocaleString()
+                    : '-'}
+                </div>
+              </CardContent>
             </Card>
           </div>
 
@@ -151,12 +160,16 @@ export default function DegradationConfigPanel() {
               </Button>
             </div>
           )}
+          </CardContent>
         </Card>
       )}
 
       {/* 配置编辑 */}
-      <Card className="p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-ink-inverse">{igT.degradationConfig}</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>{igT.degradationConfig}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
 
         <div className="flex items-center gap-3">
           <input
@@ -206,6 +219,7 @@ export default function DegradationConfigPanel() {
             {saving ? igT.saving : igT.saveConfig}
           </Button>
         </div>
+        </CardContent>
       </Card>
     </div>
   );

@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useChapterStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 
 interface ChapterListProps {
   chapters: Chapter[];
@@ -110,21 +111,15 @@ const ChapterList: React.FC<ChapterListProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-3 py-1 bg-surface-2/50 rounded-full text-xs text-ink-muted">
+                  <Badge variant="secondary">
                     {getTypeLabel(chapter.chapter_type)}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="px-6 py-4">
                   <code className="text-ink-muted text-sm bg-surface-2/30 px-2 py-1 rounded">{chapter.slug}</code>
                 </td>
                 <td className="px-6 py-4">
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      chapter.is_locked
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    }`}
-                  >
+                  <Badge variant={chapter.is_locked ? 'warning' : 'success'}>
                     {chapter.is_locked ? (
                       <>
                         <i className="fas fa-lock mr-1"></i>锁定
@@ -134,7 +129,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
                         <i className="fas fa-lock-open mr-1"></i>未锁定
                       </>
                     )}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end space-x-2">

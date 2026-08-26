@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { llmProviderApi } from '../../services/llmProviderApi';
 import { llmModelApi } from '../../services/llmModelApi';
-import { Card } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 
 interface LLMStatsProps {
   refreshInterval?: number;
@@ -92,29 +92,37 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {/* 供应商数 */}
-      <Card className="bg-surface-2 p-4">
-        <div className="text-sm text-accent font-medium">供应商数</div>
-        <div className="text-2xl font-bold text-ink-inverse mt-1">{providerCount}</div>
+      <Card className="bg-surface-2">
+        <CardContent className="pt-4">
+          <div className="text-sm text-accent font-medium">供应商数</div>
+          <div className="text-2xl font-bold text-ink-inverse mt-1">{providerCount}</div>
+        </CardContent>
       </Card>
 
       {/* 模型总数 */}
-      <Card className="bg-surface-2 p-4">
-        <div className="text-sm text-green-400 font-medium">模型总数</div>
-        <div className="text-2xl font-bold text-ink-inverse mt-1">{modelCount}</div>
+      <Card className="bg-surface-2">
+        <CardContent className="pt-4">
+          <div className="text-sm text-green-400 font-medium">模型总数</div>
+          <div className="text-2xl font-bold text-ink-inverse mt-1">{modelCount}</div>
+        </CardContent>
       </Card>
 
       {/* 活跃模型 */}
-      <Card className="bg-surface-2 p-4">
-        <div className="text-sm text-accent-secondary font-medium">活跃模型</div>
-        <div className="text-2xl font-bold text-ink-inverse mt-1">{activeModelCount}</div>
+      <Card className="bg-surface-2">
+        <CardContent className="pt-4">
+          <div className="text-sm text-accent-secondary font-medium">活跃模型</div>
+          <div className="text-2xl font-bold text-ink-inverse mt-1">{activeModelCount}</div>
+        </CardContent>
       </Card>
 
       {/* 活跃率 */}
-      <Card className="bg-surface-2 p-4">
-        <div className="text-sm text-orange-400 font-medium">活跃率</div>
-        <div className="text-2xl font-bold text-ink-inverse mt-1">
-          {modelCount > 0 ? `${((activeModelCount / modelCount) * 100).toFixed(0)}%` : '0%'}
-        </div>
+      <Card className="bg-surface-2">
+        <CardContent className="pt-4">
+          <div className="text-sm text-orange-400 font-medium">活跃率</div>
+          <div className="text-2xl font-bold text-ink-inverse mt-1">
+            {modelCount > 0 ? `${((activeModelCount / modelCount) * 100).toFixed(0)}%` : '0%'}
+          </div>
+        </CardContent>
       </Card>
 
       {/* 按供应商类型统计 */}
@@ -123,17 +131,19 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
           <h4 className="text-sm font-semibold text-ink-muted mb-3">按供应商类型</h4>
           <div className="space-y-2">
             {Object.entries(byProviderType).map(([type, count]) => (
-              <Card key={type} className="p-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-ink-muted">{getProviderLabel(type)}</span>
-                  <span className="text-sm text-ink-muted">{count} 个</span>
-                </div>
-                <div className="mt-1.5 w-full bg-surface-3 rounded-full h-1.5">
-                  <div
-                    className="bg-accent h-1.5 rounded-full"
-                    style={{ width: `${Math.min(100, (count / Math.max(providerCount, 1)) * 100)}%` }}
-                  />
-                </div>
+              <Card key={type}>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-ink-muted">{getProviderLabel(type)}</span>
+                    <span className="text-sm text-ink-muted">{count} 个</span>
+                  </div>
+                  <div className="mt-1.5 w-full bg-surface-3 rounded-full h-1.5">
+                    <div
+                      className="bg-accent h-1.5 rounded-full"
+                      style={{ width: `${Math.min(100, (count / Math.max(providerCount, 1)) * 100)}%` }}
+                    />
+                  </div>
+                </CardContent>
               </Card>
             ))}
           </div>
@@ -146,17 +156,19 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
           <h4 className="text-sm font-semibold text-ink-muted mb-3">按分类</h4>
           <div className="space-y-2">
             {Object.entries(byCategory).map(([cat, count]) => (
-              <Card key={cat} className="p-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-ink-muted">{getCategoryLabel(cat)}</span>
-                  <span className="text-sm text-ink-muted">{count} 个</span>
-                </div>
-                <div className="mt-1.5 w-full bg-surface-3 rounded-full h-1.5">
-                  <div
-                    className="bg-accent-secondary h-1.5 rounded-full"
-                    style={{ width: `${Math.min(100, (count / Math.max(modelCount, 1)) * 100)}%` }}
-                  />
-                </div>
+              <Card key={cat}>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-ink-muted">{getCategoryLabel(cat)}</span>
+                    <span className="text-sm text-ink-muted">{count} 个</span>
+                  </div>
+                  <div className="mt-1.5 w-full bg-surface-3 rounded-full h-1.5">
+                    <div
+                      className="bg-accent-secondary h-1.5 rounded-full"
+                      style={{ width: `${Math.min(100, (count / Math.max(modelCount, 1)) * 100)}%` }}
+                    />
+                  </div>
+                </CardContent>
               </Card>
             ))}
           </div>

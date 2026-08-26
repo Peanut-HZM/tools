@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { getStats, StatsResponse } from '../../../../api/adminImageGenerationApi';
 import { useI18n } from '../../../../i18n';
-import { Card } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 export default function UsageStats() {
   const { t } = useI18n();
@@ -74,29 +74,40 @@ export default function UsageStats() {
 
       {/* 总览卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="text-ink-muted text-xs mb-1">{igT.totalCalls}</div>
-          <div className="text-2xl font-bold text-ink-inverse">{stats.total_calls}</div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-ink-muted text-xs mb-1">{igT.totalCalls}</div>
+            <div className="text-2xl font-bold text-ink-inverse">{stats.total_calls}</div>
+          </CardContent>
         </Card>
-        <Card className="p-4">
-          <div className="text-ink-muted text-xs mb-1">{igT.successCalls}</div>
-          <div className="text-2xl font-bold text-success">{stats.success_calls}</div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-ink-muted text-xs mb-1">{igT.successCalls}</div>
+            <div className="text-2xl font-bold text-success">{stats.success_calls}</div>
+          </CardContent>
         </Card>
-        <Card className="p-4">
-          <div className="text-ink-muted text-xs mb-1">{igT.failedCalls}</div>
-          <div className="text-2xl font-bold text-danger">{stats.failed_calls}</div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-ink-muted text-xs mb-1">{igT.failedCalls}</div>
+            <div className="text-2xl font-bold text-danger">{stats.failed_calls}</div>
+          </CardContent>
         </Card>
-        <Card className="p-4">
-          <div className="text-ink-muted text-xs mb-1">{igT.successRate}</div>
-          <div className="text-2xl font-bold text-accent">
-            {(stats.success_rate * 100).toFixed(1)}%
-          </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-ink-muted text-xs mb-1">{igT.successRate}</div>
+            <div className="text-2xl font-bold text-accent">
+              {(stats.success_rate * 100).toFixed(1)}%
+            </div>
+          </CardContent>
         </Card>
       </div>
 
       {/* 模型分布 */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-ink-inverse mb-4">{igT.modelDistribution}</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>{igT.modelDistribution}</CardTitle>
+        </CardHeader>
+        <CardContent>
         {stats.model_distribution.length === 0 ? (
           <p className="text-ink-muted text-sm">{igT.noData}</p>
         ) : (
@@ -117,11 +128,15 @@ export default function UsageStats() {
             ))}
           </div>
         )}
+        </CardContent>
       </Card>
 
       {/* 近 N 天调用量 */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-ink-inverse mb-4">{igT.dailyCalls}</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>{igT.dailyCalls}</CardTitle>
+        </CardHeader>
+        <CardContent>
         {stats.daily_calls.length === 0 ? (
           <p className="text-ink-muted text-sm">{igT.noData}</p>
         ) : (
@@ -140,6 +155,7 @@ export default function UsageStats() {
             ))}
           </div>
         )}
+        </CardContent>
       </Card>
     </div>
   );

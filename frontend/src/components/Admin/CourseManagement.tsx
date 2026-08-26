@@ -8,6 +8,7 @@ import CourseEditor from './CourseManagement/CourseEditor';
 import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 const CourseManagement: React.FC = () => {
   const navigate = useNavigate();
   const { toasts, addToast, removeToast, error, success } = useToast();
@@ -207,17 +208,15 @@ const CourseManagement: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-1 rounded-full ${
-                        course.status === 'published'
-                          ? 'bg-green-500/20 text-green-400'
-                          : course.status === 'draft'
-                          ? 'bg-surface-3/20 text-ink-muted'
-                          : 'bg-orange-500/20 text-orange-400'
-                      }`}
-                    >
+                    <Badge variant={
+                      course.status === 'published'
+                        ? 'success'
+                        : course.status === 'draft'
+                        ? 'secondary'
+                        : 'warning'
+                    }>
                       {course.status === 'published' ? '已发布' : course.status === 'draft' ? '草稿' : '已归档'}
-                    </span>
+                    </Badge>
                     <span className="text-ink-faint">
                       <i className="fas fa-users mr-1"></i>
                       {course.statistics?.enroll_count || 0} 人学习

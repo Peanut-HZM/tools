@@ -4,41 +4,28 @@
  */
 import { useState } from 'react';
 import { ProvidersTab, ModelsTab, QuotaManagementTab } from './LLMConfigs';
-import { Button } from '@/components/ui/Button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 type TabKey = 'providers' | 'models' | 'quota';
 
 export default function LLMConfigsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('providers');
 
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: 'providers', label: '模型供应商' },
-    { key: 'models', label: '模型配置' },
-    { key: 'quota', label: '额度管理' },
-  ];
-
   return (
     <div>
       <h2 className="text-2xl font-bold text-ink-inverse mb-6">大模型配置管理</h2>
 
-      {/* Tab 切换 */}
-      <div className="flex gap-1 mb-6 bg-surface-2 rounded-lg p-1 border border-border">
-        {tabs.map((tab) => (
-          <Button
-            key={tab.key}
-            variant={activeTab === tab.key ? 'default' : 'secondary'}
-            onClick={() => setActiveTab(tab.key)}
-            className="flex-1"
-          >
-            {tab.label}
-          </Button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
+        <TabsList className="mb-6">
+          <TabsTrigger value="providers">模型供应商</TabsTrigger>
+          <TabsTrigger value="models">模型配置</TabsTrigger>
+          <TabsTrigger value="quota">额度管理</TabsTrigger>
+        </TabsList>
 
-      {/* Tab 内容 */}
-      {activeTab === 'providers' && <ProvidersTab />}
-      {activeTab === 'models' && <ModelsTab />}
-      {activeTab === 'quota' && <QuotaManagementTab />}
+        <TabsContent value="providers"><ProvidersTab /></TabsContent>
+        <TabsContent value="models"><ModelsTab /></TabsContent>
+        <TabsContent value="quota"><QuotaManagementTab /></TabsContent>
+      </Tabs>
     </div>
   );
 }

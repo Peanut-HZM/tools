@@ -7,6 +7,7 @@ import { llmProviderApi, LLMProvider } from '../../../services/llmProviderApi';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import ModelDialog from './ModelDialog';
 import DeleteConfirmModal from './DeleteConfirmModal';
 
@@ -215,9 +216,9 @@ export default function ModelsTab() {
                   <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
                       {m.is_default ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                        <Badge variant="success">
                           ★ 全局
-                        </span>
+                        </Badge>
                       ) : (
                         <button
                           onClick={() => handleSetDefault(m.id, m.name)}
@@ -227,9 +228,9 @@ export default function ModelsTab() {
                         </button>
                       )}
                       {m.is_default_for_category ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                        <Badge variant="warning">
                           ★ 分类
-                        </span>
+                        </Badge>
                       ) : (
                         <button
                           onClick={() => handleSetCategoryDefault(m)}
@@ -241,13 +242,9 @@ export default function ModelsTab() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                      m.is_active
-                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-danger/20 text-danger border-red-500/30'
-                    }`}>
+                    <Badge variant={m.is_active ? 'success' : 'destructive'}>
                       {m.is_active ? '启用' : '禁用'}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1">

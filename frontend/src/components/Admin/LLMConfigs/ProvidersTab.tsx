@@ -6,6 +6,7 @@ import { llmProviderApi, LLMProvider, CreateProviderRequest } from '../../../ser
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import ProviderDialog from './ProviderDialog';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ApiKeyDisplay from './ApiKeyDisplay';
@@ -185,9 +186,9 @@ export default function ProvidersTab() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-1 text-ink-muted border border-border">
+                    <Badge variant="secondary">
                       {getProviderLabel(p.provider_type)}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-ink-muted text-sm truncate max-w-[250px]" title={p.base_url}>
@@ -202,13 +203,9 @@ export default function ProvidersTab() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => handleToggle(p)}>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        p.is_active
-                          ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30'
-                          : 'bg-danger/20 text-danger border-red-500/30 hover:bg-red-500/30'
-                      }`}>
+                      <Badge variant={p.is_active ? 'success' : 'destructive'}>
                         {p.is_active ? '启用' : '禁用'}
-                      </span>
+                      </Badge>
                     </button>
                   </td>
                   <td className="px-4 py-3">

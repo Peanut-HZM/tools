@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { agentApi, Agent } from '../../services/agentApi';
 import { useToast } from '../../hooks/useToast';
+import { Badge } from '@/components/ui/Badge';
 export default function AgentManagement() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -241,9 +242,9 @@ export default function AgentManagement() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     {agent.is_default ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+                      <Badge variant="success">
                         默认
-                      </span>
+                      </Badge>
                     ) : (
                       <button
                         onClick={() => handleSetDefault(agent.id, agent.name)}
@@ -254,13 +255,9 @@ export default function AgentManagement() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                      agent.is_active
-                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-red-500/20 text-danger border-red-500/30'
-                    }`}>
+                    <Badge variant={agent.is_active ? 'success' : 'destructive'}>
                       {agent.is_active ? '启用' : '禁用'}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">

@@ -3,6 +3,7 @@ import { listToolsPaginated, updateToolStatus, updateTool, uploadToolIcon, delet
 import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 export default function ToolManagement() {
   const [activeTab, setActiveTab] = useState<'tools' | 'categories'>('tools');
   const [tools, setTools] = useState<Tool[]>([]);
@@ -401,34 +402,34 @@ export default function ToolManagement() {
             <div className="flex items-center gap-2 mb-3 flex-wrap">
               <span className="text-xs text-ink-faint">已筛选:</span>
               {toolSearch && (
-                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
+                <Badge variant="default">
                   搜索: {toolSearch}
-                </span>
+                </Badge>
               )}
               {toolStatusFilter && (
-                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
+                <Badge variant="default">
                   状态: {toolStatusFilter === 'online' ? '在线' : '离线'}
-                </span>
+                </Badge>
               )}
               {toolCategoryFilter && (
-                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
+                <Badge variant="default">
                   分类: {toolCategoryFilter}
-                </span>
+                </Badge>
               )}
               {showPcFilter !== 'all' && (
-                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
+                <Badge variant="default">
                   PC: {showPcFilter === 'true' ? '展示' : '隐藏'}
-                </span>
+                </Badge>
               )}
               {showMobileFilter !== 'all' && (
-                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
+                <Badge variant="default">
                   移动: {showMobileFilter === 'true' ? '展示' : '隐藏'}
-                </span>
+                </Badge>
               )}
               {requireLoginFilter !== 'all' && (
-                <span className="px-2 py-0.5 bg-accent-info/10 text-accent-info text-xs rounded-full border border-blue-500/20">
+                <Badge variant="default">
                   登录: {requireLoginFilter === 'true' ? '需登录' : '免登录'}
-                </span>
+                </Badge>
               )}
               <button
                 onClick={handleResetFilters}
@@ -652,17 +653,17 @@ export default function ToolManagement() {
                   <td className="px-6 py-4">{tool.category}</td>
                   {/* 使用次数 */}
                   <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <Badge variant={
                       parseInt(tool.usageCount) >= 1000
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                        ? 'success'
                         : parseInt(tool.usageCount) >= 100
-                          ? 'bg-accent-info/10 text-accent-info border border-blue-500/20'
-                          : 'bg-surface-3/10 text-ink-muted border border-border/20'
-                    }`}>
+                          ? 'default'
+                          : 'secondary'
+                    }>
                       {parseInt(tool.usageCount) >= 1000
                         ? (parseInt(tool.usageCount) / 1000).toFixed(1) + 'K'
                         : tool.usageCount}
-                    </span>
+                    </Badge>
                   </td>
                   {/* 上线状态 */}
                   <td className="px-6 py-4 text-center">
