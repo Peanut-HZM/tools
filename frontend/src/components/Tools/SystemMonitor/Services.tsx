@@ -7,6 +7,8 @@ import ServerSelector from './components/ServerSelector';
 import ConfirmModal from './components/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 /** 页签⑤服务管理：systemd 服务列表与启停 */
 export default function Services() {
@@ -71,7 +73,8 @@ export default function Services() {
         </div>
       )}
       {error && <div className="text-sm text-danger">{error}</div>}
-      <div className="bg-canvas rounded-xl border border-border overflow-hidden">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-ink-faint border-b border-border">
@@ -87,10 +90,11 @@ export default function Services() {
               const running = s.state === 'running';
               return (
                 <tr key={s.name} className="border-b border-border/50 last:border-0 hover:bg-surface-1/30">
-                  <td className="px-3 py-2 text-ink-inverse font-mono">{s.name}</td>
+                  <td className="px-3 py-2 text-ink font-mono">{s.name}</td>
                   <td className="px-3 py-2">
-                    <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1.5 ${running ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                    <span className={running ? 'text-success' : 'text-ink-muted'}>{s.state}</span>
+                    <Badge variant={running ? 'success' : 'destructive'} className="text-[10px]">
+                      {s.state}
+                    </Badge>
                   </td>
                   <td className="px-3 py-2 text-ink-faint hidden md:table-cell max-w-[280px] truncate">{s.description}</td>
                   <td className="px-3 py-2 text-ink-muted hidden lg:table-cell">{s.enabled ? '已启用' : '未启用'}</td>
@@ -112,7 +116,8 @@ export default function Services() {
             )}
           </tbody>
         </table>
-      </div>
+        </CardContent>
+      </Card>
       <ConfirmModal
         open={!!confirm}
         title="服务操作"

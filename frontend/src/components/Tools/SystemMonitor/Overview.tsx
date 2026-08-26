@@ -5,6 +5,7 @@ import type { MetricPoint } from '../../../api/monitorApi';
 import ServerSelector from './components/ServerSelector';
 import ResourceCards from './components/ResourceCards';
 import SystemInfoCards from './components/SystemInfoCards';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 /** 页签②总览：系统信息 + 资源卡片，5s 轮询 */
 export default function Overview() {
@@ -68,8 +69,11 @@ export default function Overview() {
       <SystemInfoCards info={info} server={server} />
       <ResourceCards metric={metric} />
       {/* 分区表格 */}
-      <div className="bg-canvas rounded-xl border border-border overflow-hidden">
-        <div className="px-4 py-2.5 text-sm text-ink-inverse font-medium border-b border-border">磁盘分区</div>
+      <Card className="overflow-hidden">
+        <CardHeader className="px-4 py-2.5 border-b border-border">
+          <CardTitle className="text-sm font-medium text-ink">磁盘分区</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-ink-faint border-b border-border">
@@ -97,7 +101,8 @@ export default function Overview() {
             )}
           </tbody>
         </table>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

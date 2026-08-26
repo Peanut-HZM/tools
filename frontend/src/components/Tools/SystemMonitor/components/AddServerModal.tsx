@@ -4,6 +4,7 @@ import type { SSHConfig } from '../../../../api/sshToolApi';
 import * as monitorApi from '../../../../api/monitorApi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 
 interface AddServerModalProps {
   open: boolean;
@@ -50,11 +51,12 @@ export default function AddServerModal({ open, onClose, onSaved, sshConfigs }: A
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div className="bg-canvas border border-border rounded-xl p-5 w-[480px] max-w-[92vw]" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-ink-inverse font-medium">添加监控服务器</div>
-          <button className="text-ink-faint hover:text-ink-inverse" onClick={onClose}>✕</button>
-        </div>
+      <Card className="p-5 w-[480px] max-w-[92vw]" onClick={(e) => e.stopPropagation()}>
+        <CardHeader className="p-0 mb-4 flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-medium text-ink">添加监控服务器</CardTitle>
+          <button className="text-ink-faint hover:text-ink" onClick={onClose}>✕</button>
+        </CardHeader>
+        <CardContent className="p-0">
         <div className="flex gap-2 mb-4">
           <button
             className={`px-3 py-1.5 rounded-lg text-sm ${mode === 'manual' ? 'bg-emerald-600 text-ink-inverse' : 'bg-surface-1 text-ink-muted'}`}
@@ -108,13 +110,14 @@ export default function AddServerModal({ open, onClose, onSaved, sshConfigs }: A
           </div>
         )}
         {error && <div className="text-sm text-danger mt-3">{error}</div>}
-        <div className="flex justify-end gap-3 mt-5">
+        </CardContent>
+        <CardFooter className="p-0 mt-5 flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>取消</Button>
           <button className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50" onClick={submit} disabled={saving}>
             {saving ? '保存中...' : '保存'}
           </button>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

@@ -7,6 +7,8 @@ import ServerSelector from './components/ServerSelector';
 import ConfirmModal from './components/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 const KNOWN_TYPES = ['all', 'FastAPI', 'Django', 'Flask', 'Celery', 'Gunicorn', 'Python',
   'Java', 'Node.js', 'Nginx', 'MySQL', 'PostgreSQL', 'Redis', 'Docker', 'Other'];
@@ -97,7 +99,8 @@ export default function Processes() {
         </Button>
       </div>
       {error && <div className="text-sm text-danger">{error}</div>}
-      <div className="bg-canvas rounded-xl border border-border overflow-hidden">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-ink-faint border-b border-border">
@@ -116,14 +119,14 @@ export default function Processes() {
             {processes.map((p) => (
               <tr key={p.pid} className="border-b border-border/50 last:border-0 hover:bg-surface-1/30">
                 <td className="px-3 py-2 text-ink-muted">{p.pid}</td>
-                <td className="px-3 py-2 text-ink-inverse max-w-[240px] truncate" title={p.command_line}>{p.name}</td>
+                <td className="px-3 py-2 text-ink max-w-[240px] truncate" title={p.command_line}>{p.name}</td>
                 <td className="px-3 py-2 text-ink-faint hidden md:table-cell">{p.username}</td>
                 <td className="px-3 py-2 text-right text-ink-muted">{p.cpu_percent.toFixed(1)}</td>
                 <td className="px-3 py-2 text-right text-ink-muted">{p.memory_percent.toFixed(1)}</td>
                 <td className="px-3 py-2 text-right text-ink-muted hidden lg:table-cell">{fmtBytes(p.memory_rss)}</td>
                 <td className="px-3 py-2 text-ink-faint hidden xl:table-cell">{p.create_time}</td>
                 <td className="px-3 py-2">
-                  <span className="px-1.5 py-0.5 rounded bg-surface-1 text-[10px] text-success">{p.project_type}</span>
+                  <Badge className="bg-surface-1 text-[10px] text-success border-none">{p.project_type}</Badge>
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button className="text-danger/80 hover:text-red-300 text-[11px]" onClick={() => setKilling(p)}>结束</button>
@@ -135,7 +138,8 @@ export default function Processes() {
             )}
           </tbody>
         </table>
-      </div>
+        </CardContent>
+      </Card>
       {total > 0 && (
         <div className="flex items-center justify-between text-xs text-ink-faint">
           <span>共 {total} 个进程</span>

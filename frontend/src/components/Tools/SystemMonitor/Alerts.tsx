@@ -6,6 +6,7 @@ import type { AlertRule, AlertLog, MonitorSettings } from '../../../api/monitorA
 import ConfirmModal from './components/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 const METRIC_OPTIONS = [
   { value: 'cpu_percent', label: 'CPU 使用率' },
@@ -109,8 +110,8 @@ export default function Alerts() {
       {error && <div className="text-sm text-danger">{error}</div>}
 
       {/* 通知设置 */}
-      <div className="bg-canvas rounded-xl border border-border p-4">
-        <div className="text-sm text-ink-inverse font-medium mb-3">通知设置</div>
+      <Card className="p-4">
+        <div className="text-sm text-ink font-medium mb-3">通知设置</div>
         <div className="flex items-center gap-3">
           <Input
             className="flex-1"
@@ -123,17 +124,18 @@ export default function Alerts() {
         <div className="text-xs text-ink-faint mt-2">
           采集间隔 {settings.collect_interval} 秒 · 告警触发后通过 Webhook 推送，同时在本页记录站内通知
         </div>
-      </div>
+      </Card>
 
       {/* 规则列表 */}
-      <div className="bg-canvas rounded-xl border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-          <div className="text-sm text-ink-inverse font-medium">告警规则</div>
+      <Card className="overflow-hidden">
+        <CardHeader className="px-4 py-2.5 border-b border-border flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-medium text-ink">告警规则</CardTitle>
           <button className="px-3 py-1.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-ink-inverse"
             onClick={() => setEditing({ ...EMPTY_FORM, id: '' })}>
             <i className="fas fa-plus mr-1" />新建规则
           </button>
-        </div>
+        </CardHeader>
+        <CardContent className="p-0">
         {rules.length === 0 ? (
           <div className="text-center text-ink-faint py-8 text-sm">暂无告警规则</div>
         ) : (
@@ -167,7 +169,7 @@ export default function Alerts() {
                     </button>
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
-                    <button className="text-ink-muted hover:text-ink-inverse"
+                    <button className="text-ink-muted hover:text-ink"
                       onClick={() => setEditing({ server_id: r.server_id, metric: r.metric, operator: r.operator, threshold: String(r.threshold), duration: String(r.duration), enabled: r.enabled, id: r.id })}>
                       编辑
                     </button>
@@ -178,14 +180,16 @@ export default function Alerts() {
             </tbody>
           </table>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* 触发记录 */}
-      <div className="bg-canvas rounded-xl border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-          <div className="text-sm text-ink-inverse font-medium">触发记录</div>
+      <Card className="overflow-hidden">
+        <CardHeader className="px-4 py-2.5 border-b border-border flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-medium text-ink">触发记录</CardTitle>
           <Button variant="secondary" size="sm" onClick={markRead}>全部已读</Button>
-        </div>
+        </CardHeader>
+        <CardContent className="p-0">
         {logs.length === 0 ? (
           <div className="text-center text-ink-faint py-8 text-sm">暂无告警记录</div>
         ) : (
@@ -195,7 +199,7 @@ export default function Alerts() {
                 <span className={`h-2 w-2 rounded-full shrink-0 ${log.status === 'firing' ? 'bg-red-500' : 'bg-emerald-500'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-ink-muted">
-                    <span className="text-ink-inverse font-medium">{log.server_name}</span>
+                    <span className="text-ink font-medium">{log.server_name}</span>
                     <span className="mx-1.5 text-ink-faint">·</span>
                     {METRIC_LABELS[log.metric] || log.metric}
                     <span className="ml-1.5 text-danger">{log.actual_value}</span>
@@ -214,26 +218,27 @@ export default function Alerts() {
             <Button variant="secondary" size="sm" disabled={logPage >= Math.ceil(logTotal / 20)} onClick={() => { setLogPage(logPage + 1); loadLogs(logPage + 1); }}>下一页</Button>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* 编辑弹窗 */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(null)}>
-          <div className="bg-canvas border border-border rounded-xl p-5 w-[420px] space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="text-ink-inverse font-medium">{editing.id ? '编辑规则' : '新建规则'}</div>
+          <Card className="p-5 w-[420px] space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="text-ink font-medium">{editing.id ? '编辑规则' : '新建规则'}</div>
             <div className="flex gap-3">
-              <select className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse"
+              <select className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink"
                 value={editing.server_id} onChange={(e) => setEditing({ ...editing, server_id: e.target.value })}>
                 <option value="all">全部服务器</option>
                 {servers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              <select className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse"
+              <select className="flex-1 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink"
                 value={editing.metric} onChange={(e) => setEditing({ ...editing, metric: e.target.value })}>
                 {METRIC_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             <div className="flex gap-3">
-              <select className="w-24 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink-inverse"
+              <select className="w-24 bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-ink"
                 value={editing.operator} onChange={(e) => setEditing({ ...editing, operator: e.target.value })}>
                 {OPERATORS.map((op) => <option key={op} value={op}>{op}</option>)}
               </select>
@@ -251,7 +256,7 @@ export default function Alerts() {
               <Button variant="ghost" onClick={() => setEditing(null)}>取消</Button>
               <button className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500" onClick={saveRule}>保存</button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 

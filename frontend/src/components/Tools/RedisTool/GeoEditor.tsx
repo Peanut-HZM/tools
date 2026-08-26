@@ -3,6 +3,7 @@ import { getGeoInfo, operateGeo } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card, CardContent } from '@/components/ui/Card';
 
 interface Props {
   configId: string;
@@ -48,7 +49,7 @@ export const GeoEditor: React.FC<Props> = ({ configId, keyName }) => {
 
   return (
     <div className="space-y-4">
-      <div className="border border-border rounded-md overflow-hidden">
+      <Card className="overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-canvas text-ink-muted">
             <tr><th className="px-3 py-2 text-left">Member</th><th className="px-3 py-2 text-left">Longitude</th><th className="px-3 py-2 text-left">Latitude</th></tr>
@@ -63,9 +64,9 @@ export const GeoEditor: React.FC<Props> = ({ configId, keyName }) => {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
 
-      <div className="border border-border rounded-md p-3 space-y-2">
+      <Card className="p-3 space-y-2">
         <div className="text-sm font-medium text-ink-muted">Add Location</div>
         <div className="flex space-x-2">
           <Input value={member} onChange={e => setMember(e.target.value)} placeholder="Member" className="flex-1" />
@@ -73,7 +74,7 @@ export const GeoEditor: React.FC<Props> = ({ configId, keyName }) => {
           <Input value={latitude} onChange={e => setLatitude(e.target.value)} placeholder="Latitude" className="w-28" />
           <Button size="sm" onClick={handleAdd}>Add</Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

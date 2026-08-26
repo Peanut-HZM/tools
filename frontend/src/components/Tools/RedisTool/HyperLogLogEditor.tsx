@@ -3,6 +3,7 @@ import { getHyperLogLogInfo, operateHyperLogLog } from '../../../api/redisToolAp
 import { useToast } from '../../../hooks/useToast';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card, CardContent } from '@/components/ui/Card';
 
 interface Props {
   configId: string;
@@ -43,7 +44,7 @@ export const HyperLogLogEditor: React.FC<Props> = ({ configId, keyName }) => {
         Cardinality (estimated unique elements): <span className="text-ink-inverse font-mono text-lg">{info?.cardinality || 0}</span>
       </div>
 
-      <div className="border border-border rounded-md p-3 space-y-2">
+      <Card className="p-3 space-y-2">
         <div className="text-sm font-medium text-ink-muted">Add Element</div>
         <div className="flex space-x-2">
           <Input
@@ -54,7 +55,7 @@ export const HyperLogLogEditor: React.FC<Props> = ({ configId, keyName }) => {
           />
           <Button size="sm" onClick={handleAdd}>Add</Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

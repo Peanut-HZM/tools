@@ -7,6 +7,7 @@ import { ConnectionModal } from './ConnectionModal';
 import { RedisConfig, getRedisConfigs, createRedisConfig, updateRedisConfig, deleteRedisConfig, CreateRedisRequest } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n, interpolate } from '../../../i18n';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 const RedisTool: React.FC = () => {
   const { addToast } = useToast();
@@ -78,39 +79,22 @@ const RedisTool: React.FC = () => {
       />
       <div className="flex-1 overflow-hidden bg-canvas flex flex-col">
         {selectedConfigId ? (
-          <>
-            <div className="flex border-b border-border bg-surface-1">
-              <button
-                onClick={() => setActiveTab('keys')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'keys' ? 'text-accent-info border-b-2 border-accent-info' : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                <i className="fas fa-key mr-1"></i> 键值浏览
-              </button>
-              <button
-                onClick={() => setActiveTab('monitor')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'monitor' ? 'text-accent-info border-b-2 border-accent-info' : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                <i className="fas fa-chart-line mr-1"></i> 监控
-              </button>
-              <button
-                onClick={() => setActiveTab('ops')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === 'ops' ? 'text-accent-info border-b-2 border-accent-info' : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                <i className="fas fa-tools mr-1"></i> 运维
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {activeTab === 'keys' && <KeyExplorer configId={selectedConfigId} />}
-              {activeTab === 'monitor' && <MonitorPanel configId={selectedConfigId} />}
-              {activeTab === 'ops' && <OperationsPanel configId={selectedConfigId} />}
-            </div>
-          </>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'keys' | 'monitor' | 'ops')} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="mx-2 mt-2 bg-surface-2 shrink-0">
+              <TabsTrigger value="keys"><i className="fas fa-key mr-1"></i> 键值浏览</TabsTrigger>
+              <TabsTrigger value="monitor"><i className="fas fa-chart-line mr-1"></i> 监控</TabsTrigger>
+              <TabsTrigger value="ops"><i className="fas fa-tools mr-1"></i> 运维</TabsTrigger>
+            </TabsList>
+            <TabsContent value="keys" className="flex-1 overflow-hidden">
+              <KeyExplorer configId={selectedConfigId} />
+            </TabsContent>
+            <TabsContent value="monitor" className="flex-1 overflow-hidden">
+              <MonitorPanel configId={selectedConfigId} />
+            </TabsContent>
+            <TabsContent value="ops" className="flex-1 overflow-hidden">
+              <OperationsPanel configId={selectedConfigId} />
+            </TabsContent>
+          </Tabs>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-ink-faint">
             <i className="fas fa-server text-6xl mb-4 opacity-20"></i>

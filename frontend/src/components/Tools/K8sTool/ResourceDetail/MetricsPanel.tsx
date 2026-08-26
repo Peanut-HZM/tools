@@ -19,6 +19,7 @@ import {
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { usePodMetrics } from '../../../../hooks/useK8sClient';
+import { Card } from '@/components/ui/Card';
 
 interface Props {
   podName: string;
@@ -156,7 +157,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
     <div className="p-4 h-full overflow-y-auto space-y-4">
       {/* 当前值概览卡片 */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-surface-1/50 border border-border/50 rounded-lg p-3">
+        <Card className="bg-surface-1/50 border-border/50 p-3 shadow-none">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full" style={{ background: CPU_COLOR }}></div>
             <span className="text-xs text-ink-muted">CPU</span>
@@ -165,9 +166,9 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
             {dataPoints[dataPoints.length - 1].cpu}
             <span className="text-xs text-ink-faint ml-1">cores</span>
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-surface-1/50 border border-border/50 rounded-lg p-3">
+        <Card className="bg-surface-1/50 border-border/50 p-3 shadow-none">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full" style={{ background: MEMORY_COLOR }}></div>
             <span className="text-xs text-ink-muted">Memory</span>
@@ -176,7 +177,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
             {dataPoints[dataPoints.length - 1].memory}
             <span className="text-xs text-ink-faint ml-1">Mi</span>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* CPU 折线图 */}

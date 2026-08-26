@@ -1,5 +1,6 @@
 // frontend/src/components/Tools/SystemMonitor/components/SystemInfoCards.tsx
 import type { MonitorServer } from '../../../../api/monitorApi';
+import { Card } from '@/components/ui/Card';
 
 interface SystemInfoCardsProps {
   info: Record<string, string | number> | null;
@@ -21,13 +22,13 @@ export default function SystemInfoCards({ info, server }: SystemInfoCardsProps) 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {cards.map((card) => (
-        <div key={card.label} className="bg-canvas rounded-xl p-3 border border-border">
+        <Card key={card.label} className="p-3">
           <div className="flex items-center gap-1.5 text-xs text-ink-faint mb-1">
             <i className={`fas ${card.icon}`} />
             {card.label}
           </div>
-          <div className="text-sm text-ink-inverse font-medium break-all">{card.value}</div>
-        </div>
+          <div className="text-sm text-ink font-medium break-all">{card.value}</div>
+        </Card>
       ))}
     </div>
   );

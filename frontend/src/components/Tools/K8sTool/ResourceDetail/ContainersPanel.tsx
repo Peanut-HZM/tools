@@ -7,6 +7,7 @@
 import React from 'react';
 import { useI18n } from '../../../../i18n';
 import type { K8sContainerInfo } from '../types';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   containers: K8sContainerInfo[];
@@ -49,9 +50,9 @@ const ContainerRow: React.FC<{ container: K8sContainerInfo; isInit: boolean; ct:
     <td className="px-3 py-2">
       <div className="flex items-center gap-2">
         {isInit && (
-          <span className="px-1 py-0.5 bg-accent-secondary/20 text-accent-secondary border border-accent-secondary/30 rounded text-xs">
+          <Badge variant="outline" className="px-1 py-0.5 text-xs">
             init
-          </span>
+          </Badge>
         )}
         <span className="text-ink font-medium text-xs">{container.name}</span>
       </div>

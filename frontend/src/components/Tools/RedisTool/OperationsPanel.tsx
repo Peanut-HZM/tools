@@ -4,6 +4,8 @@ import { useToast } from '../../../hooks/useToast';
 import { MigrateWizard } from './MigrateWizard';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   configId: string;
@@ -59,15 +61,15 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-6">
-      <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+      <Card className="bg-red-900/20 border-red-800 p-4">
         <div className="text-sm font-medium text-danger mb-3">危险操作</div>
         <div className="flex space-x-2">
           <Button size="sm" variant="destructive" onClick={() => handleFlush('db')}>FLUSHDB</Button>
           <Button size="sm" variant="destructive" onClick={() => handleFlush('all')}>FLUSHALL</Button>
         </div>
-      </div>
+      </Card>
 
-      <div className="bg-surface-1 rounded-lg p-4 border border-border">
+      <Card className="p-4">
         <div className="flex justify-between items-center mb-3">
           <div className="text-sm font-medium text-ink-muted">数据迁移</div>
           <Button size="sm" onClick={() => setShowMigrate(!showMigrate)}>
@@ -75,30 +77,30 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
           </Button>
         </div>
         {showMigrate && <MigrateWizard configId={configId} onClose={() => setShowMigrate(false)} />}
-      </div>
+      </Card>
 
       {replication && (
-        <div className="bg-surface-1 rounded-lg p-4 border border-border">
+        <Card className="p-4">
           <div className="text-sm font-medium text-ink-muted mb-3">复制信息</div>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="text-ink-muted">Role:</div><div className="text-ink-inverse">{replication.role}</div>
-            <div className="text-ink-muted">Connected Slaves:</div><div className="text-ink-inverse">{replication.connected_slaves}</div>
-            {replication.master_replid && <><div className="text-ink-muted">Repl ID:</div><div className="text-ink-inverse font-mono text-xs">{replication.master_replid}</div></>}
+            <div className="text-ink-muted">Role:</div><div className="text-ink">{replication.role}</div>
+            <div className="text-ink-muted">Connected Slaves:</div><div className="text-ink">{replication.connected_slaves}</div>
+            {replication.master_replid && <><div className="text-ink-muted">Repl ID:</div><div className="text-ink font-mono text-xs">{replication.master_replid}</div></>}
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="bg-surface-1 rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex justify-between items-center">
-          <div className="text-sm font-medium text-ink-muted">配置参数</div>
+      <Card className="overflow-hidden">
+        <CardHeader className="px-4 py-3 border-b border-border flex flex-row justify-between items-center">
+          <CardTitle className="text-sm font-medium text-ink-muted">配置参数</CardTitle>
           <Input
             value={filter}
             onChange={e => setFilter(e.target.value)}
             placeholder="搜索配置项..."
             className="w-48 h-8 text-xs"
           />
-        </div>
-        <div className="max-h-96 overflow-y-auto">
+        </CardHeader>
+        <CardContent className="max-h-96 overflow-y-auto p-0">
           <table className="w-full text-sm">
             <thead className="bg-canvas text-ink-muted sticky top-0">
               <tr><th className="px-4 py-2 text-left">Key</th><th className="px-4 py-2 text-left">Value</th></tr>
@@ -122,26 +124,30 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="bg-surface-1 rounded-lg border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border text-sm font-medium text-ink-muted">大 Key Top 50</div>
-        <table className="w-full text-sm">
-          <thead className="bg-canvas text-ink-muted">
-            <tr><th className="px-4 py-2 text-left">Key</th><th className="px-4 py-2 text-left">Type</th><th className="px-4 py-2 text-right">Memory</th></tr>
-          </thead>
-          <tbody>
-            {bigKeys.map((k) => (
-              <tr key={k.key} className="border-t border-border hover:bg-surface-1/50">
-                <td className="px-4 py-2 font-mono text-xs text-ink-muted">{k.key}</td>
-                <td className="px-4 py-2"><span className="px-1.5 py-0.5 rounded text-[10px] bg-surface-2 text-ink-muted">{k.type}</span></td>
-                <td className="px-4 py-2 text-right text-ink-muted">{(k.memory_usage / 1024).toFixed(2)} KB</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card className="overflow-hidden">
+        <CardHeader className="px-4 py-3 border-b border-border">
+          <CardTitle className="text-sm font-medium text-ink-muted">大 Key Top 50</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-canvas text-ink-muted">
+              <tr><th className="px-4 py-2 text-left">Key</th><th className="px-4 py-2 text-left">Type</th><th className="px-4 py-2 text-right">Memory</th></tr>
+            </thead>
+            <tbody>
+              {bigKeys.map((k) => (
+                <tr key={k.key} className="border-t border-border hover:bg-surface-1/50">
+                  <td className="px-4 py-2 font-mono text-xs text-ink-muted">{k.key}</td>
+                  <td className="px-4 py-2"><Badge variant="secondary" className="text-[10px]">{k.type}</Badge></td>
+                  <td className="px-4 py-2 text-right text-ink-muted">{(k.memory_usage / 1024).toFixed(2)} KB</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 };

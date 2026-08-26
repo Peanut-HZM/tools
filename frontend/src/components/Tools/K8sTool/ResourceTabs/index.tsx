@@ -11,6 +11,7 @@ import { PodList } from './PodList';
 import { WorkloadList } from './WorkloadList';
 import { NodeList } from './NodeList';
 import { EventsList } from './EventsList';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 /** 标签配置 */
 interface TabConfig {
@@ -44,29 +45,19 @@ export const ResourceTabs: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* 标签栏 */}
-      <div className="flex items-center px-4 border-b border-border bg-surface-1/30">
-        {TABS.map((tab) => {
-          const isActive = resourceType === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setResourceType(tab.key as 'pods' | 'workloads' | 'nodes' | 'events')}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                isActive
-                  ? 'border-blue-500 text-accent-info'
-                  : 'border-transparent text-ink-muted hover:text-ink hover:border-border'
-              }`}
-            >
+      <Tabs value={resourceType} onValueChange={(v) => setResourceType(v as 'pods' | 'workloads' | 'nodes' | 'events')} className="flex-1 flex flex-col overflow-hidden">
+        <TabsList className="mx-4 bg-transparent h-auto p-0 justify-start border-b border-border bg-surface-1/30">
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key} className="rounded-none bg-transparent px-4 py-2.5 text-sm font-medium border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 data-[state=active]:text-accent-info data-[state=inactive]:text-ink-muted">
               <i className={`${tab.icon} text-xs`}></i>
               {k8sT.resourceTabs[tab.labelKey]}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 资源列表内容 */}
-      {renderContent()}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value={resourceType} className="flex-1 overflow-hidden mt-0">
+          {renderContent()}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

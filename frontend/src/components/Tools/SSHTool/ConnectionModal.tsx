@@ -3,6 +3,8 @@ import { CreateSSHRequest, SSHConfig, UpdateSSHRequest, testSSHConnection } from
 import { useI18n } from '../../../i18n';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   isOpen: boolean;
@@ -113,10 +115,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-surface-1 rounded-lg shadow-md w-full max-w-lg p-6 border border-border">
-        <h2 className="text-xl font-bold mb-4 text-ink-inverse">
-          {initialData ? t.ssh.editConnection : t.ssh.addConnection}
-        </h2>
+      <Card className="w-full max-w-lg shadow-md">
+        <CardHeader>
+          <CardTitle className="text-xl">
+            {initialData ? t.ssh.editConnection : t.ssh.addConnection}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-1">{t.ssh.alias}</label>
@@ -197,9 +202,9 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
           <div className="flex items-center justify-between pt-4">
             <div className="text-sm">
               {testMessage && (
-                <span className={testStatus === 'success' ? 'text-green-400' : 'text-danger'}>
+                <Badge variant={testStatus === 'success' ? 'success' : 'destructive'}>
                   {testMessage}
-                </span>
+                </Badge>
               )}
             </div>
             <div className="flex items-center space-x-3">
@@ -227,7 +232,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
             </div>
           </div>
         </form>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

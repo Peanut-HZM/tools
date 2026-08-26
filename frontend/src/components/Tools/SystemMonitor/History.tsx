@@ -4,6 +4,7 @@ import * as monitorApi from '../../../api/monitorApi';
 import type { MetricPoint } from '../../../api/monitorApi';
 import ServerSelector from './components/ServerSelector';
 import MetricChart, { type ChartPoint, type ChartLine } from './components/MetricChart';
+import { Card, CardContent } from '@/components/ui/Card';
 
 const RANGES = [
   { key: '1h', label: '近 1 小时' },
@@ -122,9 +123,11 @@ export default function History() {
       ) : points.length === 0 ? (
         <div className="text-center text-ink-faint py-16">暂无数据（采集后约 1 分钟可见）</div>
       ) : (
-        <div className="bg-canvas rounded-xl border border-border p-4">
-          <MetricChart data={points} lines={lines} yUnit={groupConfig.yUnit} />
-        </div>
+        <Card className="p-4">
+          <CardContent className="p-0">
+            <MetricChart data={points} lines={lines} yUnit={groupConfig.yUnit} />
+          </CardContent>
+        </Card>
       )}
     </div>
   );

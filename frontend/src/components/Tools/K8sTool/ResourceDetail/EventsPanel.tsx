@@ -10,6 +10,7 @@ import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/k8sToolApi';
 import { formatAge } from '../ResourceTabs/utils';
 import type { K8sEventInfo } from '../types';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   configId: string;
@@ -110,9 +111,9 @@ export const EventsPanel: React.FC<Props> = ({
               {/* 次数 */}
               <td className="px-3 py-2 text-ink-muted text-center">
                 {event.count > 1 ? (
-                  <span className="px-1.5 py-0.5 bg-accent-warning/20 text-accent-warning rounded text-xs font-medium">
+                  <Badge variant="warning" className="text-xs">
                     {event.count}
-                  </span>
+                  </Badge>
                 ) : (
                   event.count
                 )}

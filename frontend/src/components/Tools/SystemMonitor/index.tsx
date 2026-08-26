@@ -7,6 +7,8 @@ import History from './History';
 import Processes from './Processes';
 import Services from './Services';
 import Alerts from './Alerts';
+import { Badge } from '@/components/ui/Badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 const TABS = [
   { key: 'servers', label: '服务器列表', icon: 'fa-server' },
@@ -48,36 +50,32 @@ export default function SystemMonitor() {
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* 工具栏 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                activeTab === tab.key ? 'bg-emerald-600/20 text-success' : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1'
-              }`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              <i className={`fas ${tab.icon} text-xs`} />
-              {tab.label}
-              {tab.key === 'alerts' && unreadAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-ink-inverse text-[10px] rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
-                  {unreadAlerts > 99 ? '99+' : unreadAlerts}
-                </span>
-              )}
-            </button>
-          ))}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+          <TabsList className="bg-surface-2">
+            {TABS.map((tab) => (
+              <TabsTrigger key={tab.key} value={tab.key} className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-success">
+                <i className={`fas ${tab.icon} text-xs`} />
+                {tab.label}
+                {tab.key === 'alerts' && unreadAlerts > 0 && (
+                  <Badge variant="destructive" className="absolute -top-1 -right-1 text-[10px] min-w-[16px] h-4 px-1 rounded-full border-border">
+                    {unreadAlerts > 99 ? '99+' : unreadAlerts}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </div>
-      </div>
-      {/* 页签内容 */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4">
-        {activeTab === 'servers' && <ServerList />}
-        {activeTab === 'overview' && <Overview />}
-        {activeTab === 'history' && <History />}
-        {activeTab === 'processes' && <Processes />}
-        {activeTab === 'services' && <Services />}
-        {activeTab === 'alerts' && <Alerts />}
-      </div>
+        {/* 页签内容 */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+          <TabsContent value="servers"><ServerList /></TabsContent>
+          <TabsContent value="overview"><Overview /></TabsContent>
+          <TabsContent value="history"><History /></TabsContent>
+          <TabsContent value="processes"><Processes /></TabsContent>
+          <TabsContent value="services"><Services /></TabsContent>
+          <TabsContent value="alerts"><Alerts /></TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }

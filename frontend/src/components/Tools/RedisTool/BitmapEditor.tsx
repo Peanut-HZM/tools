@@ -3,6 +3,7 @@ import { getBitmapInfo, operateBitmap } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card, CardContent } from '@/components/ui/Card';
 
 interface Props {
   configId: string;
@@ -44,7 +45,7 @@ export const BitmapEditor: React.FC<Props> = ({ configId, keyName }) => {
         <span>Bit length: {info?.bit_length || 0}</span>
       </div>
 
-      <div className="border border-border rounded-md p-3 space-y-3">
+      <Card className="p-3 space-y-3">
         <div className="text-sm font-medium text-ink-muted">Set Bit</div>
         <div className="flex space-x-2 items-center">
           <Input
@@ -64,7 +65,7 @@ export const BitmapEditor: React.FC<Props> = ({ configId, keyName }) => {
           </select>
           <Button size="sm" onClick={handleSetBit}>Set</Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../../../../i18n';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import * as api from '../../../../api/k8sToolApi';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   configId: string;
@@ -232,7 +233,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
                 <span className="text-ink-muted font-mono truncate max-w-[200px]">
                   {item.name}
                 </span>
-                <span className="text-ink-faint">({item.kind})</span>
+                <Badge variant="secondary" className="text-[10px]">{item.kind}</Badge>
               </button>
             ))}
           </div>

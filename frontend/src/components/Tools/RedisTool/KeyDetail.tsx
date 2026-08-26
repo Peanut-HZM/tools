@@ -8,6 +8,8 @@ import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card, CardHeader, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   configId: string;
@@ -110,53 +112,55 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
 
   return (
     <div className="flex flex-col h-full bg-canvas">
-      <div className="p-4 border-b border-border bg-surface-1 shadow-sm">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-medium text-ink break-all">{content.key}</h3>
-            <div className="mt-1 flex space-x-4 text-sm text-ink-muted">
-              <span className="bg-surface-2 px-2 py-0.5 rounded uppercase text-ink-muted font-mono text-xs">{content.type}</span>
-              <span>TTL: {content.ttl === -1 ? 'None' : `${content.ttl}s`}</span>
+      <Card className="rounded-b-none border-b shadow-sm">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-medium text-ink break-all">{content.key}</h3>
+              <div className="mt-1 flex space-x-4 text-sm text-ink-muted">
+                <Badge variant="secondary" className="uppercase font-mono">{content.type}</Badge>
+                <span>TTL: {content.ttl === -1 ? 'None' : `${content.ttl}s`}</span>
+              </div>
             </div>
-          </div>
-          <div className="space-x-2">
-            {!editing ? (
-              <Button
-                variant="secondary"
-                onClick={() => setEditing(true)}
-              >
-                <i className="fas fa-pen mr-1"></i> {t.common.edit || 'Edit'}
-              </Button>
-            ) : (
-              <>
+            <div className="space-x-2">
+              {!editing ? (
                 <Button
                   variant="secondary"
-                  onClick={() => { setEditing(false); loadContent(); }}
+                  onClick={() => setEditing(true)}
                 >
-                  {t.common.cancel}
+                  <i className="fas fa-pen mr-1"></i> {t.common.edit || 'Edit'}
                 </Button>
-                <Button
-                  onClick={handleSave}
-                >
-                  {t.common.save}
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-        {editing && (
-            <div className="mt-4">
-                <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.ttl}</label>
-                <Input
-                    type="number"
-                    value={editTTL}
-                    onChange={(e) => setEditTTL(parseInt(e.target.value))}
-                    className="block w-32"
-                />
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => { setEditing(false); loadContent(); }}
+                  >
+                    {t.common.cancel}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                  >
+                    {t.common.save}
+                  </Button>
+                </>
+              )}
             </div>
-        )}
-      </div>
-      <div className="flex-1 p-4 overflow-hidden flex flex-col">
+          </div>
+          {editing && (
+              <div className="mt-4">
+                  <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.ttl}</label>
+                  <Input
+                      type="number"
+                      value={editTTL}
+                      onChange={(e) => setEditTTL(parseInt(e.target.value))}
+                      className="block w-32"
+                  />
+              </div>
+          )}
+        </CardHeader>
+      </Card>
+      <CardContent className="flex-1 p-4 overflow-hidden flex flex-col">
         {editing ? (
           <div className="h-full flex flex-col">
             <label className="block text-sm font-medium text-ink-muted mb-2">
@@ -169,27 +173,29 @@ export const KeyDetail: React.FC<Props> = ({ configId, keyName, onKeyUpdated }) 
             />
           </div>
         ) : (
-          <div className="flex-1 bg-surface-1 rounded-md border border-border p-4 overflow-auto">
-            {content.type === 'stream' && (
-              <StreamEditor configId={configId} keyName={keyName} />
-            )}
-            {content.type === 'bitmap' && (
-              <BitmapEditor configId={configId} keyName={keyName} />
-            )}
-            {content.type === 'hyperloglog' && (
-              <HyperLogLogEditor configId={configId} keyName={keyName} />
-            )}
-            {content.type === 'geo' && (
-              <GeoEditor configId={configId} keyName={keyName} />
-            )}
-            {['string', 'list', 'set', 'zset', 'hash'].includes(content.type) && (
-              <pre className="font-mono text-sm text-ink-muted whitespace-pre-wrap break-all">
-                {formatValue(content.value)}
-              </pre>
-            )}
-          </div>
+          <Card className="flex-1 overflow-auto">
+            <CardContent className="p-4">
+              {content.type === 'stream' && (
+                <StreamEditor configId={configId} keyName={keyName} />
+              )}
+              {content.type === 'bitmap' && (
+                <BitmapEditor configId={configId} keyName={keyName} />
+              )}
+              {content.type === 'hyperloglog' && (
+                <HyperLogLogEditor configId={configId} keyName={keyName} />
+              )}
+              {content.type === 'geo' && (
+                <GeoEditor configId={configId} keyName={keyName} />
+              )}
+              {['string', 'list', 'set', 'zset', 'hash'].includes(content.type) && (
+                <pre className="font-mono text-sm text-ink-muted whitespace-pre-wrap break-all">
+                  {formatValue(content.value)}
+                </pre>
+              )}
+            </CardContent>
+          </Card>
         )}
-      </div>
+      </CardContent>
     </div>
   );
 };

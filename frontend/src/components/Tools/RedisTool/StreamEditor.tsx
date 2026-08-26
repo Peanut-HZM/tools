@@ -3,6 +3,8 @@ import { getStreamInfo, operateStream } from '../../../api/redisToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   configId: string;
@@ -61,7 +63,7 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
         <div className="text-sm text-ink-muted">Length: {info?.length || 0} | Groups: {info?.groups?.length || 0}</div>
       </div>
 
-      <div className="border border-border rounded-md overflow-hidden">
+      <Card className="overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-canvas text-ink-muted">
             <tr><th className="px-3 py-2 text-left">ID</th><th className="px-3 py-2 text-left">Fields</th><th className="px-3 py-2 text-right">Actions</th></tr>
@@ -72,9 +74,9 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
                 <td className="px-3 py-2 font-mono text-ink-muted">{entry.id}</td>
                 <td className="px-3 py-2">
                   {Object.entries(entry.fields).map(([k, v]) => (
-                    <span key={k} className="inline-block mr-2 text-xs bg-surface-2 px-1.5 py-0.5 rounded">
+                    <Badge key={k} variant="secondary" className="mr-2 text-xs">
                       {k}: {String(v)}
-                    </span>
+                    </Badge>
                   ))}
                 </td>
                 <td className="px-3 py-2 text-right">
@@ -84,9 +86,9 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
 
-      <div className="border border-border rounded-md p-3">
+      <Card className="p-3">
         <div className="text-sm font-medium text-ink-muted mb-2">Add Entry</div>
         {newFields.map((f, i) => (
           <div key={i} className="flex space-x-2 mb-2">
@@ -106,7 +108,7 @@ export const StreamEditor: React.FC<Props> = ({ configId, keyName }) => {
           <Button variant="link" size="sm" onClick={() => setNewFields([...newFields, { key: '', value: '' }])} className="h-auto px-0 py-0">+ Add field</Button>
           <Button size="sm" onClick={handleAdd}>Add Entry</Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

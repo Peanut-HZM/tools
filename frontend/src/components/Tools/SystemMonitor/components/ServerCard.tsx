@@ -1,5 +1,6 @@
 // frontend/src/components/Tools/SystemMonitor/components/ServerCard.tsx
 import type { MonitorServer } from '../../../../api/monitorApi';
+import { Card } from '@/components/ui/Card';
 
 interface ServerCardProps {
   server: MonitorServer;
@@ -26,15 +27,15 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
   const metric = server.metric;
   const offline = server.status !== 'online';
   return (
-    <div
-      className="bg-canvas rounded-xl p-4 border border-border hover:border-border cursor-pointer transition-colors"
+    <Card
+      className="p-4 hover:border-border cursor-pointer transition-colors"
       onClick={() => onSelect(server.id)}
       data-testid={`server-card-${server.id}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <StatusDot status={server.status} />
-          <span className="text-ink-inverse text-sm font-medium truncate">{server.name}</span>
+          <span className="text-ink text-sm font-medium truncate">{server.name}</span>
         </div>
         <span className="text-xs text-ink-faint shrink-0">{server.server_type === 'local' ? '本机' : server.host}</span>
       </div>
@@ -53,10 +54,10 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-1.5 mt-2 text-xs">
-          <div className="text-ink-muted">CPU <span className="text-ink-inverse">{metric?.cpu_percent ?? '-'}%</span></div>
-          <div className="text-ink-muted">内存 <span className="text-ink-inverse">{metric?.mem_percent ?? '-'}%</span></div>
-          <div className="text-ink-muted">磁盘 <span className="text-ink-inverse">{metric?.disk_percent ?? '-'}%</span></div>
-          <div className="text-ink-muted">网络 <span className="text-ink-inverse">{fmtRate(metric?.net_recv_rate)}</span></div>
+          <div className="text-ink-muted">CPU <span className="text-ink">{metric?.cpu_percent ?? '-'}%</span></div>
+          <div className="text-ink-muted">内存 <span className="text-ink">{metric?.mem_percent ?? '-'}%</span></div>
+          <div className="text-ink-muted">磁盘 <span className="text-ink">{metric?.disk_percent ?? '-'}%</span></div>
+          <div className="text-ink-muted">网络 <span className="text-ink">{fmtRate(metric?.net_recv_rate)}</span></div>
         </div>
       )}
       {!offline && server.last_seen_at && (
@@ -64,12 +65,12 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
       )}
       {(onEdit || onDelete) && (
         <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-          {onEdit && <button className="text-xs text-ink-muted hover:text-ink-inverse" onClick={() => onEdit(server)}>编辑</button>}
+          {onEdit && <button className="text-xs text-ink-muted hover:text-ink" onClick={() => onEdit(server)}>编辑</button>}
           {onDelete && server.server_type !== 'local' && (
             <button className="text-xs text-ink-muted hover:text-danger" onClick={() => onDelete(server)}>删除</button>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

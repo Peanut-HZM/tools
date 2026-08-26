@@ -20,6 +20,8 @@ import { MetricsPanel } from './MetricsPanel';
 import { RelatedPanel } from './RelatedPanel';
 import { LogsViewer } from '../LogsViewer/LogsViewer';
 import { K8sTerminalPanel } from '../TerminalPanel/K8sTerminalPanel';
+import { Badge } from '@/components/ui/Badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 /** PodDetail 组件 Props */
 interface PodDetailProps {
@@ -228,44 +230,29 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
             {currentTab.namespace}
           </span>
           {pod?.phase && (
-            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-              pod.phase === 'Running'
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : pod.phase === 'Failed'
-                ? 'bg-danger/20 text-danger border border-red-500/30'
-                : 'bg-accent-warning/20 text-accent-warning border border-yellow-500/30'
-            }`}>
+            <Badge variant={
+              pod.phase === 'Running' ? 'success' :
+              pod.phase === 'Failed' ? 'destructive' :
+              'warning'
+            }>
               {pod.phase}
-            </span>
+            </Badge>
           )}
         </div>
         {/* 关闭按钮由 BottomPanel 的 TabBar 处理 */}
       </div>
 
       {/* 子 Tab 栏 */}
-      <div className="flex items-center px-2 border-b border-border bg-surface-1/30 shrink-0 overflow-x-auto">
-        {SUB_TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                if (currentTabId) {
-                  setActiveSubTab(currentTabId, tab.key);
-                }
-              }}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 whitespace-nowrap transition-colors ${
-                isActive
-                  ? 'border-blue-500 text-accent-info'
-                  : 'border-transparent text-ink-muted hover:text-ink hover:border-border'
-              }`}
-            >
+      <Tabs value={activeTab} onValueChange={(v) => { if (currentTabId) setActiveSubTab(currentTabId, v); }} className="px-2 border-b border-border bg-surface-1/30 shrink-0">
+        <TabsList className="bg-transparent h-auto p-0">
+          {SUB_TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key} className="rounded-none bg-transparent px-3 py-2 text-xs font-medium border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 data-[state=active]:text-accent-info data-[state=inactive]:text-ink-muted">
               <i className={`${tab.icon} text-xs`}></i>
               {tabT[tab.labelKey]}
-            </button>
-          );
-        })}
-      </div>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {/* 内容区域 */}
       <div className="flex-1 overflow-hidden">

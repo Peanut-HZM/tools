@@ -8,6 +8,7 @@ import AddServerModal from './components/AddServerModal';
 import ConfirmModal from './components/ConfirmModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card, CardContent } from '@/components/ui/Card';
 
 /** 页签①服务器列表：状态卡片网格 + 添加/编辑/删除/重试 */
 export default function ServerList() {
@@ -101,8 +102,8 @@ export default function ServerList() {
       <AddServerModal open={addOpen} onClose={() => setAddOpen(false)} onSaved={refresh} sshConfigs={sshConfigs} />
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(null)}>
-          <div className="bg-canvas border border-border rounded-xl p-5 w-[400px]" onClick={(e) => e.stopPropagation()}>
-            <div className="text-ink-inverse font-medium mb-3">编辑服务器（编辑后需手动触发采集）</div>
+          <Card className="p-5 w-[400px]" onClick={(e) => e.stopPropagation()}>
+            <div className="text-ink font-medium mb-3">编辑服务器（编辑后需手动触发采集）</div>
             <Input
               className="w-full mb-3"
               defaultValue={editing.name}
@@ -127,7 +128,7 @@ export default function ServerList() {
                 保存
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
       <ConfirmModal

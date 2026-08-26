@@ -8,6 +8,7 @@ import React from 'react';
 import { useI18n } from '../../../../i18n';
 import { formatAge } from '../ResourceTabs/utils';
 import type { K8sPodDetail } from '../types';
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   pod: K8sPodDetail;
@@ -75,9 +76,14 @@ export const OverviewPanel: React.FC<Props> = ({ pod }) => {
           {/* 阶段 */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-ink-faint w-20 shrink-0">{ot.phase}</span>
-            <span className={`px-2 py-0.5 rounded border text-xs font-medium ${getPhaseColor(pod.phase)}`}>
+            <Badge variant={
+              pod.phase.toLowerCase() === 'running' ? 'success' :
+              pod.phase.toLowerCase() === 'failed' ? 'destructive' :
+              pod.phase.toLowerCase() === 'succeeded' ? 'default' :
+              'secondary'
+            }>
               {pod.phase}
-            </span>
+            </Badge>
           </div>
 
           {/* 状态描述 */}

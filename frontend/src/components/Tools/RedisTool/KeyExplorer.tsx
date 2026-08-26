@@ -8,6 +8,7 @@ import { useToast } from '../../../hooks/useToast';
 import { useI18n, interpolate } from '../../../i18n';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Badge } from '@/components/ui/Badge';
 
 interface Props {
   configId: string;
@@ -220,11 +221,11 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                       {k.key}
                     </div>
                     <div className="text-xs mt-0.5 flex items-center space-x-2 opacity-80">
-                      <span className={`px-1.5 rounded text-[10px] uppercase font-bold ${
-                          selectedKey === k.key ? 'bg-white/20 text-ink-inverse' : getKeyTypeColor(k.type)
+                      <Badge variant="secondary" className={`text-[10px] uppercase font-bold px-1.5 py-0 ${
+                          selectedKey === k.key ? '' : getKeyTypeColor(k.type)
                       }`}>
                           {k.type}
-                      </span>
+                      </Badge>
                       {k.ttl > 0 && <span>TTL: {k.ttl}s</span>}
                     </div>
                   </div>
