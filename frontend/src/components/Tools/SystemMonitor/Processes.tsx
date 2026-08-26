@@ -110,7 +110,7 @@ export default function Processes() {
         </Button>
       </div>
       {error && <div className="text-sm text-danger">{error}</div>}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-canvas">
         <CardContent className="p-0">
         <table className="w-full text-xs">
           <thead>
@@ -137,7 +137,7 @@ export default function Processes() {
                 <td className="px-3 py-2 text-right text-ink-muted hidden lg:table-cell">{fmtBytes(p.memory_rss)}</td>
                 <td className="px-3 py-2 text-ink-faint hidden xl:table-cell">{p.create_time}</td>
                 <td className="px-3 py-2">
-                  <Badge className="bg-surface-1 text-[10px] text-success border-none">{p.project_type}</Badge>
+                  <Badge variant="tint-success" className="text-[10px]">{p.project_type}</Badge>
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button className="text-danger/80 hover:text-red-300 text-[11px]" onClick={() => setKilling(p)}>结束</button>

@@ -118,7 +118,7 @@ export default function Alerts() {
       {error && <div className="text-sm text-danger">{error}</div>}
 
       {/* 通知设置 */}
-      <Card className="p-4">
+      <Card className="p-4 bg-canvas">
         <div className="text-sm text-ink font-medium mb-3">通知设置</div>
         <div className="flex items-center gap-3">
           <Input
@@ -135,7 +135,7 @@ export default function Alerts() {
       </Card>
 
       {/* 规则列表 */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-canvas">
         <CardHeader className="px-4 py-2.5 border-b border-border flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium text-ink">告警规则</CardTitle>
           <button className="px-3 py-1.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-ink-inverse"
@@ -192,7 +192,7 @@ export default function Alerts() {
       </Card>
 
       {/* 触发记录 */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-canvas">
         <CardHeader className="px-4 py-2.5 border-b border-border flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium text-ink">触发记录</CardTitle>
           <Button variant="secondary" size="sm" onClick={markRead}>全部已读</Button>
@@ -232,7 +232,7 @@ export default function Alerts() {
       {/* 编辑弹窗 */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(null)}>
-          <Card className="p-5 w-[420px] space-y-3" onClick={(e) => e.stopPropagation()}>
+          <Card className="bg-canvas p-5 w-[420px] space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="text-ink font-medium">{editing.id ? '编辑规则' : '新建规则'}</div>
             <div className="flex gap-3">
               <Select value={editing.server_id} onValueChange={(v) => setEditing({ ...editing, server_id: v })}>

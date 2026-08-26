@@ -58,7 +58,7 @@ export default function AddServerModal({ open, onClose, onSaved, sshConfigs }: A
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <Card className="p-5 w-[480px] max-w-[92vw]" onClick={(e) => e.stopPropagation()}>
+      <Card className="bg-canvas p-5 w-[480px] max-w-[92vw]" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="p-0 mb-4 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-medium text-ink">添加监控服务器</CardTitle>
           <button className="text-ink-faint hover:text-ink" onClick={onClose}>✕</button>

@@ -28,7 +28,7 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
   const offline = server.status !== 'online';
   return (
     <Card
-      className="p-4 hover:border-border cursor-pointer transition-colors"
+      className="bg-canvas p-4 hover:border-border cursor-pointer transition-colors"
       onClick={() => onSelect(server.id)}
       data-testid={`server-card-${server.id}`}
     >

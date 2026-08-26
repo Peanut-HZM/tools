@@ -1,3 +1,10 @@
+// NOTE: This is a CUSTOM tabs implementation, NOT Radix Tabs.
+// The terminal session lifecycle requires:
+//   - Closeable tabs with status dots (DOT_COLORS per ConnectionStatus)
+//   - Middle-click close behavior (handleAuxClick for button === 1 / Ctrl|Cmd)
+//   - Manual session state management (terminal sessions outlive component remounts)
+// Radix Tabs primitive (Tabs/TabsList/TabsTrigger/TabsContent) cannot express
+// this UX. Do not migrate to Radix Tabs without first removing these features.
 import React from 'react';
 import { SSHSessionTab, ConnectionStatus, MAX_TABS } from './types';
 import { useI18n, interpolate } from '../../../i18n';

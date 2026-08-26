@@ -1,7 +1,13 @@
-/**
- * 底部面板的标签栏组件
- * 显示所有打开的资源标签，支持切换和关闭
- */
+// NOTE: This is a CUSTOM tabs implementation, NOT Radix Tabs.
+// The bottom-panel resource tab UX requires:
+//   - Closeable tabs with an inline X button on each tab (closeResourceTab)
+//   - Manual session state management via useK8sStore (openedTabs / activeTabId
+//     live outside React component tree so it survives panel remounts and can
+//     be queried by other parts of the K8sTool view, e.g. detail panes)
+// Radix Tabs primitive (Tabs/TabsList/TabsTrigger/TabsContent) cannot express
+// this UX — its state is component-local and its trigger element does not
+// support a trailing close button. Do not migrate to Radix Tabs without first
+// moving tab state into a store and removing the close button.
 import React from 'react';
 import { Box, X } from 'lucide-react';
 import { useK8sStore, type ResourceTab } from '../../../../stores/k8sStore';

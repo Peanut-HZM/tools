@@ -123,7 +123,7 @@ export default function History() {
       ) : points.length === 0 ? (
         <div className="text-center text-ink-faint py-16">暂无数据（采集后约 1 分钟可见）</div>
       ) : (
-        <Card className="p-4">
+        <Card className="p-4 bg-canvas">
           <CardContent className="p-0">
             <MetricChart data={points} lines={lines} yUnit={groupConfig.yUnit} />
           </CardContent>

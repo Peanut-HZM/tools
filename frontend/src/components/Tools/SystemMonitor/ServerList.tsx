@@ -103,7 +103,7 @@ export default function ServerList() {
       <AddServerModal open={addOpen} onClose={() => setAddOpen(false)} onSaved={refresh} sshConfigs={sshConfigs} />
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditing(null)}>
-          <Card className="p-5 w-[400px]" onClick={(e) => e.stopPropagation()}>
+          <Card className="bg-canvas p-5 w-[400px]" onClick={(e) => e.stopPropagation()}>
             <div className="text-ink font-medium mb-3">编辑服务器（编辑后需手动触发采集）</div>
             <Input
               className="w-full mb-3"

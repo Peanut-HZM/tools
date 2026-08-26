@@ -69,7 +69,7 @@ export default function Overview() {
       <SystemInfoCards info={info} server={server} />
       <ResourceCards metric={metric} />
       {/* 分区表格 */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-canvas">
         <CardHeader className="px-4 py-2.5 border-b border-border">
           <CardTitle className="text-sm font-medium text-ink">磁盘分区</CardTitle>
         </CardHeader>

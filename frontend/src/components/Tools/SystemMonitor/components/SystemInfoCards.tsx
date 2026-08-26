@@ -25,7 +25,7 @@ export default function SystemInfoCards({ info, server }: SystemInfoCardsProps) 
       {cards.map((card) => {
         const Icon = card.icon;
         return (
-        <Card key={card.label} className="p-3">
+        <Card key={card.label} className="p-3 bg-canvas">
           <div className="flex items-center gap-1.5 text-xs text-ink-faint mb-1">
             <Icon className="w-4 h-4" />
             {card.label}

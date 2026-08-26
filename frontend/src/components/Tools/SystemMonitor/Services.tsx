@@ -74,7 +74,7 @@ export default function Services() {
         </div>
       )}
       {error && <div className="text-sm text-danger">{error}</div>}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-canvas">
         <CardContent className="p-0">
         <table className="w-full text-xs">
           <thead>
@@ -93,7 +93,7 @@ export default function Services() {
                 <tr key={s.name} className="border-b border-border/50 last:border-0 hover:bg-surface-1/30">
                   <td className="px-3 py-2 text-ink font-mono">{s.name}</td>
                   <td className="px-3 py-2">
-                    <Badge variant={running ? 'success' : 'destructive'} className="text-[10px]">
+                    <Badge variant={running ? 'tint-success' : 'tint-danger'} className="text-[10px]">
                       {s.state}
                     </Badge>
                   </td>
