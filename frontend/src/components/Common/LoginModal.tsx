@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import LoginForm from '../Auth/LoginForm';
 import RegisterForm from '../Auth/RegisterForm';
+import { X } from 'lucide-react';
 
 export default function LoginModal() {
   const { isAuthenticated } = useAuth();
@@ -52,7 +53,7 @@ export default function LoginModal() {
                   className="h-6 w-6 text-ink-faint hover:text-white"
                   aria-label="关闭"
                 >
-                  <i className="fa-solid fa-xmark text-lg"></i>
+                  <X className="text-lg w-5 h-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>关闭</TooltipContent>

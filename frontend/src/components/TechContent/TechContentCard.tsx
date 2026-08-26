@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n/index.ts';
+import { FileText, Eye } from 'lucide-react';
 
 export interface TechContentCardProps {
   id: number;
@@ -94,7 +95,7 @@ export default function TechContentCard({
       ) : (
         <div className="relative h-48 bg-gradient-to-br from-surface-2 to-surface-1 flex items-center justify-center">
           <div className="text-ink-faint text-6xl">
-            <i className="fas fa-file-alt"></i>
+            <FileText className="w-16 h-16" />
           </div>
           <div className="absolute top-3 left-3 flex gap-2">
             <span
@@ -150,7 +151,7 @@ export default function TechContentCard({
             <span>{readingTime} min read</span>
             {views > 0 && (
               <span className="flex items-center gap-1">
-                <i className="fas fa-eye text-xs"></i>
+                <Eye className="w-3 h-3 text-xs" />
                 {views}
               </span>
             )}

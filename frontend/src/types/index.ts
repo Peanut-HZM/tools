@@ -61,7 +61,7 @@ export interface Statistic {
 }
 
 export interface Recommendation {
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
   iconColor: string;
   title: string;
   description: string;

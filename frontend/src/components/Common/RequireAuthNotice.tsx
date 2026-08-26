@@ -3,6 +3,7 @@
  * 受保护页面在未登录时渲染此组件：提示 + "登录"按钮（打开全局登录弹框）
  */
 import { useLoginModalStore } from '../../stores/loginModalStore';
+import { Lock } from 'lucide-react';
 
 export default function RequireAuthNotice() {
   const openLoginModal = useLoginModalStore((state) => state.openLoginModal);
@@ -10,7 +11,7 @@ export default function RequireAuthNotice() {
   return (
     <div className="flex h-full min-h-[300px] items-center justify-center p-6">
       <div className="text-center">
-        <i className="fa-solid fa-lock mb-4 text-4xl text-ink-faint"></i>
+        <Lock className="w-10 h-10 mb-4 text-ink-faint" />
         <p className="mb-1 text-lg text-white">该功能需要登录后使用</p>
         <p className="mb-4 text-sm text-ink-faint">登录成功后数据将自动加载</p>
         <button

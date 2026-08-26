@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
+import { GraduationCap, Star, User, Heart, Bookmark } from 'lucide-react';
 
 interface CourseCardProps {
   id: number;
@@ -48,7 +49,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   // 默认封面图（渐变背景）
   const defaultCover = (
     <div className="w-full aspect-video bg-gradient-to-br from-accent/20 to-accent-hover/20 flex items-center justify-center">
-      <i className="fas fa-graduation-cap text-6xl text-accent/50"></i>
+      <GraduationCap className="w-16 h-16 text-accent/50" />
     </div>
   );
 
@@ -104,11 +105,11 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <div className="flex items-center justify-between text-xs text-ink-faint">
             <div className="flex items-center space-x-3">
               <span className="flex items-center">
-                <i className="fas fa-star text-accent-warning mr-1"></i>
+                <Star className="w-3 h-3 text-accent-warning mr-1" />
                 {statistics.avg_rating.toFixed(1)}
               </span>
               <span className="flex items-center">
-                <i className="fas fa-user mr-1"></i>
+                <User className="w-3 h-3 mr-1" />
                 {statistics.enroll_count >= 1000
                   ? `${(statistics.enroll_count / 1000).toFixed(1)}k`
                   : statistics.enroll_count}
@@ -116,11 +117,11 @@ const CourseCard: React.FC<CourseCardProps> = ({
             </div>
             <div className="flex items-center space-x-2">
               <span className="flex items-center">
-                <i className="fas fa-heart text-pink-400 mr-1"></i>
+                <Heart className="w-3 h-3 text-pink-400 mr-1" />
                 {statistics.like_count}
               </span>
               <span className="flex items-center">
-                <i className="fas fa-bookmark text-accent-info mr-1"></i>
+                <Bookmark className="w-3 h-3 text-accent-info mr-1" />
                 {statistics.bookmark_count}
               </span>
             </div>
@@ -152,7 +153,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                     className="p-2 text-ink-muted hover:text-pink-400 hover:bg-pink-400/10 rounded-lg transition-all"
                     aria-label="点赞"
                   >
-                    <i className="fas fa-heart"></i>
+                    <Heart className="w-4 h-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>点赞</TooltipContent>
@@ -163,7 +164,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                     className="p-2 text-ink-muted hover:text-accent-info hover:bg-accent-info/10 rounded-lg transition-all"
                     aria-label="收藏"
                   >
-                    <i className="fas fa-bookmark"></i>
+                    <Bookmark className="w-4 h-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>收藏</TooltipContent>

@@ -1,7 +1,8 @@
 import { Recommendation } from '../../types';
+import { LucideIcon } from 'lucide-react';
 import { useI18n, interpolate } from '../../i18n';
 
-export default function RecommendationCard({ icon, iconColor, title, description, action }: Recommendation) {
+export default function RecommendationCard({ icon: Icon, iconColor, title, description, action }: Recommendation) {
   const { t } = useI18n();
 
   const handleClick = () => {
@@ -12,7 +13,7 @@ export default function RecommendationCard({ icon, iconColor, title, description
     <div className="bg-surface-1 rounded-xl p-6 border border-border">
       <div className="flex items-center mb-4">
         <div className={`w-10 h-10 ${iconColor} rounded-lg flex items-center justify-center mr-3`}>
-          <i className={`fas ${icon} text-ink-inverse`}></i>
+          <Icon className="w-5 h-5 text-ink-inverse" />
         </div>
         <div>
           <h3 className="font-semibold">{title}</h3>

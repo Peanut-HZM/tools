@@ -2,6 +2,7 @@
  * 课程筛选侧边栏组件
  */
 import React, { useState } from 'react';
+import { Filter, ChevronDown, ChevronUp, Layers, ArrowDownWideNarrow, RotateCcw } from 'lucide-react';
 
 interface FilterOption {
   value: string;
@@ -48,10 +49,10 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         className="lg:hidden mb-4 w-full px-4 py-3 bg-surface-1/50 border border-border/50 rounded-xl text-ink-inverse font-medium flex items-center justify-between"
       >
         <span>
-          <i className="fas fa-filter mr-2"></i>
+          <Filter className="w-4 h-4 mr-2 inline" />
           筛选
         </span>
-        <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'}`}></i>
+        {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
 
       {/* 侧边栏 */}
@@ -61,7 +62,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         {/* 分类筛选 */}
         <div className="bg-surface-1/30 rounded-xl p-5 border border-border/50">
           <h3 className="text-ink-inverse font-semibold mb-4 flex items-center">
-            <i className="fas fa-layer-group text-accent mr-2"></i>
+            <Layers className="w-4 h-4 text-accent mr-2" />
             课程分类
           </h3>
           <div className="space-y-2">
@@ -102,7 +103,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         {/* 排序筛选 */}
         <div className="bg-surface-1/30 rounded-xl p-5 border border-border/50">
           <h3 className="text-ink-inverse font-semibold mb-4 flex items-center">
-            <i className="fas fa-sort text-accent mr-2"></i>
+            <ArrowDownWideNarrow className="w-4 h-4 text-accent mr-2" />
             排序方式
           </h3>
           <div className="space-y-2">
@@ -138,7 +139,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
           onClick={onReset}
           className="w-full px-4 py-3 bg-surface-2/50 hover:bg-surface-3/50 text-ink-muted hover:text-ink-inverse rounded-xl transition-all duration-200 font-medium"
         >
-          <i className="fas fa-undo mr-2"></i>
+          <RotateCcw className="w-4 h-4 mr-2 inline" />
           重置筛选
         </button>
       </aside>

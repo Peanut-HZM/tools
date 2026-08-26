@@ -3,6 +3,7 @@ import { changePassword } from '../../api/authApi';
 import { useToast } from '../../hooks/useToast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Check } from 'lucide-react';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -99,7 +100,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: Chan
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border text-center">
           <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fa-solid fa-check text-2xl"></i>
+            <Check className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-bold text-white mb-2">密码修改成功</h3>
           <p className="text-ink-muted mb-6">您的密码已更新，请使用新密码登录</p>

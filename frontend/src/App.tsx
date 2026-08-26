@@ -38,6 +38,7 @@ import { ErrorBoundary } from './components/Common/ErrorMessages';
 import LoginModal from './components/Common/LoginModal';
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
+import { Inbox } from 'lucide-react';
 import { registerAuthFailureHandler } from './api/http';
 import { useLoginModalStore } from './stores/loginModalStore';
 
@@ -258,7 +259,7 @@ function HomePage() {
         </div>
       ) : filteredTools.length === 0 ? (
         <div className="text-center py-16">
-          <i className="fas fa-inbox text-6xl text-ink-faint mb-4"></i>
+          <Inbox className="w-16 h-16 text-ink-faint mb-4" />
           <div className="text-xl text-ink-faint mb-2">
             {debouncedValue ? t.common.noSearchResults : t.common.noTools}
           </div>

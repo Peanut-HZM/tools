@@ -29,6 +29,8 @@ export default function ToolCard({
         {custom_icon_url ? (
           <img src={custom_icon_url} alt={title} className="w-6 h-6 object-contain" />
         ) : (
+          // TODO: 图标目前为 API 返回的 Font Awesome class 字符串（如 fa-image/fa-key），
+          // 需要在后续迁移中同步将后端存储改为 lucide-react 图标名（React.ComponentType）
           <i className={`fas ${icon} text-ink-inverse text-xl`}></i>
         )}
       </div>
