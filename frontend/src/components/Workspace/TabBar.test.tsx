@@ -14,7 +14,12 @@ describe('TabBar', () => {
     localStorage.clear();
     // 重置 store 到初始状态
     act(() => {
-      useWorkspaceStore.setState({ tabs: [], activeTabId: null });
+      useWorkspaceStore.setState({
+        tabs: [],
+        activeTabId: null,
+        // 工具侧栏默认收起，确保 TabBar 渲染的是"展开"按钮文案
+        isToolSidebarVisible: false,
+      });
     });
   });
 

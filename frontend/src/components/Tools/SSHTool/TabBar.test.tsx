@@ -147,6 +147,6 @@ describe('TabBar', () => {
     expect(dot('a').className).toContain('bg-green');
     expect(dot('b').className).toContain('bg-yellow');
     expect(dot('c').className).toContain('bg-red');
-    expect(dot('d').className).toContain('bg-slate');
+    expect(dot('d').className).toContain('bg-surface-3');
   });
 });

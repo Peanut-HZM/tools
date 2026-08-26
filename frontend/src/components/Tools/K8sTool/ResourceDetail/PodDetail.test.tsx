@@ -229,14 +229,14 @@ describe('PodDetail', () => {
     // 默认显示概览面板
     expect(screen.getByTestId('overview-panel')).toBeTruthy();
 
-    // 点击 YAML tab
-    fireEvent.click(screen.getByText('YAML'));
+    // 点击 YAML tab（Radix Tabs Trigger 通过 onMouseDown 激活）
+    fireEvent.mouseDown(screen.getByText('YAML'));
     // 验证 store 中的 activeSubTabs 已更新为 yaml
     expect(useK8sStore.getState().activeSubTabs['tab-1']).toBe('yaml');
     expect(screen.getByTestId('yaml-panel')).toBeTruthy();
 
     // 点击事件 tab
-    fireEvent.click(screen.getByText('事件'));
+    fireEvent.mouseDown(screen.getByText('事件'));
     expect(useK8sStore.getState().activeSubTabs['tab-1']).toBe('events');
     expect(screen.getByTestId('events-panel')).toBeTruthy();
   });

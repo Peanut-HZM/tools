@@ -12,6 +12,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { PodList } from './PodList';
+import { ToastProvider } from '../../../../contexts/ToastContext';
 
 // ---------- Mock 子模块 ----------
 
@@ -90,7 +91,11 @@ const createQueryClient = () =>
 /** 包装组件渲染 */
 const renderWithProviders = (ui: React.ReactElement) => {
   const qc = createQueryClient();
-  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={qc}>
+      <ToastProvider>{ui}</ToastProvider>
+    </QueryClientProvider>
+  );
 };
 
 beforeEach(() => {

@@ -1,11 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import React from 'react';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { AuthProvider } from '../../stores/authStore';
 
 // Mock useNavigate
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
+}));
+
+// mock 网络层：避免 AuthProvider 触发真实的 token 校验
+vi.mock('../../api/authApi', () => ({
+  verifyToken: vi.fn().mockResolvedValue(false),
+  getCurrentUser: vi.fn(),
+  removeAuthToken: vi.fn(),
+  login: vi.fn(),
+  logout: vi.fn(),
+}));
+
+vi.mock('../../api/tokenUsageApi', () => ({
+  syncTokenUsage: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock('../../i18n', () => ({
@@ -24,6 +39,10 @@ vi.mock('../../i18n', () => ({
     toggleLanguage: vi.fn(),
   }),
 }));
+
+/** 渲染辅助函数：用 AuthProvider 包裹以提供 AuthContext */
+const renderWithAuth = (ui: React.ReactElement) =>
+  render(<AuthProvider>{ui}</AuthProvider>);
 
 describe('WorkspaceSidebar', () => {
   const mockTools = [
@@ -44,12 +63,12 @@ describe('WorkspaceSidebar', () => {
   });
 
   it('should render home button', () => {
-    render(<WorkspaceSidebar tools={mockTools} />);
+    renderWithAuth(<WorkspaceSidebar tools={mockTools} />);
     expect(screen.getByText('返回首页')).toBeTruthy();
   });
 
   it('should render tool list', () => {
-    render(<WorkspaceSidebar tools={mockTools} />);
+    renderWithAuth(<WorkspaceSidebar tools={mockTools} />);
     expect(screen.getByText('K8s')).toBeTruthy();
     expect(screen.getByText('SSH')).toBeTruthy();
   });
@@ -58,14 +77,14 @@ describe('WorkspaceSidebar', () => {
     act(() => {
       useWorkspaceStore.getState().addTab({ id: 'k8s-tool', title: 'K8s', icon: 'fas fa-server' });
     });
-    render(<WorkspaceSidebar tools={mockTools} />);
+    renderWithAuth(<WorkspaceSidebar tools={mockTools} />);
 
     const k8sItem = screen.getByText('K8s').closest('[data-tool-id]');
     expect(k8sItem?.getAttribute('data-active')).toBe('true');
   });
 
   it('should add tab when clicking tool', () => {
-    render(<WorkspaceSidebar tools={mockTools} />);
+    renderWithAuth(<WorkspaceSidebar tools={mockTools} />);
     fireEvent.click(screen.getByText('K8s'));
 
     expect(useWorkspaceStore.getState().tabs).toHaveLength(1);
@@ -73,13 +92,13 @@ describe('WorkspaceSidebar', () => {
   });
 
   it('should render search input', () => {
-    render(<WorkspaceSidebar tools={mockTools} />);
+    renderWithAuth(<WorkspaceSidebar tools={mockTools} />);
     const searchInput = screen.getByPlaceholderText('搜索工具...');
     expect(searchInput).toBeTruthy();
   });
 
   it('should filter tools by search query', () => {
-    render(<WorkspaceSidebar tools={mockTools} />);
+    renderWithAuth(<WorkspaceSidebar tools={mockTools} />);
     const searchInput = screen.getByPlaceholderText('搜索工具...');
     fireEvent.change(searchInput, { target: { value: 'K8s' } });
 
@@ -88,7 +107,7 @@ describe('WorkspaceSidebar', () => {
   });
 
   it('should show all tools when search is cleared', () => {
-    render(<WorkspaceSidebar tools={mockTools} />);
+    renderWithAuth(<WorkspaceSidebar tools={mockTools} />);
     const searchInput = screen.getByPlaceholderText('搜索工具...');
     fireEvent.change(searchInput, { target: { value: 'K8s' } });
     fireEvent.change(searchInput, { target: { value: '' } });
