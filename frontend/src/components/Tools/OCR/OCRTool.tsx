@@ -1,4 +1,4 @@
-import { Clock, Copy, FileImage, FileText, Image as ImageIcon, Loader2, QrCode, Sparkles, Trash2, AlignLeft } from 'lucide-react';
+import { Clock, Copy, FileImage, FileText, Image as ImageIcon, Loader2, QrCode, Sparkles, Trash2, AlignLeft, UploadCloud } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { ocrApi, OCRResult, QRCodeResult } from '../../../api/ocrApi';
 import { useToast } from '../../../hooks/useToast';
@@ -200,7 +200,7 @@ export default function OCRTool() {
             ) : (
               <div className="text-center p-6">
                 <div className="w-16 h-16 bg-surface-2 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className={`fas ${mode === 'pdf' ? 'fa-file-pdf' : mode === 'qrcode' ? 'fa-qrcode' : 'fa-cloud-upload-alt'} text-3xl text-accent`}></i>
+                  {mode === 'pdf' ? <FileText className="w-8 h-8 text-accent" /> : mode === 'qrcode' ? <QrCode className="w-8 h-8 text-accent" /> : <UploadCloud className="w-8 h-8 text-accent" />}
                 </div>
                 <p className="text-lg text-ink mb-2">点击或拖拽{mode === 'pdf' ? 'PDF' : '图片'}到这里</p>
                 {mode !== 'pdf' && <p className="text-sm text-ink-muted">支持 Ctrl+V 粘贴图片</p>}

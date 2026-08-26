@@ -5,7 +5,7 @@
  * Warning 事件用黄色高亮
  */
 import React from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Info } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sEvents } from '../../../../hooks/useK8sClient';
 import { useI18n } from '../../../../i18n';
@@ -82,7 +82,7 @@ export const EventsList: React.FC = () => {
                   <span className={`inline-flex items-center gap-1 text-xs font-medium ${
                     isWarning ? 'text-accent-warning' : 'text-accent-info'
                   }`}>
-                    <i className={`fas ${isWarning ? 'fa-exclamation-triangle' : 'fa-info-circle'}`}></i>
+                    {isWarning ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
                     {event.type}
                   </span>
                 </td>

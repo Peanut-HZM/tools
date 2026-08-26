@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AlertCircle, AlertTriangle, ArrowLeft, BarChart3, Brain, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Copy, Database, Download, FileCode, FileText, Folder, FolderOpen, FolderTree, History, Inbox, Loader2, MessageSquare, RefreshCw, Search, Star, Trash2, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ArrowLeft, BarChart3, Bot, Brain, CheckCircle, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Copy, Database, Download, FileCode, FileText, Folder, FolderOpen, FolderTree, History, Inbox, Indent, Loader2, MessageSquare, Outdent, RefreshCw, Search, Star, Trash2, User, Wrench, X, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -694,15 +694,19 @@ export default function CursorHistory() {
 
     // 工具调用渲染
     if (isToolCall && msg.tool_call) {
-      const statusIcon = msg.tool_call.status === 'completed' ? 'fa-check-circle text-success' :
-                         msg.tool_call.status === 'running' ? 'fa-spinner fa-spin text-accent-info' :
-                         msg.tool_call.status === 'error' ? 'fa-times-circle text-danger' :
-                         'fa-wrench text-ink-muted';
+      const StatusIcon = msg.tool_call.status === 'completed' ? CheckCircle :
+                         msg.tool_call.status === 'running' ? Loader2 :
+                         msg.tool_call.status === 'error' ? XCircle :
+                         Wrench;
+      const statusIconClass = msg.tool_call.status === 'completed' ? 'text-success' :
+                         msg.tool_call.status === 'running' ? 'animate-spin text-accent-info' :
+                         msg.tool_call.status === 'error' ? 'text-danger' :
+                         'text-ink-muted';
       return (
         <div className="flex justify-start group">
           <div className="max-w-[80%] rounded-xl px-4 py-2.5 bg-accent/5 border border-accent/15">
             <div className="flex items-center gap-2">
-              <i className={`fas ${statusIcon} text-xs`} />
+              <StatusIcon className={`w-3 h-3 ${statusIconClass}`} />
               <span className="text-xs font-medium text-accent/80">
                 {msg.tool_call.toolName || '工具调用'}
               </span>
@@ -740,7 +744,7 @@ export default function CursorHistory() {
           {/* 消息头：角色 + 时间 + 复制按钮 */}
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
-              <i className={`fas ${isUser ? 'fa-user text-violet-400' : 'fa-robot text-success'} text-xs`} />
+              {isUser ? <User className="w-3 h-3 text-violet-400" /> : <Bot className="w-3 h-3 text-success" />}
               <span className={`text-xs font-medium ${isUser ? 'text-violet-400' : 'text-success'}`}>
                 {isUser ? '用户' : 'AI 助手'}
               </span>
@@ -971,7 +975,7 @@ export default function CursorHistory() {
               className="text-ink-muted hover:text-ink-inverse transition-colors"
               title={showProjectPanel ? '隐藏项目列表' : '显示项目列表'}
             >
-              <i className={`fas ${showProjectPanel ? 'fa-indent' : 'fa-outdent'} text-lg`} />
+              {showProjectPanel ? <Indent className="w-5 h-5" /> : <Outdent className="w-5 h-5" />}
             </button>
             {/* 最近访问按钮 */}
             <button
@@ -1013,7 +1017,7 @@ export default function CursorHistory() {
               }`}
               title={syncStatus.last_sync_time ? `上次同步: ${syncStatus.last_sync_time}` : '同步 Cursor 数据到本地缓存'}
             >
-              <i className={`fas ${syncStatus.syncing ? 'fa-sync fa-spin' : 'fa-database'} mr-1.5`} />
+              {syncStatus.syncing ? <RefreshCw className="w-4 h-4 mr-1.5 inline-block animate-spin" /> : <Database className="w-4 h-4 mr-1.5 inline-block" />}
               {syncStatus.syncing ? '同步中...' : '同步数据'}
             </button>
             <div className="flex items-center gap-3">
@@ -1071,7 +1075,7 @@ export default function CursorHistory() {
             <div className="bg-accent-info/10 border border-accent-info/20 rounded-xl px-4 py-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="w-3 h-3 fa-spin" />
+                  <RefreshCw className="w-3 h-3 animate-spin" />
                   <span className="text-xs text-accent-info">{syncStatus.current_step}</span>
                 </div>
                 <span className="text-xs text-accent-info">
@@ -1119,7 +1123,7 @@ export default function CursorHistory() {
                   {/* 路径有效性提示 */}
                   {pathValid !== null && pathInput && (
                     <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm ${pathValid ? 'text-success' : 'text-danger'}`}>
-                      <i className={`fas ${pathValid ? 'fa-check-circle' : 'fa-times-circle'}`} />
+                      {pathValid ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                     </span>
                   )}
                 </div>
@@ -1165,7 +1169,7 @@ export default function CursorHistory() {
             <span className="text-sm text-ink-muted">
               (共 {searchTotal} 条，第 {searchPage}/{searchTotalPages} 页)
             </span>
-            {loading.search && <Loader2 className="w-3.5 h-3.5 fa-spin" />}
+            {loading.search && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           </div>
           {/* 搜索结果列表（可滚动） */}
           <div className="flex-1 overflow-y-auto space-y-3 pb-4">
@@ -1409,7 +1413,7 @@ export default function CursorHistory() {
             <div className="flex-1 overflow-y-auto">
               {loading.projects ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-4 h-4 fa-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 </div>
               ) : projects.length === 0 ? (
                 <div className="text-center py-10 px-4">
@@ -1523,7 +1527,7 @@ export default function CursorHistory() {
             <div className="flex-1 overflow-y-auto">
               {loading.sessions ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-4 h-4 fa-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 </div>
               ) : !selectedProject ? (
                 <div className="text-center py-12 text-ink-faint">
@@ -1674,7 +1678,7 @@ export default function CursorHistory() {
                 <div ref={messageListRef} className="flex-1 overflow-y-auto p-6 space-y-4">
                   {loading.messages ? (
                     <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-5 h-5 fa-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="text-center py-12 text-ink-faint">
@@ -1702,7 +1706,7 @@ export default function CursorHistory() {
                       )}
                       {loadingMore && (
                         <div className="flex items-center justify-center py-4">
-                          <Loader2 className="w-4 h-4 fa-spin  mr-2" />
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           <span className="text-xs text-ink-faint">加载历史消息...</span>
                         </div>
                       )}
@@ -1815,7 +1819,7 @@ export default function CursorHistory() {
               >
                 {exportLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 fa-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>导出中...</span>
                   </>
                 ) : (
@@ -1909,7 +1913,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-4 h-4 fa-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           </div>
         ) : favorites.length === 0 ? (
           <div className="text-center py-8 text-ink-faint text-sm">
@@ -2002,7 +2006,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
       <div className="p-4 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-4 h-4 fa-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           </div>
         ) : (
           <>

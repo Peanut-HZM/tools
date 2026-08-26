@@ -5,7 +5,7 @@ import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import { useAuth } from '../../../stores';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
@@ -277,7 +277,7 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
                     title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
-                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import './MarkdownEditor.css';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Cloud } from 'lucide-react';
 import FileTree from './FileTree/FileTree';
 import OssFileList from './OssFileList/OssFileList';
 import Editor from './Editor/Editor';
@@ -749,7 +750,7 @@ export default function MarkdownEditor() {
                        color: '#93c5fd',
                        fontSize: '14px'
                      }}>
-                       <i className="fas fa-cloud mr-2"></i>
+                       <Cloud className="w-4 h-4 mr-2 inline-block" />
                        正在编辑OSS文件: {ossFilePath.split('/').pop()}
                      </div>
                    )}

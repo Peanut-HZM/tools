@@ -5,7 +5,7 @@
  * 点击行触发 setSelectedResource
  */
 import React from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sNodes } from '../../../../hooks/useK8sClient';
 import { useI18n } from '../../../../i18n';
@@ -95,7 +95,7 @@ export const NodeList: React.FC = () => {
                 {/* 状态 */}
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
-                    <i className={`fas ${status === 'Ready' ? 'fa-check-circle' : 'fa-exclamation-circle'} ${statusColor}`}></i>
+                    {status === 'Ready' ? <CheckCircle className={`w-4 h-4 ${statusColor}`} /> : <AlertCircle className={`w-4 h-4 ${statusColor}`} />}
                     <span className={`text-xs ${statusColor}`}>{status}</span>
                   </div>
                 </td>

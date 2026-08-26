@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Highlight, themes } from 'prism-react-renderer';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Check, Copy } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import * as api from '../../../../api/k8sToolApi';
@@ -85,7 +85,7 @@ export const YamlPanel: React.FC<Props> = ({ configId, resourceType, namespace, 
           onClick={handleCopy}
           className="h-7 px-2.5 py-1 text-xs"
         >
-          <i className={`fas ${copied ? 'fa-check text-green-400' : 'fa-copy'} text-xs`}></i>
+          {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
           {copied ? yt.copied : yt.copy}
         </Button>
       </div>

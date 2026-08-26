@@ -7,16 +7,17 @@ import History from './History';
 import Processes from './Processes';
 import Services from './Services';
 import Alerts from './Alerts';
+import { Server, Gauge, LineChart, List, Settings, Bell } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 
 const TABS = [
-  { key: 'servers', label: '服务器列表', icon: 'fa-server' },
-  { key: 'overview', label: '总览', icon: 'fa-gauge-high' },
-  { key: 'history', label: '历史趋势', icon: 'fa-chart-line' },
-  { key: 'processes', label: '进程', icon: 'fa-list' },
-  { key: 'services', label: '服务', icon: 'fa-cogs' },
-  { key: 'alerts', label: '告警', icon: 'fa-bell' },
+  { key: 'servers', label: '服务器列表', icon: Server },
+  { key: 'overview', label: '总览', icon: Gauge },
+  { key: 'history', label: '历史趋势', icon: LineChart },
+  { key: 'processes', label: '进程', icon: List },
+  { key: 'services', label: '服务', icon: Settings },
+  { key: 'alerts', label: '告警', icon: Bell },
 ] as const;
 
 /** 系统监控主容器：六页签导航 + 服务器状态管理 */
@@ -53,9 +54,11 @@ export default function SystemMonitor() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <TabsList className="bg-surface-2">
-            {TABS.map((tab) => (
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
               <TabsTrigger key={tab.key} value={tab.key} className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-success">
-                <i className={`fas ${tab.icon} text-xs`} />
+                <Icon className="w-3 h-3" />
                 {tab.label}
                 {tab.key === 'alerts' && unreadAlerts > 0 && (
                   <Badge variant="destructive" className="absolute -top-1 -right-1 text-[10px] min-w-[16px] h-4 px-1 rounded-full border-border">
@@ -63,7 +66,8 @@ export default function SystemMonitor() {
                   </Badge>
                 )}
               </TabsTrigger>
-            ))}
+              );
+            })}
           </TabsList>
         </div>
         {/* 页签内容 */}

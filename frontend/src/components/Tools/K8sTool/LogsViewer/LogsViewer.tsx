@@ -6,7 +6,7 @@
  * 使用可滚动 div 实现日志显示，自动限制最大行数防止内存溢出
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Search, Trash2, Workflow } from 'lucide-react';
+import { Search, Trash2, Workflow, Pause, Play, Loader2, Download } from 'lucide-react';
 import { useI18n } from '../../../../i18n';
 import { useToast } from '../../../../hooks/useToast';
 import { buildLogsWebSocketUrl, downloadPodLogs } from '../../../../api/k8sToolApi';
@@ -259,7 +259,7 @@ export const LogsViewer: React.FC<Props> = ({
               : 'bg-surface-1 border-border text-ink-muted'
           }`}
         >
-          <i className={`fas ${follow ? 'fa-pause' : 'fa-play'} text-xs`}></i>
+          {follow ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
           {lt.follow}
         </button>
 
@@ -301,7 +301,7 @@ export const LogsViewer: React.FC<Props> = ({
           className="h-7 px-2"
           title={lt.download}
         >
-          <i className={`fas ${downloading ? 'fa-spinner fa-spin' : 'fa-download'} text-xs`}></i>
+          {downloading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
         </Button>
 
         {/* 清空按钮 */}

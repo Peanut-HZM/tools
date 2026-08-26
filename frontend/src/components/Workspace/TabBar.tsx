@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useI18n } from '../../i18n';
 
@@ -15,7 +16,7 @@ export const TabBar: React.FC = () => {
         title={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
         aria-label={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
       >
-        <i className={`fas ${isToolSidebarVisible ? 'fa-chevron-left' : 'fa-chevron-right'} text-xs`}></i>
+        {isToolSidebarVisible ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
       </button>
       {/* 标签页分隔线 */}
       <div className="self-stretch w-px bg-surface-2 mr-1"></div>

@@ -48,7 +48,8 @@ describe('SystemMonitor 主容器', () => {
   it('切换页签', async () => {
     render(<SystemMonitor />);
     await waitFor(() => expect(screen.getByText('web1')).toBeTruthy());
-    fireEvent.click(screen.getByText('总览'));
+    // Radix Tabs Trigger 通过 onMouseDown 激活而非 onClick，需要派发 mousedown 事件
+    fireEvent.mouseDown(screen.getByText('总览'));
     expect(screen.getByTestId('server-selector')).toBeTruthy();
   });
 });
