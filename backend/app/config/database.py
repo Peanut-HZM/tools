@@ -189,6 +189,11 @@ def _do_health_check(conn: _PooledRawConnection) -> None:
         cur.fetchone()
 
 
+def _health_check_enabled() -> bool:
+    """判断是否启用数据库连接健康检查"""
+    return getattr(settings, "DB_HEALTH_CHECK", "false").lower() == "true"
+
+
 def get_pooled_db_connection():
     """从 SQLAlchemy engine 池获取连接（健康检查可配置）。
 

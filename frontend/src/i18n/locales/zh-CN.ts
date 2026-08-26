@@ -29,6 +29,10 @@ export const zhCN = {
     copy: '复制',
     filter: '筛选',
     edit: '编辑',
+    noTools: '暂无工具',
+    noSearchResults: '未找到相关工具',
+    tryOtherKeywords: '请尝试其他关键词',
+    contactAdmin: '请联系管理员添加工具',
   },
 
   // Workspace

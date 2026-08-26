@@ -238,7 +238,7 @@ export default function ContactMessagesManagement() {
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* 留言列表 */}
       <Card className="overflow-hidden">
@@ -344,7 +344,7 @@ export default function ContactMessagesManagement() {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
 
       {/* 分页 */}
       {totalPages > 1 && (

@@ -256,6 +256,18 @@ function HomePage() {
         <div className="text-center py-16">
           <div className="text-xl text-ink-faint">{t.common.loading}</div>
         </div>
+      ) : filteredTools.length === 0 ? (
+        <div className="text-center py-16">
+          <i className="fas fa-inbox text-6xl text-ink-faint mb-4"></i>
+          <div className="text-xl text-ink-faint mb-2">
+            {debouncedValue ? t.common.noSearchResults : t.common.noTools}
+          </div>
+          <div className="text-sm text-ink-muted">
+            {debouncedValue
+              ? t.common.tryOtherKeywords
+              : t.common.contactAdmin}
+          </div>
+        </div>
       ) : (
         <>
           <Hero

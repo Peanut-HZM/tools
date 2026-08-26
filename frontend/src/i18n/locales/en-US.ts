@@ -29,6 +29,10 @@ export const enUS = {
     copy: 'Copy',
     filter: 'Filter',
     edit: 'Edit',
+    noTools: 'No tools available',
+    noSearchResults: 'No tools found',
+    tryOtherKeywords: 'Please try other keywords',
+    contactAdmin: 'Please contact admin to add tools',
   },
 
   // Workspace
