@@ -140,7 +140,7 @@ export default function Processes() {
                   <Badge variant="tint-success" className="text-[10px]">{p.project_type}</Badge>
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button className="text-danger/80 hover:text-red-300 text-[11px]" onClick={() => setKilling(p)}>结束</button>
+                  <button className="text-danger/80 hover:text-danger text-[11px]" onClick={() => setKilling(p)}>结束</button>
                 </td>
               </tr>
             ))}

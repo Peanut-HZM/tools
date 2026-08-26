@@ -127,7 +127,7 @@ export default function Alerts() {
             value={settings.webhook_url}
             onChange={(e) => setSettings({ ...settings, webhook_url: e.target.value })}
           />
-          <button className="px-3 py-2 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-500 text-ink-inverse" onClick={saveSettings}>保存</button>
+          <button className="px-3 py-2 rounded-lg text-sm bg-success hover:opacity-90 text-ink-inverse" onClick={saveSettings}>保存</button>
         </div>
         <div className="text-xs text-ink-faint mt-2">
           采集间隔 {settings.collect_interval} 秒 · 告警触发后通过 Webhook 推送，同时在本页记录站内通知
@@ -138,7 +138,7 @@ export default function Alerts() {
       <Card className="overflow-hidden bg-canvas">
         <CardHeader className="px-4 py-2.5 border-b border-border flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium text-ink">告警规则</CardTitle>
-          <button className="px-3 py-1.5 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-ink-inverse"
+          <button className="px-3 py-1.5 rounded-lg text-xs bg-success hover:opacity-90 text-ink-inverse"
             onClick={() => setEditing({ ...EMPTY_FORM, id: '' })}>
             <Plus className="w-3.5 h-3.5 mr-1" />新建规则
           </button>
@@ -181,7 +181,7 @@ export default function Alerts() {
                       onClick={() => setEditing({ server_id: r.server_id, metric: r.metric, operator: r.operator, threshold: String(r.threshold), duration: String(r.duration), enabled: r.enabled, id: r.id })}>
                       编辑
                     </button>
-                    <button className="text-danger/80 hover:text-red-300" onClick={() => setDeleting(r)}>删除</button>
+                    <button className="text-danger/80 hover:text-danger" onClick={() => setDeleting(r)}>删除</button>
                   </td>
                 </tr>
               ))}
@@ -204,7 +204,7 @@ export default function Alerts() {
           <div className="divide-y divide-slate-800/50">
             {logs.map((log) => (
               <div key={log.id} className={`px-4 py-2.5 flex items-center gap-3 ${log.is_read ? 'opacity-60' : ''}`}>
-                <span className={`h-2 w-2 rounded-full shrink-0 ${log.status === 'firing' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                <span className={`h-2 w-2 rounded-full shrink-0 ${log.status === 'firing' ? 'bg-danger' : 'bg-success'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-ink-muted">
                     <span className="text-ink font-medium">{log.server_name}</span>
@@ -274,7 +274,7 @@ export default function Alerts() {
             {formError && <div className="text-sm text-danger">{formError}</div>}
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="ghost" onClick={() => setEditing(null)}>取消</Button>
-              <button className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500" onClick={saveRule}>保存</button>
+              <button className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-success hover:opacity-90" onClick={saveRule}>保存</button>
             </div>
           </Card>
         </div>

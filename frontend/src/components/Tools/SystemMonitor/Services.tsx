@@ -69,7 +69,7 @@ export default function Services() {
         </Button>
       </div>
       {!sudoOk && selectedServerId && (
-        <div className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+        <div className="text-xs text-warning/80 bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
           当前用户可能没有 sudo 权限，服务操作可能需要 root 或无密码 sudo
         </div>
       )}
@@ -102,11 +102,11 @@ export default function Services() {
                   <td className="px-3 py-2 text-right space-x-2">
                     {running ? (
                       <>
-                        <button className="text-amber-400/80 hover:text-amber-300" onClick={() => setConfirm({ unit: s.name, action: 'restart' })}>重启</button>
-                        <button className="text-danger/80 hover:text-red-300" onClick={() => setConfirm({ unit: s.name, action: 'stop' })}>停止</button>
+                        <button className="text-warning/80 hover:text-warning" onClick={() => setConfirm({ unit: s.name, action: 'restart' })}>重启</button>
+                        <button className="text-danger/80 hover:text-danger" onClick={() => setConfirm({ unit: s.name, action: 'stop' })}>停止</button>
                       </>
                     ) : (
-                      <button className="text-success/80 hover:text-emerald-300" onClick={() => setConfirm({ unit: s.name, action: 'start' })}>启动</button>
+                      <button className="text-success/80 hover:text-success" onClick={() => setConfirm({ unit: s.name, action: 'start' })}>启动</button>
                     )}
                   </td>
                 </tr>

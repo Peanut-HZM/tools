@@ -18,7 +18,7 @@ function fmtRate(v: number | null | undefined): string {
 }
 
 function StatusDot({ status }: { status: string }) {
-  const color = status === 'online' ? 'bg-emerald-500' : status === 'offline' ? 'bg-red-500' : status === 'error' ? 'bg-orange-500' : 'bg-surface-3';
+  const color = status === 'online' ? 'bg-success' : status === 'offline' ? 'bg-danger' : status === 'error' ? 'bg-accent-warm' : 'bg-surface-3';
   return <span className={`inline-block h-2 w-2 rounded-full ${color}`} />;
 }
 
@@ -45,7 +45,7 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
           <div className="text-xs text-danger/80 break-words">{server.last_error || '服务器离线'}</div>
           {server.status === 'error' && onRetry && (
             <button
-              className="mt-2 text-xs text-success hover:text-emerald-300"
+              className="mt-2 text-xs text-success hover:text-success"
               onClick={(e) => { e.stopPropagation(); onRetry(server); }}
             >
               重试采集

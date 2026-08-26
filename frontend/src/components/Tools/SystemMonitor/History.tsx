@@ -98,7 +98,7 @@ export default function History() {
           {RANGES.map((r) => (
             <button
               key={r.key}
-              className={`px-3 py-1.5 rounded-lg text-xs ${range === r.key ? 'bg-emerald-600/20 text-success' : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs ${range === r.key ? 'bg-success/20 text-success' : 'text-ink-muted hover:text-ink hover:bg-surface-1'}`}
               onClick={() => setRange(r.key)}
             >
               {r.label}
@@ -110,7 +110,7 @@ export default function History() {
         {GROUPS.map((g) => (
           <button
             key={g.key}
-            className={`px-3 py-1.5 rounded-lg text-xs ${group === g.key ? 'bg-emerald-600/20 text-success' : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-1'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs ${group === g.key ? 'bg-success/20 text-success' : 'text-ink-muted hover:text-ink hover:bg-surface-1'}`}
             onClick={() => setGroup(g.key)}
           >
             {g.label}

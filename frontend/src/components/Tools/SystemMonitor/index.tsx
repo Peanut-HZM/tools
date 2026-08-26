@@ -57,7 +57,7 @@ export default function SystemMonitor() {
             {TABS.map((tab) => {
               const Icon = tab.icon;
               return (
-              <TabsTrigger key={tab.key} value={tab.key} className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-success">
+              <TabsTrigger key={tab.key} value={tab.key} className="data-[state=active]:bg-success/20 data-[state=active]:text-success">
                 <Icon className="w-3 h-3" />
                 {tab.label}
                 {tab.key === 'alerts' && unreadAlerts > 0 && (

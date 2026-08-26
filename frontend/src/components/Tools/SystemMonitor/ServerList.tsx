@@ -72,7 +72,7 @@ export default function ServerList() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div className="text-sm text-ink-muted">共 {servers.length} 台服务器</div>
-        <button className="px-3 py-1.5 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-500 text-ink-inverse" onClick={openAdd}>
+        <button className="px-3 py-1.5 rounded-lg text-sm bg-success hover:opacity-90 text-ink-inverse" onClick={openAdd}>
           <Plus className="w-3.5 h-3.5 mr-1.5" />添加服务器
         </button>
       </div>
@@ -114,7 +114,7 @@ export default function ServerList() {
             <div className="flex justify-end gap-3">
               <Button variant="ghost" onClick={() => setEditing(null)}>取消</Button>
               <button
-                className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500"
+                className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-success hover:opacity-90"
                 onClick={async () => {
                   const nameInput = document.getElementById('edit-name') as HTMLInputElement;
                   try {

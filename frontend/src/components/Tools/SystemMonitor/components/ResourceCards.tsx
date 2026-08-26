@@ -35,9 +35,9 @@ function Meter({ label, value, color }: { label: string; value: number | null | 
 export default function ResourceCards({ metric }: { metric: MetricPoint | null }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-      <Meter label="CPU 使用率" value={metric?.cpu_percent} color="bg-emerald-500" />
+      <Meter label="CPU 使用率" value={metric?.cpu_percent} color="bg-success" />
       <Meter label="内存使用率" value={metric?.mem_percent} color="bg-accent" />
-      <Meter label="磁盘使用率" value={metric?.disk_percent} color="bg-amber-500" />
+      <Meter label="磁盘使用率" value={metric?.disk_percent} color="bg-warning" />
       <Card className="p-3">
         <div className="text-xs text-ink-faint mb-1.5">网络速率</div>
         <div className="text-ink text-sm font-medium">↓ {fmtRate(metric?.net_recv_rate)}</div>

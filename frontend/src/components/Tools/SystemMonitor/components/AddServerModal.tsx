@@ -66,13 +66,13 @@ export default function AddServerModal({ open, onClose, onSaved, sshConfigs }: A
         <CardContent className="p-0">
         <div className="flex gap-2 mb-4">
           <button
-            className={`px-3 py-1.5 rounded-lg text-sm ${mode === 'manual' ? 'bg-emerald-600 text-ink-inverse' : 'bg-surface-1 text-ink-muted'}`}
+            className={`px-3 py-1.5 rounded-lg text-sm ${mode === 'manual' ? 'bg-success text-ink-inverse' : 'bg-surface-1 text-ink-muted'}`}
             onClick={() => setMode('manual')}
           >
             手动填写
           </button>
           <button
-            className={`px-3 py-1.5 rounded-lg text-sm ${mode === 'ssh' ? 'bg-emerald-600 text-ink-inverse' : 'bg-surface-1 text-ink-muted'}`}
+            className={`px-3 py-1.5 rounded-lg text-sm ${mode === 'ssh' ? 'bg-success text-ink-inverse' : 'bg-surface-1 text-ink-muted'}`}
             onClick={() => setMode('ssh')}
           >
             从 SSH 配置导入
@@ -120,7 +120,7 @@ export default function AddServerModal({ open, onClose, onSaved, sshConfigs }: A
         </CardContent>
         <CardFooter className="p-0 mt-5 flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>取消</Button>
-          <button className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50" onClick={submit} disabled={saving}>
+          <button className="px-4 py-1.5 rounded-lg text-sm text-ink-inverse bg-success hover:opacity-90 disabled:opacity-50" onClick={submit} disabled={saving}>
             {saving ? '保存中...' : '保存'}
           </button>
         </CardFooter>

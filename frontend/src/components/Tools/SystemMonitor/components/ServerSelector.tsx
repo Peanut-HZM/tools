@@ -25,7 +25,7 @@ export default function ServerSelector({ servers, value, onChange, disabled }: S
         if (v) onChange(v);
       }}
     >
-      <SelectTrigger className="bg-canvas border border-border rounded-lg focus:border-emerald-500" data-testid="server-selector">
+      <SelectTrigger className="bg-canvas border border-border rounded-lg focus:border-success" data-testid="server-selector">
         <SelectValue placeholder="暂无服务器" />
       </SelectTrigger>
       <SelectContent>
