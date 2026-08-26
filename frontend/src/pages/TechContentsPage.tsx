@@ -94,7 +94,7 @@ export default function TechContentsPage() {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-accent-info/50 to-accent-secondary/50 border-b border-border">
         <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-ink-inverse mb-4">技术分析</h1>
+          <h1 className="text-4xl font-bold text-ink mb-4">技术分析</h1>
           <p className="text-ink-muted text-lg max-w-3xl">
             深入探讨技术趋势、架构决策和工程实践，分享团队内部的技术经验和项目案例
           </p>
@@ -110,8 +110,8 @@ export default function TechContentsPage() {
               onClick={() => handleTypeChange(type.value)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 currentType === type.value
-                  ? 'bg-primary text-white'
-                  : 'bg-surface-1 text-ink-muted hover:text-ink-inverse hover:bg-surface-2'
+                  ? 'bg-primary text-ink-inverse'
+                  : 'bg-surface-1 text-ink-muted hover:text-ink hover:bg-surface-2'
               }`}
             >
               {type.label}

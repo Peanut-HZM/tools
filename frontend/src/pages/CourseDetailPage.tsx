@@ -61,10 +61,10 @@ const CourseDetailPage: React.FC = () => {
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-danger mb-4 mx-auto" />
-          <p className="text-ink-inverse text-xl">课程不存在</p>
+          <p className="text-ink text-xl">课程不存在</p>
           <button
             onClick={() => navigate('/courses')}
-            className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+            className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
           >
             返回课程列表
           </button>
@@ -91,13 +91,13 @@ const CourseDetailPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10 pb-12">
         {/* 课程基本信息卡片 */}
         <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 p-6 mb-6">
-          <h1 className="text-3xl font-bold text-ink-inverse mb-4">{course.title}</h1>
+          <h1 className="text-3xl font-bold text-ink mb-4">{course.title}</h1>
 
           {/* 统计数据 */}
           <div className="flex items-center space-x-6 mb-6">
             <div className="flex items-center">
               <Star className="w-4 h-4 text-accent-warning mr-2" />
-              <span className="text-ink-inverse font-semibold">
+              <span className="text-ink font-semibold">
                 {course.statistics?.avg_rating.toFixed(1) || '0.0'}
               </span>
               <span className="text-ink-muted text-sm ml-1">
@@ -106,14 +106,14 @@ const CourseDetailPage: React.FC = () => {
             </div>
             <div className="flex items-center">
               <User className="w-4 h-4 text-accent mr-2" />
-              <span className="text-ink-inverse">
+              <span className="text-ink">
                 {course.statistics?.enroll_count || 0}
               </span>
               <span className="text-ink-muted text-sm ml-1">人在学</span>
             </div>
             <div className="flex items-center">
               <Eye className="w-4 h-4 text-ink-muted mr-2" />
-              <span className="text-ink-inverse">
+              <span className="text-ink">
                 {course.statistics?.view_count || 0}
               </span>
               <span className="text-ink-muted text-sm ml-1">次浏览</span>
@@ -141,7 +141,7 @@ const CourseDetailPage: React.FC = () => {
               className={`px-6 py-4 font-medium transition-colors ${
                 activeTab === 'chapters'
                   ? 'bg-accent/10 text-accent border-b-2 border-accent'
-                  : 'text-ink-muted hover:text-ink-inverse hover:bg-surface-2/30'
+                  : 'text-ink-muted hover:text-ink hover:bg-surface-2/30'
               }`}
             >
               <Book className="w-4 h-4 mr-2" />
@@ -166,7 +166,7 @@ const CourseDetailPage: React.FC = () => {
                         {index + 1}
                       </span>
                       <div>
-                        <h4 className="text-ink-inverse font-medium">{chapter.title}</h4>
+                        <h4 className="text-ink font-medium">{chapter.title}</h4>
                         <p className="text-ink-muted text-sm">
                           {chapter.duration_minutes} 分钟 · {chapter.chapter_type}
                         </p>
@@ -174,7 +174,7 @@ const CourseDetailPage: React.FC = () => {
                     </div>
                     <button
                       onClick={() => navigate(`/courses/${slug}/learn?chapterId=${chapter.id}`)}
-                      className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm transition-colors"
+                      className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg text-sm transition-colors"
                     >
                       开始学习
                     </button>
@@ -187,7 +187,7 @@ const CourseDetailPage: React.FC = () => {
 
         {/* 学员评价 - 底部区域 */}
         <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 p-6">
-          <h3 className="text-xl font-semibold text-ink-inverse mb-6 flex items-center">
+          <h3 className="text-xl font-semibold text-ink mb-6 flex items-center">
             <MessagesSquare className="w-4 h-4 text-accent mr-3" />
             学员评价
             <span className="ml-3 px-3 py-1 bg-surface-2 rounded-full text-sm text-ink-muted">
@@ -197,7 +197,7 @@ const CourseDetailPage: React.FC = () => {
 
           {/* 提交评价 */}
           <div className="bg-surface-2/30 rounded-xl p-4 mb-6">
-            <h4 className="text-ink-inverse font-medium mb-3">提交评价</h4>
+            <h4 className="text-ink font-medium mb-3">提交评价</h4>
             <div className="flex items-center space-x-2 mb-3">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -213,12 +213,12 @@ const CourseDetailPage: React.FC = () => {
               value={newReview.comment}
               onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
               placeholder="分享你的学习体验..."
-              className="w-full px-4 py-3 bg-surface-1 border border-border rounded-lg text-ink-inverse placeholder-slate-400 focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-muted focus:outline-none focus:border-accent"
               rows={3}
             />
             <button
               onClick={handleSubmitReview}
-              className="mt-3 px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+              className="mt-3 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
             >
               提交评价
             </button>
@@ -235,7 +235,7 @@ const CourseDetailPage: React.FC = () => {
                         {review.user_id[0]?.toUpperCase()}
                       </div>
                       <div className="ml-3">
-                        <p className="text-ink-inverse font-medium">学员{review.user_id.slice(-4)}</p>
+                        <p className="text-ink font-medium">学员{review.user_id.slice(-4)}</p>
                         <div className="flex items-center">
                           {[...Array(5)].map((_, i) => (
                             <Star

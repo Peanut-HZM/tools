@@ -63,7 +63,7 @@ export default function BasicInfoSection({ user, loading, onRefresh }: BasicInfo
       <div className="flex items-start gap-6 mb-6">
         <UserAvatar username={user.username} size="lg" />
         <div className="flex-1 pt-2">
-          <h4 className="text-xl font-semibold text-ink-inverse">{user.username}</h4>
+          <h4 className="text-xl font-semibold text-ink">{user.username}</h4>
           <div className="mt-1">{getRoleBadge(user.role)}</div>
         </div>
       </div>

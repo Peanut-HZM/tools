@@ -24,7 +24,7 @@ export default function AccountHeader() {
       </nav>
 
       {/* 页面标题 */}
-      <h1 className="text-3xl font-bold text-ink-inverse">账户设置</h1>
+      <h1 className="text-3xl font-bold text-ink">账户设置</h1>
       <p className="text-ink-muted mt-2">管理您的个人信息和账户偏好</p>
     </div>
   );

@@ -41,7 +41,7 @@ export default function LoginButton() {
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="bg-surface-2 hover:bg-surface-3 text-ink-inverse px-3 py-2 rounded-lg transition-colors cursor-pointer"
+              className="bg-surface-2 hover:bg-surface-3 text-ink px-3 py-2 rounded-lg transition-colors cursor-pointer"
               aria-label="用户菜单"
             >
               <ChevronDown className="w-4 h-4" />
@@ -82,7 +82,7 @@ export default function LoginButton() {
   return (
     <button
       onClick={openLoginModal}
-      className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
+      className="bg-accent hover:bg-accent-hover text-ink-inverse px-4 py-2 rounded-lg whitespace-nowrap transition-colors cursor-pointer"
     >
       {t.auth.login}
     </button>

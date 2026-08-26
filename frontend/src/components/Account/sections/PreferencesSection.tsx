@@ -70,7 +70,7 @@ export default function PreferencesSection() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Globe className="w-4 h-4 text-ink-muted" />
-            <h4 className="text-ink-inverse font-medium">语言设置</h4>
+            <h4 className="text-ink font-medium">语言设置</h4>
           </div>
           <div className="flex gap-2">
             <Button
@@ -96,7 +96,7 @@ export default function PreferencesSection() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Moon className="w-4 h-4 text-ink-muted" />
-            <h4 className="text-ink-inverse font-medium">主题设置</h4>
+            <h4 className="text-ink font-medium">主题设置</h4>
           </div>
           <div className="flex gap-2">
             {(['dark', 'light', 'system'] as const).map((themeOption) => (
@@ -118,12 +118,12 @@ export default function PreferencesSection() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Bell className="w-4 h-4 text-ink-muted" />
-            <h4 className="text-ink-inverse font-medium">通知设置</h4>
+            <h4 className="text-ink font-medium">通知设置</h4>
           </div>
           <div className="space-y-3">
             <label className="flex items-center justify-between p-3 bg-canvas/50 rounded-lg cursor-pointer">
               <div>
-                <span className="text-ink-inverse text-sm">邮件通知</span>
+                <span className="text-ink text-sm">邮件通知</span>
                 <p className="text-ink-faint text-xs mt-0.5">接收账户相关的邮件通知</p>
               </div>
               <input
@@ -135,7 +135,7 @@ export default function PreferencesSection() {
             </label>
             <label className="flex items-center justify-between p-3 bg-canvas/50 rounded-lg cursor-pointer">
               <div>
-                <span className="text-ink-inverse text-sm">系统通知</span>
+                <span className="text-ink text-sm">系统通知</span>
                 <p className="text-ink-faint text-xs mt-0.5">在页面右上角显示通知</p>
               </div>
               <input

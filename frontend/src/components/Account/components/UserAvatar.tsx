@@ -25,7 +25,7 @@ export default function UserAvatar({ username, size = 'md', className = '' }: Us
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center text-white font-semibold ${className}`}
+      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center text-ink-inverse font-semibold ${className}`}
     >
       {username ? (
         getInitials(username)

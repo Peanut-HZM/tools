@@ -180,10 +180,10 @@ const CourseLearnPage: React.FC = () => {
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-danger mb-4 mx-auto" />
-          <p className="text-ink-inverse text-xl">课程不存在</p>
+          <p className="text-ink text-xl">课程不存在</p>
           <button
             onClick={() => navigate('/courses')}
-            className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+            className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
           >
             返回课程列表
           </button>
@@ -201,12 +201,12 @@ const CourseLearnPage: React.FC = () => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate(`/courses/${slug}`)}
-                className="text-ink-inverse/80 hover:text-ink-inverse transition-colors"
+                className="text-ink/80 hover:text-ink transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-ink-inverse">{course.title}</h1>
+                <h1 className="text-xl font-bold text-ink">{course.title}</h1>
                 <p className="text-sm text-ink-muted">
                   进度：{completedCount}/{course.chapters.length} 章节
                 </p>
@@ -236,7 +236,7 @@ const CourseLearnPage: React.FC = () => {
         {/* Left Sidebar - Chapter Navigation */}
         <aside className="w-80 bg-surface-1/30 backdrop-blur-sm border-r border-border/50 overflow-y-auto">
           <div className="p-4">
-            <h2 className="text-lg font-semibold text-ink-inverse mb-4">📚 课程章节</h2>
+            <h2 className="text-lg font-semibold text-ink mb-4">📚 课程章节</h2>
             <div className="space-y-2">
               {course.chapters.map((chapter, index) => {
                 const status = getChapterStatus(chapter.id);
@@ -259,9 +259,9 @@ const CourseLearnPage: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <span className="text-xs text-ink-muted">#{index + 1}</span>
                         </div>
-                        <h3 className="text-ink-inverse font-medium truncate">{chapter.title}</h3>
+                        <h3 className="text-ink font-medium truncate">{chapter.title}</h3>
                         {status === 'completed' && (
-                          <div className="text-xs text-green-400 mt-1">已完成</div>
+                          <div className="text-xs text-success mt-1">已完成</div>
                         )}
                         {status === 'in_progress' && (
                           <div className="text-xs text-accent-warning mt-1">学习中...</div>
@@ -285,7 +285,7 @@ const CourseLearnPage: React.FC = () => {
                   <div className="mb-6">
                     <GraduationCap className="w-12 h-12 text-accent mx-auto" />
                   </div>
-                  <h2 className="text-2xl font-bold text-ink-inverse mb-4">
+                  <h2 className="text-2xl font-bold text-ink mb-4">
                     报名课程以开始学习
                   </h2>
                   <p className="text-ink-muted mb-6">
@@ -293,19 +293,19 @@ const CourseLearnPage: React.FC = () => {
                   </p>
                   <div className="flex items-center justify-center space-x-6 mb-6">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-ink-inverse">
+                      <div className="text-2xl font-bold text-ink">
                         {course.chapters.length}
                       </div>
                       <div className="text-sm text-ink-muted">章节</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-ink-inverse">
+                      <div className="text-2xl font-bold text-ink">
                         {course.statistics?.enroll_count || 0}
                       </div>
                       <div className="text-sm text-ink-muted">人在学</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-ink-inverse">
+                      <div className="text-2xl font-bold text-ink">
                         {course.statistics?.avg_rating?.toFixed(1) || '0.0'}
                       </div>
                       <div className="text-sm text-ink-muted">评分</div>
@@ -313,7 +313,7 @@ const CourseLearnPage: React.FC = () => {
                   </div>
                   <button
                     onClick={handleEnroll}
-                    className="px-8 py-4 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent/25"
+                    className="px-8 py-4 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-ink-inverse font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent/25"
                   >
                     <BookOpen className="w-4 h-4 mr-2 inline" />
                     免费报名开始学习
@@ -332,7 +332,7 @@ const CourseLearnPage: React.FC = () => {
                       {currentChapter.chapter_type === 'quiz' && '📝'}
                       {currentChapter.chapter_type === 'video' && '🎬'}
                     </span>
-                    <h2 className="text-3xl font-bold text-ink-inverse">{currentChapter.title}</h2>
+                    <h2 className="text-3xl font-bold text-ink">{currentChapter.title}</h2>
                   </div>
                 </div>
 
@@ -342,7 +342,7 @@ const CourseLearnPage: React.FC = () => {
                     <div className="aspect-video bg-canvas rounded-lg flex items-center justify-center">
                       <div className="text-center">
                         <PlayCircle className="w-12 h-12 text-accent mb-4 mx-auto" />
-                        <div className="text-ink-inverse/60">视频区域</div>
+                        <div className="text-ink/60">视频区域</div>
                         <div className="text-sm text-ink-faint mt-2">{currentChapter.video_url}</div>
                       </div>
                     </div>
@@ -351,7 +351,7 @@ const CourseLearnPage: React.FC = () => {
 
                 {/* Content */}
                 <div className="bg-surface-1/50 backdrop-blur-sm rounded-xl p-8 border border-border/50 mb-8">
-                  <div className="prose prose-invert prose-lg max-w-none text-ink-inverse/80">
+                  <div className="prose prose-invert prose-lg max-w-none text-ink/80">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       rehypePlugins={[rehypeHighlight, rehypeSanitize]}
@@ -397,14 +397,14 @@ const CourseLearnPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setShowContent('intro')}
-                    className="px-6 py-3 bg-surface-2 hover:bg-surface-3 text-ink-inverse rounded-xl transition-colors font-medium"
+                    className="px-6 py-3 bg-surface-2 hover:bg-surface-3 text-ink rounded-xl transition-colors font-medium"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2 inline" />
                     返回章节列表
                   </button>
                   <button
                     onClick={() => handleCompleteChapter(currentChapter.id)}
-                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all font-medium"
+                    className="px-6 py-3 bg-accent-success hover:bg-accent-success/90 text-ink-inverse rounded-xl transition-all font-medium"
                   >
                     <Check className="w-4 h-4 mr-2 inline" />
                     完成本章

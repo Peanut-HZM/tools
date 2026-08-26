@@ -64,7 +64,7 @@ const CoursesPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-ink-inverse mb-2">
+              <h1 className="text-4xl font-bold text-ink mb-2">
                 <GraduationCap className="w-8 h-8 text-accent mr-3 inline" />
                 课程中心
               </h1>
@@ -81,7 +81,7 @@ const CoursesPage: React.FC = () => {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && loadCourses()}
-                className="w-80 px-5 py-3 pl-12 bg-surface-2/50 border border-border rounded-xl text-ink-inverse placeholder-slate-400 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="w-80 px-5 py-3 pl-12 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" />
             </div>
@@ -134,7 +134,7 @@ const CoursesPage: React.FC = () => {
                 <p className="text-ink-muted text-lg">暂无课程</p>
                 <button
                   onClick={handleReset}
-                  className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+                  className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
                 >
                   重置筛选
                 </button>
@@ -164,17 +164,17 @@ const CoursesPage: React.FC = () => {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink-inverse transition-colors"
+                  className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="px-4 py-2 bg-accent text-white rounded-lg font-medium">
+                <span className="px-4 py-2 bg-accent text-ink-inverse rounded-lg font-medium">
                   {page}
                 </span>
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page * limit >= total}
-                  className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink-inverse transition-colors"
+                  className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

@@ -15,7 +15,7 @@ export default function InfoRow({ label, value, copyable = false, onCopy }: Info
     <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
       <span className="text-ink-muted text-sm">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="text-ink-inverse font-medium text-sm">{value}</span>
+        <span className="text-ink font-medium text-sm">{value}</span>
         {copyable && (
           <TooltipProvider>
             <Tooltip>

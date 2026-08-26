@@ -22,9 +22,9 @@ export default function PasswordStrengthMeter({ password }: PasswordStrengthMete
   const strength = getStrength(password);
 
   const getStrengthLabel = (s: number) => {
-    if (s <= 2) return { text: '弱', color: 'text-danger', bg: 'bg-red-500' };
-    if (s <= 4) return { text: '中', color: 'text-accent-warning', bg: 'bg-yellow-500' };
-    return { text: '强', color: 'text-success', bg: 'bg-emerald-500' };
+    if (s <= 2) return { text: '弱', color: 'text-danger', bg: 'bg-accent-danger' };
+    if (s <= 4) return { text: '中', color: 'text-accent-warning', bg: 'bg-accent-warning' };
+    return { text: '强', color: 'text-success', bg: 'bg-accent-success' };
   };
 
   const { text, color, bg } = getStrengthLabel(strength);

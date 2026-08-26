@@ -21,7 +21,7 @@ export default function Navigation() {
           <Link
             key={link.label}
             to={link.href}
-            className="text-ink-muted hover:text-ink-inverse transition-colors"
+            className="text-ink-muted hover:text-ink transition-colors"
           >
             {link.label}
           </Link>
@@ -29,7 +29,7 @@ export default function Navigation() {
           <a
             key={link.label}
             href={link.href}
-            className="text-ink-muted hover:text-ink-inverse transition-colors"
+            className="text-ink-muted hover:text-ink transition-colors"
           >
             {link.label}
           </a>

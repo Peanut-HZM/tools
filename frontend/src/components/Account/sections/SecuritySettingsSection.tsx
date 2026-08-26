@@ -30,7 +30,7 @@ export default function SecuritySettingsSection({ onPasswordChangeSuccess }: Sec
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Key className="w-4 h-4 text-ink-muted" />
-                  <h4 className="text-ink-inverse font-medium">修改密码</h4>
+                  <h4 className="text-ink font-medium">修改密码</h4>
                 </div>
                 <p className="text-ink-muted text-sm mb-3">
                   定期修改密码可以提高账户安全性

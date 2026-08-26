@@ -62,7 +62,7 @@ const MyCoursesPage: React.FC = () => {
       {/* 顶部 Header */}
       <div className="bg-surface-1/50 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-4xl font-bold text-ink-inverse mb-2">
+          <h1 className="text-4xl font-bold text-ink mb-2">
             <BookOpen className="w-8 h-8 text-accent mr-3 inline" />
             我的课程
           </h1>
@@ -80,8 +80,8 @@ const MyCoursesPage: React.FC = () => {
             onClick={() => setFilter('all')}
             className={`px-6 py-3 rounded-xl font-medium transition-all ${
               filter === 'all'
-                ? 'bg-accent text-white'
-                : 'bg-surface-1/50 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50'
+                ? 'bg-accent text-ink-inverse'
+                : 'bg-surface-1/50 text-ink-muted hover:text-ink hover:bg-surface-2/50'
             }`}
           >
             全部 ({courses.length})
@@ -90,8 +90,8 @@ const MyCoursesPage: React.FC = () => {
             onClick={() => setFilter('in-progress')}
             className={`px-6 py-3 rounded-xl font-medium transition-all ${
               filter === 'in-progress'
-                ? 'bg-accent text-white'
-                : 'bg-surface-1/50 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50'
+                ? 'bg-accent text-ink-inverse'
+                : 'bg-surface-1/50 text-ink-muted hover:text-ink hover:bg-surface-2/50'
             }`}
           >
             学习中
@@ -100,8 +100,8 @@ const MyCoursesPage: React.FC = () => {
             onClick={() => setFilter('completed')}
             className={`px-6 py-3 rounded-xl font-medium transition-all ${
               filter === 'completed'
-                ? 'bg-accent text-white'
-                : 'bg-surface-1/50 text-ink-muted hover:text-ink-inverse hover:bg-surface-2/50'
+                ? 'bg-accent text-ink-inverse'
+                : 'bg-surface-1/50 text-ink-muted hover:text-ink hover:bg-surface-2/50'
             }`}
           >
             已完成
@@ -135,7 +135,7 @@ const MyCoursesPage: React.FC = () => {
             {filter === 'all' && (
               <button
                 onClick={() => navigate('/courses')}
-                className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+                className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
               >
                 去浏览课程
               </button>
@@ -164,7 +164,7 @@ const MyCoursesPage: React.FC = () => {
                 {/* 继续学习按钮 */}
                 <button
                   onClick={() => handleContinueLearning(item.course)}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-ink-inverse font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
                 >
                   <Play className="w-4 h-4 mr-2 inline" />
                   继续学习

@@ -82,7 +82,7 @@ export default function TechContentDetailPage() {
   // 内容类型标签配色
   const contentTypeColors = {
     analysis: 'bg-accent-info/20 text-accent-info border-accent-info/30',
-    sharing: 'bg-green-500/20 text-green-400 border-green-500/30',
+    sharing: 'bg-success/20 text-success border-success/30',
     case_study: 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30',
   };
 
@@ -102,7 +102,7 @@ export default function TechContentDetailPage() {
           <p className="mb-4">{error || '内容不存在'}</p>
           <button
             onClick={() => navigate('/tech-contents')}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent-hover transition-colors"
+            className="px-4 py-2 bg-primary text-ink-inverse rounded-lg hover:bg-accent-hover transition-colors"
           >
             返回列表
           </button>
@@ -117,11 +117,11 @@ export default function TechContentDetailPage() {
       <div className="border-b border-border">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center gap-2 text-sm text-ink-muted">
-            <Link to="/" className="hover:text-ink-inverse transition-colors">
+            <Link to="/" className="hover:text-ink transition-colors">
               首页
             </Link>
             <span>/</span>
-            <Link to="/tech-contents" className="hover:text-ink-inverse transition-colors">
+            <Link to="/tech-contents" className="hover:text-ink transition-colors">
               技术分析
             </Link>
             <span>/</span>
@@ -154,7 +154,7 @@ export default function TechContentDetailPage() {
           </div>
 
           {/* 标题 */}
-          <h1 className="text-3xl md:text-4xl font-bold text-ink-inverse mb-6">
+          <h1 className="text-3xl md:text-4xl font-bold text-ink mb-6">
             {content.title}
           </h1>
 
@@ -162,11 +162,11 @@ export default function TechContentDetailPage() {
           <div className="flex items-center gap-4 pb-6 border-b border-border">
             {content.author && (
               <>
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-info to-accent-secondary flex items-center justify-center text-white text-lg font-bold">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-info to-accent-secondary flex items-center justify-center text-ink-inverse text-lg font-bold">
                   {content.author.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div className="text-ink-inverse font-medium">{content.author}</div>
+                  <div className="text-ink font-medium">{content.author}</div>
                   <div className="text-ink-muted text-sm">
                     发布于 {formatDate(content.publishedAt)} · 预计阅读 {content.reading_time} 分钟
                   </div>
@@ -207,7 +207,7 @@ export default function TechContentDetailPage() {
       {/* 章节导航 */}
       {content.chapters && content.chapters.length > 0 && (
         <div className="container mx-auto px-6 py-8">
-          <h2 className="text-xl font-semibold text-ink-inverse mb-4">章节导航</h2>
+          <h2 className="text-xl font-semibold text-ink mb-4">章节导航</h2>
           <div className="flex flex-wrap gap-2">
             {content.chapters.map((chapter) => (
               <div
@@ -250,7 +250,7 @@ export default function TechContentDetailPage() {
 
       {/* 相关推荐 */}
       <div className="container mx-auto px-6 py-12">
-        <h2 className="text-2xl font-bold text-ink-inverse mb-6">相关推荐</h2>
+        <h2 className="text-2xl font-bold text-ink mb-6">相关推荐</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* TODO: 加载相关内容 */}
           <div className="text-ink-muted text-center py-8">

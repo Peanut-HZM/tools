@@ -12,7 +12,7 @@ export default function SettingCard({ title, icon, children, className = '' }: S
   return (
     <Card className={`backdrop-blur-sm bg-surface-1/50 border-border/50 p-6 transition-all duration-200 ${className}`}>
       {title && (
-        <h3 className="text-lg font-semibold text-ink-inverse mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
           {icon}
           {title}
         </h3>
