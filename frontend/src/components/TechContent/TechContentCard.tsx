@@ -43,7 +43,7 @@ export default function TechContentCard({
   // 内容类型标签配色
   const contentTypeColors = {
     analysis: 'bg-accent-info/20 text-accent-info border-accent-info/30',
-    sharing: 'bg-green-500/20 text-green-400 border-green-500/30',
+    sharing: 'bg-success/20 text-success border-success/30',
     case_study: 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30',
   };
 

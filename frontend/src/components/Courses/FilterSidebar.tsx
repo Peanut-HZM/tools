@@ -46,7 +46,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       {/* 移动端切换按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden mb-4 w-full px-4 py-3 bg-surface-1/50 border border-border/50 rounded-xl text-ink-inverse font-medium flex items-center justify-between"
+        className="lg:hidden mb-4 w-full px-4 py-3 bg-surface-1/50 border border-border/50 rounded-xl text-ink font-medium flex items-center justify-between"
       >
         <span>
           <Filter className="w-4 h-4 mr-2 inline" />
@@ -61,7 +61,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       >
         {/* 分类筛选 */}
         <div className="bg-surface-1/30 rounded-xl p-5 border border-border/50">
-          <h3 className="text-ink-inverse font-semibold mb-4 flex items-center">
+          <h3 className="text-ink font-semibold mb-4 flex items-center">
             <Layers className="w-4 h-4 text-accent mr-2" />
             课程分类
           </h3>
@@ -84,7 +84,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                     className={`ml-3 text-sm ${
                       selectedCategory === category.value
                         ? 'text-accent font-medium'
-                        : 'text-ink-muted group-hover:text-ink-inverse'
+                        : 'text-ink-muted group-hover:text-ink'
                     }`}
                   >
                     {category.label}
@@ -102,7 +102,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
         {/* 排序筛选 */}
         <div className="bg-surface-1/30 rounded-xl p-5 border border-border/50">
-          <h3 className="text-ink-inverse font-semibold mb-4 flex items-center">
+          <h3 className="text-ink font-semibold mb-4 flex items-center">
             <ArrowDownWideNarrow className="w-4 h-4 text-accent mr-2" />
             排序方式
           </h3>
@@ -124,7 +124,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                   className={`ml-3 text-sm ${
                     selectedSort === sort.value
                       ? 'text-accent font-medium'
-                      : 'text-ink-muted group-hover:text-ink-inverse'
+                      : 'text-ink-muted group-hover:text-ink'
                   }`}
                 >
                   {sort.label}
@@ -137,7 +137,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         {/* 重置按钮 */}
         <button
           onClick={onReset}
-          className="w-full px-4 py-3 bg-surface-2/50 hover:bg-surface-3/50 text-ink-muted hover:text-ink-inverse rounded-xl transition-all duration-200 font-medium"
+          className="w-full px-4 py-3 bg-surface-2/50 hover:bg-surface-3/50 text-ink-muted hover:text-ink rounded-xl transition-all duration-200 font-medium"
         >
           <RotateCcw className="w-4 h-4 mr-2 inline" />
           重置筛选

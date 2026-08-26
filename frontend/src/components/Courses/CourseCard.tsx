@@ -91,7 +91,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
       {/* 内容 */}
       <div className="p-5">
         {/* 标题 */}
-        <h3 className="text-lg font-semibold text-ink-inverse mb-2 line-clamp-1 group-hover:text-accent transition-colors">
+        <h3 className="text-lg font-semibold text-ink mb-2 line-clamp-1 group-hover:text-accent transition-colors">
           {title}
         </h3>
 
@@ -117,7 +117,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
             </div>
             <div className="flex items-center space-x-2">
               <span className="flex items-center">
-                <Heart className="w-3 h-3 text-pink-400 mr-1" />
+                <Heart className="w-3 h-3 text-danger mr-1" />
                 {statistics.like_count}
               </span>
               <span className="flex items-center">
@@ -142,7 +142,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
         {/* 操作按钮 */}
         <div className="mt-4 flex items-center justify-between">
-          <button className="px-4 py-2 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-accent/25">
+          <button className="px-4 py-2 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-ink-inverse text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-accent/25">
             {progress ? '继续学习' : '立即学习'}
           </button>
           <div className="flex items-center space-x-2">
@@ -150,7 +150,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className="p-2 text-ink-muted hover:text-pink-400 hover:bg-pink-400/10 rounded-lg transition-all"
+                    className="p-2 text-ink-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
                     aria-label="点赞"
                   >
                     <Heart className="w-4 h-4" />
