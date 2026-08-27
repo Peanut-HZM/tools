@@ -34,7 +34,7 @@ export default function ToolCard({
         {custom_icon_url ? (
           <img src={custom_icon_url} alt={title} className="w-6 h-6 object-contain" />
         ) : (
-          <Icon className="w-6 h-6 text-ink-inverse" />
+          <Icon className="w-6 h-6 text-white" />
         )}
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>

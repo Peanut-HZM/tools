@@ -15,6 +15,7 @@ import {
   Pencil, Trash2, Terminal, Plug, Mic, Video, LineChart, Gauge, MessageSquare,
   History, CalendarDays, FileImage, FileOutput, Share2, Briefcase, Ship, Cloud,
   List, Table, Clock, Bell, User, Tag, Download, Upload, Wrench, ScanLine, Palette,
+  GraduationCap,
   type LucideIcon,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -96,6 +97,7 @@ export const faIconMap: Record<string, ComponentType<{ className?: string }>> = 
   'fa-wrench': Wrench,
   'fa-scan': ScanLine,
   'fa-palette': Palette,
+  'fa-graduation-cap': GraduationCap,
 };
 
 /** 从 'fas fa-server' / 'fa-server' / 'fa-server  extra' 提取出 'fa-server' */
