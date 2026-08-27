@@ -4,6 +4,13 @@ export default {
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
   ],
+  safelist: [
+    // iconColor classes from backend/app/data/tools_data.py
+    // Tailwind JIT only scans frontend/src — these backend-defined classes
+    // must be safelisted or they won't generate CSS rules
+    'bg-blue-600', 'bg-violet-500', 'bg-emerald-500',
+    'bg-indigo-500', 'bg-orange-500',
+  ],
   darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
