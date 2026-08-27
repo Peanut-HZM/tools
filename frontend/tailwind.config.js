@@ -8,40 +8,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: 'var(--bg-canvas)',
+        canvas: 'rgb(var(--bg-canvas) / <alpha-value>)',
         surface: {
-          1: 'var(--bg-surface-1)',
-          2: 'var(--bg-surface-2)',
-          3: 'var(--bg-surface-3)',
-          overlay: 'var(--bg-overlay)',
+          1: 'rgb(var(--bg-surface-1) / <alpha-value>)',
+          2: 'rgb(var(--bg-surface-2) / <alpha-value>)',
+          3: 'rgb(var(--bg-surface-3) / <alpha-value>)',
+          overlay: 'var(--bg-overlay)',  // rgba 值，不能用 rgb() 包裹
         },
         ink: {
-          DEFAULT: 'var(--ink-default)',
-          muted: 'var(--ink-muted)',
-          faint: 'var(--ink-faint)',
-          inverse: 'var(--ink-inverse)',
+          DEFAULT: 'rgb(var(--ink-default) / <alpha-value>)',
+          muted: 'rgb(var(--ink-muted) / <alpha-value>)',
+          faint: 'rgb(var(--ink-faint) / <alpha-value>)',
+          inverse: 'rgb(var(--ink-inverse) / <alpha-value>)',
         },
         accent: {
-          DEFAULT: 'var(--accent-primary)',
-          hover: 'var(--accent-hover)',
-          press: 'var(--accent-press)',
-          secondary: 'var(--accent-secondary)',
-          warm: 'var(--accent-warm)',
-          cyan: 'var(--accent-cyan)',
-          success: 'var(--accent-success)',
-          warning: 'var(--accent-warning)',
-          danger: 'var(--accent-danger)',
-          info: 'var(--accent-info)',
+          DEFAULT: 'rgb(var(--accent-primary) / <alpha-value>)',
+          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
+          press: 'rgb(var(--accent-press) / <alpha-value>)',
+          secondary: 'rgb(var(--accent-secondary) / <alpha-value>)',
+          warm: 'rgb(var(--accent-warm) / <alpha-value>)',
+          cyan: 'rgb(var(--accent-cyan) / <alpha-value>)',
+          success: 'rgb(var(--accent-success) / <alpha-value>)',
+          warning: 'rgb(var(--accent-warning) / <alpha-value>)',
+          danger: 'rgb(var(--accent-danger) / <alpha-value>)',
+          info: 'rgb(var(--accent-info) / <alpha-value>)',
         },
         border: {
-          DEFAULT: 'var(--border-default)',
-          strong: 'var(--border-strong)',
-          accent: 'var(--border-accent)',
-          hairline: 'var(--hairline)',
+          DEFAULT: 'rgb(var(--border-default) / <alpha-value>)',
+          strong: 'rgb(var(--border-strong) / <alpha-value>)',
+          accent: 'var(--border-accent)',  // rgba 值，不能用 rgb() 包裹
+          hairline: 'var(--hairline)',      // rgba 值，不能用 rgb() 包裹
         },
         // 兼容旧色名（避免业务组件全部报错，Phase 3 再清理）
-        primary: 'var(--accent-primary)',
-        secondary: 'var(--accent-success)',
+        primary: 'rgb(var(--accent-primary) / <alpha-value>)',
+        secondary: 'rgb(var(--accent-secondary) / <alpha-value>)',
+        // 顶层语义别名：让 text-danger / bg-warning / border-success 等 shorthand 生效
+        danger: 'rgb(var(--accent-danger) / <alpha-value>)',
+        warning: 'rgb(var(--accent-warning) / <alpha-value>)',
+        success: 'rgb(var(--accent-success) / <alpha-value>)',
+        info: 'rgb(var(--accent-info) / <alpha-value>)',
       },
       fontFamily: {
         sans:  ['var(--font-sans)'],
