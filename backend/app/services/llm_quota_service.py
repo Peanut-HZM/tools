@@ -364,7 +364,7 @@ class LLMQuotaService:
         """单条 username 查询；失败或 user 不存在时返回 None"""
         try:
             result = self.db.execute(
-                text("SELECT username FROM users WHERE id = :uid"),
+                text("SELECT username FROM users WHERE user_id = :uid"),
                 {"uid": user_id},
             ).scalar()
             return result if isinstance(result, str) else None
@@ -378,7 +378,7 @@ class LLMQuotaService:
             return {}
         try:
             rows = self.db.execute(
-                text("SELECT id, username FROM users WHERE id = ANY(:ids)"),
+                text("SELECT user_id, username FROM users WHERE user_id = ANY(:ids)"),
                 {"ids": user_ids},
             ).fetchall()
             return {row[0]: row[1] for row in rows if isinstance(row[1], str)}
