@@ -1,32 +1,32 @@
 :root {
   /* === 暗色 (默认) === */
-  --bg-canvas:        #0A1A2F;
-  --bg-surface-1:     #112D52;
-  --bg-surface-2:     #1A3A6B;
-  --bg-surface-3:     #2A4A7F;
+  --bg-canvas:        10 26 47;
+  --bg-surface-1:     17 45 82;
+  --bg-surface-2:     26 58 107;
+  --bg-surface-3:     42 74 127;
   --bg-overlay:       rgba(10, 26, 47, 0.72);
 
-  --ink-default:      #F5F7FA;
-  --ink-muted:        #B8C2D1;
-  --ink-faint:        #6E7A8F;
-  --ink-inverse:      #0A1A2F;
+  --ink-default:      245 247 250;
+  --ink-muted:        184 194 209;
+  --ink-faint:        110 122 143;
+  --ink-inverse:      10 26 47;
 
-  --accent-primary:   #5B6BF5;
-  --accent-hover:     #6E7EFF;
-  --accent-press:     #4A5AE5;
-  --accent-secondary: #A155F7;
-  --accent-warm:      #FF8A4C;
-  --accent-cyan:      #06B6D4;   /* 辅助强调色：焦点环/链接/选中态/代码高亮（保留代码库事实标准） */
-  --accent-cyan-hover:#22D3EE;
-  --accent-cyan-press:#0891B2;
-  --accent-success:   #34D399;
-  --accent-warning:   #FBBF24;
-  --accent-danger:    #F87171;
-  --accent-info:      #60A5FA;
+  --accent-primary:   91 107 245;
+  --accent-hover:     110 126 255;
+  --accent-press:     74 90 229;
+  --accent-secondary: 161 85 247;
+  --accent-warm:      255 138 76;
+  --accent-cyan:      6 182 212;   /* 辅助强调色：焦点环/链接/选中态/代码高亮（保留代码库事实标准） */
+  --accent-cyan-hover:34 211 238;
+  --accent-cyan-press:8 145 178;
+  --accent-success:   52 211 153;
+  --accent-warning:   251 191 36;
+  --accent-danger:    248 113 113;
+  --accent-info:      96 165 250;
 
   --hairline:         rgba(255, 255, 255, 0.08);
-  --border-default:   #1F3A65;
-  --border-strong:    #2D4F8A;
+  --border-default:   31 58 101;
+  --border-strong:    45 79 138;
   --border-accent:    rgba(91, 107, 245, 0.4);
 
   /* 渐变签名 */
@@ -41,33 +41,33 @@
 }
 
 :root[data-theme="light"] {
-  --bg-canvas:        #F5E9D4;
-  --bg-surface-1:     #FFFFFF;
-  --bg-surface-2:     #FDF7EC;
-  --bg-surface-3:     #F5EDDC;
+  --bg-canvas:        245 233 212;
+  --bg-surface-1:     255 255 255;
+  --bg-surface-2:     253 247 236;
+  --bg-surface-3:     245 237 220;
   --bg-overlay:       rgba(245, 233, 212, 0.72);
 
-  --ink-default:      #0D253D;
-  --ink-muted:        #4A5568;
-  --ink-faint:        #8B95A3;
-  --ink-inverse:      #F5F7FA;
+  --ink-default:      13 37 61;
+  --ink-muted:        74 85 104;
+  --ink-faint:        139 149 163;
+  --ink-inverse:      245 247 250;
 
   --accent-primary:   #5B6BF5;
-  --accent-hover:     #4A5AE5;
-  --accent-press:     #3B4BD5;
+  --accent-hover:     74 90 229;
+  --accent-press:     59 75 213;
   --accent-secondary: #A155F7;
-  --accent-warm:      #E86B1A;
-  --accent-cyan:      #0891B2;   /* 亮色下 cyan 调深以保持对比度 */
-  --accent-cyan-hover:#0E7490;
-  --accent-cyan-press:#155E75;
-  --accent-success:   #10B981;
-  --accent-warning:   #D97706;
-  --accent-danger:    #EF4444;
-  --accent-info:      #3B82F6;
+  --accent-warm:      232 107 26;
+  --accent-cyan:      8 145 178;   /* 亮色下 cyan 调深以保持对比度 */
+  --accent-cyan-hover:14 116 144;
+  --accent-cyan-press:21 94 117;
+  --accent-success:   16 185 129;
+  --accent-warning:   217 119 6;
+  --accent-danger:    239 68 68;
+  --accent-info:      59 130 246;
 
   --hairline:         rgba(13, 37, 61, 0.08);
-  --border-default:   #E8DFCC;
-  --border-strong:    #D4C8A8;
+  --border-default:   232 223 204;
+  --border-strong:    212 200 168;
   --border-accent:    rgba(91, 107, 245, 0.3);
 
   /* 亮色下渐变更微妙 */

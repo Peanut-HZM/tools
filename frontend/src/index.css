@@ -14,8 +14,8 @@ html, body {
 }
 
 body {
-  background-color: var(--bg-canvas);
-  color: var(--ink-default);
+  background-color: rgb(var(--bg-canvas));
+  color: rgb(var(--ink-default));
   font-family: var(--font-sans);
   font-feature-settings: 'tnum' 1, 'lnum' 1;
   -webkit-font-smoothing: antialiased;
@@ -37,8 +37,8 @@ body {
 }
 
 .category-tab.active {
-  background-color: var(--accent-primary);
-  color: var(--ink-inverse);
+  background-color: rgb(var(--accent-primary));
+  color: rgb(var(--ink-inverse));
 }
 
 .category-tab {
@@ -100,7 +100,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-default);
+  background: rgb(var(--border-default));
 }
 
 * {
@@ -114,13 +114,13 @@ body {
 
 .variable-defined {
   background-color: rgba(161, 85, 247, 0.2);
-  border-bottom: 2px solid var(--accent-secondary);
+  border-bottom: 2px solid rgb(var(--accent-secondary));
   border-radius: var(--radius-sm);
 }
 
 .variable-undefined {
   background-color: rgba(248, 113, 113, 0.2);
-  border-bottom: 2px solid var(--accent-danger);
-  text-decoration: underline wavy var(--accent-danger);
+  border-bottom: 2px solid rgb(var(--accent-danger));
+  text-decoration: underline wavy rgb(var(--accent-danger));
   border-radius: var(--radius-sm);
 }
