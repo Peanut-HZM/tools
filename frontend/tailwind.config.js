@@ -8,8 +8,8 @@ export default {
     // iconColor classes from backend/app/data/tools_data.py
     // Tailwind JIT only scans frontend/src — these backend-defined classes
     // must be safelisted or they won't generate CSS rules
-    'bg-blue-600', 'bg-violet-500', 'bg-emerald-500',
-    'bg-indigo-500', 'bg-orange-500',
+    'bg-blue-500', 'bg-blue-600', 'bg-violet-500', 'bg-emerald-500',
+    'bg-indigo-500', 'bg-orange-500', 'bg-red-600', 'bg-purple-500',
   ],
   darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
