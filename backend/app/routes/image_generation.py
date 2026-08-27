@@ -456,10 +456,23 @@ async def get_my_quota(
 
     # QuotaInfo 是 dataclass，直接 asdict 即可
     data = asdict(quota)
-    # datetime 序列化为 ISO 字符串
+    # datetime 序列化为 ISO 字符串（容错：session 被污染时 valid_from/valid_until 可能是列键字符串）
     for key in ("valid_from", "valid_until"):
-        if data.get(key) is not None:
-            data[key] = data[key].isoformat()
+        v = data.get(key)
+        if v is None:
+            continue
+        if isinstance(v, str):
+            # 列键字符串（如 'llm_user_quota_valid_from'）直接置为 None
+            if v.replace("_", "").isalnum():
+                data[key] = None
+                continue
+            # 已经是 ISO 格式字符串
+            data[key] = v
+            continue
+        try:
+            data[key] = v.isoformat()
+        except (AttributeError, TypeError):
+            data[key] = None
     return data
 
 

@@ -92,6 +92,10 @@ def _discover_token_usage_user_ids(max_users: int) -> list[str]:
         )
         return sorted(_normalize_user_ids(set(_pending_sync_users)))[:max_users]
     finally:
+        try:
+            db.rollback()
+        except Exception:
+            pass
         db.close()
 
 

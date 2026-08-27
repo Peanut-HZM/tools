@@ -362,6 +362,18 @@ def sync_token_usage(
     # ===== 阶段二：写入数据库（快操作，仅短暂持有连接池连接）=====
     db = SessionLocal()
 
+    def _safe_rollback(reason: str) -> None:
+        """在任何 except 块中调用，确保 session 干净后才放回连接池。
+
+        关键：不 rollback 会让 PostgreSQL 连接保持 transaction aborted 状态，
+        下次同连接被 request handler 复用时，所有 ORM 属性访问都会返回列键
+        字符串（如 'token_usage_records_id'）而非真实值，导致 500。
+        """
+        try:
+            db.rollback()
+        except Exception as rb_exc:
+            logger.warning("[sync_token_usage] rollback 失败 (%s): %s", reason, rb_exc)
+
     # 确保设备已注册到 device_registry，并更新指纹
     try:
         existing = db.query(DeviceRegistry).filter_by(
@@ -414,6 +426,7 @@ def sync_token_usage(
             db.commit()
     except Exception as e:
         logger.warning(f"设备注册失败: {e}")
+        _safe_rollback("设备注册失败")
 
     try:
         # 写入 claude 记录（数据已在阶段一抓取完成）
@@ -446,6 +459,7 @@ def sync_token_usage(
                     "details": {"exception": str(e)},
                 })
                 logger.error(f"写入失败 claude: {e}")
+                _safe_rollback("claude 写入失败")
                 try:
                     _log_sync(db, user_id, device_id, "claude", "failed", 0, str(e))
                 except Exception:
@@ -468,6 +482,7 @@ def sync_token_usage(
                 "remediation": "请检查数据库连接",
                 "details": {"exception": str(e)},
             })
+            _safe_rollback("ccusage-v2 写入失败")
 
         db.commit()
 

@@ -3,6 +3,7 @@ LLM 配置管理路由
 管理员接口
 """
 
+from datetime import datetime
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -79,22 +80,99 @@ class TestConnectionResponse(BaseModel):
     latency_ms: int
 
 
+def _safe_iso(v) -> Optional[str]:
+    """安全地将 datetime/字符串序列化为 ISO 字符串。
+
+    背景：SQLAlchemy session 因 connection pool 被污染（PG transaction aborted）时，
+    ORM 对象的 lazy 属性可能返回列键字符串（如 'llm_configs_created_at'）而非真实
+    datetime/字符串。直接 .isoformat() 会抛 AttributeError。这里兼容 datetime、字符串、
+    None，并识别列键模式返回 None，避免 500。
+    """
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v.isoformat()
+    if isinstance(v, str):
+        # 检测 SQLAlchemy 列键（典型格式：表名_列名，如 'llm_configs_created_at'）
+        if v and v.replace("_", "").isalnum():
+            return None
+        return v
+    return str(v)
+
+
+def _safe_str(v, default: str = "") -> str:
+    """安全字符串转换：列键字符串（session 被污染时）返回 default。"""
+    if v is None:
+        return default
+    if isinstance(v, str):
+        if v and v.replace("_", "").isalnum():
+            return default
+        return v
+    return str(v)
+
+
+def _safe_bool(v, default: bool = False) -> bool:
+    """安全布尔值转换：列键字符串（session 被污染时）返回 default。"""
+    if v is None:
+        return default
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        if v and v.replace("_", "").isalnum():
+            return default
+        return v.lower() in ("true", "1", "yes")
+    return bool(v)
+
+
+def _safe_dict(v, default: Optional[dict] = None) -> Optional[dict]:
+    """安全字典转换：列键字符串（session 被污染时）返回 default。"""
+    if default is None:
+        default = {}
+    if v is None:
+        return default
+    if isinstance(v, dict):
+        return v
+    if isinstance(v, str):
+        if v and v.replace("_", "").isalnum():
+            return default
+        # 尝试解析 JSON 字符串
+        try:
+            import json
+            return json.loads(v)
+        except (json.JSONDecodeError, ValueError):
+            return default
+    return default
+
+
 def _config_to_dict(config) -> dict:
-    """将 SQLAlchemy 配置对象转换为字典"""
+    """将 SQLAlchemy 配置对象转换为字典
+
+    所有字段都通过 _safe_* 包装器访问，以防御 SQLAlchemy session
+    因连接池污染而返回列键字符串的情况。此时返回安全的默认值而非
+    500 崩溃。
+    """
+    import logging
+    _logger = logging.getLogger(__name__)
+
+    # 诊断日志：检查 session 是否被污染
+    if hasattr(config, 'request_params') and isinstance(config.request_params, str):
+        _logger.warning("[_config_to_dict] session 被污染! config.id=%r type=%s, request_params=%r",
+                        config.id, type(config.id).__name__, config.request_params)
+
     return {
-        "id": str(config.id),
-        "name": config.name,
-        "provider_type": config.provider_type,
-        "base_url": config.base_url,
-        "api_key_suffix": config.api_key_suffix,
-        "model_name": config.model_name,
-        "request_params": config.request_params or {},
-        "category": config.category or "chat",
-        "notes": config.notes,
-        "is_default": config.is_default,
-        "is_active": config.is_active,
-        "created_at": config.created_at.isoformat() if config.created_at else None,
-        "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+        "id": _safe_str(config.id),
+        "name": _safe_str(config.name),
+        "provider_type": _safe_str(config.provider_type),
+        "base_url": _safe_str(config.base_url),
+        "api_key_suffix": _safe_str(config.api_key_suffix, default=None) or None,
+        "model_name": _safe_str(config.model_name),
+        "request_params": _safe_dict(config.request_params),
+        "category": _safe_str(config.category, default="chat"),
+        "notes": _safe_str(config.notes, default=None) or None,
+        "is_default": _safe_bool(config.is_default),
+        "is_active": _safe_bool(config.is_active),
+        "created_at": _safe_iso(config.created_at) or "",  # Pydantic 期望 str，不允许 None
+        "updated_at": _safe_iso(config.updated_at),
     }
 
 
@@ -103,8 +181,17 @@ async def list_llm_configs(
     skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
     """获取所有 LLM 配置"""
+    import logging
+    _logger = logging.getLogger(__name__)
+    _logger.warning("[list_llm_configs] 进入, db id=%s", id(db))
+
     service = LLMConfigService(db)
     configs = service.list_configs(skip=skip, limit=limit)
+    _logger.warning("[list_llm_configs] 查询完成, configs count=%d", len(configs))
+    if configs:
+        c = configs[0]
+        _logger.warning("[list_llm_configs] 第一个 config: id=%r type=%s, request_params type=%s",
+                        c.id, type(c.id).__name__, type(c.request_params).__name__)
     return [_config_to_dict(config) for config in configs]
 
 

@@ -508,4 +508,11 @@ def warm_query_cache(user_id: str) -> bool:
         logger.warning(f"warm_query_cache 预热失败: user={user_id}, error={e}")
         return False
     finally:
-        db.close()
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        try:
+            db.close()
+        except Exception:
+            pass

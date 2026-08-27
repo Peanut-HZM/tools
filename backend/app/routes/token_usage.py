@@ -116,6 +116,44 @@ def _safe_float(d: dict, *keys: str) -> float:
     return 0.0
 
 
+def _row_safe_int(v) -> int:
+    """安全 int 转换：ORM row 属性可能是列键字符串（session 被污染时）。"""
+    if v is None:
+        return 0
+    if isinstance(v, (int, float)):
+        return int(v)
+    if isinstance(v, str):
+        if v and v.replace("_", "").isalnum():
+            return 0
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return 0
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return 0
+
+
+def _row_safe_float(v) -> float:
+    """安全 float 转换：ORM row 属性可能是列键字符串（session 被污染时）。"""
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        if v and v.replace("_", "").isalnum():
+            return 0.0
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 0.0
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return 0.0
+
+
 def normalize_entries(raw: dict, report_type: str) -> list[UsageItem]:
     """统一规范化三种数据源的输出"""
     # opencode-usage 返回 {period, total, rows: [...]}
@@ -811,11 +849,11 @@ def _build_summary_payload(
     dates_set: set = set()
 
     for r in rows:
-        total_input_tokens += int(r.sum_input_tokens or 0)
-        total_output_tokens += int(r.sum_output_tokens or 0)
-        total_cache_creation_tokens += int(r.sum_cache_creation_tokens or 0)
-        total_cache_read_tokens += int(r.sum_cache_read_tokens or 0)
-        total_cost += float(r.sum_cost or 0.0)
+        total_input_tokens += _row_safe_int(r.sum_input_tokens)
+        total_output_tokens += _row_safe_int(r.sum_output_tokens)
+        total_cache_creation_tokens += _row_safe_int(r.sum_cache_creation_tokens)
+        total_cache_read_tokens += _row_safe_int(r.sum_cache_read_tokens)
+        total_cost += _row_safe_float(r.sum_cost)
         if r.usage_date:
             dates_set.add(r.usage_date)
 
@@ -1059,6 +1097,8 @@ async def get_token_usage_details(
 
         # 先获取符合条件的总记录数
         total = db.query(TokenUsageRecord).filter(*base_filters).count()
+        # 防御：确保 total 是整数（session 被污染时 count() 可能返回列键字符串）
+        total = _row_safe_int(total) if not isinstance(total, int) else total
 
         # DB 层排序 + 分页，避免全量加载到 Python 内存
         allowed_sort_fields = {
@@ -1099,12 +1139,12 @@ async def get_token_usage_details(
             items.append(
                 DbUsageItem(
                     date=date_key,
-                    input_tokens=int(r.input_tokens or 0),
-                    output_tokens=int(r.output_tokens or 0),
-                    cache_creation_tokens=int(r.cache_creation_tokens or 0),
-                    cache_read_tokens=int(r.cache_read_tokens or 0),
-                    total_tokens=int(r.total_tokens or 0),
-                    total_cost=float(r.total_cost or 0),
+                    input_tokens=_row_safe_int(r.input_tokens),
+                    output_tokens=_row_safe_int(r.output_tokens),
+                    cache_creation_tokens=_row_safe_int(r.cache_creation_tokens),
+                    cache_read_tokens=_row_safe_int(r.cache_read_tokens),
+                    total_tokens=_row_safe_int(r.total_tokens),
+                    total_cost=_row_safe_float(r.total_cost),
                     models_used=[r.model] if r.model else [],
                     model_breakdowns=[],
                     tool_id=r.tool_id,
@@ -2208,13 +2248,13 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
                 "records_count": 0, "last_used_at": None,
             },
         )
-        b["input_tokens"] += int(row.input_tokens or 0)
-        b["output_tokens"] += int(row.output_tokens or 0)
-        b["cache_creation_tokens"] += int(row.cache_creation_tokens or 0)
-        b["cache_read_tokens"] += int(row.cache_read_tokens or 0)
-        b["total_tokens"] += int(row.total_tokens or 0)
-        b["total_cost"] += float(row.total_cost or 0)
-        b["records_count"] += int(row.records_count or 0)
+        b["input_tokens"] += _row_safe_int(row.input_tokens)
+        b["output_tokens"] += _row_safe_int(row.output_tokens)
+        b["cache_creation_tokens"] += _row_safe_int(row.cache_creation_tokens)
+        b["cache_read_tokens"] += _row_safe_int(row.cache_read_tokens)
+        b["total_tokens"] += _row_safe_int(row.total_tokens)
+        b["total_cost"] += _row_safe_float(row.total_cost)
+        b["records_count"] += _row_safe_int(row.records_count)
         if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
             b["last_used_at"] = row.last_used_at
 
@@ -2264,13 +2304,13 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
                 "records_count": 0, "last_used_at": None,
             },
         )
-        b["input_tokens"] += int(row.input_tokens or 0)
-        b["output_tokens"] += int(row.output_tokens or 0)
-        b["cache_creation_tokens"] += int(row.cache_creation_tokens or 0)
-        b["cache_read_tokens"] += int(row.cache_read_tokens or 0)
-        b["total_tokens"] += int(row.total_tokens or 0)
-        b["total_cost"] += float(row.total_cost or 0)
-        b["records_count"] += int(row.records_count or 0)
+        b["input_tokens"] += _row_safe_int(row.input_tokens)
+        b["output_tokens"] += _row_safe_int(row.output_tokens)
+        b["cache_creation_tokens"] += _row_safe_int(row.cache_creation_tokens)
+        b["cache_read_tokens"] += _row_safe_int(row.cache_read_tokens)
+        b["total_tokens"] += _row_safe_int(row.total_tokens)
+        b["total_cost"] += _row_safe_float(row.total_cost)
+        b["records_count"] += _row_safe_int(row.records_count)
         if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
             b["last_used_at"] = row.last_used_at
 
@@ -2309,13 +2349,13 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
                 "records_count": 0, "last_used_at": None,
             },
         )
-        b["input_tokens"] += int(row.input_tokens or 0)
-        b["output_tokens"] += int(row.output_tokens or 0)
-        b["cache_creation_tokens"] += int(row.cache_creation_tokens or 0)
-        b["cache_read_tokens"] += int(row.cache_read_tokens or 0)
-        b["total_tokens"] += int(row.total_tokens or 0)
-        b["total_cost"] += float(row.total_cost or 0)
-        b["records_count"] += int(row.records_count or 0)
+        b["input_tokens"] += _row_safe_int(row.input_tokens)
+        b["output_tokens"] += _row_safe_int(row.output_tokens)
+        b["cache_creation_tokens"] += _row_safe_int(row.cache_creation_tokens)
+        b["cache_read_tokens"] += _row_safe_int(row.cache_read_tokens)
+        b["total_tokens"] += _row_safe_int(row.total_tokens)
+        b["total_cost"] += _row_safe_float(row.total_cost)
+        b["records_count"] += _row_safe_int(row.records_count)
         if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
             b["last_used_at"] = row.last_used_at
 
@@ -2449,12 +2489,12 @@ def _rows_to_model_summary(rows) -> list[dict]:
                 "source": source,
                 "model": model,
                 "display_model": _display_model_name(model, tool_name),
-                "input_tokens": int(row.input_tokens or 0),
-                "output_tokens": int(row.output_tokens or 0),
-                "cache_creation_tokens": int(row.cache_creation_tokens or 0),
-                "cache_read_tokens": int(row.cache_read_tokens or 0),
-                "total_tokens": int(row.total_tokens or 0),
-                "total_cost": round(float(row.total_cost or 0), 4),
+                "input_tokens": _row_safe_int(row.input_tokens),
+                "output_tokens": _row_safe_int(row.output_tokens),
+                "cache_creation_tokens": _row_safe_int(row.cache_creation_tokens),
+                "cache_read_tokens": _row_safe_int(row.cache_read_tokens),
+                "total_tokens": _row_safe_int(row.total_tokens),
+                "total_cost": round(_row_safe_float(row.total_cost), 4),
             }
         )
     return sorted(
@@ -3040,12 +3080,12 @@ def _execute_db_query(
         date_str = row.date.isoformat() if isinstance(row.date, date) else str(row.date)
         item = DbUsageItem(
             date=date_str,
-            input_tokens=row.input_tokens or 0,
-            output_tokens=row.output_tokens or 0,
-            cache_creation_tokens=row.cache_creation_tokens or 0,
-            cache_read_tokens=row.cache_read_tokens or 0,
-            total_tokens=row.total_tokens or 0,
-            total_cost=float(row.total_cost or 0),
+            input_tokens=_row_safe_int(row.input_tokens),
+            output_tokens=_row_safe_int(row.output_tokens),
+            cache_creation_tokens=_row_safe_int(row.cache_creation_tokens),
+            cache_read_tokens=_row_safe_int(row.cache_read_tokens),
+            total_tokens=_row_safe_int(row.total_tokens),
+            total_cost=_row_safe_float(row.total_cost),
         )
         if req.group_by in ("device", "tool", "model"):
             item.group_key = row.group_key

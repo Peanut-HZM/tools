@@ -34,6 +34,11 @@ def _to_naive_or_aware(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is None:
         return None
     if isinstance(dt, str):
+        # 容错：session 被污染时 ORM 属性可能返回列键字符串（如 'llm_user_quota_valid_from'）
+        # 检测列键模式（>=3 个下划线分段，全字母数字下划线）直接返回 None
+        if dt and dt.replace("_", "").isalnum():
+            logger.warning("[llm_quota] _to_naive_or_aware 跳过列键字符串: %r", dt)
+            return None
         try:
             dt = datetime.fromisoformat(dt)
         except (ValueError, TypeError):
@@ -90,12 +95,14 @@ def _to_info(q: LLMUserQuota, username: Optional[str] = None) -> QuotaInfo:
     if vu is not None and nw > vu:
         is_valid = False
     # 显式转换为整数（数据库可能返回字符串）
-    daily_limit = int(q.daily_limit) if q.daily_limit is not None else 0
-    daily_used = int(q.daily_used) if q.daily_used is not None else 0
-    monthly_limit = int(q.monthly_limit) if q.monthly_limit is not None else 0
-    monthly_used = int(q.monthly_used) if q.monthly_used is not None else 0
-    token_limit = int(q.token_limit) if q.token_limit is not None else 0
-    token_used = int(q.token_used) if q.token_used is not None else 0
+    # 容错：session 被污染时 ORM 属性可能返回列键字符串（如 'llm_user_quota_daily_limit'），
+    # 此时 int() 会抛 ValueError。检测到列键字符串时返回安全默认值。
+    daily_limit = _safe_int(q.daily_limit)
+    daily_used = _safe_int(q.daily_used)
+    monthly_limit = _safe_int(q.monthly_limit)
+    monthly_used = _safe_int(q.monthly_used)
+    token_limit = _safe_int(q.token_limit)
+    token_used = _safe_int(q.token_used)
     return QuotaInfo(
         user_id=q.user_id,
         username=username,
@@ -116,6 +123,34 @@ def _to_info(q: LLMUserQuota, username: Optional[str] = None) -> QuotaInfo:
         granted_by=q.granted_by,
         notes=q.notes,
     )
+
+
+def _safe_int(v) -> int:
+    """安全 int 转换：None/列键字符串/异常 → 安全默认值。
+
+    背景：SQLAlchemy session 因 connection pool 被污染（PG transaction aborted）时，
+    ORM 对象的 lazy 属性访问会返回该列的键字符串（如 'llm_user_quota_daily_limit'），
+    普通的 int(v) 会抛 ValueError。这里检测列键模式（>=3 个下划线分段，全字母数字下划线）
+    并返回 0；其他异常也返回 0。None 直接返回 0。真正的整数/可解析字符串正常转换。
+    """
+    if v is None:
+        return 0
+    if isinstance(v, bool):
+        return int(v)
+    if isinstance(v, int):
+        return v
+    if isinstance(v, str):
+        # 检测 SQLAlchemy 列键（典型格式：表名_列名，如 'llm_user_quota_daily_limit'）
+        if v and v.replace("_", "").isalnum() and v != v.strip():
+            return 0
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return 0
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return 0
 
 
 # ------------------------------------------------------------------
@@ -365,29 +400,50 @@ class LLMQuotaService:
     # -------- 内部：username 查询（原生 SQL 避开 User 模型列名问题） --------
 
     def _lookup_username(self, user_id: str) -> Optional[str]:
-        """单条 username 查询；失败或 user 不存在时返回 None"""
+        """单条 username 查询；失败或 user 不存在时返回 None
+
+        注意：users.id 是 bigint，而 quota 表的 user_id 是 varchar(64)（可能是 UUID）。
+        仅当 user_id 可转为整数时才查询；否则直接返回 None。
+        失败时必须 rollback 以清除 PostgreSQL 事务错误状态，否则后续查询会返回列键名。
+        """
+        # user_id 是 UUID 时，无法匹配 users.id (bigint)，直接跳过
+        try:
+            uid_int = int(user_id)
+        except (ValueError, TypeError):
+            return None
         try:
             result = self.db.execute(
                 text("SELECT username FROM users WHERE id = :uid"),
-                {"uid": user_id},
+                {"uid": uid_int},
             ).scalar()
             return result if isinstance(result, str) else None
         except Exception as e:
             logger.warning("[llm_quota] _lookup_username 失败 user=%s: %s", user_id, e)
+            self.db.rollback()
             return None
 
     def _lookup_usernames_batch(self, user_ids: list[str]) -> dict[str, str]:
         """批量查询 user_id → username；user 不存在则不出现在结果中"""
         if not user_ids:
             return {}
+        # 仅保留可转为 int 的 user_id（UUID 直接跳过）
+        uid_ints = []
+        for u in user_ids:
+            try:
+                uid_ints.append(int(u))
+            except (ValueError, TypeError):
+                continue
+        if not uid_ints:
+            return {}
         try:
             rows = self.db.execute(
                 text("SELECT id, username FROM users WHERE id = ANY(:ids)"),
-                {"ids": user_ids},
+                {"ids": uid_ints},
             ).fetchall()
             return {row[0]: row[1] for row in rows if isinstance(row[1], str)}
         except Exception as e:
             logger.warning("[llm_quota] _lookup_usernames_batch 失败: %s", e)
+            self.db.rollback()
             return {}
 
     # -------- 内部 --------
