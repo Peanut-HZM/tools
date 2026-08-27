@@ -53,8 +53,8 @@ describe('DimensionPieCard 渲染', () => {
     );
     const cells = container.querySelectorAll('[data-testid="cell"]');
     const cellsByKey = Array.from(cells).map(c => c.getAttribute('data-fill'));
-    // 第一个 Cell 应是 COLORS[0]（var(--accent-info)）
-    expect(cellsByKey[0]).toBe('var(--accent-info)');
+    // 第一个 Cell 应是 COLORS[0]（rgb(var(--accent-info))）
+    expect(cellsByKey[0]).toBe('rgb(var(--accent-info))');
   });
 });
 
@@ -162,16 +162,16 @@ describe('DimensionPieCard 颜色', () => {
     );
     const cells = container.querySelectorAll('[data-testid="cell"]');
     const fills = Array.from(cells).map(c => c.getAttribute('data-fill'));
-    expect(fills[0]).toBe('var(--accent-info)');
-    expect(fills[7]).toBe('var(--accent-primary)');
+    expect(fills[0]).toBe('rgb(var(--accent-info))');
+    expect(fills[7]).toBe('rgb(var(--accent-primary))');
     // 第 9 项循环回 COLORS[0]
-    expect(fills[8]).toBe('var(--accent-info)');
-    expect(fills[9]).toBe('var(--accent-success)');
+    expect(fills[8]).toBe('rgb(var(--accent-info))');
+    expect(fills[9]).toBe('rgb(var(--accent-success))');
   });
 });
 
 describe('DimensionPieCard 选中态', () => {
-  it('selectedKey 匹配某分片：该 Cell stroke="var(--ink-default)" strokeWidth=2', () => {
+  it('selectedKey 匹配某分片：该 Cell stroke="rgb(var(--ink-default))" strokeWidth=2', () => {
     render(
       <DimensionPieCard
         title="设备"
@@ -183,7 +183,7 @@ describe('DimensionPieCard 选中态', () => {
     );
     const cells = screen.getAllByTestId('cell');
     // 排序后 'a' (1000 tokens) 是第 0 个 Cell
-    expect(cells[0].getAttribute('data-stroke')).toBe('var(--ink-default)');
+    expect(cells[0].getAttribute('data-stroke')).toBe('rgb(var(--ink-default))');
     expect(cells[0].getAttribute('data-stroke-width')).toBe('2');
   });
 });
