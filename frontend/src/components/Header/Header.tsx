@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Moon, Sun, Monitor } from 'lucide-react';
 import SearchBar from './SearchBar';
 import LoginButton from './LoginButton';
 import { useI18n } from '../../i18n';
@@ -111,7 +112,7 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
               className="text-ink-muted"
               title={`主题: ${theme === 'dark' ? '暗色' : theme === 'light' ? '亮色' : '跟随系统'}`}
             >
-              {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : ''}
+              {theme === 'dark' ? <Moon className="w-4 h-4" /> : theme === 'light' ? <Sun className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
             </Button>
             <TooltipProvider>
               <Tooltip>
