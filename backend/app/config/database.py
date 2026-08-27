@@ -124,16 +124,20 @@ class _PooledRawConnection:
     def __init__(self, fairy):
         self._fairy = fairy
         self._raw = fairy.dbapi_connection
-        # 注意：不要在共享 DBAPI 连接上设置 cursor_factory！
-        # 此连接会被归还到 SQLAlchemy 池，下一个使用者可能是 ORM session。
-        # 在共享连接上设置 RealDictCursor 会污染连接状态，导致后续
-        # ORM 查询返回列键字符串（如 'llm_configs_id'）而非真实值。
-        # 如果调用方需要 RealDictCursor，请改用 get_raw_db_connection()
-        # 上下文管理器或显式 cursor(cursor_factory=RealDictCursor)。
+        # 关键修复：不再修改共享 DBAPI 连接上的 cursor_factory。
+        # 旧逻辑在这里执行 self._raw.cursor_factory = RealDictCursor，会永久污染
+        # SQLAlchemy 池中该底层连接——下次 ORM session 借到时，psycopg2 游标会
+        # 以 RealDictCursor 行为运行，导致 SELECT 返回 ('列名',) 而不是 (值,)，
+        # 进而引发 ValueError/AttributeError，所有走 ORM 的接口返回 500。
+        # 现在改为在 cursor() 方法里默认传 cursor_factory 参数，连接本身保持纯净。
 
     # -------- 显式委托 --------
 
     def cursor(self, *args, **kwargs):
+        # 默认走 RealDictCursor，保持旧 API 兼容（调用方常用 row['xxx']）。
+        # 但只在这一次 cursor() 调用时生效，不污染底层连接。
+        if "cursor_factory" not in kwargs:
+            kwargs["cursor_factory"] = RealDictCursor
         return self._raw.cursor(*args, **kwargs)
 
     def commit(self):
