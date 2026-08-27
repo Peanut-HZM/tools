@@ -794,6 +794,8 @@ export default function TokenUsage() {
           )}
           {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-accent-warning">{deviceError}</div>}
           {pollError && <div className="rounded-md border border-border bg-canvas px-4 py-3 text-sm text-ink-muted">后台轮询失败：{pollError}</div>}
+          {summary.error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">数据加载失败：{summary.error}</div>}
+          {details.error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">明细加载失败：{details.error}</div>}
           {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-accent-warning">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
         </div>
       )}
