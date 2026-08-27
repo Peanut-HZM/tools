@@ -66,7 +66,7 @@ import { useTokenUsageDetails } from './hooks/useTokenUsageDetails';
 import { useTokenUsagePolling } from './hooks/useTokenUsagePolling';
 import DimensionPieCard, { type PieSlice } from './TokenUsage/DimensionPieCard';
 
-const COLORS = ['var(--accent-info)', 'var(--accent-success)', 'var(--accent-warning)', 'var(--accent-danger)', 'var(--accent-secondary)', 'var(--accent-warm)', 'var(--accent-cyan)', 'var(--accent-primary)'];
+const COLORS = ['rgb(var(--accent-info))', 'rgb(var(--accent-success))', 'rgb(var(--accent-warning))', 'rgb(var(--accent-danger))', 'rgb(var(--accent-secondary))', 'rgb(var(--accent-warm))', 'rgb(var(--accent-cyan))', 'rgb(var(--accent-primary))'];
 const PAGE_SIZE = 50;
 
 function formatToken(num: number): string {
@@ -862,30 +862,30 @@ export default function TokenUsage() {
           {(groupBy === 'none' ? chartData : groupedData).length ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={groupBy === 'none' ? chartData : groupedData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} tickFormatter={formatToken} />
-                {groupBy === 'none' && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'var(--ink-muted)' }} tickFormatter={value => `$${value}`} />}
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-surface-2)', border: '1px solid var(--border-default)', color: 'var(--ink-default)' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border-default))" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} tickFormatter={formatToken} />
+                {groupBy === 'none' && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} tickFormatter={value => `$${value}`} />}
+                <Tooltip contentStyle={{ backgroundColor: 'rgb(var(--bg-surface-2))', border: '1px solid rgb(var(--border-default))', color: 'rgb(var(--ink-default))' }} />
                 <Legend />
                 {groupBy === 'none' ? (
                   <>
                     {chartType === 'bar' ? (
                       <>
-                        <Bar yAxisId="left" dataKey="inputTokens" stackId="tokens" fill="var(--accent-info)" name="输入" />
-                        <Bar yAxisId="left" dataKey="outputTokens" stackId="tokens" fill="var(--accent-success)" name="输出" />
-                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="var(--accent-warning)" name="缓存">
-                          <LabelList dataKey="totalTokens" formatter={formatToken} position="top" style={{ fill: 'var(--ink-default)', fontSize: 10, fontWeight: 500 }} />
+                        <Bar yAxisId="left" dataKey="inputTokens" stackId="tokens" fill="rgb(var(--accent-info))" name="输入" />
+                        <Bar yAxisId="left" dataKey="outputTokens" stackId="tokens" fill="rgb(var(--accent-success))" name="输出" />
+                        <Bar yAxisId="left" dataKey="cacheTokens" stackId="tokens" fill="rgb(var(--accent-warning))" name="缓存">
+                          <LabelList dataKey="totalTokens" formatter={formatToken} position="top" style={{ fill: 'rgb(var(--ink-default))', fontSize: 10, fontWeight: 500 }} />
                         </Bar>
                       </>
                     ) : (
                       <>
-                        <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="var(--accent-info)" strokeWidth={2} name="输入" dot={{ r: 3 }} />
-                        <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="var(--accent-success)" strokeWidth={2} name="输出" dot={{ r: 3 }} />
-                        <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="var(--accent-warning)" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="inputTokens" stroke="rgb(var(--accent-info))" strokeWidth={2} name="输入" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="outputTokens" stroke="rgb(var(--accent-success))" strokeWidth={2} name="输出" dot={{ r: 3 }} />
+                        <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="rgb(var(--accent-warning))" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
                       </>
                     )}
-                    <Line yAxisId="right" type="monotone" dataKey="cost" stroke="var(--accent-danger)" strokeWidth={2} name="成本" dot={{ r: 3 }} />
+                    <Line yAxisId="right" type="monotone" dataKey="cost" stroke="rgb(var(--accent-danger))" strokeWidth={2} name="成本" dot={{ r: 3 }} />
                   </>
                 ) : (
                   Object.keys(groupedData[0] || {}).filter(key => key !== 'date').map((key, index) => (

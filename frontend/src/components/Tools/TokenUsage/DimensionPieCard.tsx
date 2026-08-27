@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card } from '@/components/ui/Card';
 
-const COLORS = ['var(--accent-info)', 'var(--accent-success)', 'var(--accent-warning)', 'var(--accent-danger)', 'var(--accent-secondary)', 'var(--accent-warm)', 'var(--accent-cyan)', 'var(--accent-primary)'];
+const COLORS = ['rgb(var(--accent-info))', 'rgb(var(--accent-success))', 'rgb(var(--accent-warning))', 'rgb(var(--accent-danger))', 'rgb(var(--accent-secondary))', 'rgb(var(--accent-warm))', 'rgb(var(--accent-cyan))', 'rgb(var(--accent-primary))'];
 
 export interface PieSlice {
   key: string;
@@ -110,7 +110,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                     <Cell
                       key={s.key}
                       fill={fill}
-                      stroke={isSelected ? 'var(--ink-default)' : 'none'}
+                      stroke={isSelected ? 'rgb(var(--ink-default))' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                     />
                   );
