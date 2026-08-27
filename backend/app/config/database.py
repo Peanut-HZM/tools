@@ -124,8 +124,12 @@ class _PooledRawConnection:
     def __init__(self, fairy):
         self._fairy = fairy
         self._raw = fairy.dbapi_connection
-        # 保持与原 ThreadedConnectionPool 相同的默认游标类型
-        self._raw.cursor_factory = RealDictCursor
+        # 注意：不要在共享 DBAPI 连接上设置 cursor_factory！
+        # 此连接会被归还到 SQLAlchemy 池，下一个使用者可能是 ORM session。
+        # 在共享连接上设置 RealDictCursor 会污染连接状态，导致后续
+        # ORM 查询返回列键字符串（如 'llm_configs_id'）而非真实值。
+        # 如果调用方需要 RealDictCursor，请改用 get_raw_db_connection()
+        # 上下文管理器或显式 cursor(cursor_factory=RealDictCursor)。
 
     # -------- 显式委托 --------
 
@@ -242,10 +246,21 @@ def release_db_connection(conn):
     """释放连接回 SA 引擎池。
 
     接受 _PooledRawConnection（新路径）或任何有 .close() 的对象（向后兼容）。
+
+    关键修复：在 close() 前显式 rollback()。背景：openclaw_config_service
+    等模块在 import 时会通过 psycopg2 直接使用池中的连接。如果该连接
+    因某种原因处于异常状态，pool_reset_on_return='rollback' 可能不触发
+    （因为 _PooledRawConnection 包装了底层连接，SQLAlchemy 的 reset
+    可能作用于 fairy 层而非 DBAPI 层）。显式 rollback 确保连接状态
+    完全重置，后续 ORM session 拿到连接后不会返回列键字符串。
     """
     if conn is None:
         return
     try:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         conn.close()
     except Exception as e:
         logger.warning(f"释放数据库连接失败: {e}")
