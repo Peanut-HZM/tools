@@ -38,7 +38,7 @@ body {
 
 .category-tab.active {
   background-color: rgb(var(--accent-primary));
-  color: rgb(var(--ink-inverse));
+  color: white;
 }
 
 .category-tab {

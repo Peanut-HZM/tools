@@ -52,10 +52,10 @@
   --ink-faint:        139 149 163;
   --ink-inverse:      245 247 250;
 
-  --accent-primary:   #5B6BF5;
+  --accent-primary:   91 107 245;
   --accent-hover:     74 90 229;
   --accent-press:     59 75 213;
-  --accent-secondary: #A155F7;
+  --accent-secondary: 161 85 247;
   --accent-warm:      232 107 26;
   --accent-cyan:      8 145 178;   /* 亮色下 cyan 调深以保持对比度 */
   --accent-cyan-hover:14 116 144;
