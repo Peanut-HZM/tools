@@ -62,3 +62,106 @@ class ToolListView(BaseModel):
 
     items: List[ToolView]
     total: int
+
+
+# ---------------------------------------------------------------------------
+# Task 14: admin/agents harness 扩展
+# ---------------------------------------------------------------------------
+
+class AgentHarnessUpdate(BaseModel):
+    """更新 agent harness 扩展字段（全部 optional，仅更新传入字段）"""
+
+    slug: Optional[str] = Field(None, max_length=50)
+    welcome_message: Optional[str] = None
+    default_model_id: Optional[str] = None
+    fallback_model_ids: Optional[List[str]] = None
+    generation_params: Optional[Dict[str, Any]] = None
+    memory_short_term_policy: Optional[str] = Field(None, max_length=20)
+    memory_short_term_window: Optional[int] = None
+    memory_long_term_enabled: Optional[bool] = None
+    memory_long_term_config: Optional[Dict[str, Any]] = None
+    max_steps_per_turn: Optional[int] = None
+    tool_timeout_seconds: Optional[int] = None
+    error_strategy: Optional[str] = Field(None, max_length=20)
+    max_retries: Optional[int] = None
+    can_handoff_to: Optional[List[str]] = None
+    handoff_instruction: Optional[str] = None
+    input_guardrails: Optional[List[Dict[str, Any]]] = None
+    output_guardrails: Optional[List[Dict[str, Any]]] = None
+    guardrail_on_violation: Optional[str] = Field(None, max_length=20)
+    visibility: Optional[str] = Field(None, max_length=20)
+    owner_id: Optional[str] = None
+
+
+class AgentHarnessView(BaseModel):
+    """Agent harness 扩展字段视图"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    description: str
+    icon: str
+    icon_color: str
+    category: str
+    is_active: bool
+    slug: Optional[str]
+    welcome_message: Optional[str]
+    default_model_id: Optional[str]
+    fallback_model_ids: List[Any]
+    generation_params: Dict[str, Any]
+    memory_short_term_policy: Optional[str]
+    memory_short_term_window: Optional[int]
+    memory_long_term_enabled: bool
+    memory_long_term_config: Dict[str, Any]
+    max_steps_per_turn: Optional[int]
+    tool_timeout_seconds: Optional[int]
+    error_strategy: Optional[str]
+    max_retries: Optional[int]
+    can_handoff_to: List[Any]
+    handoff_instruction: Optional[str]
+    input_guardrails: List[Any]
+    output_guardrails: List[Any]
+    guardrail_on_violation: Optional[str]
+    visibility: Optional[str]
+    owner_id: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+class ToolBindingCreate(BaseModel):
+    """创建工具绑定请求体"""
+
+    tool_id: str
+    parameter_overrides: Dict[str, Any] = Field(default_factory=dict)
+    priority: int = 0
+    is_enabled: bool = True
+
+
+class ToolBindingView(BaseModel):
+    """工具绑定视图"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    agent_id: str
+    tool_id: str
+    tool_name: Optional[str] = None
+    tool_display_name: Optional[str] = None
+    parameter_overrides: Dict[str, Any]
+    priority: int
+    is_enabled: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+class AgentHarnessStatsView(BaseModel):
+    """单 agent harness 使用统计"""
+
+    agent_id: str
+    conversation_count: int = 0
+    message_count: int = 0
+    trace_count: int = 0
+    total_tokens: int = 0
+    total_duration_ms: int = 0
+    tool_usage: List[Dict[str, Any]] = []
