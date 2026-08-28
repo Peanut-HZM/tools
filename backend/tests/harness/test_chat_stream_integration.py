@@ -456,7 +456,9 @@ def test_chat_stream_handles_runtime_exception(client, mock_services, mock_runti
     events = _parse_sse(resp.text)
     error_events = [e for e in events if e["type"] == "error"]
     assert len(error_events) == 1
-    assert "unexpected crash" in error_events[0]["message"]
+    # Task 17: 错误信息脱敏 — 不再泄露 str(e)，返回通用提示
+    assert error_events[0]["message"] == "服务内部错误，请稍后重试"
+    assert "unexpected crash" not in error_events[0]["message"]
 
     mock_services["quota"].rollback.assert_called_once_with("res-1")
 

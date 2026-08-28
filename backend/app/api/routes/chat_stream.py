@@ -211,6 +211,8 @@ async def chat_stream(
                 # （Task 19 再扩展前端 SSE 事件类型）
 
         except Exception as e:
+            # 脱敏：不将 str(e) 暴露给前端，避免泄露 DB schema / 第三方 key / stack 片段
+            logger.error(f"chat_stream error: {e}", exc_info=True)
             try:
                 if not errored:
                     quota_svc.rollback(res_id)
@@ -218,7 +220,7 @@ async def chat_stream(
                 pass
             if not errored:
                 yield (
-                    f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+                    f"data: {json.dumps({'type': 'error', 'message': '服务内部错误，请稍后重试'}, ensure_ascii=False)}\n\n"
                 )
 
     return StreamingResponse(
@@ -245,12 +247,16 @@ def _init_harness_session(
     harness_session = HarnessSession(conversation, agent)
     try:
         from app.models.message import Message as MessageORM
+        # 按 agent 配置截断历史消息（默认 20），避免长会话下加载过多上下文
+        window = getattr(agent, "memory_short_term_window", 20) or 20
         history_msgs = (
             db.query(MessageORM)
             .filter_by(conversation_id=conversation_id)
-            .order_by(MessageORM.sent_at)
+            .order_by(MessageORM.sent_at.desc())
+            .limit(window)
             .all()
         )
+        history_msgs = list(reversed(history_msgs))  # 恢复时间升序
         # 为每条历史消息注入 role 属性（runtime 的 _build_messages_for_llm 依赖此字段）
         for m in history_msgs:
             m.role = "user" if m.sender_type == "user" else "assistant"
