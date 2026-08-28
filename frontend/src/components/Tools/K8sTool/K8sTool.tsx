@@ -150,7 +150,7 @@ const K8sTool: React.FC = () => {
       />
 
       {/* 右侧：主区域 */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
+      <div className="flex-1 flex flex-col overflow-hidden bg-canvas min-h-0">
         {activeConnectionId ? (
           <>
             {/* 顶部操作栏：集群切换 + 命名空间过滤 */}

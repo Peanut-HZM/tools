@@ -21,6 +21,7 @@ import type {
   K8sWorkloadSummary,
   K8sEventInfo,
   K8sPodMetrics,
+  PaginatedPodsResponse,
 } from '../components/Tools/K8sTool/types';
 
 const K8S_API_URL = `${API_BASE_URL}/k8s-tool`;
@@ -147,10 +148,10 @@ export const listNamespaces = (configId: string) =>
     `${K8S_API_URL}/${encodeURIComponent(configId)}/namespaces`
   );
 
-/** 获取指定 Namespace 下的 Pod 列表 */
-export const listPods = (configId: string, namespace: string) =>
-  request<K8sPodSummary[]>(
-    `${K8S_API_URL}/${encodeURIComponent(configId)}/pods?namespace=${encodeURIComponent(namespace)}`
+/** 获取指定 Namespace 下的 Pod 列表（分页格式） */
+export const listPods = (configId: string, namespace: string, limit?: number) =>
+  request<PaginatedPodsResponse>(
+    `${K8S_API_URL}/${encodeURIComponent(configId)}/pods?namespace=${encodeURIComponent(namespace)}${limit ? `&limit=${limit}` : ''}`
   );
 
 /** 获取单个 Pod 的详细信息 */

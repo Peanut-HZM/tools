@@ -346,6 +346,14 @@ export const zhCN = {
         searchPlaceholder: '搜索 Pod 名称...',
         noMatch: '未找到匹配的 Pod: "{text}"',
         actions: '操作',
+        pagination: {
+          total: '共 {count} 条',
+          page: '第 {current} 页 / 共 {total} 页',
+          range: '（{start}-{end}）',
+          prev: '上一页',
+          next: '下一页',
+          pageSize: '{size}条/页',
+        },
       },
       // 工作负载列表
       workloadList: {

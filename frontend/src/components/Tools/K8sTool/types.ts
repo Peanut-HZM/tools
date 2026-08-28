@@ -194,3 +194,9 @@ export interface K8sPodMetrics {
   timestamp: string;
   containers: K8sMetricsContainer[];
 }
+
+// Pod 分页列表响应
+export interface PaginatedPodsResponse {
+  items: K8sPodSummary[];
+  total: number;
+}

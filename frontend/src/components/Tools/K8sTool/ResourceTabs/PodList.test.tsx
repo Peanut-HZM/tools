@@ -23,6 +23,7 @@ const mockStoreState = {
   activeConnectionId: 'conn-1' as string | null,
   selectedNamespaces: ['default'] as string[],
   namespaces: ['default', 'production'] as string[],
+  openedTabs: [] as Array<{ id: string; type: string; namespace: string; name: string }>,
 };
 
 vi.mock('../../../../stores/k8sStore', () => ({
@@ -52,6 +53,15 @@ vi.mock('../../../../i18n', () => ({
             noPods: '暂无 Pod',
             searchPlaceholder: '搜索 Pod 名称...',
             noMatch: '未找到匹配的 Pod: "{text}"',
+            actions: '操作',
+            pagination: {
+              total: '共 {count} 条',
+              page: '第 {current} 页 / 共 {total} 页',
+              range: '（{start}-{end}）',
+              prev: '上一页',
+              next: '下一页',
+              pageSize: '{size}条/页',
+            },
           },
         },
       },
@@ -76,7 +86,7 @@ let mockError: Error | null = null;
 
 vi.mock('../../../../hooks/useK8sClient', () => ({
   useK8sPods: () => ({
-    data: mockPods,
+    data: { items: mockPods, total: mockPods.length },
     isLoading: mockIsLoading,
     error: mockError,
   }),
@@ -319,5 +329,100 @@ describe('PodList - 点击行打开标签页', () => {
       namespace: 'default',
       name: 'db-1',
     });
+  });
+});
+
+describe('PodList - 分页', () => {
+  it('数据超过 pageSize 时显示分页器', () => {
+    mockPods = Array.from({ length: 25 }, (_, i) => ({
+      name: `pod-${String(i + 1).padStart(2, '0')}`,
+      namespace: 'default',
+      phase: 'Running',
+      status: '',
+      restarts: 0,
+      created_at: '2024-01-01T00:00:00Z',
+      node: 'node-1',
+      pod_ip: `10.0.0.${i + 1}`,
+    }));
+
+    renderWithProviders(<PodList />);
+
+    // 默认 pageSize=20，应只显示前 20 条
+    expect(screen.getByText('pod-01')).toBeTruthy();
+    expect(screen.getByText('pod-20')).toBeTruthy();
+    expect(screen.queryByText('pod-21')).toBeNull();
+
+    // 分页器应显示总数和页码
+    expect(screen.getByText(/共 25 条/)).toBeTruthy();
+    expect(screen.getByText(/第 1 页/)).toBeTruthy();
+  });
+
+  it('点击下一页显示下一页数据', () => {
+    mockPods = Array.from({ length: 25 }, (_, i) => ({
+      name: `pod-${String(i + 1).padStart(2, '0')}`,
+      namespace: 'default',
+      phase: 'Running',
+      status: '',
+      restarts: 0,
+      created_at: '2024-01-01T00:00:00Z',
+      node: 'node-1',
+      pod_ip: `10.0.0.${i + 1}`,
+    }));
+
+    renderWithProviders(<PodList />);
+
+    // 点击下一页
+    fireEvent.click(screen.getByText('下一页'));
+
+    // 应显示第 2 页数据
+    expect(screen.queryByText('pod-01')).toBeNull();
+    expect(screen.getByText('pod-21')).toBeTruthy();
+    expect(screen.getByText('pod-25')).toBeTruthy();
+  });
+
+  it('搜索时重置到第 1 页', () => {
+    mockPods = Array.from({ length: 25 }, (_, i) => ({
+      name: `pod-${String(i + 1).padStart(2, '0')}`,
+      namespace: 'default',
+      phase: 'Running',
+      status: '',
+      restarts: 0,
+      created_at: '2024-01-01T00:00:00Z',
+      node: 'node-1',
+      pod_ip: `10.0.0.${i + 1}`,
+    }));
+
+    renderWithProviders(<PodList />);
+
+    // 先翻到第 2 页
+    fireEvent.click(screen.getByText('下一页'));
+    expect(screen.queryByText('pod-01')).toBeNull();
+
+    // 搜索 "pod-01"
+    const searchInput = screen.getByPlaceholderText('搜索 Pod 名称...');
+    fireEvent.change(searchInput, { target: { value: 'pod-01' } });
+
+    // 应回到第 1 页且只显示匹配项
+    expect(screen.getByText('pod-01')).toBeTruthy();
+    expect(screen.queryByText('pod-02')).toBeNull();
+  });
+
+  it('数据不足一页时显示总数', () => {
+    mockPods = [
+      {
+        name: 'single-pod',
+        namespace: 'default',
+        phase: 'Running',
+        status: '',
+        restarts: 0,
+        created_at: '2024-01-01T00:00:00Z',
+        node: 'node-1',
+        pod_ip: '10.0.0.1',
+      },
+    ];
+
+    renderWithProviders(<PodList />);
+    expect(screen.getByText('single-pod')).toBeTruthy();
+    expect(screen.getByText(/共 1 条/)).toBeTruthy();
   });
 });

@@ -60,11 +60,12 @@ class K8sResourceService:
             raise _api_exception_to_k8s_error(e)
 
     @staticmethod
-    async def list_pods(bundle, namespace: str) -> List[K8sPodSummary]:
-        """列出指定 namespace 的 pods"""
+    async def list_pods(bundle, namespace: str, limit: Optional[int] = None) -> dict:
+        """列出指定 namespace 的 pods，返回 {items, total} 分页格式"""
         try:
             pod_list = await bundle.core_v1.list_namespaced_pod(namespace)
-            return [_pod_to_summary(p) for p in pod_list.items]
+            items = [_pod_to_summary(p) for p in pod_list.items]
+            return {"items": items, "total": len(items)}
         except ApiException as e:
             raise _api_exception_to_k8s_error(e)
 
