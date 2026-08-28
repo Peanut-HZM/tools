@@ -49,6 +49,24 @@ _TEMPLATE_PATTERN = re.compile(r"\{\{([^}]+)\}\}")
 _MAX_RESPONSE_SIZE = 1024 * 1024  # 1MB
 
 
+class _BufferedResponse:
+    """流式下载完成后缓冲的响应对象，模拟 httpx.Response 的关键属性"""
+
+    def __init__(self, status_code: int, headers, content: bytes, url: Any):
+        self.status_code = status_code
+        self.headers = headers
+        self.content = content
+        self.url = url
+
+    @property
+    def text(self) -> str:
+        return self.content.decode("utf-8", errors="replace")
+
+    def json(self) -> Any:
+        import json as _json
+        return _json.loads(self.content)
+
+
 class HttpTool:
     """HTTP 工具：从 DB Tool 实体动态构造
 
@@ -120,8 +138,9 @@ class HttpTool:
                 for k, v in headers_template.items()
             }
 
-            # SSRF 检查
-            if not self._is_url_safe(url):
+            # SSRF 检查（TOCTOU 防护：一次性解析 DNS，返回已校验的 IP）
+            is_safe, resolved = self._is_url_safe(url)
+            if not is_safe:
                 return ToolResult.error(f"URL 不安全（SSRF 防护）: 已拒绝该请求")
 
             # 构造 body
@@ -136,22 +155,31 @@ class HttpTool:
             timeout = self._config.get("timeout", 30)
             max_redirects = 10
             current_url = url
+            current_resolved = resolved  # 当前 URL 对应的已校验 IP
 
             async with httpx.AsyncClient(
                 timeout=timeout, follow_redirects=False
             ) as client:
                 resp = None
                 for hop in range(max_redirects):
-                    resp = await client.request(
-                        method=method,
-                        url=current_url,
-                        headers=headers,
-                        json=(
-                            body
-                            if method in ("POST", "PUT", "PATCH") and body
-                            else None
-                        ),
+                    # 用已校验的 IP 直连，设置 Host 头保持虚拟主机路由正常
+                    parsed = urlparse(current_url)
+                    default_port = 443 if parsed.scheme == "https" else 80
+                    port = parsed.port or default_port
+                    connect_url = (
+                        f"{parsed.scheme}://{current_resolved}:{port}{parsed.path}"
                     )
+                    if parsed.query:
+                        connect_url += f"?{parsed.query}"
+
+                    req_headers = {**headers, "Host": parsed.hostname or ""}
+
+                    resp = await self._stream_request(
+                        client, method, connect_url, req_headers, body
+                    )
+                    if isinstance(resp, ToolResult):
+                        # 流式下载阶段返回了错误（响应过大等）
+                        return resp
 
                     # 非重定向响应，跳出循环
                     if resp.status_code not in (301, 302, 303, 307, 308):
@@ -166,8 +194,9 @@ class HttpTool:
                     next_url = resp.url.join(location)
                     next_url_str = str(next_url)
 
-                    # 校验重定向目标是否安全
-                    if not self._is_url_safe(next_url_str):
+                    # 校验重定向目标是否安全（同时解析新 IP）
+                    next_safe, next_resolved = self._is_url_safe(next_url_str)
+                    if not next_safe:
                         logger.warning(
                             f"HttpTool 重定向到不安全 URL 已拦截: {next_url_str}"
                         )
@@ -176,6 +205,7 @@ class HttpTool:
                         )
 
                     current_url = next_url_str
+                    current_resolved = next_resolved
                     # 303 See Other：强制切换为 GET 且不带 body
                     if resp.status_code == 303:
                         method = "GET"
@@ -186,13 +216,6 @@ class HttpTool:
                         f"重定向次数过多（最多 {max_redirects} 次），已中止"
                     )
 
-                # 响应大小检查
-                content = resp.content
-                if len(content) > _MAX_RESPONSE_SIZE:
-                    return ToolResult.error(
-                        f"响应过大 ({len(content)} bytes > {_MAX_RESPONSE_SIZE})"
-                    )
-
                 # 解析响应
                 return self._parse_response(resp)
 
@@ -201,6 +224,56 @@ class HttpTool:
         except Exception as e:
             logger.error(f"HttpTool 执行失败: {e}", exc_info=True)
             return ToolResult.error("HTTP 工具执行失败，请稍后重试")
+
+    async def _stream_request(
+        self,
+        client: httpx.AsyncClient,
+        method: str,
+        url: str,
+        headers: dict,
+        body: Any,
+    ) -> "httpx.Response | ToolResult":
+        """流式发起请求并增量校验响应大小（DoS 防护）
+
+        成功时返回 httpx.Response（已读取全部内容到 .content）；
+        失败时返回 ToolResult.error（响应过大等）。
+        """
+        async with client.stream(
+            method=method,
+            url=url,
+            headers=headers,
+            json=(body if method in ("POST", "PUT", "PATCH") and body else None),
+        ) as resp:
+            # 快速失败：检查 Content-Length 头
+            content_length = resp.headers.get("content-length")
+            if content_length:
+                try:
+                    if int(content_length) > _MAX_RESPONSE_SIZE:
+                        return ToolResult.error(
+                            f"响应过大 ({content_length} bytes > {_MAX_RESPONSE_SIZE})"
+                        )
+                except ValueError:
+                    pass  # 非法 Content-Length 忽略，走流式校验
+
+            # 流式下载 + 增量大小校验
+            chunks: list[bytes] = []
+            total = 0
+            async for chunk in resp.aiter_bytes():
+                total += len(chunk)
+                if total > _MAX_RESPONSE_SIZE:
+                    return ToolResult.error(
+                        f"响应过大 ({total} bytes > {_MAX_RESPONSE_SIZE})"
+                    )
+                chunks.append(chunk)
+
+            # 拼装为类 Response 对象供后续 _parse_response 使用
+            content = b"".join(chunks)
+            return _BufferedResponse(
+                status_code=resp.status_code,
+                headers=resp.headers,
+                content=content,
+                url=resp.url,
+            )
 
     async def execute_stream(
         self, args: dict, ctx: ToolContext
@@ -247,43 +320,50 @@ class HttpTool:
 
     # ---- SSRF 防护 ----
 
-    def _is_url_safe(self, url: str) -> bool:
+    def _is_url_safe(self, url: str) -> tuple[bool, str]:
         """检查 URL 是否安全（非内网地址）
 
         通过 DNS 解析 hostname，检查解析后的 IP 是否在私有/环回/链路本地网段。
+
+        Returns:
+            (is_safe, resolved_ip_or_original_url)
+            - is_safe: 是否安全
+            - resolved_ip_or_original_url: 解析后的 IP 地址（用于 TOCTOU 防护直连），
+              若为 IP 字面量则返回原始值，失败时返回空字符串
         """
         try:
             parsed = urlparse(url)
             if parsed.scheme not in ("http", "https"):
-                return False
+                return False, ""
             hostname = parsed.hostname
             if not hostname:
-                return False
+                return False, ""
 
             # 先尝试直接解析为 IP 地址（处理 IP 字面量情况）
             try:
                 ip = ipaddress.ip_address(hostname)
+                ip_str = hostname
             except ValueError:
                 # 不是 IP 字面量，需要 DNS 解析
                 try:
                     ip_str = gethostbyname(hostname)
                     ip = ipaddress.ip_address(ip_str)
                 except Exception:
-                    return False
+                    return False, ""
 
             # 检查是否在黑名单网段
             for network in _BLOCKED_NETWORKS:
                 if ip in network:
-                    return False
+                    return False, ""
 
-            return True
+            return True, ip_str
         except Exception as e:
             logger.warning(f"URL 安全检查失败: {e}")
-            return False
+            return False, ""
 
     # ---- 响应解析 ----
 
-    def _parse_response(self, resp: httpx.Response) -> ToolResult:
+    def _parse_response(self, resp) -> ToolResult:
         """按 response_parser 配置解析响应"""
         parser = self._config.get("response_parser", {}) or {}
 

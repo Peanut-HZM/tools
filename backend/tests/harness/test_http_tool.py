@@ -1,10 +1,11 @@
 """HttpTool 行为测试（Task 6）
 
 覆盖：元数据 / 模板渲染 / SSRF 防护 / 响应解析 / JSONPath 提取
+      TOCTOU 防护 / 流式响应大小校验
 """
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from app.services.harness.tools.http_tool import HttpTool
+from app.services.harness.tools.http_tool import HttpTool, _BufferedResponse
 from app.services.harness.tool_protocol import ToolContext, ToolResult
 from app.models.harness_models import Tool
 
@@ -209,58 +210,112 @@ def test_http_tool_rejects_metadata_url():
     assert result.success is False
 
 
+# ---- _is_url_safe 返回值（tuple）----
+
+
+def test_is_url_safe_returns_tuple():
+    """_is_url_safe 应返回 (bool, str) 元组"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+
+    is_safe, resolved = tool._is_url_safe("http://127.0.0.1/admin")
+    assert is_safe is False
+    assert resolved == ""
+
+    is_safe, resolved = tool._is_url_safe("http://10.0.0.1/internal")
+    assert is_safe is False
+    assert resolved == ""
+
+
+def test_is_url_safe_returns_ip_for_literal():
+    """_is_url_safe 对公网 IP 字面量应返回该 IP"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+
+    is_safe, resolved = tool._is_url_safe("http://93.184.216.34/path")
+    assert is_safe is True
+    assert resolved == "93.184.216.34"
+
+
 # ---- 重定向 SSRF 防护 ----
 
 
-def _make_mock_client(responses):
-    """构造按顺序返回响应的 mock httpx.AsyncClient
+def _make_mock_response(status, headers_dict, content, url_str):
+    """构造单个 mock 响应对象"""
+    mock_resp = MagicMock()
+    mock_resp.status_code = status
+    mock_resp.headers = headers_dict
+    mock_resp.content = content
+
+    mock_url = MagicMock()
+
+    def mock_join(location):
+        if location.startswith("http"):
+            return MagicMock(__str__=lambda self: location)
+        from urllib.parse import urlparse as _up
+        parsed = _up(url_str)
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        return MagicMock(__str__=lambda self: base + location)
+
+    mock_url.join = mock_join
+    mock_resp.url = mock_url
+
+    if headers_dict.get("content-type", "").startswith("application/json"):
+        import json as _json
+        try:
+            mock_resp.json.return_value = _json.loads(content)
+        except Exception:
+            mock_resp.json.return_value = {}
+    mock_resp.text = content.decode("utf-8", errors="replace")
+    return mock_resp
+
+
+def _make_mock_client(responses, content_length_header=None):
+    """构造按顺序返回响应的 mock httpx.AsyncClient（支持流式 API）
 
     Args:
         responses: list of (status_code, headers, content, url_str) tuples
+        content_length_header: 可选，为所有响应添加 Content-Length 头
     Returns:
-        mock_client
+        mock_client（同时记录 request 调用参数到 .captured_kwargs）
     """
     call_count = 0
+    captured_kwargs = []
 
-    async def mock_request(*args, **kwargs):
+    def _build_resp(status, headers_dict, content, url_str):
+        if content_length_header is not None:
+            headers_dict = {**headers_dict, "content-length": str(content_length_header)}
+        return _make_mock_response(status, headers_dict, content, url_str)
+
+    def mock_stream(*args, **kwargs):
+        """httpx.AsyncClient.stream() 是同步方法，返回异步上下文管理器"""
         nonlocal call_count
+        captured_kwargs.append(kwargs.copy())
         if call_count >= len(responses):
             raise RuntimeError("mock 响应已耗尽")
         status, headers_dict, content, url_str = responses[call_count]
         call_count += 1
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = status
-        mock_resp.headers = headers_dict
-        mock_resp.content = content
-        # resp.url.join(location) 需要返回一个 URL-like 对象
-        mock_url = MagicMock()
+        resp = _build_resp(status, headers_dict, content, url_str)
 
-        def mock_join(location):
-            # 简单拼接：绝对 URL 直接用，相对 URL 拼到 base
-            if location.startswith("http"):
-                return MagicMock(__str__=lambda self: location)
-            # 相对路径：取当前 url 的 origin
-            from urllib.parse import urlparse as _up
-            parsed = _up(url_str)
-            base = f"{parsed.scheme}://{parsed.netloc}"
-            return MagicMock(__str__=lambda self: base + location)
+        # 模拟 async with client.stream(...) as resp
+        class StreamCtx:
+            async def __aenter__(self_inner):
+                return resp
 
-        mock_url.join = mock_join
-        mock_resp.url = mock_url
+            async def __aexit__(self_inner, *a):
+                pass
 
-        # JSON 响应自动解析
-        if headers_dict.get("content-type", "").startswith("application/json"):
-            import json as _json
-            try:
-                mock_resp.json.return_value = _json.loads(content)
-            except Exception:
-                mock_resp.json.return_value = {}
-        mock_resp.text = content.decode("utf-8", errors="replace")
-        return mock_resp
+        # aiter_bytes: 把 content 作为一个完整 chunk 返回
+        async def aiter_bytes():
+            yield content
+
+        resp.aiter_bytes = aiter_bytes
+        return StreamCtx()
 
     mock_client = AsyncMock()
-    mock_client.request = AsyncMock(side_effect=mock_request)
+    mock_client.stream = mock_stream
+    mock_client.captured_kwargs = captured_kwargs
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=None)
     return mock_client
@@ -285,12 +340,12 @@ async def test_execute_redirect_to_safe_url():
     ])
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        with patch.object(tool, "_is_url_safe", return_value=True):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
             result = await tool.execute({}, ctx)
 
     assert result.success is True
     # 应该发了 2 次请求
-    assert mock_client.request.call_count == 2
+    assert len(mock_client.captured_kwargs) == 2
 
 
 @pytest.mark.asyncio
@@ -316,7 +371,7 @@ async def test_execute_redirect_to_private_network_blocked():
     assert result.success is False
     assert "不安全" in result.error_message or "unsafe" in result.error_message.lower()
     # 只应发 1 次请求（重定向被拦截）
-    assert mock_client.request.call_count == 1
+    assert len(mock_client.captured_kwargs) == 1
 
 
 @pytest.mark.asyncio
@@ -340,7 +395,7 @@ async def test_execute_redirect_loop_detected():
     mock_client = _make_mock_client(responses)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        with patch.object(tool, "_is_url_safe", return_value=True):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
             result = await tool.execute({}, ctx)
 
     assert result.success is False
@@ -359,38 +414,42 @@ async def test_execute_redirect_303_changes_method_to_get():
     ctx = MagicMock(spec=ToolContext)
 
     captured_kwargs = []
+    call_count = 0
 
-    async def mock_request(*args, **kwargs):
+    def mock_stream(*args, **kwargs):
+        nonlocal call_count
         captured_kwargs.append(kwargs.copy())
-        status = 303 if len(captured_kwargs) == 1 else 200
-        headers = {"location": "https://api.example.com/result"} if status == 303 else {"content-type": "application/json"}
-        content = b"" if status == 303 else b'{"done": true}'
-        url_str = "https://api.example.com/submit" if status == 303 else "https://api.example.com/result"
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = status
-        mock_resp.headers = headers
-        mock_resp.content = content
+        if call_count == 0:
+            status, headers_dict, content, url_str = 303, {"location": "https://api.example.com/result"}, b"", "https://api.example.com/submit"
+        else:
+            status, headers_dict, content, url_str = 200, {"content-type": "application/json"}, b'{"done": true}', "https://api.example.com/result"
+        call_count += 1
 
-        mock_url = MagicMock()
-        def mock_join(location):
-            return MagicMock(__str__=lambda self: location if location.startswith("http") else f"https://api.example.com{location}")
-        mock_url.join = mock_join
-        mock_resp.url = mock_url
-
+        resp = _make_mock_response(status, headers_dict, content, url_str)
         if status == 200:
             import json as _json
-            mock_resp.json.return_value = _json.loads(content)
-        mock_resp.text = content.decode("utf-8", errors="replace")
-        return mock_resp
+            resp.json.return_value = _json.loads(content)
+
+        class StreamCtx:
+            async def __aenter__(self_inner):
+                return resp
+            async def __aexit__(self_inner, *a):
+                pass
+
+        async def aiter_bytes():
+            yield content
+
+        resp.aiter_bytes = aiter_bytes
+        return StreamCtx()
 
     mock_client = AsyncMock()
-    mock_client.request = AsyncMock(side_effect=mock_request)
+    mock_client.stream = mock_stream
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        with patch.object(tool, "_is_url_safe", return_value=True):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
             result = await tool.execute({}, ctx)
 
     assert result.success is True
@@ -409,43 +468,50 @@ def test_http_tool_rejects_localhost():
     })
     tool = HttpTool(db_tool)
     # 直接测试 _is_url_safe
-    assert tool._is_url_safe("http://127.0.0.1/admin") is False
+    is_safe, _ = tool._is_url_safe("http://127.0.0.1/admin")
+    assert is_safe is False
 
 
 def test_http_tool_rejects_private_10():
     """HttpTool 应拒绝 10.0.0.0/8"""
     db_tool = _make_db_tool()
     tool = HttpTool(db_tool)
-    assert tool._is_url_safe("http://10.0.0.1/internal") is False
+    is_safe, _ = tool._is_url_safe("http://10.0.0.1/internal")
+    assert is_safe is False
 
 
 def test_http_tool_rejects_private_172():
     """HttpTool 应拒绝 172.16.0.0/12"""
     db_tool = _make_db_tool()
     tool = HttpTool(db_tool)
-    assert tool._is_url_safe("http://172.16.0.1/internal") is False
+    is_safe, _ = tool._is_url_safe("http://172.16.0.1/internal")
+    assert is_safe is False
 
 
 def test_http_tool_rejects_private_192():
     """HttpTool 应拒绝 192.168.0.0/16"""
     db_tool = _make_db_tool()
     tool = HttpTool(db_tool)
-    assert tool._is_url_safe("http://192.168.1.1/admin") is False
+    is_safe, _ = tool._is_url_safe("http://192.168.1.1/admin")
+    assert is_safe is False
 
 
 def test_http_tool_rejects_non_http_scheme():
     """HttpTool 应拒绝非 http/https scheme"""
     db_tool = _make_db_tool()
     tool = HttpTool(db_tool)
-    assert tool._is_url_safe("file:///etc/passwd") is False
-    assert tool._is_url_safe("ftp://example.com/file") is False
+    is_safe, _ = tool._is_url_safe("file:///etc/passwd")
+    assert is_safe is False
+    is_safe, _ = tool._is_url_safe("ftp://example.com/file")
+    assert is_safe is False
 
 
 def test_http_tool_rejects_empty_hostname():
     """HttpTool 应拒绝空 hostname"""
     db_tool = _make_db_tool()
     tool = HttpTool(db_tool)
-    assert tool._is_url_safe("http://") is False
+    is_safe, _ = tool._is_url_safe("http://")
+    assert is_safe is False
 
 
 # ---- 响应解析（JSONPath-like 提取）----
@@ -510,21 +576,12 @@ async def test_execute_success_json():
     tool = HttpTool(db_tool)
     ctx = MagicMock(spec=ToolContext)
 
-    # mock httpx 响应
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.headers = {"content-type": "application/json"}
-    mock_resp.json.return_value = {"data": {"temp": 25}, "code": 0}
-    mock_resp.content = b'{"data": {"temp": 25}, "code": 0}'
-
-    mock_client = AsyncMock()
-    mock_client.request = AsyncMock(return_value=mock_resp)
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client = _make_mock_client([
+        (200, {"content-type": "application/json"}, b'{"data": {"temp": 25}, "code": 0}', "https://api.example.com/weather"),
+    ])
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        # patch _is_url_safe 绕过 DNS 解析（测试环境无网络）
-        with patch.object(tool, "_is_url_safe", return_value=True):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
             result = await tool.execute({"city": "北京"}, ctx)
 
     assert result.success is True
@@ -543,19 +600,12 @@ async def test_execute_http_error():
     tool = HttpTool(db_tool)
     ctx = MagicMock(spec=ToolContext)
 
-    mock_resp = MagicMock()
-    mock_resp.status_code = 500
-    mock_resp.headers = {"content-type": "text/plain"}
-    mock_resp.text = "Internal Server Error"
-    mock_resp.content = b"Internal Server Error"
-
-    mock_client = AsyncMock()
-    mock_client.request = AsyncMock(return_value=mock_resp)
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client = _make_mock_client([
+        (500, {"content-type": "text/plain"}, b"Internal Server Error", "https://api.example.com/data"),
+    ])
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        with patch.object(tool, "_is_url_safe", return_value=True):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
             result = await tool.execute({}, ctx)
 
     assert result.success is False
@@ -572,12 +622,26 @@ async def test_execute_timeout():
     ctx = MagicMock(spec=ToolContext)
 
     mock_client = AsyncMock()
-    mock_client.request = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
+
+    async def raise_timeout(*args, **kwargs):
+        raise httpx.TimeoutException("timeout")
+
+    # stream 是一个返回上下文管理者的协程；让上下文管理器的 __aenter__ 抛超时
+    class TimeoutStreamCtx:
+        async def __aenter__(self):
+            raise httpx.TimeoutException("timeout")
+        async def __aexit__(self, *a):
+            pass
+
+    def mock_stream(*args, **kwargs):
+        return TimeoutStreamCtx()
+
+    mock_client.stream = mock_stream
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        with patch.object(tool, "_is_url_safe", return_value=True):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
             result = await tool.execute({}, ctx)
 
     assert result.success is False
@@ -585,24 +649,63 @@ async def test_execute_timeout():
 
 
 @pytest.mark.asyncio
-async def test_execute_response_too_large():
-    """execute 响应过大应返回 error"""
+async def test_execute_response_too_large_by_content_length():
+    """execute 应在收到 Content-Length 超标时立即拒绝（不下载内容）"""
     db_tool = _make_db_tool()
     tool = HttpTool(db_tool)
     ctx = MagicMock(spec=ToolContext)
 
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.headers = {"content-type": "text/plain"}
-    mock_resp.content = b"x" * (1024 * 1024 + 1)  # > 1MB
+    # Content-Length 超标，实际内容为空（快速失败）
+    mock_client = _make_mock_client(
+        [(200, {"content-type": "text/plain"}, b"", "https://api.example.com/data")],
+        content_length_header=1024 * 1024 + 1,
+    )
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
+            result = await tool.execute({}, ctx)
+
+    assert result.success is False
+    assert "过大" in result.error_message or "response" in result.error_message.lower()
+
+
+@pytest.mark.asyncio
+async def test_execute_response_too_large_by_streaming():
+    """execute 应在流式下载过程中检测响应过大并中止"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+    ctx = MagicMock(spec=ToolContext)
+
+    # 无 Content-Length 头，但实际会发送超大内容
+    chunks_received = []
+
+    def mock_stream(*args, **kwargs):
+        resp = _make_mock_response(
+            200, {"content-type": "text/plain"}, b"", "https://api.example.com/data"
+        )
+
+        class StreamCtx:
+            async def __aenter__(self_inner):
+                return resp
+            async def __aexit__(self_inner, *a):
+                pass
+
+        async def aiter_bytes():
+            # 第一个 chunk 就超过 1MB
+            big_chunk = b"x" * (1024 * 1024 + 1)
+            chunks_received.append(len(big_chunk))
+            yield big_chunk
+
+        resp.aiter_bytes = aiter_bytes
+        return StreamCtx()
 
     mock_client = AsyncMock()
-    mock_client.request = AsyncMock(return_value=mock_resp)
+    mock_client.stream = mock_stream
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        with patch.object(tool, "_is_url_safe", return_value=True):
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
             result = await tool.execute({}, ctx)
 
     assert result.success is False
@@ -626,3 +729,70 @@ async def test_execute_ssrf_blocked():
         mock_client_cls.assert_not_called()
 
     assert result.success is False
+
+
+# ---- TOCTOU 防护 ----
+
+
+@pytest.mark.asyncio
+async def test_execute_uses_resolved_ip_as_connect_target():
+    """execute 应使用 _is_url_safe 解析的 IP 作为连接目标（TOCTOU 防护）"""
+    db_tool = _make_db_tool(config={
+        "url": "https://api.example.com/data",
+        "method": "GET",
+        "response_parser": {},
+    })
+    tool = HttpTool(db_tool)
+    ctx = MagicMock(spec=ToolContext)
+
+    mock_client = _make_mock_client([
+        (200, {"content-type": "application/json"}, b'{"ok": true}', "https://api.example.com/data"),
+    ])
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        # 模拟 DNS 解析到 93.184.216.34
+        with patch.object(tool, "_is_url_safe", return_value=(True, "93.184.216.34")):
+            await tool.execute({}, ctx)
+
+    # 验证连接 URL 使用的是解析后的 IP 而非原始 hostname
+    assert len(mock_client.captured_kwargs) == 1
+    connect_url = mock_client.captured_kwargs[0].get("url", "")
+    assert "93.184.216.34" in connect_url
+    assert "api.example.com" not in connect_url
+
+    # 验证 Host 头设置为原始 hostname
+    sent_headers = mock_client.captured_kwargs[0].get("headers", {})
+    assert sent_headers.get("Host") == "api.example.com"
+
+
+@pytest.mark.asyncio
+async def test_execute_dns_resolved_once_per_hop():
+    """每次请求（含重定向跳）应只调用一次 _is_url_safe（DNS 只解析一次）"""
+    db_tool = _make_db_tool(config={
+        "url": "https://api.example.com/old",
+        "method": "GET",
+        "response_parser": {},
+    })
+    tool = HttpTool(db_tool)
+    ctx = MagicMock(spec=ToolContext)
+
+    mock_client = _make_mock_client([
+        (302, {"location": "https://api.example.com/new"}, b"", "https://api.example.com/old"),
+        (200, {"content-type": "application/json"}, b'{"ok": true}', "https://api.example.com/new"),
+    ])
+
+    call_count = 0
+
+    original_is_url_safe = tool._is_url_safe
+
+    def counting_is_url_safe(url):
+        nonlocal call_count
+        call_count += 1
+        return (True, "93.184.216.34")
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch.object(tool, "_is_url_safe", side_effect=counting_is_url_safe):
+            await tool.execute({}, ctx)
+
+    # 2 次请求应恰好触发 2 次 _is_url_safe 调用（初始 + 1 次重定向）
+    assert call_count == 2
