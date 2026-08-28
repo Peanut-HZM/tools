@@ -58,7 +58,7 @@ export const ResourceTabs: React.FC = () => {
             </TabsTrigger>
           ))}
         </TabsList>
-        <TabsContent value={resourceType} className="flex-1 overflow-hidden mt-0 min-h-0">
+        <TabsContent value={resourceType} className="flex-1 flex flex-col overflow-hidden mt-0 min-h-0">
           {renderContent()}
         </TabsContent>
       </Tabs>
