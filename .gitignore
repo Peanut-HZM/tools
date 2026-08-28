@@ -121,8 +121,12 @@ logs/*.log.*
 .playwright-mcp/
 .omc/
 
-# Design baselines (auto-generated) 以及历史 planning / spec 文档（含敏感部署信息，不应公开）
-docs/superpowers/
+# Design baselines (auto-generated)
+# specs/ 是纯设计文档（低敏感性），纳入 git 跟踪
+# e2e-evidence/ 含真实测试数据（用户名、设备名、Token 用量等），保持忽略
+# plans/ 含实施计划细节，保持忽略
+docs/superpowers/e2e-evidence/
+docs/superpowers/plans/
 
 # Python caches
 .mypy_cache/
