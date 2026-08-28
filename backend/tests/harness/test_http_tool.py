@@ -514,6 +514,46 @@ def test_http_tool_rejects_empty_hostname():
     assert is_safe is False
 
 
+def test_is_url_safe_blocks_ipv6_loopback():
+    """HttpTool 应拒绝 IPv6 环回地址 ::1"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+    is_safe, _ = tool._is_url_safe("http://[::1]/admin")
+    assert is_safe is False
+
+
+def test_is_url_safe_blocks_ipv6_link_local():
+    """HttpTool 应拒绝 IPv6 链路本地地址 fe80::1"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+    is_safe, _ = tool._is_url_safe("http://[fe80::1]/admin")
+    assert is_safe is False
+
+
+def test_is_url_safe_blocks_ipv6_ula():
+    """HttpTool 应拒绝 IPv6 唯一本地地址 fc00::1"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+    is_safe, _ = tool._is_url_safe("http://[fc00::1]/internal")
+    assert is_safe is False
+
+
+def test_is_url_safe_blocks_ipv4_mapped_ipv6():
+    """HttpTool 应拒绝 IPv4 映射的 IPv6 地址 ::ffff:127.0.0.1"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+    is_safe, _ = tool._is_url_safe("http://[::ffff:127.0.0.1]/admin")
+    assert is_safe is False
+
+
+def test_is_url_safe_blocks_ipv4_mapped_ipv6_private():
+    """HttpTool 应拒绝 IPv4 映射的 IPv6 私有地址 ::ffff:10.0.0.1"""
+    db_tool = _make_db_tool()
+    tool = HttpTool(db_tool)
+    is_safe, _ = tool._is_url_safe("http://[::ffff:10.0.0.1]/internal")
+    assert is_safe is False
+
+
 # ---- 响应解析（JSONPath-like 提取）----
 
 

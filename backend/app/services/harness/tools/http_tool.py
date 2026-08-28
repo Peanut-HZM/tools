@@ -19,7 +19,7 @@ import logging
 import os
 import re
 import time
-from socket import gethostbyname
+import socket
 from typing import Any, AsyncIterator
 from urllib.parse import urlparse
 
@@ -36,13 +36,17 @@ logger = logging.getLogger(__name__)
 
 # SSRF 防护：拒绝这些网段
 _BLOCKED_NETWORKS = [
+    # IPv4 私有/环回/链路本地网段
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("169.254.0.0/16"),  # 云元数据服务
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
+    # IPv6 环回/链路本地/私有网段
+    ipaddress.ip_network("::1/128"),           # IPv6 环回
+    ipaddress.ip_network("fe80::/10"),         # IPv6 链路本地
+    ipaddress.ip_network("fc00::/7"),          # IPv6 唯一本地 (ULA)
+    ipaddress.ip_network("::ffff:0:0/96"),     # IPv4 映射的 IPv6（检查嵌入的 IPv4）
 ]
 
 _TEMPLATE_PATTERN = re.compile(r"\{\{([^}]+)\}\}")
@@ -329,7 +333,8 @@ class HttpTool:
     def _is_url_safe(self, url: str) -> tuple[bool, str]:
         """检查 URL 是否安全（非内网地址）
 
-        通过 DNS 解析 hostname，检查解析后的 IP 是否在私有/环回/链路本地网段。
+        通过 DNS 解析 hostname，检查解析后的所有 IP（IPv4 + IPv6）是否在黑名单网段。
+        对 IPv4 映射的 IPv6 地址（如 ::ffff:127.0.0.1）会提取嵌入的 IPv4 进行检查。
 
         Returns:
             (is_safe, resolved_ip_or_original_url)
@@ -345,24 +350,48 @@ class HttpTool:
             if not hostname:
                 return False, ""
 
+            def _check_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+                """检查单个 IP 是否在黑名单中，返回 True 表示安全"""
+                # IPv4 映射的 IPv6 地址：提取嵌入的 IPv4 进行检查
+                if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+                    ip = ip.ipv4_mapped
+                for network in _BLOCKED_NETWORKS:
+                    if ip in network:
+                        return False
+                return True
+
             # 先尝试直接解析为 IP 地址（处理 IP 字面量情况）
             try:
                 ip = ipaddress.ip_address(hostname)
-                ip_str = hostname
+                if not _check_ip(ip):
+                    return False, ""
+                return True, hostname
             except ValueError:
-                # 不是 IP 字面量，需要 DNS 解析
+                pass  # 不是 IP 字面量，需要 DNS 解析
+
+            # DNS 解析：使用 getaddrinfo 获取所有地址族（IPv4 + IPv6）
+            try:
+                infos = socket.getaddrinfo(hostname, None)
+            except Exception:
+                return False, ""
+
+            # 检查所有解析出的地址
+            first_ipv4 = None
+            for info in infos:
+                addr = info[4][0]  # sockaddr[0] 是地址字符串
                 try:
-                    ip_str = gethostbyname(hostname)
-                    ip = ipaddress.ip_address(ip_str)
-                except Exception:
+                    ip = ipaddress.ip_address(addr)
+                except ValueError:
+                    continue
+                if not _check_ip(ip):
                     return False, ""
+                if isinstance(ip, ipaddress.IPv4Address) and first_ipv4 is None:
+                    first_ipv4 = addr
 
-            # 检查是否在黑名单网段
-            for network in _BLOCKED_NETWORKS:
-                if ip in network:
-                    return False, ""
-
-            return True, ip_str
+            # 所有地址均安全，优先返回 IPv4 地址（向后兼容）
+            if first_ipv4:
+                return True, first_ipv4
+            return True, infos[0][4][0]
         except Exception as e:
             logger.warning(f"URL 安全检查失败: {e}")
             return False, ""
