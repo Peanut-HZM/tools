@@ -28,7 +28,6 @@ export const PodList: React.FC = () => {
     selectedNamespaces,
     namespaces,
     openResourceTab,
-    openedTabs,
   } = useK8sStore();
   const { addToast } = useToast();
   const [searchText, setSearchText] = useState('');
@@ -112,9 +111,6 @@ export const PodList: React.FC = () => {
     }
   }, [activeConnectionId, addToast]);
 
-  // 当 BottomPanel 打开时加底部内边距，防止最后一行被遮挡
-  const hasBottomPanel = openedTabs.length > 0;
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* 搜索框 */}
@@ -139,8 +135,8 @@ export const PodList: React.FC = () => {
         </div>
       </div>
 
-      {/* 表格 */}
-      <div className={`flex-1 overflow-y-auto ${hasBottomPanel ? 'pb-4' : ''}`}>
+      {/* 表格区域：min-h-0 是 flex 子元素可滚动的关键（否则 min-height:auto 会撑开容器） */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-surface-1 text-ink-muted border-b border-border z-10">
             <tr>
