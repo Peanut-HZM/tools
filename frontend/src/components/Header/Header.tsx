@@ -7,9 +7,7 @@ import { useI18n } from '../../i18n';
 import ContactModal from '../ContactModal/ContactModal';
 import { useAuth } from '../../stores/authStore';
 import { useTheme } from '../../lib/theme';
-import { safeGetItem, safeSetItem } from '../../utils/localStorage';
 import { Button } from "@/components/ui/Button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip";
 
 interface HeaderProps {
   searchValue: string;
@@ -17,51 +15,12 @@ interface HeaderProps {
   onSearch: () => void;
 }
 
-const STORAGE_KEY = 'header-collapsed';
-
 export default function Header({ searchValue, onSearchChange, onSearch }: HeaderProps) {
   const { t, language, toggleLanguage } = useI18n();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
-  const [isCollapsed, setIsCollapsed] = useState(() => safeGetItem(STORAGE_KEY) === 'true');
-
-  const toggleCollapse = () => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      safeSetItem(STORAGE_KEY, String(next));
-      return next;
-    });
-  };
-
-  // 折叠状态：显示迷你横条
-  if (isCollapsed) {
-    return (
-      <header className="sticky top-0 z-40 bg-surface-1 border-b border-border h-8 flex items-center justify-center">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={toggleCollapse}
-                variant="ghost"
-                size="sm"
-                className="text-ink-faint hover:text-ink"
-                aria-label="展开导航"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>展开导航</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </header>
-    );
-  }
-
-  // 展开状态：原始 Header（尚未添加折叠按钮，下一步添加）
   return (
     <>
       <header className="sticky top-0 z-40 bg-surface-1 border-b border-border">
@@ -114,23 +73,6 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             >
               {theme === 'dark' ? <Moon className="w-4 h-4" /> : theme === 'light' ? <Sun className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
             </Button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={toggleCollapse}
-                    variant="secondary"
-                    size="sm"
-                    aria-label="折叠导航"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="18 15 12 9 6 15" />
-                    </svg>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>折叠导航</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
             <LoginButton />
           </div>
         </div>
