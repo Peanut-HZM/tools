@@ -166,8 +166,14 @@ class HttpTool:
                     parsed = urlparse(current_url)
                     default_port = 443 if parsed.scheme == "https" else 80
                     port = parsed.port or default_port
+                    # IPv6 地址在 URL 中需要方括号
+                    host_part = (
+                        f"[{current_resolved}]"
+                        if ":" in current_resolved
+                        else current_resolved
+                    )
                     connect_url = (
-                        f"{parsed.scheme}://{current_resolved}:{port}{parsed.path}"
+                        f"{parsed.scheme}://{host_part}:{port}{parsed.path}"
                     )
                     if parsed.query:
                         connect_url += f"?{parsed.query}"
