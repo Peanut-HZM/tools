@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.dependencies import get_db
+from app.api.dependencies import get_db, get_current_user
 from app.main import app
 
 
@@ -27,6 +27,8 @@ def client():
 @pytest.fixture(autouse=True)
 def clear_dep_overrides():
     """每个用例结束后清理依赖覆盖"""
+    # 默认覆盖 get_current_user，模拟管理员登录
+    app.dependency_overrides[get_current_user] = lambda: {"role": "admin", "id": "test-admin"}
     yield
     app.dependency_overrides.clear()
 
@@ -283,3 +285,53 @@ def test_list_builtin_tools(client):
         names = [t["name"] for t in data["items"]]
         assert "web_search" in names
         assert "db_query" in names
+
+
+def test_non_admin_gets_403(client):
+    """非管理员访问 admin/tools 应返回 403"""
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": "test-user"}
+
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.count.return_value = 0
+    mock_db.query.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
+    _override_get_db(mock_db)
+
+    resp = client.get("/api/v1/admin/tools")
+    assert resp.status_code == 403
+
+
+def test_create_http_tool_invalid_url_returns_400(client):
+    """POST /api/v1/admin/tools HTTP 工具 url 非法 scheme 应返回 400"""
+    payload = {
+        "name": "bad_url",
+        "display_name": "Bad",
+        "description": "Bad URL",
+        "type": "http",
+        "config": {"url": "ftp://evil.com/data"},
+        "parameters_schema": {},
+    }
+
+    resp = client.post("/api/v1/admin/tools", json=payload)
+    assert resp.status_code == 400
+
+
+def test_update_tool_mass_assignment_blocked(client):
+    """PUT /api/v1/admin/tools/{id} 不允许通过 model_dump 设置白名单外字段"""
+    tool_id = str(uuid.uuid4())
+    mock_db = _mock_db_session()
+    row = _make_tool_row(id=tool_id, name="orig")
+    mock_db.query.return_value.filter.return_value.first.return_value = row
+    mock_db.commit = MagicMock()
+    mock_db.refresh = MagicMock()
+    _override_get_db(mock_db)
+
+    # 尝试修改 name（不在白名单中）
+    resp = client.put(
+        f"/api/v1/admin/tools/{tool_id}",
+        json={"name": "hacked_name", "display_name": "OK"},
+    )
+    assert resp.status_code == 200
+    # display_name 在白名单中，应该被更新
+    assert row.display_name == "OK"
+    # name 不在白名单中，不应被更新
+    assert row.name == "orig"

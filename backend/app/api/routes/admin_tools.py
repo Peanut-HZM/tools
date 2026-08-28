@@ -12,11 +12,12 @@
 """
 import logging
 from typing import Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session as DBSession
 
-from app.api.dependencies import get_db
+from app.api.dependencies import get_db, get_current_user
 from app.models.harness_models import Tool
 from app.schemas.harness_schemas import (
     ToolCreate,
@@ -28,6 +29,35 @@ from app.schemas.harness_schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/admin/tools", tags=["admin-tools"])
+
+# 可更新字段白名单（防止 mass assignment）
+_UPDATABLE_FIELDS = frozenset({
+    "display_name",
+    "description",
+    "config",
+    "parameters_schema",
+    "returns_schema",
+    "is_available_condition",
+    "rate_limit_per_minute",
+    "is_active",
+})
+
+
+def require_admin(current_user: dict = Depends(get_current_user)):
+    """管理员权限校验"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+    return current_user
+
+
+def _validate_http_config(config: dict) -> None:
+    """校验 HTTP 工具 config，防止 SSRF（admin 侧的输入校验）"""
+    url = config.get("url")
+    if not url or not isinstance(url, str):
+        raise HTTPException(status_code=400, detail="HTTP 工具 config 必须包含 url 字段")
+    parsed = urlparse(url)
+    if parsed.scheme not in ("https", "http"):
+        raise HTTPException(status_code=400, detail="HTTP 工具 url 仅支持 http/https")
 
 
 def _get_builtin_tools():
@@ -64,6 +94,7 @@ def list_tools(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: DBSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ):
     """工具列表（支持 type / search 过滤 + 分页）"""
     q = db.query(Tool)
@@ -80,8 +111,16 @@ def list_tools(
 
 
 @router.post("", response_model=ToolView, status_code=201)
-def create_tool(payload: ToolCreate, db: DBSession = Depends(get_db)):
+def create_tool(
+    payload: ToolCreate,
+    db: DBSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
+):
     """注册工具（name 全局唯一）"""
+    # HTTP 工具需校验 config.url scheme
+    if payload.type == "http":
+        _validate_http_config(payload.config)
+
     if db.query(Tool).filter(Tool.name == payload.name).first():
         raise HTTPException(
             status_code=400, detail=f"tool name '{payload.name}' already exists"
@@ -107,7 +146,7 @@ def create_tool(payload: ToolCreate, db: DBSession = Depends(get_db)):
 
 
 @router.get("/builtin")
-def list_builtin_tools():
+def list_builtin_tools(_admin: dict = Depends(require_admin)):
     """内置工具清单（只读，从代码注册获取）"""
     builtins = _get_builtin_tools()
     return {
@@ -125,7 +164,7 @@ def list_builtin_tools():
 
 
 @router.get("/{tool_id}", response_model=ToolView)
-def get_tool(tool_id: str, db: DBSession = Depends(get_db)):
+def get_tool(tool_id: str, db: DBSession = Depends(get_db), _admin: dict = Depends(require_admin)):
     """工具详情"""
     tool = db.query(Tool).filter(Tool.id == tool_id).first()
     if not tool:
@@ -134,7 +173,12 @@ def get_tool(tool_id: str, db: DBSession = Depends(get_db)):
 
 
 @router.put("/{tool_id}", response_model=ToolView)
-def update_tool(tool_id: str, payload: ToolUpdate, db: DBSession = Depends(get_db)):
+def update_tool(
+    tool_id: str,
+    payload: ToolUpdate,
+    db: DBSession = Depends(get_db),
+    _admin: dict = Depends(require_admin),
+):
     """更新工具（仅更新传入字段）"""
     tool = db.query(Tool).filter(Tool.id == tool_id).first()
     if not tool:
@@ -142,8 +186,10 @@ def update_tool(tool_id: str, payload: ToolUpdate, db: DBSession = Depends(get_d
 
     # Pydantic v2: model_dump(exclude_unset=True) 替代 dict(exclude_unset=True)
     update_data = payload.model_dump(exclude_unset=True)
+    # 白名单过滤，防止 mass assignment
     for key, value in update_data.items():
-        setattr(tool, key, value)
+        if key in _UPDATABLE_FIELDS:
+            setattr(tool, key, value)
 
     db.commit()
     db.refresh(tool)
@@ -152,7 +198,7 @@ def update_tool(tool_id: str, payload: ToolUpdate, db: DBSession = Depends(get_d
 
 
 @router.delete("/{tool_id}", status_code=204)
-def delete_tool(tool_id: str, db: DBSession = Depends(get_db)):
+def delete_tool(tool_id: str, db: DBSession = Depends(get_db), _admin: dict = Depends(require_admin)):
     """删除工具"""
     tool = db.query(Tool).filter(Tool.id == tool_id).first()
     if not tool:
