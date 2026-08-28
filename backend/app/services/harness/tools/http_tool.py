@@ -132,21 +132,59 @@ class HttpTool:
                 else None
             )
 
-            # 发请求
+            # 发请求（禁用自动跳转，手动跟随并校验每一跳，防止 SSRF via redirect）
             timeout = self._config.get("timeout", 30)
+            max_redirects = 10
+            current_url = url
+
             async with httpx.AsyncClient(
-                timeout=timeout, follow_redirects=True
+                timeout=timeout, follow_redirects=False
             ) as client:
-                resp = await client.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    json=(
-                        body
-                        if method in ("POST", "PUT", "PATCH") and body
-                        else None
-                    ),
-                )
+                resp = None
+                for hop in range(max_redirects):
+                    resp = await client.request(
+                        method=method,
+                        url=current_url,
+                        headers=headers,
+                        json=(
+                            body
+                            if method in ("POST", "PUT", "PATCH") and body
+                            else None
+                        ),
+                    )
+
+                    # 非重定向响应，跳出循环
+                    if resp.status_code not in (301, 302, 303, 307, 308):
+                        break
+
+                    # 解析 Location 头
+                    location = resp.headers.get("location")
+                    if not location:
+                        break
+
+                    # 解析相对 URL（基于当前请求 URL）
+                    next_url = resp.url.join(location)
+                    next_url_str = str(next_url)
+
+                    # 校验重定向目标是否安全
+                    if not self._is_url_safe(next_url_str):
+                        logger.warning(
+                            f"HttpTool 重定向到不安全 URL 已拦截: {next_url_str}"
+                        )
+                        return ToolResult.error(
+                            f"重定向到不安全的 URL，已拒绝: {next_url_str}"
+                        )
+
+                    current_url = next_url_str
+                    # 303 See Other：强制切换为 GET 且不带 body
+                    if resp.status_code == 303:
+                        method = "GET"
+                        body = None
+                else:
+                    # for 循环正常结束（未 break），说明重定向次数耗尽
+                    return ToolResult.error(
+                        f"重定向次数过多（最多 {max_redirects} 次），已中止"
+                    )
 
                 # 响应大小检查
                 content = resp.content
