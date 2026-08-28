@@ -346,6 +346,14 @@ export const enUS = {
         searchPlaceholder: 'Search pod name...',
         noMatch: 'No matching Pod found: "{text}"',
         actions: 'Actions',
+        pagination: {
+          total: '{count} total',
+          page: 'Page {current} / {total}',
+          range: '({start}-{end})',
+          prev: 'Previous',
+          next: 'Next',
+          pageSize: '{size}/page',
+        },
       },
       // Workload list
       workloadList: {
