@@ -114,3 +114,98 @@ def test_session_persist_flushes_dirty_messages():
     assert db.add.call_count == 2
     db.commit.assert_called_once()
     assert len(session._dirty_messages) == 0
+
+
+def test_session_init_handles_metadata_underscore_attr():
+    """Session 应优先读取 ORM 的 metadata_ 属性（real DB 行为）"""
+    import uuid
+
+    conv = MagicMock(spec=["id", "metadata_"])
+    conv.id = uuid.uuid4()
+    conv.metadata_ = {"source": "real_db", "stage": "init"}
+    agent = MagicMock()
+
+    session = Session(conv, agent)
+
+    assert session.metadata == {"source": "real_db", "stage": "init"}
+
+
+def test_session_init_falls_back_to_metadata_attr():
+    """Session 应兼容 mock/简化对象上的 metadata 属性"""
+    conv = MagicMock()
+    conv.id = "conv-1"
+    # MagicMock 的 metadata_ 默认是 Mock 对象（非 None），需要显式置为 None 触发 fallback
+    conv.metadata_ = None
+    conv.metadata = {"source": "mock", "stage": "fallback"}
+    agent = MagicMock()
+
+    session = Session(conv, agent)
+
+    assert session.metadata == {"source": "mock", "stage": "fallback"}
+
+
+def test_session_persist_rollback_on_commit_failure():
+    """persist 在 commit 抛错时应回滚并抛出异常"""
+    session = _fake_session()
+    session.append_user_message("hello")
+
+    db = MagicMock()
+    db.new = []
+    db.commit.side_effect = RuntimeError("db boom")
+
+    with pytest.raises(RuntimeError, match="db boom"):
+        session.persist(db)
+
+    db.rollback.assert_called_once()
+    # _dirty_messages 在失败时不清空，调用方可重试
+    assert len(session._dirty_messages) == 1
+
+
+@pytest.mark.asyncio
+async def test_write_checkpoint_creates_session_checkpoint_row():
+    """write_checkpoint 应创建 SessionCheckpoint 行并提交"""
+    with patch("app.models.harness_models.SessionCheckpoint") as mock_cp_cls:
+        session = _fake_session()
+        # 写一条用户消息，最后一条消息的 id 应被写入 messages_ref
+        msg = session.append_user_message("hello")
+        msg.id = "msg-1"
+        session.scratch_state = {"step": 3, "notes": "abc"}
+
+        db = MagicMock()
+
+        await session.write_checkpoint(db, step_index=7, phase="after_user_message")
+
+        # 验证 SessionCheckpoint 被构造时传入了正确的字段
+        mock_cp_cls.assert_called_once_with(
+            conversation_id=session.conversation.id,
+            step_index=7,
+            phase="after_user_message",
+            messages_ref="msg-1",
+            agent_state={"step": 3, "notes": "abc"},
+        )
+        # 验证 checkpoint 实例被加入 db 并提交
+        cp_instance = mock_cp_cls.return_value
+        db.add.assert_called_once_with(cp_instance)
+        db.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_write_checkpoint_with_no_messages():
+    """write_checkpoint 在没有消息时 messages_ref 应为 None"""
+    with patch("app.models.harness_models.SessionCheckpoint") as mock_cp_cls:
+        session = _fake_session()
+        session.scratch_state = {}
+
+        db = MagicMock()
+
+        await session.write_checkpoint(db, step_index=0, phase="before_tool")
+
+        mock_cp_cls.assert_called_once_with(
+            conversation_id=session.conversation.id,
+            step_index=0,
+            phase="before_tool",
+            messages_ref=None,
+            agent_state={},
+        )
+        db.add.assert_called_once()
+        db.commit.assert_called_once()
