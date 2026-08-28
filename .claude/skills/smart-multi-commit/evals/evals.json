@@ -1,0 +1,65 @@
+{
+  "skill_name": "smart-multi-commit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "提交当前改动。当前仓库里改了 tpehr-modules/tpehr-portal-bff/src/main/java/com/tpehr/portal/teamdashboard/snapshot/impl/TeamDashboardWidgetSnapshotServiceImpl.java 和 tpehr-modules/tpehr-portal-bff/src/test/java/com/tpehr/portal/teamdashboard/snapshot/TeamDashboardWidgetSnapshotServiceImplTest.java。",
+      "expected_output": "先检查当前分支 upstream 并使用 git pull --rebase --autostash 更新；更新成功后识别为 portal-bff 后端模块改动，将源码和测试放入同一个 portal-bff 相关提交，生成准确的中文约定式 message。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "按模块提交这些改动：app-system-web/src/views/login/index.vue、app-system-web/src/api/login.js、tpehr-modules/tpehr-auth-bff/src/main/java/com/tpehr/auth/controller/LoginController.java 都改了。",
+      "expected_output": "先 rebase 更新当前分支；更新成功后识别前端 app-system-web 和后端 auth-bff 属于不同项目边界，默认拆成至少两个 commit，message 分别反映前端登录页/API 改动和后端登录接口改动。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "提交代码。当前除了 tpehr-modules/tpehr-portal-bff 的 Java 改动，还有 docs/plans/2026-05-15-example-design.md 和 docs/在职证明打印/smoke-output.test.pdf。",
+      "expected_output": "先 rebase 更新当前分支；更新成功后只提交源码相关改动，默认跳过 docs/plans 文档和 smoke-output PDF，并在最终报告中说明这些 docs 或 smoke 产物因用户未明确要求提交文档而被跳过。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "提交代码并包含 docs。当前改了 tpehr-modules/tpehr-portal-bff/src/main/java/com/tpehr/portal/mapper/PortalTeamDashboardWidgetSnapshotMapper.java，也新增了 docs/plans/2026-05-15-portal-snapshot-design.md。",
+      "expected_output": "先 rebase 更新当前分支；更新成功后将 portal-bff 源码改动和 docs 文档改动拆成两个 commit，源码提交使用 portal-bff scope，文档提交使用 docs 类型或 docs scope，不把文档混进源码 commit。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "把当前改动提交一下，但里面有 .env.local、deploy/jenkins/tpehr-file-svc.pipeline 和 app-file-web/src/views/index.vue。",
+      "expected_output": "先 rebase 更新当前分支；更新成功后识别 .env.local 为敏感配置并停止或要求单独确认，不应直接提交敏感文件；CI 配置和前端项目应保持独立分组。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "提交当前改动。当前改了 tpehr-modules/tpehr-portal-bff/src/main/java/com/tpehr/portal/teamstaffing/TeamStaffingService.java、sql/portal/022_ddl_portal_team_staffing.sql 和 sql/portal/023_seed_portal_team_staffing_dashboard_data_source.sql。",
+      "expected_output": "先 rebase 更新；更新成功后识别 sql/portal 为 portal-bff 业务 SQL，并将 portal-bff 源码和 portal SQL 放入同一个 portal-bff 提交，而不是单独创建 sql 提交。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "按模块提交。当前只有 sql/job/019_seed_team_staffing_sync_sys_job.sql 和 sql/portal/022_ddl_portal_team_staffing.sql 改了。",
+      "expected_output": "先 rebase 更新；更新成功后识别 team_staffing 属于 portal 业务域，sql/job 不应作为独立模块提交，应与 sql/portal 一起归入 portal-bff 范围，生成 portal-bff scope 的 SQL/数据库初始化提交。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "按模块提交当前改动，改动涉及 portal-bff 和 app-portal-web。",
+      "expected_output": "先 rebase 更新；按后端和前端拆分 commit；所有 commit 成功后统一执行一次普通 git push，并在最终报告中说明远程推送成功。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "提交当前改动，但第二个分组的 commit hook 失败了。",
+      "expected_output": "停止后续提交，不执行 git push，报告已完成的本地 commit、失败原因和远程未更新状态。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "提交当前改动，所有 commit 都成功了，但 git push 因权限失败。",
+      "expected_output": "不执行 force push；报告本地已提交但远程未更新，并明确提示部署不会包含这些本地 commit。",
+      "files": []
+    }
+  ]
+}
