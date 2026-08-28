@@ -105,13 +105,28 @@ class ToolRegistry:
 
         流程：
         1. 查找工具实例
-        2. 调用 tool.execute(args, ctx)
-        3. 捕获异常，返回 ToolResult.error
+        2. 鉴权：校验工具是否在当前 agent 的允许列表中
+        3. 调用 tool.execute(args, ctx)
+        4. 捕获异常，返回 ToolResult.error
         """
         try:
             tool = await self._resolve_tool_by_name(call.name)
         except ToolNotFoundError as e:
             return ToolResult.error(str(e))
+
+        # 鉴权：校验工具是否被授权给当前 agent
+        try:
+            allowed_tools = await self.get_tools_for_agent(ctx.agent_id, ctx)
+        except Exception as e:
+            logger.error(f"加载 agent 工具列表失败 agent_id={ctx.agent_id}: {e}", exc_info=True)
+            return ToolResult.error(f"工具鉴权失败: {e}")
+
+        allowed_names = {t.name for t in allowed_tools}
+        if call.name not in allowed_names:
+            logger.warning(
+                f"[ToolRegistry] 鉴权拒绝 agent_id={ctx.agent_id} tool={call.name}"
+            )
+            return ToolResult.error(f"工具 {call.name} 未被授权给当前 agent")
 
         try:
             result = await tool.execute(call.arguments, ctx)
@@ -123,12 +138,33 @@ class ToolRegistry:
     async def execute_stream(self, call: ToolCall, ctx: ToolContext):
         """流式执行工具调用
 
-        产出 ToolEvent 序列。工具未找到时产出 error 事件。
+        产出 ToolEvent 序列。工具未找到或未被授权时产出 error 事件。
         """
         try:
             tool = await self._resolve_tool_by_name(call.name)
         except ToolNotFoundError as e:
             yield ToolEvent(type="error", payload={"message": str(e)})
+            return
+
+        # 鉴权：校验工具是否被授权给当前 agent
+        try:
+            allowed_tools = await self.get_tools_for_agent(ctx.agent_id, ctx)
+        except Exception as e:
+            logger.error(
+                f"加载 agent 工具列表失败 agent_id={ctx.agent_id}: {e}", exc_info=True
+            )
+            yield ToolEvent(type="error", payload={"message": f"工具鉴权失败: {e}"})
+            return
+
+        allowed_names = {t.name for t in allowed_tools}
+        if call.name not in allowed_names:
+            logger.warning(
+                f"[ToolRegistry] 鉴权拒绝 agent_id={ctx.agent_id} tool={call.name}"
+            )
+            yield ToolEvent(
+                type="error",
+                payload={"message": f"工具 {call.name} 未被授权给当前 agent"},
+            )
             return
 
         try:

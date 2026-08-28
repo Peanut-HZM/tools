@@ -96,7 +96,8 @@ async def test_execute_builtin_tool(registry, ctx):
     mock_execute = AsyncMock(return_value=ToolResult.text("search result"))
     registry._builtin["web_search"].execute = mock_execute
 
-    result = await registry.execute(call, ctx)
+    with patch.object(registry, "_load_bindings", return_value=[]):
+        result = await registry.execute(call, ctx)
     assert result.success is True
     assert result.content == "search result"
     mock_execute.assert_awaited_once_with(call.arguments, ctx)
@@ -120,9 +121,29 @@ async def test_execute_tool_exception_returns_error(registry, ctx):
     mock_execute = AsyncMock(side_effect=RuntimeError("boom"))
     registry._builtin["web_search"].execute = mock_execute
 
-    result = await registry.execute(call, ctx)
+    with patch.object(registry, "_load_bindings", return_value=[]):
+        result = await registry.execute(call, ctx)
     assert result.success is False
     assert "boom" in result.error_message
+
+
+@pytest.mark.asyncio
+async def test_execute_unauthorized_tool_returns_error(registry, ctx):
+    """agent 没有该工具的绑定/可用性时，execute 应返回鉴权失败结果"""
+    call = ToolCall(id="call_4", name="web_search", arguments={"query": "test"})
+
+    # 让 web_search 对当前 ctx 不可用 → get_tools_for_agent 不会包含它
+    registry._builtin["web_search"].is_available = lambda c: False
+
+    mock_execute = AsyncMock(return_value=ToolResult.text("should not be called"))
+    registry._builtin["web_search"].execute = mock_execute
+
+    with patch.object(registry, "_load_bindings", return_value=[]):
+        result = await registry.execute(call, ctx)
+
+    assert result.success is False
+    assert "未被授权" in result.error_message or "未授权" in result.error_message
+    mock_execute.assert_not_awaited()
 
 
 # ================================================================
@@ -143,8 +164,9 @@ async def test_execute_stream_builtin(registry, ctx):
     registry._builtin["db_query"].execute_stream = mock_stream
 
     events = []
-    async for event in registry.execute_stream(call, ctx):
-        events.append(event)
+    with patch.object(registry, "_load_bindings", return_value=[]):
+        async for event in registry.execute_stream(call, ctx):
+            events.append(event)
 
     assert len(events) == 1
     assert events[0].type == "result"
@@ -161,6 +183,29 @@ async def test_execute_stream_unknown_tool(registry, ctx):
 
     assert len(events) == 1
     assert events[0].type == "error"
+
+
+@pytest.mark.asyncio
+async def test_execute_stream_unauthorized_tool_returns_error(registry, ctx):
+    """agent 没有该工具的绑定/可用性时，execute_stream 应产出鉴权失败 error 事件"""
+    call = ToolCall(id="call_s3", name="db_query", arguments={"sql": "SELECT 1"})
+
+    # 让 db_query 对当前 ctx 不可用
+    registry._builtin["db_query"].is_available = lambda c: False
+
+    async def mock_stream(args, c):
+        yield ToolEvent(type="result", payload=ToolResult.json({"rows": []}))
+
+    registry._builtin["db_query"].execute_stream = mock_stream
+
+    events = []
+    with patch.object(registry, "_load_bindings", return_value=[]):
+        async for event in registry.execute_stream(call, ctx):
+            events.append(event)
+
+    assert len(events) == 1
+    assert events[0].type == "error"
+    assert "未被授权" in events[0].payload.get("message", "") or "未授权" in events[0].payload.get("message", "")
 
 
 # ================================================================
