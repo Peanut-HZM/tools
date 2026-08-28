@@ -119,7 +119,7 @@ class ToolRegistry:
             allowed_tools = await self.get_tools_for_agent(ctx.agent_id, ctx)
         except Exception as e:
             logger.error(f"加载 agent 工具列表失败 agent_id={ctx.agent_id}: {e}", exc_info=True)
-            return ToolResult.error(f"工具鉴权失败: {e}")
+            return ToolResult.error("工具鉴权失败")
 
         allowed_names = {t.name for t in allowed_tools}
         if call.name not in allowed_names:
@@ -153,7 +153,7 @@ class ToolRegistry:
             logger.error(
                 f"加载 agent 工具列表失败 agent_id={ctx.agent_id}: {e}", exc_info=True
             )
-            yield ToolEvent(type="error", payload={"message": f"工具鉴权失败: {e}"})
+            yield ToolEvent(type="error", payload={"message": "工具鉴权失败"})
             return
 
         allowed_names = {t.name for t in allowed_tools}
