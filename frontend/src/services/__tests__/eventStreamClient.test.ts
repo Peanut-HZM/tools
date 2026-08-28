@@ -171,3 +171,76 @@ describe('EventStreamClient - done 事件', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('EventStreamClient - 重连 bug 修复', () => {
+  it('test_reconnect_resets_sseBuffer: 重连时清空 sseBuffer，避免半包拼接', async () => {
+    const onEvent = vi.fn();
+    const onError = vi.fn();
+    const client = new EventStreamClient({ onEvent, onError, maxRetries: 1, retryInterval: 30 });
+
+    const encoder = new TextEncoder();
+    let fetchCount = 0;
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
+      fetchCount++;
+      if (fetchCount === 1) {
+        // 第一次 fetch 失败；在抛错前污染 sseBuffer，模拟前次连接残留的半包
+        (client as any).sseBuffer = 'event: text_delta\ndata: {"delta":"stale';
+        throw new Error('network error');
+      }
+      // 第二次连接（重连）：发送一个完整事件
+      const fullEvent = 'event: text_delta\ndata: {"type":"text_delta","delta":"fresh","timestamp":99}\n\n';
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(fullEvent));
+          controller.close();
+        },
+      });
+      return { ok: true, body: stream };
+    }));
+
+    await client.connect('/api/test', { agent_id: 'a1' });
+
+    // 等待重连定时器触发并完成第二次连接
+    await new Promise((r) => setTimeout(r, 150));
+
+    // fetch 应被调用两次（第一次失败，第二次成功）
+    expect(fetchCount).toBe(2);
+    // 应该只收到一个事件（来自重连后的完整事件）
+    // 如果 sseBuffer 没被清空，残留的半包 'stale' 会与新数据拼接，导致 JSON 解析失败，事件类型变为 custom
+    expect(onEvent).toHaveBeenCalledTimes(1);
+    const receivedEvent = onEvent.mock.calls[0][0];
+    expect(receivedEvent.type).toBe('text_delta');
+    expect(receivedEvent.delta).toBe('fresh');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('test_cancel_clears_reconnect_timer: cancel 清除待执行的 reconnect timer', async () => {
+    const onEvent = vi.fn();
+    const onError = vi.fn();
+    const client = new EventStreamClient({ onEvent, onError, maxRetries: 3, retryInterval: 500 });
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    // 发起连接，会立即进入 catch 并设置 reconnect timer（500ms 后重试）
+    const connectPromise = client.connect('/api/test', {});
+    await connectPromise;
+
+    // 此时 state 应该仍是 connecting（因为 fetch reject 后进入 catch 设置了 timer）
+    // 在 timer 触发前调用 cancel
+    expect(client.getState()).not.toBe('done');
+    client.cancel();
+    expect(client.getState()).toBe('cancelled');
+
+    // 等待超过 retryInterval，确认 cancel 后不会触发重连（fetch 不会再被调用）
+    const fetchCallCountAfterCancel = (vi.mocked(fetch).mock.calls.length);
+    await new Promise((r) => setTimeout(r, 700));
+    expect(vi.mocked(fetch).mock.calls.length).toBe(fetchCallCountAfterCancel);
+
+    // onError 也不应被调用（因为 cancel 阻断了重连链）
+    expect(onError).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+});

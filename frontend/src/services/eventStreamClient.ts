@@ -74,6 +74,7 @@ export class EventStreamClient {
   private retryCount = 0;
   private lastEventId: string | undefined;
   private sseBuffer = '';
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private url: string | null = null;
   private body: any = null;
   private headers: Record<string, string> = {};
@@ -96,6 +97,8 @@ export class EventStreamClient {
 
   private async doConnect(): Promise<void> {
     if (!this.url) return;
+    // 重连时清空 buffer，避免上次连接的半包与新流拼接产生无效数据
+    this.sseBuffer = '';
     this.abortController = new AbortController();
     this.setState('connecting');
 
@@ -137,7 +140,8 @@ export class EventStreamClient {
       if (this.retryCount < maxRetries) {
         this.retryCount++;
         const interval = this.options.retryInterval ?? 1000;
-        setTimeout(() => {
+        this.reconnectTimer = setTimeout(() => {
+          this.reconnectTimer = null;
           if (this.state !== 'cancelled') {
             this.doConnect();
           }
@@ -236,6 +240,11 @@ export class EventStreamClient {
     this.setState('cancelled');
     this.abortController?.abort();
     this.abortController = null;
+    // 清除待执行的重连定时器，避免 cancel 后仍触发 doConnect
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
   }
 
   /** 获取当前状态 */
