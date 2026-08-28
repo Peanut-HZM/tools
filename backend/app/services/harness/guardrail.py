@@ -29,14 +29,7 @@ async def run_input_guardrails(agent, user_message: str, ctx, tool_registry) -> 
             result = await tool.execute({"content": user_message, **(gr.get("config") or {})}, ctx)
 
             if not result.success:
-                if on_violation == "block":
-                    return GuardrailResult(
-                        blocked=True,
-                        guardrail_name=gr["name"],
-                        reason=result.error_message or "input blocked",
-                        stage="input",
-                    )
-                elif on_violation == "warn":
+                if on_violation == "warn":
                     logger.warning(f"[Guardrail] {gr['name']}: {result.error_message}")
                     return GuardrailResult(
                         blocked=False,
@@ -45,9 +38,27 @@ async def run_input_guardrails(agent, user_message: str, ctx, tool_registry) -> 
                         stage="input",
                         warned=True,
                     )
+                else:
+                    # Default: block (fail-closed for safety)
+                    return GuardrailResult(
+                        blocked=True,
+                        guardrail_name=gr["name"],
+                        reason=result.error_message or "input blocked",
+                        stage="input",
+                    )
         except Exception as e:
             logger.error(f"Guardrail {gr.get('name')} 异常: {e}", exc_info=True)
-            if on_violation == "block":
+            if on_violation == "warn":
+                logger.warning(f"[Guardrail] {gr.get('name')}: guardrail execution failed")
+                return GuardrailResult(
+                    blocked=False,
+                    guardrail_name=gr.get("name"),
+                    reason="guardrail execution failed",
+                    stage="input",
+                    warned=True,
+                )
+            else:
+                # Default: block (fail-closed for safety)
                 return GuardrailResult(
                     blocked=True,
                     guardrail_name=gr.get("name"),
@@ -69,14 +80,7 @@ async def run_output_guardrails(agent, output: str, ctx, tool_registry) -> Guard
             result = await tool.execute({"content": output, **(gr.get("config") or {})}, ctx)
 
             if not result.success:
-                if on_violation == "block":
-                    return GuardrailResult(
-                        blocked=True,
-                        guardrail_name=gr["name"],
-                        reason=result.error_message or "output blocked",
-                        stage="output",
-                    )
-                elif on_violation == "warn":
+                if on_violation == "warn":
                     logger.warning(f"[Guardrail] {gr['name']}: {result.error_message}")
                     return GuardrailResult(
                         blocked=False,
@@ -85,9 +89,27 @@ async def run_output_guardrails(agent, output: str, ctx, tool_registry) -> Guard
                         stage="output",
                         warned=True,
                     )
+                else:
+                    # Default: block (fail-closed for safety)
+                    return GuardrailResult(
+                        blocked=True,
+                        guardrail_name=gr["name"],
+                        reason=result.error_message or "output blocked",
+                        stage="output",
+                    )
         except Exception as e:
             logger.error(f"Guardrail {gr.get('name')} 异常: {e}", exc_info=True)
-            if on_violation == "block":
+            if on_violation == "warn":
+                logger.warning(f"[Guardrail] {gr.get('name')}: guardrail execution failed")
+                return GuardrailResult(
+                    blocked=False,
+                    guardrail_name=gr.get("name"),
+                    reason="guardrail execution failed",
+                    stage="output",
+                    warned=True,
+                )
+            else:
+                # Default: block (fail-closed for safety)
                 return GuardrailResult(
                     blocked=True,
                     guardrail_name=gr.get("name"),

@@ -106,3 +106,50 @@ async def test_guardrail_passes_when_succeeds():
     ctx = MagicMock()
     result = await run_input_guardrails(agent, "good content", ctx, tool_registry)
     assert result.blocked is False
+
+
+@pytest.mark.asyncio
+async def test_guardrail_unknown_policy_blocks():
+    """未知的 on_violation 策略应 fail-closed（阻断）
+
+    防止 typo/缺失配置导致绕过 guardrail。
+    """
+    agent = MagicMock()
+    agent.input_guardrails = [{"name": "profanity_filter", "tool_id": "tool-id", "config": {}}]
+    agent.guardrail_on_violation = "unknown"
+
+    tool_registry = MagicMock()
+    mock_tool = MagicMock()
+    mock_tool.execute = AsyncMock(return_value=MagicMock(
+        success=False, error_message="contains profanity"
+    ))
+    tool_registry._resolve_tool_by_name = AsyncMock(return_value=mock_tool)
+
+    ctx = MagicMock()
+    result = await run_input_guardrails(agent, "bad word", ctx, tool_registry)
+    assert result.blocked is True
+    assert result.warned is False
+    assert result.guardrail_name == "profanity_filter"
+    assert result.stage == "input"
+
+
+@pytest.mark.asyncio
+async def test_output_guardrail_unknown_policy_blocks():
+    """输出 guardrail 在未知策略下应 fail-closed（阻断）"""
+    agent = MagicMock()
+    agent.output_guardrails = [{"name": "secret_leak", "tool_id": "tool-id", "config": {}}]
+    agent.guardrail_on_violation = "typo_value"
+
+    tool_registry = MagicMock()
+    mock_tool = MagicMock()
+    mock_tool.execute = AsyncMock(return_value=MagicMock(
+        success=False, error_message="contains secret"
+    ))
+    tool_registry._resolve_tool_by_name = AsyncMock(return_value=mock_tool)
+
+    ctx = MagicMock()
+    result = await run_output_guardrails(agent, "leaked output", ctx, tool_registry)
+    assert result.blocked is True
+    assert result.warned is False
+    assert result.guardrail_name == "secret_leak"
+    assert result.stage == "output"
