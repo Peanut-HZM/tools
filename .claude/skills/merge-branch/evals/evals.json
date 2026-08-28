@@ -1,0 +1,119 @@
+{
+  "skill_name": "merge-branch",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/merge-branch dev",
+      "expected_output": "调用 scripts/merge-branch.sh 传 1 个参数 dev，source=当前分支。无冲突则 push target，再运行 restore-workspace.sh，输出合并报告（✅ 成功格式）。未 restore 不得报成功。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "把当前分支合并到 dev",
+      "expected_output": "识别为 merge-branch 触发，单参数模式，source=当前分支，target=dev。调用脚本后根据 merge_result 决策后续操作（push/冲突解决/报告）。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "/merge-branch feature-A dev",
+      "expected_output": "调用脚本传 2 个参数，source=feature-A，target=dev。不依赖当前分支。合并后输出报告。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "/merge-branch dev（在存在冲突的场景下）",
+      "expected_output": "脚本返回 merge_result=conflict + conflict_files。AI 读取每个冲突文件，分析三方改动，编辑文件解决冲突（代劳型），展示 diff 摘要（auto-resolved / needs-review / undecidable 分类），等用户确认后才 git add + commit + push。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "/merge-branch nonexistent",
+      "expected_output": "脚本 exit 1，error 字段含'远程仓库没有分支 nonexistent'。AI 输出失败报告（❌ 格式），建议检查拼写。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "/merge-branch dev（本地 dev 与 origin/dev 分叉）",
+      "expected_output": "脚本 exit 2，diverge_info 含本地/远程独有提交。AI 输出失败报告，列出双方独有提交，给用户 3 个处理选项（reset / rebase / 手动处理）。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "/merge-branch dev（工作区有未提交改动和未跟踪文件）",
+      "expected_output": "脚本 stash -u 并记录 stash_sha。合并完成后必须运行 restore-workspace.sh（按 SHA apply，禁止 git stash pop）。未跑 restore 不得报告成功。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "/merge-branch",
+      "expected_output": "参数校验失败，AI 提示正确用法：/merge-branch <target> 或 /merge-branch <source> <target>。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "/merge-branch dev dev",
+      "expected_output": "source 与 target 相同，报错提示'源分支与目标分支不能相同'。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "/merge-branch dev（dev 已经包含当前分支全部内容）",
+      "expected_output": "脚本返回 merge_result=already_up_to_date。AI 运行 restore-workspace.sh 切回原分支并恢复工作区，输出 ℹ️ 报告。",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "/merge-branch dev（项目包含 submodule）",
+      "expected_output": "脚本检测到 submodules 字段非空。主仓合并成功后对每个 submodule 调 merge-submodule.sh。全部完成后主仓提交指针、push，主仓与 submodule 均运行 restore-workspace.sh。",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "/merge-branch dev（submodule 中存在冲突）",
+      "expected_output": "submodule 脚本返回 merge_result=conflict。代劳型解决后 commit、push，在 submodule 内运行 restore-workspace.sh。回到主仓库提交 submodule 引用更新。",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "/merge-branch dev（某个 submodule 远程没有对应分支）",
+      "expected_output": "submodule 脚本 exit 1。AI 报告失败；脚本已尝试恢复或再跑 restore-workspace.sh。询问是否继续其他 submodule。主仓流程不阻塞但报告失败。",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "/merge-branch dev（合并后完整性验证失败）",
+      "expected_output": "git merge-base --is-ancestor 失败则立即停止、不推送，报告前后 HEAD。运行 restore-workspace.sh。禁止 reset --hard。",
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "/merge-branch dev（推送失败，远程有新提交）",
+      "expected_output": "git push 失败。AI 报告推送失败，建议重新 fetch。仍须运行 restore-workspace.sh 切回原分支并恢复工作区（合并提交留在本地 target）。禁止 checkout -f / reset --hard。",
+      "files": []
+    },
+    {
+      "id": 16,
+      "prompt": "/merge-branch dev（冲突无法自动解决）",
+      "expected_output": "AI 分析冲突后发现有 undecidable 区域，展示双方改动内容和多个选项，等待用户选择。绝不自行决定。用户选择后按指示编辑，再次确认后提交。",
+      "files": []
+    },
+    {
+      "id": 17,
+      "prompt": "/merge-branch dev",
+      "expected_output": "从 user_query 逐字复制参数 dev（d-e-v），调用 merge-branch.sh 只传这一个参数。Shell 命令中必须出现 dev，禁止出现 dest（d-e-s-t）。若误传 dest，脚本应在远程无 dest、有 dev 时纠正为 dev 并警告。",
+      "files": []
+    },
+    {
+      "id": 18,
+      "prompt": "/merge-branch dev（上次合并忘了 stash pop，工作区看起来丢了很多未跟踪文件）",
+      "expected_output": "脚本先自愈：restore-workspace.sh 按遗留 stash/json/refs 恢复文件，再开始新合并。不得再 stash 一次把旧文件藏死。禁止声称文件已永久丢失。",
+      "files": []
+    },
+    {
+      "id": 19,
+      "prompt": "/merge-branch dev（切分支）",
+      "expected_output": "全程禁止 git checkout -f 与 git reset --hard。source 只允许 ff-only pull。push 前 merge-base --is-ancestor 验证 source 提交仍在。",
+      "files": []
+    }
+  ]
+}
