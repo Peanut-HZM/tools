@@ -183,3 +183,60 @@ class AgentHarnessStatsView(BaseModel):
     total_tokens: int = 0
     total_duration_ms: int = 0
     tool_usage: List[Dict[str, Any]] = []
+
+
+# ---------------------------------------------------------------------------
+# Task 15: admin/traces observability schemas
+# ---------------------------------------------------------------------------
+
+class TraceSummaryView(BaseModel):
+    """Trace 列表条目（不含 input/output 全文与 steps）"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    conversation_id: str
+    agent_id: str
+    user_id: str
+    status: str
+    total_steps: int
+    total_tokens: int
+    total_duration_ms: int
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+
+class TraceStepView(BaseModel):
+    """Trace 子步骤视图"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    step_index: int
+    step_type: str
+    tool_name: Optional[str] = None
+    llm_model: Optional[str] = None
+    tokens_used: int
+    duration_ms: int
+    input_summary: Optional[str] = None
+    output_summary: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class TraceDetailView(TraceSummaryView):
+    """Trace 详情（含 input/output 全文与 steps）
+
+    继承 TraceSummaryView 共享基础字段，扩展 input/output 与步骤列表。
+    """
+
+    input_text: str
+    output_text: Optional[str] = None
+    error_message: Optional[str] = None
+    steps: List[TraceStepView] = []
+
+
+class TraceListView(BaseModel):
+    """Trace 列表响应体"""
+
+    items: List[TraceSummaryView]
+    total: int

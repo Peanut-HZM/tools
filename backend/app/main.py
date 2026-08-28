@@ -428,6 +428,11 @@ from app.api.routes import admin_tools
 
 app.include_router(admin_tools.router)
 
+# Harness admin/traces router (Task 15)
+from app.api.routes import admin_traces  # noqa: E402
+
+app.include_router(admin_traces.router)
+
 # Agent management router
 from app.api.routes import agents as agents_router
 
