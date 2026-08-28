@@ -20,6 +20,25 @@ export interface Agent {
   is_default: boolean;
   created_at: string;
   updated_at?: string;
+  // --- Phase 1 harness 字段（均为 optional，向后兼容）---
+  slug?: string;
+  welcome_message?: string;
+  default_model_id?: string;
+  fallback_model_ids?: string[];
+  generation_params?: Record<string, any>;
+  memory_short_term_policy?: string;
+  memory_short_term_window?: number;
+  memory_long_term_enabled?: boolean;
+  max_steps_per_turn?: number;
+  tool_timeout_seconds?: number;
+  error_strategy?: 'stop' | 'retry' | 'skip';
+  can_handoff_to?: string[];
+  handoff_instruction?: string;
+  input_guardrails?: string[];
+  output_guardrails?: string[];
+  guardrail_on_violation?: 'block' | 'warn';
+  visibility?: 'public' | 'private' | 'unlisted';
+  capabilities?: string[];
 }
 
 export interface AgentCreateRequest {
