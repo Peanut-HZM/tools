@@ -310,6 +310,7 @@ async def get_node(
 async def list_pods(
     config_id: str,
     namespace: str = Query(..., description="命名空间"),
+    limit: Optional[int] = Query(None, ge=1, le=10000, description="返回数量限制（可选）"),
     user_id: str = Depends(get_current_user_id),
 ):
     """列出指定 namespace 的 pods"""
@@ -318,7 +319,7 @@ async def list_pods(
         raise HTTPException(status_code=404, detail="Config not found")
     try:
         async with build_client(config) as bundle:
-            return await K8sResourceService.list_pods(bundle, namespace)
+            return await K8sResourceService.list_pods(bundle, namespace, limit)
     except K8sApiException as e:
         raise _k8s_api_error_to_http(e)
 

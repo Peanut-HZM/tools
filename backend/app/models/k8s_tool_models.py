@@ -228,3 +228,9 @@ class K8sMetricsResponse(BaseModel):
     cpu_request_ratio: Optional[float] = None
     memory_request_ratio: Optional[float] = None
     message: Optional[str] = None
+
+
+class PaginatedPodsResponse(BaseModel):
+    """分页 Pod 列表响应"""
+    items: List[K8sPodSummary]
+    total: int

@@ -90,9 +90,45 @@ async def test_list_pods():
     mock_bundle.core_v1.list_namespaced_pod = AsyncMock(return_value=mock_pod_list)
 
     result = await K8sResourceService.list_pods(mock_bundle, namespace="default")
-    assert len(result) == 1
-    assert result[0].name == "nginx-pod"
-    assert result[0].phase == "Running"
+    assert "items" in result
+    assert "total" in result
+    assert result["total"] == 1
+    assert result["items"][0].name == "nginx-pod"
+    assert result["items"][0].phase == "Running"
+
+
+@pytest.mark.asyncio
+async def test_list_pods_paginated_response():
+    """list_pods 返回 {items, total} 分页格式"""
+    mock_bundle = MagicMock()
+    mock_pod_list = MagicMock()
+    mock_pod = MagicMock()
+    mock_pod.metadata.name = "nginx-pod"
+    mock_pod.metadata.namespace = "default"
+    mock_pod.metadata.creation_timestamp = "2026-01-01T00:00:00Z"
+    mock_pod.status.phase = "Running"
+    mock_pod.status.container_statuses = [
+        MagicMock(
+            name="nginx",
+            ready=True,
+            restart_count=0,
+            state=MagicMock(running=MagicMock(started_at="2026-01-01T00:00:00Z"), waiting=None, terminated=None),
+        )
+    ]
+    mock_container_spec = MagicMock()
+    mock_container_spec.name = "nginx"
+    mock_pod.spec.containers = [mock_container_spec]
+    mock_pod.spec.node_name = "node-1"
+    mock_pod.status.pod_ip = "10.0.0.1"
+    mock_pod_list.items = [mock_pod]
+    mock_bundle.core_v1.list_namespaced_pod = AsyncMock(return_value=mock_pod_list)
+
+    result = await K8sResourceService.list_pods(mock_bundle, namespace="default")
+    assert "items" in result
+    assert "total" in result
+    assert result["total"] == 1
+    assert len(result["items"]) == 1
+    assert result["items"][0].name == "nginx-pod"
 
 
 @pytest.mark.asyncio
