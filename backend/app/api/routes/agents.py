@@ -20,6 +20,7 @@ from app.schemas.harness_schemas import (
     AgentHarnessStatsView,
     AgentHarnessUpdate,
     AgentHarnessView,
+    GenerationParams,
     ToolBindingCreate,
     ToolBindingView,
 )
@@ -327,7 +328,7 @@ async def update_agent_harness(
     agent_id: str,
     payload: AgentHarnessUpdate,
     db: Session = Depends(get_db),
-    _admin: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin),
 ):
     """更新 agent 的 harness 扩展字段（白名单更新）"""
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
@@ -336,6 +337,13 @@ async def update_agent_harness(
 
     # 白名单更新：仅允许更新 _HARNESS_UPDATABLE_FIELDS 中的字段
     update_data = payload.model_dump(exclude_unset=True)
+    user_id = current_user.get("id") or current_user.get("sub") or "unknown"
+
+    # Guardrail 字段集合（用于审计日志）
+    _GUARDRAIL_FIELDS = frozenset({
+        "input_guardrails", "output_guardrails", "guardrail_on_violation",
+    })
+
     for key, value in update_data.items():
         if key in _HARNESS_UPDATABLE_FIELDS:
             # UUID 字符串字段转为 UUID 对象（若 ORM 列为 UUID 类型）
@@ -346,6 +354,18 @@ async def update_agent_harness(
                     raise HTTPException(
                         status_code=400, detail=f"invalid uuid for {key}"
                     )
+            # GenerationParams 序列化为 dict（ORM JSONB 列需 dict）
+            if isinstance(value, GenerationParams):
+                value = value.model_dump(exclude_unset=True)
+
+            # Guardrail 字段修改审计日志（before/after）
+            if key in _GUARDRAIL_FIELDS:
+                old_value = getattr(agent, key, None)
+                logger.warning(
+                    "GUARDRAIL_AUDIT agent_id=%s field=%s user_id=%s old=%r new=%r",
+                    agent_id, key, user_id, old_value, value,
+                )
+
             setattr(agent, key, value)
 
     db.commit()

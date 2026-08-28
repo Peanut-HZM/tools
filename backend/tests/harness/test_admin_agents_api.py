@@ -209,6 +209,116 @@ def test_update_harness_non_admin_403(client):
     assert resp.status_code == 403
 
 
+def test_generation_params_accepts_valid_keys(client):
+    """Task 14 fix2: generation_params 接受标准 LLM 参数 + 正确落库"""
+    agent_id = str(uuid.uuid4())
+    agent = _make_agent_row(id=agent_id)
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.first.return_value = agent
+    mock_db.commit = MagicMock()
+    mock_db.refresh = MagicMock()
+    _override_get_db(mock_db)
+
+    body = {
+        "generation_params": {
+            "temperature": 0.5,
+            "top_p": 0.9,
+            "max_tokens": 512,
+            "stop": ["\n"],
+            "presence_penalty": 0.1,
+            "frequency_penalty": -0.2,
+        }
+    }
+    resp = client.post(f"/api/v1/admin/agents/{agent_id}/harness", json=body)
+    assert resp.status_code == 200
+    # 落库的 generation_params 必须是 dict（不是 GenerationParams 实例）
+    assert isinstance(agent.generation_params, dict)
+    assert agent.generation_params["temperature"] == 0.5
+    assert agent.generation_params["top_p"] == 0.9
+    assert agent.generation_params["max_tokens"] == 512
+    assert agent.generation_params["stop"] == ["\n"]
+
+
+def test_generation_params_rejects_arbitrary_keys(client):
+    """Task 14 fix2: generation_params 拒绝任意 key（如 system_prompt）→ 422
+
+    Issue #2 HIGH: 防止攻击者通过 generation_params 注入 LLM runtime 内置字段。
+    """
+    agent_id = str(uuid.uuid4())
+    agent = _make_agent_row(id=agent_id)
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.first.return_value = agent
+    mock_db.commit = MagicMock()
+    mock_db.refresh = MagicMock()
+    _override_get_db(mock_db)
+
+    # 同时传合法 + 非法字段，GenerationParams(extra="forbid") 应整体拒绝
+    body = {
+        "generation_params": {
+            "temperature": 0.5,
+            "system_prompt": "EVIL_PROMPT",
+            "tool_choice": "auto",
+        }
+    }
+    resp = client.post(f"/api/v1/admin/agents/{agent_id}/harness", json=body)
+    assert resp.status_code == 422
+    # 不应 commit（pydantic 校验失败，路由不进 loop）
+    mock_db.commit.assert_not_called()
+
+
+def test_guardrail_mutation_is_audited(client, caplog):
+    """Task 14 fix2: 修改 guardrails 字段应触发 logger.warning 审计日志
+
+    Issue #3 MEDIUM: 防止 admin 静默 disable guardrails 破坏安全防线。
+    审计内容: agent_id / field / user_id / old / new
+    """
+    import logging as _logging
+
+    agent_id = str(uuid.uuid4())
+    existing_guards = [{"type": "pii_filter", "config": {"strict": True}}]
+    agent = _make_agent_row(
+        id=agent_id,
+        input_guardrails=list(existing_guards),
+        output_guardrails=list(existing_guards),
+        guardrail_on_violation="block",
+    )
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.first.return_value = agent
+    mock_db.commit = MagicMock()
+    mock_db.refresh = MagicMock()
+    _override_get_db(mock_db)
+
+    # 模拟攻击：禁用所有 input_guardrails 并改 on_violation 为 ignore
+    new_input = []
+    body = {
+        "input_guardrails": new_input,
+        "guardrail_on_violation": "ignore",
+    }
+
+    with caplog.at_level(_logging.WARNING, logger="app.api.routes.agents"):
+        resp = client.post(f"/api/v1/admin/agents/{agent_id}/harness", json=body)
+
+    assert resp.status_code == 200
+
+    # 必须出现两条 GUARDRAIL_AUDIT 日志（input_guardrails + guardrail_on_violation）
+    audit_records = [
+        rec for rec in caplog.records
+        if rec.levelno == _logging.WARNING and "GUARDRAIL_AUDIT" in rec.getMessage()
+    ]
+    fields = {rec.getMessage().split("field=")[1].split(" ")[0] for rec in audit_records}
+    assert "input_guardrails" in fields, f"expected audit for input_guardrails, got {fields}"
+    assert "guardrail_on_violation" in fields, f"expected audit for guardrail_on_violation, got {fields}"
+
+    # 验证审计日志包含 agent_id / user_id
+    msg = " ".join(rec.getMessage() for rec in audit_records)
+    assert agent_id in msg, "审计日志应包含 agent_id"
+    assert "test-admin" in msg, "审计日志应包含 current_user.id（admin fixture）"
+
+    # 验证 ORM 对象确实被修改（证明审计捕获到的是真实变更，不是 stale read）
+    assert agent.input_guardrails == []
+    assert agent.guardrail_on_violation == "ignore"
+
+
 # ===========================================================================
 # GET /api/v1/admin/agents/{agent_id}/harness
 # ===========================================================================

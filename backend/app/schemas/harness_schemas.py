@@ -8,6 +8,24 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class GenerationParams(BaseModel):
+    """LLM 生成参数白名单（仅允许以下 6 个标准参数 + 范围校验）
+
+    Task 14 fix round 2: 替代原先的 Dict[str, Any]，
+    防止攻击者通过 generation_params 传入 system_prompt / tool_choice 等
+    harness runtime 内置字段。
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
+    top_p: Optional[float] = Field(None, ge=0.0, le=1.0)
+    max_tokens: Optional[int] = Field(None, ge=1)
+    stop: Optional[List[str]] = None
+    presence_penalty: Optional[float] = Field(None, ge=-2.0, le=2.0)
+    frequency_penalty: Optional[float] = Field(None, ge=-2.0, le=2.0)
+
+
 class ToolCreate(BaseModel):
     """创建工具请求体"""
 
@@ -75,7 +93,7 @@ class AgentHarnessUpdate(BaseModel):
     welcome_message: Optional[str] = None
     default_model_id: Optional[str] = None
     fallback_model_ids: Optional[List[str]] = None
-    generation_params: Optional[Dict[str, Any]] = None
+    generation_params: Optional[GenerationParams] = None
     memory_short_term_policy: Optional[str] = Field(None, max_length=20)
     memory_short_term_window: Optional[int] = None
     memory_long_term_enabled: Optional[bool] = None
