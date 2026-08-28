@@ -64,7 +64,7 @@ async def test_runtime_simple_response():
     tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
 
     llm_bridge = MagicMock()
-    llm_bridge.to_function_schemas = MagicMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
     llm_bridge.generate = AsyncMock(return_value=LLMResponse(
         text_part="Hello!", tool_calls=[]
     ))
@@ -136,7 +136,7 @@ async def test_runtime_tool_call_then_response():
         ]),
         LLMResponse(text_part="Found it!", tool_calls=[]),
     ])
-    llm_bridge.to_function_schemas = MagicMock(return_value=[{}])
+    tool_registry.to_function_schemas = MagicMock(return_value=[{}])
 
     ctx = _make_ctx()
 
@@ -164,7 +164,7 @@ async def test_runtime_cancelled():
     tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
 
     llm_bridge = MagicMock()
-    llm_bridge.to_function_schemas = MagicMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
     llm_bridge.generate = AsyncMock(return_value=LLMResponse(text_part="Hello!", tool_calls=[]))
 
     ctx = _make_ctx()
@@ -200,7 +200,7 @@ async def test_runtime_max_steps_reached():
     llm_bridge.generate = AsyncMock(return_value=LLMResponse(
         text_part="", tool_calls=[ToolCall(id="c1", name="dummy", arguments={})]
     ))
-    llm_bridge.to_function_schemas = MagicMock(return_value=[{}])
+    tool_registry.to_function_schemas = MagicMock(return_value=[{}])
 
     ctx = _make_ctx()
 
@@ -226,7 +226,7 @@ async def test_runtime_llm_error_fallback():
     tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
 
     llm_bridge = MagicMock()
-    llm_bridge.to_function_schemas = MagicMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
     llm_bridge.generate = AsyncMock(side_effect=RuntimeError("LLM down"))
 
     ctx = _make_ctx()
@@ -256,7 +256,7 @@ async def test_runtime_trace_failure_does_not_crash():
     tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
 
     llm_bridge = MagicMock()
-    llm_bridge.to_function_schemas = MagicMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
     llm_bridge.generate = AsyncMock(return_value=LLMResponse(text_part="OK", tool_calls=[]))
 
     ctx = _make_ctx()
@@ -286,7 +286,7 @@ async def test_runtime_session_persist_failure_does_not_crash():
     tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
 
     llm_bridge = MagicMock()
-    llm_bridge.to_function_schemas = MagicMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
     llm_bridge.generate = AsyncMock(return_value=LLMResponse(text_part="OK", tool_calls=[]))
 
     ctx = _make_ctx()
@@ -313,7 +313,7 @@ async def test_runtime_text_delta_and_complete():
     tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
 
     llm_bridge = MagicMock()
-    llm_bridge.to_function_schemas = MagicMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
     llm_bridge.generate = AsyncMock(return_value=LLMResponse(
         text_part="Hello world!", tool_calls=[]
     ))
@@ -331,3 +331,90 @@ async def test_runtime_text_delta_and_complete():
 
     text_delta_events = [e for e in events if e.type == "text_delta"]
     assert any("Hello world!" in e.payload.get("text", "") for e in text_delta_events)
+
+
+@pytest.mark.asyncio
+async def test_runtime_output_guardrail_persists_fallback():
+    """输出 guardrail 阻断时，持久化的应是 fallback 文本而非原始 LLM 输出"""
+    agent = _make_agent()
+    session = MagicMock()
+    session.messages = []
+    session.conversation = MagicMock(id="conv-1")
+
+    tool_registry = MagicMock()
+    tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
+
+    llm_bridge = MagicMock()
+    llm_bridge.generate = AsyncMock(return_value=LLMResponse(
+        text_part="原始违规内容", tool_calls=[]
+    ))
+
+    ctx = _make_ctx()
+
+    runtime = AgentRuntime(agent, tool_registry, llm_bridge, session, ctx)
+    events = []
+
+    with patch("app.services.harness.agent_runtime.run_output_guardrails") as mock_gr:
+        mock_gr.return_value = MagicMock(
+            blocked=True, guardrail_name="filter", reason="blocked", stage="output"
+        )
+        async for event in runtime.run("Hi"):
+            events.append(event)
+
+    # 持久化的 assistant 消息的 text_part 应是 fallback 文本
+    session.append_assistant_message.assert_called_once()
+    persisted_resp = session.append_assistant_message.call_args[0][0]
+    assert persisted_resp.text_part == "抱歉，AI 输出未通过校验。"
+    assert persisted_resp.text_part != "原始违规内容"
+
+
+@pytest.mark.asyncio
+async def test_runtime_handoff_persists_trigger_response():
+    """Handoff 触发时，应持久化触发 handoff 的 LLM 响应"""
+    from app.services.harness.tool_protocol import ToolCall
+
+    agent = _make_agent()
+    target_agent = _make_agent(id="agent-2", name="Target Agent", slug="target-agent")
+    session = MagicMock()
+    session.messages = []
+    session.conversation = MagicMock(id="conv-1")
+
+    tool_registry = MagicMock()
+    tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
+
+    llm_bridge = MagicMock()
+    llm_bridge.generate = AsyncMock(return_value=LLMResponse(
+        text_part="", tool_calls=[
+            ToolCall(id="h1", name="handoff_to_target-agent", arguments={})
+        ]
+    ))
+
+    ctx = _make_ctx()
+
+    runtime = AgentRuntime(agent, tool_registry, llm_bridge, session, ctx)
+    events = []
+
+    # handoff 检测命中 → 下一轮 LLM 返回最终回复后终止
+    call_count = 0
+    async def gen_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return LLMResponse(text_part="", tool_calls=[
+                ToolCall(id="h1", name="handoff_to_target-agent", arguments={})
+            ])
+        else:
+            return LLMResponse(text_part="Done", tool_calls=[])
+
+    llm_bridge.generate = AsyncMock(side_effect=gen_side_effect)
+
+    with patch("app.services.harness.agent_runtime.detect_handoff") as mock_detect:
+        mock_detect.side_effect = [target_agent, None]
+        async for event in runtime.run("transfer me"):
+            events.append(event)
+
+    # 第一次 LLM 响应（触发 handoff）应被持久化
+    assert session.append_assistant_message.call_count >= 1
+    first_call_args = session.append_assistant_message.call_args_list[0][0][0]
+    assert first_call_args.tool_calls  # 包含 tool_calls，说明是触发 handoff 的那条

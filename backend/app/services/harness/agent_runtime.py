@@ -95,7 +95,7 @@ class AgentRuntime:
                 # handoff 工具 schemas
                 handoff_tools_schemas = self._safe_generate_handoff_tools()
 
-                tool_schemas = self.llm_bridge.to_function_schemas(tools)
+                tool_schemas = self.tool_registry.to_function_schemas(tools)
                 all_schemas = tool_schemas + handoff_tools_schemas
 
                 # 4c. 调用 LLM
@@ -146,6 +146,12 @@ class AgentRuntime:
                     }
                     yield Event.handoff(from_agent_info, to_agent_info, "handoff requested")
 
+                    # 持久化触发 handoff 的 LLM 响应
+                    try:
+                        self.session.append_assistant_message(llm_response)
+                    except Exception as e:
+                        logger.error(f"记录 handoff assistant 消息失败: {e}", exc_info=True)
+
                     self._current_agent = handoff_target
                     self.session.agent = handoff_target
                     continue
@@ -164,6 +170,12 @@ class AgentRuntime:
                                 gr_result.guardrail_name, gr_result.reason, "output"
                             )
                             final_text = self._fallback_message("output_blocked")
+                            # 构建合成 LLMResponse，使持久化的是 fallback 文本
+                            llm_response = LLMResponse(
+                                text_part=final_text,
+                                tool_calls=[],
+                                usage=llm_response.usage,
+                            )
                     except Exception as e:
                         logger.error(f"输出 guardrail 异常: {e}", exc_info=True)
 
