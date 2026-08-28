@@ -120,6 +120,7 @@ logs/*.log.*
 .gstack/
 .playwright-mcp/
 .omc/
+.worktrees/
 
 # Design baselines (auto-generated)
 # specs/ 是纯设计文档（低敏感性），纳入 git 跟踪
