@@ -423,6 +423,11 @@ app.include_router(chat_stream.router, prefix="/api/v1")
 # Admin conversation management router
 app.include_router(admin_conversations.router, prefix="/api/v1")
 
+# Harness admin/tools router (Task 13)
+from app.api.routes import admin_tools
+
+app.include_router(admin_tools.router)
+
 # Agent management router
 from app.api.routes import agents as agents_router
 
