@@ -1,9 +1,12 @@
 """
 消息模型
+
+Harness Phase 1: 新增 tool_calls / tool_call_id / tool_name / attachments，
+支持 LLM 工具调用消息与附件。详见 spec §5.6。
 """
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Integer
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 import uuid
 
@@ -36,6 +39,12 @@ class Message(Base):
     # 数据库层面若已存在旧 FK 约束需 DBA 手动 DROP，ORM 层面已解除。
     llm_config_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     llm_model_name = Column(String(100), nullable=True)  # 使用的模型名称
+
+    # === Harness Phase 1 新增字段（工具调用 & 附件） ===
+    tool_calls = Column(JSONB, nullable=True)  # LLM 工具调用请求列表
+    tool_call_id = Column(String(100), nullable=True)  # 工具调用结果关联 ID
+    tool_name = Column(String(100), nullable=True)  # 工具名称（结果消息）
+    attachments = Column(JSONB, default=list)  # 附件列表
 
     def __repr__(self):
         return f"<Message(id={self.id}, sender={self.sender_type}, type={self.message_type})>"
