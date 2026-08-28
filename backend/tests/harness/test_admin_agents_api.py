@@ -307,6 +307,18 @@ def test_list_tool_bindings_agent_not_found(client):
     assert resp.status_code == 404
 
 
+def test_list_tool_bindings_non_admin_403(client):
+    """非管理员访问 GET /tools 返回 403"""
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": "u1"}
+
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.first.return_value = _make_agent_row()
+    _override_get_db(mock_db)
+
+    resp = client.get(f"/api/v1/admin/agents/{uuid.uuid4()}/tools")
+    assert resp.status_code == 403
+
+
 # ===========================================================================
 # POST /api/v1/admin/agents/{agent_id}/tools
 # ===========================================================================
@@ -401,6 +413,19 @@ def test_create_tool_binding_tool_not_found(client):
     assert resp.status_code == 404
 
 
+def test_create_tool_binding_non_admin_403(client):
+    """非管理员访问 POST /tools 返回 403"""
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": "u1"}
+
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.first.return_value = _make_agent_row()
+    _override_get_db(mock_db)
+
+    body = {"tool_id": str(uuid.uuid4())}
+    resp = client.post(f"/api/v1/admin/agents/{uuid.uuid4()}/tools", json=body)
+    assert resp.status_code == 403
+
+
 # ===========================================================================
 # DELETE /api/v1/admin/agents/{agent_id}/tools/{binding_id}
 # ===========================================================================
@@ -446,6 +471,20 @@ def test_delete_tool_binding_not_found(client):
 
     resp = client.delete(f"/api/v1/admin/agents/{agent_id}/tools/{uuid.uuid4()}")
     assert resp.status_code == 404
+
+
+def test_delete_tool_binding_non_admin_403(client):
+    """非管理员访问 DELETE /tools/{binding_id} 返回 403"""
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": "u1"}
+
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.first.return_value = _make_agent_row()
+    _override_get_db(mock_db)
+
+    resp = client.delete(
+        f"/api/v1/admin/agents/{uuid.uuid4()}/tools/{uuid.uuid4()}"
+    )
+    assert resp.status_code == 403
 
 
 # ===========================================================================
@@ -497,3 +536,74 @@ def test_get_harness_stats_non_admin_403(client):
 
     resp = client.get(f"/api/v1/admin/agents/{uuid.uuid4()}/harness-stats")
     assert resp.status_code == 403
+
+
+def test_harness_stats_tool_usage_filters_by_agent(client):
+    """回归测试：harness-stats 的 tool_usage 必须按 agent_id 过滤，不能跨 agent 泄露
+
+    通过 mock 捕获 route 内 tool_usage query 的 filter 调用链，
+    断言包含 `Trace.agent_id == agent_id` 过滤条件，以验证跨 agent 隔离。
+    """
+    from app.models.harness_models import Trace
+
+    agent_id = uuid.uuid4()
+
+    # 构造一个 mock db，捕获所有 .filter() 的入参
+    mock_db = MagicMock()
+    mock_q = MagicMock()
+    mock_db.query.return_value = mock_q
+    for m in ("filter", "order_by", "offset", "limit", "group_by", "join"):
+        getattr(mock_q, m).return_value = mock_q
+    mock_q.first.return_value = _make_agent_row(id=agent_id)
+    mock_q.count.return_value = 0
+    mock_q.scalar.return_value = 0
+    mock_q.all.return_value = [("web_search", 3), ("db_query", 2)]
+
+    _override_get_db(mock_db)
+
+    resp = client.get(f"/api/v1/admin/agents/{agent_id}/harness-stats")
+    assert resp.status_code == 200
+
+    # 检查所有 .filter() 调用入参，断言其中至少一个的 SQL 编译结果
+    # 同时引用 Trace.agent_id 列（防止跨 agent 数据泄露）
+    from sqlalchemy.dialects import postgresql
+    filter_calls = mock_q.filter.call_args_list
+    found = False
+    for call in filter_calls:
+        for arg in call.args:
+            try:
+                compiled = str(
+                    arg.compile(
+                        dialect=postgresql.dialect(),
+                        compile_kwargs={"literal_binds": True},
+                    )
+                )
+            except Exception:
+                compiled = ""
+            if "agent_traces" in compiled and "agent_id" in compiled:
+                found = True
+                break
+        if found:
+            break
+
+    if not found:
+        debug_info = []
+        for i, call in enumerate(filter_calls):
+            for j, arg in enumerate(call.args):
+                try:
+                    c = str(
+                        arg.compile(
+                            dialect=postgresql.dialect(),
+                            compile_kwargs={"literal_binds": True},
+                        )
+                    )
+                except Exception as e:
+                    c = f"<compile error: {e}>"
+                debug_info.append(f"filter[{i}].args[{j}]: {c}")
+        raise AssertionError(
+            "tool_usage 查询未包含 Trace.agent_id 过滤条件。\n"
+            + "\n".join(debug_info)
+        )
+
+    # 同时确认调用了 .join(Trace, ...)，因为只有 join 后 Trace.agent_id 才能参与过滤
+    assert mock_q.join.called, "tool_usage 查询应 join Trace 表，但未发现 .join 调用"

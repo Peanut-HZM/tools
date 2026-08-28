@@ -2,14 +2,30 @@
 Agent管理路由
 用于管理AI Agent配置
 """
-
+import logging
+import uuid as _uuid_mod
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user
+from app.models.agent import Agent
+from app.models.conversation import Conversation
+from app.models.harness_models import Tool, ToolBinding, Trace, TraceStep
+from app.models.message import Message
+from app.schemas.harness_schemas import (
+    AgentHarnessStatsView,
+    AgentHarnessUpdate,
+    AgentHarnessView,
+    ToolBindingCreate,
+    ToolBindingView,
+)
 from app.services.agent_management_service import AgentService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin/agents", tags=["admin-agents"])
 
@@ -238,24 +254,6 @@ async def get_agent_stats(
 # ===========================================================================
 # Task 14: admin/agents harness 扩展端点
 # ===========================================================================
-import logging
-import uuid as _uuid_mod
-
-from sqlalchemy import func as sa_func
-
-from app.models.agent import Agent
-from app.models.harness_models import ToolBinding, Tool, Trace, TraceStep
-from app.models.conversation import Conversation
-from app.models.message import Message
-from app.schemas.harness_schemas import (
-    AgentHarnessUpdate,
-    AgentHarnessView,
-    ToolBindingCreate,
-    ToolBindingView,
-    AgentHarnessStatsView,
-)
-
-logger = logging.getLogger(__name__)
 
 # Harness 字段可更新白名单（防止 mass assignment）
 _HARNESS_UPDATABLE_FIELDS = frozenset({
@@ -343,9 +341,11 @@ async def update_agent_harness(
             # UUID 字符串字段转为 UUID 对象（若 ORM 列为 UUID 类型）
             if key in ("default_model_id", "owner_id") and value is not None:
                 try:
-                    value = _uuid_mod.UUID(value) if isinstance(value, str) else value
+                    value = _uuid_mod.UUID(str(value))
                 except (ValueError, AttributeError):
-                    pass
+                    raise HTTPException(
+                        status_code=400, detail=f"invalid uuid for {key}"
+                    )
             setattr(agent, key, value)
 
     db.commit()
@@ -502,6 +502,8 @@ async def get_agent_harness_stats(
     # 工具使用频率（按 tool_name 分组）
     tool_usage_rows = (
         db.query(TraceStep.tool_name, sa_func.count(TraceStep.tool_name))
+        .join(Trace, Trace.id == TraceStep.trace_id)
+        .filter(Trace.agent_id == agent_id)
         .filter(TraceStep.step_type == "tool_call")
         .filter(TraceStep.tool_name.isnot(None))
         .group_by(TraceStep.tool_name)
