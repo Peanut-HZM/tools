@@ -5,9 +5,9 @@
 
 provider_type: qwen_image
 """
+import asyncio
 import logging
 import time
-from typing import Optional
 
 import httpx
 
@@ -258,18 +258,24 @@ class TongyiWanxiangProvider(ImageModelProvider):
 
         retryable: 5xx / 429 (rate limit) / timeout
         fatal: 4xx (except 429)
+
+        注意：异常消息中只包含 status_code，不截取 response body，
+        避免上游在错误响应中 echo 敏感信息（如 Authorization header、内部路径）。
+        详细 body 仅写入 logger。
         """
         if 200 <= resp.status_code < 300:
             return
+        # 将详细响应写入日志，便于排查，但不暴露给调用方
+        logger.warning("DashScope 返回错误 HTTP %s: %s", resp.status_code, resp.text[:200])
         # retryable: 5xx / 429 (rate limit)
         if resp.status_code >= 500 or resp.status_code == 429:
             raise ImageGenError(
-                f"DashScope HTTP {resp.status_code}: {resp.text[:200]}",
+                f"DashScope HTTP {resp.status_code}",
                 retryable=True,
             )
         # fatal: 4xx (except 429)
         raise ImageGenError(
-            f"DashScope HTTP {resp.status_code}: {resp.text[:200]}",
+            f"DashScope HTTP {resp.status_code}",
             retryable=False,
         )
 
@@ -279,12 +285,12 @@ class TongyiWanxiangProvider(ImageModelProvider):
         Returns:
             生成的图片 URL 列表
         """
-        import asyncio
         url = f"{self.base_url}/tasks/{task_id}"
         headers = {"Authorization": f"Bearer {self.api_key}"}
 
         for _ in range(max_attempts):
-            resp = await self._http_get(url, headers=headers)
+            # 轮询 GET 使用较短超时（10s），避免单次请求卡住导致整体轮询阻塞
+            resp = await self._http_get(url, headers=headers, timeout=10.0)
             self._check_response(resp)
             data = resp.json()
             status = data.get("output", {}).get("task_status", "")
@@ -308,6 +314,11 @@ class TongyiWanxiangProvider(ImageModelProvider):
         如果 oss_client 不可用，直接返回原始 URL（降级模式）。
         """
         if not self.oss_client:
+            return url
+
+        # URL scheme 校验，避免 SSRF / 非法协议
+        if not url.startswith(("http://", "https://")):
+            logger.warning("拒绝非 HTTP URL: %s", url[:100])
             return url
 
         try:
