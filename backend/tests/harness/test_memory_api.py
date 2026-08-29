@@ -54,7 +54,7 @@ def test_list_memories_authenticated(client, test_agent_id):
         instance.list_all = AsyncMock(return_value=[
             MemoryEntry(
                 key="k1", value={"text": "hello"}, importance=0.8,
-                access_count=3, summary="greeting",
+                access_count=3, summary="greeting", has_embedding=True,
             ),
         ])
         _override_db(mock_db)

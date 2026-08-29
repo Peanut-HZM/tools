@@ -1,4 +1,4 @@
-import { BarChart3, FileText, FileDown } from 'lucide-react';
+import { BarChart3, FileText, FileDown, Brain } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
@@ -10,6 +10,7 @@ import Sidebar from '../ProductManagerAgent/Sidebar';
 import ChatInterface from '../ProductManagerAgent/ChatInterface';
 import PRDPreview from '../ProductManagerAgent/PRDPreview';
 import ExportDialog from '../ProductManagerAgent/ExportDialog';
+import { MemoryViewer } from '../Harness/MemoryViewer';
 
 const ProductManagerAgent: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const ProductManagerAgent: React.FC = () => {
   const [showPRDPreview, setShowPRDPreview] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showCompetitorAnalysis, setShowCompetitorAnalysis] = useState(false);
+  const [showMemoryPanel, setShowMemoryPanel] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -292,7 +294,11 @@ const ProductManagerAgent: React.FC = () => {
 
                 {/* Action Buttons */}
                 <Button
-                  onClick={() => setShowPRDPreview(!showPRDPreview)}
+                  onClick={() => {
+                    const next = !showPRDPreview;
+                    setShowPRDPreview(next);
+                    if (next) setShowMemoryPanel(false);
+                  }}
                   variant={showPRDPreview ? "default" : "ghost"}
                   size="sm"
                 >
@@ -315,13 +321,25 @@ const ProductManagerAgent: React.FC = () => {
                   <BarChart3 className="w-3.5 h-3.5 mr-1" />
                   分析竞品
                 </Button>
+                <Button
+                  onClick={() => {
+                    const next = !showMemoryPanel;
+                    setShowMemoryPanel(next);
+                    if (next) setShowPRDPreview(false);
+                  }}
+                  variant={showMemoryPanel ? "default" : "ghost"}
+                  size="sm"
+                >
+                  <Brain className="w-3.5 h-3.5 mr-1" />
+                  长期记忆
+                </Button>
               </div>
             </div>
 
-            {/* Content Area - Split view for Chat and PRD Preview */}
+            {/* Content Area - Split view for Chat and side panels */}
             <div className="flex-1 flex overflow-hidden">
               {/* Chat Area */}
-              <div className={`flex-1 ${showPRDPreview ? 'w-1/2 border-r border-border' : 'w-full'}`}>
+              <div className={`flex-1 ${showPRDPreview || (showMemoryPanel && selectedAgentId) ? 'w-1/2 border-r border-border' : 'w-full'}`}>
                 <ChatInterface
                   messages={messages}
                   sending={loading}
@@ -329,6 +347,21 @@ const ProductManagerAgent: React.FC = () => {
                   disabled={!conversationId}
                 />
               </div>
+
+              {/* 长期记忆面板 */}
+              {showMemoryPanel && selectedAgentId && (
+                <div className="w-1/2 overflow-y-auto">
+                  <div className="p-4 border-b border-border">
+                    <h3 className="font-semibold text-ink flex items-center gap-2">
+                      <Brain className="w-4 h-4" />
+                      长期记忆
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <MemoryViewer agentId={selectedAgentId} />
+                  </div>
+                </div>
+              )}
 
               {/* PRD Preview Panel */}
               {showPRDPreview && conversationId && (

@@ -273,7 +273,6 @@ class MemoryWriteTool(BuiltinTool):
             # 9. 生成 embedding（best-effort，不阻塞写入）
             # embedding 失败不影响 KV 已成功保存的事实
             try:
-                from app.services.harness.memory_service import MemoryService
                 from app.services.harness.embeddings.factory import (
                     create_embedding_provider,
                 )
@@ -281,15 +280,27 @@ class MemoryWriteTool(BuiltinTool):
                 agent_cfg = self._resolve_agent_config(db, agent_uuid)
                 if agent_cfg.get("embedding_provider"):
                     provider = create_embedding_provider(agent_cfg)
-                    svc = MemoryService(db=db, embedding_provider=provider)
-                    await svc.store(
-                        agent_uuid,
-                        user_uuid,
-                        key,
-                        raw_value,
-                        importance=importance_val,
-                        summary=summary,
+                    # 提取用于 embedding 的文本（与 MemoryService._extract_text 一致）
+                    if isinstance(raw_value, dict) and "text" in raw_value:
+                        text = str(raw_value["text"])[:2000]
+                    else:
+                        text = json.dumps(raw_value, ensure_ascii=False)[:2000]
+                    vectors = await provider.embed([text])
+                    embedding_str = json.dumps(vectors[0])
+
+                    # 仅更新该行的 embedding 列，避免二次 UPSERT
+                    row = (
+                        db.query(AgentMemoryLongTerm)
+                        .filter(
+                            AgentMemoryLongTerm.agent_id == agent_uuid,
+                            AgentMemoryLongTerm.user_id == user_uuid,
+                            AgentMemoryLongTerm.key == key,
+                        )
+                        .first()
                     )
+                    if row is not None:
+                        row.embedding = embedding_str
+                        db.commit()
             except Exception as e:
                 # embedding 失败不影响 KV 已保存；异常脱敏：仅记录类型名
                 logger.warning(

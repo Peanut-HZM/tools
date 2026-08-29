@@ -22,6 +22,7 @@ class MemoryEntry:
     importance: float = 0.5
     access_count: int = 0
     summary: Optional[str] = None
+    has_embedding: bool = False
 
 
 class MemoryService:
@@ -157,7 +158,7 @@ class MemoryService:
                    1 - (embedding <=> :query_vec::vector) AS similarity
             FROM agent_memory_long_term
             WHERE agent_id = :agent_id
-              AND (user_id = :user_id OR user_id IS NULL)
+              AND user_id = :user_id
               AND embedding IS NOT NULL
             ORDER BY embedding <=> :query_vec::vector
             LIMIT :top_k
@@ -275,6 +276,7 @@ class MemoryService:
             MemoryEntry(
                 key=r.key, value=r.value, importance=r.importance,
                 access_count=r.access_count, summary=r.summary,
+                has_embedding=r.embedding is not None,
             )
             for r in rows
         ]

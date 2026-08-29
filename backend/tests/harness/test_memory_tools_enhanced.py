@@ -1,11 +1,12 @@
 """增强版 memory 工具测试（Phase 3 Plan-1B / Task 4）
 
 覆盖：
-1. memory_write 写入时自动调用 MemoryService.store 生成 embedding
+1. memory_write 写入时直接调用 provider.embed 并更新 embedding 列
 2. memory_search 返回检索结果（含 records/count 字段）
 3. memory_search 空 query 返回错误
 4. memory_search.is_available 与 Agent.memory_long_term_enabled 联动
 """
+import json
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -37,93 +38,81 @@ def _make_ctx(db=None, agent_id=None, user_id=None):
 
 @pytest.mark.asyncio
 async def test_memory_write_generates_embedding():
-    """memory_write 写入时自动调用 MemoryService.store 生成 embedding。
+    """memory_write 写入时直接调用 provider.embed 并更新 embedding 列。
 
-    通过 mock MemoryService 验证：
-    - MemoryService 实例被创建
-    - MemoryService.store 被 await 调用
+    通过 mock provider 验证：
+    - create_embedding_provider 被调用
+    - provider.embed 被 await 调用（提取文本 "hello"）
+    - 该行 embedding 列被更新为 JSON 序列化后的向量
     - execute 返回 success=True
     """
-    # mock DB：query.filter.first 返回 None（不存在记录 → 走 created 分支）
+    # mock DB：query.filter.first 返回已存在的行（→ 走 updated 分支）
+    mock_row = MagicMock()
     mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-    mock_db.query.return_value.filter.return_value.count.return_value = 0
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_row
 
     ctx = _make_ctx(db=mock_db)
 
-    with patch(
-        "app.services.harness.memory_service.MemoryService"
-    ) as mock_svc_cls:
-        mock_svc = mock_svc_cls.return_value
-        mock_svc.store = AsyncMock()
+    with patch.object(
+        MemoryWriteTool,
+        "_resolve_agent_config",
+        return_value={"embedding_provider": "openai"},
+    ):
+        with patch(
+            "app.services.harness.embeddings.factory.create_embedding_provider"
+        ) as mock_factory:
+            provider = MagicMock()
+            provider.embed = AsyncMock(return_value=[[0.1, 0.2, 0.3]])
+            mock_factory.return_value = provider
 
-        # mock embedding provider 配置存在 → 走 embedding 分支
-        with patch.object(
-            MemoryWriteTool,
-            "_resolve_agent_config",
-            return_value={"embedding_provider": "openai"},
-        ):
-            with patch(
-        "app.services.harness.embeddings.factory.create_embedding_provider"
-    ) as mock_factory:
-                mock_factory.return_value = MagicMock()
-
-                tool = MemoryWriteTool()
-                result = await tool.execute(
-                    {
-                        "key": "test_key",
-                        "value": {"text": "hello"},
-                        "importance": 0.8,
-                    },
-                    ctx,
-                )
+            tool = MemoryWriteTool()
+            result = await tool.execute(
+                {
+                    "key": "test_key",
+                    "value": {"text": "hello"},
+                    "importance": 0.8,
+                },
+                ctx,
+            )
 
     # 验证返回成功
     assert result.success is True
-    # 验证 MemoryService.store 被调用过一次
-    assert mock_svc.store.call_count == 1
-    # 验证 call 参数：包含 importance=0.8
-    call_args = mock_svc.store.call_args
-    # call_args.args 位置参数: (agent_uuid, user_uuid, key, value, importance)
-    assert call_args.args[2] == "test_key"  # key
-    assert call_args.args[3] == {"text": "hello"}  # value
-    # importance 通过 keyword 或位置传，宽松断言
-    assert call_args.kwargs.get("importance") == 0.8 or (
-        len(call_args.args) > 4 and call_args.args[4] == 0.8
-    )
+    assert result.content["action"] == "updated"
+    # create_embedding_provider 被调用一次
+    assert mock_factory.call_count == 1
+    # provider.embed 被 await 调用，传入提取的文本
+    provider.embed.assert_awaited_once_with(["hello"])
+    # embedding 列被更新为 JSON 序列化后的向量
+    assert mock_row.embedding == json.dumps([0.1, 0.2, 0.3])
 
 
 @pytest.mark.asyncio
 async def test_memory_write_embedding_failure_does_not_fail_write():
     """embedding 生成失败时，写入仍然成功（best-effort）"""
+    mock_row = MagicMock()
     mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-    mock_db.query.return_value.filter.return_value.count.return_value = 0
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_row
 
     ctx = _make_ctx(db=mock_db)
 
-    # MemoryService.store 抛异常 → 应被捕获，不影响 KV 已保存的结果
-    with patch(
-        "app.services.harness.memory_service.MemoryService"
-    ) as mock_svc_cls:
-        mock_svc = mock_svc_cls.return_value
-        mock_svc.store = AsyncMock(side_effect=RuntimeError("API down"))
+    # provider.embed 抛异常 → 应被捕获，不影响 KV 已保存的结果
+    with patch.object(
+        MemoryWriteTool,
+        "_resolve_agent_config",
+        return_value={"embedding_provider": "openai"},
+    ):
+        with patch(
+            "app.services.harness.embeddings.factory.create_embedding_provider"
+        ) as mock_factory:
+            provider = MagicMock()
+            provider.embed = AsyncMock(side_effect=RuntimeError("API down"))
+            mock_factory.return_value = provider
 
-        with patch.object(
-            MemoryWriteTool,
-            "_resolve_agent_config",
-            return_value={"embedding_provider": "openai"},
-        ):
-            with patch(
-        "app.services.harness.embeddings.factory.create_embedding_provider"
-    ) as mock_factory:
-                mock_factory.return_value = MagicMock()
-
-                tool = MemoryWriteTool()
-                result = await tool.execute(
-                    {"key": "k", "value": {"text": "v"}},
-                    ctx,
-                )
+            tool = MemoryWriteTool()
+            result = await tool.execute(
+                {"key": "k", "value": {"text": "v"}},
+                ctx,
+            )
 
     # KV 已 commit，execute 应返回成功
     assert result.success is True
@@ -140,11 +129,8 @@ async def test_memory_write_no_embedding_provider_skips_embedding():
     ctx = _make_ctx(db=mock_db)
 
     with patch(
-        "app.services.harness.memory_service.MemoryService"
-    ) as mock_svc_cls:
-        mock_svc = mock_svc_cls.return_value
-        mock_svc.store = AsyncMock()
-
+        "app.services.harness.embeddings.factory.create_embedding_provider"
+    ) as mock_factory:
         with patch.object(
             MemoryWriteTool,
             "_resolve_agent_config",
@@ -157,8 +143,8 @@ async def test_memory_write_no_embedding_provider_skips_embedding():
             )
 
     assert result.success is True
-    # 未配置 embedding_provider → MemoryService.store 不应被调用
-    mock_svc.store.assert_not_called()
+    # 未配置 embedding_provider → create_embedding_provider 不应被调用
+    mock_factory.assert_not_called()
 
 
 # ============================================================

@@ -61,7 +61,7 @@ async def list_memories(
                 "importance": e.importance,
                 "access_count": e.access_count,
                 "summary": e.summary,
-                "has_embedding": True,  # 列表场景不读 embedding 列，避免加载 1536 维向量
+                "has_embedding": e.has_embedding,
             }
             for e in entries
         ],
