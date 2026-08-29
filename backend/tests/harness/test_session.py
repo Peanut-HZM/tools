@@ -161,51 +161,11 @@ def test_session_persist_rollback_on_commit_failure():
     assert len(session._dirty_messages) == 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="Phase 3-Plan-1D: Session.write_checkpoint 已移除，由 Runtime 显式调用 CheckpointService")
 async def test_write_checkpoint_creates_session_checkpoint_row():
-    """write_checkpoint 应创建 SessionCheckpoint 行并提交"""
-    with patch("app.models.harness_models.SessionCheckpoint") as mock_cp_cls:
-        session = _fake_session()
-        # 写一条用户消息，最后一条消息的 id 应被写入 messages_ref
-        msg = session.append_user_message("hello")
-        msg.id = "msg-1"
-        session.scratch_state = {"step": 3, "notes": "abc"}
-
-        db = MagicMock()
-
-        await session.write_checkpoint(db, step_index=7, phase="after_user_message")
-
-        # 验证 SessionCheckpoint 被构造时传入了正确的字段
-        mock_cp_cls.assert_called_once_with(
-            conversation_id=session.conversation.id,
-            step_index=7,
-            phase="after_user_message",
-            messages_ref="msg-1",
-            agent_state={"step": 3, "notes": "abc"},
-        )
-        # 验证 checkpoint 实例被加入 db 并提交
-        cp_instance = mock_cp_cls.return_value
-        db.add.assert_called_once_with(cp_instance)
-        db.commit.assert_called_once()
+    pass
 
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="Phase 3-Plan-1D: Session.write_checkpoint 已移除")
 async def test_write_checkpoint_with_no_messages():
-    """write_checkpoint 在没有消息时 messages_ref 应为 None"""
-    with patch("app.models.harness_models.SessionCheckpoint") as mock_cp_cls:
-        session = _fake_session()
-        session.scratch_state = {}
-
-        db = MagicMock()
-
-        await session.write_checkpoint(db, step_index=0, phase="before_tool")
-
-        mock_cp_cls.assert_called_once_with(
-            conversation_id=session.conversation.id,
-            step_index=0,
-            phase="before_tool",
-            messages_ref=None,
-            agent_state={},
-        )
-        db.add.assert_called_once()
-        db.commit.assert_called_once()
+    pass

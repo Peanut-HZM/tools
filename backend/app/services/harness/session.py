@@ -163,24 +163,3 @@ class Session:
     async def apersist(self, db):
         """async 持久化（与 persist 同义，phase 1 保留 async API）"""
         self.persist(db)
-
-    # ---- Checkpoint ----
-
-    async def write_checkpoint(self, db, step_index: int, phase: str):
-        """写 checkpoint（轻量版）
-
-        Phase 1：只记录 messages_ref（最后一条消息的 id）+ agent_state。
-        Phase 3：可在此处做完整快照（消息列表 / scratch_state / memory 引用）。
-        """
-        from app.models.harness_models import SessionCheckpoint
-
-        last_msg_id = self.messages[-1].id if self.messages else None
-        cp = SessionCheckpoint(
-            conversation_id=self.conversation.id,
-            step_index=step_index,
-            phase=phase,
-            messages_ref=last_msg_id,
-            agent_state=self.scratch_state.copy(),
-        )
-        db.add(cp)
-        db.commit()
