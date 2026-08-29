@@ -111,9 +111,11 @@ class ToolBinding(Base):
 
 
 class SessionCheckpoint(Base):
-    """会话 checkpoint（轻量版）
+    """会话 checkpoint（完整快照版）
 
-    参考 spec §5.7
+    Phase 1：轻量（仅 messages_ref + agent_state）
+    Phase 3-Plan-1D：扩展为完整快照 + DAG 分支
+    参考 spec §5.7 + Phase 3-Plan-1D-design §4
     """
 
     __tablename__ = "session_checkpoints"
@@ -127,14 +129,81 @@ class SessionCheckpoint(Base):
     step_index = Column(Integer, nullable=False)
     phase = Column(
         String(20), nullable=False
-    )  # after_user_message / before_tool / after_tool
-    messages_ref = Column(UUID(as_uuid=True), nullable=True)
+    )  # after_user_message / before_tool / after_tool / branch_point / merge_commit
+    messages_ref = Column(UUID(as_uuid=True), nullable=True)  # Phase 1 兼容字段
     agent_state = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # === Phase 3-Plan-1D 新增字段 ===
+    branch_id = Column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
+    parent_checkpoint_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("session_checkpoints.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    messages_snapshot = Column(JSONB, nullable=False, default=list)
+    checkpoint_kind = Column(String(20), nullable=False, default="auto")
+    # auto / manual / branch_point / merge_commit
+    label = Column(String(100), nullable=True)
+    merge_parents = Column(JSONB, nullable=True)  # 多父合并时存 [cp_id1, cp_id2]
+    is_head = Column(Boolean, nullable=False, default=False)
+
     __table_args__ = (
         Index("ix_checkpoints_conv_step", "conversation_id", "step_index"),
+        Index("ix_checkpoints_branch", "branch_id"),
     )
+
+    def __init__(self, **kwargs):
+        import copy
+
+        _defaults = {
+            "messages_snapshot": [],
+            "agent_state": {},
+            "checkpoint_kind": "auto",
+            "is_head": False,
+        }
+        for key, value in _defaults.items():
+            kwargs.setdefault(key, copy.copy(value) if isinstance(value, (dict, list)) else value)
+        if "branch_id" not in kwargs:
+            kwargs["branch_id"] = uuid.uuid4()
+        super().__init__(**kwargs)
+
+
+class Branch(Base):
+    """会话分支（DAG 中的链）
+
+    参考 Phase 3-Plan-1D-design §4.2
+    """
+
+    __tablename__ = "branches"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name = Column(String(100), nullable=False)
+    parent_branch_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("branches.id"),
+        nullable=True,
+    )
+    head_checkpoint_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("session_checkpoints.id"),
+        nullable=True,
+    )
+    is_archived = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    closed_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("ix_branches_conv", "conversation_id"),
+    )
+
+    def __repr__(self):
+        return f"<Branch(id={self.id}, name={self.name}, archived={self.is_archived})>"
 
 
 class AgentMemory(Base):
