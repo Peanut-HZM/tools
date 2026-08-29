@@ -33,7 +33,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.dependencies import get_current_user, get_db
 from app.main import app
 from app.models.conversation import Conversation
-from app.models.harness_models import Branch
+from app.models.harness_models import Branch, SessionCheckpoint
 
 
 # ---------------------------------------------------------------------------
@@ -368,6 +368,47 @@ def test_tenant_isolation_own_conv_passes(client, auth_headers, real_db):
     )
     assert response.status_code == 200
     assert response.json() == []  # 无分支
+
+
+def test_list_checkpoints_idor_other_conv_branch_rejected(client, auth_headers, real_db):
+    """IDOR 防护：user A 的 conv 不能读取 user B 的 branch 的 checkpoints
+
+    场景：
+    - user A 拥有 conv-A（通过 _check_tenant 校验）
+    - user A 尝试访问 branch-B（属于 conv-B，user B 拥有）
+    - 应返回 404（branch 不属于 conv-A）
+
+    这是 HIGH 安全 finding 的回归测试 — 防止通过 list_checkpoints 端点
+    跨租户读取其他用户的 checkpoint 数据。
+    """
+    # user A 拥有 conv-A
+    user_a_conv = Conversation(
+        id=CONV_ID,
+        user_id=str(USER_ID),
+        title="user A 的会话",
+    )
+    # user B 拥有 conv-B，包含 branch-B
+    user_b_conv = Conversation(
+        id=CONV_B_ID,
+        user_id=str(USER_B_ID),
+        title="user B 的私密会话",
+    )
+    user_b_branch = Branch(
+        id=BRANCH_ID,
+        conversation_id=CONV_B_ID,  # branch 属于 conv-B
+        name="user B 的私密分支",
+        is_archived=False,
+    )
+    real_db.add_all([user_a_conv, user_b_conv, user_b_branch])
+    real_db.commit()
+
+    # user A 请求访问 conv-A 下的 branch-B（实际属于 conv-B）
+    response = client.get(
+        f"/api/v1/harness/conversations/{CONV_ID}/branches/{BRANCH_ID}/checkpoints",
+        headers=auth_headers,
+    )
+    assert response.status_code == 404
+    assert "分支不存在" in response.json()["detail"]
 
 
 # ---------------------------------------------------------------------------

@@ -227,6 +227,10 @@ async def list_checkpoints(
 ):
     """列出分支 checkpoint"""
     _check_tenant(db, conversation_id, current_user)
+    # IDOR 防护：branch_id 必须属于 conversation_id
+    branch = db.query(Branch).filter(Branch.id == branch_id).first()
+    if branch is None or branch.conversation_id != conversation_id:
+        raise HTTPException(status_code=404, detail="分支不存在")
     cs = CheckpointService(db)
     cps = cs.list_checkpoints(branch_id, include_detached=include_detached)
     return [_format_checkpoint(c) for c in cps]
