@@ -27,6 +27,7 @@ from app.services.harness.events import Event
 from app.services.harness.llm_bridge import LLMFunctionBridge
 from app.services.harness.tool_protocol import ToolContext
 from app.services.harness.tool_registry import ToolRegistry
+from app.services.harness.tools.image_gen import ImageGenTool
 from app.services.harness.session import Session as HarnessSession
 from app.services.harness.trace_recorder import TraceRecorder
 from app.services.llm.ordered_gateway import OrderedLLMGateway
@@ -99,6 +100,8 @@ async def chat_stream(
     llm_gateway = OrderedLLMGateway(db)
     llm_bridge = LLMFunctionBridge(llm_gateway)
     tool_registry = ToolRegistry(db)
+    # 注册内置工具（保持与 WebSearchTool / DbQueryTool 等内置工具一致的按需注册风格）
+    tool_registry.register_builtin(ImageGenTool())
     trace_recorder = TraceRecorder(db)
 
     # 加载对话历史到 Session（best-effort）

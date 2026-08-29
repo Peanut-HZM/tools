@@ -204,6 +204,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Harness 模块初始化失败: {e}")
 
+    # ImageGenTool 模块可用性（运行时按需注册到 ToolRegistry）
+    try:
+        from app.services.harness.tools.image_gen import ImageGenTool  # noqa: F401
+
+        logger.info("Harness ImageGenTool 模块已就绪（按需注册）")
+    except Exception as e:
+        logger.warning("ImageGenTool 模块加载失败: %s", type(e).__name__)
+
     # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")
 
