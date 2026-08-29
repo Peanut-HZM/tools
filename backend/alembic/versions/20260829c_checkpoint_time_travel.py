@@ -28,6 +28,23 @@ def upgrade():
         ADD COLUMN IF NOT EXISTS main_branch_id UUID
         """
     )
+    # main_branch_id FK 约束（幂等：仅当约束不存在时添加）
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'fk_conversations_main_branch_id_branches'
+                AND table_name = 'conversations'
+            ) THEN
+                ALTER TABLE conversations
+                ADD CONSTRAINT fk_conversations_main_branch_id_branches
+                FOREIGN KEY (main_branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+            END IF;
+        END$$;
+        """
+    )
 
     # ---- session_checkpoints 表扩展 ----
     op.execute(
@@ -103,6 +120,29 @@ def upgrade():
         """
     )
 
+    # ---- 回填：每个 conversation 创建 '主线' branch（若尚无），然后把所有
+    # 旧 checkpoint.branch_id 散落的"幽灵分支"指回主线，避免悬空 ----
+    op.execute(
+        """
+        INSERT INTO branches (id, conversation_id, name, created_at)
+        SELECT gen_random_uuid(), c.id, '主线', NOW()
+        FROM conversations c
+        WHERE NOT EXISTS (
+            SELECT 1 FROM branches b WHERE b.conversation_id = c.id
+        )
+        """
+    )
+    op.execute(
+        """
+        UPDATE session_checkpoints sc
+        SET branch_id = b.id
+        FROM branches b
+        WHERE b.conversation_id = sc.conversation_id
+          AND b.name = '主线'
+          AND sc.branch_id NOT IN (SELECT id FROM branches)
+        """
+    )
+
 
 def downgrade():
     # ---- branches 表删除 ----
@@ -120,5 +160,8 @@ def downgrade():
     op.execute("ALTER TABLE session_checkpoints DROP COLUMN IF EXISTS branch_id")
 
     # ---- conversations 表回退 ----
+    op.execute(
+        "ALTER TABLE conversations DROP CONSTRAINT IF EXISTS fk_conversations_main_branch_id_branches"
+    )
     op.execute("ALTER TABLE conversations DROP COLUMN IF EXISTS main_branch_id")
     op.execute("ALTER TABLE conversations DROP COLUMN IF EXISTS head_checkpoint_id")

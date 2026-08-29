@@ -51,7 +51,11 @@ class Conversation(Base):
         ForeignKey("session_checkpoints.id", ondelete="SET NULL"),
         nullable=True,
     )
-    main_branch_id = Column(UUID(as_uuid=True), nullable=True)
+    main_branch_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("branches.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     def __repr__(self):
         return f"<Conversation(id={self.id}, title={self.title}, stage={self.current_stage})>"
