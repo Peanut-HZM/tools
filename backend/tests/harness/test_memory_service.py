@@ -72,7 +72,7 @@ async def test_search_returns_entries(service, mock_provider):
 async def test_search_fallback_to_keyword(service, mock_provider):
     """向量检索失败时降级为关键词 LIKE"""
     mock_provider.embed.side_effect = RuntimeError("API unavailable")
-    # mock LIKE 查询
+    # mock LIKE 查询（注意：实现使用 self._db.query，不是 _db_session）
     mock_row = MagicMock()
     mock_row.key = "test_key"
     mock_row.value = {"text": "hello world"}
@@ -80,9 +80,11 @@ async def test_search_fallback_to_keyword(service, mock_provider):
     mock_row.access_count = 0
     mock_row.summary = None
 
-    service._db_session.query.return_value.filter.return_value.filter.return_value.all.return_value = [mock_row]
+    service._db.query.return_value.filter.return_value.filter.return_value.limit.return_value.all.return_value = [mock_row]
     results = await service.search(AGENT_ID, USER_ID, "hello", top_k=5)
-    assert len(results) >= 0  # 降级不报错
+    # 关键词搜索成功时返回 mock 行
+    assert len(results) == 1
+    assert results[0].key == "test_key"
 
 
 # --- get_by_key / list_all / delete 测试 ---

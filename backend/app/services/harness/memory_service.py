@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session as DBSession
 
-from app.services.harness.embeddings.provider import EmbeddingProvider, TARGET_DIMENSION
+from app.services.harness.embeddings.provider import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
 
@@ -98,8 +98,14 @@ class MemoryService:
         timeout_seconds: float = 5.0,
     ) -> List[MemoryEntry]:
         """向量检索 + 降级"""
-        if not self._provider or not query.strip():
-            return await self._keyword_search(agent_id, user_id, query, top_k)
+        # 空 / 空白 query：跳过向量与关键词两条路径
+        # 关键词 LIKE 会用 "%%" 匹配所有行，等同于返回任意 5 条
+        if not query or not query.strip():
+            return []
+
+        # 没有 embedding provider 时直接走关键词（带兜底异常保护）
+        if not self._provider:
+            return await self._safe_keyword_search(agent_id, user_id, query, top_k)
 
         try:
             results = await asyncio.wait_for(
@@ -113,7 +119,21 @@ class MemoryService:
         except Exception as e:
             logger.warning("向量检索失败: %s，降级为关键词搜索", type(e).__name__)
 
-        return await self._keyword_search(agent_id, user_id, query, top_k)
+        return await self._safe_keyword_search(agent_id, user_id, query, top_k)
+
+    async def _safe_keyword_search(
+        self,
+        agent_id: uuid.UUID,
+        user_id: uuid.UUID,
+        query: str,
+        top_k: int,
+    ) -> List[MemoryEntry]:
+        """关键词降级搜索（带异常保护，避免阻塞对话）"""
+        try:
+            return await self._keyword_search(agent_id, user_id, query, top_k)
+        except Exception as e:
+            logger.warning("关键词检索失败: %s", type(e).__name__)
+            return []
 
     async def _vector_search(
         self,
@@ -281,7 +301,7 @@ class MemoryService:
         return True
 
     @staticmethod
-    def _extract_text(value: Dict[str, Any]) -> str:
+    def _extract_text(value: Any) -> str:
         """从 JSONB value 中提取用于 embedding 的文本"""
         # 优先用 "text" 字段，否则 JSON dump
         if isinstance(value, dict) and "text" in value:
