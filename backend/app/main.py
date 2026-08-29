@@ -561,6 +561,11 @@ from app.api.routes import harness_traces  # noqa: E402
 
 app.include_router(harness_traces.router)
 
+# Harness checkpoint 时间旅行 router (Phase 3 Plan 1D / Task 4)
+from app.api.routes.harness_checkpoints import router as harness_checkpoints_router  # noqa: E402
+
+app.include_router(harness_checkpoints_router)
+
 
 @app.get("/")
 def read_root():
