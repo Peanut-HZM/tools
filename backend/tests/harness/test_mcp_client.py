@@ -11,7 +11,8 @@ from app.services.harness.mcp_client import McpClient, McpConnectionError
 @pytest.mark.asyncio
 async def test_mcp_client_connect_success():
     """测试成功连接"""
-    client = McpClient(server_url="http://localhost:3000")
+    # allow_private_hosts=True 因为 localhost 是环回地址，SSRF 防护默认拒绝
+    client = McpClient(server_url="http://localhost:3000", allow_private_hosts=True)
 
     with patch("app.services.harness.mcp_client.ClientSession") as mock_cls:
         mock_session = AsyncMock()
@@ -29,7 +30,7 @@ async def test_mcp_client_connect_success():
 @pytest.mark.asyncio
 async def test_mcp_client_connect_failure():
     """测试连接失败抛 McpConnectionError"""
-    client = McpClient(server_url="http://localhost:3000")
+    client = McpClient(server_url="http://localhost:3000", allow_private_hosts=True)
 
     with patch.object(client, "_connect_sse", new_callable=AsyncMock) as mock_sse:
         mock_sse.side_effect = Exception("Connection refused")
@@ -41,7 +42,7 @@ async def test_mcp_client_connect_failure():
 @pytest.mark.asyncio
 async def test_mcp_client_tools_list():
     """测试 tools/list 返回工具列表"""
-    client = McpClient(server_url="http://localhost:3000")
+    client = McpClient(server_url="http://localhost:3000", allow_private_hosts=True)
     mock_session = AsyncMock()
     client._session = mock_session
 
@@ -68,7 +69,7 @@ async def test_mcp_client_tools_list():
 @pytest.mark.asyncio
 async def test_mcp_client_tools_call_success():
     """测试工具调用成功"""
-    client = McpClient(server_url="http://localhost:3000")
+    client = McpClient(server_url="http://localhost:3000", allow_private_hosts=True)
     mock_session = AsyncMock()
     client._session = mock_session
 
@@ -88,7 +89,7 @@ async def test_mcp_client_tools_call_timeout():
     """测试工具调用超时"""
     import asyncio
 
-    client = McpClient(server_url="http://localhost:3000", timeout=1)
+    client = McpClient(server_url="http://localhost:3000", timeout=1, allow_private_hosts=True)
     mock_session = AsyncMock()
     client._session = mock_session
 
@@ -105,7 +106,7 @@ async def test_mcp_client_tools_call_timeout():
 @pytest.mark.asyncio
 async def test_mcp_client_disconnect():
     """测试断开连接"""
-    client = McpClient(server_url="http://localhost:3000")
+    client = McpClient(server_url="http://localhost:3000", allow_private_hosts=True)
     mock_session = AsyncMock()
     client._session = mock_session
 

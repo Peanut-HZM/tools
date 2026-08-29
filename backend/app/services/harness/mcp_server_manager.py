@@ -104,10 +104,14 @@ class McpServerManager:
         if server.headers_json:
             headers = json.loads(server.headers_json)
 
+        # allow_private_hosts=True：MCP server URL 来自管理员配置（admin UI），
+        # 管理员可能配置内网 MCP 服务（如 http://10.x.x.x:3000），需要允许私有 IP。
+        # SSRF 防护仍保留：scheme 校验、userinfo 校验等在 validate_url() 中生效。
         client = McpClient(
             server_url=server.server_url,
             headers=headers,
             timeout=server.timeout_seconds,
+            allow_private_hosts=True,
         )
         self._clients[server.id] = client
         return client
