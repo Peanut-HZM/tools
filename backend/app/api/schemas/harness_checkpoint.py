@@ -73,3 +73,19 @@ class RollbackResponse(BaseModel):
     conversation_head_checkpoint_id: UUID
     detached_checkpoint_count: int
     target_checkpoint: CheckpointResponse
+
+
+class CreateBranchResponse(BaseModel):
+    """POST /branches 响应：新建分支 + 首个 checkpoint"""
+    model_config = ConfigDict(from_attributes=True)
+
+    branch: BranchResponse
+    first_checkpoint: CheckpointResponse
+
+
+class MergeResponse(BaseModel):
+    """POST /branches/{id}/merge 响应：新分支 + merge commit"""
+    model_config = ConfigDict(from_attributes=True)
+
+    branch: BranchResponse
+    merge_commit: CheckpointResponse

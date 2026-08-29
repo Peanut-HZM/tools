@@ -2,13 +2,13 @@
 
 Phase 3-Plan-1D / Task 4
 """
+import json
 import logging
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import field_validator
 from sqlalchemy.orm import Session as DBSession
 
 from app.api.dependencies import get_current_user, get_db
@@ -16,7 +16,9 @@ from app.api.schemas.harness_checkpoint import (
     BranchResponse,
     CheckpointResponse,
     CreateBranchRequest,
+    CreateBranchResponse,
     MergeRequest,
+    MergeResponse,
     RollbackResponse,
 )
 from app.models.conversation import Conversation
@@ -25,15 +27,18 @@ from app.services.harness.checkpoint_service import CheckpointService
 
 logger = logging.getLogger(__name__)
 
+# 资源上限（防 Pydantic-外大对象撑爆 JSONB / 内存）
+MAX_MESSAGES_PER_CHECKPOINT = 200
+MAX_CONTENT_CHARS = 32000
+MAX_SCRATCH_STATE_BYTES = 65536  # 64 KB
+
 router = APIRouter(
     prefix="/api/v1/harness/conversations/{conversation_id}",
     tags=["harness-checkpoints"],
 )
 
 
-# ---- datetime → str 适配 ----
-# ORM created_at / closed_at 是 datetime，但 brief schema 声明为 str。
-# 用 field_validator(mode="before") 把 datetime 转成 ISO 字符串，保持 schema 字段类型与 brief 一致。
+# ---- ORM datetime → str 适配 ----
 
 def _datetime_to_str(v):
     if v is None:
@@ -42,11 +47,6 @@ def _datetime_to_str(v):
         return v.isoformat()
     return v
 
-
-# 给 CheckpointResponse.created_at / BranchResponse.created_at + closed_at 注入 validator
-# （直接在 schema 上加 validator 是改动 brief；这里通过 model_validate 之前手工转换更轻量）
-# 但 ORM → schema 这一步发生在路由层 model_validate；为保持 brief router 代码完全 verbatim，
-# 我们在 schema 构造之后用 dict 化 + 序列化路径走 router 内的 *_format_xxx() 函数（见下）。
 
 def _format_checkpoint(cp: SessionCheckpoint) -> dict:
     """把 ORM SessionCheckpoint 转成 dict（datetime → ISO 字符串）"""
@@ -85,6 +85,17 @@ def _get_service(db: DBSession = Depends(get_db)) -> CheckpointService:
     return CheckpointService(db)
 
 
+def _check_tenant(db: DBSession, conversation_id: UUID, current_user: dict) -> Conversation:
+    """租户隔离校验：current_user 必须拥有 conversation；否则 404（不泄漏存在性）
+
+    返回 Conversation 对象供后续 handler 复用。
+    """
+    conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if conv is None or conv.user_id != current_user["id"]:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    return conv
+
+
 # ---- 分支 ----
 
 @router.get("/branches", response_model=List[BranchResponse])
@@ -94,6 +105,7 @@ async def list_branches(
     current_user: dict = Depends(get_current_user),
 ):
     """列出会话的所有分支"""
+    _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
     branches = cs.list_branches(conversation_id)
     logger.info(
@@ -105,7 +117,7 @@ async def list_branches(
     return [_format_branch(b) for b in branches]
 
 
-@router.post("/branches", status_code=status.HTTP_201_CREATED)
+@router.post("/branches", status_code=status.HTTP_201_CREATED, response_model=CreateBranchResponse)
 async def create_branch(
     conversation_id: UUID,
     req: CreateBranchRequest,
@@ -113,6 +125,7 @@ async def create_branch(
     current_user: dict = Depends(get_current_user),
 ):
     """从某个 checkpoint 创建新分支"""
+    _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
     try:
         branch, first_cp = cs.branch_from(
@@ -122,8 +135,8 @@ async def create_branch(
         )
     except ValueError as e:
         logger.warning(
-            "create_branch failed conversation_id=%s error=%s",
-            conversation_id, e,
+            "create_branch failed conversation_id=%s error_type=%s",
+            conversation_id, type(e).__name__,
         )
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -145,6 +158,7 @@ async def get_branch(
     current_user: dict = Depends(get_current_user),
 ):
     """获取分支详情"""
+    _check_tenant(db, conversation_id, current_user)
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if branch is None or branch.conversation_id != conversation_id:
         raise HTTPException(status_code=404, detail="分支不存在")
@@ -161,6 +175,7 @@ async def update_branch(
     current_user: dict = Depends(get_current_user),
 ):
     """更新分支（改名 / 归档）"""
+    _check_tenant(db, conversation_id, current_user)
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if branch is None or branch.conversation_id != conversation_id:
         raise HTTPException(status_code=404, detail="分支不存在")
@@ -172,8 +187,11 @@ async def update_branch(
             branch.closed_at = datetime.utcnow()
     db.commit()
     logger.info(
-        "update_branch branch_id=%s name=%s is_archived=%s user_id=%s",
-        branch_id, name, is_archived, current_user.get("id"),
+        "update_branch branch_id=%s name_len=%s is_archived=%s user_id=%s",
+        branch_id,
+        len(name) if isinstance(name, str) else 0,
+        is_archived,
+        current_user.get("id"),
     )
     return _format_branch(branch)
 
@@ -186,6 +204,7 @@ async def delete_branch(
     current_user: dict = Depends(get_current_user),
 ):
     """删除分支（checkpoint 保留）"""
+    _check_tenant(db, conversation_id, current_user)
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if branch is None or branch.conversation_id != conversation_id:
         raise HTTPException(status_code=404, detail="分支不存在")
@@ -207,6 +226,7 @@ async def list_checkpoints(
     current_user: dict = Depends(get_current_user),
 ):
     """列出分支 checkpoint"""
+    _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
     cps = cs.list_checkpoints(branch_id, include_detached=include_detached)
     return [_format_checkpoint(c) for c in cps]
@@ -222,6 +242,7 @@ async def get_checkpoint(
     current_user: dict = Depends(get_current_user),
 ):
     """获取单个 checkpoint"""
+    _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
     cp = cs.get_checkpoint(checkpoint_id)
     if cp is None or cp.conversation_id != conversation_id:
@@ -241,11 +262,24 @@ async def write_checkpoint_manual(
     current_user: dict = Depends(get_current_user),
 ):
     """手动写入 checkpoint"""
+    conv = _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
 
-    conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
-    if conv is None:
-        raise HTTPException(status_code=404, detail="conversation 不存在")
+    # 资源上限校验（防 JSONB / 内存膨胀）
+    if len(messages) > MAX_MESSAGES_PER_CHECKPOINT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"messages 数量超限 (max={MAX_MESSAGES_PER_CHECKPOINT})",
+        )
+    scratch_bytes = len(
+        json.dumps(scratch_state, ensure_ascii=False).encode("utf-8")
+    )
+    if scratch_bytes > MAX_SCRATCH_STATE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"scratch_state 过大 (max={MAX_SCRATCH_STATE_BYTES} bytes)",
+        )
+
     if not conv.main_branch_id:
         branch = Branch(conversation_id=conversation_id, name="主线")
         db.add(branch)
@@ -259,7 +293,11 @@ async def write_checkpoint_manual(
             self.id = d.get("id")
             self.sender_type = d.get("sender_type", "user")
             self.role = d.get("role", self.sender_type)
-            self.content = d.get("content", "")
+            content = d.get("content", "")
+            # 截断过长的 content
+            if isinstance(content, str) and len(content) > MAX_CONTENT_CHARS:
+                content = content[:MAX_CONTENT_CHARS]
+            self.content = content
             self.message_type = d.get("message_type", "text")
             self.sent_at = None
             self.tool_calls = d.get("tool_calls")
@@ -282,8 +320,8 @@ async def write_checkpoint_manual(
         label=label,
     )
     logger.info(
-        "write_checkpoint_manual conversation_id=%s step=%s phase=%s user_id=%s",
-        conversation_id, step_index, phase, current_user.get("id"),
+        "write_checkpoint_manual conversation_id=%s step=%s phase=%s messages=%d user_id=%s",
+        conversation_id, step_index, phase, len(messages), current_user.get("id"),
     )
     return _format_checkpoint(cp)
 
@@ -296,6 +334,7 @@ async def rollback(
     current_user: dict = Depends(get_current_user),
 ):
     """回滚到该 checkpoint"""
+    _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
     try:
         target, detached_n = cs.rollback(
@@ -304,8 +343,8 @@ async def rollback(
         )
     except ValueError as e:
         logger.warning(
-            "rollback failed conversation_id=%s target=%s error=%s",
-            conversation_id, checkpoint_id, e,
+            "rollback failed conversation_id=%s target=%s error_type=%s",
+            conversation_id, checkpoint_id, type(e).__name__,
         )
         raise HTTPException(status_code=400, detail=str(e))
     logger.info(
@@ -319,7 +358,7 @@ async def rollback(
     }
 
 
-@router.post("/branches/{branch_id}/merge", status_code=status.HTTP_201_CREATED)
+@router.post("/branches/{branch_id}/merge", status_code=status.HTTP_201_CREATED, response_model=MergeResponse)
 async def merge(
     conversation_id: UUID,
     branch_id: UUID,
@@ -328,6 +367,7 @@ async def merge(
     current_user: dict = Depends(get_current_user),
 ):
     """Pick-from 合并"""
+    _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
     try:
         new_branch, merge_commit = cs.merge_branches(
@@ -337,8 +377,8 @@ async def merge(
         )
     except ValueError as e:
         logger.warning(
-            "merge failed conversation_id=%s error=%s",
-            conversation_id, e,
+            "merge failed conversation_id=%s error_type=%s",
+            conversation_id, type(e).__name__,
         )
         raise HTTPException(status_code=400, detail=str(e))
     logger.info(
