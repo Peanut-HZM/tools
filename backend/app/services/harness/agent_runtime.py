@@ -13,6 +13,8 @@ import logging
 import uuid
 from typing import AsyncIterator, Optional
 
+from app.models.harness_models import Branch
+from app.services.harness.checkpoint_service import CheckpointService
 from app.services.harness.events import Event
 from app.services.harness.tool_protocol import ToolContext
 from app.services.harness.llm_bridge import LLMFunctionBridge, LLMResponse
@@ -74,6 +76,9 @@ class AgentRuntime:
             self.session.append_user_message(user_message)
         except Exception as e:
             logger.error(f"记录用户消息失败: {e}", exc_info=True)
+
+        # 2a. checkpoint（after_user_message）
+        await self._write_checkpoint("after_user_message")
 
         # 2b. 预取长期记忆（best-effort，不阻塞主循环）
         try:
@@ -207,6 +212,8 @@ class AgentRuntime:
 
                     for call in tool_calls:
                         yield Event.tool_call_start(call)
+                        # checkpoint（before_tool）
+                        await self._write_checkpoint("before_tool")
                         try:
                             tool_result = await self.tool_registry.execute(call, self.ctx)
                         except Exception as e:
@@ -218,6 +225,8 @@ class AgentRuntime:
                             self.session.append_tool_message(call, tool_result)
                         except Exception as e:
                             logger.error(f"记录 tool 消息失败: {e}", exc_info=True)
+                        # checkpoint（after_tool）
+                        await self._write_checkpoint("after_tool")
             else:
                 # for 循环正常结束（没 break）→ 达到最大步数
                 yield Event.error(
@@ -246,6 +255,68 @@ class AgentRuntime:
     # ------------------------------------------------------------------
     # 内部辅助方法（全部 best-effort，不向主循环抛异常）
     # ------------------------------------------------------------------
+
+    def _ensure_main_branch(self) -> Optional[uuid.UUID]:
+        """懒加载创建主线分支
+
+        首次写入 checkpoint 时若 conversation.main_branch_id 为空，
+        自动创建一个名为「主线」的 Branch 并回写到 conversation.main_branch_id。
+        返回 main_branch_id；任何异常返回 None（调用方按"无分支"处理）。
+        """
+        try:
+            conversation = self.session.conversation
+            if not conversation.main_branch_id:
+                # 预生成分支 id，保证 mock db 下 conversation.main_branch_id 也能被赋值
+                branch = Branch(
+                    id=uuid.uuid4(),
+                    conversation_id=conversation.id,
+                    name="主线",
+                )
+                self.ctx.db.add(branch)
+                self.ctx.db.flush()
+                conversation.main_branch_id = branch.id
+                self.ctx.db.commit()
+                logger.info(
+                    "懒加载创建主线分支 conv=%s branch=%s",
+                    conversation.id,
+                    branch.id,
+                )
+            return conversation.main_branch_id
+        except Exception as e:
+            logger.error(f"创建主线分支失败: {e}", exc_info=True)
+            try:
+                self.ctx.db.rollback()
+            except Exception:
+                pass
+            return None
+
+    async def _write_checkpoint(self, phase: str):
+        """写入 checkpoint（完整快照），通过 CheckpointService
+
+        best-effort：任何异常均吞掉，不向主循环抛异常。
+        - phase: after_user_message / before_tool / after_tool
+        - step_index: 当前步数（after_user_message 时为 0）
+        - branch_id: conversation.main_branch_id（缺失则懒加载创建）
+        """
+        try:
+            branch_id = self._ensure_main_branch()
+            if branch_id is None:
+                return
+
+            conversation = self.session.conversation
+            cs = CheckpointService(self.ctx.db)
+            cs.write_checkpoint(
+                conversation_id=conversation.id,
+                step_index=self._step_count,
+                phase=phase,
+                messages=list(self.session.messages),
+                scratch_state=dict(self.session.scratch_state),
+                branch_id=branch_id,
+            )
+        except Exception as e:
+            logger.error(
+                "写入 checkpoint 失败 (phase=%s): %s", phase, type(e).__name__, exc_info=True
+            )
 
     def _build_messages_for_llm(self):
         """应用短期记忆策略 + 注入 system prompt + 长期记忆"""

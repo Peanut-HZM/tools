@@ -1,4 +1,4 @@
-import { BarChart3, FileText, FileDown, Brain, Activity } from 'lucide-react';
+import { BarChart3, FileText, FileDown, Brain, Activity, Clock } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,7 @@ import PRDPreview from '../ProductManagerAgent/PRDPreview';
 import ExportDialog from '../ProductManagerAgent/ExportDialog';
 import { MemoryViewer } from '../Harness/MemoryViewer';
 import { TraceViewer } from '../Harness/TraceViewer';
+import { TimelinePanel } from '../Harness/TimeTravel/TimelinePanel';
 
 const ProductManagerAgent: React.FC = () => {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const ProductManagerAgent: React.FC = () => {
   const [showCompetitorAnalysis, setShowCompetitorAnalysis] = useState(false);
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
   const [showTracesPanel, setShowTracesPanel] = useState(false);
+  const [showTimeTravelPanel, setShowTimeTravelPanel] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -343,13 +345,21 @@ const ProductManagerAgent: React.FC = () => {
                   <Activity className="w-3.5 h-3.5 mr-1" />
                   执行追踪 {showTracesPanel ? '▲' : '▼'}
                 </Button>
+                <Button
+                  onClick={() => setShowTimeTravelPanel(!showTimeTravelPanel)}
+                  variant={showTimeTravelPanel ? "default" : "ghost"}
+                  size="sm"
+                >
+                  <Clock className="w-3.5 h-3.5 mr-1" />
+                  时间旅行 {showTimeTravelPanel ? '▲' : '▼'}
+                </Button>
               </div>
             </div>
 
             {/* Content Area - Split view for Chat and side panels */}
             <div className="flex-1 flex overflow-hidden">
               {/* Chat Area */}
-              <div className={`flex-1 ${showPRDPreview || ((showMemoryPanel || showTracesPanel) && selectedAgentId) ? 'w-1/2 border-r border-border' : 'w-full'}`}>
+              <div className={`flex-1 ${showPRDPreview || ((showMemoryPanel || showTracesPanel) && selectedAgentId) || (showTimeTravelPanel && conversationId) ? 'w-1/2 border-r border-border' : 'w-full'}`}>
                 <ChatInterface
                   messages={messages}
                   sending={loading}
@@ -377,6 +387,13 @@ const ProductManagerAgent: React.FC = () => {
               {showTracesPanel && selectedAgentId && (
                 <div className="w-1/2 overflow-auto">
                   <TraceViewer agentId={selectedAgentId} conversationId={conversationId} />
+                </div>
+              )}
+
+              {/* 时间旅行面板 */}
+              {showTimeTravelPanel && conversationId && (
+                <div className="w-1/2 overflow-auto">
+                  <TimelinePanel conversationId={conversationId} />
                 </div>
               )}
 

@@ -71,6 +71,7 @@ from app.models.harness_models import (
     AgentMemory,
     Trace,
     TraceStep,
+    Branch,  # Phase 3-Plan-1D 新增
 )  # noqa: F401
 
 # Harness Phase 2 Memory Long-term

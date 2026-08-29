@@ -45,5 +45,17 @@ class Conversation(Base):
     )
     metadata_ = Column("metadata", JSONB, default=dict)
 
+    # === Checkpoint 时间旅行（Phase 3-Plan-1D）新增字段 ===
+    head_checkpoint_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("session_checkpoints.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    main_branch_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("branches.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     def __repr__(self):
         return f"<Conversation(id={self.id}, title={self.title}, stage={self.current_stage})>"
