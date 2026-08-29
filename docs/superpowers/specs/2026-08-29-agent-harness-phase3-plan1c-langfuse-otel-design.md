@@ -251,13 +251,33 @@ class TraceRecorder:
                 logger.warning("OTel end_trace 失败: %s", e)
 ```
 
-### 4.3 关键设计点
+### 4.3 trace → OTel span 映射辅助函数
+
+```python
+# otel_init.py 中追加（模块级）
+_TRACE_SPANS: Dict[uuid.UUID, Any] = {}  # trace_id -> OTel span
+
+def _register_trace_span(trace_id, span):
+    _TRACE_SPANS[trace_id] = span
+
+def _find_trace_otel_span(trace_id):
+    return _TRACE_SPANS.get(trace_id)
+
+def _unregister_trace_span(trace_id):
+    _TRACE_SPANS.pop(trace_id, None)
+```
+
+`TraceRecorder` 通过 `from .otel_init import _register_trace_span, _find_trace_otel_span, _unregister_trace_span` 调用。
+
+### 4.4 关键设计点
 
 1. **`_get_tracer()` 模块级函数**：从 `otel_init.py` 暴露的缓存获取，避免每次构造 `TraceRecorder` 都查
-2. **trace → otel_span 映射**：用模块级 `WeakValueDictionary` 或普通 dict 维护 `trace_id → otel_span`，让 step 能找到 parent
+2. **trace → otel_span 映射**：用模块级 dict 维护 `trace_id → otel_span`，让 step 能找到 parent（trace 结束时 unregister）
 3. **`_otel_span` 临时属性**：存在 ORM 实例上，commit 后仍可用；ORM 实例销毁时 span 已 end 不影响
 4. **OTel 失败隔离**：所有 OTel 调用包在 `try/except` 中，失败只 log warning，不影响 DB 写入
 5. **依赖可选**：`opentelemetry-*` 加到 `requirements.txt` 但只在启用时 import
+6. **字段命名与 DB 模型一致**：`tokens_used`（非 `tokens`）、`total_duration_ms`（非 `duration_ms`）、`error_message`（非 `error`）、status 值遵循 harness_models.py 定义（`running | success | error | timeout | guardrail_blocked | handoff`）
+7. **TraceStep 无 started_at/completed_at**：只有 `created_at`，duration 以 `duration_ms` 字段存储；前端 step 表格不展示时间轴，只展示耗时
 
 ## 5. 配置
 
@@ -328,17 +348,15 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic cGstbGFuZ2Z1c2U6c2stbGFuZ2Z1c2U=
 class TraceStepResponse(BaseModel):
     id: uuid.UUID
     step_index: int
-    step_type: str             # "llm_call" | "tool_use" | "guardrail" | ...
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
-    duration_ms: Optional[int]
-    tokens: int
+    step_type: str             # "llm_call" | "tool_call" | "handoff" | "guardrail" | "memory_read" | "memory_write"
+    created_at: datetime
+    duration_ms: int
+    tokens_used: int
     tool_name: Optional[str]
     llm_model: Optional[str]
     input_summary: Optional[str]
     output_summary: Optional[str]
-    error: Optional[str]
-    metadata: Optional[dict]
+    metadata: Optional[dict]   # 包含 error（如有）
 
 class TraceResponse(BaseModel):
     id: uuid.UUID
@@ -347,12 +365,13 @@ class TraceResponse(BaseModel):
     user_id: uuid.UUID
     input_text: str
     output_text: Optional[str]
-    status: str                # "running" | "completed" | "failed"
+    status: str                # "running" | "success" | "error" | "timeout" | "guardrail_blocked" | "handoff"
     started_at: datetime
     completed_at: Optional[datetime]
-    duration_ms: Optional[int]
+    total_duration_ms: int
     total_steps: int
     total_tokens: int
+    error_message: Optional[str]
     steps: List[TraceStepResponse]  # 仅 detail 端点返回
 
 class TraceListResponse(BaseModel):
@@ -431,8 +450,8 @@ GET /api/v1/harness/agents/{agent_id}/traces
 1. **Conversation 自动过滤**：打开 panel 时，用当前 `conversationId`（store 中）查 traces
 2. **轮询刷新**：展开时每 5 秒拉一次列表（trace 可能在运行中），折叠时停止
 3. **Trace 选中**：点击列表项 → 调用 detail API 拿 steps → 表格渲染
-4. **状态图标**：`running`=旋转、`completed`=✓、`failed`=✗
-5. **错误高亮**：step 有 error 字段时行背景变红
+4. **状态图标**：`running`=旋转、`success`=✓、`error`/`timeout`=✗
+5. **错误高亮**：trace 有 `error_message` 或 step `metadata.error` 存在时行背景变红
 6. **空状态**：无 trace 时显示"本次对话还没有执行记录"
 
 ### API 调用示例
@@ -479,16 +498,15 @@ export async function getTrace(
 export interface TraceStep {
   id: string;
   step_index: number;
-  step_type: string;
-  started_at: string | null;
-  completed_at: string | null;
-  duration_ms: number | null;
-  tokens: number;
+  step_type: string;   // "llm_call" | "tool_call" | "handoff" | "guardrail" | "memory_read" | "memory_write"
+  created_at: string;
+  duration_ms: number;
+  tokens_used: number;
   tool_name: string | null;
   llm_model: string | null;
   input_summary: string | null;
   output_summary: string | null;
-  error: string | null;
+  metadata: Record<string, any> | null;
 }
 
 export interface Trace {
@@ -498,12 +516,13 @@ export interface Trace {
   user_id: string;
   input_text: string;
   output_text: string | null;
-  status: 'running' | 'completed' | 'failed';
+  status: 'running' | 'success' | 'error' | 'timeout' | 'guardrail_blocked' | 'handoff';
   started_at: string;
   completed_at: string | null;
-  duration_ms: number | null;
+  total_duration_ms: number;
   total_steps: number;
   total_tokens: number;
+  error_message: string | null;
   steps?: TraceStep[];
 }
 ```
