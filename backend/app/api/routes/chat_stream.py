@@ -100,7 +100,7 @@ async def chat_stream(
     llm_gateway = OrderedLLMGateway(db)
     llm_bridge = LLMFunctionBridge(llm_gateway)
     tool_registry = ToolRegistry(db)
-    # 注册内置工具（保持与 WebSearchTool / DbQueryTool 等内置工具一致的按需注册风格）
+    # 注册内置工具（按需注册）
     tool_registry.register_builtin(ImageGenTool())
     trace_recorder = TraceRecorder(db)
 
