@@ -134,10 +134,10 @@ class Settings(BaseSettings):
     IMAGE_GENERATION_ENABLED: bool = True
 
     # 图像生成后端模式切换
-    # "dify"    — 全走 Dify（默认，安全回滚位）
+    # "dify"    — 全走 Dify（安全回滚位，出现问题时切回）
     # "harness" — 全走 harness（验证稳定后切换为目标状态）
-    # "dual"    — 双写对比（阶段 1 验证用）
-    IMAGE_GEN_BACKEND: str = "dify"
+    # "dual"    — 双写对比（默认，阶段 1 验证用）
+    IMAGE_GEN_BACKEND: str = "dual"
 
     @field_validator("IMAGE_GEN_BACKEND")
     @classmethod

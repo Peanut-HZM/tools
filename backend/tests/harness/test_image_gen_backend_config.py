@@ -28,11 +28,11 @@ class TestImageGenBackendConfig:
         import app.config.config as cfg_mod
         importlib.reload(cfg_mod)
 
-    def test_default_is_dify(self):
-        """未设置环境变量时，默认值应为 'dify'（安全回滚位）。"""
+    def test_default_is_dual(self):
+        """未设置环境变量时，默认值应为 'dual'（阶段 1 双写验证，dify 为安全回滚位）。"""
         Settings = _reload_settings(None)
         s = Settings()
-        assert s.IMAGE_GEN_BACKEND == "dify"
+        assert s.IMAGE_GEN_BACKEND == "dual"
 
     def test_explicit_harness(self):
         """显式设置 IMAGE_GEN_BACKEND=harness 应被接受。"""
