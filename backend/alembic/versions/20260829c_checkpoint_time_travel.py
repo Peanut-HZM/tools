@@ -28,23 +28,6 @@ def upgrade():
         ADD COLUMN IF NOT EXISTS main_branch_id UUID
         """
     )
-    # main_branch_id FK 约束（幂等：仅当约束不存在时添加）
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM information_schema.table_constraints
-                WHERE constraint_name = 'fk_conversations_main_branch_id_branches'
-                AND table_name = 'conversations'
-            ) THEN
-                ALTER TABLE conversations
-                ADD CONSTRAINT fk_conversations_main_branch_id_branches
-                FOREIGN KEY (main_branch_id) REFERENCES branches(id) ON DELETE SET NULL;
-            END IF;
-        END$$;
-        """
-    )
 
     # ---- session_checkpoints 表扩展 ----
     op.execute(
@@ -117,6 +100,24 @@ def upgrade():
         """
         CREATE INDEX IF NOT EXISTS ix_branches_conv
         ON branches(conversation_id)
+        """
+    )
+
+    # main_branch_id FK 约束（必须放在 branches 表创建之后；幂等：仅当约束不存在时添加）
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'fk_conversations_main_branch_id_branches'
+                AND table_name = 'conversations'
+            ) THEN
+                ALTER TABLE conversations
+                ADD CONSTRAINT fk_conversations_main_branch_id_branches
+                FOREIGN KEY (main_branch_id) REFERENCES branches(id) ON DELETE SET NULL;
+            END IF;
+        END$$;
         """
     )
 
