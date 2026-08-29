@@ -133,6 +133,19 @@ class Settings(BaseSettings):
     # 图像生成全局开关
     IMAGE_GENERATION_ENABLED: bool = True
 
+    # 图像生成后端模式切换
+    # "dify"    — 全走 Dify（默认，安全回滚位）
+    # "harness" — 全走 harness（验证稳定后切换为目标状态）
+    # "dual"    — 双写对比（阶段 1 验证用）
+    IMAGE_GEN_BACKEND: str = "dify"
+
+    @field_validator("IMAGE_GEN_BACKEND")
+    @classmethod
+    def _validate_image_gen_backend(cls, v: str) -> str:
+        if v not in ("dify", "harness", "dual"):
+            raise ValueError(f"IMAGE_GEN_BACKEND 必须是 dify/harness/dual 之一，得到: {v}")
+        return v
+
     class Config:
         env_file = str(PROJECT_ROOT / ".env")
         env_file_encoding = "utf-8"
