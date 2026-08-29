@@ -121,9 +121,6 @@ class Settings(BaseSettings):
     K8S_WS_IDLE_TIMEOUT: int = 1800       # 30 分钟 WebSocket 空闲超时（秒）
     K8S_DEFAULT_REFETCH_INTERVAL: int = 10  # 前端默认轮询间隔（秒）
 
-    # 图像生成全局开关
-    IMAGE_GENERATION_ENABLED: bool = True
-
     class Config:
         env_file = str(PROJECT_ROOT / ".env")
         env_file_encoding = "utf-8"

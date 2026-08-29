@@ -99,13 +99,12 @@ class OrderedLLMGateway:
 
     def _build_adapter(self, model: LLMModel, is_image_gen: bool):
         """根据分类选择对应 Factory 并构造 adapter"""
-        provider = model.provider
-        api_key = decrypt_api_key(provider.api_key_encrypted)
-        extra = self._parse_request_params(model.request_params)
-
         if is_image_gen:
             logger.warning("[gateway] image_gen adapters removed; use harness ImageGenTool instead")
             raise UnrecoverableFailure("image_gen adapters not available in this gateway")
+        provider = model.provider
+        api_key = decrypt_api_key(provider.api_key_encrypted)
+        extra = self._parse_request_params(model.request_params)
         return get_provider(
             provider_type=provider.provider_type,
             api_key=api_key,

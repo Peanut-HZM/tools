@@ -6,7 +6,7 @@
 分类说明：
   - text: 文本生成（对话、代码、问答、提示词润色等纯文本 LLM）
   - vision: 视觉理解（图片理解、图文混合输入）
-  - image_gen: 图像生成（走 ImageGenFactory，非文本类）
+  - image_gen: 图像生成（由 harness ImageGenTool 处理，非文本类）
   - voice: 语音合成 / 识别
   - embedding: 向量嵌入
   - ocr: OCR 文档 / 图片文字识别
@@ -23,7 +23,7 @@ class LLMCategory:
     """视觉理解（图片理解、图文混合输入）"""
 
     IMAGE_GEN = "image_gen"
-    """图像生成（走 ImageGenFactory，非文本类）"""
+    """图像生成（由 harness ImageGenTool 处理，非文本类）"""
 
     VOICE = "voice"
     """语音合成 / 识别"""
