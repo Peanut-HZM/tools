@@ -9,11 +9,11 @@ from app.models.image_generation_models import (
     ImageGenRetentionConfig,
     ImageGenHistory,
 )
-from app.utils.image_gen_constants import (
-    RETENTION_MODE_KEEP_FOREVER,
-    RETENTION_MODE_DELETE_AFTER_N_DAYS,
-    RETENTION_MODE_DELETE_IF_UNUSED_FOR_N_DAYS,
-)
+
+# 内联保留策略常量（原 image_gen_constants.py 已随 Dify 旧实现删除）
+RETENTION_MODE_KEEP_FOREVER = "keep_forever"
+RETENTION_MODE_DELETE_AFTER_N_DAYS = "delete_after_n_days"
+RETENTION_MODE_DELETE_IF_UNUSED_FOR_N_DAYS = "delete_if_unused_for_n_days"
 
 logger = logging.getLogger(__name__)
 

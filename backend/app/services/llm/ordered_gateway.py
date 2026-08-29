@@ -3,7 +3,7 @@
 按 category 查询 LLMModel（priority ASC, id ASC），逐个调用直到成功。
 分类：
   - text 类（text / voice / vision / embedding / ocr）走 get_provider
-  - image_gen 走 ImageGenFactory
+  - image_gen 走 harness ImageGenTool（不再通过本网关）
 """
 
 from __future__ import annotations
@@ -24,7 +24,6 @@ from app.services.llm.exceptions import (
     UnrecoverableFailure,
 )
 from app.services.llm.factory import get_provider
-from app.services.llm.image_gen_factory import ImageGenFactory
 
 logger = logging.getLogger(__name__)
 
@@ -105,13 +104,8 @@ class OrderedLLMGateway:
         extra = self._parse_request_params(model.request_params)
 
         if is_image_gen:
-            return ImageGenFactory.get(
-                provider_type=provider.provider_type,
-                api_key=api_key,
-                base_url=provider.base_url,
-                model_name=model.model_name,
-                **extra,
-            )
+            logger.warning("[gateway] image_gen adapters removed; use harness ImageGenTool instead")
+            raise UnrecoverableFailure("image_gen adapters not available in this gateway")
         return get_provider(
             provider_type=provider.provider_type,
             api_key=api_key,

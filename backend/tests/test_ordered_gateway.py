@@ -192,22 +192,18 @@ async def test_empty_models_raises(db_session):
 
 
 @pytest.mark.asyncio
-async def test_image_gen_uses_image_gen_factory(db_session):
-    """image_gen 分类走 ImageGenFactory"""
+async def test_image_gen_category_raises_unrecoverable(db_session):
+    """image_gen 分类不再通过本网关，直接抛 UnrecoverableFailure"""
+    from app.services.llm.exceptions import UnrecoverableFailure
+
     models = [_make_model("img1", 10)]
 
     with patch.object(OrderedLLMGateway, "_models_by_category", return_value=models), \
-         patch("app.services.llm.ordered_gateway.ImageGenFactory") as mock_img_factory, \
          patch("app.services.llm.ordered_gateway.get_provider") as mock_text_factory, \
          patch("app.services.llm.ordered_gateway.decrypt_api_key", return_value="sk-test"):
-        mock_adapter = AsyncMock()
-        mock_adapter.generate = AsyncMock(return_value="image_url")
-        mock_img_factory.get.return_value = mock_adapter
-
         gw = OrderedLLMGateway(db=db_session)
-        result = await gw.generate(
-            category="image_gen", prompt="a cute cat"
-        )
-        assert result == "image_url"
-        mock_img_factory.get.assert_called_once()
+        with pytest.raises(UnrecoverableFailure):
+            await gw.generate(
+                category="image_gen", prompt="a cute cat"
+            )
         mock_text_factory.assert_not_called()

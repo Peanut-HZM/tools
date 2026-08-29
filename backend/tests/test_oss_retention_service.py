@@ -30,8 +30,8 @@ from app.models.image_generation_models import (
     ImageGenHistory,
     ImageGenRetentionConfig,
 )
-from app.services.oss_retention_service import OssRetentionService
-from app.utils.image_gen_constants import (
+from app.services.oss_retention_service import (
+    OssRetentionService,
     RETENTION_MODE_KEEP_FOREVER,
     RETENTION_MODE_DELETE_AFTER_N_DAYS,
     RETENTION_MODE_DELETE_IF_UNUSED_FOR_N_DAYS,
