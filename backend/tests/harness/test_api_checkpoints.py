@@ -342,11 +342,16 @@ def test_tenant_isolation_write_checkpoint_other_user_returns_404(client, auth_h
     real_db.add(user_b_conv)
     real_db.commit()
 
-    # messages: List[dict] 被 FastAPI 视为 body 字段（非 query）
+    # WriteCheckpointRequest body 模型：step_index / phase / messages 都在 body
     response = client.post(
-        f"/api/v1/harness/conversations/{CONV_B_ID}/checkpoints"
-        f"?step_index=1&phase=after_user_message",
-        json={"messages": [{"id": str(uuid.uuid4()), "content": "hi"}]},
+        f"/api/v1/harness/conversations/{CONV_B_ID}/checkpoints",
+        json={
+            "step_index": 1,
+            "phase": "after_user_message",
+            "messages": [
+                {"id": str(uuid.uuid4()), "sender_type": "user", "role": "user", "content": "hi"}
+            ],
+        },
         headers=auth_headers,
     )
     assert response.status_code == 404
@@ -417,17 +422,26 @@ def test_list_checkpoints_idor_other_conv_branch_rejected(client, auth_headers, 
 
 
 def test_write_checkpoint_manual_messages_cap_rejects(client, auth_headers, mock_db):
-    """messages 数量 > MAX_MESSAGES_PER_CHECKPOINT (200) 应 400"""
-    _setup_mock_db_for_happy_path(mock_db)
-    # 201 个 message 触发 cap
-    big_messages = [{"id": str(uuid.uuid4()), "content": "x"} for _ in range(201)]
+    """messages 数量 > max_length=200（Pydantic 校验）应 422
 
-    # messages: List[dict] 被 FastAPI 视为 body 字段（非 query）
+    messages 数量上限已从 route 层手工校验迁移到
+    WriteCheckpointRequest.messages 的 Field(max_length=200)，
+    超限由 Pydantic 拒绝，返回 422 Unprocessable Entity。
+    """
+    _setup_mock_db_for_happy_path(mock_db)
+    # 201 个 message 触发 Pydantic max_length=200
+    big_messages = [
+        {"id": str(uuid.uuid4()), "sender_type": "user", "role": "user", "content": "x"}
+        for _ in range(201)
+    ]
+
     response = client.post(
-        f"/api/v1/harness/conversations/{CONV_ID}/checkpoints"
-        f"?step_index=1&phase=after_user_message",
-        json={"messages": big_messages},
+        f"/api/v1/harness/conversations/{CONV_ID}/checkpoints",
+        json={
+            "step_index": 1,
+            "phase": "after_user_message",
+            "messages": big_messages,
+        },
         headers=auth_headers,
     )
-    assert response.status_code == 400
-    assert "messages 数量超限" in response.json()["detail"]
+    assert response.status_code == 422

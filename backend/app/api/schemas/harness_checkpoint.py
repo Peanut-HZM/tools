@@ -11,7 +11,7 @@ class MessageSnapshotItem(BaseModel):
     id: str
     sender_type: str
     role: str
-    content: str
+    content: str = Field(max_length=32000)
     message_type: Optional[str] = "text"
     sent_at: Optional[str] = None
     tool_calls: Optional[List[Dict[str, Any]]] = None
@@ -67,6 +67,21 @@ class CreateBranchRequest(BaseModel):
 class MergeRequest(BaseModel):
     picked_checkpoint_ids: List[UUID] = Field(min_length=2)
     new_branch_name: str = Field(min_length=1, max_length=100)
+
+
+class UpdateBranchRequest(BaseModel):
+    """PATCH /branches/{id} 请求体（改名 / 归档）"""
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    is_archived: Optional[bool] = None
+
+
+class WriteCheckpointRequest(BaseModel):
+    """POST /checkpoints 请求体（手动写入 checkpoint）"""
+    step_index: int
+    phase: str
+    messages: List[MessageSnapshotItem] = Field(max_length=200)
+    scratch_state: Dict[str, Any] = Field(default_factory=dict)
+    label: Optional[str] = None
 
 
 class RollbackResponse(BaseModel):

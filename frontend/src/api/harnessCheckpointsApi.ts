@@ -104,15 +104,16 @@ export async function writeManualCheckpoint(
   scratchState: Record<string, unknown> = {},
   label?: string
 ): Promise<Checkpoint> {
-  const params = new URLSearchParams({
-    step_index: String(stepIndex),
+  const body: Record<string, unknown> = {
+    step_index: stepIndex,
     phase,
-    messages: JSON.stringify(messages),
-    scratch_state: JSON.stringify(scratchState),
-  });
-  if (label) params.set('label', label);
-  const res = await authedFetch(BASE(convId) + `/checkpoints?${params}`, {
+    messages,
+    scratch_state: scratchState,
+  };
+  if (label !== undefined) body.label = label;
+  const res = await authedFetch(BASE(convId) + `/checkpoints`, {
     method: 'POST',
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw new Error(`Failed to write checkpoint: ${res.status}`);

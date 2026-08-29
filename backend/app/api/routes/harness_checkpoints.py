@@ -20,6 +20,8 @@ from app.api.schemas.harness_checkpoint import (
     MergeRequest,
     MergeResponse,
     RollbackResponse,
+    UpdateBranchRequest,
+    WriteCheckpointRequest,
 )
 from app.models.conversation import Conversation
 from app.models.harness_models import Branch, SessionCheckpoint
@@ -28,8 +30,7 @@ from app.services.harness.checkpoint_service import CheckpointService
 logger = logging.getLogger(__name__)
 
 # 资源上限（防 Pydantic-外大对象撑爆 JSONB / 内存）
-MAX_MESSAGES_PER_CHECKPOINT = 200
-MAX_CONTENT_CHARS = 32000
+# messages 数量与 content 长度上限已由 WriteCheckpointRequest / MessageSnapshotItem 在 Pydantic 层校验
 MAX_SCRATCH_STATE_BYTES = 65536  # 64 KB
 
 router = APIRouter(
@@ -169,8 +170,7 @@ async def get_branch(
 async def update_branch(
     conversation_id: UUID,
     branch_id: UUID,
-    name: Optional[str] = None,
-    is_archived: Optional[bool] = None,
+    req: UpdateBranchRequest,
     db: DBSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -179,18 +179,18 @@ async def update_branch(
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if branch is None or branch.conversation_id != conversation_id:
         raise HTTPException(status_code=404, detail="分支不存在")
-    if name is not None:
-        branch.name = name
-    if is_archived is not None:
-        branch.is_archived = is_archived
-        if is_archived:
+    if req.name is not None:
+        branch.name = req.name
+    if req.is_archived is not None:
+        branch.is_archived = req.is_archived
+        if req.is_archived:
             branch.closed_at = datetime.utcnow()
     db.commit()
     logger.info(
         "update_branch branch_id=%s name_len=%s is_archived=%s user_id=%s",
         branch_id,
-        len(name) if isinstance(name, str) else 0,
-        is_archived,
+        len(req.name) if isinstance(req.name, str) else 0,
+        req.is_archived,
         current_user.get("id"),
     )
     return _format_branch(branch)
@@ -257,26 +257,21 @@ async def get_checkpoint(
 @router.post("/checkpoints", status_code=status.HTTP_201_CREATED, response_model=CheckpointResponse)
 async def write_checkpoint_manual(
     conversation_id: UUID,
-    step_index: int,
-    phase: str,
-    messages: List[dict],
-    scratch_state: dict = {},
-    label: Optional[str] = None,
+    req: WriteCheckpointRequest,
     db: DBSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """手动写入 checkpoint"""
+    """手动写入 checkpoint
+
+    messages 数量上限由 Pydantic (max_length=200) 校验，超限返回 422。
+    content 长度上限由 MessageSnapshotItem.content (max_length=32000) 校验。
+    """
     conv = _check_tenant(db, conversation_id, current_user)
     cs = CheckpointService(db)
 
-    # 资源上限校验（防 JSONB / 内存膨胀）
-    if len(messages) > MAX_MESSAGES_PER_CHECKPOINT:
-        raise HTTPException(
-            status_code=400,
-            detail=f"messages 数量超限 (max={MAX_MESSAGES_PER_CHECKPOINT})",
-        )
+    # scratch_state 字节上限校验（Pydantic 无法表达字节上限，route 层保留）
     scratch_bytes = len(
-        json.dumps(scratch_state, ensure_ascii=False).encode("utf-8")
+        json.dumps(req.scratch_state, ensure_ascii=False).encode("utf-8")
     )
     if scratch_bytes > MAX_SCRATCH_STATE_BYTES:
         raise HTTPException(
@@ -291,17 +286,13 @@ async def write_checkpoint_manual(
         conv.main_branch_id = branch.id
         db.commit()
 
-    # 把 messages dict 转回伪 Message 对象
+    # 把 MessageSnapshotItem 转回伪 Message 对象（dict 化以适配 _serialize_message）
     class _FakeMsg:
         def __init__(self, d):
             self.id = d.get("id")
             self.sender_type = d.get("sender_type", "user")
             self.role = d.get("role", self.sender_type)
-            content = d.get("content", "")
-            # 截断过长的 content
-            if isinstance(content, str) and len(content) > MAX_CONTENT_CHARS:
-                content = content[:MAX_CONTENT_CHARS]
-            self.content = content
+            self.content = d.get("content", "")
             self.message_type = d.get("message_type", "text")
             self.sent_at = None
             self.tool_calls = d.get("tool_calls")
@@ -312,20 +303,20 @@ async def write_checkpoint_manual(
             self.completion_tokens = d.get("completion_tokens", 0)
             self.total_tokens = d.get("total_tokens", 0)
 
-    msgs = [_FakeMsg(m) for m in messages]
+    msgs = [_FakeMsg(m.model_dump()) for m in req.messages]
     cp = cs.write_checkpoint(
         conversation_id=conversation_id,
-        step_index=step_index,
-        phase=phase,
+        step_index=req.step_index,
+        phase=req.phase,
         messages=msgs,
-        scratch_state=scratch_state,
+        scratch_state=req.scratch_state,
         branch_id=conv.main_branch_id,
         checkpoint_kind="manual",
-        label=label,
+        label=req.label,
     )
     logger.info(
         "write_checkpoint_manual conversation_id=%s step=%s phase=%s messages=%d user_id=%s",
-        conversation_id, step_index, phase, len(messages), current_user.get("id"),
+        conversation_id, req.step_index, req.phase, len(req.messages), current_user.get("id"),
     )
     return _format_checkpoint(cp)
 
