@@ -18,6 +18,7 @@ import ContactMessagesManagement from './components/Admin/ContactMessagesManagem
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
 import { WorkspacePage } from './components/Workspace/WorkspacePage';
 import OpenClawManagement from './components/Admin/OpenClawManagement';
+import McpServers from './components/Admin/McpServers';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
@@ -370,6 +371,7 @@ function App() {
               <Route path="course" element={<CourseManagement />} />
               <Route path="course/:id" element={<CourseDetail />} />
               <Route path="openclaw" element={<OpenClawManagement />} />
+              <Route path="mcp" element={<McpServers />} />
             </Route>
 
             {/* 仅开发环境：设计系统 token 验证页 */}

@@ -14,6 +14,7 @@ import {
   Brain,
   GraduationCap,
   Shield,
+  Plug,
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -54,6 +55,7 @@ export default function AdminLayout() {
     { path: '/admin/llm-configs', label: '大模型配置', icon: <Brain className="w-5 h-5" /> },
     { path: '/admin/course', label: '课程管理', icon: <GraduationCap className="w-5 h-5" /> },
     { path: '/admin/openclaw', label: 'OpenClaw 管理', icon: <MessagesSquare className="w-5 h-5" /> },
+    { path: '/admin/mcp', label: 'MCP 工具', icon: <Plug className="w-5 h-5" /> },
   ];
 
   return (
