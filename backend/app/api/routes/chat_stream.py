@@ -28,6 +28,8 @@ from app.services.harness.llm_bridge import LLMFunctionBridge
 from app.services.harness.tool_protocol import ToolContext
 from app.services.harness.tool_registry import ToolRegistry
 from app.services.harness.tools.image_gen import ImageGenTool
+from app.services.harness.tools.memory_read import MemoryReadTool
+from app.services.harness.tools.memory_write import MemoryWriteTool
 from app.services.harness.session import Session as HarnessSession
 from app.services.harness.trace_recorder import TraceRecorder
 from app.services.llm.ordered_gateway import OrderedLLMGateway
@@ -102,6 +104,9 @@ async def chat_stream(
     tool_registry = ToolRegistry(db)
     # 注册内置工具（按需注册）
     tool_registry.register_builtin(ImageGenTool())
+    # 注册内存工具（按 Agent.memory_long_term_enabled 控制可用性）
+    tool_registry.register_builtin(MemoryReadTool())
+    tool_registry.register_builtin(MemoryWriteTool())
     trace_recorder = TraceRecorder(db)
 
     # 加载对话历史到 Session（best-effort）

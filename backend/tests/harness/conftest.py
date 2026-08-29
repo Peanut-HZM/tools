@@ -54,6 +54,7 @@ def test_db():
     from app.models.agent import Agent  # noqa: F401
     from app.models.conversation import Conversation  # noqa: F401
     from app.models.message import Message  # noqa: F401
+    from app.models.agent_memory import AgentMemoryLongTerm  # noqa: F401
     from app.models.base import Base
 
     engine = create_engine("sqlite://")
