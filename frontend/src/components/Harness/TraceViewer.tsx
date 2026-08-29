@@ -23,22 +23,22 @@ export function TraceViewer({ agentId, conversationId }: TraceViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadTraces = async () => {
+  const loadTraces = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       setError(null);
       const res = await listTraces(agentId, conversationId);
       setTraces(res.items);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadTraces();
-    const interval = setInterval(loadTraces, 5000);
+    loadTraces(true);
+    const interval = setInterval(() => loadTraces(false), 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId, conversationId]);
@@ -94,7 +94,7 @@ export function TraceViewer({ agentId, conversationId }: TraceViewerProps) {
             </span>
             <span className="text-xs text-gray-500">{t.total_tokens} tok</span>
             <span className="text-xs text-gray-400">
-              {new Date(t.started_at).toLocaleTimeString()}
+              {t.started_at ? new Date(t.started_at).toLocaleTimeString() : '-'}
             </span>
           </div>
         ))}
@@ -149,7 +149,8 @@ function StatusIcon({ status }: { status: Trace['status'] }) {
   return <span className="text-red-600">✗</span>;
 }
 
-function formatDuration(ms: number): string {
+function formatDuration(ms: number | null | undefined): string {
+  if (ms == null) return '-';
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
