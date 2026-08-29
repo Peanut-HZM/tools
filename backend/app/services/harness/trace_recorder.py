@@ -10,6 +10,9 @@ from datetime import datetime
 from sqlalchemy.orm import Session as DBSession
 
 from app.models.harness_models import Trace, TraceStep
+from app.services.harness.otel_init import (
+    _get_tracer, _register_trace_span, _find_trace_otel_span, _unregister_trace_span,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,7 @@ class TraceRecorder:
 
     def __init__(self, db: DBSession):
         self.db = db
+        self._tracer = _get_tracer()
 
     def start_trace(
         self,
@@ -45,6 +49,22 @@ class TraceRecorder:
         )
         self.db.add(trace)
         self.db.commit()
+
+        if self._tracer:
+            try:
+                otel_span = self._tracer.start_span(
+                    name=f"agent.turn.{agent_id}",
+                    attributes={
+                        "agent.id": str(agent_id),
+                        "user.id": str(user_id),
+                        "conversation.id": str(conversation_id),
+                        "harness.trace_id": str(trace.id),
+                    },
+                )
+                trace._otel_span = otel_span
+                _register_trace_span(trace.id, otel_span)
+            except Exception as e:
+                logger.warning("OTel start_trace 失败: %s", e)
         return trace
 
     def start_step(self, trace_id, step_type: str) -> TraceStep:
@@ -64,6 +84,24 @@ class TraceRecorder:
 
         # 临时存开始时间，end_step 时用
         step._start_time = time.time()
+
+        if self._tracer:
+            try:
+                parent = _find_trace_otel_span(_to_uuid(trace_id))
+                if parent:
+                    from opentelemetry import trace as otel_api
+                    ctx = otel_api.set_span_in_context(parent)
+                    otel_span = self._tracer.start_span(
+                        name=f"step.{step_type}",
+                        context=ctx,
+                        attributes={
+                            "harness.step_type": step_type,
+                            "harness.step_index": step.step_index,
+                        },
+                    )
+                    step._otel_span = otel_span
+            except Exception as e:
+                logger.warning("OTel start_step 失败: %s", e)
         return step
 
     def end_step(
@@ -99,6 +137,23 @@ class TraceRecorder:
 
         self.db.commit()
 
+        span = getattr(step, "_otel_span", None)
+        if span:
+            try:
+                if tokens:
+                    span.set_attribute("harness.tokens", tokens)
+                if tool_name:
+                    span.set_attribute("harness.tool_name", tool_name)
+                if llm_model:
+                    span.set_attribute("harness.llm_model", llm_model)
+                if error:
+                    from opentelemetry.trace import StatusCode
+                    span.set_status(StatusCode.ERROR)
+                    span.record_exception(Exception(error))
+                span.end()
+            except Exception as e:
+                logger.warning("OTel end_step 失败: %s", e)
+
     def end_trace(
         self,
         trace: Trace,
@@ -122,6 +177,15 @@ class TraceRecorder:
         trace.completed_at = datetime.utcnow()
 
         self.db.commit()
+
+        span = getattr(trace, "_otel_span", None)
+        if span:
+            try:
+                span.set_attribute("harness.total_steps", total_steps)
+                span.end()
+                _unregister_trace_span(trace.id)
+            except Exception as e:
+                logger.warning("OTel end_trace 失败: %s", e)
 
     def log_warning(self, message: str):
         """记录警告"""
