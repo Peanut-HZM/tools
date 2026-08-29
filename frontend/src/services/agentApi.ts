@@ -60,6 +60,58 @@ export interface AgentUpdateRequest {
   is_active?: boolean;
 }
 
+export interface AgentHarnessUpdate {
+  slug?: string;
+  welcome_message?: string;
+  default_model_id?: string;
+  fallback_model_ids?: string[];
+  generation_params?: Record<string, any>;
+  memory_short_term_policy?: string;
+  memory_short_term_window?: number;
+  memory_long_term_enabled?: boolean;
+  memory_long_term_config?: Record<string, any>;
+  max_steps_per_turn?: number;
+  tool_timeout_seconds?: number;
+  error_strategy?: 'stop' | 'retry' | 'skip' | 'fallback_message';
+  max_retries?: number;
+  can_handoff_to?: string[];
+  handoff_instruction?: string;
+  input_guardrails?: Record<string, any>[];
+  output_guardrails?: Record<string, any>[];
+  guardrail_on_violation?: 'block' | 'warn';
+  visibility?: 'public' | 'private' | 'unlisted';
+  owner_id?: string;
+}
+
+export interface AgentHarnessView {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  icon_color: string;
+  category: string;
+  is_active: boolean;
+  slug?: string;
+  welcome_message?: string;
+  default_model_id?: string;
+  fallback_model_ids?: string[];
+  generation_params?: Record<string, any>;
+  memory_short_term_policy?: string;
+  memory_short_term_window?: number;
+  memory_long_term_enabled: boolean;
+  memory_long_term_config: Record<string, any>;
+  max_steps_per_turn?: number;
+  tool_timeout_seconds?: number;
+  error_strategy?: string;
+  max_retries?: number;
+  can_handoff_to?: string[];
+  handoff_instruction?: string;
+  input_guardrails?: Record<string, any>[];
+  output_guardrails?: Record<string, any>[];
+  guardrail_on_violation?: string;
+  visibility?: string;
+}
+
 export const agentApi = {
   // 获取Agent列表（管理员）
   getAgents: async (params?: { skip?: number; limit?: number; is_active?: boolean }): Promise<Agent[]> => {
@@ -114,6 +166,24 @@ export const agentApi = {
     const response = await axios.get(`${API_BASE_URL}/admin/agents/stats/overview`, {
       headers: getAuthHeaders(),
     });
+    return response.data;
+  },
+
+  // 获取 Agent harness 扩展字段
+  getAgentHarness: async (id: string): Promise<AgentHarnessView> => {
+    const response = await axios.get(`${API_BASE_URL}/admin/agents/${id}/harness`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
+  // 更新 Agent harness 扩展字段
+  updateAgentHarness: async (id: string, data: AgentHarnessUpdate): Promise<AgentHarnessView> => {
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/agents/${id}/harness`,
+      data,
+      { headers: getAuthHeaders() },
+    );
     return response.data;
   },
 };

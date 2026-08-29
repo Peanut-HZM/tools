@@ -1,7 +1,20 @@
 import { useState, useEffect } from 'react';
-import { agentApi, Agent } from '../../services/agentApi';
+import { agentApi, Agent, AgentHarnessUpdate } from '../../services/agentApi';
 import { useToast } from '../../hooks/useToast';
 import { Badge } from '@/components/ui/Badge';
+
+/** 默认 embedding 配置 */
+const DEFAULT_EMBEDDING_CONFIG: Record<string, any> = {
+  embedding_provider: 'openai',
+  embedding_model: 'text-embedding-3-small',
+  embedding_api_key: '',
+  embedding_base_url: '',
+  auto_inject: true,
+  auto_inject_top_k: 5,
+  auto_inject_threshold: 0.7,
+  auto_inject_timeout_seconds: 5,
+};
+
 export default function AgentManagement() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17,6 +30,12 @@ export default function AgentManagement() {
     icon_color: 'bg-accent',
     category: 'AI工具',
   });
+
+  // Harness 扩展字段
+  const [memoryLongTermEnabled, setMemoryLongTermEnabled] = useState(false);
+  const [memoryLongTermConfig, setMemoryLongTermConfig] = useState<Record<string, any>>(
+    { ...DEFAULT_EMBEDDING_CONFIG },
+  );
 
   useEffect(() => {
     loadAgents();
@@ -43,6 +62,8 @@ export default function AgentManagement() {
       icon_color: 'bg-accent',
       category: 'AI工具',
     });
+    setMemoryLongTermEnabled(false);
+    setMemoryLongTermConfig({ ...DEFAULT_EMBEDDING_CONFIG });
     setEditingId(null);
     setShowForm(false);
   };
@@ -50,13 +71,23 @@ export default function AgentManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let agentId: string;
       if (editingId) {
         await agentApi.updateAgent(editingId, formData);
-        success('Agent更新成功');
+        agentId = editingId;
       } else {
-        await agentApi.createAgent(formData);
-        success('Agent创建成功');
+        const created = await agentApi.createAgent(formData);
+        agentId = created.id;
       }
+      // 保存 harness 扩展字段
+      const harnessData: AgentHarnessUpdate = {
+        memory_long_term_enabled: memoryLongTermEnabled,
+        memory_long_term_config: memoryLongTermEnabled
+          ? { ...memoryLongTermConfig }
+          : {},
+      };
+      await agentApi.updateAgentHarness(agentId, harnessData);
+      success(editingId ? 'Agent更新成功' : 'Agent创建成功');
       resetForm();
       loadAgents();
     } catch (err) {
@@ -88,7 +119,7 @@ export default function AgentManagement() {
     }
   };
 
-  const handleEdit = (agent: Agent) => {
+  const handleEdit = async (agent: Agent) => {
     setEditingId(agent.id);
     setFormData({
       name: agent.name,
@@ -98,6 +129,19 @@ export default function AgentManagement() {
       icon_color: agent.icon_color,
       category: agent.category,
     });
+    // 加载 harness 扩展字段
+    try {
+      const harness = await agentApi.getAgentHarness(agent.id);
+      setMemoryLongTermEnabled(!!harness.memory_long_term_enabled);
+      setMemoryLongTermConfig({
+        ...DEFAULT_EMBEDDING_CONFIG,
+        ...(harness.memory_long_term_config || {}),
+      });
+    } catch (err) {
+      console.warn('加载 harness 配置失败:', err);
+      setMemoryLongTermEnabled(false);
+      setMemoryLongTermConfig({ ...DEFAULT_EMBEDDING_CONFIG });
+    }
     setShowForm(true);
   };
 
@@ -180,6 +224,150 @@ export default function AgentManagement() {
                 </p>
               </div>
             </div>
+
+            {/* 长期记忆开关 */}
+            <div className="border-t border-border pt-4 mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={memoryLongTermEnabled}
+                  onChange={(e) => setMemoryLongTermEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                />
+                <span className="text-sm font-medium text-ink-muted">
+                  启用长期记忆
+                </span>
+              </label>
+              <p className="text-xs text-ink-faint mt-1 ml-7">
+                开启后 Agent 将跨会话保留用户相关记忆
+              </p>
+            </div>
+
+            {/* Embedding 配置块 */}
+            {memoryLongTermEnabled && (
+              <div className="space-y-3 mb-4 p-4 bg-surface-1 rounded-lg border border-border">
+                <h4 className="font-medium text-sm text-ink">Embedding 配置</h4>
+
+                <div>
+                  <label className="block text-sm text-ink-muted mb-1">Provider</label>
+                  <select
+                    value={memoryLongTermConfig?.embedding_provider || 'openai'}
+                    onChange={(e) => setMemoryLongTermConfig({
+                      ...memoryLongTermConfig,
+                      embedding_provider: e.target.value,
+                    })}
+                    className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    <option value="openai">OpenAI</option>
+                    <option value="dashscope">DashScope (通义千问)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-ink-muted mb-1">模型名</label>
+                  <input
+                    type="text"
+                    value={memoryLongTermConfig?.embedding_model || 'text-embedding-3-small'}
+                    onChange={(e) => setMemoryLongTermConfig({
+                      ...memoryLongTermConfig,
+                      embedding_model: e.target.value,
+                    })}
+                    className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                    placeholder="text-embedding-3-small"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-ink-muted mb-1">
+                    API Key（可选，留空使用全局默认）
+                  </label>
+                  <input
+                    type="password"
+                    value={memoryLongTermConfig?.embedding_api_key || ''}
+                    onChange={(e) => setMemoryLongTermConfig({
+                      ...memoryLongTermConfig,
+                      embedding_api_key: e.target.value,
+                    })}
+                    className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                    placeholder="sk-..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-ink-muted mb-1">
+                    Base URL（可选）
+                  </label>
+                  <input
+                    type="text"
+                    value={memoryLongTermConfig?.embedding_base_url || ''}
+                    onChange={(e) => setMemoryLongTermConfig({
+                      ...memoryLongTermConfig,
+                      embedding_base_url: e.target.value,
+                    })}
+                    className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                    placeholder="https://api.openai.com/v1"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={memoryLongTermConfig?.auto_inject !== false}
+                    onChange={(e) => setMemoryLongTermConfig({
+                      ...memoryLongTermConfig,
+                      auto_inject: e.target.checked,
+                    })}
+                    id="auto-inject"
+                    className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                  />
+                  <label htmlFor="auto-inject" className="text-sm text-ink-muted">
+                    自动检索注入
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm text-ink-muted mb-1">Top K</label>
+                    <input
+                      type="number"
+                      value={memoryLongTermConfig?.auto_inject_top_k ?? 5}
+                      onChange={(e) => setMemoryLongTermConfig({
+                        ...memoryLongTermConfig,
+                        auto_inject_top_k: parseInt(e.target.value) || 5,
+                      })}
+                      className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                      min={1} max={20}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-ink-muted mb-1">相似度阈值</label>
+                    <input
+                      type="number"
+                      value={memoryLongTermConfig?.auto_inject_threshold ?? 0.7}
+                      onChange={(e) => setMemoryLongTermConfig({
+                        ...memoryLongTermConfig,
+                        auto_inject_threshold: parseFloat(e.target.value) || 0.7,
+                      })}
+                      className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                      min={0} max={1} step={0.05}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-ink-muted mb-1">超时（秒）</label>
+                    <input
+                      type="number"
+                      value={memoryLongTermConfig?.auto_inject_timeout_seconds ?? 5}
+                      onChange={(e) => setMemoryLongTermConfig({
+                        ...memoryLongTermConfig,
+                        auto_inject_timeout_seconds: parseInt(e.target.value) || 5,
+                      })}
+                      className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                      min={1} max={30}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button
