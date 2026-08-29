@@ -7,9 +7,12 @@
 
 provider_type: minimax_image
 """
+import ipaddress
 import logging
+import socket
 import time
 import uuid
+from urllib.parse import urlparse
 
 import httpx
 
@@ -25,6 +28,18 @@ logger = logging.getLogger(__name__)
 
 # 请求超时（秒）
 _DEFAULT_TIMEOUT = 60.0
+
+# SSRF 防护：禁止访问的内网地址段
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network('127.0.0.0/8'),
+    ipaddress.ip_network('10.0.0.0/8'),
+    ipaddress.ip_network('172.16.0.0/12'),
+    ipaddress.ip_network('192.168.0.0/16'),
+    ipaddress.ip_network('169.254.0.0/16'),
+    ipaddress.ip_network('::1/128'),
+    ipaddress.ip_network('fc00::/7'),
+    ipaddress.ip_network('0.0.0.0/8'),
+]
 
 
 class HailuoProvider(ImageModelProvider):
@@ -62,9 +77,9 @@ class HailuoProvider(ImageModelProvider):
                 headers=self._build_headers(),
             )
         except httpx.TimeoutException as e:
-            raise ImageGenError(f"MiniMax 请求超时: {e}", retryable=True)
-        except httpx.HTTPError as e:
-            raise ImageGenError(f"MiniMax 网络错误: {e}", retryable=True)
+            raise ImageGenError("MiniMax 请求超时", retryable=True)
+        except httpx.HTTPError:
+            raise ImageGenError("MiniMax 网络错误", retryable=True)
 
         self._check_response(resp)
 
@@ -101,9 +116,9 @@ class HailuoProvider(ImageModelProvider):
                 headers=self._build_headers(),
             )
         except httpx.TimeoutException as e:
-            raise ImageGenError(f"MiniMax 请求超时: {e}", retryable=True)
-        except httpx.HTTPError as e:
-            raise ImageGenError(f"MiniMax 网络错误: {e}", retryable=True)
+            raise ImageGenError("MiniMax 请求超时", retryable=True)
+        except httpx.HTTPError:
+            raise ImageGenError("MiniMax 网络错误", retryable=True)
 
         self._check_response(resp)
 
@@ -141,9 +156,9 @@ class HailuoProvider(ImageModelProvider):
                 headers=self._build_headers(),
             )
         except httpx.TimeoutException as e:
-            raise ImageGenError(f"MiniMax 请求超时: {e}", retryable=True)
-        except httpx.HTTPError as e:
-            raise ImageGenError(f"MiniMax 网络错误: {e}", retryable=True)
+            raise ImageGenError("MiniMax 请求超时", retryable=True)
+        except httpx.HTTPError:
+            raise ImageGenError("MiniMax 网络错误", retryable=True)
 
         self._check_response(resp)
 
@@ -180,9 +195,9 @@ class HailuoProvider(ImageModelProvider):
                 headers=self._build_headers(),
             )
         except httpx.TimeoutException as e:
-            raise ImageGenError(f"MiniMax 请求超时: {e}", retryable=True)
-        except httpx.HTTPError as e:
-            raise ImageGenError(f"MiniMax 网络错误: {e}", retryable=True)
+            raise ImageGenError("MiniMax 请求超时", retryable=True)
+        except httpx.HTTPError:
+            raise ImageGenError("MiniMax 网络错误", retryable=True)
 
         self._check_response(resp)
 
@@ -252,13 +267,29 @@ class HailuoProvider(ImageModelProvider):
         if not self.oss_client:
             return url
 
-        # URL scheme 校验，避免 SSRF / 非法协议
+        # URL scheme 校验，避免非法协议
         if not url.startswith(("http://", "https://")):
             logger.warning("拒绝非 HTTP URL: %s", url[:100])
             return url
 
+        # SSRF 防护：DNS 解析 + 内网 IP 检查
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if hostname:
+            try:
+                ip_str = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(ip_str)
+                for network in _BLOCKED_NETWORKS:
+                    if ip in network:
+                        logger.warning("拒绝内网 URL: %s -> %s", url[:100], ip_str)
+                        return url
+            except (socket.gaierror, ValueError, OSError) as e:
+                logger.warning("DNS 解析失败: %s - %s", url[:100], type(e).__name__)
+                return url
+
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            # follow_redirects=False 防止重定向绕过 SSRF
+            async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
                 resp = await client.get(url)
                 if resp.status_code != 200:
                     logger.warning("下载图片失败 HTTP %s: %s", resp.status_code, url)
@@ -268,7 +299,8 @@ class HailuoProvider(ImageModelProvider):
                 oss_url = self.oss_client.upload_bytes(key, resp.content, "image/png")
                 return oss_url
         except Exception as e:
-            logger.warning("下载/上传图片失败: %s", e)
+            # 下载/上传失败，降级返回原始 URL；不泄漏异常细节
+            logger.warning("下载/上传图片失败: %s", type(e).__name__)
             return url
 
 

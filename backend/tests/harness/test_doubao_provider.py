@@ -88,8 +88,8 @@ class TestDoubaoSeedProvider:
             with pytest.raises(ImageGenError) as exc_info:
                 await provider.text2img("一只猫", params)
             assert exc_info.value.retryable is True
-            # 异常消息不包含原始异常细节
-            assert "timeout" not in str(exc_info.value).lower() or "超时" in str(exc_info.value)
+            # 精确断言：异常消息不应泄露原始异常细节
+            assert str(exc_info.value) == "豆包 Seed 请求超时"
 
     # ----- img2img -----
 
