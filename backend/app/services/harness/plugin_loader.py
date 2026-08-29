@@ -226,6 +226,22 @@ class PluginLoader:
     """扫描插件目录、加载所有 .py、注册 tool 到 tool_registry。
 
     失败隔离：单文件抛异常时记录 ERROR log + 跳过该文件，不阻断整体加载。
+
+    单例交互不变量 (与 ``app.services.harness.tool_registry`` 的全局 ``_registry``)：
+
+    - ``scan()`` 内部会临时把 ``_registry`` 替换为 ``self.tool_registry``，让
+      ``@register_tool`` 装饰器（硬编码调用 ``get_tool_registry()``）注册到
+      传入的 registry；exec_module 后在 ``finally`` 还原。
+    - **前提**：若 caller 希望后续 ``get_tool_registry()`` 调用能拿到本次
+      scan 注册的 plugins，**必须**在调用 ``scan()`` 之前先调用一次
+      ``get_tool_registry()`` 来初始化单例。否则 ``scan()`` 走 one-shot 注入
+      路径（见下）。
+    - **One-shot 注入语义**：如果调用 ``scan()`` 时 ``_registry is None``，
+      说明单例已被 reset / 从未初始化。此时 ``scan()`` 仅作临时注入，**不**
+      在 finally 把 ``_registry`` 还原回 ``None``（否则下次
+      ``get_tool_registry()`` 会创建一个全新的、空的 ToolRegistry，本次
+      注册的 plugins 会被静默丢弃）。相反，scan 完成后 ``_registry`` 保留
+      为 ``self.tool_registry``（caller 负责清理）。
     """
 
     def __init__(self, tool_registry) -> None:
@@ -240,7 +256,8 @@ class PluginLoader:
 
         实现细节：装饰器通过 ``get_tool_registry()`` 单例拿到 registry，
         这里在 exec_module 前临时把单例替换为 self.tool_registry，
-        exec_module 后还原。生产环境 main.py 把真实的 get_tool_registry() 传入；
+        exec_module 后还原（仅当原始值非 None 时还原，详见类 docstring）。
+        生产环境 main.py 把真实的 get_tool_registry() 传入；
         测试中可传 MagicMock。
         """
         plugins_path = Path(plugins_dir)
@@ -269,7 +286,18 @@ class PluginLoader:
         # 临时把全局单例替换为 self.tool_registry，让装饰器注册到传入的 registry
         from app.services.harness import tool_registry as _tr_module
 
-        original = _tr_module._registry
+        # 防御：如果 _registry 当前为 None，不要把 None 当作"原始值"捕获。
+        # 否则 finally 块会把 None 还原回去，导致下次 get_tool_registry()
+        # 创建一个全新的 ToolRegistry（lazy init），不包含本次刚注册的
+        # plugins（one-shot 注入语义被破坏）。所以仅当 original 非 None
+        # 时才记录并还原；否则保持 _registry = self.tool_registry。
+        captured = _tr_module._registry is not None
+        original = _tr_module._registry if captured else None
+        if not captured:
+            logger.debug(
+                "[PluginLoader] _registry is None at scan start; "
+                "skip restoration (one-shot injection)"
+            )
         _tr_module._registry = self.tool_registry
         try:
             for py_file in py_files:
@@ -315,5 +343,7 @@ class PluginLoader:
                 f"成功 {len(self._loaded)} 个"
             )
         finally:
-            # 还原全局单例，避免污染后续代码
-            _tr_module._registry = original
+            # 仅当原始值非 None 时才还原——避免把 None 写回去污染后续
+            # get_tool_registry() 调用（详见类 docstring）。
+            if captured:
+                _tr_module._registry = original
