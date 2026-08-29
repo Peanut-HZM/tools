@@ -208,6 +208,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"MCP server 启动同步失败（功能将不可用）: {e}")
 
+    # 记忆向量回填（Phase 3 Plan-1B / Task 6）：best-effort，非阻塞启动
+    try:
+        from app.models.base import SessionLocal
+        from app.services.harness.memory_backfill import count_pending_rows, run_startup_backfill
+
+        _backfill_db = SessionLocal()
+        try:
+            pending = count_pending_rows(_backfill_db)
+            if pending > 0:
+                logger.info(f"发现 {pending} 条记忆待回填 embedding，启动后台回填任务")
+                # asyncio.create_task 使回填在后台异步运行，不阻塞 lifespan
+                asyncio.create_task(_run_memory_backfill(_backfill_db))
+        finally:
+            # Session 由后台任务使用，此处不立即关闭
+            pass
+    except Exception as e:
+        logger.warning(f"记忆回填启动检查失败（功能将不可用）: {e}")
+
     # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")
 
@@ -269,6 +287,20 @@ async def lifespan(app: FastAPI):
         logger.info("数据库连接资源已释放")
     except Exception as e:
         logger.warning(f"数据库连接资源释放失败: {e}")
+
+
+async def _run_memory_backfill(db):
+    """后台回填任务包装：运行回填并最终关闭 Session"""
+    from app.services.harness.memory_backfill import run_startup_backfill
+    try:
+        await run_startup_backfill(db)
+    except Exception as e:
+        logger.error("记忆回填任务失败: %s", type(e).__name__)
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
 
 
 def _check_security_settings():
@@ -509,6 +541,11 @@ app.include_router(openclaw_ws_router.router, prefix="/api")
 from app.routes import openclaw_admin as openclaw_admin_router
 
 app.include_router(openclaw_admin_router.router)
+
+# Harness memories management router (Phase 3 Plan-1B / Task 6)
+from app.api.routes.harness_memories import router as harness_memories_router  # noqa: E402
+
+app.include_router(harness_memories_router)
 
 
 @app.get("/")
