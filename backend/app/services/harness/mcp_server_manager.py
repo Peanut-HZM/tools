@@ -119,3 +119,20 @@ class McpServerManager:
     def get_client(self, server_id: UUID) -> McpClient | None:
         """获取缓存的 client"""
         return self._clients.get(server_id)
+
+
+# 全局单例（首次调用时懒初始化）
+_manager: McpServerManager | None = None
+
+
+def get_mcp_server_manager() -> McpServerManager:
+    """获取全局 McpServerManager 实例（懒初始化单例）"""
+    global _manager
+    if _manager is None:
+        from app.services.harness.tool_registry import ToolRegistry
+        # 注意：ToolRegistry 需要 db session，此处使用延迟导入
+        # 实际场景中，manager 在首次 API 调用时才初始化，
+        # 由调用方保证 DB 可用。
+        # Phase 3-Plan-1A: 使用 None db 占位，Task 5 完善
+        _manager = McpServerManager(tool_registry=None)  # type: ignore[arg-type]
+    return _manager

@@ -414,6 +414,11 @@ app.include_router(chat_stream.router, prefix="/api/v1")
 # Admin conversation management router
 app.include_router(admin_conversations.router, prefix="/api/v1")
 
+# Harness admin/mcp/servers router (Phase 3-Plan-1A Task 4)
+from app.api.routes import admin_mcp_servers
+
+app.include_router(admin_mcp_servers.router)
+
 # Harness admin/tools router (Task 13)
 from app.api.routes import admin_tools
 
