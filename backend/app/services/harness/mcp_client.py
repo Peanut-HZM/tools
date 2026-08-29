@@ -44,12 +44,17 @@ _BLOCKED_NETWORKS = [
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("169.254.0.0/16"),  # 云元数据服务
     # IPv6 环回/链路本地/私有网段
     ipaddress.ip_network("::1/128"),           # IPv6 环回
-    ipaddress.ip_network("fe80::/10"),         # IPv6 链路本地
     ipaddress.ip_network("fc00::/7"),          # IPv6 唯一本地 (ULA)
     ipaddress.ip_network("::ffff:0:0/96"),     # IPv4 映射的 IPv6
+]
+
+# 永远拒绝的网段（即使 allow_private_hosts=True 也生效）
+# 用于阻止云元数据服务（SSRF 经典攻击向量）以及链路本地地址
+_ALWAYS_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("169.254.0.0/16"),  # IPv4 云元数据（AWS/GCP/Azure）
+    ipaddress.ip_network("fe80::/10"),         # IPv6 链路本地
 ]
 
 
@@ -93,6 +98,20 @@ def _check_ip_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool
     return False
 
 
+def _check_ip_always_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """检查 IP 是否在永远阻止的网段中（即使 allow_private_hosts=True 也阻止）
+
+    用于云元数据服务（169.254/16）和链路本地（fe80::/10），
+    这是 SSRF 攻击的经典目标——任何环境下都不应允许连接到这些地址。
+    """
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    for network in _ALWAYS_BLOCKED_NETWORKS:
+        if ip in network:
+            return True
+    return False
+
+
 def validate_url(url: str, allow_private_hosts: bool = False) -> None:
     """验证 MCP server URL 的安全性（SSRF 防护）
 
@@ -100,15 +119,31 @@ def validate_url(url: str, allow_private_hosts: bool = False) -> None:
     - scheme 必须是 http:// 或 https://
     - 必须有 hostname
     - 不允许 userinfo（user:pass@host）
-    - 默认拒绝 loopback/link-local/RFC1918/ULA 网段
+    - **永远**拒绝云元数据服务（169.254/16）和链路本地（fe80::/10）——即使
+      allow_private_hosts=True 也生效。这是 SSRF 攻击最常见的目标。
+    - 默认拒绝 loopback/RFC1918/ULA 网段
     - DNS 解析后再次检查所有 IP（防 DNS rebinding）
 
     Args:
         url: 待验证的 URL
-        allow_private_hosts: True 则跳过 IP 范围检查（仅开发/测试环境使用）
+        allow_private_hosts: True 则允许 RFC1918/loopback/ULA 网段
+            （仅开发/测试环境使用）。注意：此参数**不会**影响云元数据
+            服务和链路本地地址的拒绝逻辑。
 
     Raises:
         McpConnectionError: URL 不安全时抛出
+
+    .. note::
+        **DNS rebinding / TOCTOU 风险**：
+        validate_url() 在此函数中解析一次 DNS，但 sse_client 内部会再次解析
+        hostname。如果在两次解析之间攻击者修改 DNS 记录（典型的 rebinding
+        攻击），validate_url 的检查可能被绕过。
+
+        缓解措施：
+        1. 对于固定 IP 部署，建议使用 IP 字面量 URL（如 http://10.0.0.1:3000）
+        2. 在不信任 DNS 的环境（multi-tenant）中，应通过反向代理访问 MCP server，
+           并在代理层做 IP 锁定
+        3. MCP SDK 当前不支持 IP pinning，因此本函数无法完全消除此风险
     """
     try:
         parsed = urlsplit(url)
@@ -130,15 +165,17 @@ def validate_url(url: str, allow_private_hosts: bool = False) -> None:
     if parsed.username or parsed.password:
         raise McpConnectionError("URL must not contain userinfo (user:pass@host)")
 
-    if allow_private_hosts:
-        return
-
-    # DNS 解析后检查所有 IP（防 DNS rebinding）
+    # DNS 解析后检查所有 IP（防 DNS rebinding + 永远阻止云元数据）
     try:
         # 先尝试直接解析为 IP 字面量
         try:
             ip = ipaddress.ip_address(hostname)
-            if _check_ip_blocked(ip):
+            # 永远阻止的网段优先检查（即使 allow_private_hosts=True）
+            if _check_ip_always_blocked(ip):
+                raise McpConnectionError(
+                    f"URL resolves to blocked network (metadata/link-local): {hostname}"
+                )
+            if not allow_private_hosts and _check_ip_blocked(ip):
                 raise McpConnectionError(
                     f"URL hostname resolves to blocked network: {hostname}"
                 )
@@ -155,10 +192,18 @@ def validate_url(url: str, allow_private_hosts: bool = False) -> None:
             addr = info[4][0]
             try:
                 ip = ipaddress.ip_address(addr)
-                if _check_ip_blocked(ip):
+                # 永远阻止的网段优先检查
+                if _check_ip_always_blocked(ip):
+                    raise McpConnectionError(
+                        f"URL hostname '{hostname}' resolves to blocked IP "
+                        f"(metadata/link-local): {addr}"
+                    )
+                if not allow_private_hosts and _check_ip_blocked(ip):
                     raise McpConnectionError(
                         f"URL hostname '{hostname}' resolves to blocked IP: {addr}"
                     )
+            except McpConnectionError:
+                raise
             except ValueError:
                 # 无法解析为 IP 地址，跳过
                 pass
@@ -201,6 +246,7 @@ class McpClient:
         self.server_url = server_url
         self.headers = headers or {}
         self.timeout = timeout
+        self.allow_private_hosts = allow_private_hosts  # 保留供调用方检查
         self._session: ClientSession | None = None
         self._sse_context = None  # 保持 SSE context manager 引用
 

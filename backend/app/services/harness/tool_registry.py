@@ -10,6 +10,7 @@
 5. 管理工具生命周期
 """
 import logging
+import os
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session as DBSession
@@ -53,6 +54,32 @@ class ToolRegistry:
             raise ValueError(f"内置工具 {tool.name} 重复注册")
         self._builtin[tool.name] = tool
         logger.info(f"[ToolRegistry] 注册内置工具: {tool.name}")
+
+    # ============================================================
+    # 动态工具注册（Phase 3-Plan-1A: MCP tools）
+    # ============================================================
+
+    def register_dynamic(self, tool: ToolProtocol) -> None:
+        """注册动态工具（来自 MCP server 等外部源）。
+
+        Phase 3-Plan-1A 骨架：当前实现与 builtin 共用 `_builtin` 字典，
+        后续 Task 5 将拆分独立的 `_dynamic` 字典并接入 agent bindings。
+        重复名称时动态工具覆盖内置工具（保持向后兼容）。
+        """
+        self._builtin[tool.name] = tool  # type: ignore[assignment]
+        logger.info(f"[ToolRegistry] 注册动态工具: {tool.name}")
+
+    def unregister_dynamic(self, name: str) -> None:
+        """注销动态工具。
+
+        Phase 3-Plan-1A 骨架：当前仅从 `_builtin` 字典移除。
+        如果该名称原本不是动态工具（而是内置），保留不动以避免误删。
+        后续 Task 5 将拆分独立存储后提供精确清理。
+        """
+        # 当前简化实现：直接移除。Task 5 完善后会先判断来源。
+        if name in self._builtin:
+            del self._builtin[name]
+            logger.info(f"[ToolRegistry] 注销动态工具: {name}")
 
     # ============================================================
     # 查询
@@ -254,3 +281,49 @@ class ToolRegistry:
             return self._http_cache[db_tool.id]
 
         raise ToolNotFoundError(name)
+
+
+# ============================================================
+# 全局单例访问器
+# ============================================================
+
+_registry: Optional[ToolRegistry] = None
+
+
+def get_tool_registry() -> ToolRegistry:
+    """获取全局 ToolRegistry 实例（懒初始化单例）。
+
+    首次调用时通过 FastAPI 的 ``get_db()`` 依赖获取 DB session，
+    并创建 ToolRegistry 实例。
+
+    注意：
+    - 首次调用必须在 FastAPI 请求上下文内（DB session 可用）
+    - ToolRegistry 持有的 DB session 在进程生命周期内复用。
+      ToolRegistry 主要用于工具查找/调度，不直接修改 DB，因此
+      单 session 复用是安全的（任务执行通过各自的 db session）。
+    - 单元测试中可通过 ``app.services.harness.tool_registry._registry = None``
+      重置，或直接 patch ``get_tool_registry``。
+
+    Phase 3-Plan-1A: 当前用于 McpServerManager 初始化。
+    完整生命周期管理（FastAPI lifespan 启动/关闭）见后续 Task 5 完善。
+    """
+    global _registry
+    if _registry is None:
+        # 延迟导入避免循环依赖（get_db -> app.models）
+        from app.models import get_db
+
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            _registry = ToolRegistry(db)
+        finally:
+            # 不关闭 db：单例需要长期持有 session
+            # 异常时关闭避免连接泄漏
+            pass
+    return _registry
+
+
+def reset_tool_registry() -> None:
+    """重置全局 ToolRegistry 单例（仅用于测试）。"""
+    global _registry
+    _registry = None

@@ -9,15 +9,33 @@ Phase 3-Plan-1A: MCP 工具支持核心骨架
 """
 import json
 import logging
+import os
 from typing import Dict, List
 from uuid import UUID
 
 from app.models.mcp_server import McpServer
 from app.services.harness.mcp_client import McpClient, McpConnectionError
 from app.services.harness.tools.mcp_tool import McpTool
-from app.services.harness.tool_registry import ToolRegistry
+from app.services.harness.tool_registry import ToolRegistry, get_tool_registry
 
 logger = logging.getLogger(__name__)
+
+
+def _is_allow_private_hosts_enabled() -> bool:
+    """读取 MCP_ALLOW_PRIVATE_HOSTS 环境变量。
+
+    默认 False（严格 SSRF 检查）。管理员可通过设置 ``MCP_ALLOW_PRIVATE_HOSTS=true``
+    显式启用对 RFC1918/loopback/ULA 网段的访问，用于内网 MCP server。
+
+    注意：即使此开关为 True，validate_url() 仍会拒绝云元数据（169.254/16）
+    和链路本地（fe80::/10）地址——这些永远是 SSRF 攻击向量。
+    """
+    return os.environ.get("MCP_ALLOW_PRIVATE_HOSTS", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 class McpServerManager:
@@ -96,7 +114,14 @@ class McpServerManager:
         logger.info(f"Unsynced MCP server {server_id}")
 
     def _get_or_create_client(self, server: McpServer) -> McpClient:
-        """获取或创建 McpClient"""
+        """获取或创建 McpClient。
+
+        SSRF 防护策略：
+        - 默认 ``allow_private_hosts=False``（严格检查 RFC1918/loopback/ULA）
+        - 管理员可通过设置环境变量 ``MCP_ALLOW_PRIVATE_HOSTS=true`` 启用
+          内网 MCP server 支持
+        - **始终**拒绝云元数据（169.254/16）和链路本地（fe80::/10）地址
+        """
         if server.id in self._clients:
             return self._clients[server.id]
 
@@ -104,16 +129,21 @@ class McpServerManager:
         if server.headers_json:
             headers = json.loads(server.headers_json)
 
-        # allow_private_hosts=True：MCP server URL 来自管理员配置（admin UI），
-        # 管理员可能配置内网 MCP 服务（如 http://10.x.x.x:3000），需要允许私有 IP。
-        # SSRF 防护仍保留：scheme 校验、userinfo 校验等在 validate_url() 中生效。
+        allow_private = _is_allow_private_hosts_enabled()
         client = McpClient(
             server_url=server.server_url,
             headers=headers,
             timeout=server.timeout_seconds,
-            allow_private_hosts=True,
+            allow_private_hosts=allow_private,
         )
         self._clients[server.id] = client
+        if allow_private:
+            logger.warning(
+                "MCP server %s configured with allow_private_hosts=True "
+                "(via MCP_ALLOW_PRIVATE_HOSTS env). Cloud metadata endpoints "
+                "(169.254/16) are still blocked.",
+                server.name,
+            )
         return client
 
     def get_client(self, server_id: UUID) -> McpClient | None:
@@ -126,13 +156,12 @@ _manager: McpServerManager | None = None
 
 
 def get_mcp_server_manager() -> McpServerManager:
-    """获取全局 McpServerManager 实例（懒初始化单例）"""
+    """获取全局 McpServerManager 实例（懒初始化单例）。
+
+    通过 ``get_tool_registry()`` 获取 ToolRegistry 实例，
+    避免 ``tool_registry=None`` 导致的 AttributeError。
+    """
     global _manager
     if _manager is None:
-        from app.services.harness.tool_registry import ToolRegistry
-        # 注意：ToolRegistry 需要 db session，此处使用延迟导入
-        # 实际场景中，manager 在首次 API 调用时才初始化，
-        # 由调用方保证 DB 可用。
-        # Phase 3-Plan-1A: 使用 None db 占位，Task 5 完善
-        _manager = McpServerManager(tool_registry=None)  # type: ignore[arg-type]
+        _manager = McpServerManager(tool_registry=get_tool_registry())
     return _manager

@@ -160,7 +160,7 @@ class TestValidateUrlSSRF:
 # ---------- validate_url — allow_private_hosts ----------
 
 class TestValidateUrlAllowPrivate:
-    """allow_private_hosts=True 应允许内网地址"""
+    """allow_private_hosts=True 应允许 RFC1918/loopback，但仍拒绝云元数据"""
 
     def test_allows_loopback(self):
         validate_url("http://127.0.0.1:3000", allow_private_hosts=True)
@@ -168,8 +168,24 @@ class TestValidateUrlAllowPrivate:
     def test_allows_private_10(self):
         validate_url("http://10.0.0.1", allow_private_hosts=True)
 
-    def test_allows_link_local(self):
-        validate_url("http://169.254.169.254", allow_private_hosts=True)
+    def test_still_rejects_cloud_metadata_ipv4(self):
+        """即使 allow_private_hosts=True，云元数据（169.254/16）必须被拒绝"""
+        with pytest.raises(McpConnectionError, match="blocked|metadata|link-local"):
+            validate_url("http://169.254.169.254", allow_private_hosts=True)
+
+    def test_still_rejects_link_local_ipv6(self):
+        """即使 allow_private_hosts=True，IPv6 链路本地（fe80::/10）必须被拒绝"""
+        with pytest.raises(McpConnectionError, match="blocked|metadata|link-local"):
+            validate_url("http://[fe80::1]", allow_private_hosts=True)
+
+    def test_still_rejects_dns_to_metadata(self):
+        """即使 allow_private_hosts=True，DNS 解析到云元数据 IP 也必须被拒绝"""
+        with patch(
+            "app.services.harness.mcp_client.socket.getaddrinfo",
+            return_value=[(2, 1, 6, "", ("169.254.169.254", 0))],
+        ):
+            with pytest.raises(McpConnectionError, match="blocked|metadata|link-local"):
+                validate_url("http://spoofed.example.com", allow_private_hosts=True)
 
     def test_still_rejects_bad_scheme(self):
         """即使 allow_private_hosts=True，scheme 校验仍然生效"""
@@ -180,6 +196,31 @@ class TestValidateUrlAllowPrivate:
         """即使 allow_private_hosts=True，userinfo 校验仍然生效"""
         with pytest.raises(McpConnectionError, match="userinfo"):
             validate_url("http://user:pass@127.0.0.1", allow_private_hosts=True)
+
+
+# ---------- validate_url — default mode metadata ----------
+
+class TestValidateUrlMetadataDefault:
+    """默认模式（allow_private_hosts=False）下云元数据应被拒绝"""
+
+    def test_rejects_metadata_ip_literal(self):
+        """IP 字面量的云元数据地址被拒绝"""
+        with pytest.raises(McpConnectionError, match="blocked|metadata|link-local"):
+            validate_url("http://169.254.169.254/latest/meta-data/")
+
+    def test_rejects_metadata_via_dns(self):
+        """DNS 解析到云元数据 IP 也被拒绝"""
+        with patch(
+            "app.services.harness.mcp_client.socket.getaddrinfo",
+            return_value=[(2, 1, 6, "", ("169.254.169.254", 0))],
+        ):
+            with pytest.raises(McpConnectionError, match="blocked|metadata|link-local"):
+                validate_url("http://spoofed.example.com")
+
+    def test_rejects_link_local_ipv6(self):
+        """IPv6 链路本地被拒绝"""
+        with pytest.raises(McpConnectionError, match="blocked|metadata|link-local"):
+            validate_url("http://[fe80::1]")
 
 
 # ---------- validate_url — hostname ----------

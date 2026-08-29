@@ -253,3 +253,113 @@ async def test_shutdown_all(registry):
 
     for tool in registry._builtin.values():
         tool.shutdown.assert_awaited_once()
+
+
+# ============================================================
+# 动态工具注册（Phase 3-Plan-1A: MCP tools）
+# ============================================================
+
+
+class TestDynamicRegistration:
+    """register_dynamic / unregister_dynamic 测试
+
+    Phase 3-Plan-1A: 当前实现与 builtin 共用 _builtin 字典（Task 5 拆分）
+    """
+
+    def test_register_dynamic_adds_tool(self, registry, test_db):
+        """register_dynamic 应将工具加入可用集合"""
+        from app.services.harness.tool_protocol import ToolResult
+
+        class FakeMcpTool:
+            name = "mcp_test_tool"
+            description = "MCP test tool"
+            is_dynamic = True
+
+            async def execute(self, args, ctx):
+                return ToolResult.success("ok")
+
+            async def execute_stream(self, args, ctx):
+                yield ToolEvent(type="text", payload={"text": "ok"})
+
+            def to_function_schema(self):
+                return {"name": self.name, "description": self.description}
+
+            def is_available(self, ctx):
+                return True
+
+        tool = FakeMcpTool()
+        registry.register_dynamic(tool)
+
+        assert "mcp_test_tool" in registry._builtin
+        assert registry._builtin["mcp_test_tool"] is tool
+
+    def test_unregister_dynamic_removes_tool(self, registry):
+        """unregister_dynamic 应移除工具"""
+        from app.services.harness.tool_protocol import ToolResult
+
+        class FakeMcpTool:
+            name = "mcp_remove_me"
+            description = ""
+
+            async def execute(self, args, ctx):
+                return ToolResult.success("ok")
+
+            async def execute_stream(self, args, ctx):
+                yield ToolEvent(type="text", payload={"text": "ok"})
+
+            def to_function_schema(self):
+                return {}
+
+            def is_available(self, ctx):
+                return True
+
+        tool = FakeMcpTool()
+        registry.register_dynamic(tool)
+        assert "mcp_remove_me" in registry._builtin
+
+        registry.unregister_dynamic("mcp_remove_me")
+        assert "mcp_remove_me" not in registry._builtin
+
+
+class TestGetToolRegistry:
+    """get_tool_registry 单例函数测试"""
+
+    def setup_method(self):
+        import app.services.harness.tool_registry as tr_module
+
+        tr_module._registry = None
+
+    def teardown_method(self):
+        import app.services.harness.tool_registry as tr_module
+
+        tr_module._registry = None
+
+    def test_get_tool_registry_singleton(self, test_db):
+        """get_tool_registry 应返回同一单例"""
+        from app.services.harness.tool_registry import (
+            get_tool_registry,
+            _registry,
+        )
+
+        # mock get_db to return test_db session (side_effect 生成新迭代器)
+        with patch("app.models.get_db", side_effect=lambda: iter([test_db])):
+
+            r1 = get_tool_registry()
+            r2 = get_tool_registry()
+
+            assert r1 is r2
+            assert isinstance(r1, ToolRegistry)
+
+    def test_reset_tool_registry_clears_singleton(self, test_db):
+        """reset_tool_registry 应清除单例"""
+        from app.services.harness.tool_registry import (
+            get_tool_registry,
+            reset_tool_registry,
+        )
+
+        with patch("app.models.get_db", side_effect=lambda: iter([test_db])):
+
+            r1 = get_tool_registry()
+            reset_tool_registry()
+            r2 = get_tool_registry()
+            assert r1 is not r2
