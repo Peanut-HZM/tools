@@ -121,30 +121,8 @@ class Settings(BaseSettings):
     K8S_WS_IDLE_TIMEOUT: int = 1800       # 30 分钟 WebSocket 空闲超时（秒）
     K8S_DEFAULT_REFETCH_INTERVAL: int = 10  # 前端默认轮询间隔（秒）
 
-    # Dify 图像生成（默认值，可被 DB 后台覆盖）
-    DIFY_API_URL: str = ""
-    DIFY_APP_API_KEY: str = ""  # 敏感字段，建议放 .env
-    DIFY_WORKFLOW_TEXT2IMG: str = ""
-    DIFY_WORKFLOW_IMG2IMG: str = ""
-    DIFY_WORKFLOW_INPAINT: str = ""
-    DIFY_WORKFLOW_UPLOAD_EDIT: str = ""
-    DIFY_DEFAULT_TIMEOUT: float = 60.0
-
     # 图像生成全局开关
     IMAGE_GENERATION_ENABLED: bool = True
-
-    # 图像生成后端模式切换
-    # "dify"    — 全走 Dify（默认，安全回滚位；阶段 1 基础设施就绪后，切到 dual 启动双写验证）
-    # "harness" — 全走 harness（验证稳定后切换为目标状态）
-    # "dual"    — 双写对比（阶段 1 验证用，显式切到此模式启动双写）
-    IMAGE_GEN_BACKEND: str = "dify"
-
-    @field_validator("IMAGE_GEN_BACKEND")
-    @classmethod
-    def _validate_image_gen_backend(cls, v: str) -> str:
-        if v not in ("dify", "harness", "dual"):
-            raise ValueError(f"IMAGE_GEN_BACKEND 必须是 dify/harness/dual 之一，得到: {v}")
-        return v
 
     class Config:
         env_file = str(PROJECT_ROOT / ".env")
