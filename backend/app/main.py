@@ -12,7 +12,6 @@ from app.routes import (
     oss,
     admin,
     deploy,
-    image_generation,
 )
 from app.routes import (
     ocr_routes,
@@ -109,15 +108,6 @@ async def lifespan(app: FastAPI):
         logger.info("Token Usage 数据库表创建成功")
     except Exception as e:
         logger.warning(f"Token Usage 数据库表创建失败: {e}")
-
-    # 自动创建数据库表（图像生成相关模型，含自研路径对话表）
-    try:
-        from app.models import image_generation_models  # noqa: F401
-        from app.models import image_gen_conversation  # noqa: F401
-        Base.metadata.create_all(bind=engine)
-        logger.info("图像生成数据库表创建成功")
-    except Exception as e:
-        logger.warning(f"图像生成数据库表创建失败: {e}")
 
     # 初始化监控模块（建表 + 启动采集引擎）
     monitor_cleanup_task = None
@@ -219,23 +209,7 @@ async def lifespan(app: FastAPI):
     from app.services.ccusage_scheduler import init_scheduler, shutdown_scheduler
     init_scheduler()
 
-    # 启动 image-gen OSS 保留策略调度器
-    try:
-        from app.services.image_gen_retention_scheduler import (
-            init_retention_scheduler,
-            shutdown_retention_scheduler,
-        )
-        init_retention_scheduler()
-    except Exception as e:
-        logger.warning(f"image-gen retention scheduler 启动失败: {e}")
-
     yield
-
-    # 关闭 image-gen OSS 保留策略调度器
-    try:
-        shutdown_retention_scheduler()
-    except Exception as e:
-        logger.warning(f"image-gen retention scheduler 关闭失败: {e}")
 
     # 关闭 ccusage 调度器
     try:
@@ -375,10 +349,6 @@ app.include_router(oss.router)
 # Admin router
 app.include_router(admin.router)
 
-# Admin image-generation router (Task 7.1)
-from app.routes import admin_image_generation  # noqa: E402
-app.include_router(admin_image_generation.router)
-
 # Admin LLM quota router (LLM 用户配额管理)
 from app.routes import admin_llm_quota  # noqa: E402
 app.include_router(admin_llm_quota.router)
@@ -470,10 +440,6 @@ app.include_router(contact_message.router)
 
 # Cursor History router
 app.include_router(cursor_history.router, prefix="/api")
-
-# Image Generation router (Task 6.1)
-app.include_router(image_generation.router, prefix="/api")
-
 
 # Monitor router（服务器监控）
 app.include_router(monitor_router.router, prefix="/api")
