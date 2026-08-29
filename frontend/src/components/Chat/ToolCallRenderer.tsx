@@ -18,6 +18,7 @@ import type { ToolCall, ToolResult } from '@/types/tool';
 import { WebSearchRenderer } from './ToolRenderers/WebSearchRenderer';
 import { DbQueryRenderer } from './ToolRenderers/DbQueryRenderer';
 import { ImageGenRenderer } from './ToolRenderers/ImageGenRenderer';
+import { MemoryRenderer } from './ToolRenderers/MemoryRenderer';
 import { DefaultRenderer } from './ToolRenderers/DefaultRenderer';
 
 export interface ToolCallRendererProps {
@@ -34,6 +35,8 @@ const DEFAULT_BUILTINS: Record<string, React.ComponentType<ToolRendererProps>> =
   web_search: WebSearchRenderer,
   db_query: DbQueryRenderer,
   image_gen: ImageGenRenderer,
+  memory_read: MemoryRenderer,
+  memory_write: MemoryRenderer,
 };
 
 export const ToolCallRenderer: React.FC<ToolCallRendererProps> = ({
