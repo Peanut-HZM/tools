@@ -13,7 +13,7 @@ export interface TraceStep {
   step_index: number;
   step_type: string;
   created_at: string | null;
-  duration_ms: number;
+  duration_ms: number | null;
   tokens_used: number;
   tool_name: string | null;
   llm_model: string | null;
@@ -30,7 +30,7 @@ export interface Trace {
   input_text: string;
   output_text: string | null;
   status: 'running' | 'success' | 'error' | 'timeout' | 'guardrail_blocked' | 'handoff';
-  started_at: string;
+  started_at: string | null;
   completed_at: string | null;
   total_duration_ms: number;
   total_steps: number;
