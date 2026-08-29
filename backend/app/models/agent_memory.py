@@ -12,6 +12,8 @@ from datetime import datetime
 
 from sqlalchemy import (
     Column,
+    Float,
+    Integer,
     String,
     Text,
     DateTime,
@@ -49,6 +51,11 @@ class AgentMemoryLongTerm(Base):
     key = Column(String(200), nullable=False)
     value = Column(JSONB, nullable=False, default=dict)
     summary = Column(Text, nullable=True)
+    # Phase 3 Plan-1B: 向量检索相关列
+    importance = Column(Float, nullable=False, default=0.5, server_default="0.5")
+    access_count = Column(Integer, nullable=False, default=0, server_default="0")
+    # embedding 使用 Text 类型，应用层做 list[float] ↔ string 转换
+    embedding = Column(Text, nullable=True)  # 存储为字符串 "[0.1, 0.2, ...]"
     created_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
