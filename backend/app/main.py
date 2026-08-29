@@ -229,6 +229,11 @@ async def lifespan(app: FastAPI):
     # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")
 
+    # OpenTelemetry 初始化（Phase 3 Plan 1C Task 7）
+    from app.services.harness.otel_init import init_otel
+    otel_ok = init_otel()
+    logger.info("OpenTelemetry export: %s", "enabled" if otel_ok else "disabled")
+
     # 启动 ccusage 调度器
     from app.services.ccusage_scheduler import init_scheduler, shutdown_scheduler
     init_scheduler()
@@ -240,6 +245,10 @@ async def lifespan(app: FastAPI):
         shutdown_scheduler()
     except Exception as e:
         logger.warning(f"ccusage scheduler 关闭失败: {e}")
+
+    # OpenTelemetry shutdown（Phase 3 Plan 1C Task 7）
+    from app.services.harness.otel_init import shutdown_otel
+    shutdown_otel()
 
     # 关闭时
     logger.info("Shutting down application...")
