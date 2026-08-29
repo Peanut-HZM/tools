@@ -208,6 +208,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"MCP server 启动同步失败（功能将不可用）: {e}")
 
+    # 加载本地插件工具（Phase 3 P2-①b 文件插件系统）
+    try:
+        await _scan_plugins()
+    except Exception as e:
+        logger.warning(f"Plugin 加载失败（功能将不可用）: {e}")
+
     # 记忆向量回填（Phase 3 Plan-1B / Task 6）：best-effort，非阻塞启动
     try:
         from app.models.base import SessionLocal
@@ -394,6 +400,19 @@ async def sync_mcp_servers():
                 )
     finally:
         db.close()
+
+
+async def _scan_plugins() -> None:
+    """启动时扫描 backend/plugins/ 目录加载所有 plugin tool。
+
+    PluginLoader.scan() 内部对单文件失败做隔离；这里再加一层 try/except
+    防止目录权限等极端异常阻断 lifespan。
+    """
+    from app.services.harness.plugin_loader import PluginLoader
+    from app.services.harness.tool_registry import get_tool_registry
+
+    plugins_dir = PROJECT_ROOT / "plugins"
+    PluginLoader(get_tool_registry()).scan(plugins_dir)
 
 
 app = FastAPI(title="Tool Aggregation API", lifespan=lifespan)

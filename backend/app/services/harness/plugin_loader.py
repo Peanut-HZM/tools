@@ -12,10 +12,11 @@ Phase 3 P2-①b 文件插件系统
 """
 from __future__ import annotations
 
+import importlib.util
 import inspect
 import logging
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Dict, List, Union
+from typing import Any, AsyncIterator, Callable, List, Union
 
 from app.services.harness.tool_protocol import (
     ToolContext,
@@ -219,3 +220,100 @@ def _wrap_result(tool_name: str, raw: Any) -> ToolResult:
 
     # 其它 dict（无约定 key）→ 视作 JSON content
     return ToolResult(success=True, content=raw, content_type="json")
+
+
+class PluginLoader:
+    """扫描插件目录、加载所有 .py、注册 tool 到 tool_registry。
+
+    失败隔离：单文件抛异常时记录 ERROR log + 跳过该文件，不阻断整体加载。
+    """
+
+    def __init__(self, tool_registry) -> None:
+        self.tool_registry = tool_registry
+        self._loaded: List[str] = []  # 已成功加载的 plugin 文件名
+
+    def scan(self, plugins_dir: Union[str, Path]) -> None:
+        """扫描 plugins_dir 下所有 *.py，逐个 importlib 加载。
+
+        跳过 _*.py 与 __pycache__/。
+        单文件失败（SyntaxError / ImportError / 装饰器 ValueError 等）只记录 ERROR log。
+
+        实现细节：装饰器通过 ``get_tool_registry()`` 单例拿到 registry，
+        这里在 exec_module 前临时把单例替换为 self.tool_registry，
+        exec_module 后还原。生产环境 main.py 把真实的 get_tool_registry() 传入；
+        测试中可传 MagicMock。
+        """
+        plugins_path = Path(plugins_dir)
+
+        if not plugins_path.exists() or not plugins_path.is_dir():
+            logger.warning(
+                f"[PluginLoader] plugins directory not found or not a dir: {plugins_path}"
+            )
+            return
+
+        # 列出 *.py（不含 _*.py 和 __pycache__/）
+        py_files = sorted(
+            p
+            for p in plugins_path.glob("*.py")
+            if p.is_file() and not p.name.startswith("_")
+        )
+
+        if not py_files:
+            logger.info(
+                f"[PluginLoader] no plugins found in: {plugins_path}"
+            )
+            return
+
+        logger.info(f"[PluginLoader] 发现 {len(py_files)} 个插件文件，开始加载")
+
+        # 临时把全局单例替换为 self.tool_registry，让装饰器注册到传入的 registry
+        from app.services.harness import tool_registry as _tr_module
+
+        original = _tr_module._registry
+        _tr_module._registry = self.tool_registry
+        try:
+            for py_file in py_files:
+                module_name = f"_plugin_{py_file.stem}"
+                spec = importlib.util.spec_from_file_location(module_name, str(py_file))
+                if spec is None or spec.loader is None:
+                    logger.error(f"[PluginLoader] 无法构造 spec: {py_file.name}")
+                    continue
+
+                module = importlib.util.module_from_spec(spec)
+                try:
+                    spec.loader.exec_module(module)
+                except SyntaxError as e:
+                    logger.error(
+                        f"[PluginLoader] 语法错误 {py_file.name}: {e.msg} (line {e.lineno})"
+                    )
+                    continue
+                except ImportError as e:
+                    logger.error(
+                        f"[PluginLoader] 导入错误 {py_file.name}: {e}"
+                    )
+                    continue
+                except ValueError as e:
+                    # 装饰器在校验失败时抛 ValueError
+                    logger.error(
+                        f"[PluginLoader] 装饰器校验失败 {py_file.name}: {e}"
+                    )
+                    continue
+                except Exception as e:
+                    # 任何其他异常（包含装饰器副作用）一并隔离
+                    logger.exception(
+                        f"[PluginLoader] 加载失败 {py_file.name}: "
+                        f"{type(e).__name__}: {e}"
+                    )
+                    continue
+
+                # 成功执行模块后，装饰器已调用 tool_registry.register_dynamic
+                self._loaded.append(py_file.name)
+                logger.info(f"[PluginLoader] 已加载: {py_file.name}")
+
+            logger.info(
+                f"[PluginLoader] 加载完成: 共 {len(py_files)} 个文件，"
+                f"成功 {len(self._loaded)} 个"
+            )
+        finally:
+            # 还原全局单例，避免污染后续代码
+            _tr_module._registry = original
