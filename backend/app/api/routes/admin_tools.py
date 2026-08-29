@@ -64,8 +64,17 @@ def _get_builtin_tools():
     """获取内置工具实例（延迟导入避免循环依赖）"""
     from app.services.harness.tools.web_search import WebSearchTool
     from app.services.harness.tools.db_query import DbQueryTool
+    from app.services.harness.tools.image_gen import ImageGenTool
+    from app.services.harness.tools.memory_read import MemoryReadTool
+    from app.services.harness.tools.memory_write import MemoryWriteTool
 
-    return [WebSearchTool(), DbQueryTool()]
+    return [
+        WebSearchTool(),
+        DbQueryTool(),
+        ImageGenTool(),
+        MemoryReadTool(),
+        MemoryWriteTool(),
+    ]
 
 
 def _tool_to_view(tool: Tool) -> ToolView:
