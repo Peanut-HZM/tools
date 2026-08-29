@@ -9,7 +9,6 @@ Phase 1 兼容策略：
 v1 起已迁移到 LLMProvider + LLMModel（原 llm_configs 表仅保留用于回滚过渡）。
 """
 
-import asyncio
 import json
 import logging
 from typing import Any
@@ -19,13 +18,11 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user
-from app.config.config import settings
 from app.services.conversation_service import ConversationService, MessageService
 from app.services.agent_management_service import AgentService as AgentManagementService
 from app.services.llm_quota_service import LLMQuotaService
 
 from app.services.harness.agent_runtime import AgentRuntime
-from app.services.harness.events import Event
 from app.services.harness.llm_bridge import LLMFunctionBridge
 from app.services.harness.tool_protocol import ToolContext
 from app.services.harness.tool_registry import ToolRegistry
@@ -133,9 +130,6 @@ async def chat_stream(
     async def generate_stream():
         # 错误状态下跳过后续 Event（runtime 在 error 后仍可能 yield done with fallback）
         errored = False
-        # dual-mode shadow：记录最近一次 image_gen 工具调用的参数，
-        # 在收到 tool_result 后触发 fire-and-forget shadow 调用
-        _pending_image_gen_args: dict | None = None
         try:
             # 1. user_message
             yield (
@@ -144,23 +138,6 @@ async def chat_stream(
 
             # 2. 驱动 runtime，映射 Event → 外部 SSE 形状
             async for event in runtime.run(content):
-                # dual-mode shadow 触发：image_gen 工具调用完成后异步比对 Dify
-                if event.type == "tool_call_start" and event.payload.get("name") == "image_gen":
-                    _pending_image_gen_args = event.payload.get("arguments") or {}
-                elif event.type == "tool_result" and event.payload.get("name") == "image_gen":
-                    if (
-                        settings.IMAGE_GEN_BACKEND == "dual"
-                        and _pending_image_gen_args is not None
-                    ):
-                        shadow_args = _pending_image_gen_args
-                        _pending_image_gen_args = None
-                        # fire-and-forget：不阻塞主流程，异常在内部捕获
-                        asyncio.create_task(
-                            _run_image_gen_with_shadow(shadow_args, ctx)
-                        )
-                    else:
-                        _pending_image_gen_args = None
-
                 if event.type == "text_delta":
                     text = event.payload.get("text", "")
                     yield (
@@ -294,33 +271,3 @@ def _init_harness_session(
     except Exception as e:
         logger.error(f"加载对话历史失败: {e}", exc_info=True)
     return harness_session
-
-
-async def _run_image_gen_with_shadow(args: dict, ctx) -> dict:
-    """image_gen 的 shadow 调用（dual 模式专用）
-
-    仅当 IMAGE_GEN_BACKEND == "dual" 时调用 DifyImageGenExecutor，
-    与 harness image_gen 结果对比并记录日志。不返回主结果（harness 自身返回）。
-
-    约束：
-    - 不抛异常（所有异常在内部捕获 + 脱敏日志）
-    - 不阻塞主流程（由 asyncio.create_task 调度）
-    - 返回结构化 dict，便于后续扩展对比逻辑
-    """
-    if settings.IMAGE_GEN_BACKEND != "dual":
-        return {"skipped": True, "reason": "not dual mode"}
-
-    try:
-        from app.services.harness.image_gen_backend.executors import DifyImageGenExecutor
-
-        dify_exec = DifyImageGenExecutor()
-        result = await dify_exec.execute(args, ctx)
-        logger.info(
-            "image_gen shadow dify result: success=%s urls=%d",
-            result.get("success"), len(result.get("image_urls", [])),
-        )
-        return result
-    except Exception as e:
-        # 异常脱敏：只记录类型，不暴露详情 / stack
-        logger.warning("image_gen shadow dify failed: %s", type(e).__name__)
-        return {"success": False, "error": "shadow_failed", "backend": "dify"}
