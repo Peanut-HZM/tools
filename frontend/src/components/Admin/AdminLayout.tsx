@@ -13,7 +13,6 @@ import {
   CloudUpload,
   Brain,
   GraduationCap,
-  Image as ImageIcon,
   Shield,
 } from 'lucide-react';
 
@@ -55,7 +54,6 @@ export default function AdminLayout() {
     { path: '/admin/llm-configs', label: '大模型配置', icon: <Brain className="w-5 h-5" /> },
     { path: '/admin/course', label: '课程管理', icon: <GraduationCap className="w-5 h-5" /> },
     { path: '/admin/openclaw', label: 'OpenClaw 管理', icon: <MessagesSquare className="w-5 h-5" /> },
-    { path: '/admin/image-generation', label: '图像生成管理', icon: <ImageIcon className="w-5 h-5" /> },
   ];
 
   return (

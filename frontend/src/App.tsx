@@ -18,7 +18,6 @@ import ContactMessagesManagement from './components/Admin/ContactMessagesManagem
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
 import { WorkspacePage } from './components/Workspace/WorkspacePage';
 import OpenClawManagement from './components/Admin/OpenClawManagement';
-import ImageGenerationAdmin from './components/Admin/ImageGeneration';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
@@ -67,7 +66,6 @@ const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
 const TokenUsage = lazy(() => import('./components/Tools/TokenUsage'));
 const OpenClawChat = lazy(() => import('./components/Tools/OpenClawChat/OpenClawChat'));
 const K8sTool = lazy(() => import('./components/Tools/K8sTool/K8sTool'));
-const ImageGeneration = lazy(() => import('./components/Tools/ImageGeneration'));
 
 // React Query 客户端实例（进程级别单例）
 const queryClient = new QueryClient({
@@ -353,7 +351,6 @@ function App() {
                     <Route path="token-usage" element={<TokenUsage />} />
                     <Route path="openclaw" element={<OpenClawChat />} />
                     <Route path="k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
-                    <Route path="image-generation" element={<ImageGeneration />} />
                   </Routes>
                 </Suspense>
               } />
@@ -373,7 +370,6 @@ function App() {
               <Route path="course" element={<CourseManagement />} />
               <Route path="course/:id" element={<CourseDetail />} />
               <Route path="openclaw" element={<OpenClawManagement />} />
-              <Route path="image-generation" element={<ImageGenerationAdmin />} />
             </Route>
 
             {/* 仅开发环境：设计系统 token 验证页 */}

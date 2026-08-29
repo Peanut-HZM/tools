@@ -47,13 +47,6 @@ export interface ToolResultEvent {
   timestamp: number;
 }
 
-export interface ImageGeneratedEvent {
-  type: 'image_generated';
-  url: string;
-  prompt?: string;
-  timestamp: number;
-}
-
 export interface HandoffEvent {
   type: 'handoff';
   target_agent_id: string;
@@ -107,7 +100,6 @@ export type AgentEvent =
   | ToolCallStartEvent
   | ToolCallProgressEvent
   | ToolResultEvent
-  | ImageGeneratedEvent
   | HandoffEvent
   | GuardrailTriggeredEvent
   | MemoryRetrievedEvent
