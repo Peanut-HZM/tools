@@ -9,10 +9,17 @@ import logging
 import time
 import uuid
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlsplit
 
 from app.services.harness.image_gen_backend.metrics import log_image_gen_metric
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_url(u: str) -> str:
+    """脱敏 URL：去掉 query（含 OSS 预签名 token），只保留 scheme://netloc/path"""
+    parts = urlsplit(u)
+    return f"{parts.scheme}://{parts.netloc}{parts.path}"
 
 
 class DifyImageGenExecutor:
@@ -30,7 +37,8 @@ class DifyImageGenExecutor:
         try:
             # 简化实现：记录日志 + 返回 mock 结果
             # 真实场景需要从 ctx 获取依赖注入或从全局获取服务实例
-            logger.info(f"[DifyExecutor] request_id={request_id}, args={args}")
+            # 脱敏：只记录 keys，避免 prompt / negative_prompt / reference_image_url 等敏感内容泄漏
+            logger.info(f"[DifyExecutor] request_id={request_id}, keys={list(args.keys())}")
 
             # TODO: 真实实现需要：
             # 1. 从 ctx 或全局获取 ImageGenService 实例
@@ -213,12 +221,12 @@ class DualImageGenExecutor:
                 f"urls 长度不一致: primary={len(p_urls)}, secondary={len(s_urls)}"
             )
 
-        # 比对第一个 URL
+        # 比对第一个 URL（脱敏：去掉 query 签名 token）
         if p_urls and s_urls and p_urls[0] != s_urls[0]:
             diff_reasons.append("url_content_diff")
             logger.warning(
                 f"[DualExecutor] request_id={request_id}, "
-                f"首个 URL 不一致: primary={p_urls[0]}, secondary={s_urls[0]}"
+                f"首个 URL 不一致: primary={_sanitize_url(p_urls[0])}, secondary={_sanitize_url(s_urls[0])}"
             )
 
         if p_success == s_success and len(p_urls) == len(s_urls):
