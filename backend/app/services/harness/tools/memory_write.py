@@ -79,6 +79,16 @@ class MemoryWriteTool(BuiltinTool):
                 "description": "可选摘要（≤500 字符）",
                 "maxLength": _MAX_SUMMARY_LENGTH,
             },
+            "importance": {
+                "type": "number",
+                "description": (
+                    "重要度（0-1，默认 0.5）。"
+                    "影响向量检索时的排序权重。"
+                ),
+                "minimum": 0.0,
+                "maximum": 1.0,
+                "default": 0.5,
+            },
         },
     }
     returns_schema = {
@@ -176,6 +186,16 @@ class MemoryWriteTool(BuiltinTool):
         else:
             summary = raw_summary
 
+        # 5.5 importance 类型与范围（可选，默认 0.5）
+        raw_importance = args.get("importance")
+        importance_val: float = 0.5
+        if raw_importance is not None:
+            if isinstance(raw_importance, bool) or not isinstance(raw_importance, (int, float)):
+                return ToolResult.error("importance 必须为数字（0-1）")
+            importance_val = float(raw_importance)
+            if importance_val < 0.0 or importance_val > 1.0:
+                return ToolResult.error("importance 必须在 0-1 之间")
+
         # 6. 上下文校验
         db = getattr(ctx, "db", None)
         if db is None:
@@ -219,6 +239,7 @@ class MemoryWriteTool(BuiltinTool):
                 # 更新已有条目 → 不触发 max_entries
                 existing.value = raw_value
                 existing.summary = summary
+                existing.importance = importance_val
                 action = "updated"
             else:
                 # 新建条目 → 检查 max_entries
@@ -242,11 +263,40 @@ class MemoryWriteTool(BuiltinTool):
                     key=key,
                     value=raw_value,
                     summary=summary,
+                    importance=importance_val,
                 )
                 db.add(record)
                 action = "created"
 
             db.commit()
+
+            # 9. 生成 embedding（best-effort，不阻塞写入）
+            # embedding 失败不影响 KV 已成功保存的事实
+            try:
+                from app.services.harness.memory_service import MemoryService
+                from app.services.harness.embeddings.factory import (
+                    create_embedding_provider,
+                )
+
+                agent_cfg = self._resolve_agent_config(db, agent_uuid)
+                if agent_cfg.get("embedding_provider"):
+                    provider = create_embedding_provider(agent_cfg)
+                    svc = MemoryService(db=db, embedding_provider=provider)
+                    await svc.store(
+                        agent_uuid,
+                        user_uuid,
+                        key,
+                        raw_value,
+                        importance=importance_val,
+                        summary=summary,
+                    )
+            except Exception as e:
+                # embedding 失败不影响 KV 已保存；异常脱敏：仅记录类型名
+                logger.warning(
+                    "memory_write embedding 生成失败（KV 已保存）: %s",
+                    type(e).__name__,
+                )
+
             return ToolResult.json({"action": action, "key": key})
 
         except Exception as e:
@@ -291,3 +341,29 @@ class MemoryWriteTool(BuiltinTool):
                 "memory_write 读取 Agent 配置失败: %s", type(e).__name__
             )
             return _DEFAULT_MAX_ENTRIES
+
+    @staticmethod
+    def _resolve_agent_config(db, agent_uuid: uuid.UUID) -> Dict[str, Any]:
+        """读取 Agent.memory_long_term_config（dict），失败回退空 dict。
+
+        用于 Phase 3 Plan-1B embedding 生成时读取 embedding_provider 配置。
+        异常时不阻塞主流程，仅返回空 dict 让上游决定是否跳过 embedding。
+        """
+        try:
+            from app.models.agent import Agent
+
+            agent = (
+                db.query(Agent)
+                .filter(Agent.id == agent_uuid)
+                .first()
+            )
+            if agent is None:
+                return {}
+            cfg = getattr(agent, "memory_long_term_config", None)
+            return cfg if isinstance(cfg, dict) else {}
+        except Exception as e:
+            logger.warning(
+                "memory_write 读取 Agent embedding 配置失败: %s",
+                type(e).__name__,
+            )
+            return {}
