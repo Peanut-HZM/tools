@@ -11,9 +11,11 @@
 - 错误消息脱敏：仅回传 provider 已脱敏的 ImageGenError 文本，
   其余异常统一降级为通用提示，详细信息只写 logger
 """
+import ipaddress
 import logging
 import mimetypes
-from typing import Any, List, Optional, Tuple
+import socket
+from typing import Any, Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from app.services.harness.image_provider.base import (
@@ -60,24 +62,81 @@ _MAX_N = 4
 # style 长度上限（防止把超长文本塞进 provider 请求体）
 _MAX_STYLE_LEN = 64
 
+# SSRF 防护：禁止访问的内网地址段（与 provider 的 _BLOCKED_NETWORKS 保持一致）
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network('127.0.0.0/8'),
+    ipaddress.ip_network('10.0.0.0/8'),
+    ipaddress.ip_network('172.16.0.0/12'),
+    ipaddress.ip_network('192.168.0.0/16'),
+    ipaddress.ip_network('169.254.0.0/16'),
+    ipaddress.ip_network('::1/128'),
+    ipaddress.ip_network('fc00::/7'),
+    ipaddress.ip_network('0.0.0.0/8'),
+]
 
-def _is_safe_http_url(raw: Any) -> bool:
+
+def _is_safe_http_url(
+    raw: Any,
+    resolver: Optional[Callable[[str], str]] = None,
+) -> bool:
     """校验 URL 是否为安全的 http/https 链接
 
-    仅允许 http/https scheme 且必须带 host，长度受限。
+    防止 SSRF 和 parser differential：
+    - 仅允许 http/https scheme
+    - 拒绝包含 userinfo 的 URL（如 http://attacker@10.0.0.1/）
+    - 拒绝解析到内网/loopback/link-local IP 的 hostname
+    - 限制长度
+
+    Args:
+        raw: 待校验的 URL 字符串（可为 None / 非字符串）
+        resolver: hostname → IP 字符串的解析函数；为 None 时使用
+            ``socket.gethostbyname``（运行时查找，便于测试 monkeypatch）。
     """
+    # 运行时解析默认值，保证 monkeypatch socket.gethostbyname 生效
+    if resolver is None:
+        resolver = socket.gethostbyname
+
     if not raw or not isinstance(raw, str):
         return False
     candidate = raw.strip()
     if not candidate or len(candidate) > _MAX_URL_LEN:
         return False
+
     try:
         parsed = urlparse(candidate)
     except Exception:
         return False
+
+    # 1. Scheme 校验
     if parsed.scheme.lower() not in _ALLOWED_URL_SCHEMES:
         return False
-    return bool(parsed.netloc)
+
+    # 2. userinfo 校验（防止 http://attacker@10.0.0.1/ 绕过）
+    if parsed.username or parsed.password:
+        return False
+
+    # 3. hostname 必须存在且规范化（urlparse 已做 lower + IDNA 解码）
+    hostname = parsed.hostname
+    if not hostname:
+        return False
+
+    # 4. DNS 解析 + IP 黑名单检查（防止 DNS rebinding 到内网）
+    try:
+        ip_str = resolver(hostname)
+        ip = ipaddress.ip_address(ip_str)
+    except (socket.gaierror, ValueError, OSError):
+        # DNS 解析失败时保守拒绝
+        logger.warning("DNS 解析失败: %s", hostname)
+        return False
+
+    for network in _BLOCKED_NETWORKS:
+        if ip in network:
+            logger.warning(
+                "拒绝内网 URL: %s -> %s", hostname, ip_str
+            )
+            return False
+
+    return True
 
 
 def _guess_image_name(url: str, index: int) -> Tuple[str, str]:

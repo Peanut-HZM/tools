@@ -15,6 +15,7 @@
 另含补充用例：upload_edit 正常路径、危险 URL 拒绝、空 provider 链、
 参数归一化、prompt 润色降级、_resolve_provider_chain 过滤逻辑。
 """
+import socket
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -23,7 +24,30 @@ from app.services.harness.image_provider.base import (
     ImageGenResult,
 )
 from app.services.harness.tool_protocol import ToolContext
-from app.services.harness.tools.image_gen import ImageGenTool
+from app.services.harness.tools.image_gen import ImageGenTool, _is_safe_http_url
+
+
+@pytest.fixture(autouse=True)
+def _patch_dns(monkeypatch):
+    """全局 mock socket.gethostbyname，避免测试触发真实 DNS 查询。
+
+    - 已知测试 hostname（如 example.com / oss.example.com）解析为公网 IP，
+      保证正向用例通过
+    - 其它 hostname 一律解析失败，对应 SSRF 防护中"保守拒绝"的语义
+    """
+    _PUBLIC_IP_TABLE = {
+        "example.com": "93.184.216.34",
+        "oss.example.com": "93.184.216.34",
+    }
+
+    def _fake_gethostbyname(hostname):
+        if hostname in _PUBLIC_IP_TABLE:
+            return _PUBLIC_IP_TABLE[hostname]
+        raise socket.gaierror("mocked: no entry for %s" % hostname)
+
+    monkeypatch.setattr(socket, "gethostbyname", _fake_gethostbyname)
+    # _is_safe_http_url 默认引用的是 import 时的 socket 模块对象，
+    # monkeypatch 已替换标准库 socket.gethostbyname，二者指向同一函数。
 
 
 def _make_ctx(agent=None, event_emitter=None, llm_gateway=None, db=None):
@@ -728,3 +752,122 @@ class TestResolveProviderChain:
         agent = MagicMock(default_model_id=None, fallback_model_ids=[])
         ctx = _make_ctx(agent=agent)
         assert tool._resolve_provider_chain(ctx) == []
+
+
+class TestUrlSsrfProtection:
+    """测试 _is_safe_http_url 的 SSRF / parser-differential 防护
+
+    注入 resolver 避免真实 DNS 查询。
+    """
+
+    @staticmethod
+    def _resolver(table):
+        """构造基于 table 的 fake resolver：hostname -> IP"""
+
+        def _resolve(hostname):
+            if hostname not in table:
+                raise socket.gaierror("no entry")
+            return table[hostname]
+
+        return _resolve
+
+    # ---- parser-differential: userinfo ----
+
+    def test_url_with_userinfo_rejected(self):
+        """包含 userinfo 的 URL 被拒绝（如 http://attacker@10.0.0.1/）"""
+        # 注意：hostname 是 10.0.0.1，但即使 IP 合法也不应通过 userinfo 检查
+        resolver = self._resolver({"10.0.0.1": "8.8.8.8"})
+        url = "http://attacker.com@10.0.0.1/admin"
+        assert _is_safe_http_url(url, resolver=resolver) is False
+
+    def test_url_with_password_userinfo_rejected(self):
+        """包含 password 的 userinfo 也被拒绝"""
+        resolver = self._resolver({"10.0.0.1": "8.8.8.8"})
+        url = "http://user:pass@10.0.0.1/admin"
+        assert _is_safe_http_url(url, resolver=resolver) is False
+
+    # ---- SSRF: 内网 IP 直接出现 ----
+
+    def test_url_with_loopback_ip_rejected(self):
+        """127.0.0.1 等 loopback 被拒绝"""
+        assert _is_safe_http_url("http://127.0.0.1/admin") is False
+
+    def test_url_with_private_ip_rejected(self):
+        """10/8 / 172.16/12 / 192.168/16 私网 IP 被拒绝"""
+        assert _is_safe_http_url("http://192.168.1.1/admin") is False
+        assert _is_safe_http_url("http://10.0.0.5/admin") is False
+        assert _is_safe_http_url("http://172.16.0.1/admin") is False
+
+    def test_url_with_link_local_ip_rejected(self):
+        """169.254/16 link-local（如 AWS metadata）被拒绝"""
+        assert (
+            _is_safe_http_url("http://169.254.169.254/latest/meta-data/") is False
+        )
+
+    def test_url_with_zero_network_rejected(self):
+        """0.0.0.0/8 被拒绝"""
+        assert _is_safe_http_url("http://0.0.0.0/admin") is False
+
+    def test_url_with_ipv6_loopback_rejected(self):
+        """IPv6 loopback ::1 被拒绝"""
+        assert _is_safe_http_url("http://[::1]/admin") is False
+
+    # ---- SSRF: DNS 解析到内网 ----
+
+    def test_hostname_resolving_to_private_ip_rejected(self):
+        """hostname 解析到私网 IP 时被拒绝（防止 DNS rebinding）"""
+        resolver = self._resolver({"evil.example.com": "10.0.0.5"})
+        assert (
+            _is_safe_http_url(
+                "https://evil.example.com/img.png", resolver=resolver
+            )
+            is False
+        )
+
+    def test_hostname_dns_failure_rejected(self):
+        """DNS 解析失败时保守拒绝"""
+        resolver = self._resolver({})  # 所有 hostname 都解析失败
+        assert (
+            _is_safe_http_url(
+                "https://nonexistent.example.com/img.png", resolver=resolver
+            )
+            is False
+        )
+
+    # ---- 正向用例 ----
+
+    def test_valid_url_accepted(self):
+        """公网 IP 的合法 URL 被接受"""
+        resolver = self._resolver({"example.com": "93.184.216.34"})
+        assert (
+            _is_safe_http_url(
+                "https://example.com/image.png", resolver=resolver
+            )
+            is True
+        )
+
+    # ---- 输入类型与长度边界 ----
+
+    def test_non_string_input_rejected(self):
+        """None / int / list 等非字符串输入被拒绝"""
+        assert _is_safe_http_url(None) is False
+        assert _is_safe_http_url(123) is False
+        assert _is_safe_http_url(["url"]) is False
+        assert _is_safe_http_url({"url": "x"}) is False
+
+    def test_empty_string_rejected(self):
+        """空字符串 / 纯空白字符串被拒绝"""
+        assert _is_safe_http_url("") is False
+        assert _is_safe_http_url("   ") is False
+
+    def test_overlong_url_rejected(self):
+        """超过 _MAX_URL_LEN 的 URL 被拒绝"""
+        long_url = "https://example.com/" + ("a" * 3000)
+        assert _is_safe_http_url(long_url) is False
+
+    def test_unsafe_scheme_still_rejected(self):
+        """危险 scheme 仍然被拒绝（回归保护）"""
+        assert _is_safe_http_url("file:///etc/passwd") is False
+        assert _is_safe_http_url("javascript:alert(1)") is False
+        assert _is_safe_http_url("data:image/png;base64,AAAA") is False
+
