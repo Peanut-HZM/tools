@@ -547,6 +547,11 @@ from app.api.routes.harness_memories import router as harness_memories_router  #
 
 app.include_router(harness_memories_router)
 
+# Harness traces query router (Phase 3 Plan 1C / Task 3)
+from app.api.routes import harness_traces  # noqa: E402
+
+app.include_router(harness_traces.router)
+
 
 @app.get("/")
 def read_root():
