@@ -7,9 +7,7 @@
 
 provider_type: minimax_image
 """
-import ipaddress
 import logging
-import socket
 import time
 import uuid
 from urllib.parse import urlparse
@@ -21,6 +19,7 @@ from app.services.harness.image_provider.base import (
     ImageGenParams,
     ImageGenResult,
     ImageModelProvider,
+    _resolve_and_check_ip,
 )
 from app.services.harness.image_provider.registry import register_provider
 
@@ -29,17 +28,6 @@ logger = logging.getLogger(__name__)
 # 请求超时（秒）
 _DEFAULT_TIMEOUT = 60.0
 
-# SSRF 防护：禁止访问的内网地址段
-_BLOCKED_NETWORKS = [
-    ipaddress.ip_network('127.0.0.0/8'),
-    ipaddress.ip_network('10.0.0.0/8'),
-    ipaddress.ip_network('172.16.0.0/12'),
-    ipaddress.ip_network('192.168.0.0/16'),
-    ipaddress.ip_network('169.254.0.0/16'),
-    ipaddress.ip_network('::1/128'),
-    ipaddress.ip_network('fc00::/7'),
-    ipaddress.ip_network('0.0.0.0/8'),
-]
 
 
 class HailuoProvider(ImageModelProvider):
@@ -272,20 +260,12 @@ class HailuoProvider(ImageModelProvider):
             logger.warning("拒绝非 HTTP URL: %s", url[:100])
             return url
 
-        # SSRF 防护：DNS 解析 + 内网 IP 检查
+        # SSRF 防护：DNS 解析（含 AAAA 记录）+ 内网 IP 检查，统一使用 base 中的集中实现
         parsed = urlparse(url)
         hostname = parsed.hostname
-        if hostname:
-            try:
-                ip_str = socket.gethostbyname(hostname)
-                ip = ipaddress.ip_address(ip_str)
-                for network in _BLOCKED_NETWORKS:
-                    if ip in network:
-                        logger.warning("拒绝内网 URL: %s -> %s", url[:100], ip_str)
-                        return url
-            except (socket.gaierror, ValueError, OSError) as e:
-                logger.warning("DNS 解析失败: %s - %s", url[:100], type(e).__name__)
-                return url
+        if hostname and not _resolve_and_check_ip(hostname):
+            logger.warning("拒绝内网或解析失败的 URL: %s", url[:100])
+            return url
 
         try:
             # follow_redirects=False 防止重定向绕过 SSRF

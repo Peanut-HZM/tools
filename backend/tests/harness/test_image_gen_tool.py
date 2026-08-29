@@ -29,25 +29,36 @@ from app.services.harness.tools.image_gen import ImageGenTool, _is_safe_http_url
 
 @pytest.fixture(autouse=True)
 def _patch_dns(monkeypatch):
-    """全局 mock socket.gethostbyname，避免测试触发真实 DNS 查询。
+    """全局 mock socket.getaddrinfo，避免测试触发真实 DNS 查询。
 
-    - 已知测试 hostname（如 example.com / oss.example.com）解析为公网 IP，
-      保证正向用例通过
+    - IP 字面量直接原样返回，交给黑名单判定
+    - 已知测试 hostname（如 example.com / oss.example.com）解析为公网 IP
+    - hostname 含 'private' 时解析为内网 IP 10.0.0.1
     - 其它 hostname 一律解析失败，对应 SSRF 防护中"保守拒绝"的语义
     """
+    import ipaddress
+
     _PUBLIC_IP_TABLE = {
         "example.com": "93.184.216.34",
         "oss.example.com": "93.184.216.34",
     }
 
-    def _fake_gethostbyname(hostname):
-        if hostname in _PUBLIC_IP_TABLE:
-            return _PUBLIC_IP_TABLE[hostname]
-        raise socket.gaierror("mocked: no entry for %s" % hostname)
+    def _fake_getaddrinfo(host, port=None, *args, **kwargs):
+        try:
+            ip = ipaddress.ip_address(host)
+            family = socket.AF_INET6 if ip.version == 6 else socket.AF_INET
+            return [(family, socket.SOCK_STREAM, 6, "", (host, 0))]
+        except ValueError:
+            pass
+        if "private" in host:
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", 0))]
+        if host in _PUBLIC_IP_TABLE:
+            return [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", (_PUBLIC_IP_TABLE[host], 0))
+            ]
+        raise socket.gaierror("mocked: no entry for %s" % host)
 
-    monkeypatch.setattr(socket, "gethostbyname", _fake_gethostbyname)
-    # _is_safe_http_url 默认引用的是 import 时的 socket 模块对象，
-    # monkeypatch 已替换标准库 socket.gethostbyname，二者指向同一函数。
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo)
 
 
 def _make_ctx(agent=None, event_emitter=None, llm_gateway=None, db=None):
@@ -757,34 +768,18 @@ class TestResolveProviderChain:
 class TestUrlSsrfProtection:
     """测试 _is_safe_http_url 的 SSRF / parser-differential 防护
 
-    注入 resolver 避免真实 DNS 查询。
+    DNS 由 autouse fixture mock 的 socket.getaddrinfo 提供，避免真实查询。
     """
-
-    @staticmethod
-    def _resolver(table):
-        """构造基于 table 的 fake resolver：hostname -> IP"""
-
-        def _resolve(hostname):
-            if hostname not in table:
-                raise socket.gaierror("no entry")
-            return table[hostname]
-
-        return _resolve
 
     # ---- parser-differential: userinfo ----
 
     def test_url_with_userinfo_rejected(self):
         """包含 userinfo 的 URL 被拒绝（如 http://attacker@10.0.0.1/）"""
-        # 注意：hostname 是 10.0.0.1，但即使 IP 合法也不应通过 userinfo 检查
-        resolver = self._resolver({"10.0.0.1": "8.8.8.8"})
-        url = "http://attacker.com@10.0.0.1/admin"
-        assert _is_safe_http_url(url, resolver=resolver) is False
+        assert _is_safe_http_url("http://attacker.com@10.0.0.1/admin") is False
 
     def test_url_with_password_userinfo_rejected(self):
         """包含 password 的 userinfo 也被拒绝"""
-        resolver = self._resolver({"10.0.0.1": "8.8.8.8"})
-        url = "http://user:pass@10.0.0.1/admin"
-        assert _is_safe_http_url(url, resolver=resolver) is False
+        assert _is_safe_http_url("http://user:pass@10.0.0.1/admin") is False
 
     # ---- SSRF: 内网 IP 直接出现 ----
 
@@ -812,39 +807,51 @@ class TestUrlSsrfProtection:
         """IPv6 loopback ::1 被拒绝"""
         assert _is_safe_http_url("http://[::1]/admin") is False
 
+    # ---- SSRF: 补充黑名单覆盖 ----
+
+    def test_url_with_cgnat_ip_rejected(self):
+        """100.64.0.0/10 CGNAT 被拒绝"""
+        assert _is_safe_http_url("http://100.64.1.1/admin") is False
+
+    def test_url_with_benchmark_ip_rejected(self):
+        """198.18.0.0/15 benchmark 段被拒绝"""
+        assert _is_safe_http_url("http://198.18.0.1/admin") is False
+
+    def test_url_with_multicast_ip_rejected(self):
+        """224.0.0.0/4 组播被拒绝"""
+        assert _is_safe_http_url("http://224.0.0.1/admin") is False
+
+    def test_url_with_reserved_ip_rejected(self):
+        """240.0.0.0/4 保留段被拒绝"""
+        assert _is_safe_http_url("http://240.0.0.1/admin") is False
+
+    def test_url_with_ipv6_link_local_rejected(self):
+        """fe80::/10 IPv6 link-local 被拒绝"""
+        assert _is_safe_http_url("http://[fe80::1]/admin") is False
+
+    def test_url_with_ipv6_ula_rejected(self):
+        """fc00::/7 IPv6 ULA 被拒绝"""
+        assert _is_safe_http_url("http://[fd00::1]/admin") is False
+
+    def test_url_with_ipv4_mapped_ipv6_rejected(self):
+        """IPv4 映射的 IPv6 私网地址被拒绝"""
+        assert _is_safe_http_url("http://[::ffff:10.0.0.1]/admin") is False
+
     # ---- SSRF: DNS 解析到内网 ----
 
     def test_hostname_resolving_to_private_ip_rejected(self):
         """hostname 解析到私网 IP 时被拒绝（防止 DNS rebinding）"""
-        resolver = self._resolver({"evil.example.com": "10.0.0.5"})
-        assert (
-            _is_safe_http_url(
-                "https://evil.example.com/img.png", resolver=resolver
-            )
-            is False
-        )
+        assert _is_safe_http_url("https://private.invalid/img.png") is False
 
     def test_hostname_dns_failure_rejected(self):
         """DNS 解析失败时保守拒绝"""
-        resolver = self._resolver({})  # 所有 hostname 都解析失败
-        assert (
-            _is_safe_http_url(
-                "https://nonexistent.example.com/img.png", resolver=resolver
-            )
-            is False
-        )
+        assert _is_safe_http_url("https://nonexistent.example.org/img.png") is False
 
     # ---- 正向用例 ----
 
     def test_valid_url_accepted(self):
         """公网 IP 的合法 URL 被接受"""
-        resolver = self._resolver({"example.com": "93.184.216.34"})
-        assert (
-            _is_safe_http_url(
-                "https://example.com/image.png", resolver=resolver
-            )
-            is True
-        )
+        assert _is_safe_http_url("https://example.com/image.png") is True
 
     # ---- 输入类型与长度边界 ----
 
