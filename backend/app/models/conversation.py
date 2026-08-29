@@ -1,9 +1,12 @@
 """
 会话模型
+
+Harness Phase 1: 新增 agent_id（绑定到 Agent）与 metadata 扩展字段。
+详见 spec §5.5。
 """
 
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, Enum
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 import uuid
 
@@ -33,6 +36,14 @@ class Conversation(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    # === Harness Phase 1 新增字段 ===
+    agent_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("agents.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    metadata_ = Column("metadata", JSONB, default=dict)
 
     def __repr__(self):
         return f"<Conversation(id={self.id}, title={self.title}, stage={self.current_stage})>"

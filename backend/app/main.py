@@ -192,6 +192,18 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"SQLAlchemy engine 初始化失败: {e}")
 
+    # Harness 初始化（Phase 1: 验证内置工具可注册）
+    try:
+        from app.services.harness.tool_registry import ToolRegistry  # noqa: F401
+        from app.services.harness.tools.web_search import WebSearchTool  # noqa: F401
+        from app.services.harness.tools.db_query import DbQueryTool  # noqa: F401
+
+        # 延迟初始化（需要请求级 DB session）
+        # Phase 1: 只验证模块可导入，不创建实例
+        logger.info("Harness ToolRegistry 模块已就绪（按需初始化）")
+    except Exception as e:
+        logger.warning(f"Harness 模块初始化失败: {e}")
+
     # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")
 
@@ -225,6 +237,7 @@ async def lifespan(app: FastAPI):
 
     # 关闭时
     logger.info("Shutting down application...")
+    logger.info("Harness ToolRegistry 已清理（按需实例随 session 释放）")
 
     try:
         from app.services.openclaw_service import openclaw_service
@@ -422,6 +435,16 @@ app.include_router(chat_stream.router, prefix="/api/v1")
 
 # Admin conversation management router
 app.include_router(admin_conversations.router, prefix="/api/v1")
+
+# Harness admin/tools router (Task 13)
+from app.api.routes import admin_tools
+
+app.include_router(admin_tools.router)
+
+# Harness admin/traces router (Task 15)
+from app.api.routes import admin_traces  # noqa: E402
+
+app.include_router(admin_traces.router)
 
 # Agent management router
 from app.api.routes import agents as agents_router

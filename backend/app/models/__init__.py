@@ -61,3 +61,14 @@ from app.models.k8s_tool_models import *
 
 # LLM 用户配额 + 调用流水模型
 from app.models.llm_quota_models import LLMUserQuota, LLMUsageLog  # noqa: F401
+
+# Harness Phase 1 ORM 模型
+# 注：ORM Tool 以别名 HarnessTool 导出，避免覆盖上方 Pydantic Tool
+from app.models.harness_models import (
+    Tool as HarnessTool,
+    ToolBinding,
+    SessionCheckpoint,
+    AgentMemory,
+    Trace,
+    TraceStep,
+)  # noqa: F401

@@ -3,17 +3,17 @@ Task 1.5.2 — 验证 3 个消费方（llm_fallback / agent_service / chat_strea
 从 LLMConfig 迁移到 LLMModel + LLMProvider 的行为正确性。
 
 覆盖范围（明确）：
-  ✓ _parse_request_params 辅助函数：Text → dict 的所有分支
+  ✓ _parse_request_params 辅助函数：Text → dict 的所有分支（llm_fallback + agent_service）
   ✓ LLMFallbackService._get_available_models：活跃过滤 + 默认优先 + 主模型置顶
   ✓ agent_service._get_default_model：返回 is_default + is_active 的模型
-  ✓ chat_stream._get_default_model：同上（两个模块各自定义）
   ✓ 完整 fallback 路径端到端：decrypt_api_key + get_provider 调用（用 mock 验证参数传递）
   ✓ LLMProvider.is_active=False 时，关联的 LLMModel 应被过滤掉（双重 is_active）
 
 未覆盖（诚实声明）：
-  ✗ chat_stream 的 generate_stream 完整 SSE 路径（需要大量 FastAPI + provider mock，留作后续）
+  ✗ chat_stream 的 generate_stream 完整 SSE 路径（已由 tests/harness/test_chat_stream_integration.py 覆盖）
   ✗ agent_service.generate_agent_response 完整路径（同上）
-  这两条路径通过 py_compile + 服务启动已验证无导入错误。
+  ✗ chat_stream._get_default_model / _parse_request_params 的独立测试（Task 16：chat_stream
+    切换到 AgentRuntime，这两个辅助函数已不再属于 chat_stream；模型选择由 OrderedLLMGateway 处理）
 """
 import os
 import sys
@@ -51,10 +51,8 @@ from app.services.agent_service import (
     _get_default_model as agent_get_default,
     _parse_request_params as as_parse,
 )
-from app.api.routes.chat_stream import (
-    _get_default_model as cs_get_default,
-    _parse_request_params as cs_parse,
-)
+# Task 16: chat_stream 切换到 AgentRuntime，已移除 _get_default_model / _parse_request_params
+# 模型选择由 OrderedLLMGateway 处理，chat_stream 不再持有这些辅助函数
 
 
 @pytest.fixture
@@ -114,10 +112,11 @@ def _seed_model(
 
 
 # ============================================================
-# 1. _parse_request_params 全分支覆盖（3 个文件各自一份）
+# 1. _parse_request_params 全分支覆盖（llm_fallback + agent_service 两份）
+# Task 16: chat_stream 不再持有此辅助函数
 # ============================================================
 
-@pytest.mark.parametrize("parse_fn", [fb_parse, as_parse, cs_parse], ids=["fallback", "agent", "chat_stream"])
+@pytest.mark.parametrize("parse_fn", [fb_parse, as_parse], ids=["fallback", "agent"])
 class TestParseRequestParams:
     def test_none(self, parse_fn):
         assert parse_fn(None) == {}
@@ -211,11 +210,12 @@ class TestGetAvailableModels:
 
 
 # ============================================================
-# 3. _get_default_model（agent_service / chat_stream 两份）
+# 3. _get_default_model（agent_service）
+# Task 16: chat_stream 不再持有此辅助函数
 # ============================================================
 
 class TestGetDefaultModel:
-    @pytest.mark.parametrize("get_default", [agent_get_default, cs_get_default], ids=["agent", "chat_stream"])
+    @pytest.mark.parametrize("get_default", [agent_get_default], ids=["agent"])
     def test_returns_default_active_model(self, db_session, get_default):
         provider = _seed_provider(db_session)
         default = _seed_model(db_session, provider, name="default", model_name="m-default", is_default=True)
@@ -225,7 +225,7 @@ class TestGetDefaultModel:
         assert result is not None
         assert result.id == default.id
 
-    @pytest.mark.parametrize("get_default", [agent_get_default, cs_get_default], ids=["agent", "chat_stream"])
+    @pytest.mark.parametrize("get_default", [agent_get_default], ids=["agent"])
     def test_ignores_inactive_default(self, db_session, get_default):
         """is_default=True 但 is_active=False 的 model 不应被选为默认"""
         provider = _seed_provider(db_session)
@@ -235,7 +235,7 @@ class TestGetDefaultModel:
         result = get_default(db_session)
         assert result is None
 
-    @pytest.mark.parametrize("get_default", [agent_get_default, cs_get_default], ids=["agent", "chat_stream"])
+    @pytest.mark.parametrize("get_default", [agent_get_default], ids=["agent"])
     def test_ignores_default_with_inactive_provider(self, db_session, get_default):
         """provider.is_active=False 时，即使 model.is_default=True 也不应返回"""
         provider = _seed_provider(db_session, is_active=False)
@@ -244,7 +244,7 @@ class TestGetDefaultModel:
         result = get_default(db_session)
         assert result is None
 
-    @pytest.mark.parametrize("get_default", [agent_get_default, cs_get_default], ids=["agent", "chat_stream"])
+    @pytest.mark.parametrize("get_default", [agent_get_default], ids=["agent"])
     def test_no_default_set(self, db_session, get_default):
         """没有任何 default 时返回 None"""
         provider = _seed_provider(db_session)
