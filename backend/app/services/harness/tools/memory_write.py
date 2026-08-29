@@ -16,6 +16,7 @@
 """
 import json
 import logging
+import re
 import uuid
 from typing import Any, Dict, Optional
 
@@ -32,6 +33,9 @@ _MAX_SUMMARY_LENGTH = 500
 _MAX_VALUE_BYTES = 10 * 1024  # 10KB
 # 默认每 (agent, user) 命名空间最大条目数
 _DEFAULT_MAX_ENTRIES = 100
+
+# 控制字符（ASCII < 32 + 0x7F-0x9F），用于剥离潜在注入 / 不可见字符
+_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1F\x7F-\x9F]")
 
 
 def _to_uuid(value: Any) -> Optional[uuid.UUID]:
@@ -150,6 +154,11 @@ class MemoryWriteTool(BuiltinTool):
             return ToolResult.error(
                 f"key 长度超过限制（{_MAX_KEY_LENGTH}）"
             )
+
+        # 3.5 剥离控制字符（防御潜在注入/不可见字符污染 key）
+        key = _CONTROL_CHARS_RE.sub("", key)
+        if not key:
+            return ToolResult.error("key 不能为空")
 
         # 4. value 类型：必须是 dict
         if not isinstance(raw_value, dict):
