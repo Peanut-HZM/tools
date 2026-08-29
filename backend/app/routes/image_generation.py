@@ -91,6 +91,29 @@ def get_image_gen_service(
     )
 
 
+def get_image_gen_executor(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """根据 IMAGE_GEN_BACKEND 配置返回对应执行器
+
+    spec §7.2 — 通过 env var 切换后端。
+    返回 ImageGenBackendFactory 产出的 ImageGenExecutor 实例，
+    路由层可直接用于调用 image generation 能力。
+    """
+    from app.services.harness.image_gen_backend.factory import ImageGenBackendFactory
+    from app.services.harness.tool_protocol import ToolContext
+
+    # 构造 ToolContext：路由层无会话/agent 上下文，留空字符串
+    ctx = ToolContext(
+        user_id=_extract_user_id(current_user),
+        conversation_id="",
+        agent_id="",
+        db=db,
+    )
+    return ImageGenBackendFactory.create(ctx)
+
+
 # ============================================================
 # 工具函数
 # ============================================================
