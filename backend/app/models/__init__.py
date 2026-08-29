@@ -72,3 +72,6 @@ from app.models.harness_models import (
     Trace,
     TraceStep,
 )  # noqa: F401
+
+# Harness Phase 2 Memory Long-term
+from app.models.agent_memory import AgentMemoryLongTerm  # noqa: F401
