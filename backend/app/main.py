@@ -202,6 +202,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("ImageGenTool 模块加载失败: %s", type(e).__name__)
 
+    # 启动时同步 MCP server（Phase 3-Plan-1A Task 5）
+    try:
+        await sync_mcp_servers()
+    except Exception as e:
+        logger.warning(f"MCP server 启动同步失败（功能将不可用）: {e}")
+
     # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")
 
@@ -310,6 +316,43 @@ def _check_security_settings():
 
         if not asr_settings.API_KEY:
             logger.error("生产环境 ASR_API_KEY 不能为空")
+
+
+async def sync_mcp_servers():
+    """启动时同步所有活跃的 MCP server。
+
+    遍历所有 ``is_active=True`` 的 ``McpServer``，通过 ``McpServerManager.sync_server()``
+    拉取工具列表并注册到全局 ``ToolRegistry``。
+    单个 server 失败仅记录日志，不阻塞其他 server 与应用启动。
+    """
+    from app.models.mcp_server import McpServer
+    from app.services.harness.mcp_server_manager import get_mcp_server_manager
+    from app.models.base import SessionLocal
+
+    db = SessionLocal()
+    try:
+        manager = get_mcp_server_manager()
+        servers = db.query(McpServer).filter(McpServer.is_active == True).all()
+        logger.info(f"启动时发现 {len(servers)} 个活跃 MCP server，开始同步")
+        for server in servers:
+            try:
+                result = await manager.sync_server(server)
+                if result["success"]:
+                    logger.info(
+                        f"[Startup MCP Sync] {server.name}: 已同步 "
+                        f"{result['tools_count']} 个工具"
+                    )
+                else:
+                    logger.warning(
+                        f"[Startup MCP Sync] {server.name} 同步失败: "
+                        f"{result.get('error')}"
+                    )
+            except Exception as e:
+                logger.exception(
+                    f"[Startup MCP Sync] {server.name} 同步异常: {e}"
+                )
+    finally:
+        db.close()
 
 
 app = FastAPI(title="Tool Aggregation API", lifespan=lifespan)

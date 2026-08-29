@@ -38,6 +38,7 @@ class ToolRegistry:
     def __init__(self, db: DBSession):
         self.db = db
         self._builtin: Dict[str, BuiltinTool] = {}
+        self._dynamic: Dict[str, ToolProtocol] = {}  # MCP / Plugin 动态注册
         self._http_cache: Dict[str, HttpTool] = {}  # tool_id -> HttpTool
 
     # ============================================================
@@ -62,24 +63,27 @@ class ToolRegistry:
     def register_dynamic(self, tool: ToolProtocol) -> None:
         """注册动态工具（来自 MCP server 等外部源）。
 
-        Phase 3-Plan-1A 骨架：当前实现与 builtin 共用 `_builtin` 字典，
-        后续 Task 5 将拆分独立的 `_dynamic` 字典并接入 agent bindings。
-        重复名称时动态工具覆盖内置工具（保持向后兼容）。
+        动态工具与内置工具隔离存储；同名重复注册时记录 warning 并覆盖
+        （允许 MCP server 重连/更新场景下重新注册同名工具）。
         """
-        self._builtin[tool.name] = tool  # type: ignore[assignment]
+        if tool.name in self._dynamic:
+            logger.warning(
+                f"[ToolRegistry] 动态工具 {tool.name} 已注册，将被覆盖"
+            )
+        self._dynamic[tool.name] = tool
         logger.info(f"[ToolRegistry] 注册动态工具: {tool.name}")
 
     def unregister_dynamic(self, name: str) -> None:
         """注销动态工具。
 
-        Phase 3-Plan-1A 骨架：当前仅从 `_builtin` 字典移除。
-        如果该名称原本不是动态工具（而是内置），保留不动以避免误删。
-        后续 Task 5 将拆分独立存储后提供精确清理。
+        仅从 ``_dynamic`` 字典移除，不会触碰 ``_builtin`` 中的同名工具。
+        未注册的名称为 no-op。
         """
-        # 当前简化实现：直接移除。Task 5 完善后会先判断来源。
-        if name in self._builtin:
-            del self._builtin[name]
+        if name in self._dynamic:
+            del self._dynamic[name]
             logger.info(f"[ToolRegistry] 注销动态工具: {name}")
+        else:
+            logger.debug(f"[ToolRegistry] 动态工具 {name} 未注册，跳过注销")
 
     # ============================================================
     # 查询
@@ -261,13 +265,17 @@ class ToolRegistry:
     async def _resolve_tool_by_name(self, name: str):
         """按工具名解析实例
 
-        查找顺序：内置工具 → DB（HTTP 工具）
+        查找顺序：内置工具 → 动态工具（MCP / Plugin）→ DB（HTTP 工具）
         """
         # 1. 查内置
         if name in self._builtin:
             return self._builtin[name]
 
-        # 2. 查 DB（HTTP 工具）
+        # 2. 查动态注册（MCP / Plugin）
+        if name in self._dynamic:
+            return self._dynamic[name]
+
+        # 3. 查 DB（HTTP 工具）
         from app.models.harness_models import Tool
 
         db_tool = (

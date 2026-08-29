@@ -263,11 +263,11 @@ async def test_shutdown_all(registry):
 class TestDynamicRegistration:
     """register_dynamic / unregister_dynamic 测试
 
-    Phase 3-Plan-1A: 当前实现与 builtin 共用 _builtin 字典（Task 5 拆分）
+    动态工具独立存储于 ``_dynamic``，与 ``_builtin`` 隔离。
     """
 
     def test_register_dynamic_adds_tool(self, registry, test_db):
-        """register_dynamic 应将工具加入可用集合"""
+        """register_dynamic 应将工具加入 _dynamic 字典"""
         from app.services.harness.tool_protocol import ToolResult
 
         class FakeMcpTool:
@@ -290,11 +290,12 @@ class TestDynamicRegistration:
         tool = FakeMcpTool()
         registry.register_dynamic(tool)
 
-        assert "mcp_test_tool" in registry._builtin
-        assert registry._builtin["mcp_test_tool"] is tool
+        assert "mcp_test_tool" in registry._dynamic
+        assert registry._dynamic["mcp_test_tool"] is tool
+        assert "mcp_test_tool" not in registry._builtin
 
     def test_unregister_dynamic_removes_tool(self, registry):
-        """unregister_dynamic 应移除工具"""
+        """unregister_dynamic 应移除 _dynamic 中的工具"""
         from app.services.harness.tool_protocol import ToolResult
 
         class FakeMcpTool:
@@ -315,10 +316,10 @@ class TestDynamicRegistration:
 
         tool = FakeMcpTool()
         registry.register_dynamic(tool)
-        assert "mcp_remove_me" in registry._builtin
+        assert "mcp_remove_me" in registry._dynamic
 
         registry.unregister_dynamic("mcp_remove_me")
-        assert "mcp_remove_me" not in registry._builtin
+        assert "mcp_remove_me" not in registry._dynamic
 
 
 class TestGetToolRegistry:
