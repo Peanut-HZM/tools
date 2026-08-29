@@ -10,6 +10,8 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
+from app.services.harness.image_gen_backend.metrics import log_image_gen_metric
+
 logger = logging.getLogger(__name__)
 
 
@@ -165,22 +167,39 @@ class DualImageGenExecutor:
             }
 
         # 记录 diff
-        self._log_diff(primary_result, secondary_result, request_id)
+        diff_reasons = self._log_diff(primary_result, secondary_result, request_id)
+
+        # 追加结构化指标日志，供 dual 模式验证阶段对照 harness vs Dify 一致性
+        log_image_gen_metric(
+            request_id=request_id,
+            backend="dual",
+            primary_success=primary_result.get("success", False),
+            secondary_success=secondary_result.get("success", False),
+            primary_urls=len(primary_result.get("image_urls", [])),
+            secondary_urls=len(secondary_result.get("image_urls", [])),
+            elapsed_ms_primary=primary_result.get("elapsed_ms", 0),
+            elapsed_ms_secondary=secondary_result.get("elapsed_ms", 0),
+            diff_reasons=diff_reasons,
+        )
 
         # 返回 primary 结果（不降级）
         primary_result["elapsed_ms"] = (time.monotonic() - start) * 1000
         primary_result["request_id"] = request_id
         return primary_result
 
-    def _log_diff(self, primary: Dict[str, Any], secondary: Dict[str, Any], request_id: str):
-        """对比 primary 与 secondary 结果，记录差异"""
+    def _log_diff(self, primary: Dict[str, Any], secondary: Dict[str, Any], request_id: str) -> List[str]:
+        """对比 primary 与 secondary 结果，记录差异，返回 diff_reasons 列表"""
         p_success = primary.get("success", False)
         s_success = secondary.get("success", False)
         p_urls = primary.get("image_urls", [])
         s_urls = secondary.get("image_urls", [])
 
+        # 收集差异原因（简单 key，无冒号值）
+        diff_reasons: List[str] = []
+
         # 比对 success
         if p_success != s_success:
+            diff_reasons.append("success_diff")
             logger.warning(
                 f"[DualExecutor] request_id={request_id}, "
                 f"success 不一致: primary={p_success}, secondary={s_success}"
@@ -188,6 +207,7 @@ class DualImageGenExecutor:
 
         # 比对 image_urls 长度
         if len(p_urls) != len(s_urls):
+            diff_reasons.append("url_count_diff")
             logger.warning(
                 f"[DualExecutor] request_id={request_id}, "
                 f"urls 长度不一致: primary={len(p_urls)}, secondary={len(s_urls)}"
@@ -195,6 +215,7 @@ class DualImageGenExecutor:
 
         # 比对第一个 URL
         if p_urls and s_urls and p_urls[0] != s_urls[0]:
+            diff_reasons.append("url_content_diff")
             logger.warning(
                 f"[DualExecutor] request_id={request_id}, "
                 f"首个 URL 不一致: primary={p_urls[0]}, secondary={s_urls[0]}"
@@ -202,3 +223,5 @@ class DualImageGenExecutor:
 
         if p_success == s_success and len(p_urls) == len(s_urls):
             logger.info(f"[DualExecutor] request_id={request_id}, 对比一致")
+
+        return diff_reasons
