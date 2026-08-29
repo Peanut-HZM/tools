@@ -12,7 +12,6 @@ from app.routes import (
     oss,
     admin,
     deploy,
-    image_generation,
 )
 from app.routes import (
     ocr_routes,
@@ -219,23 +218,7 @@ async def lifespan(app: FastAPI):
     from app.services.ccusage_scheduler import init_scheduler, shutdown_scheduler
     init_scheduler()
 
-    # 启动 image-gen OSS 保留策略调度器
-    try:
-        from app.services.image_gen_retention_scheduler import (
-            init_retention_scheduler,
-            shutdown_retention_scheduler,
-        )
-        init_retention_scheduler()
-    except Exception as e:
-        logger.warning(f"image-gen retention scheduler 启动失败: {e}")
-
     yield
-
-    # 关闭 image-gen OSS 保留策略调度器
-    try:
-        shutdown_retention_scheduler()
-    except Exception as e:
-        logger.warning(f"image-gen retention scheduler 关闭失败: {e}")
 
     # 关闭 ccusage 调度器
     try:
@@ -375,10 +358,6 @@ app.include_router(oss.router)
 # Admin router
 app.include_router(admin.router)
 
-# Admin image-generation router (Task 7.1)
-from app.routes import admin_image_generation  # noqa: E402
-app.include_router(admin_image_generation.router)
-
 # Admin LLM quota router (LLM 用户配额管理)
 from app.routes import admin_llm_quota  # noqa: E402
 app.include_router(admin_llm_quota.router)
@@ -470,10 +449,6 @@ app.include_router(contact_message.router)
 
 # Cursor History router
 app.include_router(cursor_history.router, prefix="/api")
-
-# Image Generation router (Task 6.1)
-app.include_router(image_generation.router, prefix="/api")
-
 
 # Monitor router（服务器监控）
 app.include_router(monitor_router.router, prefix="/api")
