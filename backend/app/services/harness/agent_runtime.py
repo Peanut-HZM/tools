@@ -8,7 +8,9 @@ AgentRuntime 是 harness 的核心编排器：
 - 所有 DB / 遥测操作均 try/except 包裹，保证主循环不崩溃
 """
 import asyncio
+import json
 import logging
+import uuid
 from typing import AsyncIterator, Optional
 
 from app.services.harness.events import Event
@@ -44,6 +46,7 @@ class AgentRuntime:
         self.session = session
         self.ctx = ctx
         self._step_count = 0
+        self._cached_memory_block = ""
 
     # ------------------------------------------------------------------
     # 主循环
@@ -71,6 +74,14 @@ class AgentRuntime:
             self.session.append_user_message(user_message)
         except Exception as e:
             logger.error(f"记录用户消息失败: {e}", exc_info=True)
+
+        # 2b. 预取长期记忆（best-effort，不阻塞主循环）
+        try:
+            memory_entries = await self._retrieve_long_term_memory(user_message)
+            self._cached_memory_block = self._build_memory_block(memory_entries)
+        except Exception as e:
+            logger.warning("记忆预取失败: %s", type(e).__name__)
+            self._cached_memory_block = ""
 
         # 3. 创建 trace（best-effort）
         trace = self._safe_start_trace(user_message)
@@ -237,7 +248,7 @@ class AgentRuntime:
     # ------------------------------------------------------------------
 
     def _build_messages_for_llm(self):
-        """应用短期记忆策略并转换为 OpenAI 风格消息字典列表"""
+        """应用短期记忆策略 + 注入 system prompt + 长期记忆"""
         try:
             messages = apply_memory_policy(
                 self.session.messages,
@@ -248,13 +259,98 @@ class AgentRuntime:
             logger.error(f"apply_memory_policy 失败: {e}", exc_info=True)
             messages = list(self.session.messages)
 
-        return [
+        result_dicts = [
             {
                 "role": getattr(m, "role", "user"),
                 "content": getattr(m, "content", "") or "",
             }
             for m in messages
         ]
+
+        # 构建 system prompt（agent.system_prompt + 长期记忆注入块）
+        system_parts = []
+        agent_system_prompt = getattr(self._current_agent, "system_prompt", "")
+        # 仅在是 str 类型时纳入（避免 MagicMock 等被 join）
+        if isinstance(agent_system_prompt, str) and agent_system_prompt:
+            system_parts.append(agent_system_prompt)
+
+        # 长期记忆注入（由 run() 中预取后缓存在 self._cached_memory_block）
+        memory_block = getattr(self, "_cached_memory_block", "")
+        if isinstance(memory_block, str) and memory_block:
+            system_parts.append(memory_block)
+
+        if system_parts:
+            system_content = "\n\n".join(system_parts)
+            # 插入到消息列表最前面（system role）
+            result_dicts.insert(0, {"role": "system", "content": system_content})
+
+        return result_dicts
+
+    async def _retrieve_long_term_memory(self, user_message: str) -> list:
+        """检索长期记忆（best-effort，不阻塞主循环）
+
+        - 当 agent.memory_long_term_enabled=False 时直接跳过
+        - 当 memory_long_term_config.auto_inject=False 时跳过
+        - embedding provider 创建失败时降级（不创建 provider，走关键词检索）
+        - 任何异常都被捕获，记录 warning 后返回空列表
+        """
+        if not getattr(self._current_agent, "memory_long_term_enabled", False):
+            return []
+
+        cfg = getattr(self._current_agent, "memory_long_term_config", {}) or {}
+        if not cfg.get("auto_inject", True):
+            return []
+
+        try:
+            from app.services.harness.memory_service import MemoryService
+            from app.services.harness.embeddings.factory import create_embedding_provider
+
+            provider = None
+            if cfg.get("embedding_provider"):
+                try:
+                    provider = create_embedding_provider(cfg)
+                except Exception as e:
+                    logger.warning(
+                        "auto-inject embedding provider 创建失败: %s", type(e).__name__
+                    )
+
+            svc = MemoryService(db=self.ctx.db, embedding_provider=provider)
+            query = (user_message or "")[:500]
+            timeout = cfg.get("auto_inject_timeout_seconds", 5)
+            top_k = cfg.get("auto_inject_top_k", 5)
+            threshold = cfg.get("auto_inject_threshold", 0.7)
+
+            results = await svc.search(
+                uuid.UUID(str(self._current_agent.id)),
+                uuid.UUID(str(self.ctx.user_id)),
+                query,
+                top_k=top_k,
+                threshold=threshold,
+                timeout_seconds=timeout,
+            )
+            return results
+        except Exception as e:
+            logger.warning("长期记忆检索失败: %s", type(e).__name__)
+            return []
+
+    def _build_memory_block(self, entries: list) -> str:
+        """将记忆检索结果构建为 system prompt 注入块
+
+        空结果返回空字符串，便于上层条件拼接。
+        """
+        if not entries:
+            return ""
+
+        lines = ["<long_term_memory>", "以下是与当前对话相关的长期记忆："]
+        for e in entries:
+            value_text = ""
+            if isinstance(e.value, dict) and "text" in e.value:
+                value_text = str(e.value["text"])
+            else:
+                value_text = json.dumps(e.value, ensure_ascii=False)
+            lines.append(f"- [{e.key}]: {value_text} (相关度: {e.score:.2f})")
+        lines.append("</long_term_memory>")
+        return "\n".join(lines)
 
     async def _safe_get_tools(self):
         """获取工具列表（失败时返回空列表）"""
