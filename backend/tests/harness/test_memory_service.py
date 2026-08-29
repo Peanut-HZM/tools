@@ -9,7 +9,8 @@ from app.services.harness.memory_service import MemoryService, MemoryEntry
 @pytest.fixture
 def mock_db():
     db = MagicMock()
-    db.query.return_value.filter.return_value.filter.return_value.first.return_value = None
+    # 生产代码使用单次 .filter(A, B, C) 多参数 AND，不是 .filter().filter() 链式
+    db.query.return_value.filter.return_value.first.return_value = None
     return db
 
 
@@ -99,7 +100,8 @@ async def test_get_by_key_found(service):
     mock_row.access_count = 0
     mock_row.summary = None
 
-    service._db.query.return_value.filter.return_value.filter.return_value.first.return_value = mock_row
+    # 生产代码使用单次 .filter(agent_id==, user_id==, key==)，不是链式 .filter().filter()
+    service._db.query.return_value.filter.return_value.first.return_value = mock_row
     result = await service.get_by_key(AGENT_ID, USER_ID, "test_key")
     assert result is not None
     assert result.key == "test_key"
@@ -115,7 +117,7 @@ async def test_delete_success(service):
     mock_row.access_count = 0
     mock_row.summary = None
 
-    service._db.query.return_value.filter.return_value.filter.return_value.first.return_value = mock_row
+    service._db.query.return_value.filter.return_value.first.return_value = mock_row
     deleted = await service.delete(AGENT_ID, USER_ID, "test_key")
     assert deleted is True
     service._db.delete.assert_called_once_with(mock_row)

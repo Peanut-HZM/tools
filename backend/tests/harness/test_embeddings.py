@@ -41,7 +41,9 @@ async def test_openai_provider_embed():
     mock_response = MagicMock()
     mock_response.data = [MagicMock(embedding=[0.1] * 1536)]
 
-    with patch("app.services.harness.embeddings.openai_provider.AsyncOpenAI") as mock_client:
+    # 源码在 _get_client() 内做 lazy import: from openai import AsyncOpenAI
+    # 因此 patch 源模块 openai，而不是 provider 模块
+    with patch("openai.AsyncOpenAI") as mock_client:
         instance = mock_client.return_value
         instance.embeddings.create = AsyncMock(return_value=mock_response)
 
@@ -68,11 +70,16 @@ async def test_openai_provider_validate():
 async def test_dashscope_provider_embed():
     """DashScope provider 调用 API 返回向量"""
     mock_response = MagicMock()
+    mock_response.status_code = 200
     mock_response.output = {"embeddings": [{"embedding": [0.2] * 1024}]}
 
-    with patch("app.services.harness.embeddings.dashscope_provider.dashscope") as mock_ds:
-        mock_ds.TextEmbedding.call = AsyncMock(return_value=mock_response)
+    # 源码在 embed() 内做 lazy import: import dashscope
+    # 通过 sys.modules 注入 mock 模块
+    import sys
+    mock_ds = MagicMock()
+    mock_ds.TextEmbedding.call = AsyncMock(return_value=mock_response)
 
+    with patch.dict(sys.modules, {"dashscope": mock_ds}):
         provider = DashScopeEmbeddingProvider(
             api_key="sk-test", model="text-embedding-v3"
         )
