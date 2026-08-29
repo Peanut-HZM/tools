@@ -75,3 +75,6 @@ from app.models.harness_models import (
 
 # Harness Phase 2 Memory Long-term
 from app.models.agent_memory import AgentMemoryLongTerm  # noqa: F401
+
+# Harness Phase 3 Plan-1A: MCP Server 配置
+from app.models.mcp_server import McpServer  # noqa: F401

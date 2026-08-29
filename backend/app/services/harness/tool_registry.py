@@ -10,6 +10,7 @@
 5. 管理工具生命周期
 """
 import logging
+import os
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session as DBSession
@@ -37,6 +38,7 @@ class ToolRegistry:
     def __init__(self, db: DBSession):
         self.db = db
         self._builtin: Dict[str, BuiltinTool] = {}
+        self._dynamic: Dict[str, ToolProtocol] = {}  # MCP / Plugin 动态注册
         self._http_cache: Dict[str, HttpTool] = {}  # tool_id -> HttpTool
 
     # ============================================================
@@ -53,6 +55,35 @@ class ToolRegistry:
             raise ValueError(f"内置工具 {tool.name} 重复注册")
         self._builtin[tool.name] = tool
         logger.info(f"[ToolRegistry] 注册内置工具: {tool.name}")
+
+    # ============================================================
+    # 动态工具注册（Phase 3-Plan-1A: MCP tools）
+    # ============================================================
+
+    def register_dynamic(self, tool: ToolProtocol) -> None:
+        """注册动态工具（来自 MCP server 等外部源）。
+
+        动态工具与内置工具隔离存储；同名重复注册时记录 warning 并覆盖
+        （允许 MCP server 重连/更新场景下重新注册同名工具）。
+        """
+        if tool.name in self._dynamic:
+            logger.warning(
+                f"[ToolRegistry] 动态工具 {tool.name} 已注册，将被覆盖"
+            )
+        self._dynamic[tool.name] = tool
+        logger.info(f"[ToolRegistry] 注册动态工具: {tool.name}")
+
+    def unregister_dynamic(self, name: str) -> None:
+        """注销动态工具。
+
+        仅从 ``_dynamic`` 字典移除，不会触碰 ``_builtin`` 中的同名工具。
+        未注册的名称为 no-op。
+        """
+        if name in self._dynamic:
+            del self._dynamic[name]
+            logger.info(f"[ToolRegistry] 注销动态工具: {name}")
+        else:
+            logger.debug(f"[ToolRegistry] 动态工具 {name} 未注册，跳过注销")
 
     # ============================================================
     # 查询
@@ -234,13 +265,17 @@ class ToolRegistry:
     async def _resolve_tool_by_name(self, name: str):
         """按工具名解析实例
 
-        查找顺序：内置工具 → DB（HTTP 工具）
+        查找顺序：内置工具 → 动态工具（MCP / Plugin）→ DB（HTTP 工具）
         """
         # 1. 查内置
         if name in self._builtin:
             return self._builtin[name]
 
-        # 2. 查 DB（HTTP 工具）
+        # 2. 查动态注册（MCP / Plugin）
+        if name in self._dynamic:
+            return self._dynamic[name]
+
+        # 3. 查 DB（HTTP 工具）
         from app.models.harness_models import Tool
 
         db_tool = (
@@ -254,3 +289,49 @@ class ToolRegistry:
             return self._http_cache[db_tool.id]
 
         raise ToolNotFoundError(name)
+
+
+# ============================================================
+# 全局单例访问器
+# ============================================================
+
+_registry: Optional[ToolRegistry] = None
+
+
+def get_tool_registry() -> ToolRegistry:
+    """获取全局 ToolRegistry 实例（懒初始化单例）。
+
+    首次调用时通过 FastAPI 的 ``get_db()`` 依赖获取 DB session，
+    并创建 ToolRegistry 实例。
+
+    注意：
+    - 首次调用必须在 FastAPI 请求上下文内（DB session 可用）
+    - ToolRegistry 持有的 DB session 在进程生命周期内复用。
+      ToolRegistry 主要用于工具查找/调度，不直接修改 DB，因此
+      单 session 复用是安全的（任务执行通过各自的 db session）。
+    - 单元测试中可通过 ``app.services.harness.tool_registry._registry = None``
+      重置，或直接 patch ``get_tool_registry``。
+
+    Phase 3-Plan-1A: 当前用于 McpServerManager 初始化。
+    完整生命周期管理（FastAPI lifespan 启动/关闭）见后续 Task 5 完善。
+    """
+    global _registry
+    if _registry is None:
+        # 延迟导入避免循环依赖（get_db -> app.models）
+        from app.models import get_db
+
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            _registry = ToolRegistry(db)
+        finally:
+            # 不关闭 db：单例需要长期持有 session
+            # 异常时关闭避免连接泄漏
+            pass
+    return _registry
+
+
+def reset_tool_registry() -> None:
+    """重置全局 ToolRegistry 单例（仅用于测试）。"""
+    global _registry
+    _registry = None
