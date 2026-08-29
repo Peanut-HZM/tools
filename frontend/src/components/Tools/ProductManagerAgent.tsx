@@ -1,4 +1,4 @@
-import { BarChart3, FileText, FileDown, Brain } from 'lucide-react';
+import { BarChart3, FileText, FileDown, Brain, Activity } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import ChatInterface from '../ProductManagerAgent/ChatInterface';
 import PRDPreview from '../ProductManagerAgent/PRDPreview';
 import ExportDialog from '../ProductManagerAgent/ExportDialog';
 import { MemoryViewer } from '../Harness/MemoryViewer';
+import { TraceViewer } from '../Harness/TraceViewer';
 
 const ProductManagerAgent: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const ProductManagerAgent: React.FC = () => {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showCompetitorAnalysis, setShowCompetitorAnalysis] = useState(false);
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+  const [showTracesPanel, setShowTracesPanel] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -333,13 +335,21 @@ const ProductManagerAgent: React.FC = () => {
                   <Brain className="w-3.5 h-3.5 mr-1" />
                   长期记忆
                 </Button>
+                <Button
+                  onClick={() => setShowTracesPanel(!showTracesPanel)}
+                  variant={showTracesPanel ? "default" : "ghost"}
+                  size="sm"
+                >
+                  <Activity className="w-3.5 h-3.5 mr-1" />
+                  执行追踪 {showTracesPanel ? '▲' : '▼'}
+                </Button>
               </div>
             </div>
 
             {/* Content Area - Split view for Chat and side panels */}
             <div className="flex-1 flex overflow-hidden">
               {/* Chat Area */}
-              <div className={`flex-1 ${showPRDPreview || (showMemoryPanel && selectedAgentId) ? 'w-1/2 border-r border-border' : 'w-full'}`}>
+              <div className={`flex-1 ${showPRDPreview || ((showMemoryPanel || showTracesPanel) && selectedAgentId) ? 'w-1/2 border-r border-border' : 'w-full'}`}>
                 <ChatInterface
                   messages={messages}
                   sending={loading}
@@ -360,6 +370,13 @@ const ProductManagerAgent: React.FC = () => {
                   <div className="p-4">
                     <MemoryViewer agentId={selectedAgentId} />
                   </div>
+                </div>
+              )}
+
+              {/* 执行追踪面板 */}
+              {showTracesPanel && selectedAgentId && (
+                <div className="w-1/2 overflow-auto">
+                  <TraceViewer agentId={selectedAgentId} conversationId={conversationId} />
                 </div>
               )}
 

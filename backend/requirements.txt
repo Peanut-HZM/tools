@@ -98,3 +98,7 @@ kubernetes_asyncio>=29.0.0
 
 # MCP (Model Context Protocol)
 mcp>=1.0.0
+
+# OpenTelemetry (OTel export, lazy-loaded)
+opentelemetry-sdk>=1.44.0
+opentelemetry-exporter-otlp>=1.44.0
