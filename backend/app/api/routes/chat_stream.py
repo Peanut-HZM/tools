@@ -242,6 +242,30 @@ async def chat_stream(
                         model_used=llm_model_name,
                     )
 
+                    # 幻觉链接防护：模型可能模仿历史编造 image-gen OSS 链接
+                    # （文本声称已生成但实际未调用工具）。此类链接替换为无效提示，
+                    # 避免用户点击 404。真实链接集合来自本轮 tool_result 附件。
+                    if final_text and "image-gen/" in final_text:
+                        import re as _re
+
+                        real_urls = {
+                            a.get("url") for a in image_attachments if a.get("url")
+                        }
+
+                        def _flag_hallucinated(m):
+                            return (
+                                m.group(0)
+                                if m.group(0) in real_urls
+                                else "⚠️（该链接无效：图片未实际生成，请重新发起生成请求）"
+                            )
+
+                        final_text = _re.sub(
+                            r"https://[^\s)\]]*/image-gen/[0-9a-f]{32}\.png",
+                            _flag_hallucinated,
+                            final_text,
+                        )
+                        agent_message.content = final_text
+
                     agent_msg_dict = {
                         "id": str(agent_message.id),
                         "conversation_id": str(agent_message.conversation_id),
