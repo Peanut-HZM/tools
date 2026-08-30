@@ -156,3 +156,9 @@ mini-program/.env.*.local
 
 # 部署配置文件（包含服务器 IP/密钥，绝不提交）
 deploy.env
+
+# Plugin 目录（运维手工 drop .py，仓库只保留示例/说明）
+backend/plugins/*.py
+!backend/plugins/__init__.py
+!backend/plugins/README.md
+!backend/plugins/hello_world.py

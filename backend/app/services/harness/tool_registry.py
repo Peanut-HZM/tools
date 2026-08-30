@@ -96,9 +96,10 @@ class ToolRegistry:
 
         策略：
         1. 内置工具默认对所有 agent 可用（无需显式绑定）
-        2. 显式绑定的工具（agent_tools 表）按 binding 配置
-        3. 过滤 is_available(ctx) == True 的
-        4. 绑定工具与内置工具重名时，绑定覆盖内置
+        2. 动态工具（MCP / Plugin）默认对所有 agent 可用（按 is_available 过滤）
+        3. 显式绑定的工具（agent_tools 表）按 binding 配置
+        4. 过滤 is_available(ctx) == True 的
+        5. 同名时优先级：binding > dynamic > builtin
         """
         tools: List[ToolProtocol] = []
 
@@ -107,7 +108,14 @@ class ToolRegistry:
             if tool.is_available(ctx):
                 tools.append(tool)
 
-        # 2. 显式绑定的工具（DB 配置）
+        # 2. 动态工具（MCP / Plugin，默认对所有 agent 可用）
+        for tool in self._dynamic.values():
+            if tool.is_available(ctx):
+                # 动态工具与内置工具重名时，动态覆盖内置
+                tools = [t for t in tools if t.name != tool.name]
+                tools.append(tool)
+
+        # 3. 显式绑定的工具（DB 配置）
         bindings = self._load_bindings(agent_id)
         for binding in bindings:
             if not binding.is_enabled:
@@ -115,7 +123,7 @@ class ToolRegistry:
             try:
                 tool = await self._resolve_tool_by_binding(binding)
                 if tool.is_available(ctx):
-                    # 绑定工具与内置工具重名时，绑定覆盖内置
+                    # 绑定工具与内置/动态工具重名时，绑定覆盖
                     tools = [t for t in tools if t.name != tool.name]
                     tools.append(tool)
             except Exception as e:
