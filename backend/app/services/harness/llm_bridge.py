@@ -289,13 +289,38 @@ class LLMFunctionBridge:
                 raw=result,
             )
 
-        # 对象形式（provider 原生响应）
+        # 对象形式（provider 原生响应，如 GenerationResult）
         text_part = getattr(result, "content", "") or ""
         usage = getattr(result, "usage", {}) or {}
+        thinking_part = getattr(result, "thinking", "") or ""
+
+        # 提取对象属性上的 tool_calls（kimi 等模型工具调用时 content 为空、
+        # 调用挂在 result.tool_calls；此前被丢弃导致 runtime 空回复）
+        raw_tool_calls = getattr(result, "tool_calls", None) or []
+        tool_calls = []
+        for tc in raw_tool_calls:
+            if isinstance(tc, ToolCall):
+                tool_calls.append(tc)
+                continue
+            if isinstance(tc, dict):
+                arguments = tc.get("arguments", {})
+                if isinstance(arguments, str):
+                    try:
+                        arguments = json.loads(arguments)
+                    except (json.JSONDecodeError, ValueError):
+                        arguments = {}
+                tool_calls.append(ToolCall(
+                    id=str(tc.get("id") or ""),
+                    name=str(
+                        tc.get("name") or tc.get("function", {}).get("name") or ""
+                    ),
+                    arguments=arguments if isinstance(arguments, dict) else {},
+                ))
+
         return LLMResponse(
             text_part=text_part,
-            thinking_part="",
-            tool_calls=[],
+            thinking_part=thinking_part,
+            tool_calls=tool_calls,
             usage=usage,
             raw=result,
         )
