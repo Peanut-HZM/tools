@@ -60,6 +60,38 @@ export interface AgentUpdateRequest {
   is_active?: boolean;
 }
 
+/** P3-⑨: 评测批次摘要 */
+export interface AgentEvalRun {
+  id: string;
+  agent_id: string;
+  name: string;
+  status: string;
+  total_cases: number;
+  passed_cases: number;
+  avg_score: number;
+  total_duration_ms: number;
+  error?: string | null;
+  created_at?: string | null;
+  completed_at?: string | null;
+}
+
+/** P3-⑨: 评测 case 明细 */
+export interface AgentEvalCaseDetail {
+  id: string;
+  input: string;
+  expected: string;
+  actual_output?: string | null;
+  score: number;
+  judge_reasoning?: string | null;
+  latency_ms: number;
+  status: string;
+}
+
+/** P3-⑨: 评测批次详情 */
+export interface AgentEvalRunDetail extends AgentEvalRun {
+  cases: AgentEvalCaseDetail[];
+}
+
 export interface AgentHarnessUpdate {
   slug?: string;
   welcome_message?: string;
@@ -196,6 +228,36 @@ export const agentApi = {
     const response = await axios.post(
       `${API_BASE_URL}/admin/agents/${id}/export`,
       {},
+      { headers: getAuthHeaders() },
+    );
+    return response.data;
+  },
+
+  // P3-⑨: 运行 Agent 评测
+  runAgentEval: async (
+    id: string,
+    data: { name: string; cases: Array<{ input: string; expected: string }>; judge_threshold?: number },
+  ): Promise<AgentEvalRun> => {
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/agents/${id}/evals`,
+      data,
+      { headers: getAuthHeaders() },
+    );
+    return response.data;
+  },
+
+  // P3-⑨: 评测批次列表
+  listAgentEvals: async (id: string): Promise<{ records: AgentEvalRun[]; count: number }> => {
+    const response = await axios.get(`${API_BASE_URL}/admin/agents/${id}/evals`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
+  // P3-⑨: 评测批次详情（含 case 明细）
+  getAgentEval: async (agentId: string, runId: string): Promise<AgentEvalRunDetail> => {
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/agents/${agentId}/evals/${runId}`,
       { headers: getAuthHeaders() },
     );
     return response.data;

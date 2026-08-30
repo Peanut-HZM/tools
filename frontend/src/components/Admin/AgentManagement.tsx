@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { agentApi, Agent, AgentHarnessUpdate } from '../../services/agentApi';
+import EvalDialog from './EvalDialog';
 import { useToast } from '../../hooks/useToast';
 import { Badge } from '@/components/ui/Badge';
 
@@ -37,6 +38,7 @@ export default function AgentManagement() {
   const [memoryProceduralEnabled, setMemoryProceduralEnabled] = useState(false);
   const [sandboxEnabled, setSandboxEnabled] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
+  const [evalAgent, setEvalAgent] = useState<Agent | null>(null);
   const [memoryLongTermConfig, setMemoryLongTermConfig] = useState<Record<string, any>>(
     { ...DEFAULT_EMBEDDING_CONFIG },
   );
@@ -565,6 +567,12 @@ export default function AgentManagement() {
                         编辑
                       </button>
                       <button
+                        onClick={() => setEvalAgent(agent)}
+                        className="px-3 py-1 text-sm bg-accent/20 text-accent border border-accent/30 rounded hover:bg-accent/30 transition-colors"
+                      >
+                        评估
+                      </button>
+                      <button
                         onClick={() => handleExport(agent)}
                         className="px-3 py-1 text-sm bg-surface-2 text-ink border border-border rounded hover:bg-surface-3 transition-colors"
                       >
@@ -583,6 +591,16 @@ export default function AgentManagement() {
             </tbody>
           </table>
         </div>
-      )}    </div>
+      )}
+
+      {/* P3-⑨: 评测弹窗 */}
+      {evalAgent && (
+        <EvalDialog
+          agentId={evalAgent.id}
+          agentName={evalAgent.name}
+          onClose={() => setEvalAgent(null)}
+        />
+      )}
+    </div>
   );
 }
