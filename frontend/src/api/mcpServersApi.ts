@@ -10,12 +10,17 @@ import { authedFetch } from './http';
 
 const API_BASE_URL = AUTH_API_BASE_URL.replace('/auth', '/admin');
 
+/** MCP transport 类型（P2-①c：sse / streamable http / stdio 本地进程） */
+export type McpTransport = 'sse' | 'http' | 'stdio';
+
 /** MCP Server 实体（对应后端 McpServerResponse） */
 export interface McpServer {
   id: string;
   name: string;
   server_url: string;
-  transport: 'sse';
+  transport: McpTransport;
+  /** stdio 启动配置 JSON 字符串（sse/http 时为 null） */
+  command_json?: string | null;
   is_active: boolean;
   timeout_seconds: number;
   last_connected_at: string | null;
@@ -29,7 +34,9 @@ export interface McpServer {
 export interface McpServerCreate {
   name: string;
   server_url: string;
-  transport?: 'sse';
+  transport?: McpTransport;
+  /** stdio 启动配置：{"command": str, "args": [str], "env": {}}；sse/http 时忽略 */
+  command?: Record<string, unknown>;
   headers?: Record<string, string>;
   timeout_seconds?: number;
 }
@@ -39,6 +46,8 @@ export interface McpServerUpdate {
   name?: string;
   server_url?: string;
   headers?: Record<string, string>;
+  /** 仅 stdio server 支持替换；非 None 时整体替换 command_json */
+  command?: Record<string, unknown>;
   timeout_seconds?: number;
   is_active?: boolean;
 }

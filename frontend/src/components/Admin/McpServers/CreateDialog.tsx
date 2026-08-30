@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import type { McpServer, McpServerCreate, McpServerUpdate } from '../../../api/mcpServersApi';
+import type {
+  McpServer,
+  McpServerCreate,
+  McpServerUpdate,
+  McpTransport,
+} from '../../../api/mcpServersApi';
 
 interface Props {
   server?: McpServer;
@@ -12,21 +17,67 @@ interface Props {
   onUpdate?: (data: McpServerUpdate) => Promise<void> | void;
 }
 
+/** transport 选项（中文标签） */
+const TRANSPORT_OPTIONS: Array<{ value: McpTransport; label: string }> = [
+  { value: 'sse', label: 'SSE（服务端事件流）' },
+  { value: 'http', label: 'Streamable HTTP' },
+  { value: 'stdio', label: 'stdio（本地进程）' },
+];
+
+/** 从 server.command_json 解析出格式化文本（编辑模式预填用） */
+function parseCommandJsonText(raw?: string | null): string {
+  if (!raw) return '';
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+}
+
 const CreateDialog: React.FC<Props> = ({ server, onClose, onCreate, onUpdate }) => {
   const isEdit = Boolean(server);
   const [name, setName] = useState(server?.name || '');
+  const [transport, setTransport] = useState<McpTransport>(server?.transport ?? 'sse');
   const [serverUrl, setServerUrl] = useState(server?.server_url || '');
+  const [commandText, setCommandText] = useState(() => parseCommandJsonText(server?.command_json));
   const [timeout, setTimeout] = useState<number>(server?.timeout_seconds ?? 30);
   const [headersText, setHeadersText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const isStdio = transport === 'stdio';
+
+  /**
+   * 解析 stdio command JSON（创建/编辑共用）
+   * 返回 null 表示格式不合法
+   */
+  const parseCommand = (): Record<string, unknown> | null => {
+    const trimmed = commandText.trim();
+    if (!trimmed) return null;
+    try {
+      const parsed = JSON.parse(trimmed);
+      const cmdName = parsed?.command;
+      if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        Array.isArray(parsed) ||
+        typeof cmdName !== 'string' ||
+        !cmdName.trim()
+      ) {
+        return null;
+      }
+      return parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!name.trim() || !serverUrl.trim()) {
-      setError('Name 和 URL 均为必填');
+    if (!name.trim()) {
+      setError('Name 为必填');
       return;
     }
 
@@ -35,10 +86,25 @@ const CreateDialog: React.FC<Props> = ({ server, onClose, onCreate, onUpdate }) 
       return;
     }
 
-    // 解析 headers JSON（可选）
+    // stdio：command JSON 校验（必填）
+    let parsedCommand: Record<string, unknown> | undefined;
+    if (isStdio) {
+      const cmd = parseCommand();
+      if (!cmd) {
+        setError('command 必须是含非空 "command" 键的 JSON object');
+        return;
+      }
+      parsedCommand = cmd;
+    } else if (!serverUrl.trim()) {
+      // sse / http：URL 必填
+      setError('Server URL 为必填');
+      return;
+    }
+
+    // 解析 headers JSON（可选，仅 url 型 transport）
     let parsedHeaders: Record<string, string> | undefined;
     const trimmedHeaders = headersText.trim();
-    if (trimmedHeaders) {
+    if (trimmedHeaders && !isStdio) {
       try {
         const parsed = JSON.parse(trimmedHeaders);
         if (
@@ -65,6 +131,8 @@ const CreateDialog: React.FC<Props> = ({ server, onClose, onCreate, onUpdate }) 
           server_url: serverUrl,
           timeout_seconds: timeout,
         };
+        // 仅 stdio server 可替换 command 配置
+        if (server?.transport === 'stdio' && parsedCommand) payload.command = parsedCommand;
         if (parsedHeaders) payload.headers = parsedHeaders;
         if (onUpdate) {
           await onUpdate(payload);
@@ -74,10 +142,14 @@ const CreateDialog: React.FC<Props> = ({ server, onClose, onCreate, onUpdate }) 
       } else {
         const payload: McpServerCreate = {
           name,
-          server_url: serverUrl,
-          transport: 'sse',
+          // stdio 的 server_url 仅作展示摘要，留空时用 command 首段兜底
+          server_url: isStdio
+            ? serverUrl.trim() || String((parsedCommand?.command as string) ?? '')
+            : serverUrl.trim(),
+          transport,
           timeout_seconds: timeout,
         };
+        if (isStdio && parsedCommand) payload.command = parsedCommand;
         if (parsedHeaders) payload.headers = parsedHeaders;
         await onCreate(payload);
       }
@@ -108,28 +180,69 @@ const CreateDialog: React.FC<Props> = ({ server, onClose, onCreate, onUpdate }) 
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1 text-ink">Server URL</label>
-            <input
-              type="text"
-              value={serverUrl}
-              onChange={(e) => setServerUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded bg-canvas text-ink focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder="http://localhost:3000"
-            />
+            <label className="block text-sm font-medium mb-1 text-ink">Transport</label>
+            <select
+              value={transport}
+              onChange={(e) => setTransport(e.target.value as McpTransport)}
+              disabled={isEdit}
+              className="w-full px-3 py-2 border border-border rounded bg-canvas text-ink focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60"
+            >
+              {TRANSPORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {isEdit && (
+              <p className="text-xs text-ink-muted mt-1">
+                transport 创建后不可修改；如需切换请删除后重建
+              </p>
+            )}
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1 text-ink">
-              Headers (可选, JSON)
-            </label>
-            <textarea
-              value={headersText}
-              onChange={(e) => setHeadersText(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-border rounded bg-canvas text-ink font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder='{"Authorization": "Bearer xxx"}'
-            />
-          </div>
+          {!isStdio ? (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1 text-ink">Server URL</label>
+              <input
+                type="text"
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded bg-canvas text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder="https://mcp.example.com/mcp"
+              />
+            </div>
+          ) : (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1 text-ink">
+                Command (JSON, 必填)
+              </label>
+              <textarea
+                value={commandText}
+                onChange={(e) => setCommandText(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-border rounded bg-canvas text-ink font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder={'{"command": "npx", "args": ["-y", "@modelcontextprotocol/server-everything"]}'}
+              />
+              <p className="text-xs text-ink-muted mt-1">
+                可选字段：args（参数数组）、env（附加环境变量，叠加在最小默认环境之上）
+              </p>
+            </div>
+          )}
+
+          {!isStdio && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1 text-ink">
+                Headers (可选, JSON)
+              </label>
+              <textarea
+                value={headersText}
+                onChange={(e) => setHeadersText(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-border rounded bg-canvas text-ink font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder='{"Authorization": "Bearer xxx"}'
+              />
+            </div>
+          )}
 
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1 text-ink">Timeout (seconds)</label>
