@@ -1,14 +1,20 @@
 /**
- * ImageGenerationTool — 图像生成页面（多轮对话式图生）
+ * ImageGenerationTool — 图像生成页面（多轮对话式图生）v2
  *
  * 交互流程（spec: docs/superpowers/specs/2026-08-30-image-generation-page-fix-design.md）：
  * 1. 进入页面 → 获取（幂等创建）图像生成助手 Agent
  * 2. 多轮对话探究意图：信息不足时助手追问（主体/风格/比例/数量），不生成
  * 3. 信息足够 → 助手复述意图并调用 image_gen 工具 → 页面实时渲染生成中的图片卡片
  * 4. 生成成功显示真实图片；会话持久化，刷新后图片仍在
+ *
+ * v2（用户反馈迭代）：
+ * - 全宽布局（消除窄栏空间浪费）
+ * - 助手文本中的原始签名 URL 折叠为"🔗 图片链接"徽章
+ * - 图片点击 → 弹框预览（大图 + 下载到本地 + 关闭）
+ * - 生成图片持久化到自有 OSS（后端转存，本页只消费稳定 URL）
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ImagePlus, RefreshCw, Send } from 'lucide-react';
+import { Download, ImagePlus, RefreshCw, Send, X } from 'lucide-react';
 import axios from 'axios';
 import {
   conversationApi,
@@ -38,6 +44,11 @@ interface ChatItem {
   failed?: boolean;
 }
 
+/** 弹框预览状态 */
+interface LightboxState {
+  url: string;
+}
+
 /** 从消息 attachments 提取图片 URL 列表 */
 function imagesOf(attachments: unknown): string[] {
   if (!Array.isArray(attachments)) return [];
@@ -45,6 +56,22 @@ function imagesOf(attachments: unknown): string[] {
     .map((a) => (a as { type?: string; url?: string }))
     .filter((a) => a?.type === 'image' && typeof a.url === 'string' && isSafeUrl(a.url))
     .map((a) => a.url as string);
+}
+
+/**
+ * 折叠文本中的长/签名 URL，避免裸露刷屏。
+ * - markdown 链接 [text](url) → "text 🔗"（text 存在时）或 "🔗 图片链接"
+ * - 裸长 URL（≥48 字符，一般是签名地址）→ "🔗 图片链接"
+ */
+function foldUrls(text: string): string {
+  if (!text) return '';
+  let out = text.replace(
+    /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g,
+    (_m, label: string, url: string) =>
+      isSafeUrl(url) ? (label.trim() ? `${label} 🔗` : '🔗 图片链接') : _m,
+  );
+  out = out.replace(/(https?:\/\/[^\s<>"')\]]{48,})/g, () => '🔗 图片链接');
+  return out;
 }
 
 /** 后端 Message → 页面 ChatItem（跳过工具消息：原始 JSON 输出无需展示） */
@@ -60,6 +87,26 @@ function toChatItem(m: Message): ChatItem | null {
   };
 }
 
+/** 下载图片到本地（blob 方式保证落盘；跨域失败回退新标签打开） */
+async function downloadImage(url: string): Promise<void> {
+  try {
+    const resp = await fetch(url, { mode: 'cors' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const blob = await resp.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `image-gen-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    // 跨域等场景回退：新标签打开（用户可手动保存）
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
 const ImageGenerationTool: React.FC = () => {
   const [agentId, setAgentId] = useState<string>('');
   const [conversationId, setConversationId] = useState<string>('');
@@ -67,6 +114,7 @@ const ImageGenerationTool: React.FC = () => {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -218,14 +266,14 @@ const ImageGenerationTool: React.FC = () => {
   }, [input, busy, agentId, conversationId]);
 
   return (
-    <div className="h-full flex flex-col max-w-3xl mx-auto">
+    <div className="h-full flex flex-col w-full px-6 lg:px-10">
       {/* 头部 */}
-      <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
+      <div className="flex items-center justify-between pb-3 border-b border-border mb-3 shrink-0">
         <div className="flex items-center gap-2 text-ink">
           <ImagePlus className="w-5 h-5" />
           <span className="font-semibold">图像生成</span>
           <span className="text-xs text-ink-muted">
-            先聊清楚需求，再生成图片
+            先聊清楚需求，再生成图片 · 图片自动保存到文件服务器
           </span>
         </div>
         <button
@@ -239,25 +287,25 @@ const ImageGenerationTool: React.FC = () => {
       </div>
 
       {loadError && (
-        <div className="text-danger text-sm mb-3">{loadError}</div>
+        <div className="text-danger text-sm mb-3 shrink-0">{loadError}</div>
       )}
 
-      {/* 消息区 */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+      {/* 消息区（全宽，气泡按角色靠边） */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-5 pr-1">
         {items.length === 0 && (
-          <div className="text-ink-muted text-sm mt-8 text-center">
+          <div className="text-ink-muted text-sm mt-10 text-center">
             描述你想生成的图片（例如"给公众号画一张关于秋天咖啡的配图"），
             <br />
-            我会先和你确认风格、比例等细节，再开始生成。
+            我会先和你确认风格、比例等细节，再开始生成。生成结果自动保存到文件服务器。
           </div>
         )}
         {items.map((item, idx) => (
           <div
             key={idx}
-            className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex w-full ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] rounded-lg px-4 py-2.5 text-sm whitespace-pre-wrap break-words ${
+              className={`max-w-[78%] rounded-xl px-5 py-3.5 text-sm whitespace-pre-wrap break-words ${
                 item.role === 'user'
                   ? 'bg-accent text-ink-inverse'
                   : 'bg-surface-1 border border-border text-ink'
@@ -269,17 +317,26 @@ const ImageGenerationTool: React.FC = () => {
                   正在生成图像，请稍候…
                 </div>
               )}
-              {item.content && <div>{item.content}</div>}
+              {item.role === 'agent' ? foldUrls(item.content) : item.content}
               {item.images.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                   {item.images.map((url) => (
-                    <a key={url} href={url} target="_blank" rel="noreferrer">
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setLightbox({ url })}
+                      className="group relative block w-full text-left rounded-xl overflow-hidden border border-border hover:border-accent transition-colors"
+                      title="点击查看大图"
+                    >
                       <img
                         src={url}
                         alt="生成结果"
-                        className="rounded-lg border border-border max-h-64 w-full object-cover hover:opacity-90 transition-opacity"
+                        className="w-full max-h-[420px] object-contain bg-canvas"
                       />
-                    </a>
+                      <span className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded bg-black/60 text-white text-xs">
+                        点击预览
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
@@ -293,7 +350,7 @@ const ImageGenerationTool: React.FC = () => {
       </div>
 
       {/* 输入区 */}
-      <div className="flex gap-2 pt-3 border-t border-border mt-3">
+      <div className="flex gap-2 pt-3 border-t border-border mt-3 shrink-0">
         <input
           type="text"
           value={input}
@@ -318,6 +375,43 @@ const ImageGenerationTool: React.FC = () => {
           {busy ? '处理中' : '发送'}
         </button>
       </div>
+
+      {/* 弹框预览（点击遮罩关闭） */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-6"
+          onClick={() => setLightbox(null)}
+        >
+          <div
+            className="relative max-w-[92vw] max-h-[92vh] flex flex-col items-center gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={lightbox.url}
+              alt="预览"
+              className="max-w-[92vw] max-h-[80vh] object-contain rounded-lg shadow-2xl"
+            />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => downloadImage(lightbox.url)}
+                className="flex items-center gap-1 px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg text-sm transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                下载图片
+              </button>
+              <button
+                type="button"
+                onClick={() => setLightbox(null)}
+                className="flex items-center gap-1 px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded-lg text-sm transition-colors"
+              >
+                <X className="w-4 h-4" />
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
