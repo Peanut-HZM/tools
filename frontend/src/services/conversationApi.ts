@@ -129,6 +129,8 @@ export const conversationApi = {
       onChunk: (chunk: string) => void;
       onDone: (message: Message) => void;
       onError: (error: string) => void;
+      /** 可选：透传全部原始 SSE 事件（tool_call_start / tool_result 等，图生页面使用） */
+      onEvent?: (event: { type: string; [key: string]: unknown }) => void;
     }
   ) => {
     const token = getAuthToken();
@@ -171,7 +173,7 @@ export const conversationApi = {
             if (line.startsWith('data: ')) {
               try {
                 const event = JSON.parse(line.slice(6));
-                
+
                 switch (event.type) {
                   case 'chunk':
                     callbacks.onChunk(event.content);
@@ -182,6 +184,10 @@ export const conversationApi = {
                     break;
                   case 'error':
                     callbacks.onError(event.message);
+                    break;
+                  default:
+                    // tool_call_start / tool_result 等事件交给 onEvent 消费方
+                    if (callbacks.onEvent) callbacks.onEvent(event);
                     break;
                 }
               } catch (e) {
