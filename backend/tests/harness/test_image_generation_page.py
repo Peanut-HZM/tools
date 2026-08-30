@@ -363,3 +363,106 @@ async def test_chat_stream_prefers_conversation_agent(env):
         app.dependency_overrides.clear()
 
     assert str(captured["agent"].id) == str(bound.id)
+
+
+# ===========================================================================
+# v2: 图片转存 OSS（upload_bytes + chat_stream 注入）
+# ===========================================================================
+
+
+def test_oss_service_has_upload_bytes():
+    """OssService 应提供 upload_bytes（provider 依赖的字节上传接口）"""
+    from app.services.oss_service import OssService
+
+    assert hasattr(OssService, "upload_bytes")
+
+
+def test_upload_bytes_delegates_to_upload_file():
+    """upload_bytes 包装 upload_file（BytesIO + size + uploaded_by=image-gen）"""
+    import io
+
+    from app.services.oss_service import OssService
+
+    svc = OssService.__new__(OssService)  # 跳过 __init__ 的存储初始化
+    captured = {}
+
+    def fake_upload_file(object_name, data, size, content_type, uploaded_by="system", metadata=None):
+        captured["object_name"] = object_name
+        captured["data"] = data.read()
+        captured["size"] = size
+        captured["content_type"] = content_type
+        captured["uploaded_by"] = uploaded_by
+        return "https://oss.example.com/" + object_name
+
+    svc.upload_file = fake_upload_file
+    url = svc.upload_bytes("image-gen/abc.png", b"PNGDATA", "image/png")
+
+    assert url == "https://oss.example.com/image-gen/abc.png"
+    assert captured["object_name"] == "image-gen/abc.png"
+    assert captured["data"] == b"PNGDATA"
+    assert captured["size"] == 7
+    assert captured["content_type"] == "image/png"
+    assert captured["uploaded_by"] == "image-gen"
+
+
+def test_upload_bytes_returns_none_on_storage_failure():
+    """存储不可用（upload_file 返回 None）→ upload_bytes 返回 None（调用方降级）"""
+    from app.services.oss_service import OssService
+
+    svc = OssService.__new__(OssService)
+    svc.upload_file = lambda *a, **kw: None
+    assert svc.upload_bytes("image-gen/x.png", b"data", "image/png") is None
+
+
+def test_chat_stream_injects_oss_service(env):
+    """chat_stream 的 ToolContext 应注入 oss_service 单例"""
+    from app.main import app
+    from app.api.dependencies import get_db, get_current_user
+    from app.models.agent import Agent
+    from app.models.conversation import Conversation
+    from unittest.mock import patch
+
+    agent = Agent(name="oss-agent", description="", system_prompt="x")
+    agent.is_default = True
+    env.add(agent)
+    env.commit()
+    conv = Conversation(user_id=USER_ID, title="oss", agent_id=agent.id)
+    env.add(conv)
+    env.commit()
+    env.refresh(conv)
+
+    captured = {}
+
+    class FakeRT:
+        def __init__(self, agent_arg, tool_registry, llm_bridge, session, ctx):
+            captured["ctx"] = ctx
+
+        async def run(self, user_message):
+            from app.services.harness.events import Event
+
+            yield Event.done("ok", usage={"total_tokens": 1})
+
+    def _override_db():
+        yield env
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": USER_ID}
+    try:
+        with patch("app.api.routes.chat_stream.AgentRuntime", FakeRT), patch(
+            "app.api.routes.chat_stream.LLMQuotaService"
+        ) as mq:
+            qi = MagicMock()
+            qi.check_and_reserve.return_value = "r"
+            mq.return_value = qi
+            client = TestClient(app)
+            resp = client.post(
+                f"/api/v1/conversations/{conv.id}/chat/stream",
+                json={"content": "hi"},
+            )
+            assert resp.status_code == 200, resp.text
+    finally:
+        app.dependency_overrides.clear()
+
+    from app.services.oss_service import oss_service as oss_singleton
+
+    assert captured["ctx"].oss_service is oss_singleton
