@@ -543,3 +543,137 @@ async def get_agent_harness_stats(
         "total_duration_ms": int(total_duration_ms),
         "tool_usage": tool_usage,
     }
+
+
+# ===========================================================================
+# P2-④: Agent 导出 / 导入（分享 bundle）
+# ===========================================================================
+
+# 导出字段白名单（剥离 id/owner_id/visibility/统计/时间戳/can_handoff_to）
+_EXPORT_AGENT_FIELDS = (
+    "name",
+    "description",
+    "system_prompt",
+    "icon",
+    "icon_color",
+    "category",
+    "welcome_message",
+    "handoff_instruction",
+    "generation_params",
+    "memory_short_term_policy",
+    "memory_short_term_window",
+    "max_steps_per_turn",
+    "error_strategy",
+    "max_retries",
+    "memory_procedural_enabled",
+    "sandbox_enabled",
+    "memory_long_term_enabled",
+    "memory_long_term_config",
+)
+
+_BUNDLE_FORMAT_VERSION = 1
+
+
+@router.post("/{agent_id}/export")
+def export_agent_bundle(
+    agent_id: _uuid_mod.UUID,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """导出 Agent 定义为 JSON bundle（admin；parameter_overrides 原样保留，勿外传）"""
+    from datetime import datetime
+
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent 不存在")
+
+    bindings = (
+        db.query(ToolBinding).filter(ToolBinding.agent_id == agent.id).all()
+    )
+    tool_names = {
+        t.id: t.name
+        for t in db.query(Tool).filter(Tool.id.in_([b.tool_id for b in bindings])).all()
+    } if bindings else {}
+
+    bundle = {
+        "format_version": _BUNDLE_FORMAT_VERSION,
+        "exported_at": datetime.utcnow().isoformat(),
+        "agent": {f: getattr(agent, f) for f in _EXPORT_AGENT_FIELDS},
+        "tool_bindings": [
+            {
+                "tool_name": tool_names.get(b.tool_id, str(b.tool_id)),
+                "parameter_overrides": dict(b.parameter_overrides or {}),
+                "priority": b.priority,
+                "is_enabled": b.is_enabled,
+            }
+            for b in bindings
+        ],
+    }
+    logger.info("Agent bundle 已导出: agent=%s by=%s", agent.id, current_user.get("id"))
+    return bundle
+
+
+@router.post("/import", status_code=201)
+def import_agent_bundle(
+    bundle: dict,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """由 bundle 导入 Agent（admin；新 id、private、owner=当前 admin）"""
+    if not isinstance(bundle, dict) or bundle.get("format_version") != _BUNDLE_FORMAT_VERSION:
+        raise HTTPException(status_code=400, detail="不支持的 bundle 格式")
+    payload = bundle.get("agent")
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=422, detail="bundle 缺少 agent 定义")
+
+    warnings: list[str] = []
+    name = str(payload.get("name") or "").strip() or "imported-agent"
+    # name 冲突自动加后缀
+    if db.query(Agent).filter(Agent.name == name).first():
+        name = f"{name}-imported-{_uuid_mod.uuid4().hex[:6]}"
+
+    agent = Agent(name=name, description="", system_prompt="")
+    for field in _EXPORT_AGENT_FIELDS:
+        if field == "name":
+            continue
+        if field in payload:
+            setattr(agent, field, payload[field])
+    agent.visibility = "private"
+    agent.owner_id = _uuid_mod.UUID(str(current_user["id"]))
+    agent.is_default = False
+    agent.is_active = True
+    if getattr(agent, "slug", None) is None and hasattr(agent, "slug"):
+        agent.slug = f"{name}-{_uuid_mod.uuid4().hex[:8]}"[:50]
+    db.add(agent)
+    db.flush()
+
+    # 工具绑定按名称重挂；缺失跳过并警告
+    bindings = bundle.get("tool_bindings") or []
+    for b in bindings:
+        tool_name = str(b.get("tool_name") or "")
+        tool = db.query(Tool).filter(Tool.name == tool_name).first()
+        if not tool:
+            warnings.append(f"工具不存在，已跳过绑定: {tool_name}")
+            continue
+        db.add(ToolBinding(
+            agent_id=agent.id,
+            tool_id=tool.id,
+            parameter_overrides=dict(b.get("parameter_overrides") or {}),
+            priority=b.get("priority", 0),
+            is_enabled=b.get("is_enabled", True),
+        ))
+    db.commit()
+    db.refresh(agent)
+
+    logger.info(
+        "Agent bundle 已导入: agent=%s warnings=%d by=%s",
+        agent.id, len(warnings), current_user.get("id"),
+    )
+    return {
+        "agent": {
+            "id": str(agent.id),
+            "name": agent.name,
+            "visibility": agent.visibility,
+        },
+        "warnings": warnings,
+    }
