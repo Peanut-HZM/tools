@@ -5,7 +5,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class GenerationParams(BaseModel):
@@ -86,6 +86,44 @@ class ToolListView(BaseModel):
 # Task 14: admin/agents harness 扩展
 # ---------------------------------------------------------------------------
 
+def _validate_guardrail_entry(entry: Any) -> None:
+    """P3-⑩: 校验单条 guardrail 条目形状。
+
+    - 必须为 dict 且含 name
+    - tool_id 条目放行（工具型，运行时解析）
+    - type 条目校验 config 形状（keyword/regex/max_length）
+    - 两者都缺 → ValueError（Pydantic 转 422）
+    """
+    import re as _re
+
+    if not isinstance(entry, dict) or not str(entry.get("name") or "").strip():
+        raise ValueError("guardrail 条目必须为含 name 的对象")
+    if "tool_id" in entry:
+        return
+    rule_type = entry.get("type")
+    config = entry.get("config") or {}
+    if rule_type == "keyword":
+        keywords = config.get("keywords")
+        if not isinstance(keywords, list) or not keywords or not all(
+            isinstance(k, str) and k for k in keywords
+        ):
+            raise ValueError("keyword 规则需要非空字符串数组 keywords")
+    elif rule_type == "regex":
+        pattern = config.get("pattern")
+        if not isinstance(pattern, str) or not pattern:
+            raise ValueError("regex 规则需要非空 pattern")
+        try:
+            _re.compile(pattern)
+        except _re.error:
+            raise ValueError(f"非法正则: {pattern[:50]}")
+    elif rule_type == "max_length":
+        max_chars = config.get("max_chars")
+        if not isinstance(max_chars, int) or isinstance(max_chars, bool) or max_chars <= 0:
+            raise ValueError("max_length 规则需要正整数 max_chars")
+    else:
+        raise ValueError(f"未知 guardrail 类型: {rule_type}")
+
+
 class AgentHarnessUpdate(BaseModel):
     """更新 agent harness 扩展字段（全部 optional，仅更新传入字段）"""
 
@@ -109,6 +147,16 @@ class AgentHarnessUpdate(BaseModel):
     guardrail_on_violation: Optional[str] = Field(None, max_length=20)
     visibility: Optional[str] = Field(None, max_length=20)
     owner_id: Optional[str] = None
+
+    @field_validator("input_guardrails", "output_guardrails")
+    @classmethod
+    def _check_guardrails(cls, v):
+        """P3-⑩: 校验 guardrail 条目形状（内置规则/工具条目二选一）"""
+        if v is None:
+            return v
+        for entry in v:
+            _validate_guardrail_entry(entry)
+        return v
 
 
 class AgentHarnessView(BaseModel):

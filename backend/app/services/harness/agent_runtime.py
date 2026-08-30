@@ -170,6 +170,22 @@ class AgentRuntime:
                     }
                     yield Event.handoff(from_agent_info, to_agent_info, "handoff requested")
 
+                    # P3-⑪: 记录 handoff step（协作可视化数据源，best-effort）
+                    try:
+                        recorder = getattr(self.ctx, "trace_recorder", None)
+                        if recorder is not None and trace is not None:
+                            hs = recorder.start_step(trace.id, "handoff")
+                            recorder.end_step(
+                                hs,
+                                metadata={
+                                    "from_agent": from_agent_info,
+                                    "to_agent": to_agent_info,
+                                    "reason": "handoff requested",
+                                },
+                            )
+                    except Exception as e:
+                        logger.warning("记录 handoff step 失败: %s", type(e).__name__)
+
                     # 持久化触发 handoff 的 LLM 响应
                     try:
                         self.session.append_assistant_message(llm_response)
