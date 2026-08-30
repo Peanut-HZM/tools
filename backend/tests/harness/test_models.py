@@ -57,3 +57,25 @@ def test_mcp_server_command_json_column():
     assert server.command_json is None  # 新列 nullable，默认 None
     server.command_json = '{"command": "npx", "args": ["-y", "demo"]}'
     assert '"command"' in server.command_json
+
+
+def test_agent_procedural_memory_model():
+    """P2-②: agent_procedural_memory 表应可存取技能记录"""
+    from app.models.agent_procedural_memory import AgentProceduralMemory
+
+    skill = AgentProceduralMemory(
+        agent_id=_uuid.UUID("00000000-0000-0000-0000-000000000002"),
+        user_id=_uuid.UUID("00000000-0000-0000-0000-000000000003"),
+        name="deploy_check",
+        trigger="用户要求部署前检查",
+        content="1. 跑测试 2. 检查环境变量",
+    )
+    # SQLAlchemy 列默认值在 flush 时生效，故对 commit 后的 loaded 断言
+    test_db.add(skill)
+    test_db.commit()
+    loaded = test_db.query(AgentProceduralMemory).filter_by(name="deploy_check").first()
+    assert loaded is not None
+    assert loaded.trigger == "用户要求部署前检查"
+    assert loaded.importance == 0.5
+    assert loaded.use_count == 0
+    assert loaded.is_enabled is True
