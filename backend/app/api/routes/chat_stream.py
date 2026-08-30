@@ -28,6 +28,9 @@ from app.services.harness.tool_protocol import ToolContext
 from app.services.harness.tool_registry import ToolRegistry
 from app.services.harness.tools.image_gen import ImageGenTool
 from app.services.harness.tools.memory_read import MemoryReadTool
+from app.services.harness.tools.skill_save import SkillSaveTool
+from app.services.harness.tools.skill_read import SkillReadTool
+from app.services.harness.tools.skill_delete import SkillDeleteTool
 from app.services.harness.tools.memory_search import MemorySearchTool
 from app.services.harness.tools.memory_write import MemoryWriteTool
 from app.services.harness.session import Session as HarnessSession
@@ -108,6 +111,10 @@ async def chat_stream(
     tool_registry.register_builtin(MemoryReadTool())
     tool_registry.register_builtin(MemoryWriteTool())
     tool_registry.register_builtin(MemorySearchTool())
+    # 注册技能工具（按 Agent.memory_procedural_enabled 控制可用性）
+    tool_registry.register_builtin(SkillSaveTool())
+    tool_registry.register_builtin(SkillReadTool())
+    tool_registry.register_builtin(SkillDeleteTool())
     trace_recorder = TraceRecorder(db)
 
     # 加载对话历史到 Session（best-effort）
