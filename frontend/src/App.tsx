@@ -25,6 +25,7 @@ import CourseDetailPage from './pages/CourseDetailPage';
 import TechContentsPage from './pages/TechContentsPage';
 import TechContentDetailPage from './pages/TechContentDetailPage';
 import AccountSettings from './pages/AccountSettings';
+import MarketplacePage from './pages/MarketplacePage';
 import DevComponentsPage from './pages/DevComponentsPage';
 import { AuthProvider, AuthContext, useAuth } from './stores/authStore';
 import { useCategory } from './hooks/useCategory';
@@ -318,6 +319,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/workspace" element={<WorkspacePage />} />
               <Route path="/account-settings" element={<AccountSettings />} />
+              <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/courses" element={<CoursesPage />} />
               <Route path="/courses/:slug" element={<CourseDetailPage />} />
               <Route path="/courses/:slug/learn" element={<CourseLearnPage />} />

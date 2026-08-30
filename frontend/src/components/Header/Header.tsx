@@ -40,6 +40,13 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
               onChange={onSearchChange}
               onSearch={onSearch}
             />
+            {user && (
+              <Button asChild>
+                <Link to="/marketplace" className="text-ink hover:text-accent">
+                  {t.nav.marketplace}
+                </Link>
+              </Button>
+            )}
             {user?.role === 'admin' && (
               <Button
                 asChild

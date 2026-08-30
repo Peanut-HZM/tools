@@ -30,11 +30,13 @@ export default function AgentManagement() {
     icon_color: 'bg-accent',
     category: 'AI工具',
   });
+  // P2-④: 可见性（提交时随 formData 一并保存）
 
   // Harness 扩展字段
   const [memoryLongTermEnabled, setMemoryLongTermEnabled] = useState(false);
   const [memoryProceduralEnabled, setMemoryProceduralEnabled] = useState(false);
   const [sandboxEnabled, setSandboxEnabled] = useState(false);
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
   const [memoryLongTermConfig, setMemoryLongTermConfig] = useState<Record<string, any>>(
     { ...DEFAULT_EMBEDDING_CONFIG },
   );
@@ -67,6 +69,7 @@ export default function AgentManagement() {
     setMemoryLongTermEnabled(false);
     setMemoryLongTermConfig({ ...DEFAULT_EMBEDDING_CONFIG });
     setEditingId(null);
+    setVisibility('public');
     setShowForm(false);
   };
 
@@ -74,11 +77,12 @@ export default function AgentManagement() {
     e.preventDefault();
     try {
       let agentId: string;
+      const payload = { ...formData, visibility };
       if (editingId) {
-        await agentApi.updateAgent(editingId, formData);
+        await agentApi.updateAgent(editingId, payload);
         agentId = editingId;
       } else {
-        const created = await agentApi.createAgent(formData);
+        const created = await agentApi.createAgent(payload);
         agentId = created.id;
       }
       // 保存 harness 扩展字段
@@ -123,8 +127,45 @@ export default function AgentManagement() {
     }
   };
 
+  // P2-④: 导出 Agent bundle（下载 JSON 文件）
+  const handleExport = async (agent: Agent) => {
+    try {
+      const bundle = await agentApi.exportAgentBundle(agent.id);
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `agent-${agent.name}.bundle.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      success('导出成功（注意：bundle 可能含工具连接配置，请勿外传）');
+    } catch (err) {
+      error('导出失败');
+      console.error('Failed to export agent:', err);
+    }
+  };
+
+  // P2-④: 导入 Agent bundle（文件选择）
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const bundle = JSON.parse(text);
+      const result = await agentApi.importAgentBundle(bundle);
+      const warnText = result.warnings.length > 0 ? `（警告: ${result.warnings.join('; ')}）` : '';
+      success(`导入成功: ${result.agent.name}${warnText}`);
+      loadAgents();
+    } catch (err) {
+      error(err instanceof Error ? err.message : '导入失败（文件格式不合法？）');
+      console.error('Failed to import agent:', err);
+    }
+  };
+
   const handleEdit = async (agent: Agent) => {
     setEditingId(agent.id);
+    setVisibility(agent.visibility ?? 'public');
     setFormData({
       name: agent.name,
       description: agent.description,
@@ -155,13 +196,24 @@ export default function AgentManagement() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-ink">Agent管理</h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors flex items-center gap-2"
-        >
-          <span>+</span>
-          <span>添加Agent</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors cursor-pointer">
+            导入 bundle
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+          </label>
+          <button
+            onClick={() => setShowForm(true)}
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors flex items-center gap-2"
+          >
+            <span>+</span>
+            <span>添加Agent</span>
+          </button>
+        </div>
       </div>
 
       {/* Agent表单 */}
@@ -198,6 +250,21 @@ export default function AgentManagement() {
                   placeholder="例如：AI工具"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-ink-muted mb-2">
+                  可见性
+                </label>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as 'public' | 'private' | 'unlisted')}
+                  className="w-full px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="public">public（所有人可用，进市场）</option>
+                  <option value="unlisted">unlisted（所有人可用，不进市场）</option>
+                  <option value="private">private（仅自己与管理员）</option>
+                </select>
               </div>
 
               <div className="md:col-span-2">
@@ -496,6 +563,12 @@ export default function AgentManagement() {
                         className="px-3 py-1 text-sm bg-warning/20 text-warning border border-warning/30 rounded hover:bg-warning/30 transition-colors"
                       >
                         编辑
+                      </button>
+                      <button
+                        onClick={() => handleExport(agent)}
+                        className="px-3 py-1 text-sm bg-surface-2 text-ink border border-border rounded hover:bg-surface-3 transition-colors"
+                      >
+                        导出
                       </button>
                       <button
                         onClick={() => handleDelete(agent.id, agent.name)}

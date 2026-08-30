@@ -190,4 +190,26 @@ export const agentApi = {
     );
     return response.data;
   },
+
+  // P2-④: 导出 Agent bundle（JSON）
+  exportAgentBundle: async (id: string): Promise<Record<string, unknown>> => {
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/agents/${id}/export`,
+      {},
+      { headers: getAuthHeaders() },
+    );
+    return response.data;
+  },
+
+  // P2-④: 导入 Agent bundle
+  importAgentBundle: async (
+    bundle: Record<string, unknown>,
+  ): Promise<{ agent: { id: string; name: string; visibility: string }; warnings: string[] }> => {
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/agents/import`,
+      bundle,
+      { headers: getAuthHeaders() },
+    );
+    return response.data;
+  },
 };

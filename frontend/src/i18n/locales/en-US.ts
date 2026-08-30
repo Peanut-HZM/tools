@@ -57,6 +57,7 @@ export const enUS = {
     feedback: 'Feedback',
     contactUs: 'Contact Us',
     admin: 'Admin',
+    marketplace: 'Agent Market',
   },
 
   // Auth

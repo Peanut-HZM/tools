@@ -57,6 +57,7 @@ export const zhCN = {
     feedback: '反馈',
     contactUs: '联系我们',
     admin: '后台管理',
+    marketplace: 'Agent 市场',
   },
 
   // Auth
