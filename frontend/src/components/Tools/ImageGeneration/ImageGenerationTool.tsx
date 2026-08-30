@@ -42,6 +42,8 @@ interface ChatItem {
   images: string[];
   generating?: boolean;
   failed?: boolean;
+  /** 系统润色后的生图提示词（v4 提示词工程） */
+  refinedPrompt?: string;
 }
 
 /** 弹框预览状态 */
@@ -221,11 +223,16 @@ const ImageGenerationTool: React.FC = () => {
             } else if (event.type === 'tool_result' && event.name === 'image_gen') {
               const data = event as {
                 success?: boolean;
-                content?: { image_urls?: string[] };
+                content?: { image_urls?: string[]; revised_prompt?: string };
               };
               const urls = (data.content?.image_urls || []).filter(isSafeUrl);
+              const refined = (data.content?.revised_prompt || '').trim();
               if (data.success && urls.length > 0) {
-                patchLast({ images: urls, generating: false });
+                patchLast({
+                  images: urls,
+                  generating: false,
+                  refinedPrompt: refined || undefined,
+                });
               } else {
                 patchLast({ generating: false, failed: true });
               }
@@ -341,6 +348,16 @@ const ImageGenerationTool: React.FC = () => {
                     </button>
                   ))}
                 </div>
+              )}
+              {item.refinedPrompt && (
+                <details className="mt-3 group">
+                  <summary className="text-xs text-ink-muted cursor-pointer hover:text-ink select-none">
+                    ✨ 优化后的生图提示词
+                  </summary>
+                  <div className="mt-1 px-3 py-2 bg-canvas border border-border/60 rounded text-xs text-ink-muted whitespace-pre-wrap">
+                    {item.refinedPrompt}
+                  </div>
+                </details>
               )}
               {item.failed && item.images.length === 0 && !item.generating && (
                 <div className="text-danger text-xs mt-1">本次未能生成图片</div>
