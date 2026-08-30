@@ -148,6 +148,8 @@ class TestMcpServerManagerSSRF:
         mock_server.server_url = "http://93.184.216.34:3000"
         mock_server.headers_json = None
         mock_server.timeout_seconds = 30
+        mock_server.transport = "sse"  # P2-①c: manager 读取该字段构造 client
+        mock_server.command_json = None
 
         client = manager._get_or_create_client(mock_server)
         assert client.allow_private_hosts is False
@@ -166,6 +168,8 @@ class TestMcpServerManagerSSRF:
         mock_server.server_url = "http://10.0.0.1:3000"
         mock_server.headers_json = None
         mock_server.timeout_seconds = 30
+        mock_server.transport = "sse"  # P2-①c: manager 读取该字段构造 client
+        mock_server.command_json = None
 
         client = manager._get_or_create_client(mock_server)
         assert client.allow_private_hosts is True
