@@ -21,6 +21,7 @@ Phase 3-Plan-1A: MCP 工具支持核心骨架
 """
 import asyncio
 import ipaddress
+import json
 import logging
 import socket
 from typing import Any
@@ -28,6 +29,12 @@ from urllib.parse import urlsplit, urlunsplit
 
 try:
     from mcp.client.sse import sse_client
+    from mcp.client.stdio import (
+        stdio_client,
+        StdioServerParameters,
+        get_default_environment,
+    )
+    from mcp.client.streamable_http import streamable_http_client
     from mcp import ClientSession
 except ImportError:
     raise ImportError(
@@ -228,42 +235,104 @@ class McpClient:
 
     def __init__(
         self,
-        server_url: str,
+        server_url: str = "",
+        *,
+        transport: str = "sse",
+        command: dict | str | None = None,
         headers: dict | None = None,
         timeout: int = 30,
         allow_private_hosts: bool = False,
     ):
         """
         Args:
-            server_url: MCP server SSE endpoint
-            headers: 可选的 HTTP headers（如 Authorization）
+            server_url: SSE / streamable HTTP 端点；stdio 时仅作展示摘要
+            transport: "sse" / "http" / "stdio"（P2-①c）
+            command: stdio 启动配置 dict 或 JSON 字符串：
+                {"command": "npx", "args": [...], "env": {...}}
+            headers: 可选的 HTTP headers（如 Authorization），仅 url 型 transport
             timeout: 操作超时秒数
             allow_private_hosts: True 则允许内网地址（仅开发/测试用）
         """
-        # SSRF 防护：在连接前验证 URL
-        validate_url(server_url, allow_private_hosts=allow_private_hosts)
+        if transport not in ("sse", "http", "stdio"):
+            raise McpConnectionError(f"Unsupported transport: {transport}")
+
+        if transport == "stdio":
+            # stdio 无 URL 语义，跳过 SSRF 校验；本地代码执行风险由 admin 门禁覆盖
+            self._server_params = self._build_stdio_params(command)
+        else:
+            # SSRF 防护：在连接前验证 URL（sse / http 共用）
+            validate_url(server_url, allow_private_hosts=allow_private_hosts)
 
         self.server_url = server_url
+        self.transport = transport
         self.headers = headers or {}
         self.timeout = timeout
         self.allow_private_hosts = allow_private_hosts  # 保留供调用方检查
         self._session: ClientSession | None = None
-        self._sse_context = None  # 保持 SSE context manager 引用
+        self._transport_ctx = None  # 统一持有当前 transport 的 async context manager
+
+    @staticmethod
+    def _build_stdio_params(command: dict | str | None) -> StdioServerParameters:
+        """构建 stdio 启动参数。
+
+        env 策略（安全）：默认使用 SDK 最小环境（get_default_environment()，
+        只含 PATH/HOME 等基础变量），显式配置的 env 追加其上——
+        不透传后端进程完整环境，防止 secrets 泄露给子进程。
+        """
+        if isinstance(command, str):
+            try:
+                command = json.loads(command)
+            except json.JSONDecodeError as e:
+                raise McpConnectionError(f"Invalid command JSON: {e}") from e
+        if not isinstance(command, dict) or not str(command.get("command") or "").strip():
+            raise McpConnectionError(
+                'stdio transport requires command config: '
+                '{"command": "...", "args": [...], "env": {...}}'
+            )
+        env = None
+        if command.get("env"):
+            env = get_default_environment()
+            env.update(command["env"])
+        return StdioServerParameters(
+            command=command["command"],
+            args=list(command.get("args") or []),
+            env=env,
+        )
 
     async def _connect_sse(self):
-        """内部方法：建立 SSE 连接，返回 (read_stream, write_stream)
+        """内部方法：建立 SSE 连接，返回 (read_stream, write_stream)"""
+        self._transport_ctx = sse_client(self.server_url, headers=self.headers)
+        read_stream, write_stream = await self._transport_ctx.__aenter__()
+        return read_stream, write_stream
 
-        实际调用 sse_client async context manager 的 __aenter__。
+    async def _connect_streamable_http(self):
+        """内部方法：建立 streamable HTTP 连接，返回 (read_stream, write_stream)
+
+        streamable_http_client 产出 (read, write, get_session_id) 三元组，
+        ClientSession 只需前两项。
         """
-        self._sse_context = sse_client(self.server_url, headers=self.headers)
-        read_stream, write_stream = await self._sse_context.__aenter__()
+        self._transport_ctx = streamable_http_client(
+            self.server_url, headers=self.headers
+        )
+        streams = await self._transport_ctx.__aenter__()
+        return streams[0], streams[1]
+
+    async def _connect_stdio(self):
+        """内部方法：spawn stdio 子进程并接入，返回 (read_stream, write_stream)"""
+        self._transport_ctx = stdio_client(self._server_params)
+        read_stream, write_stream = await self._transport_ctx.__aenter__()
         return read_stream, write_stream
 
     async def connect(self) -> None:
-        """建立 SSE 连接并完成 MCP 握手"""
+        """建立连接并完成 MCP 握手（按 transport 分发）"""
         safe_url = sanitize_url(self.server_url)
+        connectors = {
+            "sse": self._connect_sse,
+            "http": self._connect_streamable_http,
+            "stdio": self._connect_stdio,
+        }
         try:
-            read_stream, write_stream = await self._connect_sse()
+            read_stream, write_stream = await connectors[self.transport]()
 
             # 创建 ClientSession 并初始化
             self._session = ClientSession(read_stream, write_stream)
@@ -272,7 +341,9 @@ class McpClient:
                 timeout=self.timeout,
             )
 
-            logger.info(f"MCP client connected to {safe_url}")
+            logger.info(
+                f"MCP client connected to {safe_url} (transport={self.transport})"
+            )
         except asyncio.TimeoutError:
             await self.disconnect()
             raise McpConnectionError(f"Connection timeout after {self.timeout}s")
@@ -280,7 +351,12 @@ class McpClient:
             raise
         except Exception as e:
             await self.disconnect()
-            logger.error("MCP connection failed to %s: %s", safe_url, type(e).__name__)
+            logger.error(
+                "MCP connection failed to %s (transport=%s): %s",
+                safe_url,
+                self.transport,
+                type(e).__name__,
+            )
             raise McpConnectionError(f"Connection failed: {type(e).__name__}") from e
 
     async def tools_list(self) -> list[dict]:
@@ -356,11 +432,11 @@ class McpClient:
                 logger.warning("Error closing MCP session: %s", type(e).__name__)
             self._session = None
 
-        if self._sse_context:
+        if self._transport_ctx:
             try:
-                await self._sse_context.__aexit__(None, None, None)
+                await self._transport_ctx.__aexit__(None, None, None)
             except Exception as e:
-                logger.warning("Error closing SSE context: %s", type(e).__name__)
-            self._sse_context = None
+                logger.warning("Error closing transport context: %s", type(e).__name__)
+            self._transport_ctx = None
 
         logger.info(f"MCP client disconnected from {safe_url}")
