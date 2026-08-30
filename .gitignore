@@ -162,3 +162,4 @@ backend/plugins/*.py
 !backend/plugins/__init__.py
 !backend/plugins/README.md
 !backend/plugins/hello_world.py
+temp/
