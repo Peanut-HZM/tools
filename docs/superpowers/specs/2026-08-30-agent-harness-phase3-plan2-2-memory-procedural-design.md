@@ -2,7 +2,7 @@
 
 **日期**：2026-08-30
 **Phase**：3-Plan-2-2（对应原 P2 列表第 6 项 "Memory procedural（Agent 技能系统）"）
-**状态**：设计完成（自主决策模式）
+**状态**：已实现（2026-08-30；验证：pytest tests/harness 679 passed / 前端 build + tsc 通过）
 **对应规划 ID**：Phase 3 设计文档 §11.4 P2 列表第 6 项；plan1b 设计文档注明"Procedural Memory → Phase 3 后续 plan"
 
 ---
