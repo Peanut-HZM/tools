@@ -22,6 +22,7 @@ import OpenClawChat from '../Tools/OpenClawChat/OpenClawChat';
 import ImageDownloader from '../Tools/ImageDownloader';
 import VideoDownloader from '../Tools/VideoDownloader';
 import ImageGenerationTool from '../Tools/ImageGeneration/ImageGenerationTool';
+import VideoGenerationTool from '../Tools/VideoGeneration/VideoGenerationTool';
 
 /**
  * 工具 ID → 组件映射
@@ -51,4 +52,5 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'image-downloader': ImageDownloader,
   'video-downloader': VideoDownloader,
   'image-generation': ImageGenerationTool,
+  'video-generation': VideoGenerationTool,
 };

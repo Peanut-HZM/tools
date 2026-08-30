@@ -376,11 +376,12 @@ export default function TokenUsage() {
         .sort((a, b) => a.date.localeCompare(b.date))
         .map(item => ({
           date: item.date,
-          inputTokens: item.input_tokens ?? 0,
-          outputTokens: item.output_tokens ?? 0,
-          cacheTokens: item.cache_tokens ?? 0,
-          totalTokens: item.total_tokens,
-          cost: item.total_cost,
+         inputTokens: item.input_tokens ?? 0,
+         outputTokens: item.output_tokens ?? 0,
+         cacheTokens: item.cache_tokens ?? 0,
+         // 标签显示堆叠三项之和，与柱子实际高度一致（API 的 total_tokens 通常不含 cache）
+         totalTokens: (item.input_tokens ?? 0) + (item.output_tokens ?? 0) + (item.cache_tokens ?? 0),
+         cost: item.total_cost,
         })),
     [summary.data.chart_series]
   );

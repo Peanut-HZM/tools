@@ -30,6 +30,7 @@ const PROVIDER_TYPES = [
   { value: 'aliyun', label: '阿里通义' },
   { value: 'doubao_seedream', label: '豆包 Seedream' },
   { value: 'qwen_image', label: '通义万相' },
+  { value: 'minimax_video', label: 'MiniMax 视频' },
   { value: 'zhipu', label: '智谱 AI' },
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'deepseek', label: 'DeepSeek' },

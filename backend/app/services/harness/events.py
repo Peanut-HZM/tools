@@ -68,6 +68,10 @@ class Event:
         return cls(type="image_generated", payload={"urls": urls, "metadata": metadata})
 
     @classmethod
+    def video_generated(cls, url: str, metadata: dict) -> "Event":
+        return cls(type="video_generated", payload={"url": url, "metadata": metadata})
+
+    @classmethod
     def handoff(cls, from_agent: dict, to_agent: dict, reason: str) -> "Event":
         return cls(
             type="handoff",

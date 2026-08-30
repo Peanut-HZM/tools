@@ -402,19 +402,14 @@ class LLMQuotaService:
     def _lookup_username(self, user_id: str) -> Optional[str]:
         """单条 username 查询；失败或 user 不存在时返回 None
 
-        注意：users.id 是 bigint，而 quota 表的 user_id 是 varchar(64)（可能是 UUID）。
-        仅当 user_id 可转为整数时才查询；否则直接返回 None。
-        失败时必须 rollback 以清除 PostgreSQL 事务错误状态，否则后续查询会返回列键名。
+        quota 表的 user_id 是 UUID 字符串，直接关联 users.user_id（同为 VARCHAR(64)），
+        而非 users.id（BIGINT）。
+        失败时必须 rollback 以清除 PostgreSQL 事务错误状态。
         """
-        # user_id 是 UUID 时，无法匹配 users.id (bigint)，直接跳过
-        try:
-            uid_int = int(user_id)
-        except (ValueError, TypeError):
-            return None
         try:
             result = self.db.execute(
-                text("SELECT username FROM users WHERE id = :uid"),
-                {"uid": uid_int},
+                text("SELECT username FROM users WHERE user_id = :uid"),
+                {"uid": user_id},
             ).scalar()
             return result if isinstance(result, str) else None
         except Exception as e:
@@ -423,22 +418,16 @@ class LLMQuotaService:
             return None
 
     def _lookup_usernames_batch(self, user_ids: list[str]) -> dict[str, str]:
-        """批量查询 user_id → username；user 不存在则不出现在结果中"""
+        """批量查询 user_id → username；user 不存在则不出现在结果中
+
+        quota 表的 user_id 是 UUID 字符串，关联 users.user_id（同为 VARCHAR(64)）。
+        """
         if not user_ids:
-            return {}
-        # 仅保留可转为 int 的 user_id（UUID 直接跳过）
-        uid_ints = []
-        for u in user_ids:
-            try:
-                uid_ints.append(int(u))
-            except (ValueError, TypeError):
-                continue
-        if not uid_ints:
             return {}
         try:
             rows = self.db.execute(
-                text("SELECT id, username FROM users WHERE id = ANY(:ids)"),
-                {"ids": uid_ints},
+                text("SELECT user_id, username FROM users WHERE user_id = ANY(:ids)"),
+                {"ids": user_ids},
             ).fetchall()
             return {row[0]: row[1] for row in rows if isinstance(row[1], str)}
         except Exception as e:

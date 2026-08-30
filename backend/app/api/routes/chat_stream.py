@@ -28,6 +28,7 @@ from app.services.harness.llm_bridge import LLMFunctionBridge
 from app.services.harness.tool_protocol import ToolContext
 from app.services.harness.tool_registry import ToolRegistry
 from app.services.harness.tools.image_gen import ImageGenTool
+from app.services.harness.tools.video_gen import VideoGenTool
 from app.services.oss_service import oss_service
 from app.services.harness.tools.memory_read import MemoryReadTool
 from app.services.harness.tools.skill_save import SkillSaveTool
@@ -134,6 +135,7 @@ async def chat_stream(
     tool_registry = ToolRegistry(db)
     # 注册内置工具（按需注册）
     tool_registry.register_builtin(ImageGenTool())
+    tool_registry.register_builtin(VideoGenTool())
     # 注册内存工具（按 Agent.memory_long_term_enabled 控制可用性）
     tool_registry.register_builtin(MemoryReadTool())
     tool_registry.register_builtin(MemoryWriteTool())
@@ -175,6 +177,8 @@ async def chat_stream(
         errored = False
         # 本轮 image_gen 成功产生的附件（写入 done 的 agent 消息，刷新后可持久显示）
         image_attachments = []
+        # 本轮 video_gen 成功产生的附件
+        video_attachments = []
         try:
             # 1. user_message
             yield (
@@ -228,6 +232,8 @@ async def chat_stream(
                     # P3 图生页面：持久化本轮生成的图片附件（刷新后仍可显示）
                     if image_attachments:
                         agent_message.attachments = image_attachments
+                    elif video_attachments:
+                        agent_message.attachments = video_attachments
                     if llm_config_id:
                         agent_message.llm_config_id = llm_config_id
                     agent_message.llm_model_name = llm_model_name
@@ -245,22 +251,22 @@ async def chat_stream(
                     # 幻觉链接防护：模型可能模仿历史编造 image-gen OSS 链接
                     # （文本声称已生成但实际未调用工具）。此类链接替换为无效提示，
                     # 避免用户点击 404。真实链接集合来自本轮 tool_result 附件。
-                    if final_text and "image-gen/" in final_text:
+                    if final_text and ("image-gen/" in final_text or "video-gen/" in final_text):
                         import re as _re
 
                         real_urls = {
-                            a.get("url") for a in image_attachments if a.get("url")
+                            a.get("url") for a in (image_attachments + video_attachments) if a.get("url")
                         }
 
                         def _flag_hallucinated(m):
                             return (
                                 m.group(0)
                                 if m.group(0) in real_urls
-                                else "⚠️（该链接无效：图片未实际生成，请重新发起生成请求）"
+                                else "⚠️（该链接无效：内容未实际生成，请重新发起生成请求）"
                             )
 
                         final_text = _re.sub(
-                            r"https://[^\s)\]]*/image-gen/[0-9a-f]{32}\.png",
+                            r"https://[^\s)\]]*/(?:image-gen|video-gen)/[0-9a-f]{32}\.(?:png|mp4)",
                             _flag_hallucinated,
                             final_text,
                         )
@@ -280,7 +286,7 @@ async def chat_stream(
                         "total_tokens": total_tokens,
                         "llm_model_name": llm_model_name,
                         # P3 图生页面：本轮生成的图片附件（前端刷新后仍可显示）
-                        "attachments": image_attachments or [],
+                        "attachments": (image_attachments or video_attachments) or [],
                     }
 
                     yield (
@@ -306,6 +312,8 @@ async def chat_stream(
                     atts = list(event.payload.get("attachments") or [])
                     if event.payload.get("name") == "image_gen" and event.payload.get("success"):
                         image_attachments.extend(atts)
+                    if event.payload.get("name") == "video_gen" and event.payload.get("success"):
+                        video_attachments.extend(atts)
                     result_content = event.payload.get("content")
                     # content 截断 4KB，避免 SSE 过大（注意勿遮蔽外层请求 content）
                     if isinstance(result_content, (dict, list)):

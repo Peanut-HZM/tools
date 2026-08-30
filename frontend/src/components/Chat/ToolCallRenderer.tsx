@@ -18,6 +18,7 @@ import type { ToolCall, ToolResult } from '@/types/tool';
 import { WebSearchRenderer } from './ToolRenderers/WebSearchRenderer';
 import { DbQueryRenderer } from './ToolRenderers/DbQueryRenderer';
 import { ImageGenRenderer } from './ToolRenderers/ImageGenRenderer';
+import { VideoGenRenderer } from './ToolRenderers/VideoGenRenderer';
 import { MemoryRenderer } from './ToolRenderers/MemoryRenderer';
 import { DefaultRenderer } from './ToolRenderers/DefaultRenderer';
 
@@ -35,6 +36,7 @@ const DEFAULT_BUILTINS: Record<string, React.ComponentType<ToolRendererProps>> =
   web_search: WebSearchRenderer,
   db_query: DbQueryRenderer,
   image_gen: ImageGenRenderer,
+  video_gen: VideoGenRenderer,
   memory_read: MemoryRenderer,
   memory_write: MemoryRenderer,
 };

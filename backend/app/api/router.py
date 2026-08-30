@@ -12,6 +12,7 @@ from app.api.routes import (
     admin_conversations,
     agents,
     competitor,
+    tools_video_generation,
 )
 
 # 创建 API v1 路由
@@ -33,6 +34,9 @@ api_router.include_router(
 
 # 聊天流（Server-Sent Events）
 api_router.include_router(chat_stream.router, tags=["聊天流"])
+
+# 视频生成工具
+api_router.include_router(tools_video_generation.router, tags=["视频生成工具"])
 
 # 管理员会话管理
 api_router.include_router(

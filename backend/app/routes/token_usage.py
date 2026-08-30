@@ -1777,6 +1777,7 @@ def _map_source_to_tool(source: str) -> dict:
         "claude": {"tool_id": "claude-code", "tool_name": "Claude Code"},
         "opencode": {"tool_id": "opencode", "tool_name": "OpenCode"},
         "codex": {"tool_id": "codex", "tool_name": "Codex"},
+        "zcode": {"tool_id": "zcode", "tool_name": "ZCode"},
     }
     return mapping.get(
         source_value,
@@ -2265,6 +2266,7 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
         (TokenUsageRecord.source == "claude", "claude-code"),
         (TokenUsageRecord.source == "opencode", "opencode"),
         (TokenUsageRecord.source == "codex", "codex"),
+        (TokenUsageRecord.source == "zcode", "zcode"),
         else_=TokenUsageRecord.source,
     )
 

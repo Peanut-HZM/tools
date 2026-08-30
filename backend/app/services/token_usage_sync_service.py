@@ -121,6 +121,7 @@ def _map_source_to_tool(source: str) -> dict:
         "gemini": {"tool_id": "gemini", "tool_name": "Gemini"},
         "kimi": {"tool_id": "kimi", "tool_name": "Kimi"},
         "qwen": {"tool_id": "qwen", "tool_name": "Qwen"},
+        "zcode": {"tool_id": "zcode", "tool_name": "ZCode"},
     }
     return mapping.get(
         source_value,
@@ -359,6 +360,23 @@ def sync_token_usage(
                 "details": {"exception": str(e)},
             })
 
+    # zcode 数据源抓取（从本地 SQLite 读取）
+    zcode_records: list[dict] = []
+    try:
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        zcode_result = fetch_zcode_records(since_date, until_date)
+        zcode_records = zcode_result["records"]
+        result["errors"].extend(zcode_result["errors"])
+    except Exception as e:
+        logger.error(f"[zcode] 抓取失败: {e}", exc_info=True)
+        result["errors"].append({
+            "source": "zcode",
+            "error": f"zcode: {str(e)}",
+            "error_code": "ZCODE_FETCH_ERROR",
+            "remediation": "请检查 ZCode 安装是否完整",
+            "details": {"exception": str(e)},
+        })
+
     # ===== 阶段二：写入数据库（快操作，仅短暂持有连接池连接）=====
     db = SessionLocal()
 
@@ -483,6 +501,32 @@ def sync_token_usage(
                 "details": {"exception": str(e)},
             })
             _safe_rollback("ccusage-v2 写入失败")
+
+        # 写入 zcode 记录（从本地 SQLite 读取，数据已在阶段一抓取完成）
+        if zcode_records:
+            try:
+                zcode_count = _upsert_records(
+                    db, user_id, device_id, "zcode", zcode_records, device_name
+                )
+                if zcode_count > 0:
+                    result["sources_synced"].append("zcode")
+                    result["total_records"] += zcode_count
+                    _log_sync(db, user_id, device_id, "zcode", "success", zcode_count)
+                    logger.info(f"[zcode] 同步 {zcode_count} 条记录到数据库")
+            except Exception as e:
+                logger.error(f"[zcode] 写入失败: {e}", exc_info=True)
+                result["errors"].append({
+                    "source": "zcode",
+                    "error": f"zcode: {str(e)}",
+                    "error_code": "DB_WRITE_ERROR",
+                    "remediation": "请检查数据库连接",
+                    "details": {"exception": str(e)},
+                })
+                _safe_rollback("zcode 写入失败")
+                try:
+                    _log_sync(db, user_id, device_id, "zcode", "failed", 0, str(e))
+                except Exception:
+                    pass
 
         db.commit()
 
@@ -636,6 +680,7 @@ AGENT_DISPLAY_NAMES = {
     "gemini": "Gemini",
     "kimi": "Kimi",
     "qwen": "Qwen",
+    "zcode": "ZCode",
 }
 
 
