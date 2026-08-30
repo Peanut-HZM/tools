@@ -130,7 +130,26 @@ class LLMFunctionBridge:
             "messages": messages,
         }
         if tools:
-            request["tools"] = tools
+            # 归一化为 OpenAI 现代格式：DashScope/Aliyun 等严格端点要求
+            # {"type":"function","function":{...}}，旧格式 {"name",...} 会 400。
+            # 已是现代格式的 schema 原样保留。
+            normalized = []
+            for t in tools:
+                if not isinstance(t, dict):
+                    # ToolProtocol 对象 → 先取其 function schema
+                    t = t.to_function_schema()
+                if "name" in t and "type" not in t:
+                    normalized.append({
+                        "type": "function",
+                        "function": {
+                            "name": t.get("name", ""),
+                            "description": t.get("description", ""),
+                            "parameters": t.get("parameters", {"type": "object"}),
+                        },
+                    })
+                else:
+                    normalized.append(t)
+            request["tools"] = normalized
         if model:
             request["model"] = model
         if fallback_models:
