@@ -10,6 +10,7 @@
  */
 import { useEffect, useState } from 'react';
 import { listTraces, getTrace } from '../../api/harnessTracesApi';
+import { CollabTimeline } from './CollabTimeline';
 import type { Trace, TraceStep } from '../../types/harness';
 
 interface TraceViewerProps {
@@ -102,6 +103,8 @@ export function TraceViewer({ agentId, conversationId }: TraceViewerProps) {
 
       {selected && selected.steps && selected.steps.length > 0 && (
         <div className="border-t pt-3">
+          {/* P3-⑪: 多 Agent 协作时间线（无 handoff 时零打扰） */}
+          <CollabTimeline steps={selected.steps} />
           <div className="text-sm font-medium mb-2">Steps</div>
           <table className="w-full text-sm">
             <thead>
@@ -128,10 +131,14 @@ export function TraceViewer({ agentId, conversationId }: TraceViewerProps) {
 function StepRow({ step }: { step: TraceStep }) {
   const hasError =
     step.metadata && (step.metadata as Record<string, unknown>).error;
+  const isHandoff = step.step_type === 'handoff';
   return (
-    <tr className={`border-b ${hasError ? 'bg-red-50' : ''}`}>
+    <tr className={`border-b ${hasError ? 'bg-red-50' : ''} ${isHandoff ? 'bg-amber-50' : ''}`}>
       <td className="py-1">{step.step_index}</td>
-      <td className="py-1">{step.step_type}</td>
+      <td className="py-1">
+        {isHandoff && <span className="mr-1 text-amber-600">→ 移交</span>}
+        {step.step_type}
+      </td>
       <td className="py-1">{formatDuration(step.duration_ms)}</td>
       <td className="py-1">{step.tokens_used}</td>
       <td className="py-1">{step.llm_model || step.tool_name || '-'}</td>
