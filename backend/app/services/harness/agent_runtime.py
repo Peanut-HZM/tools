@@ -10,6 +10,7 @@ AgentRuntime 是 harness 的核心编排器：
 import asyncio
 import json
 import logging
+import re
 import uuid
 from typing import AsyncIterator, Optional
 
@@ -49,6 +50,8 @@ class AgentRuntime:
         self.ctx = ctx
         self._step_count = 0
         self._cached_memory_block = ""
+        # 本轮已成功执行的 image_gen 产出 URL（用于编造链接检测）
+        self._executed_image_urls: set = set()
         self._cached_skill_block = ""
 
     # ------------------------------------------------------------------
@@ -57,6 +60,8 @@ class AgentRuntime:
 
     async def run(self, user_message: str) -> AsyncIterator[Event]:
         """执行一次 turn，yield Event 序列"""
+        # 每轮重置 image_gen 产出集合（编造链接检测的"真实集合"按轮计）
+        self._executed_image_urls = set()
 
         # 1. 输入 guardrail
         try:
@@ -149,13 +154,23 @@ class AgentRuntime:
                 )
 
                 # 4d. 发射中间事件（thinking / text）
+                # 注意：text_delta 延迟到 tool_calls 判定之后发射——
+                # 幻觉链接清洗需要知道"本轮是否有 image_gen 工具产出"
                 if llm_response.thinking_part:
                     yield Event.thinking_delta(llm_response.thinking_part)
-                if llm_response.text_part:
-                    yield Event.text_delta(llm_response.text_part)
 
                 # 4e. 解析响应
                 tool_calls = llm_response.tool_calls or []
+
+                if llm_response.text_part:
+                    # P3 图生 v4：无工具调用的最终文本中，若出现 image-gen 产物
+                    # 链接但本轮并未执行过 image_gen 工具 → 判定为编造链接，
+                    # 替换为无效提示（防止用户点击 404）
+                    pending_text = llm_response.text_part
+                    if "image-gen/" in pending_text and not self._executed_image_urls:
+                        pending_text = self._strip_unverified_image_urls(pending_text)
+                        llm_response.text_part = pending_text
+                    yield Event.text_delta(pending_text)
 
                 # 检查 handoff
                 handoff_target = self._safe_detect_handoff(tool_calls)
@@ -245,6 +260,14 @@ class AgentRuntime:
                             from app.services.harness.tool_protocol import ToolResult
                             tool_result = ToolResult.error(f"工具执行异常: {e}")
                         yield Event.tool_result(call, tool_result)
+                        # 收集 image_gen 成功产出（编造链接检测的"真实集合"）
+                        if getattr(call, "name", "") == "image_gen" and getattr(tool_result, "success", False):
+                            for _att in getattr(tool_result, "attachments", None) or []:
+                                _u = getattr(_att, "url", None) or (
+                                    _att.get("url") if isinstance(_att, dict) else None
+                                )
+                                if _u:
+                                    self._executed_image_urls.add(_u)
                         try:
                             self.session.append_tool_message(call, tool_result)
                         except Exception as e:
@@ -385,6 +408,26 @@ class AgentRuntime:
             result_dicts.insert(0, {"role": "system", "content": system_content})
 
         return result_dicts
+
+    # image-gen 产物 URL 模式（OSS 转存路径）
+    _IMAGE_GEN_URL_RE = re.compile(
+        r"https://[^\s)\]]*/image-gen/[0-9a-f]{32}\.png"
+    )
+
+    def _strip_unverified_image_urls(self, text: str) -> str:
+        """移除文本中未经本轮 image_gen 工具验证的产物链接（编造链接防护）
+
+        模型可能模仿历史输出编造 image-gen URL（点击即 404）。
+        已在 self._executed_image_urls 中的链接（本轮真实产出）保留。
+        """
+        import re as _re
+
+        def _check(m):
+            return m.group(0) if m.group(0) in self._executed_image_urls else (
+                "⚠️（该链接无效：图片未实际生成，请重新发起生成请求）"
+            )
+
+        return _re.sub(self._IMAGE_GEN_URL_RE, _check, text)
 
     async def _build_skill_block(self) -> str:
         """构建技能索引注入块（渐进披露：索引进 prompt，内容按需 skill_read）

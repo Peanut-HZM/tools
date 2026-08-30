@@ -601,3 +601,35 @@ async def test_real_image_url_not_flagged(env):
 
     assert real_url in resp.text
     assert "链接无效" not in resp.text
+
+
+# ===========================================================================
+# v4: runtime 编造链接清洗（未经工具验证的 image-gen URL 替换为警告）
+# ===========================================================================
+
+
+def test_strip_unverified_image_urls():
+    """未经验证的 image-gen URL → 警告；本轮真实产出 → 保留"""
+    from app.services.harness.agent_runtime import AgentRuntime
+
+    rt = AgentRuntime.__new__(AgentRuntime)
+    rt._executed_image_urls = {"https://oss.example.com/image-gen/" + "a" * 32 + ".png"}
+
+    text = (
+        "已生成：真实图 https://oss.example.com/image-gen/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png "
+        "和编造图 https://oss.example.com/image-gen/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png"
+    )
+    cleaned = rt._strip_unverified_image_urls(text)
+
+    assert "aaaaaaaa" in cleaned  # 真实产出保留
+    assert "bbbbbbbb" not in cleaned  # 编造链接被替换
+    assert "链接无效" in cleaned
+
+
+def test_strip_keeps_text_without_image_urls():
+    from app.services.harness.agent_runtime import AgentRuntime
+
+    rt = AgentRuntime.__new__(AgentRuntime)
+    rt._executed_image_urls = set()
+    text = "普通回复，没有链接"
+    assert rt._strip_unverified_image_urls(text) == text
