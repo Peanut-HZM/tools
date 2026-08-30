@@ -248,7 +248,7 @@ def test_error_sse_sanitized(client, mock_db, fake_user):
         runtime_instance.run = raising_run
 
         response = client.post(
-            "/api/v1/conversations/conv-x/chat/stream",
+            f"/api/v1/conversations/{uuid.uuid4()}/chat/stream",
             json={"content": "hi", "agent_id": "a1"},
         )
         assert response.status_code == 200
