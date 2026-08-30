@@ -28,6 +28,7 @@ from app.services.harness.llm_bridge import LLMFunctionBridge
 from app.services.harness.tool_protocol import ToolContext
 from app.services.harness.tool_registry import ToolRegistry
 from app.services.harness.tools.image_gen import ImageGenTool
+from app.services.oss_service import oss_service
 from app.services.harness.tools.memory_read import MemoryReadTool
 from app.services.harness.tools.skill_save import SkillSaveTool
 from app.services.harness.tools.skill_read import SkillReadTool
@@ -157,7 +158,7 @@ async def chat_stream(
         agent_id=str(agent.id),
         session=harness_session,
         db=db,
-        oss_service=None,
+        oss_service=oss_service,
         llm_gateway=llm_gateway,
         event_emitter=None,
         quota_service=quota_svc,

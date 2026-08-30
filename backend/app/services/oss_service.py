@@ -5,6 +5,7 @@ OssService：兼容旧调用方的存储服务门面。
 具体接口在调用时再返回不可用错误或空结果。
 """
 
+import io
 import logging
 from typing import Any, BinaryIO, Optional
 
@@ -66,6 +67,34 @@ class OssService:
             return None
         return self._require_storage().upload_file(
             object_name, data, size, content_type, uploaded_by, metadata
+        )
+
+    def upload_bytes(
+        self,
+        object_name: str,
+        data: bytes,
+        content_type: str,
+        uploaded_by: str = "image-gen",
+        metadata: dict[str, str] | None = None,
+    ) -> Optional[str]:
+        """字节上传（图像生成 provider 依赖的接口）
+
+        Args:
+            object_name: 存储 key（如 image-gen/{uuid}.png）
+            data: 文件字节
+            content_type: MIME 类型
+            uploaded_by: 上传者标识（历史记录使用 image-gen）
+
+        Returns:
+            文件 URL；存储不可用时返回 None（调用方降级）
+        """
+        return self.upload_file(
+            object_name,
+            io.BytesIO(data),
+            len(data),
+            content_type,
+            uploaded_by=uploaded_by,
+            metadata=metadata,
         )
 
     def delete_file(self, object_name: str) -> bool:
