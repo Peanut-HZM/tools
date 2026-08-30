@@ -19,6 +19,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # 幂等守卫（2026-08-30）：开发库可能由 Base.metadata.create_all 初始化，
+    # tools 等表已存在时跳过建表；索引/外键同样按名称去重
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_tables = set(inspector.get_table_names())
+    existing_indexes = set()
+    existing_fks = set()
+    for _t in existing_tables:
+        for _ix in inspector.get_indexes(_t):
+            existing_indexes.add(_ix["name"])
+        for _fk in inspector.get_foreign_keys(_t):
+            if _fk.get("name"):
+                existing_fks.add(_fk["name"])
+
     # === 扩展 agents 表 ===
     # 使用 batch_alter_table 确保 SQLite 和 PostgreSQL 兼容
     with op.batch_alter_table('agents') as batch_op:
@@ -29,7 +43,7 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column('generation_params', sa.JSON(), server_default='{}'))
         batch_op.add_column(sa.Column('memory_short_term_policy', sa.String(20), server_default='sliding_window'))
         batch_op.add_column(sa.Column('memory_short_term_window', sa.Integer(), server_default='20'))
-        batch_op.add_column(sa.Column('memory_long_term_enabled', sa.Boolean(), server_default=sa.text('0')))
+        batch_op.add_column(sa.Column('memory_long_term_enabled', sa.Boolean(), server_default=sa.false()))
         batch_op.add_column(sa.Column('memory_long_term_config', sa.JSON(), server_default='{}'))
         batch_op.add_column(sa.Column('max_steps_per_turn', sa.Integer(), server_default='20'))
         batch_op.add_column(sa.Column('tool_timeout_seconds', sa.Integer(), server_default='60'))
@@ -76,7 +90,7 @@ def upgrade() -> None:
 
     # 历史会话填默认 agent（如已有默认）或创建系统默认
     bind = op.get_bind()
-    default_agent = bind.execute(sa.text("SELECT id FROM agents WHERE is_default = 1 LIMIT 1")).fetchone()
+    default_agent = bind.execute(sa.text("SELECT id FROM agents WHERE is_default = TRUE LIMIT 1")).fetchone()
     if default_agent:
         default_agent_id = default_agent[0]
     else:
@@ -92,8 +106,11 @@ def upgrade() -> None:
     # 应用 NOT NULL + FK + 索引
     if dialect_name == 'postgresql':
         op.alter_column('conversations', 'agent_id', nullable=False)
-        op.create_foreign_key('fk_conversations_agent_id', 'conversations', 'agents', ['agent_id'], ['id'])
-        op.create_index('ix_conversations_user_agent_status', 'conversations', ['user_id', 'agent_id', 'status'])
+        if 'fk_conversations_agent_id' not in existing_fks:
+            op.create_foreign_key('fk_conversations_agent_id', 'conversations', 'agents', ['agent_id'], ['id'])
+        # 修复（2026-08-30）：conversations 无 status 列（模型与后续迁移均未创建），
+        # 原无条件建索引导致 PG 升级失败；按下方注释约定跳过，status 列落地时再补建。
+        # op.create_index('ix_conversations_user_agent_status', 'conversations', ['user_id', 'agent_id', 'status'])
     else:
         with op.batch_alter_table('conversations') as batch_op:
             batch_op.alter_column('agent_id', nullable=False)
@@ -111,8 +128,9 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column('attachments', sa.JSON(), server_default='[]'))
 
     # === 创建 tools 表 ===
-    op.create_table(
-        'tools',
+    if 'tools' not in existing_tables:
+        op.create_table(
+            'tools',
         sa.Column('id', sa.Uuid(), primary_key=True),
         sa.Column('name', sa.String(100), nullable=False, unique=True),
         sa.Column('display_name', sa.String(100), nullable=False),
@@ -124,29 +142,46 @@ def upgrade() -> None:
         sa.Column('is_available_condition', sa.JSON(), server_default='{}'),
         sa.Column('rate_limit_per_minute', sa.Integer(), nullable=True),
         sa.Column('metadata', sa.JSON(), server_default='{}'),
-        sa.Column('is_active', sa.Boolean(), server_default=sa.text('1')),
+        sa.Column('is_active', sa.Boolean(), server_default=sa.true()),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
     )
 
     # === 创建 agent_tools 表 ===
-    op.create_table(
-        'agent_tools',
+    # tool_id 类型自适应（2026-08-30）：旧库 tools.id 为 varchar（历史字符串主键，
+    # 如 'image-generation'），UUID FK 因类型不匹配无法创建
+    tools_id_type = 'uuid'
+    if 'tools' in existing_tables:
+        for _col in inspector.get_columns('tools'):
+            if _col['name'] == 'id' and not str(_col['type']).upper().startswith('UUID'):
+                tools_id_type = 'string'
+                break
+
+    if 'agent_tools' not in existing_tables:
+        _tool_id_col = (
+            sa.Column('tool_id', sa.String(64), nullable=False)
+            if tools_id_type == 'string'
+            else sa.Column('tool_id', sa.Uuid(), sa.ForeignKey('tools.id'), nullable=False)
+        )
+        op.create_table(
+            'agent_tools',
         sa.Column('id', sa.Uuid(), primary_key=True),
         sa.Column('agent_id', sa.Uuid(), sa.ForeignKey('agents.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('tool_id', sa.Uuid(), sa.ForeignKey('tools.id'), nullable=False),
+        _tool_id_col,
         sa.Column('parameter_overrides', sa.JSON(), server_default='{}'),
         sa.Column('priority', sa.Integer(), server_default='0'),
-        sa.Column('is_enabled', sa.Boolean(), server_default=sa.text('1')),
+        sa.Column('is_enabled', sa.Boolean(), server_default=sa.true()),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
         sa.UniqueConstraint('agent_id', 'tool_id'),
     )
-    op.create_index('ix_agent_tools_agent_id', 'agent_tools', ['agent_id'])
+    if 'ix_agent_tools_agent_id' not in existing_indexes:
+        op.create_index('ix_agent_tools_agent_id', 'agent_tools', ['agent_id'])
 
     # === 创建 session_checkpoints 表 ===
-    op.create_table(
-        'session_checkpoints',
+    if 'session_checkpoints' not in existing_tables:
+        op.create_table(
+            'session_checkpoints',
         sa.Column('id', sa.Uuid(), primary_key=True),
         sa.Column('conversation_id', sa.Uuid(), sa.ForeignKey('conversations.id', ondelete='CASCADE'), nullable=False),
         sa.Column('step_index', sa.Integer(), nullable=False),
@@ -155,11 +190,13 @@ def upgrade() -> None:
         sa.Column('agent_state', sa.JSON(), server_default='{}'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
     )
-    op.create_index('ix_checkpoints_conv_step', 'session_checkpoints', ['conversation_id', 'step_index'])
+    if 'ix_checkpoints_conv_step' not in existing_indexes:
+        op.create_index('ix_checkpoints_conv_step', 'session_checkpoints', ['conversation_id', 'step_index'])
 
     # === 创建 agent_memories 表 ===
-    op.create_table(
-        'agent_memories',
+    if 'agent_memories' not in existing_tables:
+        op.create_table(
+            'agent_memories',
         sa.Column('id', sa.Uuid(), primary_key=True),
         sa.Column('agent_id', sa.Uuid(), sa.ForeignKey('agents.id', ondelete='CASCADE'), nullable=False),
         sa.Column('user_id', sa.Uuid(), nullable=True),
@@ -174,11 +211,13 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
     )
-    op.create_index('ix_memories_agent_user_scope', 'agent_memories', ['agent_id', 'user_id', 'scope'])
+    if 'ix_memories_agent_user_scope' not in existing_indexes:
+        op.create_index('ix_memories_agent_user_scope', 'agent_memories', ['agent_id', 'user_id', 'scope'])
 
     # === 创建 agent_traces 表 ===
-    op.create_table(
-        'agent_traces',
+    if 'agent_traces' not in existing_tables:
+        op.create_table(
+            'agent_traces',
         sa.Column('id', sa.Uuid(), primary_key=True),
         sa.Column('conversation_id', sa.Uuid(), nullable=False),
         sa.Column('agent_id', sa.Uuid(), nullable=False),
@@ -194,12 +233,15 @@ def upgrade() -> None:
         sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
         sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index('ix_traces_agent_started', 'agent_traces', ['agent_id', 'started_at'])
-    op.create_index('ix_traces_user_started', 'agent_traces', ['user_id', 'started_at'])
+    if 'ix_traces_agent_started' not in existing_indexes:
+        op.create_index('ix_traces_agent_started', 'agent_traces', ['agent_id', 'started_at'])
+    if 'ix_traces_user_started' not in existing_indexes:
+        op.create_index('ix_traces_user_started', 'agent_traces', ['user_id', 'started_at'])
 
     # === 创建 trace_steps 表 ===
-    op.create_table(
-        'trace_steps',
+    if 'trace_steps' not in existing_tables:
+        op.create_table(
+            'trace_steps',
         sa.Column('id', sa.Uuid(), primary_key=True),
         sa.Column('trace_id', sa.Uuid(), sa.ForeignKey('agent_traces.id', ondelete='CASCADE'), nullable=False),
         sa.Column('step_index', sa.Integer(), nullable=False),
@@ -213,7 +255,8 @@ def upgrade() -> None:
         sa.Column('metadata', sa.JSON(), server_default='{}'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)')),
     )
-    op.create_index('ix_trace_steps_trace_id', 'trace_steps', ['trace_id'])
+    if 'ix_trace_steps_trace_id' not in existing_indexes:
+        op.create_index('ix_trace_steps_trace_id', 'trace_steps', ['trace_id'])
 
 
 def downgrade() -> None:
