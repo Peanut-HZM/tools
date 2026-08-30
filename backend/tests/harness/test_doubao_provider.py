@@ -299,3 +299,33 @@ def test_doubao_401_still_fatal():
         raise AssertionError("应抛出 ImageGenError")
     except ImageGenError as e:
         assert e.retryable is False
+
+
+# ===========================================================================
+# P3 图生页面修复：ark 真实响应形状（data 为 list）与旧内部网关形状（data.images）兼容
+# ===========================================================================
+
+
+def test_extract_image_urls_data_ark_list_shape():
+    """ark/OpenAI 形状：{"data": [{"url": ...}]}"""
+    from app.services.harness.image_provider.doubao import DoubaoSeedProvider
+
+    urls = DoubaoSeedProvider._extract_image_urls_data({"data": [{"url": "https://x/a.png"}]})
+    assert urls == ["https://x/a.png"]
+
+
+def test_extract_image_urls_data_legacy_dict_shape():
+    """旧内部网关形状：{"data": {"images": [{"url": ...}]}}"""
+    from app.services.harness.image_provider.doubao import DoubaoSeedProvider
+
+    urls = DoubaoSeedProvider._extract_image_urls_data(
+        {"data": {"images": [{"url": "https://x/b.png"}]}}
+    )
+    assert urls == ["https://x/b.png"]
+
+
+def test_extract_image_urls_data_empty():
+    from app.services.harness.image_provider.doubao import DoubaoSeedProvider
+
+    assert DoubaoSeedProvider._extract_image_urls_data({}) == []
+    assert DoubaoSeedProvider._extract_image_urls_data({"data": []}) == []
