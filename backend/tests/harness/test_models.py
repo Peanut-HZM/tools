@@ -59,7 +59,7 @@ def test_mcp_server_command_json_column():
     assert '"command"' in server.command_json
 
 
-def test_agent_procedural_memory_model():
+def test_agent_procedural_memory_model(test_db):
     """P2-②: agent_procedural_memory 表应可存取技能记录"""
     from app.models.agent_procedural_memory import AgentProceduralMemory
 
