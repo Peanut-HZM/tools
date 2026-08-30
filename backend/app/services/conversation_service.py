@@ -20,19 +20,42 @@ class ConversationService:
         self.db = db
 
     def create_conversation(
-        self, user_id: str, title: Optional[str] = None
+        self, user_id: str, title: Optional[str] = None,
+        agent_id: Optional[str] = None,
     ) -> Conversation:
-        """创建新会话"""
-        logger.info(f"Creating new conversation for user_id={user_id}, title={title}")
+        """创建新会话
+
+        Args:
+            agent_id: 绑定的 Agent（可选）。conversations.agent_id 为 NOT NULL
+                （harness phase1 迁移），未提供时回落到默认 Agent。
+        """
+        logger.info(f"Creating new conversation for user_id={user_id}, title={title}, agent_id={agent_id}")
 
         if not title:
             title = "新会话"
+
+        resolved_agent_id = agent_id
+        if not resolved_agent_id:
+            from app.models.agent import Agent as AgentORM
+
+            default_agent = (
+                self.db.query(AgentORM)
+                .filter(AgentORM.is_default == True)  # noqa: E712
+                .first()
+            )
+            resolved_agent_id = str(default_agent.id) if default_agent else None
+        # UUID 列绑定要求 uuid.UUID 对象（sqlite 严格；PG 兼容）
+        if resolved_agent_id:
+            import uuid as _uuid
+
+            resolved_agent_id = _uuid.UUID(str(resolved_agent_id))
 
         conversation = Conversation(
             user_id=user_id,
             title=title,
             current_stage="requirement_clarification",
             version=1,
+            agent_id=resolved_agent_id,
         )
         self.db.add(conversation)
         self.db.commit()
