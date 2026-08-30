@@ -232,3 +232,31 @@ class TestGetMcpServerManager:
             manager1 = get_mcp_server_manager()
             manager2 = get_mcp_server_manager()
             assert manager1 is manager2
+
+
+@pytest.mark.asyncio
+async def test_get_or_create_client_per_transport(test_db):
+    """P2-①c: manager 按 server.transport 构造对应 client"""
+    import json as _json
+
+    from app.models.mcp_server import McpServer
+    from app.services.harness.mcp_client import McpClient
+    from app.services.harness.mcp_server_manager import McpServerManager
+
+    server = McpServer(
+        name="stdio-srv",
+        server_url="npx demo",
+        transport="stdio",
+        command_json=_json.dumps({"command": "npx", "args": ["demo"]}),
+    )
+    test_db.add(server)
+    test_db.commit()
+    test_db.refresh(server)
+
+    manager = McpServerManager(tool_registry=object())
+    client = manager._get_or_create_client(server)
+    assert isinstance(client, McpClient)
+    assert client.transport == "stdio"
+    assert client._server_params.command == "npx"
+    # 缓存命中：第二次拿同一实例
+    assert manager._get_or_create_client(server) is client

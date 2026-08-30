@@ -129,9 +129,21 @@ class McpServerManager:
         if server.headers_json:
             headers = json.loads(server.headers_json)
 
+        # P2-①c: stdio transport 的启动配置（sse / http 时为 None）
+        command = None
+        if server.command_json:
+            try:
+                command = json.loads(server.command_json)
+            except json.JSONDecodeError:
+                raise McpConnectionError(
+                    f"Invalid command_json for server {server.name}"
+                )
+
         allow_private = _is_allow_private_hosts_enabled()
         client = McpClient(
             server_url=server.server_url,
+            transport=server.transport,
+            command=command,
             headers=headers,
             timeout=server.timeout_seconds,
             allow_private_hosts=allow_private,
