@@ -73,3 +73,19 @@ chat_stream `generate_stream` 增加两个分支（现有 chunk/done/error 行�
 ## 4. 不做清单
 
 图生图/局部重绘/上传编辑（工具已支持 operation，但页面 v1 只做文生图多轮流程）；图片历史画廊（独立 tab，候选续作）；SSE 断线重连（沿用现有简单实现）。
+
+---
+
+## 9. v2 迭代（同日用户反馈）
+
+1. **图片转存文件服务器**：生成结果 URL 是 ark 签名地址（24h 过期），必须落到自家 OSS。
+   根因：provider 的 `_download_and_upload` 早已实现（`image-gen/{uuid}.png`），但
+   `chat_stream` 注入 `oss_service=None` 且 `OssService` 缺 provider 调用的 `upload_bytes`
+   方法 → 永远走降级。修复：补 `upload_bytes`（BytesIO 包装 upload_file，
+   uploaded_by="image-gen" 与历史记录一致）+ chat_stream 注入单例 `oss_service`。
+   失败仍降级原始 URL（不阻塞出图）。
+2. **页面布局**：去掉窄栏（max-w-3xl 居中导致大面积空白）→ 全宽布局、消息区加宽、
+   图片网格放大。
+3. **链接体验**：助手文本中的原始签名 URL 不再裸露（渲染层折叠为"图片链接"徽章）；
+   图片卡片点击 → 弹框预览（大图 + 下载 + 关闭）；下载 = fetch blob → 本地保存
+   （跨域失败时回退新标签打开）。
