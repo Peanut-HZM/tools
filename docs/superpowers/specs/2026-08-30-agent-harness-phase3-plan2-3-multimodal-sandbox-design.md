@@ -2,7 +2,7 @@
 
 **日期**：2026-08-30
 **Phase**：3-Plan-2-3（对应原 P2 列表第 7 项 "多模态工具（file_read、file_write、code_execute 沙箱）"）
-**状态**：设计完成（自主决策模式）
+**状态**：已实现（2026-08-30；验证：pytest tests/harness 704 passed / 前端 build + tsc 通过）
 **对应规划 ID**：Phase 3 设计文档 §11.4 P2 列表第 7 项
 
 ---
