@@ -95,15 +95,23 @@ class TestRefineImagePrompt:
         assert result == original
 
     @pytest.mark.asyncio
-    async def test_already_english_passthrough(self):
-        """已经是英文的 prompt 直接返回（不调 LLM）"""
+    async def test_english_also_enriched(self):
+        """v4: 英文输入同样走 LLM 丰富（此前英文直接跳过导致简短描述不被扩写）"""
+        enriched = (
+            "a beautiful sunset over the ocean, golden hour light, dramatic clouds, "
+            "wide shot, warm color palette, highly detailed, professional photography"
+        )
         mock_gateway = AsyncMock()
+        mock_gateway.generate.return_value = {
+            "content": enriched,
+            "usage": {"total_tokens": 60},
+        }
         ctx = _make_ctx(llm_gateway=mock_gateway)
 
         result = await refine_image_prompt("a beautiful sunset over the ocean", ctx)
 
-        assert result == "a beautiful sunset over the ocean"
-        mock_gateway.generate.assert_not_called()
+        assert result == enriched
+        mock_gateway.generate.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_str_return_value(self):

@@ -27,13 +27,25 @@ _INSTRUCTION_MARKERS = re.compile(
     re.IGNORECASE,
 )
 
-# 润色 system prompt
+# 润色 system prompt（v4：意图推断 + 结构化提示词工程）
 _REFINE_SYSTEM_PROMPT = (
-    "You are an expert image generation prompt engineer. "
-    "Convert the following Chinese description into a high-quality English prompt "
-    "for image generation. Keep key details, enhance composition descriptions, "
-    "add quality modifiers (e.g., 'high quality', 'detailed', 'professional photography'). "
-    "Return ONLY the English prompt, no explanation."
+    "You are an expert text-to-image prompt engineer. "
+    "Rewrite the user's description into ONE rich, vivid English prompt that a "
+    "text-to-image model can render accurately.\n"
+    "Process:\n"
+    "1. Infer the user's intent: likely use case, mood, and what they actually want to see.\n"
+    "2. Expand into a structured scene covering (only where they fit): "
+    "main subject with concrete visual details; environment/background; "
+    "composition & camera (close-up / wide shot / angle / aspect impression); "
+    "lighting & atmosphere; art style & medium; color palette & mood; "
+    "quality modifiers (e.g. 'highly detailed', 'professional photography').\n"
+    "3. HARD RULES:\n"
+    "- Keep every explicit user requirement EXACTLY as stated (style, aspect ratio, "
+    "count, text to render, must-have objects). Never replace or drop them.\n"
+    "- Do NOT add content the user did not ask for that changes the meaning "
+    "(no extra people/objects/text).\n"
+    "- One paragraph, 60-120 words, comma-separated visual phrases, no explanations.\n"
+    "Return ONLY the English prompt."
 )
 
 # 润色超时（秒）
@@ -130,9 +142,8 @@ async def refine_image_prompt(prompt: str, ctx) -> str:
 
     stripped = prompt.strip()
 
-    # 已经基本是英文 → 直接返回，不调 LLM
-    if _is_mostly_english(stripped):
-        return stripped
+    # v4: 英文输入同样走丰富（此前英文直接跳过导致简短描述不被扩写）。
+    # _is_mostly_english 仅用于日志区分语言路径。
 
     # 无 LLM gateway → 降级返回原始
     gateway = getattr(ctx, "llm_gateway", None)
@@ -142,6 +153,10 @@ async def refine_image_prompt(prompt: str, ctx) -> str:
 
     try:
         # 输入净化（防 prompt injection），并用 fence delimiter 隔离用户输入
+        logger.info(
+            "Prompt 润色开始 (%s 输入)", 
+            "english" if _is_mostly_english(stripped) else "chinese",
+        )
         sanitized_input = _sanitize_input_prompt(stripped)
         messages = [
             {
@@ -161,7 +176,7 @@ async def refine_image_prompt(prompt: str, ctx) -> str:
                 category="text",
                 messages=messages,
                 temperature=0.7,
-                max_tokens=300,
+                max_tokens=500,
             ),
             timeout=_REFINE_TIMEOUT,
         )
