@@ -1,7 +1,18 @@
 # 图像生成页面修复（多轮对话式图生）设计文档
 
 **日期**：2026-08-30
-**状态**：设计完成
+**状态**：已实现并完成验收（2026-08-30）
+
+验收记录：
+1. 后端自动化：pytest tests/harness 762 passed（含图生页面 10 个新测试）
+2. 真实生成：scripts/acceptance_image_gen.py → ACCEPTANCE PASS（HTTP 200 image/jpeg）
+3. 浏览器 e2e（agent-browser，真实登录用户路径）：
+   - 工作区打开图像生成页（不再出现"未知工具"）✓
+   - 第一轮模糊请求 → 助手追问主题/风格/画幅，未生成 ✓
+   - 第二轮补足信息 → 复述意图 + 真实生成 → 页面显示图片（img.complete=true, 2048px）✓
+   - 刷新后图片仍在（附件持久化）✓
+
+过程中修复的环境/链路问题：开发库从未执行 harness 迁移（phase1 迁移本身含 PG 不兼容的布尔默认值与无效索引，已幂等化修复）；pgvector 不可用时 embedding 列降级 TEXT；LLM 配额需 admin 发放；llm bridge 丢失 provider 原生 tool_calls（kimi 空回复根因）；工具 schema 归一化为 OpenAI 现代格式（DashScope 400 根因）；豆包 provider 404 可转移 + ark list 形状解析；conversations.agent_id NOT NULL 下创建会话 500；doubao-seedream 模型端点名失效（已更新为 doubao-seedream-4-0-250828）。
 **性质**：缺陷修复 + 功能补全（/goal：页面完全不可用；要求多轮对话探究意图后再真实生成图片，并完成验收）
 
 ---
