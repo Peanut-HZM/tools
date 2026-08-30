@@ -51,6 +51,9 @@ class Agent(Base):
     # P2-②: 程序性记忆（技能系统）开关
     memory_procedural_enabled = Column(Boolean, default=False)
 
+    # P2-③: 多模态沙箱（文件/代码执行工具）开关
+    sandbox_enabled = Column(Boolean, default=False)
+
     # 运行约束
     max_steps_per_turn = Column(Integer, default=20)
     tool_timeout_seconds = Column(Integer, default=60)

@@ -79,3 +79,15 @@ def test_agent_procedural_memory_model(test_db):
     assert loaded.importance == 0.5
     assert loaded.use_count == 0
     assert loaded.is_enabled is True
+
+
+def test_agent_sandbox_enabled_default(test_db):
+    """P2-③: Agent.sandbox_enabled 默认 False"""
+    from app.models.agent import Agent
+
+    assert hasattr(Agent, "sandbox_enabled"), "Agent 缺少 sandbox_enabled 列"
+    agent = Agent(id=_uuid.uuid4(), name="s", description="", system_prompt="")
+    test_db.add(agent)
+    test_db.commit()
+    loaded = test_db.query(Agent).filter_by(name="s").first()
+    assert bool(loaded.sandbox_enabled) is False
