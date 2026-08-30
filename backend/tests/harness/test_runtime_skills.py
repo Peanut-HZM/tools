@@ -36,6 +36,7 @@ async def test_skill_block_injected(test_db):
     aid, uid = uuid.uuid4(), uuid.uuid4()
     await SkillService(test_db).save(aid, uid, "deploy", "部署前检查", "步骤")
     rt = _runtime(_agent(True), test_db)
+    rt._current_agent.id = aid  # 与存技能的 agent_id 对齐（隔离校验）
     rt.ctx.user_id = str(uid)
     block = await rt._build_skill_block()
     assert "<procedural_memory>" in block
@@ -64,6 +65,7 @@ async def test_skill_block_in_messages(test_db):
     await SkillService(test_db).save(aid, uid, "deploy", "部署前检查", "步骤")
 
     rt = _runtime(_agent(True), test_db)
+    rt._current_agent.id = aid  # 与存技能的 agent_id 对齐（隔离校验）
     rt.ctx.user_id = str(uid)
     rt._cached_skill_block = await rt._build_skill_block()
     # session.messages 为空列表时也要能组装
