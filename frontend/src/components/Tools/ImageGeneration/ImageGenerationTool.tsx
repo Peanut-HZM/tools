@@ -138,7 +138,9 @@ const ImageGenerationTool: React.FC = () => {
             const history = await conversationApi.getMessages(saved, 50);
             if (cancelled) return;
             setConversationId(saved);
-            setItems(history.map(toChatItem).filter((x): x is ChatItem => x !== null));
+            // 后端按 sent_at DESC 返回（最新在前），需反转为对话时间正序渲染
+            const chronological = [...history].reverse();
+            setItems(chronological.map(toChatItem).filter((x): x is ChatItem => x !== null));
           } catch {
             // 会话已失效：清掉，等首条消息时新建
             localStorage.removeItem(CONV_STORAGE_KEY);
