@@ -3,6 +3,7 @@ Agent管理路由
 用于管理AI Agent配置
 """
 import logging
+from datetime import datetime
 import uuid as _uuid_mod
 from typing import List, Optional
 
@@ -798,4 +799,80 @@ def _eval_run_to_dict(run) -> dict:
         "error": run.error,
         "created_at": run.created_at.isoformat() if run.created_at else None,
         "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+    }
+
+
+# ===========================================================================
+# P3-⑫: Agent 性能仪表盘
+# ===========================================================================
+
+
+@router.get("/{agent_id}/dashboard")
+async def get_agent_dashboard(
+    agent_id: _uuid_mod.UUID,
+    db: Session = Depends(get_db),
+    _admin: dict = Depends(require_admin),
+):
+    """性能仪表盘聚合（基础统计 + 成功率 + 最近 14 天趋势）"""
+    from datetime import timedelta
+
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent不存在")
+
+    # 基础统计（复用既有 harness stats 逻辑）
+    basics = await get_agent_harness_stats(agent_id=agent_id, db=db, _admin=_admin)
+
+    # status 分布 + 成功率
+    status_rows = (
+        db.query(Trace.status, sa_func.count(Trace.status))
+        .filter(Trace.agent_id == agent_id)
+        .group_by(Trace.status)
+        .all()
+    )
+    status_breakdown = {r[0]: r[1] for r in status_rows}
+    total = sum(status_breakdown.values())
+    success_rate = (
+        status_breakdown.get("success", 0) / total if total > 0 else None
+    )
+
+    # 平均耗时
+    trace_count = basics.get("trace_count", 0)
+    total_duration_ms = basics.get("total_duration_ms", 0)
+    avg_duration_ms = (
+        total_duration_ms / trace_count if trace_count > 0 else None
+    )
+
+    # 最近 14 天趋势（Python 端分组，规避 SQLite/PG 日期函数差异；上限防御）
+    since = datetime.utcnow() - timedelta(days=13)
+    recent = (
+        db.query(Trace.started_at, Trace.total_tokens)
+        .filter(Trace.agent_id == agent_id)
+        .filter(Trace.started_at >= since)
+        .limit(5000)
+        .all()
+    )
+    today = datetime.utcnow().date()
+    buckets = {}
+    for i in range(14):
+        buckets[(today - timedelta(days=13 - i)).strftime("%Y-%m-%d")] = {
+            "trace_count": 0, "tokens": 0
+        }
+    for created_at, tokens in recent:
+        if created_at is None:
+            continue
+        key = created_at.strftime("%Y-%m-%d")
+        if key in buckets:
+            buckets[key]["trace_count"] += 1
+            buckets[key]["tokens"] += int(tokens or 0)
+
+    return {
+        "agent_id": agent_id,
+        "basics": basics,
+        "status_breakdown": status_breakdown,
+        "success_rate": success_rate,
+        "avg_duration_ms": avg_duration_ms,
+        "daily_trend": [
+            {"date": d, **buckets[d]} for d in sorted(buckets.keys())
+        ],
     }
