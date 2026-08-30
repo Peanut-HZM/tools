@@ -253,8 +253,9 @@ class DoubaoSeedProvider(ImageModelProvider):
     def _check_response(self, resp: httpx.Response) -> None:
         """检查 HTTP 响应状态码，抛出分类错误
 
-        retryable: 5xx / 429 (rate limit)
-        fatal: 4xx (except 429)
+        retryable: 5xx / 429 (rate limit) / 404（模型或端点不存在，
+            属模型级配置问题，应故障转移到下一模型）
+        fatal: 其余 4xx（401 鉴权 / 400 参数 / 403 权限等）
 
         注意：异常消息中只包含 status_code，不截取 response body，
         避免上游在错误响应中 echo 敏感信息。详细 body 仅写入 logger。
@@ -263,7 +264,7 @@ class DoubaoSeedProvider(ImageModelProvider):
             return
         # 将详细响应写入日志，便于排查，但不暴露给调用方
         logger.warning("豆包 Seed 返回错误 HTTP %s: %s", resp.status_code, resp.text[:200])
-        if resp.status_code >= 500 or resp.status_code == 429:
+        if resp.status_code >= 500 or resp.status_code in (429, 404):
             raise ImageGenError(
                 f"豆包 Seed HTTP {resp.status_code}",
                 retryable=True,

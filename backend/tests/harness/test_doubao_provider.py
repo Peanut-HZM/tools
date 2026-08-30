@@ -262,3 +262,40 @@ class TestDoubaoSeedProvider:
         assert DoubaoSeedProvider._parse_size("") == (1024, 1024)
         assert DoubaoSeedProvider._parse_size(None) == (1024, 1024)
         assert DoubaoSeedProvider._parse_size("1024*1024") == (1024, 1024)
+
+
+# ===========================================================================
+# P3 图生页面修复：404（端点/模型不存在）应可故障转移
+# ===========================================================================
+
+
+def test_doubao_404_is_retryable():
+    """HTTP 404（模型/端点不存在）是模型级配置问题，应 retryable 以触发 fallback"""
+    import httpx
+
+    from app.services.harness.image_provider.base import ImageGenError
+    from app.services.harness.image_provider.doubao import DoubaoSeedProvider
+
+    provider = DoubaoSeedProvider(base_url="https://ark.example.com/api/v3", api_key="k")
+    resp = httpx.Response(404, text='{"error":{"code":"InvalidEndpointOrModel.NotFound"}}')
+    try:
+        provider._check_response(resp)
+        raise AssertionError("应抛出 ImageGenError")
+    except ImageGenError as e:
+        assert e.retryable is True, "404 应可故障转移"
+
+
+def test_doubao_401_still_fatal():
+    """401 鉴权失败仍是 fatal（换模型也无法解决）"""
+    import httpx
+
+    from app.services.harness.image_provider.base import ImageGenError
+    from app.services.harness.image_provider.doubao import DoubaoSeedProvider
+
+    provider = DoubaoSeedProvider(base_url="https://ark.example.com/api/v3", api_key="k")
+    resp = httpx.Response(401, text='{"error":{"code":"AuthenticationError"}}')
+    try:
+        provider._check_response(resp)
+        raise AssertionError("应抛出 ImageGenError")
+    except ImageGenError as e:
+        assert e.retryable is False
