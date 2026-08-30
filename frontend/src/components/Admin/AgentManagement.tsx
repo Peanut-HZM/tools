@@ -34,6 +34,7 @@ export default function AgentManagement() {
   // Harness 扩展字段
   const [memoryLongTermEnabled, setMemoryLongTermEnabled] = useState(false);
   const [memoryProceduralEnabled, setMemoryProceduralEnabled] = useState(false);
+  const [sandboxEnabled, setSandboxEnabled] = useState(false);
   const [memoryLongTermConfig, setMemoryLongTermConfig] = useState<Record<string, any>>(
     { ...DEFAULT_EMBEDDING_CONFIG },
   );
@@ -83,6 +84,7 @@ export default function AgentManagement() {
       // 保存 harness 扩展字段
       const harnessData: AgentHarnessUpdate = {
         memory_procedural_enabled: memoryProceduralEnabled,
+        sandbox_enabled: sandboxEnabled,
         memory_long_term_enabled: memoryLongTermEnabled,
         memory_long_term_config: memoryLongTermEnabled
           ? { ...memoryLongTermConfig }
@@ -136,6 +138,7 @@ export default function AgentManagement() {
       const harness = await agentApi.getAgentHarness(agent.id);
       setMemoryLongTermEnabled(!!harness.memory_long_term_enabled);
       setMemoryProceduralEnabled(!!harness.memory_procedural_enabled);
+      setSandboxEnabled(!!harness.sandbox_enabled);
       setMemoryLongTermConfig({
         ...DEFAULT_EMBEDDING_CONFIG,
         ...(harness.memory_long_term_config || {}),
@@ -261,6 +264,24 @@ export default function AgentManagement() {
               </label>
               <p className="text-xs text-ink-faint mt-1 ml-7">
                 开启后 Agent 可沉淀/复用命名操作流程（skill_save / skill_read）
+              </p>
+            </div>
+
+            {/* 代码沙箱开关 */}
+            <div className="border-t border-border pt-4 mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sandboxEnabled}
+                  onChange={(e) => setSandboxEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                />
+                <span className="text-sm font-medium text-ink-muted">
+                  启用代码沙箱（文件读写 + 代码执行）
+                </span>
+              </label>
+              <p className="text-xs text-ink-faint mt-1 ml-7">
+                开启后 Agent 可在工作区内读写文件并执行 Python（进程级隔离，无网络/文件系统强隔离）
               </p>
             </div>
 
