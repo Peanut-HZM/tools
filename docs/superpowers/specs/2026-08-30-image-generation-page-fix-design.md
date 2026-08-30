@@ -76,7 +76,16 @@ chat_stream `generate_stream` 增加两个分支（现有 chunk/done/error 行�
 
 ---
 
-## 9. v2 迭代（同日用户反馈）
+## 9. v2 迭代（同日用户反馈）——已实现并验收
+
+验收记录（2026-08-30）：
+1. OSS 转存：新生成图片 URL 为 `https://minio.peanuthzm.com.cn/tools-files/image-gen/{uuid}.png`
+   （稳定地址，HTTP 200 image/png 2.4MB 公开可访问）；后台"OSS 文件管理"可见记录
+2. 布局：全宽布局（气泡按角色靠边，消息区占满工作区宽度）
+3. 链接体验：页面文本中 http 链接数为 0（旧消息的 ark 长 URL 也被折叠为"🔗 图片链接"）；
+   图片点击 → 弹框大图预览 + "下载图片"按钮；下载管线插桩验证
+   （fetch 200 → blob 1,986,815 字节 → objectURL → a[download] 触发）
+4. 回归：pytest tests/harness 766 passed；前端 build + tsc 通过
 
 1. **图片转存文件服务器**：生成结果 URL 是 ark 签名地址（24h 过期），必须落到自家 OSS。
    根因：provider 的 `_download_and_upload` 早已实现（`image-gen/{uuid}.png`），但
