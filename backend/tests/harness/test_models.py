@@ -91,3 +91,28 @@ def test_agent_sandbox_enabled_default(test_db):
     test_db.commit()
     loaded = test_db.query(Agent).filter_by(name="s").first()
     assert bool(loaded.sandbox_enabled) is False
+
+
+def test_agent_eval_models(test_db):
+    """P3-⑨: 评估 run/case 表可存取且默认值正确"""
+    from app.models.agent_eval import AgentEvalRun, AgentEvalCase
+
+    run = AgentEvalRun(
+        agent_id=_uuid.uuid4(),
+        user_id=_uuid.uuid4(),
+        name="首次评测",
+    )
+    test_db.add(run)
+    test_db.commit()
+    test_db.refresh(run)
+
+    case = AgentEvalCase(run_id=run.id, input="hi", expected="greeting")
+    test_db.add(case)
+    test_db.commit()
+
+    loaded_run = test_db.query(AgentEvalRun).filter_by(name="首次评测").first()
+    assert loaded_run.status == "pending"
+    assert loaded_run.total_cases == 0
+    loaded_case = test_db.query(AgentEvalCase).filter_by(run_id=run.id).first()
+    assert loaded_case.score == 0.0
+    assert loaded_case.status == "pending"
