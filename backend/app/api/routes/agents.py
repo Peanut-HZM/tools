@@ -677,3 +677,125 @@ def import_agent_bundle(
         },
         "warnings": warnings,
     }
+
+
+# ===========================================================================
+# P3-⑨: Agent 评估框架
+# ===========================================================================
+
+
+class EvalCaseSchema(BaseModel):
+    """单条评测用例"""
+    input: str = Field(..., min_length=1)
+    expected: str = Field(..., min_length=1)
+
+
+class EvalRunCreate(BaseModel):
+    """创建评估批次请求"""
+    name: str = Field(..., min_length=1, max_length=200)
+    cases: List[EvalCaseSchema] = Field(..., min_length=1)
+    judge_threshold: float = Field(default=0.7, ge=0.0, le=1.0)
+
+
+@router.post("/{agent_id}/evals", status_code=201)
+async def create_agent_eval(
+    agent_id: _uuid_mod.UUID,
+    data: EvalRunCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """创建并同步执行一次评测（admin；回答生成 + LLM Judge 打分）"""
+    from app.services.harness.eval_service import EvalService
+    from app.services.harness.llm_bridge import LLMFunctionBridge
+    from app.services.llm.ordered_gateway import OrderedLLMGateway
+
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent不存在")
+
+    bridge = LLMFunctionBridge(OrderedLLMGateway(db))
+    svc = EvalService(db, bridge)
+    run = await svc.run_eval(
+        agent,
+        _uuid_mod.UUID(str(current_user["id"])),
+        data.name.strip(),
+        [c.model_dump() for c in data.cases],
+        judge_threshold=data.judge_threshold,
+    )
+    logger.info("评测完成: agent=%s run=%s passed=%d/%d",
+                agent_id, run.id, run.passed_cases, run.total_cases)
+    return _eval_run_to_dict(run)
+
+
+@router.get("/{agent_id}/evals")
+def list_agent_evals(
+    agent_id: _uuid_mod.UUID,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """评测批次列表（按创建时间倒序）"""
+    from app.models.agent_eval import AgentEvalRun
+
+    runs = (
+        db.query(AgentEvalRun)
+        .filter(AgentEvalRun.agent_id == agent_id)
+        .order_by(AgentEvalRun.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return {"records": [_eval_run_to_dict(r) for r in runs], "count": len(runs)}
+
+
+@router.get("/{agent_id}/evals/{run_id}")
+def get_agent_eval_detail(
+    agent_id: _uuid_mod.UUID,
+    run_id: _uuid_mod.UUID,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """评测批次详情（含 case 明细）"""
+    from app.models.agent_eval import AgentEvalRun, AgentEvalCase
+
+    run = db.query(AgentEvalRun).filter(
+        AgentEvalRun.id == run_id, AgentEvalRun.agent_id == agent_id
+    ).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="评测批次不存在")
+    cases = (
+        db.query(AgentEvalCase)
+        .filter(AgentEvalCase.run_id == run.id)
+        .order_by(AgentEvalCase.created_at.asc())
+        .all()
+    )
+    d = _eval_run_to_dict(run)
+    d["cases"] = [
+        {
+            "id": str(c.id),
+            "input": c.input,
+            "expected": c.expected,
+            "actual_output": c.actual_output,
+            "score": c.score,
+            "judge_reasoning": c.judge_reasoning,
+            "latency_ms": c.latency_ms,
+            "status": c.status,
+        }
+        for c in cases
+    ]
+    return d
+
+
+def _eval_run_to_dict(run) -> dict:
+    """评测 run 序列化"""
+    return {
+        "id": str(run.id),
+        "agent_id": str(run.agent_id),
+        "name": run.name,
+        "status": run.status,
+        "total_cases": run.total_cases,
+        "passed_cases": run.passed_cases,
+        "avg_score": run.avg_score,
+        "total_duration_ms": run.total_duration_ms,
+        "error": run.error,
+        "created_at": run.created_at.isoformat() if run.created_at else None,
+        "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+    }
