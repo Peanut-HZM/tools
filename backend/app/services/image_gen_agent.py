@@ -104,7 +104,8 @@ def _bind_image_models(db: DBSession, agent) -> None:
 
     ordered = sorted(models, key=_rank)
     agent.default_model_id = ordered[0].id
-    agent.fallback_model_ids = [m.id for m in ordered[1:]]
+    # JSONB 列需字符串（UUID 对象不可序列化）
+    agent.fallback_model_ids = [str(m.id) for m in ordered[1:]]
     logger.info(
         "图像模型已绑定: agent=%s default=%s fallbacks=%d",
         agent.id, ordered[0].model_name, len(ordered) - 1,
