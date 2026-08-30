@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { agentApi, Agent, AgentHarnessUpdate } from '../../services/agentApi';
 import EvalDialog from './EvalDialog';
+import DashboardDialog from './DashboardDialog';
 import { useToast } from '../../hooks/useToast';
 import { Badge } from '@/components/ui/Badge';
 
@@ -39,6 +40,7 @@ export default function AgentManagement() {
   const [sandboxEnabled, setSandboxEnabled] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
   const [evalAgent, setEvalAgent] = useState<Agent | null>(null);
+  const [dashAgent, setDashAgent] = useState<Agent | null>(null);
   const [memoryLongTermConfig, setMemoryLongTermConfig] = useState<Record<string, any>>(
     { ...DEFAULT_EMBEDDING_CONFIG },
   );
@@ -567,6 +569,12 @@ export default function AgentManagement() {
                         编辑
                       </button>
                       <button
+                        onClick={() => setDashAgent(agent)}
+                        className="px-3 py-1 text-sm bg-blue-500/20 text-blue-600 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors"
+                      >
+                        仪表盘
+                      </button>
+                      <button
                         onClick={() => setEvalAgent(agent)}
                         className="px-3 py-1 text-sm bg-accent/20 text-accent border border-accent/30 rounded hover:bg-accent/30 transition-colors"
                       >
@@ -591,6 +599,15 @@ export default function AgentManagement() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* P3-⑫: 仪表盘弹窗 */}
+      {dashAgent && (
+        <DashboardDialog
+          agentId={dashAgent.id}
+          agentName={dashAgent.name}
+          onClose={() => setDashAgent(null)}
+        />
       )}
 
       {/* P3-⑨: 评测弹窗 */}

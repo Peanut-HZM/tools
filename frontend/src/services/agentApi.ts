@@ -223,6 +223,14 @@ export const agentApi = {
     return response.data;
   },
 
+  // P3-⑫: 性能仪表盘聚合
+  getAgentDashboard: async (id: string): Promise<Record<string, unknown>> => {
+    const response = await axios.get(`${API_BASE_URL}/admin/agents/${id}/dashboard`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
   // P2-④: 导出 Agent bundle（JSON）
   exportAgentBundle: async (id: string): Promise<Record<string, unknown>> => {
     const response = await axios.post(
