@@ -43,6 +43,21 @@ from app.services.llm.ordered_gateway import OrderedLLMGateway
 
 logger = logging.getLogger(__name__)
 
+
+def _can_use_agent(agent, user: dict) -> bool:
+    """P2-④: 聊天入口的 Agent 可见性校验。
+
+    - public / unlisted：所有登录用户可用
+    - private：仅 owner 或 admin 可用（owner_id 为空时仅 admin）
+    """
+    visibility = getattr(agent, "visibility", "public") or "public"
+    if visibility != "private":
+        return True
+    owner_id = getattr(agent, "owner_id", None)
+    if owner_id is not None and str(owner_id) == str(user.get("id")):
+        return True
+    return user.get("role") == "admin"
+
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 
@@ -98,6 +113,10 @@ async def chat_stream(
         agent = agent_service.get_agent(agent_id)
     else:
         agent = agent_service.get_default_agent()
+
+    # P2-④: 可见性校验（private 仅 owner/admin 可用）
+    if agent and not _can_use_agent(agent, current_user):
+        raise HTTPException(status_code=403, detail="该 Agent 为私有，无权使用")
     if not agent:
         try:
             quota_svc.rollback(res_id)
