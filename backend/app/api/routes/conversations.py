@@ -2,7 +2,7 @@
 对话路由
 """
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -51,6 +51,8 @@ class ConversationCreate(BaseModel):
 
     title: Optional[str] = Field(None, max_length=200)
     initial_message: Optional[str] = Field(None, description="用户的第一条消息")
+    # 绑定的 Agent（可选；conversations.agent_id 为 NOT NULL，缺省回落默认 Agent）
+    agent_id: Optional[str] = Field(None, description="绑定的 Agent ID")
 
 
 class ConversationUpdate(BaseModel):
@@ -98,6 +100,8 @@ class MessageResponse(BaseModel):
     content: str
     message_type: str
     sent_at: str
+    # P3 图生页面：图片附件（生成的图片刷新后仍可显示）
+    attachments: Optional[List[Dict[str, Any]]] = None
 
     class Config:
         from_attributes = True
@@ -138,7 +142,7 @@ async def create_conversation(
     """创建新会话"""
     service = ConversationService(db)
     conversation = service.create_conversation(
-        user_id=current_user["id"], title=data.title
+        user_id=current_user["id"], title=data.title, agent_id=data.agent_id
     )
 
     # 如果有初始消息，创建消息
