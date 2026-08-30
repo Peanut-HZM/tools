@@ -108,7 +108,9 @@ class WorkspaceService:
                 with open(target, "a", encoding="utf-8", newline="") as f:
                     f.write(content)
             else:
-                target.write_text(content, encoding="utf-8")
+                # newline="" 禁止平台换行翻译，保证跨平台内容一致
+                with open(target, "w", encoding="utf-8", newline="") as f:
+                    f.write(content)
         except OSError as e:
             raise WorkspaceFileError(f"写入失败: {type(e).__name__}")
 
