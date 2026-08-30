@@ -49,6 +49,7 @@ class AgentRuntime:
         self.ctx = ctx
         self._step_count = 0
         self._cached_memory_block = ""
+        self._cached_skill_block = ""
 
     # ------------------------------------------------------------------
     # 主循环
@@ -87,6 +88,13 @@ class AgentRuntime:
         except Exception as e:
             logger.warning("记忆预取失败: %s", type(e).__name__)
             self._cached_memory_block = ""
+
+        # 2c. 预取技能索引（best-effort，不阻塞主循环）
+        try:
+            self._cached_skill_block = await self._build_skill_block()
+        except Exception as e:
+            logger.warning("技能索引预取失败: %s", type(e).__name__)
+            self._cached_skill_block = ""
 
         # 3. 创建 trace（best-effort）
         trace = self._safe_start_trace(user_message)
@@ -350,12 +358,46 @@ class AgentRuntime:
         if isinstance(memory_block, str) and memory_block:
             system_parts.append(memory_block)
 
+        # 技能索引注入（渐进披露：索引进 prompt，内容按需 skill_read）
+        skill_block = getattr(self, "_cached_skill_block", "")
+        if isinstance(skill_block, str) and skill_block:
+            system_parts.append(skill_block)
+
         if system_parts:
             system_content = "\n\n".join(system_parts)
             # 插入到消息列表最前面（system role）
             result_dicts.insert(0, {"role": "system", "content": system_content})
 
         return result_dicts
+
+    async def _build_skill_block(self) -> str:
+        """构建技能索引注入块（渐进披露：索引进 prompt，内容按需 skill_read）
+
+        - 未启用 / 无技能 / 查询失败 → 空串（不注入）
+        - 索引上限 20 条由 SkillService.list_enabled 控制
+        """
+        if not getattr(self._current_agent, "memory_procedural_enabled", False):
+            return ""
+        try:
+            agent_uuid = uuid.UUID(str(self._current_agent.id))
+            user_uuid = uuid.UUID(str(self.ctx.user_id))
+        except (ValueError, TypeError, AttributeError):
+            return ""
+
+        from app.services.harness.skill_service import SkillService
+
+        skills = await SkillService(self.ctx.db).list_enabled(agent_uuid, user_uuid)
+        if not skills:
+            return ""
+        lines = [
+            "<procedural_memory>",
+            "你可以使用以下技能（skill）。当任务匹配某技能的触发条件时，"
+            "调用 skill_read(name=...) 获取完整内容后遵循执行：",
+        ]
+        for s_ in skills:
+            lines.append(f"- {s_.name}: {s_.trigger} (使用次数: {s_.use_count})")
+        lines.append("</procedural_memory>")
+        return "\n".join(lines)
 
     async def _retrieve_long_term_memory(self, user_message: str) -> list:
         """检索长期记忆（best-effort，不阻塞主循环）
