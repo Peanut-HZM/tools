@@ -76,8 +76,7 @@ class DoubaoSeedProvider(ImageModelProvider):
         self._check_response(resp)
 
         data = resp.json()
-        images = data.get("data", {}).get("images", [])
-        raw_urls = [img.get("url", "") for img in images if img.get("url")]
+        raw_urls = self._extract_image_urls_data(data)
         if not raw_urls:
             raise ImageGenError("豆包 Seed 未返回图片 URL", retryable=True)
 
@@ -118,8 +117,7 @@ class DoubaoSeedProvider(ImageModelProvider):
         self._check_response(resp)
 
         data = resp.json()
-        images = data.get("data", {}).get("images", [])
-        raw_urls = [img.get("url", "") for img in images if img.get("url")]
+        raw_urls = self._extract_image_urls_data(data)
         if not raw_urls:
             raise ImageGenError("豆包 Seed 未返回图片 URL", retryable=True)
 
@@ -161,8 +159,7 @@ class DoubaoSeedProvider(ImageModelProvider):
         self._check_response(resp)
 
         data = resp.json()
-        images = data.get("data", {}).get("images", [])
-        raw_urls = [img.get("url", "") for img in images if img.get("url")]
+        raw_urls = self._extract_image_urls_data(data)
         if not raw_urls:
             raise ImageGenError("豆包 Seed 未返回图片 URL", retryable=True)
 
@@ -203,8 +200,7 @@ class DoubaoSeedProvider(ImageModelProvider):
         self._check_response(resp)
 
         data = resp.json()
-        images = data.get("data", {}).get("images", [])
-        raw_urls = [img.get("url", "") for img in images if img.get("url")]
+        raw_urls = self._extract_image_urls_data(data)
         if not raw_urls:
             raise ImageGenError("豆包 Seed 未返回图片 URL", retryable=True)
 
@@ -249,6 +245,25 @@ class DoubaoSeedProvider(ImageModelProvider):
         timeout = kwargs.pop("timeout", self._timeout)
         async with httpx.AsyncClient(timeout=timeout) as client:
             return await client.post(url, **kwargs)
+
+    @staticmethod
+    def _extract_image_urls_data(data: dict) -> list:
+        """从响应 JSON 提取图片 URL 列表
+
+        兼容两种形状：
+        - ark/OpenAI 真实 API：{"data": [{"url": ...}, ...]}
+        - 旧内部网关：{"data": {"images": [{"url": ...}, ...]}}
+        """
+        payload = data.get("data", [])
+        if isinstance(payload, dict):
+            payload = payload.get("images", [])
+        if not isinstance(payload, list):
+            return []
+        return [
+            img.get("url", "")
+            for img in payload
+            if isinstance(img, dict) and img.get("url")
+        ]
 
     def _check_response(self, resp: httpx.Response) -> None:
         """检查 HTTP 响应状态码，抛出分类错误

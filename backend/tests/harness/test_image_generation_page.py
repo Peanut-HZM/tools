@@ -311,3 +311,55 @@ async def test_chat_stream_sets_ctx_agent(env):
         app.dependency_overrides.clear()
 
     assert captured["ctx"].agent is captured["agent"], "ctx.agent 未绑定"
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_prefers_conversation_agent(env):
+    """请求未指定 agent_id 时，应使用会话绑定的 Agent（而非默认）"""
+    from app.main import app
+    from app.api.dependencies import get_db, get_current_user
+    from app.models.agent import Agent
+    from app.models.conversation import Conversation
+    from unittest.mock import patch
+
+    bound = Agent(name="bound-agent", description="", system_prompt="BOUND")
+    env.add(bound)
+    env.commit()
+    conv = Conversation(user_id=USER_ID, title="ca", agent_id=bound.id)
+    env.add(conv)
+    env.commit()
+    env.refresh(conv)
+
+    captured = {}
+
+    class FakeRT:
+        def __init__(self, agent_arg, *a, **kw):
+            captured["agent"] = agent_arg
+
+        async def run(self, user_message):
+            from app.services.harness.events import Event
+
+            yield Event.done("ok", usage={"total_tokens": 1})
+
+    def _override_db():
+        yield env
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": USER_ID}
+    try:
+        with patch("app.api.routes.chat_stream.AgentRuntime", FakeRT), patch(
+            "app.api.routes.chat_stream.LLMQuotaService"
+        ) as mq:
+            qi = MagicMock()
+            qi.check_and_reserve.return_value = "r"
+            mq.return_value = qi
+            client = TestClient(app)
+            resp = client.post(
+                f"/api/v1/conversations/{conv.id}/chat/stream",
+                json={"content": "hi"},  # 不带 agent_id
+            )
+            assert resp.status_code == 200, resp.text
+    finally:
+        app.dependency_overrides.clear()
+
+    assert str(captured["agent"].id) == str(bound.id)
