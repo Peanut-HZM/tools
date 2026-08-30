@@ -70,6 +70,7 @@ export interface AgentHarnessUpdate {
   memory_short_term_window?: number;
   memory_long_term_enabled?: boolean;
   memory_long_term_config?: Record<string, any>;
+  memory_procedural_enabled?: boolean;
   max_steps_per_turn?: number;
   tool_timeout_seconds?: number;
   error_strategy?: 'stop' | 'retry' | 'skip' | 'fallback_message';
@@ -100,6 +101,7 @@ export interface AgentHarnessView {
   memory_short_term_window?: number;
   memory_long_term_enabled: boolean;
   memory_long_term_config: Record<string, any>;
+  memory_procedural_enabled?: boolean;
   max_steps_per_turn?: number;
   tool_timeout_seconds?: number;
   error_strategy?: string;

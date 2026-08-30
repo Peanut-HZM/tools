@@ -1,4 +1,4 @@
-import { BarChart3, FileText, FileDown, Brain, Activity, Clock } from 'lucide-react';
+import { BarChart3, FileText, FileDown, Brain, Activity, Clock, Zap } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import ChatInterface from '../ProductManagerAgent/ChatInterface';
 import PRDPreview from '../ProductManagerAgent/PRDPreview';
 import ExportDialog from '../ProductManagerAgent/ExportDialog';
 import { MemoryViewer } from '../Harness/MemoryViewer';
+import { SkillsViewer } from '../Harness/SkillsViewer';
 import { TraceViewer } from '../Harness/TraceViewer';
 import { TimelinePanel } from '../Harness/TimeTravel/TimelinePanel';
 
@@ -31,6 +32,7 @@ const ProductManagerAgent: React.FC = () => {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showCompetitorAnalysis, setShowCompetitorAnalysis] = useState(false);
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+  const [showSkillsPanel, setShowSkillsPanel] = useState(false);
   const [showTracesPanel, setShowTracesPanel] = useState(false);
   const [showTimeTravelPanel, setShowTimeTravelPanel] = useState(false);
 
@@ -338,6 +340,21 @@ const ProductManagerAgent: React.FC = () => {
                   长期记忆
                 </Button>
                 <Button
+                  onClick={() => {
+                    const next = !showSkillsPanel;
+                    setShowSkillsPanel(next);
+                    if (next) {
+                      setShowMemoryPanel(false);
+                      setShowPRDPreview(false);
+                    }
+                  }}
+                  variant={showSkillsPanel ? "default" : "ghost"}
+                  size="sm"
+                >
+                  <Zap className="w-3.5 h-3.5 mr-1" />
+                  技能
+                </Button>
+                <Button
                   onClick={() => setShowTracesPanel(!showTracesPanel)}
                   variant={showTracesPanel ? "default" : "ghost"}
                   size="sm"
@@ -379,6 +396,21 @@ const ProductManagerAgent: React.FC = () => {
                   </div>
                   <div className="p-4">
                     <MemoryViewer agentId={selectedAgentId} />
+                  </div>
+                </div>
+              )}
+
+              {/* 技能面板 */}
+              {showSkillsPanel && selectedAgentId && (
+                <div className="w-1/2 overflow-y-auto">
+                  <div className="p-4 border-b border-border">
+                    <h3 className="font-semibold text-ink flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      技能（程序性记忆）
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <SkillsViewer agentId={selectedAgentId} />
                   </div>
                 </div>
               )}

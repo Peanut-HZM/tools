@@ -260,7 +260,8 @@ async def get_agent_stats(
 _HARNESS_UPDATABLE_FIELDS = frozenset({
     "slug", "welcome_message", "default_model_id", "fallback_model_ids",
     "generation_params", "memory_short_term_policy", "memory_short_term_window",
-    "memory_long_term_enabled", "memory_long_term_config", "max_steps_per_turn",
+    "memory_long_term_enabled", "memory_long_term_config",
+    "memory_procedural_enabled", "max_steps_per_turn",
     "tool_timeout_seconds", "error_strategy", "max_retries", "can_handoff_to",
     "handoff_instruction", "input_guardrails", "output_guardrails",
     "guardrail_on_violation", "visibility", "owner_id",
@@ -285,6 +286,7 @@ def _agent_to_harness_view(agent) -> dict:
         "memory_short_term_policy": agent.memory_short_term_policy,
         "memory_short_term_window": agent.memory_short_term_window,
         "memory_long_term_enabled": agent.memory_long_term_enabled,
+        "memory_procedural_enabled": getattr(agent, "memory_procedural_enabled", False) or False,
         "memory_long_term_config": agent.memory_long_term_config or {},
         "max_steps_per_turn": agent.max_steps_per_turn,
         "tool_timeout_seconds": agent.tool_timeout_seconds,

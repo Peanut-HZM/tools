@@ -33,6 +33,7 @@ export default function AgentManagement() {
 
   // Harness 扩展字段
   const [memoryLongTermEnabled, setMemoryLongTermEnabled] = useState(false);
+  const [memoryProceduralEnabled, setMemoryProceduralEnabled] = useState(false);
   const [memoryLongTermConfig, setMemoryLongTermConfig] = useState<Record<string, any>>(
     { ...DEFAULT_EMBEDDING_CONFIG },
   );
@@ -81,6 +82,7 @@ export default function AgentManagement() {
       }
       // 保存 harness 扩展字段
       const harnessData: AgentHarnessUpdate = {
+        memory_procedural_enabled: memoryProceduralEnabled,
         memory_long_term_enabled: memoryLongTermEnabled,
         memory_long_term_config: memoryLongTermEnabled
           ? { ...memoryLongTermConfig }
@@ -133,6 +135,7 @@ export default function AgentManagement() {
     try {
       const harness = await agentApi.getAgentHarness(agent.id);
       setMemoryLongTermEnabled(!!harness.memory_long_term_enabled);
+      setMemoryProceduralEnabled(!!harness.memory_procedural_enabled);
       setMemoryLongTermConfig({
         ...DEFAULT_EMBEDDING_CONFIG,
         ...(harness.memory_long_term_config || {}),
@@ -240,6 +243,24 @@ export default function AgentManagement() {
               </label>
               <p className="text-xs text-ink-faint mt-1 ml-7">
                 开启后 Agent 将跨会话保留用户相关记忆
+              </p>
+            </div>
+
+            {/* 程序性记忆（技能）开关 */}
+            <div className="border-t border-border pt-4 mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={memoryProceduralEnabled}
+                  onChange={(e) => setMemoryProceduralEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                />
+                <span className="text-sm font-medium text-ink-muted">
+                  启用技能（程序性记忆）
+                </span>
+              </label>
+              <p className="text-xs text-ink-faint mt-1 ml-7">
+                开启后 Agent 可沉淀/复用命名操作流程（skill_save / skill_read）
               </p>
             </div>
 
