@@ -141,7 +141,7 @@ def test_update_harness_success(client):
         "memory_short_term_window": 30,
         "max_steps_per_turn": 10,
         "can_handoff_to": ["other-agent"],
-        "input_guardrails": [{"type": "pii_filter"}],
+        "input_guardrails": [{"name": "pii", "type": "keyword", "config": {"keywords": ["敏感词"]}}],
     }
     resp = client.post(f"/api/v1/admin/agents/{agent_id}/harness", json=body)
     assert resp.status_code == 200
@@ -151,7 +151,7 @@ def test_update_harness_success(client):
     assert data["memory_short_term_window"] == 30
     assert data["max_steps_per_turn"] == 10
     assert data["can_handoff_to"] == ["other-agent"]
-    assert data["input_guardrails"] == [{"type": "pii_filter"}]
+    assert data["input_guardrails"] == [{"name": "pii", "type": "keyword", "config": {"keywords": ["敏感词"]}}]
     mock_db.commit.assert_called_once()
 
 
@@ -717,3 +717,41 @@ def test_harness_stats_tool_usage_filters_by_agent(client):
 
     # 同时确认调用了 .join(Trace, ...)，因为只有 join 后 Trace.agent_id 才能参与过滤
     assert mock_q.join.called, "tool_usage 查询应 join Trace 表，但未发现 .join 调用"
+
+
+# ===========================================================================
+# P3-⑩: guardrail 内置规则条目校验
+# ===========================================================================
+
+
+def test_harness_update_accepts_builtin_rule_guardrail(client):
+    """keyword/regex/max_length 规则条目校验通过"""
+    mock_db = _mock_db_session()
+    mock_db.query.return_value.first.return_value = _make_agent_row()
+    _override_get_db(mock_db)
+    payload = {
+        "input_guardrails": [
+            {"name": "竞品", "type": "keyword", "config": {"keywords": ["FooAI"]}},
+            {"name": "注入", "type": "regex", "config": {"pattern": "ignore .*"}},
+            {"name": "限长", "type": "max_length", "config": {"max_chars": 100}},
+        ],
+    }
+    resp = client.post("/api/v1/admin/agents/00000000-0000-0000-0000-000000000001/harness", json=payload)
+    # 404（agent 不存在）也算通过校验（未到 422）——重点是条目形状合法
+    assert resp.status_code in (200, 404), resp.text
+
+
+def test_harness_update_rejects_invalid_guardrail(client):
+    """非法条目 → 422"""
+    for bad in [
+        {"name": "无类型"},
+        {"name": "空关键词", "type": "keyword", "config": {"keywords": []}},
+        {"name": "坏正则", "type": "regex", "config": {"pattern": "([unclosed"}},
+        {"name": "坏限长", "type": "max_length", "config": {"max_chars": -1}},
+        {"name": "未知类型", "type": "llm_judge", "config": {}},
+    ]:
+        resp = client.post(
+            "/api/v1/admin/agents/00000000-0000-0000-0000-000000000001/harness",
+            json={"input_guardrails": [bad]},
+        )
+        assert resp.status_code == 422, f"条目 {bad} 应被拒绝，实际 {resp.status_code}"
