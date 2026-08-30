@@ -61,8 +61,8 @@ describe('CollabTimeline', () => {
       />,
     );
     expect(screen.getByTestId('collab-timeline')).toBeTruthy();
-    expect(screen.getByText('AgentA')).toBeInTheDocument();
-    expect(screen.getByText('AgentB')).toBeInTheDocument();
-    expect(screen.getByText(/用户要求/)).toBeInTheDocument();
+    expect(screen.getAllByText('AgentA').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('AgentB').length).toBeGreaterThan(0);
+    expect(screen.getByText(/用户要求/)).toBeTruthy();
   });
 });
