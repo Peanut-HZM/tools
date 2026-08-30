@@ -162,6 +162,8 @@ async def chat_stream(
         trace_recorder=trace_recorder,
         cancel_event=None,
     )
+    # P3 图生页面：绑定 agent（image_gen 工具靠 ctx.agent 解析图像模型链）
+    ctx.agent = agent
 
     runtime = AgentRuntime(agent, tool_registry, llm_bridge, harness_session, ctx)
 

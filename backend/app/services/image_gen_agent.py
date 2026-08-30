@@ -42,11 +42,18 @@ def ensure_image_gen_agent(db: DBSession):
 
     agent = db.query(Agent).filter(Agent.slug == IMAGE_GEN_AGENT_SLUG).first()
     if agent is not None:
+        changed = False
         if not agent.is_active:
             agent.is_active = True
+            changed = True
+        # 未绑定图像模型时自动挂上当前可用的 image_gen 模型（首选 seedream 文生图）
+        if not agent.default_model_id:
+            _bind_image_models(db, agent)
+            changed = True
+        if changed:
             db.commit()
             db.refresh(agent)
-            logger.info("图像生成助手 Agent 已重新激活: id=%s", agent.id)
+            logger.info("图像生成助手 Agent 已更新: id=%s", agent.id)
         return agent
 
     agent = Agent(
@@ -62,7 +69,43 @@ def ensure_image_gen_agent(db: DBSession):
     agent.is_active = True
     agent.is_default = False
     db.add(agent)
+    db.flush()
+    _bind_image_models(db, agent)
     db.commit()
     db.refresh(agent)
     logger.info("图像生成助手 Agent 已创建: id=%s", agent.id)
     return agent
+
+
+def _bind_image_models(db: DBSession, agent) -> None:
+    """为 Agent 绑定可用的 image_gen 模型（默认模型 + fallback 链）
+
+    排除明显不可用于文生图的条目（视频/3D 类模型名）；
+    首选 seedream 文生图端点。
+    """
+    from app.models.llm_model import LLMModel
+
+    models = (
+        db.query(LLMModel)
+        .filter(LLMModel.category == "image_gen", LLMModel.is_active == True)  # noqa: E712
+        .all()
+    )
+    if not models:
+        logger.warning("无可用 image_gen 模型，Agent 未绑定: agent=%s", agent.id)
+        return
+
+    def _rank(m):
+        name = (m.model_name or "").lower()
+        if "seedream" in name:
+            return 0
+        if any(k in name for k in ("t2v", "i2v", "r2v", "video", "3d", "seedance")):
+            return 9  # 视频/3D 类排最后（运行时会被解析器跳过）
+        return 5
+
+    ordered = sorted(models, key=_rank)
+    agent.default_model_id = ordered[0].id
+    agent.fallback_model_ids = [m.id for m in ordered[1:]]
+    logger.info(
+        "图像模型已绑定: agent=%s default=%s fallbacks=%d",
+        agent.id, ordered[0].model_name, len(ordered) - 1,
+    )

@@ -210,3 +210,104 @@ def test_message_to_dict_includes_attachments(env):
     msg.attachments = [{"type": "image", "url": "https://x/a.png"}]
     d = _message_to_dict(msg)
     assert d["attachments"] == [{"type": "image", "url": "https://x/a.png"}]
+
+
+# ===========================================================================
+# 会话创建支持 agent_id（conversations.agent_id NOT NULL 环境下的修复）
+# ===========================================================================
+
+
+def test_create_conversation_with_agent_id(client, env):
+    """POST /conversations 带 agent_id → 落库"""
+    from app.models.agent import Agent
+    from app.models.conversation import Conversation
+
+    agent = Agent(name="conv-agent", description="", system_prompt="x")
+    env.add(agent)
+    env.commit()
+    env.refresh(agent)
+
+    r = client.post(
+        "/api/v1/conversations",
+        json={"title": "t-agent", "agent_id": str(agent.id)},
+    )
+    assert r.status_code == 201, r.text
+    conv = env.query(Conversation).filter_by(title="t-agent").first()
+    assert conv is not None
+    assert str(conv.agent_id) == str(agent.id)
+
+
+def test_create_conversation_defaults_to_default_agent(client, env):
+    """不带 agent_id → 回落默认 Agent（NOT NULL 约束兼容）"""
+    from app.models.agent import Agent
+    from app.models.conversation import Conversation
+
+    agent = Agent(name="def-agent", description="", system_prompt="x")
+    agent.is_default = True
+    env.add(agent)
+    env.commit()
+
+    r = client.post("/api/v1/conversations", json={"title": "t-def"})
+    assert r.status_code == 201, r.text
+    conv = env.query(Conversation).filter_by(title="t-def").first()
+    assert conv is not None
+    assert conv.agent_id is not None
+
+
+# ===========================================================================
+# ctx.agent 绑定（image_gen 工具靠它解析图像模型链）
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_sets_ctx_agent(env):
+    """chat_stream 构造 ToolContext 时必须绑定 agent（image_gen 依赖）"""
+    from app.main import app
+    from app.api.dependencies import get_db, get_current_user
+    from app.models.agent import Agent
+    from app.models.conversation import Conversation
+    from unittest.mock import patch
+
+    agent = Agent(name="ctx-agent", description="", system_prompt="x")
+    agent.is_default = True
+    env.add(agent)
+    env.commit()
+    conv = Conversation(user_id=USER_ID, title="ctx", agent_id=agent.id)
+    env.add(conv)
+    env.commit()
+    env.refresh(conv)
+
+    captured = {}
+
+    class FakeRT:
+        def __init__(self, agent_arg, tool_registry, llm_bridge, session, ctx):
+            captured["agent"] = agent_arg
+            captured["ctx"] = ctx
+
+        async def run(self, user_message):
+            from app.services.harness.events import Event
+
+            yield Event.done("ok", usage={"total_tokens": 1})
+
+    def _override_db():
+        yield env
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": USER_ID}
+    try:
+        with patch("app.api.routes.chat_stream.AgentRuntime", FakeRT), patch(
+            "app.api.routes.chat_stream.LLMQuotaService"
+        ) as mq:
+            qi = MagicMock()
+            qi.check_and_reserve.return_value = "r"
+            mq.return_value = qi
+            client = TestClient(app)
+            resp = client.post(
+                f"/api/v1/conversations/{conv.id}/chat/stream",
+                json={"content": "hi"},
+            )
+            assert resp.status_code == 200, resp.text
+    finally:
+        app.dependency_overrides.clear()
+
+    assert captured["ctx"].agent is captured["agent"], "ctx.agent 未绑定"
