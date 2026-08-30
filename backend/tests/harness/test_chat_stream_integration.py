@@ -385,9 +385,10 @@ def test_chat_stream_404_conversation_not_owned(client, mock_services, mock_runt
 
 
 def test_chat_stream_ignores_internal_events(client, mock_services, mock_runtime):
-    """runtime 内部事件（thinking / tool_call / handoff / guardrail）不暴露给前端
+    """runtime 内部事件的暴露契约（P3 图生页面更新）
 
-    Phase 1 兼容策略：只暴露 text_delta + done + error，其他事件静默吞掉。
+    - tool_call_start / tool_result：转发给前端（图生页面需要渲染生成过程与结果）
+    - thinking_delta / guardrail_triggered / handoff：仍不暴露
     """
     mock_services["conv"].get_conversation = MagicMock(return_value=_make_conversation_mock())
     mock_services["msg"].create_message = MagicMock(side_effect=_make_create_message_side_effect())
@@ -421,12 +422,13 @@ def test_chat_stream_ignores_internal_events(client, mock_services, mock_runtime
     events = _parse_sse(resp.text)
     types = [e["type"] for e in events]
 
-    # 内部事件不应出现在 SSE 中
+    # thinking / guardrail / handoff 仍不暴露
     assert "thinking_delta" not in types
-    assert "tool_call_start" not in types
-    assert "tool_result" not in types
     assert "guardrail_triggered" not in types
     assert "handoff" not in types
+    # tool 事件已转发（P3 图生页面契约）
+    assert "tool_call_start" in types
+    assert "tool_result" in types
     # 仅 user_message + chunk + done 应出现
     assert "user_message" in types
     assert "chunk" in types

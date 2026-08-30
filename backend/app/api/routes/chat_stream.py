@@ -10,6 +10,7 @@ v1 起已迁移到 LLMProvider + LLMModel（原 llm_configs 表仅保留用于�
 """
 
 import json
+import uuid
 import logging
 from typing import Any
 
@@ -63,7 +64,7 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 @router.post("/{conversation_id}/chat/stream")
 async def chat_stream(
-    conversation_id: str,
+    conversation_id: uuid.UUID,
     request: dict,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -167,6 +168,8 @@ async def chat_stream(
     async def generate_stream():
         # 错误状态下跳过后续 Event（runtime 在 error 后仍可能 yield done with fallback）
         errored = False
+        # 本轮 image_gen 成功产生的附件（写入 done 的 agent 消息，刷新后可持久显示）
+        image_attachments = []
         try:
             # 1. user_message
             yield (
@@ -217,6 +220,9 @@ async def chat_stream(
                     agent_message.prompt_tokens = prompt_tokens
                     agent_message.completion_tokens = completion_tokens
                     agent_message.total_tokens = total_tokens
+                    # P3 图生页面：持久化本轮生成的图片附件（刷新后仍可显示）
+                    if image_attachments:
+                        agent_message.attachments = image_attachments
                     if llm_config_id:
                         agent_message.llm_config_id = llm_config_id
                     agent_message.llm_model_name = llm_model_name
@@ -244,15 +250,56 @@ async def chat_stream(
                         "completion_tokens": completion_tokens,
                         "total_tokens": total_tokens,
                         "llm_model_name": llm_model_name,
+                        # P3 图生页面：本轮生成的图片附件（前端刷新后仍可显示）
+                        "attachments": image_attachments or [],
                     }
 
                     yield (
                         f"data: {json.dumps({'type': 'done', 'data': agent_msg_dict}, ensure_ascii=False)}\n\n"
                     )
 
-                # 其他事件（thinking_delta / tool_call_start / tool_result /
-                # guardrail_triggered / handoff / text_complete）暂不暴露给前端
-                # （Task 19 再扩展前端 SSE 事件类型）
+                elif event.type == "tool_call_start":
+                    # P3 图生页面：转发工具调用开始事件（Task 19 最小集）
+                    # 注意：Event payload 为扁平结构 {id, name, arguments}
+                    start_data = {
+                        "id": event.payload.get("id"),
+                        "name": event.payload.get("name", ""),
+                        "arguments": event.payload.get("arguments", {}),
+                    }
+                    yield (
+                        f"data: {json.dumps({'type': 'tool_call_start', 'data': start_data}, ensure_ascii=False, default=str)}\n\n"
+                    )
+
+                elif event.type == "tool_result":
+                    # P3 图生页面：转发工具结果事件
+                    # 注意：Event payload 为扁平结构
+                    # {id, name, success, content_type, content, attachments, error}
+                    atts = list(event.payload.get("attachments") or [])
+                    if event.payload.get("name") == "image_gen" and event.payload.get("success"):
+                        image_attachments.extend(atts)
+                    result_content = event.payload.get("content")
+                    # content 截断 4KB，避免 SSE 过大（注意勿遮蔽外层请求 content）
+                    if isinstance(result_content, (dict, list)):
+                        content_out = json.loads(
+                            json.dumps(result_content, ensure_ascii=False, default=str)[:4096]
+                        )
+                    else:
+                        content_out = str(result_content or "")[:4096]
+                    result_data = {
+                        "id": event.payload.get("id"),
+                        "name": event.payload.get("name", ""),
+                        "success": bool(event.payload.get("success", False)),
+                        "content_type": event.payload.get("content_type", ""),
+                        "content": content_out,
+                        "attachments": atts,
+                        "error": event.payload.get("error"),
+                    }
+                    yield (
+                        f"data: {json.dumps({'type': 'tool_result', 'data': result_data}, ensure_ascii=False, default=str)}\n\n"
+                    )
+
+                # 其余事件（thinking_delta / guardrail_triggered / handoff /
+                # text_complete）仍不暴露给前端（后续按需扩展）
 
         except Exception as e:
             # 脱敏：不将 str(e) 暴露给前端，避免泄露 DB schema / 第三方 key / stack 片段

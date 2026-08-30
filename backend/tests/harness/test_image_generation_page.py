@@ -1,0 +1,212 @@
+"""图像生成页面后端测试（seed 端点 + SSE 转发 + 附件持久化）"""
+import json
+import uuid
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+USER_ID = str(uuid.uuid4())
+
+
+@pytest.fixture
+def env():
+    from app.models.agent import Agent  # noqa: F401
+    import app.models.harness_models  # noqa: F401
+    from app.models.base import Base
+
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine)()
+
+
+@pytest.fixture
+def client(env):
+    from app.main import app
+    from app.api.dependencies import get_db, get_current_user
+
+    def _override_db():
+        yield env
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": USER_ID}
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+# ===========================================================================
+# Seed 端点
+# ===========================================================================
+
+
+def test_image_gen_agent_seed_idempotent(client, env):
+    """两次调用返回同一 agent，且属性正确（public / slug）"""
+    from app.models.agent import Agent
+
+    r1 = client.get("/api/v1/tools/image-generation/agent")
+    assert r1.status_code == 200, r1.text
+    body1 = r1.json()
+
+    r2 = client.get("/api/v1/tools/image-generation/agent")
+    body2 = r2.json()
+    assert body1["agent_id"] == body2["agent_id"]
+
+    agent = env.query(Agent).filter(Agent.id == uuid.UUID(body1["agent_id"])).first()
+    assert agent is not None
+    assert agent.slug == "image-generation-assistant"
+    assert agent.visibility == "public"
+    assert agent.is_active is True
+    # system_prompt 强制多轮意图探究
+    assert "禁止调用" in agent.system_prompt or "不要" in agent.system_prompt
+    assert "image_gen" in agent.system_prompt
+
+
+def test_image_gen_agent_seed_reactivates_disabled(client, env):
+    """已存在但被禁用的种子 agent → 重新激活，不新建"""
+    from app.models.agent import Agent
+    from app.services.image_gen_agent import ensure_image_gen_agent
+
+    first = ensure_image_gen_agent(env)
+    first.is_active = False
+    env.commit()
+
+    again = ensure_image_gen_agent(env)
+    assert again.id == first.id
+    assert again.is_active is True
+    assert env.query(Agent).count() == 1
+
+
+# ===========================================================================
+# chat_stream SSE 转发 tool 事件 + done 附件持久化
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_forwards_tool_events(env):
+    """runtime 的 tool_call_start / tool_result 事件应被转发到 SSE"""
+    # 构造 runtime.run 依次产出：tool_call_start → tool_result → done
+    from app.services.harness.events import Event
+    from app.services.harness.tool_protocol import Attachment, ToolCall, ToolResult
+
+    fake_events = [
+        Event.tool_call_start(ToolCall(id="t1", name="image_gen", arguments={"prompt": "猫"})),
+        Event.tool_result(
+            ToolCall(id="t1", name="image_gen", arguments={"prompt": "猫"}),
+            ToolResult.json({"image_urls": ["https://x/a.png"]}),
+        ),
+        Event.done("图生成好了", usage={"total_tokens": 10}),
+    ]
+
+    async def _fake_run(user_message):
+        for e in fake_events:
+            yield e
+
+    with patch("app.api.routes.chat_stream.AgentRuntime") as mock_rt_cls:
+        rt_instance = MagicMock()
+        rt_instance.run = _fake_run
+        mock_rt_cls.return_value = rt_instance
+        sse_text = await _drive_chat_stream(env)
+
+    assert '"type": "tool_call_start"' in sse_text or '"type":"tool_call_start"' in sse_text
+    assert '"type": "tool_result"' in sse_text or '"type":"tool_result"' in sse_text
+    assert "image_gen" in sse_text
+    # done 消息携带 attachments（本例无图片附件 → 空列表也应有字段）
+    assert "attachments" in sse_text
+
+
+async def _drive_chat_stream(env) -> str:
+    """辅助：驱动 chat_stream SSE 并收集全部文本
+
+    真实会话行 + mock quota 服务（避免真实配额检查）。
+    """
+    from app.main import app
+    from app.api.dependencies import get_db, get_current_user
+    from app.models.conversation import Conversation
+    from app.models.agent import Agent
+
+    # chat_stream 无 agent_id 时回退 default agent——需要存在一个
+    agent = Agent(name="default", description="", system_prompt="be helpful")
+    agent.is_default = True
+    env.add(agent)
+    env.commit()
+
+    conv = Conversation(user_id=USER_ID, title="t")
+    env.add(conv)
+    env.commit()
+    env.refresh(conv)
+
+    def _override_db():
+        yield env
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": USER_ID}
+    try:
+        with patch("app.api.routes.chat_stream.LLMQuotaService") as mock_quota_cls:
+            quota_inst = MagicMock()
+            quota_inst.check_and_reserve = MagicMock(return_value="res-1")
+            quota_inst.record_usage = MagicMock()
+            quota_inst.rollback = MagicMock()
+            mock_quota_cls.return_value = quota_inst
+            client = TestClient(app)
+            resp = client.post(
+                f"/api/v1/conversations/{conv.id}/chat/stream",
+                json={"content": "画一只猫"},
+            )
+            return resp.text
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_persists_image_attachments(env):
+    """image_gen 成功的 tool_result 的 attachments 应写入 done 的 agent 消息"""
+    from app.services.harness.events import Event
+    from app.services.harness.tool_protocol import Attachment, ToolCall, ToolResult
+
+    attachments = [{"type": "image", "url": "https://x/cat.png", "name": "cat.png", "mime_type": "image/png"}]
+    fake_events = [
+        Event.tool_call_start(ToolCall(id="t1", name="image_gen", arguments={"prompt": "猫"})),
+        Event.tool_result(
+            ToolCall(id="t1", name="image_gen", arguments={"prompt": "猫"}),
+            ToolResult.json(
+                {"image_urls": ["https://x/cat.png"]},
+                attachments=[Attachment(**a) for a in attachments],
+            ),
+        ),
+        Event.done("已生成", usage={"total_tokens": 10}),
+    ]
+
+    async def _fake_run(user_message):
+        for e in fake_events:
+            yield e
+
+    with patch("app.api.routes.chat_stream.AgentRuntime") as mock_rt_cls:
+        rt_instance = MagicMock()
+        rt_instance.run = _fake_run
+        mock_rt_cls.return_value = rt_instance
+        sse_text = await _drive_chat_stream(env)
+
+    assert "https://x/cat.png" in sse_text
+    # done 事件的 data.attachments 含该图片
+    for line in sse_text.split("\n"):
+        if line.startswith("data: ") and '"type": "done"' in line or '"type":"done"' in line:
+            payload = json.loads(line[6:])
+            atts = payload["data"].get("attachments") or []
+            assert any(a["url"] == "https://x/cat.png" for a in atts)
+            break
+
+
+def test_message_to_dict_includes_attachments(env):
+    """_message_to_dict 应透出 attachments 字段"""
+    from app.api.routes.conversations import _message_to_dict
+    from app.models.message import Message
+
+    msg = Message(conversation_id=uuid.uuid4(), sender_type="agent", content="hi")
+    msg.attachments = [{"type": "image", "url": "https://x/a.png"}]
+    d = _message_to_dict(msg)
+    assert d["attachments"] == [{"type": "image", "url": "https://x/a.png"}]

@@ -38,6 +38,8 @@ def _message_to_dict(msg: Message) -> dict:
         "content": msg.content,
         "message_type": msg.message_type,
         "sent_at": msg.sent_at.isoformat() if msg.sent_at else None,
+        # P3 图生页面：透出图片附件（生成的图片刷新后仍可显示）
+        "attachments": getattr(msg, "attachments", None) or [],
     }
 
 
