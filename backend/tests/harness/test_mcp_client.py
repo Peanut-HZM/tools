@@ -15,7 +15,8 @@ async def test_mcp_client_connect_success():
     client = McpClient(server_url="http://localhost:3000", allow_private_hosts=True)
 
     with patch("app.services.harness.mcp_client.ClientSession") as mock_cls:
-        mock_session = AsyncMock()
+        # MagicMock 原生支持 __aenter__（SDK 2.x 需先进入 session context）
+        mock_session = MagicMock()
         mock_cls.return_value = mock_session
         mock_session.initialize = AsyncMock()
 
@@ -74,7 +75,8 @@ async def test_mcp_client_tools_call_success():
     client._session = mock_session
 
     mock_result = MagicMock()
-    mock_result.isError = False
+    # SDK 2.x 字段名为 is_error（tools_call 兼容读取 is_error/isError）
+    mock_result.is_error = False
     mock_result.content = [MagicMock(type="text", text="result")]
     mock_session.call_tool = AsyncMock(return_value=mock_result)
 
@@ -113,4 +115,5 @@ async def test_mcp_client_disconnect():
     await client.disconnect()
 
     assert client._session is None
-    mock_session.close.assert_called_once()
+    # SDK 2.x：通过 __aexit__ 关闭 session（无 close() 方法）
+    mock_session.__aexit__.assert_called_once()

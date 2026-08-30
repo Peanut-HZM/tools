@@ -21,7 +21,10 @@ async def test_sse_uses_sse_client():
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_sse.return_value = cm
         with patch("app.services.harness.mcp_client.ClientSession") as mock_cls:
-            mock_cls.return_value = AsyncMock()
+            # MagicMock 原生支持 __aenter__（SDK 2.x 需先进入 session context）
+            session = MagicMock()
+            session.initialize = AsyncMock()
+            mock_cls.return_value = session
             await client.connect()
     mock_sse.assert_called_once()
     assert client.transport == "sse"
@@ -44,7 +47,10 @@ async def test_http_uses_streamable_client():
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_http.return_value = cm
         with patch("app.services.harness.mcp_client.ClientSession") as mock_cls:
-            mock_cls.return_value = AsyncMock()
+            # MagicMock 原生支持 __aenter__（SDK 2.x 需先进入 session context）
+            session = MagicMock()
+            session.initialize = AsyncMock()
+            mock_cls.return_value = session
             await client.connect()
     mock_http.assert_called_once()
     assert client.transport == "http"
@@ -68,7 +74,10 @@ async def test_stdio_uses_stdio_client():
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_stdio.return_value = cm
         with patch("app.services.harness.mcp_client.ClientSession") as mock_cls:
-            mock_cls.return_value = AsyncMock()
+            # MagicMock 原生支持 __aenter__（SDK 2.x 需先进入 session context）
+            session = MagicMock()
+            session.initialize = AsyncMock()
+            mock_cls.return_value = session
             await client.connect()
     mock_stdio.assert_called_once()
     params = mock_stdio.call_args[0][0]

@@ -335,7 +335,10 @@ class McpClient:
             read_stream, write_stream = await connectors[self.transport]()
 
             # 创建 ClientSession 并初始化
+            # 注意：mcp SDK 2.x 要求先进入 session 的 async context（启动内部
+            # dispatcher），否则 initialize() 抛 "called before run()"
             self._session = ClientSession(read_stream, write_stream)
+            await self._session.__aenter__()
             await asyncio.wait_for(
                 self._session.initialize(),
                 timeout=self.timeout,
@@ -405,6 +408,10 @@ class McpClient:
                 self._session.call_tool(name, arguments),
                 timeout=self.timeout,
             )
+            # SDK 1.x 字段为 isError，2.x 改名为 is_error（兼容两种版本）
+            is_error = getattr(result, "is_error", None)
+            if is_error is None:
+                is_error = getattr(result, "isError", False)
             return {
                 "content": [
                     {
@@ -413,7 +420,7 @@ class McpClient:
                     }
                     for c in result.content
                 ],
-                "isError": result.isError,
+                "isError": is_error,
             }
         except asyncio.TimeoutError:
             raise
@@ -427,7 +434,8 @@ class McpClient:
 
         if self._session:
             try:
-                await self._session.close()
+                # SDK 2.x：通过 async context 的 __aexit__ 关闭（无 close() 方法）
+                await self._session.__aexit__(None, None, None)
             except Exception as e:
                 logger.warning("Error closing MCP session: %s", type(e).__name__)
             self._session = None
