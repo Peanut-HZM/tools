@@ -28,6 +28,11 @@ class McpServer(Base):
     headers_json = Column(Text, nullable=True)  # JSON 字符串，鉴权用
     timeout_seconds = Column(Integer, nullable=False, default=30)
 
+    # P2-①c: stdio transport 启动配置（JSON 字符串）：
+    # {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-everything"], "env": {"K": "V"}}
+    # sse / http transport 时为 NULL
+    command_json = Column(Text, nullable=True)
+
     # 状态缓存（由最近一次 test/sync 更新）
     last_connected_at = Column(DateTime, nullable=True)
     last_error = Column(Text, nullable=True)

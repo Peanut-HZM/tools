@@ -47,3 +47,13 @@ def test_trace_with_steps(test_db):
     loaded = test_db.query(Trace).filter_by(id=trace.id).first()
     assert len(loaded.steps) == 1
     assert loaded.steps[0].step_type == "llm_call"
+
+
+def test_mcp_server_command_json_column():
+    """P2-①c: mcp_servers 表应有 command_json 列（stdio 启动配置）"""
+    from app.models.mcp_server import McpServer
+
+    server = McpServer(name="t", server_url="npx -y demo", transport="stdio")
+    assert server.command_json is None  # 新列 nullable，默认 None
+    server.command_json = '{"command": "npx", "args": ["-y", "demo"]}'
+    assert '"command"' in server.command_json
