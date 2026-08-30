@@ -47,8 +47,12 @@ function imagesOf(attachments: unknown): string[] {
     .map((a) => a.url as string);
 }
 
-/** 后端 Message → 页面 ChatItem */
-function toChatItem(m: Message): ChatItem {
+/** 后端 Message → 页面 ChatItem（跳过工具消息：原始 JSON 输出无需展示） */
+function toChatItem(m: Message): ChatItem | null {
+  if ((m as unknown as { tool_name?: string }).tool_name) {
+    // 工具输出消息：其图片已随 agent 文本消息的附件展示
+    return null;
+  }
   return {
     role: m.sender_type === 'user' ? 'user' : 'agent',
     content: m.content || '',
@@ -86,7 +90,7 @@ const ImageGenerationTool: React.FC = () => {
             const history = await conversationApi.getMessages(saved, 50);
             if (cancelled) return;
             setConversationId(saved);
-            setItems(history.map(toChatItem));
+            setItems(history.map(toChatItem).filter((x): x is ChatItem => x !== null));
           } catch {
             // 会话已失效：清掉，等首条消息时新建
             localStorage.removeItem(CONV_STORAGE_KEY);

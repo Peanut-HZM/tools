@@ -40,6 +40,8 @@ def _message_to_dict(msg: Message) -> dict:
         "sent_at": msg.sent_at.isoformat() if msg.sent_at else None,
         # P3 图生页面：透出图片附件（生成的图片刷新后仍可显示）
         "attachments": getattr(msg, "attachments", None) or [],
+        # 工具消息标识（前端据此跳过渲染原始工具输出）
+        "tool_name": getattr(msg, "tool_name", None),
     }
 
 
@@ -102,6 +104,7 @@ class MessageResponse(BaseModel):
     sent_at: str
     # P3 图生页面：图片附件（生成的图片刷新后仍可显示）
     attachments: Optional[List[Dict[str, Any]]] = None
+    tool_name: Optional[str] = None
 
     class Config:
         from_attributes = True
