@@ -108,10 +108,12 @@ async def chat_stream(
         planned_tokens=planned,
     )
 
-    # 4. 加载 Agent
+    # 4. 加载 Agent（优先级：请求指定 > 会话绑定 > 默认 Agent）
     agent_service = AgentManagementService(db)
     if agent_id:
         agent = agent_service.get_agent(agent_id)
+    elif getattr(conversation, "agent_id", None):
+        agent = agent_service.get_agent(conversation.agent_id)
     else:
         agent = agent_service.get_default_agent()
 
