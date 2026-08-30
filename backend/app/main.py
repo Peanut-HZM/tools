@@ -572,8 +572,10 @@ app.include_router(openclaw_admin_router.router)
 
 # Harness memories management router (Phase 3 Plan-1B / Task 6)
 from app.api.routes.harness_memories import router as harness_memories_router  # noqa: E402
+from app.api.routes.harness_skills import router as harness_skills_router  # noqa: E402
 
 app.include_router(harness_memories_router)
+app.include_router(harness_skills_router)
 
 # Harness traces query router (Phase 3 Plan 1C / Task 3)
 from app.api.routes import harness_traces  # noqa: E402
