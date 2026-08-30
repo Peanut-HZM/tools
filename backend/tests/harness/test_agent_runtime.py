@@ -418,3 +418,57 @@ async def test_runtime_handoff_persists_trigger_response():
     assert session.append_assistant_message.call_count >= 1
     first_call_args = session.append_assistant_message.call_args_list[0][0][0]
     assert first_call_args.tool_calls  # 包含 tool_calls，说明是触发 handoff 的那条
+
+
+@pytest.mark.asyncio
+async def test_runtime_handoff_records_trace_step():
+    """P3-⑪: handoff 发生时应记录 step_type=handoff 的 TraceStep（含 from/to metadata）"""
+    from app.services.harness.tool_protocol import ToolCall
+
+    agent = _make_agent()
+    target_agent = _make_agent(id="agent-2", name="Target Agent", slug="target-agent")
+    session = MagicMock()
+    session.messages = []
+    session.conversation = MagicMock(id="conv-1")
+
+    tool_registry = MagicMock()
+    tool_registry.get_tools_for_agent = AsyncMock(return_value=[])
+    tool_registry.to_function_schemas = MagicMock(return_value=[])
+
+    ctx = _make_ctx()
+    trace_mock = MagicMock(id="trace-1")
+    ctx.trace_recorder.start_trace = MagicMock(return_value=trace_mock)
+    step_mock = MagicMock()
+    ctx.trace_recorder.start_step = MagicMock(return_value=step_mock)
+
+    llm_bridge = MagicMock()
+    call_count = 0
+
+    async def gen_side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return LLMResponse(text_part="", tool_calls=[
+                ToolCall(id="h1", name="handoff_to_target-agent", arguments={})
+            ])
+        return LLMResponse(text_part="Done", tool_calls=[])
+
+    llm_bridge.generate = AsyncMock(side_effect=gen_side_effect)
+
+    runtime = AgentRuntime(agent, tool_registry, llm_bridge, session, ctx)
+    events = []
+    with patch("app.services.harness.agent_runtime.detect_handoff") as mock_detect:
+        mock_detect.side_effect = [target_agent, None]
+        async for event in runtime.run("transfer me"):
+            events.append(event)
+
+    # handoff step 被记录（扫描全部 end_step 调用，找到 handoff 那次）
+    ctx.trace_recorder.start_step.assert_any_call("trace-1", "handoff")
+    handoff_meta = None
+    for call in ctx.trace_recorder.end_step.call_args_list:
+        meta = call.kwargs.get("metadata") or {}
+        if "from_agent" in meta:
+            handoff_meta = meta
+            break
+    assert handoff_meta is not None, "handoff step 未记录 metadata"
+    assert handoff_meta["to_agent"]["name"] == "Target Agent"
