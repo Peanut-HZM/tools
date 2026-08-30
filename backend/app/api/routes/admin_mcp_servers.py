@@ -41,6 +41,20 @@ def require_admin(current_user: dict = Depends(get_current_user)):
     return current_user
 
 
+def _validate_transport_config(transport: str, command: dict | None) -> None:
+    """P2-①c: 按 transport 校验配置完整性。
+
+    - sse / http：server_url 必填由 schema 保证；URL 安全校验在 connect 时做
+    - stdio：command 必须为非空 dict 且含非空 command 键
+    """
+    if transport == "stdio":
+        if not isinstance(command, dict) or not str(command.get("command") or "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail='stdio transport 需要 command 配置: {"command": "...", "args": [...], "env": {...}}',
+            )
+
+
 @router.get("", response_model=list[McpServerResponse])
 def list_servers(
     db: DBSession = Depends(get_db),
@@ -63,17 +77,23 @@ def create_server(
     if existing:
         raise HTTPException(status_code=400, detail=f"Server name '{data.name}' already exists")
 
+    # P2-①c: 按 transport 校验配置完整性
+    _validate_transport_config(data.transport, data.command)
+
     server = McpServer(
         name=data.name,
         server_url=data.server_url,
         transport=data.transport,
         headers_json=json.dumps(data.headers) if data.headers else None,
+        command_json=json.dumps(data.command, ensure_ascii=False)
+        if data.transport == "stdio" and data.command
+        else None,
         timeout_seconds=data.timeout_seconds,
     )
     db.add(server)
     db.commit()
     db.refresh(server)
-    logger.info(f"MCP server created: {server.name} (id={server.id})")
+    logger.info(f"MCP server created: {server.name} (id={server.id}, transport={server.transport})")
     return server
 
 
@@ -108,6 +128,12 @@ def update_server(
         server.server_url = data.server_url
     if data.headers is not None:
         server.headers_json = json.dumps(data.headers)
+    if data.command is not None:
+        # P2-①c: transport 不可改，仅 stdio server 支持替换 command 配置
+        if server.transport != "stdio":
+            raise HTTPException(status_code=400, detail="仅 stdio 类型的 server 支持 command 配置")
+        _validate_transport_config(server.transport, data.command)
+        server.command_json = json.dumps(data.command, ensure_ascii=False)
     if data.timeout_seconds is not None:
         server.timeout_seconds = data.timeout_seconds
     if data.is_active is not None:
@@ -116,7 +142,7 @@ def update_server(
     server.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(server)
-    logger.info(f"MCP server updated: {server.name} (id={server.id})")
+    logger.info(f"MCP server updated: {server.name} (id={server.id}, transport={server.transport})")
     return server
 
 
