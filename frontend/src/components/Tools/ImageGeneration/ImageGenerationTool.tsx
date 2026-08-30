@@ -75,7 +75,7 @@ const ImageGenerationTool: React.FC = () => {
     (async () => {
       try {
         const resp = await axios.get(`${API_BASE_URL}/tools/image-generation/agent`, {
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders() as Record<string, string>,
         });
         if (cancelled) return;
         setAgentId(resp.data.agent_id);
