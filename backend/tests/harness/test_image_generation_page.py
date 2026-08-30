@@ -466,3 +466,138 @@ def test_chat_stream_injects_oss_service(env):
     from app.services.oss_service import oss_service as oss_singleton
 
     assert captured["ctx"].oss_service is oss_singleton
+
+
+# ===========================================================================
+# v3: 幻觉链接防护（模型未调工具却编造 image-gen URL）
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_hallucinated_image_url_flagged(env):
+    """文本中的 image-gen URL 若非本轮工具产出 → 替换为无效提示"""
+    from unittest.mock import patch
+
+    from app.main import app
+    from app.api.dependencies import get_db, get_current_user
+    from app.models.agent import Agent
+    from app.models.conversation import Conversation
+
+    agent = Agent(name="halluc", description="", system_prompt="x")
+    agent.is_default = True
+    env.add(agent)
+    env.commit()
+    conv = Conversation(user_id=USER_ID, title="halluc", agent_id=agent.id)
+    env.add(conv)
+    env.commit()
+    env.refresh(conv)
+
+    from app.services.harness.events import Event
+
+    fake_events = [
+        # 本轮没有工具调用——模型直接编造链接
+        Event.done(
+            "已生成：https://minio.example.com/tools-files/image-gen/"
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+            usage={"total_tokens": 5},
+        ),
+    ]
+
+    async def _fake_run(user_message):
+        for e in fake_events:
+            yield e
+
+    def _override_db():
+        yield env
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": USER_ID}
+    try:
+        with patch("app.api.routes.chat_stream.AgentRuntime") as mrt, patch(
+            "app.api.routes.chat_stream.LLMQuotaService"
+        ) as mq:
+            inst = MagicMock()
+            inst.run = _fake_run
+            mrt.return_value = inst
+            qi = MagicMock()
+            qi.check_and_reserve.return_value = "r"
+            mq.return_value = qi
+            client = TestClient(app)
+            resp = client.post(
+                f"/api/v1/conversations/{conv.id}/chat/stream",
+                json={"content": "hi"},
+            )
+            assert resp.status_code == 200, resp.text
+    finally:
+        app.dependency_overrides.clear()
+
+    assert "链接无效" in resp.text
+    assert "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_real_image_url_not_flagged(env):
+    """真实工具产出的 URL 不应被替换"""
+    from unittest.mock import patch
+
+    from app.main import app
+    from app.api.dependencies import get_db, get_current_user
+    from app.models.agent import Agent
+    from app.models.conversation import Conversation
+    from app.services.harness.events import Event
+    from app.services.harness.tool_protocol import Attachment, ToolCall, ToolResult
+
+    agent = Agent(name="realurl", description="", system_prompt="x")
+    agent.is_default = True
+    env.add(agent)
+    env.commit()
+    conv = Conversation(user_id=USER_ID, title="realurl", agent_id=agent.id)
+    env.add(conv)
+    env.commit()
+    env.refresh(conv)
+
+    real_url = "https://minio.example.com/tools-files/image-gen/" + "b" * 32 + ".png"
+
+    from app.services.harness.events import Event
+
+    fake_events = [
+        Event.tool_result(
+            ToolCall(id="t1", name="image_gen", arguments={}),
+            ToolResult.json(
+                {"image_urls": [real_url]},
+                attachments=[Attachment(type="image", url=real_url, name="a.png")],
+            ),
+        ),
+        Event.done(f"已生成：{real_url}", usage={"total_tokens": 5}),
+    ]
+
+    async def _fake_run(user_message):
+        for e in fake_events:
+            yield e
+
+    def _override_db():
+        yield env
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "user", "id": USER_ID}
+    try:
+        with patch("app.api.routes.chat_stream.AgentRuntime") as mrt, patch(
+            "app.api.routes.chat_stream.LLMQuotaService"
+        ) as mq:
+            inst = MagicMock()
+            inst.run = _fake_run
+            mrt.return_value = inst
+            qi = MagicMock()
+            qi.check_and_reserve.return_value = "r"
+            mq.return_value = qi
+            client = TestClient(app)
+            resp = client.post(
+                f"/api/v1/conversations/{conv.id}/chat/stream",
+                json={"content": "hi"},
+            )
+            assert resp.status_code == 200, resp.text
+    finally:
+        app.dependency_overrides.clear()
+
+    assert real_url in resp.text
+    assert "链接无效" not in resp.text
