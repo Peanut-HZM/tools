@@ -12,9 +12,11 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -100,10 +102,12 @@ def log(msg: str, level: str = "INFO"):
     timestamp = datetime.now().strftime("%H:%M:%S")
     color = COLORS.get(level, COLORS["INFO"])
     reset = COLORS["RESET"]
-    print(f"{color}[{timestamp}] [{level}]{reset} {msg}")
+    # flush=True：后台/重定向模式下保证日志立即可见（watch 模式、nohup、cron 等场景）
+    print(f"{color}[{timestamp}] [{level}]{reset} {msg}", flush=True)
     try:
         with open(SCRIPT_LOG, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] [{level}] {msg}\n")
+            f.flush()
     except Exception:
         pass
 
@@ -1003,10 +1007,13 @@ def _build_spring_boot_gradle_service(directory: Path, gradle_path: Path) -> Opt
 # ============================================================
 
 def _get_pids_by_port_fallback(port: int) -> list:
-    """macOS/Linux: 通过 lsof 获取端口占用 PID"""
+    """macOS/Linux: 通过 lsof 获取端口占用 PID（仅查询 LISTEN 状态，排除 ESTABLISHED/CLOSE_WAIT 等客户端连接）"""
     pids = []
     try:
-        result = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            ["lsof", "-ti", f":{port}", "-sTCP:LISTEN"],
+            capture_output=True, text=True, timeout=5,
+        )
         if result.returncode == 0 and result.stdout.strip():
             for line in result.stdout.strip().splitlines():
                 try:
@@ -1445,16 +1452,20 @@ def _parse_requirements_packages(req_file: Path) -> list[str]:
 
 
 def _check_python_import(python_exe: str, package: str) -> bool:
-    """检查指定 Python 解释器是否可以导入某个包。"""
+    """检查指定 Python 解释器是否已安装某个 pip 包。
+
+    用 `pip show <pkg>` 判断安装状态，避免 pip 包名与 Python 导入名不一致的问题
+    （例如 pydantic-settings → pydantic_settings，python-dotenv → dotenv）。
+    """
     # 校验包名字符合法性，防止通过 requirements.txt 注入恶意代码（命令注入防护）
     if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.\-]*", package):
         log(f"[安全检查] 跳过非法包名: {package!r}", "WARN")
         return False
     try:
         result = subprocess.run(
-            [python_exe, "-c", f"import {package}"],
+            [python_exe, "-m", "pip", "show", package],
             capture_output=True,
-            timeout=5,
+            timeout=10,
         )
         return result.returncode == 0
     except Exception:
@@ -1767,6 +1778,10 @@ def status_services(services: list[Service]):
 
     for svc in services:
         pid = get_active_pid_on_port(svc.port)
+        # 兜底校验：防止 lsof/psutil 把连到该端口的其他进程（如浏览器客户端）误识别为服务本身
+        if pid and not verify_belongs_to_service(pid, svc):
+            log(f"{svc.name} 端口 {svc.port} 上的 PID {pid} 不属于本服务，跳过", "WARN")
+            pid = None
         if pid:
             try:
                 proc = psutil.Process(pid)
@@ -1802,7 +1817,192 @@ def status_services(services: list[Service]):
 
 
 # ============================================================
-# 日志查看
+# Watch 模式（自动重启 / 健康监控）
+# ============================================================
+
+class CrashLoopGuard:
+    """滑动窗口 crash loop 保护：5 分钟内重启 >= N 次则停下报警，避免无限重启。"""
+
+    def __init__(self, window_seconds: int = 300, max_restarts: int = 3):
+        self.window_seconds = window_seconds
+        self.max_restarts = max_restarts
+        self._restarts: dict[str, deque] = defaultdict(deque)
+        self._dead: set[str] = set()  # 触发 crash loop 保护的服务
+
+    def record(self, svc_name: str) -> None:
+        """记录一次重启时间戳"""
+        now = time.time()
+        q = self._restarts[svc_name]
+        q.append(now)
+        # 清理窗口外的旧记录
+        cutoff = now - self.window_seconds
+        while q and q[0] < cutoff:
+            q.popleft()
+
+    def allows_restart(self, svc_name: str) -> bool:
+        """检查是否允许重启（未触发 crash loop 保护）"""
+        if svc_name in self._dead:
+            return False
+        now = time.time()
+        q = self._restarts[svc_name]
+        cutoff = now - self.window_seconds
+        while q and q[0] < cutoff:
+            q.popleft()
+        if len(q) >= self.max_restarts:
+            self._dead.add(svc_name)
+            return False
+        return True
+
+    def mark_alive(self, svc_name: str) -> None:
+        """服务恢复正常，重置 crash loop 计数"""
+        self._restarts[svc_name].clear()
+        self._dead.discard(svc_name)
+
+    def is_dead(self, svc_name: str) -> bool:
+        return svc_name in self._dead
+
+    def reset(self) -> None:
+        self._restarts.clear()
+        self._dead.clear()
+
+
+def _send_desktop_notification(title: str, message: str) -> None:
+    """跨平台桌面通知：macOS 用 osascript，其他系统静默跳过。"""
+    try:
+        if sys.platform == "darwin":
+            # 转义双引号，防止注入
+            safe_title = title.replace('"', '\\"')
+            safe_msg = message.replace('"', '\\"')
+            subprocess.run(
+                ["osascript", "-e",
+                 f'display notification "{safe_msg}" with title "{safe_title}"'],
+                capture_output=True, timeout=5,
+            )
+    except Exception:
+        pass
+
+
+def watch_services(services: list[Service], interval: int = 5, consecutive_threshold: int = 3) -> None:
+    """持续监控所有服务，异常时自动重启；crash loop 时停下报警。"""
+    if not services:
+        log("未发现任何服务，无法进入 watch 模式", "WARN")
+        return
+
+    guard = CrashLoopGuard(window_seconds=300, max_restarts=3)
+    consecutive_failures: dict[str, int] = defaultdict(int)
+    last_restart_at: dict[str, float] = {}
+
+    # 优雅退出标志
+    interrupted = False
+
+    def handle_signal(signum, frame):
+        nonlocal interrupted
+        interrupted = True
+        log(f"\n收到信号 {signum}，watch 模式退出（不杀已启动的服务）", "WARN")
+
+    prev_sigint = signal.signal(signal.SIGINT, handle_signal)
+    prev_sigterm = None
+    if sys.platform != "win32":
+        prev_sigterm = signal.signal(signal.SIGTERM, handle_signal)
+
+    log_section(f"Watch 模式启动 (interval={interval}s, threshold={consecutive_threshold})")
+    log(f"监控 {len(services)} 个服务: {', '.join(s.name for s in services)}", "INFO")
+    log("Crash loop 保护: 5 分钟内重启 ≥3 次 → 停下并发桌面通知；Ctrl+C 退出", "INFO")
+    log_separator()
+    _send_desktop_notification("dev-services watch", f"开始监控 {len(services)} 个服务")
+
+    # 首次状态：确保所有服务都已运行
+    for svc in services:
+        pid = get_active_pid_on_port(svc.port)
+        if not pid:
+            log(f"{svc.name} 未运行，尝试启动...", "WARN")
+            if start_service(svc):
+                guard.mark_alive(svc.name)
+        else:
+            guard.mark_alive(svc.name)
+
+    last_status_line_at = 0.0
+    try:
+        while not interrupted:
+            for svc in services:
+                if interrupted:
+                    break
+
+                pid = get_active_pid_on_port(svc.port)
+                # PID 校验（防止把其他进程的 PID 当成本服务）
+                if pid and not verify_belongs_to_service(pid, svc):
+                    pid = None
+
+                if pid:
+                    # 尝试一次轻量 HTTP 健康检查（短超时，避免阻塞主循环）
+                    healthy = http_health_check(svc.health_url, timeout=3)
+                else:
+                    healthy = False
+
+                if healthy:
+                    if consecutive_failures[svc.name] > 0:
+                        log(f"{svc.name} 恢复健康 (PID {pid})", "SUCCESS")
+                    consecutive_failures[svc.name] = 0
+                    guard.mark_alive(svc.name)
+                    continue
+
+                # 不健康
+                consecutive_failures[svc.name] += 1
+                if consecutive_failures[svc.name] < consecutive_threshold:
+                    log(f"{svc.name} 健康检查失败 ({consecutive_failures[svc.name]}/{consecutive_threshold})", "WARN")
+                    continue
+
+                # 达到阈值，尝试重启
+                if not guard.allows_restart(svc.name):
+                    log(f"{svc.name} 触发 crash loop 保护，停止自动重启（需手动 restart 解除）", "ERROR")
+                    _send_desktop_notification("dev-services crash loop", f"{svc.name} 反复崩溃，已停止自动重启")
+                    consecutive_failures[svc.name] = 0  # 重置避免持续输出
+                    continue
+
+                log(f"{svc.name} 连续 {consecutive_threshold} 次健康检查失败，开始重启...", "WARN")
+                ok = restart_service(svc)
+                guard.record(svc.name)
+                last_restart_at[svc.name] = time.time()
+
+                if ok:
+                    log(f"{svc.name} 重启成功", "SUCCESS")
+                    consecutive_failures[svc.name] = 0
+                    guard.mark_alive(svc.name)
+                    _send_desktop_notification("dev-services", f"{svc.name} 已自动重启")
+                else:
+                    log(f"{svc.name} 重启失败", "ERROR")
+
+            # 每 30 秒输出一次简洁状态条
+            now = time.time()
+            if now - last_status_line_at >= 30:
+                parts = []
+                for svc in services:
+                    pid = get_active_pid_on_port(svc.port)
+                    if pid and verify_belongs_to_service(pid, svc):
+                        parts.append(f"{svc.name}: ✓ PID {pid}")
+                    elif guard.is_dead(svc.name):
+                        parts.append(f"{svc.name}: ✗ dead (crash-loop)")
+                    else:
+                        parts.append(f"{svc.name}: ✗ down")
+                ts = datetime.now().strftime("%H:%M:%S")
+                print(f"[{ts}] {' | '.join(parts)}", flush=True)
+                last_status_line_at = now
+
+            # 睡眠（可中断）
+            for _ in range(interval):
+                if interrupted:
+                    break
+                time.sleep(1)
+
+    finally:
+        signal.signal(signal.SIGINT, prev_sigint or signal.SIG_DFL)
+        if prev_sigterm is not None:
+            signal.signal(signal.SIGTERM, prev_sigterm or signal.SIG_DFL)
+        log_separator()
+        log("Watch 模式已退出（已启动的服务保持运行）", "INFO")
+
+
+
 # ============================================================
 
 def tail_logs(target: str, services: list[Service]):
@@ -1958,8 +2158,8 @@ def main():
         "action",
         nargs="?",
         default="start",
-        choices=["start", "stop", "restart", "status", "kill", "logs", "discover"],
-        help="操作: start|stop|restart|status|kill|logs|discover (默认: start)",
+        choices=["start", "stop", "restart", "status", "kill", "logs", "discover", "watch"],
+        help="操作: start|stop|restart|status|kill|logs|discover|watch (默认: start)",
     )
     parser.add_argument(
         "target",
@@ -1970,6 +2170,8 @@ def main():
     parser.add_argument("--type", dest="svc_type", default=None, help="服务类型过滤: vite|python|spring-boot|node-backend")
     parser.add_argument("--port", dest="port", type=int, default=None, help="端口号过滤")
     parser.add_argument("--foreground", "-f", action="store_true", help="前台模式运行")
+    parser.add_argument("--interval", dest="interval", type=int, default=5, help="watch 模式轮询间隔（秒，默认 5）")
+    parser.add_argument("--threshold", dest="threshold", type=int, default=3, help="watch 模式连续失败多少次后触发重启（默认 3）")
     parser.add_argument("--all", action="store_true", help="清空默认排除列表，扫描所有目录")
     parser.add_argument("--exclude", action="append", metavar="DIR", help="追加排除指定目录名（可多次使用）")
     parser.add_argument("--include", action="append", metavar="DIR", help="从排除列表中移除指定目录名（可多次使用，优先级高于 --exclude）")
@@ -2020,6 +2222,10 @@ def main():
 
     if args.action == "status":
         status_services(services)
+        return
+
+    if args.action == "watch":
+        watch_services(services, interval=args.interval, consecutive_threshold=args.threshold)
         return
 
     if args.action == "kill":
@@ -2111,7 +2317,6 @@ def _run_foreground(services: list[Service]):
                 p.kill()
         log("所有服务已停止", "INFO")
 
-    import signal
     def handle_signal(signum, frame):
         cleanup()
         sys.exit(0)
