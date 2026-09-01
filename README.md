@@ -1,28 +1,59 @@
-# 工具箱 - 聚合类工具网站
+# 工具箱 - 全栈工具聚合平台
 
-一站式实用工具集合，提升工作效率，简化日常任务。从文本处理到格式转换，从计算辅助到设计工具，应有尽有。
+一站式实用工具集合，涵盖 AI 对话、文件处理、开发工具、系统管理等多个领域。采用前后端分离架构，支持 Web 和小程序双端访问。
 
-![ Logo](https://img.shields.io/badge/工具箱-2563eb?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat-square&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.2+-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.3+-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3+-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 
 ## 📖 项目简介
 
-本项目是一个现代化的工具聚合网站，采用前后端分离架构，提供丰富的在线工具服务。项目完全基于设计原型实现，确保100%还原设计稿的视觉效果和交互体验。
+本项目是一个功能丰富的全栈工具聚合平台，提供 25+ 款实用工具，包括 AI 对话、图片/视频生成、OCR 文字识别、语音识别、数据库管理、SSH 终端、K8s 控制台等。支持文件存储（MinIO/阿里云 OSS）、用户认证、Token 用量统计等企业级功能。
 
 ## ✨ 功能特性
 
-- 🎨 **深色主题设计** - 优雅的深色UI，减少视觉疲劳
+### 🤖 AI 与智能工具
+- **AI 助手** - 多模型对话，支持上下文管理
+- **图片生成** - 支持多种 AI 图片生成模型
+- **视频生成** - AI 视频创作工具
+- **产品经理 Agent** - LLM 驱动的产品需求文档生成
+
+### 📝 文档与文件处理
+- **Markdown 编辑器** - 文件树管理、实时预览、全文搜索
+- **MarkItDown 转换** - 多格式文档转换
+- **JSON 格式化** - JSON 美化与校验
+- **图片下载器** - 批量图片下载
+
+### 🔍 识别与转换
+- **OCR 文字识别** - 图片文字提取
+- **ASR 语音识别** - 语音转文字
+
+### 💻 开发工具
+- **HTTP API 客户端** - 接口调试与测试
+- **数据库工具** - 在线 SQL 执行与数据管理
+- **Redis 工具** - Redis 数据浏览与管理
+- **SSH 终端** - 远程服务器连接
+- **密钥生成器** - 随机密钥/令牌生成
+- **K8s 控制台** - Kubernetes 集群管理
+
+### 🌐 其他工具
+- **日历** - 日程管理
+- **系统监控** - 服务状态监控
+- **Token 用量统计** - AI API 调用量追踪
+- **学习分享平台** - 课程与知识分享
+- **OpenClaw 聊天** - 网关对话服务
+- **视频下载器** - 视频内容下载
+- **交叉分享** - 文件跨平台分享
+
+### 🎨 通用特性
+- 🌓 **明暗主题** - 支持亮色/暗色模式切换
 - 🔍 **智能搜索** - 实时搜索工具，支持防抖优化
-- 🏷️ **分类筛选** - 6大工具分类，快速定位所需工具
+- 🏷️ **分类筛选** - 多工具分类，快速定位
 - 📱 **响应式布局** - 完美适配桌面、平板和移动设备
-- ⚡ **高性能** - 基于Vite构建，快速加载和热更新
-- 🛡️ **隐私保护** - 本地处理，数据不上传
-- 🎯 **交互友好** - 流畅的动画效果和即时反馈
-- 📝 **Markdown编辑器** - 功能完整的Markdown编辑器，支持实时预览
-- 🔐 **用户认证** - JWT认证系统，支持用户注册和登录
+- 📱 **小程序支持** - Taro 跨端小程序
+- 🔐 **用户认证** - JWT 认证系统
 - 👤 **用户隔离** - 每个用户拥有独立的文件存储空间
 
 ## 🔧 配置（首次运行必读）
@@ -62,8 +93,9 @@ python dev-services.py
 ### 前置要求
 
 - Python 3.10+
-- Node.js 16+
-- npm 或 yarn
+- Node.js 18+
+- PostgreSQL（可选，默认使用 SQLite）
+- Redis（可选，用于 Token 用量缓存）
 
 ### 一键启动
 
@@ -91,8 +123,6 @@ python dev-services.py logs frontend
 
 1. **启动后端**
 
-> **注意**: Windows 环境下如遇 `uvicorn: command not found` 错误，请使用 `python -m uvicorn` 代替 `uvicorn`。
-
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -115,222 +145,104 @@ npm run dev
 ### 后端
 - **框架**: FastAPI
 - **语言**: Python 3.10+
-- **数据验证**: Pydantic
+- **ORM**: SQLAlchemy 2.0
+- **数据验证**: Pydantic v2
 - **服务器**: Uvicorn
-- **API文档**: Swagger UI / ReDoc
+- **数据库**: PostgreSQL / SQLite
+- **缓存**: Redis
+- **存储**: MinIO / 阿里云 OSS
+- **API 文档**: Swagger UI / ReDoc
 
 ### 前端
-- **框架**: React 18+
+- **框架**: React 18
 - **语言**: TypeScript
 - **构建工具**: Vite
-- **样式**: Tailwind CSS 3+
-- **图标**: Font Awesome 6.4.0
-- **字体**: Google Fonts (Pacifico)
+- **样式**: Tailwind CSS
+- **状态管理**: Zustand
+- **图标**: Font Awesome
+- **HTTP 客户端**: Axios
+
+### 小程序
+- **框架**: Taro 4.x
+- **语言**: TypeScript + React
+- **样式**: Sass
 
 ## 📁 项目结构
 
 ```
-tool-aggregation-website/
-├── .kiro/specs/              # 需求、设计和任务文档
-├── backend/                  # Python后端服务
+tools/
+├── backend/                    # Python 后端服务
 │   ├── app/
-│   │   ├── main.py          # FastAPI应用入口
-│   │   ├── models.py        # 数据模型
-│   │   ├── routes/          # API路由
-│   │   └── data/            # 静态数据
-│   └── requirements.txt     # Python依赖
-├── frontend/                 # React前端应用
+│   │   ├── main.py            # FastAPI 应用入口
+│   │   ├── api/routes/        # API v1 路由
+│   │   ├── routes/            # 工具路由（OCR、ASR、SSH、K8s 等）
+│   │   ├── models/            # SQLAlchemy 数据模型
+│   │   ├── schemas/           # Pydantic 模式
+│   │   ├── services/          # 业务逻辑层
+│   │   ├── config/            # 配置管理
+│   │   └── utils/             # 工具函数
+│   ├── scripts/               # 后端脚本（密钥生成等）
+│   ├── tests/                 # 后端测试
+│   ├── alembic/               # 数据库迁移
+│   └── requirements.txt       # Python 依赖
+├── frontend/                   # React 前端应用
 │   ├── src/
-│   │   ├── components/      # React组件
-│   │   ├── hooks/           # 自定义Hooks
-│   │   ├── services/        # API服务
-│   │   ├── types/           # TypeScript类型
-│   │   └── App.tsx          # 主应用组件
-│   └── package.json         # Node依赖
-├── design/                   # 设计原型文件
-├── README.md                 # 项目说明（本文件）
-├── QUICKSTART.md            # 快速启动指南
-├── DEPLOYMENT.md            # 部署指南
-└── PROJECT_STRUCTURE.md     # 详细项目结构说明
+│   │   ├── components/        # React 组件
+│   │   │   ├── Tools/         # 各工具页面实现
+│   │   │   └── Admin/         # 管理后台
+│   │   ├── hooks/             # 自定义 Hooks
+│   │   ├── services/          # API 服务层
+│   │   ├── stores/            # Zustand 状态管理
+│   │   ├── types/             # TypeScript 类型
+│   │   └── App.tsx            # 主应用组件
+│   ├── scripts/               # 前端脚本
+│   └── package.json           # Node 依赖
+├── mini-program/               # Taro 小程序
+│   ├── src/                   # 小程序源码
+│   ├── config/                # 小程序配置
+│   └── package.json           # 小程序依赖
+├── scripts/                    # 部署与运维脚本
+├── tests/                      # 集成测试
+├── dev-services.py             # 服务管理脚本
+├── deploy.py                   # 部署脚本
+├── deploy.env.example          # 部署配置示例
+├── README.md                   # 项目说明（本文件）
+├── CLAUDE.md                   # Claude Code 配置
+└── AGENTS.md                   # AI Agent 配置
 ```
 
-查看 [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) 了解完整的项目结构说明。
+## 📚 API 文档
 
-## 📚 文档
-
-- [快速启动指南](QUICKSTART.md) - 如何快速运行项目
-- [部署指南](DEPLOYMENT.md) - 生产环境部署方法
-- [项目结构说明](PROJECT_STRUCTURE.md) - 详细的代码结构说明
-- [需求文档](.kiro/specs/tool-aggregation-website/requirements.md) - 完整的功能需求
-- [设计文档](.kiro/specs/tool-aggregation-website/design.md) - 技术设计方案
-- [任务列表](.kiro/specs/tool-aggregation-website/tasks.md) - 开发任务清单
-
-## 🎯 核心功能
-
-### 工具展示
-- 8个精选工具卡片
-- 悬停动画效果
-- 评分和使用统计
-- 点击跳转功能
-
-### Markdown编辑器 (新增)
-- 📁 文件树管理 - 浏览、创建、删除、重命名文件和目录
-- ✏️ Markdown编辑 - 支持语法高亮和快捷键
-- 👁️ 实时预览 - 编辑/预览/分屏三种模式
-- 🔍 全文搜索 - 支持文件名和内容搜索
-- ⚙️ 配置管理 - 主题、字体、自动保存等可配置
-- 🌐 国际化 - 支持中文和英文界面
-- 💾 自动保存 - 可配置的自动保存间隔
-
-### 用户认证系统 (新增)
-- 用户注册和登录
-- JWT令牌认证
-- 会话持久化
-- 路由保护
-
-### 搜索和筛选
-- 实时搜索（300ms防抖）
-- 6大分类筛选
-- 搜索结果高亮
-- 无结果友好提示
-
-### 响应式设计
-- 移动端：1列布局
-- 平板：2列布局
-- 笔记本：3列布局
-- 桌面：4列布局
-
-## 🔌 API端点
-
-### 工具API
-
-#### 获取所有工具
-```
-GET /api/tools
-```
-
-#### 搜索工具
-```
-GET /api/tools/search?q={query}
-```
-
-#### 按分类获取工具
-```
-GET /api/tools/category/{category}
-```
-
-### 认证API
-
-#### 用户注册
-```
-POST /api/auth/register
-Body: { "username": "string", "email": "string", "password": "string" }
-```
-
-#### 用户登录
-```
-POST /api/auth/login
-Body: { "username": "string", "password": "string" }
-```
-
-#### 获取当前用户
-```
-GET /api/auth/me
-Headers: Authorization: Bearer {token}
-```
-
-### Markdown编辑器API
-
-#### 获取目录树
-```
-GET /api/markdown-editor/files/tree
-Headers: Authorization: Bearer {token}
-```
-
-#### 读取文件
-```
-GET /api/markdown-editor/files/read?path={path}
-Headers: Authorization: Bearer {token}
-```
-
-#### 保存文件
-```
-POST /api/markdown-editor/files/save
-Headers: Authorization: Bearer {token}
-Body: { "path": "string", "content": "string" }
-```
-
-#### 搜索文件
-```
-GET /api/markdown-editor/search/files?keyword={keyword}
-Headers: Authorization: Bearer {token}
-```
-
-#### 获取/保存配置
-```
-GET /api/markdown-editor/config
-POST /api/markdown-editor/config
-Headers: Authorization: Bearer {token}
-```
-
-访问 http://localhost:19092/docs 查看完整的API文档。
-
-## 🎨 设计规范
-
-### 颜色主题
-- **Primary**: #2563eb (蓝色)
-- **Secondary**: #34d399 (绿色)
-- **Background**: #0f172a (深蓝灰)
-- **Card**: #1e293b (浅蓝灰)
-- **Border**: #334155 (边框灰)
-
-### 圆角规范
-- **按钮**: 4px
-- **卡片**: 12px
-- **输入框**: 8px
-
-### 间距规范
-- **容器内边距**: 24px (px-6)
-- **卡片间距**: 24px (gap-6)
-- **组件间距**: 64px (mb-16)
+启动后端服务后访问：
+- Swagger UI: http://localhost:19092/docs
+- ReDoc: http://localhost:19092/redoc
 
 ## 🧪 测试
 
-### 功能测试清单
-- [ ] 页面正常加载，显示所有工具卡片
-- [ ] 分类标签切换正常
-- [ ] 搜索功能正常
-- [ ] 工具卡片悬停效果正常
-- [ ] 点击交互正常
-- [ ] 响应式布局正常
-
-### 运行测试
 ```bash
-# 后端测试（待实现）
+# 后端测试
 cd backend
 pytest
 
-# 前端测试（待实现）
+# 前端测试
 cd frontend
 npm test
 ```
 
 ## 📦 部署
 
-查看 [DEPLOYMENT.md](DEPLOYMENT.md) 获取详细的部署指南。
+### 环境要求
 
-### 推荐部署平台
+- 服务器：Linux / macOS / Windows
+- 数据库：PostgreSQL 12+（推荐）或 SQLite
+- 缓存：Redis 6+（可选）
+- 存储：MinIO 或阿里云 OSS
 
-**后端:**
-- Railway
-- Heroku
-- AWS EC2
-- Google Cloud Run
+### 部署步骤
 
-**前端:**
-- Vercel (推荐)
-- Netlify
-- Cloudflare Pages
+1. 复制 `deploy.env.example` 为 `deploy.env`，配置服务器信息
+2. 执行 `python deploy.py` 进行自动化部署
+3. 或参考 `local_deploy.sh` 进行手动部署
 
 ## 🤝 贡献
 
@@ -338,12 +250,4 @@ npm test
 
 ## 📄 许可证
 
-© 2024 . All rights reserved.
-
-## 👥 开发团队
-
- Team
-
----
-
-**注意**: 本项目基于设计原型 `design/页面 36.html` 实现，确保100%还原设计稿的所有细节。
+© 2024-2026. All rights reserved.

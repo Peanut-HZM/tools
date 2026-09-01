@@ -157,6 +157,24 @@ mini-program/.env.*.local
 # 部署配置文件（包含服务器 IP/密钥，绝不提交）
 deploy.env
 
+# ========================================
+# 敏感配置文件（包含域名/密钥/IP，绝不提交）
+# ========================================
+frontend/.env.production
+mini-program/.env.development
+mini-program/.env.production
+mini-program/.env.test
+scripts/nginx_config.conf
+backend/scripts/minio_nginx.conf
+
+# ========================================
+# 敏感文档（包含部署细节/服务器信息，绝不提交）
+# ========================================
+docs/
+DEPLOYMENT.md
+认证流程分析报告.md
+AGENT_SYSTEM_DESIGN.md
+
 # Plugin 目录（运维手工 drop .py，仓库只保留示例/说明）
 backend/plugins/*.py
 !backend/plugins/__init__.py
