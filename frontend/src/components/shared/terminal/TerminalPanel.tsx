@@ -28,6 +28,7 @@ export const TerminalPanel: React.FC<Props> = ({
   const lastDataAtRef = useRef<number>(0);
   const heartbeatTimerRef = useRef<number | null>(null);
   const statusRef = useRef<ConnectionStatus>('disconnected');
+  const connectingRef = useRef(false); // 防止 StrictMode 双重挂载导致重复连接
 
   const setStatus = (s: ConnectionStatus) => {
     statusRef.current = s;
@@ -54,10 +55,14 @@ export const TerminalPanel: React.FC<Props> = ({
   };
 
   const connect = () => {
+    // 防止 StrictMode 双重挂载导致的重复连接：如果已有连接正在进行或已建立，跳过
+    if (connectingRef.current) return;
+    connectingRef.current = true;
+
     const token = getAuthToken();
-    if (!token) { addToast('请先登录再连接', 'error'); return; }
+    if (!token) { connectingRef.current = false; addToast('请先登录再连接', 'error'); return; }
     const terminal = terminalInstance.current;
-    if (!terminal) return;
+    if (!terminal) { connectingRef.current = false; return; }
 
     // 先关闭旧 socket
     socketRef.current?.close();
@@ -101,6 +106,7 @@ export const TerminalPanel: React.FC<Props> = ({
     socket.onclose = () => {
       // 只处理当前活跃 socket 的关闭,忽略已被替换的旧 socket
       if (socketRef.current !== socket) return;
+      connectingRef.current = false; // 连接关闭后重置标志
       stopHeartbeat();
       if (statusRef.current === 'connecting' || statusRef.current === 'connected') {
         setStatus('error');
@@ -130,6 +136,7 @@ export const TerminalPanel: React.FC<Props> = ({
 
     return () => {
       dataDisposable.dispose();
+      connectingRef.current = false;
       stopHeartbeat();
       socketRef.current?.close();
       socketRef.current = null;
@@ -146,6 +153,7 @@ export const TerminalPanel: React.FC<Props> = ({
     connect();
 
     return () => {
+      connectingRef.current = false; // 卸载时重置连接标志
       stopHeartbeat();
       socketRef.current?.close();
       socketRef.current = null;
