@@ -2,6 +2,8 @@
 
 一站式实用工具集合，涵盖 AI 对话、文件处理、开发工具、系统管理等多个领域。采用前后端分离架构，支持 Web 和小程序双端访问。
 
+**中文** | [English](README.en.md)
+
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?style=flat-square&logo=typescript&logoColor=white)
