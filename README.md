@@ -252,4 +252,4 @@ npm test
 
 ## 📄 许可证
 
-© 2024-2026. All rights reserved.
+本项目基于 [Apache License 2.0](LICENSE) 协议开源。

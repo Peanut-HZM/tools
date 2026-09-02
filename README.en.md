@@ -253,4 +253,4 @@ Contributions, bug reports, and suggestions are welcome!
 
 ## 📄 License
 
-© 2024-2026. All rights reserved.
+This project is licensed under the [Apache License 2.0](LICENSE).
