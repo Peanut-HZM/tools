@@ -240,10 +240,11 @@ export const PodList: React.FC = () => {
                       e.stopPropagation();
                       handleDownloadLogs(pod.name, pod.namespace);
                     }}
-                    className="text-ink-muted hover:text-accent-info transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1 text-ink-muted hover:text-accent-info hover:bg-accent-info/10 rounded transition-colors"
                     title="下载日志"
                   >
-                    <Download className="w-3 h-3" />
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="text-xs">下载</span>
                   </button>
                 </td>
               </tr>
