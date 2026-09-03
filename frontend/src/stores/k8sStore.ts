@@ -45,6 +45,13 @@ interface K8sStore {
   /** 每个标签页的活跃子 Tab（key: tabId, value: subTabKey） */
   activeSubTabs: Record<string, string>;
 
+  // Pod 搜索条件（按集群隔离，仅当前会话有效）
+  podSearchTexts: Record<string, string>;
+
+  // 右侧抽屉状态
+  rightDrawerOpen: boolean;
+  rightDrawerResource: ResourceTab | null;
+
   // 操作
   setConnections: (c: K8sConnection[]) => void;
   setActiveConnection: (id: string | null) => void;
@@ -66,6 +73,13 @@ interface K8sStore {
   clearAllTabs: () => void;
   /** 设置指定标签页的活跃子 Tab */
   setActiveSubTab: (tabId: string, subTabKey: string) => void;
+
+  // Pod 搜索操作
+  setPodSearchText: (connectionId: string, text: string) => void;
+
+  // 右侧抽屉操作
+  openRightDrawer: (resource: ResourceTab | null) => void;
+  closeRightDrawer: () => void;
 }
 
 export const useK8sStore = create<K8sStore>()((set) => ({
@@ -79,6 +93,9 @@ export const useK8sStore = create<K8sStore>()((set) => ({
   openedTabs: [],
   activeTabId: null,
   activeSubTabs: {},
+  podSearchTexts: {},
+  rightDrawerOpen: false,
+  rightDrawerResource: null,
 
   // 操作实现
   setConnections: (c) => set({ connections: c }),
@@ -165,5 +182,24 @@ export const useK8sStore = create<K8sStore>()((set) => ({
   setActiveSubTab: (tabId, subTabKey) =>
     set((s) => ({
       activeSubTabs: { ...s.activeSubTabs, [tabId]: subTabKey },
+    })),
+
+  // Pod 搜索操作实现
+  setPodSearchText: (connectionId, text) =>
+    set((s) => ({
+      podSearchTexts: { ...s.podSearchTexts, [connectionId]: text },
+    })),
+
+  // 右侧抽屉操作实现
+  openRightDrawer: (resource) =>
+    set(() => ({
+      rightDrawerOpen: true,
+      rightDrawerResource: resource,
+    })),
+
+  closeRightDrawer: () =>
+    set(() => ({
+      rightDrawerOpen: false,
+      rightDrawerResource: null,
     })),
 }));

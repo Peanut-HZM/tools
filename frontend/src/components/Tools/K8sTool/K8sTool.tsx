@@ -3,7 +3,7 @@
  *
  * 布局：左侧 ConnectionList（集群连接列表） + 右侧主区域
  * 右侧主区域：TopBar（ClusterSwitcher + NamespaceFilter） + ResourceTabs
- * 底部面板 BottomPanel 展示多标签资源详情（由 k8sStore 多标签状态驱动）
+ * 右侧抽屉 RightDrawer 展示资源详情（点击 Pod 行触发）
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useK8sStore } from '../../../stores/k8sStore';
@@ -13,7 +13,7 @@ import { ConnectionModal } from './ConnectionModal';
 import { EmptyState } from './EmptyState';
 import { TopBar } from './TopBar';
 import { ResourceTabs } from './ResourceTabs';
-import { BottomPanel } from './BottomPanel/BottomPanel';
+import { RightDrawer } from './RightDrawer';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n, interpolate } from '../../../i18n';
 import { useAuth } from '../../../stores/authStore';
@@ -163,8 +163,8 @@ const K8sTool: React.FC = () => {
         )}
       </div>
 
-      {/* 底部面板：多标签资源详情（无标签时自动隐藏） */}
-      <BottomPanel />
+      {/* 右侧抽屉：资源详情（点击 Pod 行触发） */}
+      <RightDrawer />
 
       {/* 连接配置模态框 */}
       <ConnectionModal

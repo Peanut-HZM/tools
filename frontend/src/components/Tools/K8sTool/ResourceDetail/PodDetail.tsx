@@ -39,6 +39,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 interface PodDetailProps {
   /** 从 BottomPanel 传入的标签 ID，未传时使用 store 中的 activeTabId */
   tabId?: string;
+  /** 从 RightDrawer 传入的资源信息，优先级高于 tabId */
+  resource?: {
+    id: string;
+    type: string;
+    namespace: string;
+    name: string;
+  };
 }
 
 /** 子 Tab 定义 */
@@ -71,7 +78,7 @@ const SUB_TABS: SubTab[] = [
   { key: 'related', labelKey: 'related', icon: Network },
 ];
 
-export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
+export const PodDetail: React.FC<PodDetailProps> = ({ tabId, resource }) => {
   const { t } = useI18n();
   const k8sT = t.tools['k8s-tool'];
   const tabT = k8sT.resourceDetail.tabs;
@@ -84,14 +91,11 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
     setActiveSubTab,
   } = useK8sStore();
 
-  // 如果未传 tabId，使用 store 中的 activeTabId
-  const currentTabId = tabId || activeTabId;
-
-  // 从 openedTabs 中查找当前标签
-  const currentTab = openedTabs.find((t) => t.id === currentTabId);
+  // 优先使用传入的 resource，否则从 store 中读取
+  const currentTab = resource || openedTabs.find((t) => t.id === (tabId || activeTabId));
 
   // 子 Tab 状态从 store 读取，按 tabId 维度持久化，跨 Pod 切换不会丢失
-  const activeTab = activeSubTabs[currentTabId || ''] || 'overview';
+  const activeTab = activeSubTabs[currentTab?.id || ''] || 'overview';
 
   // 获取 Pod 详情（使用 currentTab 的 namespace 和 name）
   const {
@@ -255,7 +259,7 @@ export const PodDetail: React.FC<PodDetailProps> = ({ tabId }) => {
       </div>
 
       {/* 子 Tab 栏 */}
-      <Tabs value={activeTab} onValueChange={(v) => { if (currentTabId) setActiveSubTab(currentTabId, v); }} className="px-2 border-b border-border bg-surface-1/30 shrink-0">
+      <Tabs value={activeTab} onValueChange={(v) => { if (currentTab?.id) setActiveSubTab(currentTab.id, v); }} className="px-2 border-b border-border bg-surface-1/30 shrink-0">
         <TabsList className="bg-transparent h-auto p-0">
           {SUB_TABS.map((tab) => (
             <TabsTrigger key={tab.key} value={tab.key} className="rounded-none bg-transparent px-3 py-2 text-xs font-medium border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-accent-info data-[state=active]:text-accent-info data-[state=inactive]:text-ink-muted">

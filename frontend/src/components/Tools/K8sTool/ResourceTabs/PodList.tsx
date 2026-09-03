@@ -1,10 +1,11 @@
 /**
- * K8s 控制台 - Pod 列表（分页 + 滚动修复）
+ * K8s 控制台 - Pod 列表（分页 + 搜索隔离 + 排序 + 右侧抽屉）
  *
  * 表格展示：状态图标、名称、重启次数、运行时间、节点、IP
- * 点击行触发 openResourceTab 打开对应标签页
+ * 点击行触发 openRightDrawer 打开右侧抽屉详情
  * 支持分页查询，每页默认 20 条，可切换 10/20/50
- * 修复 BottomPanel 遮挡导致的滚动问题
+ * 搜索条件按集群隔离（切换集群时各自保留）
+ * 默认按运行时间增序（存活年龄最小的在前）
  */
 import React, { useState, useMemo, useCallback } from 'react';
 import { Search, X, Loader2, AlertTriangle, Download } from 'lucide-react';
@@ -27,10 +28,13 @@ export const PodList: React.FC = () => {
     activeConnectionId,
     selectedNamespaces,
     namespaces,
-    openResourceTab,
+    podSearchTexts,
+    setPodSearchText,
+    openRightDrawer,
   } = useK8sStore();
   const { addToast } = useToast();
-  const [searchText, setSearchText] = useState('');
+  // 从 store 读取当前集群的搜索条件
+  const searchText = podSearchTexts[activeConnectionId || ''] || '';
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
@@ -44,11 +48,16 @@ export const PodList: React.FC = () => {
   const isError = !!error;
   const errorMessage = error instanceof Error ? error.message : k8sT.errors.CONNECTION_FAILED;
 
-  // 按名称过滤 + 分页切片
+  // 排序 + 按名称过滤 + 分页切片
   const { filteredItems, totalPages, pageItems, pageStart, pageEnd } = useMemo(() => {
+    // 排序：按 created_at 降序（时间越新 → 存活年龄越小 → 排越前）
+    const sorted = [...items].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
     const filtered = searchText
-      ? items.filter((pod) => pod.name.toLowerCase().includes(searchText.toLowerCase()))
-      : items;
+      ? sorted.filter((pod) => pod.name.toLowerCase().includes(searchText.toLowerCase()))
+      : sorted;
     const tp = Math.max(1, Math.ceil(filtered.length / pageSize));
     // 当前页码越界时回退到最后一页
     const safePage = Math.min(currentPage, tp);
@@ -64,16 +73,21 @@ export const PodList: React.FC = () => {
     };
   }, [items, searchText, pageSize, currentPage]);
 
-  // 搜索文本变化时重置到第 1 页
+  // 搜索文本变化时更新 store（按集群隔离）并重置到第 1 页
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
+    const text = e.target.value;
+    if (activeConnectionId) {
+      setPodSearchText(activeConnectionId, text);
+    }
     setCurrentPage(1);
-  }, []);
+  }, [activeConnectionId, setPodSearchText]);
 
   const handleClearSearch = useCallback(() => {
-    setSearchText('');
+    if (activeConnectionId) {
+      setPodSearchText(activeConnectionId, '');
+    }
     setCurrentPage(1);
-  }, []);
+  }, [activeConnectionId, setPodSearchText]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -84,15 +98,15 @@ export const PodList: React.FC = () => {
     setCurrentPage(1);
   }, []);
 
-  /** 点击行，打开该 Pod 的资源标签页 */
+  /** 点击行，打开该 Pod 的右侧抽屉详情 */
   const handleRowClick = useCallback((pod: typeof items[0]) => {
-    openResourceTab({
+    openRightDrawer({
       id: `pod-${pod.namespace}-${pod.name}`,
       type: 'pod',
       namespace: pod.namespace,
       name: pod.name,
     });
-  }, [openResourceTab]);
+  }, [openRightDrawer]);
 
   /** 下载 Pod 完整日志 */
   const handleDownloadLogs = useCallback(async (podName: string, namespace: string) => {
