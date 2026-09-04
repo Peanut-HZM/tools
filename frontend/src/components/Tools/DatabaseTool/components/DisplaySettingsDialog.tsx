@@ -410,10 +410,10 @@ export default function DisplaySettingsDialog({
           <button
             onClick={handleReset}
             disabled={saving}
-            className="px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <Undo2 className="w-3 h-3 mr-1" />
-            重置
+            <Undo2 className="w-3 h-3" />
+            <span>重置</span>
           </button>
           <div className="flex space-x-3">
             <button
@@ -426,17 +426,17 @@ export default function DisplaySettingsDialog({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-ink-inverse bg-accent hover:bg-accent-hover rounded-md shadow-sm transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-ink-inverse bg-accent hover:bg-accent-hover rounded-md shadow-sm transition-colors disabled:opacity-50"
             >
               {saving ? (
                 <>
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                  保存中...
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>保存中...</span>
                 </>
               ) : (
                 <>
-                  <Check className="w-3 h-3 mr-1" />
-                  {t.common.confirm}
+                  <Check className="w-3 h-3" />
+                  <span>{t.common.confirm}</span>
                 </>
               )}
             </button>
