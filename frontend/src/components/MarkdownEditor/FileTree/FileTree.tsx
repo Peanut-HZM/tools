@@ -3,6 +3,33 @@
  */
 import { useState, useCallback } from 'react';
 import type { FileNode } from '../../../types/markdownEditor';
+import { getFilePaths } from '../../../api/markdownEditorApi';
+
+/** 文件类型图标与颜色映射 */
+const FILE_ICONS: Record<string, { icon: string; color: string }> = {
+  markdown: { icon: '📝', color: '#3b82f6' },
+  html: { icon: '🌐', color: '#f97316' },
+  text: { icon: '📄', color: '#6b7280' },
+  image: { icon: '🖼️', color: '#10b981' },
+  code: { icon: '💻', color: '#8b5cf6' },
+  other: { icon: '📄', color: '#9ca3af' },
+};
+
+/** 根据文件类型获取图标 emoji */
+function getFileIconEmoji(node: FileNode): string {
+  if (node.file_type && FILE_ICONS[node.file_type]) {
+    return FILE_ICONS[node.file_type].icon;
+  }
+  return FILE_ICONS.other.icon;
+}
+
+/** 根据文件类型获取图标颜色 */
+function getIconColor(node: FileNode): string {
+  if (node.file_type && FILE_ICONS[node.file_type]) {
+    return FILE_ICONS[node.file_type].color;
+  }
+  return FILE_ICONS.other.color;
+}
 
 interface FileTreeProps {
   tree: FileNode | null;
@@ -15,6 +42,8 @@ interface FileTreeProps {
   onDeleteFile?: (path: string) => void;
   onDeleteDirectory?: (path: string) => void;
   onRenameFile?: (oldPath: string, newPath: string) => void;
+  onCopyPath?: (message: string) => void;
+  rootPath?: string;
 }
 
 interface TreeNodeProps {
@@ -70,15 +99,13 @@ function TreeNode({
         )}
         
         {/* File/Folder Icon */}
-        <span className="file-tree-icon">
+        <span className="file-tree-icon" style={{ color: getIconColor(node) }}>
           {isDirectory ? (
             <svg className="text-warning" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
             </svg>
           ) : (
-            <svg className="text-ink-muted" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-            </svg>
+            <span className="text-xs">{getFileIconEmoji(node)}</span>
           )}
         </span>
         
@@ -117,7 +144,9 @@ export default function FileTree({
   onCreateDirectory,
   onDeleteFile,
   onDeleteDirectory,
-  onRenameFile
+  onRenameFile,
+  onCopyPath,
+  rootPath,
 }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -136,6 +165,45 @@ export default function FileTree({
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
+
+  /** 复制绝对路径 */
+  const handleCopyAbsolutePath = useCallback(async () => {
+    if (contextMenu) {
+      try {
+        const paths = await getFilePaths(contextMenu.node.path);
+        await navigator.clipboard.writeText(paths.absolute_path);
+        onCopyPath?.(`已复制绝对路径: ${paths.absolute_path}`);
+      } catch {
+        onCopyPath?.('复制绝对路径失败');
+      }
+      closeContextMenu();
+    }
+  }, [contextMenu, closeContextMenu, onCopyPath]);
+
+  /** 复制相对路径 */
+  const handleCopyRelativePath = useCallback(async () => {
+    if (contextMenu) {
+      try {
+        const paths = await getFilePaths(contextMenu.node.path);
+        await navigator.clipboard.writeText(paths.relative_path);
+        onCopyPath?.(`已复制相对路径: ${paths.relative_path}`);
+      } catch {
+        // 如果 API 失败，回退使用节点路径
+        await navigator.clipboard.writeText(contextMenu.node.path);
+        onCopyPath?.(`已复制相对路径: ${contextMenu.node.path}`);
+      }
+      closeContextMenu();
+    }
+  }, [contextMenu, closeContextMenu, onCopyPath]);
+
+  /** 复制文件名 */
+  const handleCopyFileName = useCallback(() => {
+    if (contextMenu) {
+      navigator.clipboard.writeText(contextMenu.node.name);
+      onCopyPath?.(`已复制文件名: ${contextMenu.node.name}`);
+      closeContextMenu();
+    }
+  }, [contextMenu, closeContextMenu, onCopyPath]);
 
   const handleNewFile = useCallback(() => {
     if (contextMenu) {
@@ -226,6 +294,30 @@ export default function FileTree({
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* 复制路径菜单项（仅文件节点显示） */}
+          {contextMenu.node.type === 'file' && (
+            <>
+              <button
+                className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
+                onClick={handleCopyAbsolutePath}
+              >
+                复制绝对路径
+              </button>
+              <button
+                className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
+                onClick={handleCopyRelativePath}
+              >
+                复制相对路径
+              </button>
+              <button
+                className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
+                onClick={handleCopyFileName}
+              >
+                复制文件名
+              </button>
+              <div className="border-t border-border my-1" />
+            </>
+          )}
           <button
             className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
             onClick={handleNewFile}
