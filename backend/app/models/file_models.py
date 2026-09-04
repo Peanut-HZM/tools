@@ -14,6 +14,10 @@ class FileNode(BaseModel):
     size: Optional[int] = None
     modified: Optional[datetime] = None
     children: Optional[List['FileNode']] = None
+    # 文件类型元数据（可选，由后端在构建文件树时填充）
+    extension: Optional[str] = None       # 文件扩展名，如 ".md"
+    file_type: Optional[str] = None       # 文件类型分类，如 "markdown", "html"
+    previewable: Optional[bool] = None    # 是否支持预览
 
 
 class FileContent(BaseModel):
