@@ -102,7 +102,7 @@ class MarkdownFileService:
         """Get the user's root path"""
         return str(self._root_path)
     
-    def get_directory_tree(self, path: str = "") -> FileNode:
+    def get_directory_tree(self, path: str = "", depth: int = -1) -> FileNode:
         """
         Scan and return directory tree structure.
         Only includes Markdown files and directories containing them.
@@ -118,9 +118,9 @@ class MarkdownFileService:
         else:
             target_path = Path(self._root_path)
         
-        return self._scan_directory(target_path)
+        return self._scan_directory(target_path, depth)
     
-    def _scan_directory(self, dir_path: Path) -> FileNode:
+    def _scan_directory(self, dir_path: Path, depth: int = -1) -> FileNode:
         """Recursively scan a directory — includes all file types"""
         if not isinstance(dir_path, Path):
             dir_path = Path(dir_path)
@@ -145,10 +145,22 @@ class MarkdownFileService:
                 continue
 
             if entry.is_dir():
-                child_node = self._scan_directory(entry)
-                # Include directory if it has any files (not just markdown)
-                if child_node.children:
+                # 如果深度限制为 0，不再递归扫描子目录
+                if depth == 0:
+                    child_node = FileNode(
+                        name=entry.name,
+                        path=normalize_path(get_relative_path(str(entry), str(self._root_path))),
+                        type="directory",
+                        children=[]
+                    )
                     node.children.append(child_node)
+                else:
+                    # 递归扫描，深度减 1（-1 表示无限制）
+                    next_depth = depth - 1 if depth > 0 else -1
+                    child_node = self._scan_directory(entry, next_depth)
+                    # Include directory if it has any files (not just markdown)
+                    if child_node.children:
+                        node.children.append(child_node)
             elif entry.is_file():
                 stat = entry.stat()
                 child_rel_path = get_relative_path(str(entry), str(self._root_path))

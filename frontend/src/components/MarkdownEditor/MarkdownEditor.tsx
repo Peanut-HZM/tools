@@ -68,7 +68,8 @@ export default function MarkdownEditor() {
     clearError: clearFileError,
     setRootPath,
     loadRootPath,
-    loadOssFiles
+    loadOssFiles,
+    loadSubDirectory
   } = useFileStore();
 
   const {
@@ -209,11 +210,11 @@ export default function MarkdownEditor() {
   // Auto-save timer ref
   const autoSaveTimerRef = useRef<number | null>(null);
 
-  // Load initial data
+  // Load initial data - 使用 depth=1 快速加载第一层目录
   useEffect(() => {
     loadRootPath().then((info) => {
       if (info.exists) {
-        loadDirectoryTree();
+        loadDirectoryTree('', 1);  // 只加载第一层
       }
     });
     loadConfig();

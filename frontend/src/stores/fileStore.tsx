@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import * as markdownEditorApi from '../api/markdownEditorApi';
 import type { FileNode, FileContent, RootPathResponse } from '../types/markdownEditor';
 import type { OssFileInfo } from '../types/offlineCache';
+import { getMetadata, saveMetadata } from '../utils/indexedDb';
 
 export interface FileState {
   directoryTree: FileNode | null;
@@ -23,7 +24,8 @@ export interface FileState {
 export interface FileActions {
   loadRootPath: () => Promise<RootPathResponse>;
   setRootPath: (path: string) => Promise<void>;
-  loadDirectoryTree: (subPath?: string) => Promise<void>;
+  loadDirectoryTree: (subPath?: string, depth?: number) => Promise<void>;
+  loadSubDirectory: (path: string) => Promise<void>;
   openFile: (path: string) => Promise<void>;
   saveCurrentFile: (content: string) => Promise<void>;
   createFile: (path: string, content?: string) => Promise<void>;
@@ -42,6 +44,27 @@ export interface FileActions {
 export type FileContextType = FileState & FileActions;
 
 const FileContext = createContext<FileContextType | null>(null);
+
+
+/**
+ * 合并子目录树到主目录树
+ */
+function mergeSubTree(root: FileNode, targetPath: string, subTree: FileNode): FileNode {
+  if (root.path === targetPath) {
+    return { ...root, children: subTree.children };
+  }
+  
+  if (root.children) {
+    return {
+      ...root,
+      children: root.children.map(child => 
+        child.type === 'directory' ? mergeSubTree(child, targetPath, subTree) : child
+      )
+    };
+  }
+  
+  return root;
+}
 
 export function FileProvider({ children }: { children: ReactNode }) {
   const [directoryTree, setDirectoryTree] = useState<FileNode | null>(null);
@@ -66,17 +89,66 @@ export function FileProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const loadDirectoryTree = useCallback(async (subPath: string = '') => {
+  // 缓存过期时间：5 分钟
+  const CACHE_TTL = 5 * 60 * 1000;
+  
+  const loadDirectoryTree = useCallback(async (subPath: string = '', depth: number = -1) => {
     setIsLoading(true);
     setError(null);
     try {
-      const tree = await markdownEditorApi.getDirectoryTree(subPath);
+      // 首次加载使用 depth=1 只获取第一层
+      const tree = await markdownEditorApi.getDirectoryTree(subPath, depth);
       setDirectoryTree(tree);
+      
+      // 缓存根目录树（仅当 depth=-1 时，即完整加载）
+      if (depth === -1 && !subPath) {
+        const cacheKey = 'directory_tree_root';
+        const cacheData = {
+          tree,
+          timestamp: Date.now()
+        };
+        await saveMetadata(cacheKey, cacheData);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load directory tree');
       throw e;
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  // 异步加载子目录（用户展开节点时调用）
+  const loadSubDirectory = useCallback(async (path: string) => {
+    try {
+      // 检查缓存
+      const cacheKey = `directory_tree_${path}`;
+      const cached = await getMetadata<{ tree: FileNode; timestamp: number }>(cacheKey);
+      
+      if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+        // 缓存命中，更新目录树
+        setDirectoryTree(prev => {
+          if (!prev) return prev;
+          return mergeSubTree(prev, path, cached.tree);
+        });
+        return;
+      }
+      
+      // 缓存未命中或过期，从后端加载
+      const subTree = await markdownEditorApi.getDirectoryTree(path, -1);
+      
+      // 保存缓存
+      await saveMetadata(cacheKey, {
+        tree: subTree,
+        timestamp: Date.now()
+      });
+      
+      // 更新目录树
+      setDirectoryTree(prev => {
+        if (!prev) return prev;
+        return mergeSubTree(prev, path, subTree);
+      });
+    } catch (e) {
+      console.error('Failed to load sub directory:', e);
     }
   }, []);
 

@@ -149,6 +149,7 @@ async def update_root_path(
 @router.get("/files/tree", response_model=FileNode)
 async def get_directory_tree(
     root: Optional[str] = Query(default="", description="Relative path from root"),
+    depth: int = Query(default=-1, description="扫描深度，-1 表示无限制，0 表示只返回第一层"),
     user_id: str = Depends(get_current_user_id),
 ):
     """
@@ -157,7 +158,7 @@ async def get_directory_tree(
     """
     try:
         service = get_file_service(user_id)
-        return service.get_directory_tree(root)
+        return service.get_directory_tree(root, depth)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

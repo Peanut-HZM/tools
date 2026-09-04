@@ -63,10 +63,13 @@ export async function updateRootPath(path: string): Promise<RootPathResponse> {
 
 /**
  * Get directory tree structure
+ * @param root - 相对路径
+ * @param depth - 扫描深度，-1 表示无限制，0 表示只返回第一层
  */
-export async function getDirectoryTree(root: string = ''): Promise<FileNode> {
+export async function getDirectoryTree(root: string = '', depth: number = -1): Promise<FileNode> {
   const params = new URLSearchParams();
   if (root) params.append('root', root);
+  params.append('depth', depth.toString());
   
   const response = await authedFetch(`${API_BASE_URL}/files/tree?${params}`, {
     method: 'GET',
