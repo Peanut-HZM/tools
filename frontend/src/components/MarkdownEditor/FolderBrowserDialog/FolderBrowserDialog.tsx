@@ -92,7 +92,7 @@ export default function FolderBrowserDialog({
 
   /** 返回上层目录 */
   const handleGoUp = useCallback(() => {
-    if (!currentPath) return;
+    if (!currentPath || currentPath === '.') return;
     const parts = currentPath.split('/');
     parts.pop();
     const parentPath = parts.join('/');
@@ -111,7 +111,9 @@ export default function FolderBrowserDialog({
 
   /** 确认选择当前文件夹 */
   const handleConfirm = useCallback(() => {
-    onConfirm(currentPath);
+    // 如果 currentPath 是 "."（根目录），传空字符串
+    const pathToConfirm = currentPath === '.' ? '' : currentPath;
+    onConfirm(pathToConfirm);
   }, [currentPath, onConfirm]);
 
   /** 手动路径确认 */
@@ -159,7 +161,7 @@ export default function FolderBrowserDialog({
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-surface-2/30">
           <button
             onClick={handleGoUp}
-            disabled={!currentPath}
+            disabled={!currentPath || currentPath === '.'}
             className="px-2 py-1 text-sm text-ink-muted hover:text-ink disabled:opacity-30 cursor-pointer disabled:cursor-default rounded hover:bg-surface-2 transition-colors"
             title="返回上层目录"
           >
@@ -255,11 +257,6 @@ export default function FolderBrowserDialog({
                     >
                       <span className="shrink-0">{icon}</span>
                       <span className="truncate flex-1 text-ink">{file.name}</span>
-                      {file.previewable && (
-                        <span className="text-xs text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded shrink-0">
-                          可预览
-                        </span>
-                      )}
                     </div>
                   );
                 })}
