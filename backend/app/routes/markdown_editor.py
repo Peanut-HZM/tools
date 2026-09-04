@@ -2,7 +2,7 @@
 Markdown Editor API Router - Handles file, config, and search operations
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File, Header
 from fastapi.responses import Response
 from typing import Optional, List
 import os
