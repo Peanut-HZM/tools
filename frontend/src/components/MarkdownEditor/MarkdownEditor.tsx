@@ -6,6 +6,7 @@ import FileTree from './FileTree/FileTree';
 import OssFileList from './OssFileList/OssFileList';
 import Editor from './Editor/Editor';
 import Preview from './Preview/Preview';
+import HtmlPreview from './Preview/HtmlPreview';
 import SearchDialog from './SearchDialog/SearchDialog';
 import SettingsDialog from './SettingsDialog/SettingsDialog';
 import StatusBar from './StatusBar/StatusBar';
@@ -484,6 +485,13 @@ export default function MarkdownEditor() {
 
   const isDark = config.theme === 'dark';
 
+  // 检测当前文件类型：HTML 文件使用 HtmlPreview，其他使用 Preview
+  const currentFileType = currentFilePath
+    ? currentFilePath.endsWith('.html') || currentFilePath.endsWith('.htm')
+      ? 'html'
+      : 'markdown'
+    : 'markdown';
+
 
 
   return (
@@ -678,7 +686,11 @@ export default function MarkdownEditor() {
                  <div className="resize-handle toc-resize" onMouseDown={() => startResize('toc')} />
                  
                  <div className="preview-full">
-                    <Preview content={content} theme={config.theme} />
+                    {currentFileType === 'html' ? (
+                      <HtmlPreview content={content} theme={config.theme} />
+                    ) : (
+                      <Preview content={content} theme={config.theme} />
+                    )}
                  </div>
                </div>
              ) : (
@@ -767,7 +779,11 @@ export default function MarkdownEditor() {
             <div className="resize-handle" onMouseDown={() => startResize('preview')} />
             
             <div className="preview-area" style={{ width: previewWidth }}>
-              <Preview content={content} theme={config.theme} />
+              {currentFileType === 'html' ? (
+                <HtmlPreview content={content} theme={config.theme} />
+              ) : (
+                <Preview content={content} theme={config.theme} />
+              )}
             </div>
           </>
         )}
