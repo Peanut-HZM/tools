@@ -18,6 +18,7 @@ import { saveMarkdownToOss, uploadMarkdownFile, readMarkdownFromOss } from '../.
 import type { EditorConfig } from '../../types/markdownEditor';
 import { useToast } from '../../hooks/useToast';
 import Toast from './Toast/Toast';
+import FolderBrowserDialog from './FolderBrowserDialog/FolderBrowserDialog';
 
 // SVG Icons
 const Icons = {
@@ -189,7 +190,6 @@ export default function MarkdownEditor() {
   
   // Dialog states
   const [showFolderSelect, setShowFolderSelect] = useState(false);
-  const [folderPathInput, setFolderPathInput] = useState('');
   const [showNewFile, setShowNewFile] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [newFileFolder, setNewFileFolder] = useState('');
@@ -342,6 +342,7 @@ export default function MarkdownEditor() {
     }
     setOssFilePath(null);
     await openFile(path);
+    setViewMode('preview'); // 默认进入预览模式
   }, [isDirty, handleSave, openFile]);
 
   // Handle Resizing
@@ -406,23 +407,17 @@ export default function MarkdownEditor() {
   }, [handleSave]);
 
   // Handlers for Header Actions
-  const handleOpenFolder = async () => {
-    if (!folderPathInput) return;
-    
-    // Close dialog immediately to show loading state clearly
+  const handleFolderBrowserConfirm = useCallback(async (path: string) => {
     setShowFolderSelect(false);
-    
     try {
-      await setRootPath(folderPathInput);
+      await setRootPath(path);
       await loadDirectoryTree();
-      setFolderPathInput('');
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e);
-      // Re-open dialog if failed so user can try again
       setShowFolderSelect(true);
-      alert('Failed to open folder: ' + (e instanceof Error ? e.message : String(e)));
+      showToast('打开文件夹失败: ' + (e instanceof Error ? e.message : String(e)), 'error');
     }
-  };
+  }, [setRootPath, loadDirectoryTree, showToast]);
 
   const handleCreateFile = async () => {
     if (!newFileName) return;
@@ -639,6 +634,8 @@ export default function MarkdownEditor() {
                   onDeleteDirectory={deleteDirectory}
                   onRenameFile={renameFile}
                   onToggleNode={toggleNode}
+                  onCopyPath={(msg) => showToast(msg, 'success')}
+                  rootPath={rootPath}
                 />
               )
             ) : (
@@ -815,42 +812,12 @@ export default function MarkdownEditor() {
       />
 
       {/* Open Folder Dialog Overlay */}
-      {showFolderSelect && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 p-6 rounded-lg w-[500px] border border-border shadow-md">
-            <h2 className="text-xl font-bold mb-4">{t.common.openFolder || 'Open Folder'}</h2>
-            <div className="mb-4">
-              <label className="block text-sm mb-2 text-ink-muted">Folder Path</label>
-              <input 
-                type="text" 
-                value={folderPathInput}
-                onChange={(e) => setFolderPathInput(e.target.value)}
-                placeholder={window.location.hostname === 'localhost' ? "C:\\path\\to\\folder" : "/home/user/docs"}
-                className="w-full p-2 rounded bg-canvas border border-border focus:border-accent-cyan outline-none text-ink"
-              />
-              <p className="text-xs text-ink-faint mt-2">
-                {window.location.hostname === 'localhost'
-                  ? 'Enter absolute path to folder on your machine'
-                  : 'Enter absolute path to folder on the SERVER (not your local machine)'}
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowFolderSelect(false)}
-                className="px-4 py-2 rounded text-ink-muted hover:text-ink"
-              >
-                {t.common.cancel}
-              </button>
-              <button 
-                onClick={handleOpenFolder}
-                className="px-4 py-2 rounded bg-accent text-ink-inverse hover:bg-accent-hover"
-              >
-                {t.common.confirm}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <FolderBrowserDialog
+        open={showFolderSelect}
+        onClose={() => setShowFolderSelect(false)}
+        onConfirm={handleFolderBrowserConfirm}
+        rootPath={rootPath}
+      />
 
       {/* New File Dialog Overlay */}
       {showNewFile && (
