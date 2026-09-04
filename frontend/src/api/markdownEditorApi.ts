@@ -12,7 +12,9 @@ import type {
   RootPathResponse,
   EditorConfig,
   FileSearchResult,
-  ContentSearchResult
+  ContentSearchResult,
+  DirectoryBrowseData,
+  FilePathData,
 } from '../types/markdownEditor';
 
 import { MARKDOWN_EDITOR_API_BASE_URL } from '../config/api';
@@ -183,12 +185,41 @@ export async function createDirectory(path: string): Promise<CreateResult> {
  */
 export async function deleteDirectory(path: string, recursive: boolean = false): Promise<DeleteResult> {
   const params = new URLSearchParams({ path, recursive: String(recursive) });
-  
+
   const response = await authedFetch(`${API_BASE_URL}/files/directory/delete?${params}`, {
     method: 'DELETE',
     headers: getAuthHeaders()
   });
   return handleResponse<DeleteResult>(response);
+}
+
+/**
+ * Browse directory contents for folder browser dialog
+ */
+export async function browseDirectories(parentPath: string = ''): Promise<DirectoryBrowseData> {
+  const params = new URLSearchParams();
+  if (parentPath) params.append('parent_path', parentPath);
+
+  const response = await authedFetch(`${API_BASE_URL}/files/directories?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  const result = await handleResponse<{ success: boolean; data: DirectoryBrowseData }>(response);
+  return result.data;
+}
+
+/**
+ * Get absolute and relative paths for a file
+ */
+export async function getFilePaths(path: string): Promise<FilePathData> {
+  const params = new URLSearchParams({ path });
+
+  const response = await authedFetch(`${API_BASE_URL}/files/paths?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  const result = await handleResponse<{ success: boolean; data: FilePathData }>(response);
+  return result.data;
 }
 
 // ==================== Config Operations ====================

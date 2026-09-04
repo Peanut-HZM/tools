@@ -11,6 +11,9 @@ export interface FileNode {
   size?: number;
   modified?: string;
   children?: FileNode[];
+  extension?: string;        // 文件扩展名 (如 ".md")
+  file_type?: string;         // 文件类型分类 (如 "markdown", "html")
+  previewable?: boolean;      // 是否支持预览
 }
 
 export interface FileContent {
@@ -118,4 +121,40 @@ export interface ApiError {
   status: number;
   message: string;
   details?: string;
+}
+
+// ==================== Directory Browse Types ====================
+
+export interface DirectoryItem {
+  name: string;
+  path: string;
+  has_children?: boolean;
+}
+
+export interface FileItem {
+  name: string;
+  path: string;
+  extension: string;
+  file_type: string;
+  previewable: boolean;
+  size: number;
+}
+
+export interface BreadcrumbItem {
+  name: string;
+  path: string;
+}
+
+export interface DirectoryBrowseData {
+  current_path: string;
+  breadcrumbs: BreadcrumbItem[];
+  directories: DirectoryItem[];
+  files: FileItem[];
+}
+
+export interface FilePathData {
+  absolute_path: string;
+  relative_path: string;
+  file_name: string;
+  root_path: string;
 }
