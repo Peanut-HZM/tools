@@ -20,6 +20,17 @@ from app.utils.path_utils import (
 
 class MarkdownFileService:
     """Service for file system operations with user isolation"""
+
+    @staticmethod
+    def _format_bytes(size: int) -> str:
+        """Format byte count to human-readable string (e.g. '7.07 MB', '512.00 KB')"""
+        if size < 1024:
+            return f"{size} B"
+        for unit in ("KB", "MB", "GB"):
+            size /= 1024
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+        return f"{size:.2f} TB"
     
     def __init__(self, user_id: str, base_path: str = "./data/users", custom_root: Optional[str] = None):
         """
@@ -172,13 +183,15 @@ class MarkdownFileService:
         if not file_path.is_file():
             raise ValueError(f"Path is not a file: {path}")
 
-        # Limit HTML file size to 1MB
+        # Limit HTML file size to 10MB (human-readable safety limit for full HTML reports)
         file_type = get_file_type(file_path.name)
-        max_size = 1024 * 1024 if file_type == 'html' else None
+        max_size = 10 * 1024 * 1024 if file_type == 'html' else None
 
         stat = file_path.stat()
         if max_size and stat.st_size > max_size:
-            raise ValueError(f"File too large: {stat.st_size} bytes (max {max_size})")
+            raise ValueError(
+                f"HTML 文件过大：{self._format_bytes(stat.st_size)}（最大 {self._format_bytes(max_size)}）"
+            )
 
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()

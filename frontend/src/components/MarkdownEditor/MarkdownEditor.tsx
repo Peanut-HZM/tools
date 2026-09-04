@@ -492,6 +492,16 @@ export default function MarkdownEditor() {
       : 'markdown'
     : 'markdown';
 
+  // HTML 文件"在浏览器中打开"处理
+  const handleOpenInBrowser = useCallback(() => {
+    if (currentFilePath) {
+      const encodedPath = encodeURIComponent(currentFilePath);
+      const token = localStorage.getItem('auth_token');
+      const url = `/api/markdown-editor/files/serve?path=${encodedPath}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+      window.open(url, '_blank');
+    }
+  }, [currentFilePath]);
+
 
 
   return (
@@ -548,6 +558,20 @@ export default function MarkdownEditor() {
                 {t.editor.edit}
               </button>
             </div>
+          )}
+
+          {/* HTML 文件"在浏览器中打开"按钮 */}
+          {currentFileType === 'html' && currentFilePath && (
+            <button
+              className="neon-button"
+              onClick={handleOpenInBrowser}
+              title="在新标签页中打开 HTML 文件（适用于大文件或需要完整浏览器功能的场景）"
+            >
+              <svg viewBox="0 0 1024 1024" width="1em" height="1em">
+                <path fill="currentColor" d="M853.3 213.3h-128v85.4h128v554.6H170.7v-554.6h128V213.3h-128C124 213.3 85.3 252 85.3 298.7v554.6c0 46.7 38.7 85.4 85.4 85.4h682.6c46.7 0 85.4-38.7 85.4-85.4V298.7c0-46.7-38.7-85.4-85.4-85.4zM597.3 469.3 512 384 256 640l85.3 85.3 170.7-170.6v341.3h128V554.7L810.7 725.3 896 640 597.3 469.3z"/>
+              </svg>
+              在浏览器中打开
+            </button>
           )}
 
           {viewMode === 'edit' && (

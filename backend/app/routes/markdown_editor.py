@@ -3,6 +3,7 @@ Markdown Editor API Router - Handles file, config, and search operations
 """
 
 from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File
+from fastapi.responses import Response
 from typing import Optional, List
 import os
 import uuid
@@ -174,6 +175,88 @@ async def read_file(
         return service.read_file(path)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+# Content type mapping for direct file serving
+_CONTENT_TYPES = {
+    '.html': 'text/html; charset=utf-8',
+    '.htm': 'text/html; charset=utf-8',
+    '.md': 'text/markdown; charset=utf-8',
+    '.markdown': 'text/markdown; charset=utf-8',
+    '.txt': 'text/plain; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.xml': 'application/xml; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+}
+
+
+@router.get("/files/serve")
+async def serve_file(
+    path: str = Query(..., description="Relative path to the file"),
+    token: Optional[str] = Query(default=None, description="JWT token (alternative to Authorization header)"),
+    authorization: Optional[str] = Header(default=None),
+):
+    """
+    Serve file content directly for browser viewing.
+    Used for opening large HTML files or other files in a new browser tab.
+    Accepts authentication via Authorization header OR token query parameter.
+    """
+    try:
+        # Authenticate: accept token from header or query param
+        from app.middleware.auth_middleware import auth_service
+        from app.models.auth_models import TokenData
+
+        token_value = None
+        if authorization:
+            if authorization.startswith('Bearer '):
+                token_value = authorization[7:]
+            else:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid authorization header format. Expected 'Bearer <token>'",
+                )
+        elif token:
+            token_value = token
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Authorization header missing. Use ?token=<jwt_token> query parameter for browser tab access.",
+            )
+
+        token_data: TokenData = auth_service.verify_token_data(token_value)
+        user_id = token_data.user_id
+
+        service = get_file_service(user_id)
+        # Reuse the same path validation and resolution logic
+        resolved_path = service._validate_and_resolve(path)
+
+        if not resolved_path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {path}")
+        if not resolved_path.is_file():
+            raise HTTPException(status_code=400, detail=f"Path is not a file: {path}")
+
+        # Determine content type from extension
+        ext = resolved_path.suffix.lower()
+        content_type = _CONTENT_TYPES.get(ext, 'application/octet-stream')
+
+        # Read file content (no size limit for direct serving, browser handles it)
+        with open(resolved_path, 'rb') as f:
+            content = f.read()
+
+        return Response(
+            content=content,
+            media_type=content_type,
+            headers={
+                'Content-Disposition': f'inline; filename="{resolved_path.name}"'
+            }
+        )
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
