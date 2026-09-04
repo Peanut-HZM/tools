@@ -1,6 +1,6 @@
 /**
  * FolderBrowserDialog - 文件夹浏览对话框
- * 左右分栏布局：左侧目录列表 + 右侧文件列表
+ * 单栏目录列表布局
  * 支持面包屑导航、返回上层、手动路径输入
  */
 import { useState, useEffect, useCallback } from 'react';
@@ -8,7 +8,6 @@ import { browseDirectories } from '../../../api/markdownEditorApi';
 import type {
   DirectoryBrowseData,
   DirectoryItem,
-  FileItem,
   BreadcrumbItem,
 } from '../../../types/markdownEditor';
 import './FolderBrowserDialog.css';
@@ -20,23 +19,6 @@ interface FolderBrowserDialogProps {
   onClose: () => void;
   onConfirm: (path: string) => void;
   rootPath: string;
-}
-
-// ==================== 常量 ====================
-
-/** 文件类型图标与颜色映射 */
-const FILE_TYPE_ICONS: Record<string, string> = {
-  markdown: '📝',
-  html: '🌐',
-  text: '📃',
-  image: '🖼️',
-  code: '💻',
-  other: '📄',
-};
-
-/** 获取文件类型对应的图标 */
-function getFileIcon(fileType: string): string {
-  return FILE_TYPE_ICONS[fileType] ?? FILE_TYPE_ICONS.other;
 }
 
 // ==================== 主组件 ====================
@@ -215,10 +197,8 @@ export default function FolderBrowserDialog({
           </div>
         )}
 
-        {/* ===== 内容区：左侧目录列表 + 右侧文件列表 ===== */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* 左侧：目录列表 */}
-          <div className="w-2/5 border-r border-border overflow-auto">
+        {/* ===== 内容区：目录列表 ===== */}
+        <div className="flex-1 overflow-auto">
             {loading ? (
               <LoadingState />
             ) : error ? (
@@ -238,34 +218,6 @@ export default function FolderBrowserDialog({
                 )}
               </>
             )}
-          </div>
-
-          {/* 右侧：文件列表 */}
-          <div className="w-3/5 overflow-auto">
-            {loading ? (
-              <LoadingState />
-            ) : error ? (
-              <ErrorState message={error} />
-            ) : (
-              <>
-                {data?.files.map((file: FileItem) => {
-                  const icon = getFileIcon(file.file_type);
-                  return (
-                    <div
-                      key={file.path}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-muted hover:bg-surface-2/50 transition-colors"
-                    >
-                      <span className="shrink-0">{icon}</span>
-                      <span className="truncate flex-1 text-ink">{file.name}</span>
-                    </div>
-                  );
-                })}
-                {data?.files.length === 0 && (
-                  <EmptyState text="空目录" />
-                )}
-              </>
-            )}
-          </div>
         </div>
 
         {/* ===== 底部：路径信息 + 操作按钮 ===== */}
