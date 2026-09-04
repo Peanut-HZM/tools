@@ -7,4 +7,5 @@ export { default as Editor } from './Editor/Editor';
 export { default as Preview } from './Preview/Preview';
 export { default as SearchDialog } from './SearchDialog/SearchDialog';
 export { default as SettingsDialog } from './SettingsDialog/SettingsDialog';
+export { default as FolderBrowserDialog } from './FolderBrowserDialog/FolderBrowserDialog';
 export { default as StatusBar } from './StatusBar/StatusBar';

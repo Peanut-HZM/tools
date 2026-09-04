@@ -1,0 +1,19 @@
+/* FolderBrowserDialog 自定义样式 */
+/* 主要布局使用 Tailwind 工具类，此文件仅包含动画和过渡效果 */
+
+/* 加载旋转动画 */
+.folder-browser-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-default, rgba(255, 255, 255, 0.2));
+  border-top-color: var(--accent-cyan, #06b6d4);
+  border-radius: 50%;
+  animation: folder-browser-spin 0.6s linear infinite;
+}
+
+@keyframes folder-browser-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
