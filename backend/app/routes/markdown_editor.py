@@ -26,6 +26,7 @@ from app.services.markdown_file_service import MarkdownFileService
 from app.services.markdown_config_service import MarkdownConfigService
 from app.services.markdown_search_service import MarkdownSearchService
 from app.services.oss_service import oss_service
+from app.utils.path_utils import get_file_type, get_extension, is_previewable
 from app.middleware.auth_middleware import get_current_user_id
 
 router = APIRouter(prefix="/api/markdown-editor", tags=["markdown-editor"])
@@ -309,6 +310,53 @@ async def delete_directory(
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+# ==================== Directory Browse Operations ====================
+
+
+class DirectoryBrowseResponse(BaseModel):
+    """Response for directory browsing"""
+    success: bool
+    data: dict
+
+
+class FilePathResponse(BaseModel):
+    """Response for file path query"""
+    success: bool
+    data: dict
+
+
+@router.get("/files/directories", response_model=DirectoryBrowseResponse)
+async def browse_directories(
+    parent_path: str = Query(default="", description="Relative path of directory to browse"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Browse directory contents for the folder browser dialog"""
+    try:
+        service = get_file_service(user_id)
+        result = service.list_directory(parent_path)
+        return DirectoryBrowseResponse(success=True, data=result)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.get("/files/paths", response_model=FilePathResponse)
+async def get_file_paths(
+    path: str = Query(..., description="Relative path to the file"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Get absolute and relative paths for a file"""
+    try:
+        service = get_file_service(user_id)
+        result = service.get_file_paths(path)
+        return FilePathResponse(success=True, data=result)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 

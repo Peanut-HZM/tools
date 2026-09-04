@@ -12,8 +12,9 @@ from app.models.file_models import (
     RenameResult, DeleteResult
 )
 from app.utils.path_utils import (
-    validate_path, is_hidden, is_markdown_file, 
-    get_relative_path, normalize_path, ensure_user_directory
+    validate_path, is_hidden, is_markdown_file,
+    get_relative_path, normalize_path, ensure_user_directory,
+    get_file_type, get_extension, is_previewable
 )
 
 
@@ -109,38 +110,35 @@ class MarkdownFileService:
         return self._scan_directory(target_path)
     
     def _scan_directory(self, dir_path: Path) -> FileNode:
-        """Recursively scan a directory"""
+        """Recursively scan a directory — includes all file types"""
         if not isinstance(dir_path, Path):
             dir_path = Path(dir_path)
         rel_path = get_relative_path(str(dir_path), str(self._root_path))
         if rel_path == '.':
             rel_path = ''
-        
+
         node = FileNode(
             name=dir_path.name or str(self._root_path),
             path=normalize_path(rel_path),
             type="directory",
             children=[]
         )
-        
+
         try:
             entries = sorted(dir_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
         except PermissionError:
             return node
-        
+
         for entry in entries:
-            # Skip ignored files/directories
             if self._is_ignored(entry.name, entry.is_dir()):
                 continue
-            
+
             if entry.is_dir():
-                # Recursively scan subdirectory
                 child_node = self._scan_directory(entry)
-                # Only include directory if it has markdown files
+                # Include directory if it has any files (not just markdown)
                 if child_node.children:
                     node.children.append(child_node)
-            elif entry.is_file() and is_markdown_file(entry.name):
-                # Include markdown files
+            elif entry.is_file():
                 stat = entry.stat()
                 child_rel_path = get_relative_path(str(entry), str(self._root_path))
                 file_node = FileNode(
@@ -148,34 +146,43 @@ class MarkdownFileService:
                     path=normalize_path(child_rel_path),
                     type="file",
                     size=stat.st_size,
-                    modified=datetime.fromtimestamp(stat.st_mtime)
+                    modified=datetime.fromtimestamp(stat.st_mtime),
+                    extension=get_extension(entry.name),
+                    file_type=get_file_type(entry.name),
+                    previewable=is_previewable(entry.name),
                 )
                 node.children.append(file_node)
-        
+
         return node
 
     def read_file(self, path: str) -> FileContent:
         """
-        Read file content with metadata.
-        
+        Read file content with metadata. Supports markdown, HTML, and text files.
+
         Args:
             path: Relative path to the file
-            
+
         Returns:
             FileContent with content and metadata
         """
         file_path = self._validate_and_resolve(path)
-        
+
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {path}")
         if not file_path.is_file():
             raise ValueError(f"Path is not a file: {path}")
-        
+
+        # Limit HTML file size to 1MB
+        file_type = get_file_type(file_path.name)
+        max_size = 1024 * 1024 if file_type == 'html' else None
+
         stat = file_path.stat()
-        
+        if max_size and stat.st_size > max_size:
+            raise ValueError(f"File too large: {stat.st_size} bytes (max {max_size})")
+
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         return FileContent(
             path=normalize_path(path),
             content=content,
@@ -392,3 +399,133 @@ class MarkdownFileService:
         except Exception:
             pass
         return None
+
+    def list_directory(self, path: str = "") -> dict:
+        """
+        List contents of a directory for the browser dialog.
+        Returns directories and files separately.
+
+        Args:
+            path: Relative path of directory to browse (empty string for root)
+
+        Returns:
+            dict with current_path, breadcrumbs, directories, files
+        """
+        root_path = (
+            self._root_path
+            if isinstance(self._root_path, Path)
+            else Path(self._root_path)
+        )
+        if path:
+            target_path = self._validate_and_resolve(path)
+        else:
+            target_path = root_path
+
+        if not target_path.exists() or not target_path.is_dir():
+            raise ValueError(f"Directory not found: {path}")
+
+        directories = []
+        files = []
+
+        try:
+            entries = sorted(
+                target_path.iterdir(),
+                key=lambda x: (not x.is_dir(), x.name.lower())
+            )
+        except PermissionError:
+            return {
+                "current_path": str(target_path),
+                "breadcrumbs": [],
+                "directories": [],
+                "files": [],
+            }
+
+        for entry in entries:
+            if self._is_ignored(entry.name, entry.is_dir()):
+                continue
+
+            entry_rel_path = get_relative_path(str(entry), str(self._root_path))
+
+            if entry.is_dir():
+                try:
+                    has_children = any(
+                        not self._is_ignored(c.name, c.is_dir())
+                        for c in entry.iterdir()
+                    )
+                except PermissionError:
+                    has_children = False
+                directories.append({
+                    "name": entry.name,
+                    "path": normalize_path(entry_rel_path),
+                    "has_children": has_children,
+                })
+            elif entry.is_file():
+                stat = entry.stat()
+                files.append({
+                    "name": entry.name,
+                    "path": normalize_path(entry_rel_path),
+                    "extension": get_extension(entry.name),
+                    "file_type": get_file_type(entry.name),
+                    "previewable": is_previewable(entry.name),
+                    "size": stat.st_size,
+                })
+
+        breadcrumbs = self._build_breadcrumbs(target_path)
+
+        return {
+            "current_path": normalize_path(
+                get_relative_path(str(target_path), str(self._root_path))
+            ),
+            "breadcrumbs": breadcrumbs,
+            "directories": directories,
+            "files": files,
+        }
+
+    def _build_breadcrumbs(self, target_path: Path) -> list:
+        """Build breadcrumb navigation from root to target.
+
+        Args:
+            target_path: Absolute path to build breadcrumbs for
+
+        Returns:
+            List of dicts with 'name' and 'path' keys
+        """
+        root = (
+            self._root_path
+            if isinstance(self._root_path, Path)
+            else Path(self._root_path)
+        ).resolve()
+        breadcrumbs = [{"name": root.name, "path": ""}]
+
+        try:
+            relative = target_path.relative_to(root)
+        except ValueError:
+            return breadcrumbs
+
+        current_parts: list = []
+        for part in relative.parts:
+            current_parts.append(part)
+            breadcrumbs.append({
+                "name": part,
+                "path": normalize_path("/".join(current_parts)),
+            })
+
+        return breadcrumbs
+
+    def get_file_paths(self, relative_path: str) -> dict:
+        """
+        Get absolute and relative paths for a file.
+
+        Args:
+            relative_path: Relative path to the file (from root)
+
+        Returns:
+            dict with absolute_path, relative_path, file_name, root_path
+        """
+        resolved = self._validate_and_resolve(relative_path)
+        return {
+            "absolute_path": str(resolved),
+            "relative_path": normalize_path(relative_path),
+            "file_name": resolved.name,
+            "root_path": str(self._root_path),
+        }
