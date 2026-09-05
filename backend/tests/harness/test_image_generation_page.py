@@ -48,11 +48,11 @@ def test_image_gen_agent_seed_idempotent(client, env):
     """两次调用返回同一 agent，且属性正确（public / slug）"""
     from app.models.agent import Agent
 
-    r1 = client.get("/api/v1/tools/image-generation/agent")
+    r1 = client.get("/api/tools/image-generation/agent")
     assert r1.status_code == 200, r1.text
     body1 = r1.json()
 
-    r2 = client.get("/api/v1/tools/image-generation/agent")
+    r2 = client.get("/api/tools/image-generation/agent")
     body2 = r2.json()
     assert body1["agent_id"] == body2["agent_id"]
 

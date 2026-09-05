@@ -22,7 +22,7 @@ import {
 } from '../../../services/conversationApi';
 import { getAuthHeaders } from '../../../api/authApi';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const CONV_STORAGE_KEY = 'image-gen-conversation-id';
 
 /** 安全 URL：仅允许 http/https（防 javascript:/data: scheme） */
