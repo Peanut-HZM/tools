@@ -170,6 +170,7 @@ export const TerminalPanel: React.FC<Props> = ({
     if (!fit || !terminal) return;
     const tid = setTimeout(() => {
       fit.fit();
+      terminal.focus();
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'resize', cols: terminal.cols, rows: terminal.rows }));
       }
@@ -201,7 +202,11 @@ export const TerminalPanel: React.FC<Props> = ({
       className="w-full h-full bg-canvas"
       onClick={() => {
         terminalInstance.current?.focus();
-        if (statusRef.current === 'error' || statusRef.current === 'disconnected') {
+        const s = socketRef.current;
+        // WebSocket 未就绪时主动重连(不依赖 statusRef,避免因心跳 pong 掩盖 channel 死亡)
+        if (!s || s.readyState !== WebSocket.OPEN) {
+          connect();
+        } else if (statusRef.current === 'error' || statusRef.current === 'disconnected') {
           connect();
         }
       }}
