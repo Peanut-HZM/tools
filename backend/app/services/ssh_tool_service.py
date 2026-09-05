@@ -2,6 +2,7 @@ import asyncio
 import io
 import json
 import logging
+import socket
 import uuid
 import time
 from datetime import datetime
@@ -421,13 +422,20 @@ class SSHToolService:
             stop_event = asyncio.Event()
 
             async def send_pong():
-                """每 30s 向前端发一次 pong,前端以 90s 无数据为死亡判定"""
+                """每 30s 向前端发一次 pong,前端以 90s 无数据为死亡判定;channel 死亡时主动关闭 WS"""
                 while not stop_event.is_set():
                     try:
                         await asyncio.wait_for(stop_event.wait(), timeout=30.0)
                         return  # stop_event 被 set,退出
                     except asyncio.TimeoutError:
                         pass
+                    # 检查 SSH channel 是否仍然存活
+                    if channel is not None and (channel.closed or not channel.get_transport() or not channel.get_transport().is_active()):
+                        try:
+                            await websocket.send_text(json.dumps({"type": "error", "message": "SSH 通道已断开"}))
+                        except Exception:
+                            pass
+                        break
                     try:
                         if websocket.client_state.name == "CONNECTED":
                             await websocket.send_text(json.dumps({"type": "pong"}))
@@ -455,7 +463,14 @@ class SSHToolService:
                     elif message_type == 'input' and channel is not None:
                         try:
                             channel.send(message.get('data', ''))
-                        except Exception:
+                        except Exception as e:
+                            logger.warning("SSH channel send failed: %s", e)
+                            try:
+                                safe_msg = str(e)[:200].encode('ascii', 'ignore').decode('ascii')
+                                await websocket.send_text(json.dumps({"type": "error", "message": f"SSH 通道异常: {safe_msg}"}))
+                            except Exception:
+                                pass
+                            stop_event.set()
                             break
                     elif message_type == 'ping':
                         # 兼容旧协议,后端不再依赖前端 ping
@@ -476,10 +491,13 @@ class SSHToolService:
                         # 在 executor 里跑阻塞的 recv,settimeout(5.0) 保证最多阻塞 5s
                         data = await loop.run_in_executor(None, channel.recv, 4096)
                     except Exception as e:
-                        # socket.timeout 是正常的,继续循环
-                        if 'timed out' in str(e).lower() or 'timeout' in str(e).lower():
+                        # 空闲超时是正常的,继续循环。
+                        # 注意: Python 3.10+ 中 socket.timeout 即 TimeoutError,且 str(e) 为空串,
+                        # 不能用字符串匹配判断,必须按类型判断,否则空闲 5s 后输出循环会被误杀
+                        if isinstance(e, (TimeoutError, socket.timeout)) or 'timed out' in str(e).lower() or 'timeout' in str(e).lower():
                             continue
                         # 其他异常视为会话结束
+                        logger.warning("send_to_client recv error: %r", e)
                         break
                     if not data:
                         try:
