@@ -3,12 +3,13 @@ Markdown File Service - Handles all file system operations with user isolation
 """
 import os
 import shutil
+import base64
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Set
 
 from app.models.file_models import (
-    FileNode, FileContent, SaveResult, CreateResult, 
+    FileNode, FileContent, FileRawContent, SaveResult, CreateResult,
     RenameResult, DeleteResult
 )
 from app.utils.path_utils import (
@@ -214,7 +215,176 @@ class MarkdownFileService:
             size=stat.st_size,
             modified=datetime.fromtimestamp(stat.st_mtime)
         )
-    
+
+    def read_file_raw(self, path: str) -> FileRawContent:
+        """
+        读取文件原始内容（支持二进制文件）
+
+        Args:
+            path: 相对路径
+
+        Returns:
+            FileRawContent 包含 content_type 和编码后的数据
+
+        Raises:
+            FileNotFoundError: 文件不存在
+            ValueError: 路径无效或文件过大
+        """
+        file_path = self._validate_and_resolve(path)
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {path}")
+        if not file_path.is_file():
+            raise ValueError(f"Path is not a file: {path}")
+
+        # 获取文件信息
+        stat = file_path.stat()
+        ext = file_path.suffix.lower()
+
+        # 确定 MIME type
+        content_type = self._get_content_type(ext)
+
+        # 文件大小限制：文本文件 10MB，二进制文件 50MB
+        max_size = 10 * 1024 * 1024 if content_type.startswith('text/') or \
+            content_type.startswith('application/json') or \
+            content_type.startswith('application/xml') else 50 * 1024 * 1024
+        if stat.st_size > max_size:
+            raise ValueError(
+                f"文件过大：{self._format_bytes(stat.st_size)}（最大 {self._format_bytes(max_size)}）"
+            )
+
+        # 读取文件内容
+        if self._is_text_content_type(content_type):
+            # 文本文件：直接读取
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text_content = f.read()
+            except UnicodeDecodeError:
+                # 如果 UTF-8 失败，尝试 latin-1（不会抛出异常）
+                with open(file_path, 'r', encoding='latin-1') as f:
+                    text_content = f.read()
+
+            return FileRawContent(
+                path=normalize_path(path),
+                content_type=content_type,
+                size=stat.st_size,
+                modified=datetime.fromtimestamp(stat.st_mtime),
+                text=text_content
+            )
+        else:
+            # 二进制文件：base64 编码
+            with open(file_path, 'rb') as f:
+                binary_data = f.read()
+            encoded_data = base64.b64encode(binary_data).decode('utf-8')
+
+            return FileRawContent(
+                path=normalize_path(path),
+                content_type=content_type,
+                size=stat.st_size,
+                modified=datetime.fromtimestamp(stat.st_mtime),
+                data=encoded_data
+            )
+
+    def _get_content_type(self, ext: str) -> str:
+        """获取文件 MIME type
+
+        Args:
+            ext: 文件扩展名（含点号）
+
+        Returns:
+            MIME type 字符串
+        """
+        mime_types = {
+            # 文本类型
+            '.txt': 'text/plain',
+            '.md': 'text/markdown',
+            '.markdown': 'text/markdown',
+            '.html': 'text/html',
+            '.htm': 'text/html',
+            '.css': 'text/css',
+            '.csv': 'text/csv',
+            '.json': 'application/json',
+            '.xml': 'application/xml',
+            '.yaml': 'text/yaml',
+            '.yml': 'text/yaml',
+            '.toml': 'text/plain',
+            '.ini': 'text/plain',
+            '.conf': 'text/plain',
+            # 代码类型
+            '.js': 'text/javascript',
+            '.ts': 'text/typescript',
+            '.tsx': 'text/typescript',
+            '.jsx': 'text/javascript',
+            '.py': 'text/x-python',
+            '.java': 'text/x-java',
+            '.go': 'text/x-go',
+            '.rs': 'text/x-rust',
+            '.c': 'text/x-c',
+            '.cpp': 'text/x-c++',
+            '.h': 'text/x-c',
+            '.hpp': 'text/x-c++',
+            '.rb': 'text/x-ruby',
+            '.php': 'text/x-php',
+            '.sql': 'text/x-sql',
+            '.sh': 'text/x-sh',
+            '.bash': 'text/x-sh',
+            '.scss': 'text/css',
+            '.sass': 'text/css',
+            '.less': 'text/css',
+            # 文档类型
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xls': 'application/vnd.ms-excel',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            # 图片类型
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml',
+            '.webp': 'image/webp',
+            '.bmp': 'image/bmp',
+            '.ico': 'image/x-icon',
+            # 音视频类型
+            '.mp3': 'audio/mpeg',
+            '.wav': 'audio/wav',
+            '.mp4': 'video/mp4',
+            '.webm': 'video/webm',
+            # 压缩包类型
+            '.zip': 'application/zip',
+            '.tar': 'application/x-tar',
+            '.gz': 'application/gzip',
+        }
+        return mime_types.get(ext, 'application/octet-stream')
+
+    def _is_text_content_type(self, content_type: str) -> bool:
+        """判断 content_type 是否为文本类型
+
+        Args:
+            content_type: MIME type 字符串
+
+        Returns:
+            是否为文本类型
+        """
+        # 文本类型判断规则
+        if content_type.startswith('text/'):
+            return True
+        # 某些 application 类型也是文本
+        text_application_types = {
+            'application/json',
+            'application/xml',
+            'application/javascript',
+            'application/typescript',
+            'application/x-sh',
+            'application/x-shellscript',
+            'application/x-yaml',
+            'application/toml',
+            'application/x-ini',
+            'application/x-httpd-php',
+        }
+        return content_type in text_application_types
+
     def save_file(self, path: str, content: str) -> SaveResult:
         """
         Save content to a file.

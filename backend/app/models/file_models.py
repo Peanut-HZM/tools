@@ -28,6 +28,20 @@ class FileContent(BaseModel):
     modified: datetime
 
 
+class FileRawContent(BaseModel):
+    """文件原始内容（支持二进制文件）
+
+    对于文本文件：text 字段包含内容，data 为 None
+    对于二进制文件：data 字段包含 base64 编码的数据，text 为 None
+    """
+    path: str
+    content_type: str  # MIME type
+    size: int
+    modified: datetime
+    data: Optional[str] = None  # base64 编码的二进制数据（仅二进制文件）
+    text: Optional[str] = None  # 文本内容（仅文本文件）
+
+
 class SaveRequest(BaseModel):
     """Request to save file content"""
     path: str

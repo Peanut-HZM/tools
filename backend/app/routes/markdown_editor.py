@@ -12,6 +12,7 @@ import io
 from app.models.file_models import (
     FileNode,
     FileContent,
+    FileRawContent,
     SaveRequest,
     SaveResult,
     CreateRequest,
@@ -174,6 +175,27 @@ async def read_file(
     try:
         service = get_file_service(user_id)
         return service.read_file(path)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.get("/files/read-raw", response_model=FileRawContent)
+async def read_file_raw(
+    path: str = Query(..., description="Relative path to the file"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """读取文件原始内容（支持二进制文件）
+
+    对于文本文件：返回 text 字段
+    对于二进制文件：返回 base64 编码的 data 字段
+    """
+    try:
+        service = get_file_service(user_id)
+        return service.read_file_raw(path)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
     except ValueError as e:
