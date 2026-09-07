@@ -2,18 +2,17 @@
  * FileViewer - 文件查看器路由组件
  *
  * 根据文件扩展名将文件路由到不同的查看器：
- * - 代码文件（.py/.js/.ts/...）→ Editor（当前 textarea，后续替换为 Monaco）
- * - 文本文件（.md/.txt/...）→ Editor
+ * - 代码文件（.py/.js/.ts/...）→ CodeEditor（Monaco Editor 语法高亮）
+ * - 文本文件（.md/.txt/...）→ Editor（textarea）
  * - PDF / Excel / Word / 图片 → PlaceholderViewer（阶段 2/3 实现具体查看器）
  * - 未知类型 → PlaceholderViewer
  *
  * 类型判断逻辑统一由 utils/fileType.ts 提供，FileViewer 仅负责路由。
- *
- * 注意: getFileLanguage 在阶段 2 接入 Monaco 时使用，用于设置语法高亮语言
  */
 import React from 'react';
 import { getFileCategory } from '../../utils/fileType';
 import Editor from './Editor/Editor';
+import CodeEditor from './CodeEditor';
 import type { EditorConfig } from '../../types/markdownEditor';
 
 /** FileViewer 对外接口 */
@@ -68,8 +67,18 @@ const FileViewer: React.FC<FileViewerProps> = ({
 
   switch (category) {
     case 'code':
+      // 代码文件使用 Monaco Editor，支持语法高亮、行号、代码折叠
+      return (
+        <CodeEditor
+          filePath={filePath}
+          content={fileContent}
+          onChange={onChange}
+          readOnly={_readOnly}
+        />
+      );
+
     case 'text': {
-      // 代码与文本文件复用现有 Editor（后续 code 分支会替换为 Monaco）
+      // 文本文件（Markdown / TXT 等）继续使用现有 Editor
       // 未提供 onChange 时使用空函数，保证 Editor 调用安全
       const noop = () => {};
       return (
