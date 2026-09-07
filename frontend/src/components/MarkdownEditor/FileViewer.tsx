@@ -8,6 +8,8 @@
  * - 未知类型 → PlaceholderViewer
  *
  * 类型判断逻辑统一由 utils/fileType.ts 提供，FileViewer 仅负责路由。
+ *
+ * 注意: getFileLanguage 在阶段 2 接入 Monaco 时使用，用于设置语法高亮语言
  */
 import React from 'react';
 import { getFileCategory } from '../../utils/fileType';
@@ -24,10 +26,10 @@ interface FileViewerProps {
   onChange?: (content: string) => void;
   /** 是否只读（当前为预留字段，Editor 暂不支持） */
   readOnly?: boolean;
-  /** 透传给 Editor 的配置（代码/文本文件需要） */
-  editorConfig?: EditorConfig;
-  /** 透传给 Editor 的保存回调 */
-  onSave?: () => void;
+  /** 透传给 Editor 的配置（代码/文本文件必须提供） */
+  editorConfig: EditorConfig;
+  /** 透传给 Editor 的保存回调（代码/文本文件必须提供） */
+  onSave: () => void;
   /** 透传给 Editor 的光标变化回调 */
   onCursorChange?: (line: number, column: number) => void;
 }
@@ -53,22 +55,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   image: '图片',
 };
 
-/**
- * 默认的 EditorConfig，当未透传时使用
- * 仅用于保证 Editor 在缺少外部配置时仍可渲染
- */
-const DEFAULT_EDITOR_CONFIG: EditorConfig = {
-  fontSize: 14,
-  tabSize: 2,
-  wordWrap: true,
-  language: 'zh-CN',
-  theme: 'dark',
-  autoSaveInterval: 0,
-  previewTheme: 'default',
-  showLineNumbers: true,
-  useSpaces: true,
-};
-
 const FileViewer: React.FC<FileViewerProps> = ({
   filePath,
   fileContent,
@@ -86,14 +72,12 @@ const FileViewer: React.FC<FileViewerProps> = ({
       // 代码与文本文件复用现有 Editor（后续 code 分支会替换为 Monaco）
       // 未提供 onChange 时使用空函数，保证 Editor 调用安全
       const noop = () => {};
-      // 未提供 onSave 时使用空函数（避免只读场景下快捷键报错）
-      const safeOnSave = onSave || noop;
       return (
         <Editor
           content={fileContent || ''}
-          config={editorConfig || DEFAULT_EDITOR_CONFIG}
+          config={editorConfig}
           onChange={onChange || noop}
-          onSave={safeOnSave}
+          onSave={onSave}
           onCursorChange={onCursorChange}
         />
       );
