@@ -1,6 +1,7 @@
 """
 文件原始内容读取测试（支持二进制文件）
 """
+import os
 import pytest
 import base64
 from pathlib import Path
@@ -105,3 +106,58 @@ def test_read_file_raw_metadata(temp_files):
     assert result.size == len("print('hello')")
     assert result.modified is not None
     assert result.path == "test.py"
+
+
+def test_read_file_raw_oversized(tmp_path):
+    """测试文件大小限制：超过 10MB 的文本文件应抛出 ValueError
+
+    使用稀疏文件（sparse file）：st_size 显示为 11MB 但不占用实际磁盘空间
+    """
+    # 创建一个稀疏文件（APFS/ext4 均支持）
+    test_file = tmp_path / "large.py"
+    fd = os.open(str(test_file), os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
+    try:
+        os.ftruncate(fd, 11 * 1024 * 1024)  # 11MB，超过 10MB 文本限制
+    finally:
+        os.close(fd)
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+
+    with pytest.raises(ValueError, match="文件过大"):
+        service.read_file_raw("large.py")
+
+
+def test_read_file_raw_latin1_fallback(tmp_path):
+    """测试 UTF-8 解码失败时回退到 latin-1"""
+    # 创建含 latin-1 专有字节（非合法 UTF-8）的文件
+    test_file = tmp_path / "latin1.txt"
+    test_file.write_bytes(b"caf\xe9")  # \xe9 在 latin-1 中为 'é'，不是合法 UTF-8
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+    result = service.read_file_raw("latin1.txt")
+
+    assert result.text == "café"  # latin-1 解码
+    assert result.content_type == "text/plain"
+    assert result.data is None
+
+
+def test_read_file_raw_binary_allows_over_10mb(tmp_path):
+    """测试二进制文件的大小限制为 50MB（而非 10MB）
+
+    通过稀疏文件模拟 15MB 的二进制文件，验证可正常读取（二进制限制更高）。
+    """
+    test_file = tmp_path / "large.bin"
+    fd = os.open(str(test_file), os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
+    try:
+        os.ftruncate(fd, 15 * 1024 * 1024)  # 15MB：超过文本限制 10MB，但在二进制限制 50MB 内
+    finally:
+        os.close(fd)
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+    # 不应抛出异常
+    result = service.read_file_raw("large.bin")
+
+    assert result.content_type == 'application/octet-stream'
+    assert result.data is not None
+    assert result.text is None
+    assert result.size == 15 * 1024 * 1024

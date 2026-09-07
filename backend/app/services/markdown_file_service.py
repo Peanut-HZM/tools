@@ -245,16 +245,16 @@ class MarkdownFileService:
         content_type = self._get_content_type(ext)
 
         # 文件大小限制：文本文件 10MB，二进制文件 50MB
-        max_size = 10 * 1024 * 1024 if content_type.startswith('text/') or \
-            content_type.startswith('application/json') or \
-            content_type.startswith('application/xml') else 50 * 1024 * 1024
+        # 使用与读取分支相同的谓词，避免对 .js 等文件走二进制限制却以文本解码的不一致
+        is_text = self._is_text_content_type(content_type)
+        max_size = 10 * 1024 * 1024 if is_text else 50 * 1024 * 1024
         if stat.st_size > max_size:
             raise ValueError(
                 f"文件过大：{self._format_bytes(stat.st_size)}（最大 {self._format_bytes(max_size)}）"
             )
 
         # 读取文件内容
-        if self._is_text_content_type(content_type):
+        if is_text:
             # 文本文件：直接读取
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
