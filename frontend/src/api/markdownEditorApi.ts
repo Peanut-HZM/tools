@@ -4,7 +4,6 @@
 import { getAuthHeaders } from './authApi';
 import type {
   FileNode,
-  FileContent,
   FileRawContent,
   SaveResult,
   CreateResult,
@@ -77,19 +76,6 @@ export async function getDirectoryTree(root: string = '', depth: number = -1): P
     headers: getAuthHeaders()
   });
   return handleResponse<FileNode>(response);
-}
-
-/**
- * Read file content
- */
-export async function readFile(path: string): Promise<FileContent> {
-  const params = new URLSearchParams({ path });
-
-  const response = await authedFetch(`${API_BASE_URL}/files/read?${params}`, {
-    method: 'GET',
-    headers: getAuthHeaders()
-  });
-  return handleResponse<FileContent>(response);
 }
 
 /**

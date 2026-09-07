@@ -181,8 +181,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
         textContent = file.text;
       } else if (file.data) {
         // 二进制文件需要特殊处理（阶段 2/3 实现 PDF/Excel/Word 查看器）
-        // 暂时存储 base64 数据，显示占位符
-        textContent = `[二进制文件：${file.content_type}]`;
+        // 暂时存储 base64 数据，显示占位符（含大小信息）
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        textContent = `[二进制文件：${file.content_type}，${sizeMB} MB]`;
       }
 
       setCurrentFile({
