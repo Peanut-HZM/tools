@@ -170,8 +170,27 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const file = await markdownEditorApi.readFile(path);
-      setCurrentFile(file);
+      // 使用 readFileRaw 支持所有文件类型（文本和二进制）
+      const file = await markdownEditorApi.readFileRaw(path);
+
+      // 根据文件类型处理内容
+      let textContent: string | null = null;
+
+      if (file.text) {
+        // 文本文件直接使用 text 字段
+        textContent = file.text;
+      } else if (file.data) {
+        // 二进制文件需要特殊处理（阶段 2/3 实现 PDF/Excel/Word 查看器）
+        // 暂时存储 base64 数据，显示占位符
+        textContent = `[二进制文件：${file.content_type}]`;
+      }
+
+      setCurrentFile({
+        path: file.path,
+        content: textContent || '',
+        size: file.size,
+        modified: file.modified
+      });
       setCurrentFilePath(path);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to open file');

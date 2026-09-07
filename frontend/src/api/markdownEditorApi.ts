@@ -5,6 +5,7 @@ import { getAuthHeaders } from './authApi';
 import type {
   FileNode,
   FileContent,
+  FileRawContent,
   SaveResult,
   CreateResult,
   RenameResult,
@@ -83,12 +84,27 @@ export async function getDirectoryTree(root: string = '', depth: number = -1): P
  */
 export async function readFile(path: string): Promise<FileContent> {
   const params = new URLSearchParams({ path });
-  
+
   const response = await authedFetch(`${API_BASE_URL}/files/read?${params}`, {
     method: 'GET',
     headers: getAuthHeaders()
   });
   return handleResponse<FileContent>(response);
+}
+
+/**
+ * 读取文件原始内容（支持二进制文件）
+ * 对于文本文件：返回 text 字段
+ * 对于二进制文件：返回 base64 编码的 data 字段
+ */
+export async function readFileRaw(path: string): Promise<FileRawContent> {
+  const params = new URLSearchParams({ path });
+
+  const response = await authedFetch(`${API_BASE_URL}/files/read-raw?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  return handleResponse<FileRawContent>(response);
 }
 
 /**

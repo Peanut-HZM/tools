@@ -23,6 +23,15 @@ export interface FileContent {
   modified: string;
 }
 
+export interface FileRawContent {
+  path: string;
+  content_type: string;  // MIME type
+  size: number;
+  modified: string;
+  data?: string;  // base64 编码的二进制数据（仅二进制文件）
+  text?: string;  // 文本内容（仅文本文件）
+}
+
 export interface SaveResult {
   success: boolean;
   message: string;
