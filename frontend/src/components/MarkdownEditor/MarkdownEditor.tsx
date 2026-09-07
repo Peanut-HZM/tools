@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Cloud } from 'lucide-react';
 import FileTree from './FileTree/FileTree';
 import OssFileList from './OssFileList/OssFileList';
-import Editor from './Editor/Editor';
+import FileViewer from './FileViewer';
 import Preview from './Preview/Preview';
 import HtmlPreview from './Preview/HtmlPreview';
 import SearchDialog from './SearchDialog/SearchDialog';
@@ -14,6 +14,7 @@ import FileUpload from './FileUpload/FileUpload';
 import { useFileStore } from '../../stores/fileStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { useConfigStore } from '../../stores/configStore';
+import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useI18n } from '../../i18n';
 import { saveMarkdownToOss, uploadMarkdownFile, readMarkdownFromOss } from '../../api/markdownEditorApi';
 import type { EditorConfig } from '../../types/markdownEditor';
@@ -94,6 +95,11 @@ export default function MarkdownEditor() {
     updateConfig,
     setTheme
   } = useConfigStore();
+
+  // 获取当前工具标题（用于页面标题显示）
+  const { tabs, activeTabId } = useWorkspaceStore();
+  const currentTab = tabs.find(tab => tab.id === activeTabId);
+  const toolTitle = currentTab?.toolName || t.editor.title;
 
   const { language, setLanguage, t } = useI18n();
   const { toast, showToast } = useToast() as any;
@@ -528,7 +534,7 @@ export default function MarkdownEditor() {
       {/* Top Bar */}
       <div className="h-12 bg-surface-1 border-b border-border flex items-center justify-between px-4 shrink-0 z-20">
         <div className="header-left">
-          <h1>{t.editor.title}</h1>
+          <h1>{toolTitle}</h1>
         </div>
         <div className="header-right">
           <div className="neon-button-group">
@@ -789,10 +795,12 @@ export default function MarkdownEditor() {
                      </div>
                    )}
                    {(currentFile || ossFilePath) && (
-                     <Editor
-                       content={content}
-                       config={config}
+                     <FileViewer
+                       filePath={currentFilePath || ossFilePath || ''}
+                       fileContent={content}
                        onChange={updateContent}
+                       readOnly={!!ossFilePath}
+                       editorConfig={config}
                        onSave={handleSave}
                        onCursorChange={setCursorPosition}
                      />

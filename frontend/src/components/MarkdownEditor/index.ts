@@ -2,6 +2,7 @@
  * MarkdownEditor Components Index
  */
 export { default as MarkdownEditor } from './MarkdownEditor';
+export { default as FileViewer } from './FileViewer';
 export { default as FileTree } from './FileTree/FileTree';
 export { default as Editor } from './Editor/Editor';
 export { default as Preview } from './Preview/Preview';
