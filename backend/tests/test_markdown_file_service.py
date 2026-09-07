@@ -6,7 +6,7 @@ markdown_file_service 扩展功能单元测试
   - list_directory()   目录浏览方法
   - _build_breadcrumbs()  面包屑导航
   - get_file_paths()   获取文件路径
-  - read_file()        HTML 文件大小限制
+  - read_file_raw()    统一文件读取（文本 + 二进制）
 """
 import os
 import sys
@@ -289,45 +289,6 @@ class TestGetFilePaths:
 
 
 # ---------------------------------------------------------------------------
-# read_file：HTML 大小限制
-# ---------------------------------------------------------------------------
-class TestReadFileHtmlLimit:
-    """read_file 对 HTML 文件施加大小限制（1 MB）"""
-
-    def test_read_normal_html(self, file_service, temp_dir):
-        """小于 1MB 的 HTML 文件正常读取"""
-        html_content = "<html><body>Hello</body></html>"
-        _touch(os.path.join(temp_dir, "page.html"), html_content)
-
-        result = file_service.read_file("page.html")
-        assert result.content == html_content
-
-    def test_read_oversized_html_raises(self, file_service, temp_dir, monkeypatch):
-        """超过 1MB 的 HTML 文件应抛出 ValueError"""
-        # 创建一个大于 1MB 的 HTML 文件
-        big_content = "<html>" + "x" * (1024 * 1024 + 100) + "</html>"
-        _touch(os.path.join(temp_dir, "huge.html"), big_content)
-
-        with pytest.raises(ValueError, match="File too large"):
-            file_service.read_file("huge.html")
-
-    def test_read_large_non_html_no_limit(self, file_service, temp_dir):
-        """非 HTML 大文件不受限制"""
-        # 创建一个大于 1MB（1,048,576 字节）的 markdown 文件
-        big_content = "# Title\n" + "paragraph\n" * 110000
-        _touch(os.path.join(temp_dir, "big.md"), big_content)
-
-        result = file_service.read_file("big.md")
-        assert result.size > 1024 * 1024
-
-    def test_read_text_file(self, file_service, temp_dir):
-        """普通文本文件正常读取"""
-        _touch(os.path.join(temp_dir, "data.txt"), "hello world")
-        result = file_service.read_file("data.txt")
-        assert result.content == "hello world"
-
-
-# ---------------------------------------------------------------------------
 # get_directory_tree：向后兼容
 # ---------------------------------------------------------------------------
 class TestBackwardCompatibility:
@@ -339,13 +300,6 @@ class TestBackwardCompatibility:
         tree = file_service.get_directory_tree()
         assert tree.type == "directory"
         assert isinstance(tree.children, list)
-
-    def test_read_file_still_returns_file_content(self, file_service, temp_dir):
-        """read_file 仍返回 FileContent"""
-        _touch(os.path.join(temp_dir, "readme.md"), "# Hello")
-        result = file_service.read_file("readme.md")
-        assert result.content == "# Hello"
-        assert result.path == "readme.md"
 
 
 if __name__ == "__main__":

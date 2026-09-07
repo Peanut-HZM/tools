@@ -74,6 +74,7 @@ const FileViewer: React.FC<FileViewerProps> = ({
           content={fileContent}
           onChange={onChange}
           readOnly={_readOnly}
+          theme={editorConfig.theme}
         />
       );
 

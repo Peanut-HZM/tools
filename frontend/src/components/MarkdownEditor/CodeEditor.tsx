@@ -23,14 +23,19 @@ interface CodeEditorProps {
   onChange?: (content: string) => void;
   /** 是否只读 */
   readOnly?: boolean;
+  /** 主题（来自 EditorConfig.theme），决定 Monaco 主题 */
+  theme?: 'light' | 'dark';
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ filePath, content, onChange, readOnly }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ filePath, content, onChange, readOnly, theme = 'dark' }) => {
   /** Monaco Editor 实例引用 */
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
   /** 根据文件路径获取对应的 Monaco 语言标识 */
   const language = getFileLanguage(filePath);
+
+  /** 将应用主题映射为 Monaco 主题名 */
+  const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
 
   /** Editor 挂载完成时保存实例引用 */
   const handleEditorDidMount: OnMount = useCallback((editor) => {
@@ -69,7 +74,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ filePath, content, onChange, re
           folding: true,
           showFoldingControls: 'always',
         }}
-        theme="vs-dark"
+        theme={monacoTheme}
       />
     </div>
   );

@@ -20,14 +20,6 @@ class FileNode(BaseModel):
     previewable: Optional[bool] = None    # 是否支持预览
 
 
-class FileContent(BaseModel):
-    """File content with metadata"""
-    path: str
-    content: str
-    size: int
-    modified: datetime
-
-
 class FileRawContent(BaseModel):
     """文件原始内容（支持二进制文件）
 

@@ -11,7 +11,6 @@ import io
 
 from app.models.file_models import (
     FileNode,
-    FileContent,
     FileRawContent,
     SaveRequest,
     SaveResult,
@@ -160,23 +159,6 @@ async def get_directory_tree(
     try:
         service = get_file_service(user_id)
         return service.get_directory_tree(root, depth)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-
-
-@router.get("/files/read", response_model=FileContent)
-async def read_file(
-    path: str = Query(..., description="Relative path to the file"),
-    user_id: str = Depends(get_current_user_id),
-):
-    """Read file content with metadata."""
-    try:
-        service = get_file_service(user_id)
-        return service.read_file(path)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"File not found: {path}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

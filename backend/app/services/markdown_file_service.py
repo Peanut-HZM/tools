@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, Set
 
 from app.models.file_models import (
-    FileNode, FileContent, FileRawContent, SaveResult, CreateResult,
+    FileNode, FileRawContent, SaveResult, CreateResult,
     RenameResult, DeleteResult
 )
 from app.utils.path_utils import (
@@ -178,43 +178,6 @@ class MarkdownFileService:
                 node.children.append(file_node)
 
         return node
-
-    def read_file(self, path: str) -> FileContent:
-        """
-        Read file content with metadata. Supports markdown, HTML, and text files.
-
-        Args:
-            path: Relative path to the file
-
-        Returns:
-            FileContent with content and metadata
-        """
-        file_path = self._validate_and_resolve(path)
-
-        if not file_path.exists():
-            raise FileNotFoundError(f"File not found: {path}")
-        if not file_path.is_file():
-            raise ValueError(f"Path is not a file: {path}")
-
-        # Limit HTML file size to 10MB (human-readable safety limit for full HTML reports)
-        file_type = get_file_type(file_path.name)
-        max_size = 10 * 1024 * 1024 if file_type == 'html' else None
-
-        stat = file_path.stat()
-        if max_size and stat.st_size > max_size:
-            raise ValueError(
-                f"HTML 文件过大：{self._format_bytes(stat.st_size)}（最大 {self._format_bytes(max_size)}）"
-            )
-
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-
-        return FileContent(
-            path=normalize_path(path),
-            content=content,
-            size=stat.st_size,
-            modified=datetime.fromtimestamp(stat.st_mtime)
-        )
 
     def read_file_raw(self, path: str) -> FileRawContent:
         """
