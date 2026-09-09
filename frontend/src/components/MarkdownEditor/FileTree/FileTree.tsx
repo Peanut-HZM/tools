@@ -1,7 +1,7 @@
 /**
  * FileTree Component - Displays directory tree structure
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { FileNode } from '../../../types/markdownEditor';
 import { getFilePaths } from '../../../api/markdownEditorApi';
 
@@ -57,12 +57,17 @@ interface TreeNodeProps {
 }
 
 /**
- * 递归过滤文件树节点
+ * 递归过滤文件树节点，同时收集需要自动展开的目录路径
  * @param node 当前节点
  * @param query 搜索关键词
+ * @param expandPaths 收集需要展开的目录路径
  * @returns 过滤后的节点，如果无匹配则返回 null
  */
-function filterTree(node: FileNode, query: string): FileNode | null {
+function filterTree(
+  node: FileNode,
+  query: string,
+  expandPaths: Set<string>
+): FileNode | null {
   if (!query) return node;
 
   const lowerQuery = query.toLowerCase();
@@ -75,11 +80,15 @@ function filterTree(node: FileNode, query: string): FileNode | null {
 
   // 目录节点：递归过滤子节点
   const filteredChildren = node.children
-    ?.map(child => filterTree(child, query))
+    ?.map(child => filterTree(child, query, expandPaths))
     .filter(Boolean) as FileNode[];
 
   // 如果目录名匹配或子目录有匹配项，保留该目录
   if (nameMatch || (filteredChildren && filteredChildren.length > 0)) {
+    // 如果有匹配的子节点，说明此目录需要自动展开
+    if (filteredChildren && filteredChildren.length > 0) {
+      expandPaths.add(node.path);
+    }
     return { ...node, children: filteredChildren || [] };
   }
 
@@ -297,20 +306,57 @@ export default function FileTree({
     );
   }
 
-  // 应用搜索过滤
-  const filteredTree = filterTree(tree, fileSearchQuery);
+  // 使用 useMemo 缓存过滤后的树和自动展开路径
+  const { filteredTree, autoExpandPaths } = useMemo(() => {
+    const expandPaths = new Set<string>();
+    const filtered = filterTree(tree, fileSearchQuery, expandPaths);
+    return { filteredTree: filtered, autoExpandPaths: expandPaths };
+  }, [tree, fileSearchQuery]);
+
+  // 搜索时合并用户手动展开和自动展开的路径
+  const effectiveExpandedNodes = useMemo(() => {
+    if (!fileSearchQuery || autoExpandPaths.size === 0) {
+      return expandedNodes;
+    }
+    return new Set([...expandedNodes, ...autoExpandPaths]);
+  }, [expandedNodes, fileSearchQuery, autoExpandPaths]);
+
+  // 清除搜索
+  const handleClearSearch = useCallback(() => {
+    setFileSearchQuery('');
+  }, []);
+
+  // 搜索框按键处理
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      setFileSearchQuery('');
+      e.currentTarget.blur();
+    }
+  }, []);
 
   return (
     <div className="h-full overflow-auto flex flex-col" onClick={closeContextMenu}>
       {/* 搜索框 */}
       <div className="file-tree-search px-3 py-2 border-b border-border shrink-0">
-        <input
-          type="text"
-          placeholder="搜索文件名..."
-          value={fileSearchQuery}
-          onChange={(e) => setFileSearchQuery(e.target.value)}
-          className="w-full px-2 py-1 text-sm bg-surface-2 border border-border rounded text-ink"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="搜索文件名..."
+            value={fileSearchQuery}
+            onChange={(e) => setFileSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            className="w-full px-2 py-1 pr-7 text-sm bg-surface-2 border border-border rounded text-ink"
+          />
+          {fileSearchQuery && (
+            <button
+              onClick={handleClearSearch}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink text-xs cursor-pointer"
+              title="清除搜索 (Esc)"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tree Content */}
@@ -322,7 +368,7 @@ export default function FileTree({
               node={node}
               level={0}
               currentFilePath={currentFilePath}
-              expandedNodes={expandedNodes}
+              expandedNodes={effectiveExpandedNodes}
               onFileSelect={onFileSelect}
               onToggleNode={onToggleNode}
               onContextMenu={handleContextMenu}
