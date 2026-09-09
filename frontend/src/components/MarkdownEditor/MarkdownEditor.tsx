@@ -547,6 +547,10 @@ export default function MarkdownEditor() {
       : 'markdown'
     : 'markdown';
 
+  // 判断是否显示 TOC 面板（只对文本/文档类文件显示，代码/图片等不显示）
+  // getFileCategory 返回 'text' 的类型包括：.md, .markdown, .txt, .log, .rst, .adoc
+  const showTocPanel = getFileCategory(currentFilePath || '') === 'text';
+
   // HTML 文件"在浏览器中打开"处理
   const handleOpenInBrowser = useCallback(() => {
     if (currentFilePath) {
@@ -793,31 +797,36 @@ export default function MarkdownEditor() {
           <div className="content-area view-mode">
              {(currentFile || ossFilePath) ? (
                <div className="view-mode-container">
-                 <div className="toc-sidebar" style={{ width: tocSidebarWidth }}>
-                   <div className="toc-sidebar-header">
-                     <span>{t.search?.results || 'CONTENTS'}</span>
-                   </div>
-                   <div className="toc-sidebar-content">
-                      {documentToc.length > 0 ? (
-                        <ul className="toc-nav-list">
-                          {documentToc.map(item => (
-                            <li 
-                              key={item.id}
-                              className={`toc-nav-item toc-level-${item.level} ${activeTocId === item.id ? 'active' : ''}`}
-                              onClick={() => scrollToSection(item.id)}
-                            >
-                              {item.text}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="toc-empty">{t.search?.noResults || 'No headings'}</div>
-                      )}
-                   </div>
-                 </div>
-                 
-                 <div className="resize-handle toc-resize" onMouseDown={() => startResize('toc')} />
-                 
+                 {/* TOC 面板：仅对 text 类型文件（.md/.txt 等）显示 */}
+                 {showTocPanel && (
+                   <>
+                     <div className="toc-sidebar" style={{ width: tocSidebarWidth }}>
+                       <div className="toc-sidebar-header">
+                         <span>{t.search?.results || 'CONTENTS'}</span>
+                       </div>
+                       <div className="toc-sidebar-content">
+                          {documentToc.length > 0 ? (
+                            <ul className="toc-nav-list">
+                              {documentToc.map(item => (
+                                <li
+                                  key={item.id}
+                                  className={`toc-nav-item toc-level-${item.level} ${activeTocId === item.id ? 'active' : ''}`}
+                                  onClick={() => scrollToSection(item.id)}
+                                >
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="toc-empty">{t.search?.noResults || 'No headings'}</div>
+                          )}
+                       </div>
+                     </div>
+
+                     <div className="resize-handle toc-resize" onMouseDown={() => startResize('toc')} />
+                   </>
+                 )}
+
                  <div className="preview-full">
                     {getFileCategory(currentFilePath || '') === 'code' ? (
                       // HTML 文件仍使用 HtmlPreview 渲染完整页面效果

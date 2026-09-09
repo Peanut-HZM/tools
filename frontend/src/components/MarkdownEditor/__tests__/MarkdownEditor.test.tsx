@@ -282,4 +282,50 @@ describe('MarkdownEditor 预览模式路由', () => {
       expect(editor).toBeNull();
     });
   });
+
+  describe('TOC 面板显示逻辑 - 仅对 text 类型文件显示', () => {
+    it('.md 文件在预览模式下显示 TOC 面板', () => {
+      renderAndSwitchToPreview('readme.md', '# Title\n## Section');
+
+      // TOC 面板容器应存在
+      const tocSidebar = document.querySelector('.toc-sidebar');
+      expect(tocSidebar).not.toBeNull();
+    });
+
+    it('.txt 文件在预览模式下显示 TOC 面板', () => {
+      renderAndSwitchToPreview('notes.txt', 'Some plain text');
+
+      const tocSidebar = document.querySelector('.toc-sidebar');
+      expect(tocSidebar).not.toBeNull();
+    });
+
+    it('.sql 文件在预览模式下隐藏 TOC 面板', () => {
+      renderAndSwitchToPreview('query.sql', 'SELECT * FROM users');
+
+      const tocSidebar = document.querySelector('.toc-sidebar');
+      expect(tocSidebar).toBeNull();
+    });
+
+    it('.py 文件在预览模式下隐藏 TOC 面板', () => {
+      renderAndSwitchToPreview('app.py', 'print("hello")');
+
+      const tocSidebar = document.querySelector('.toc-sidebar');
+      expect(tocSidebar).toBeNull();
+    });
+
+    it('.html 文件在预览模式下隐藏 TOC 面板', () => {
+      renderAndSwitchToPreview('page.html', '<h1>Hello</h1>');
+
+      const tocSidebar = document.querySelector('.toc-sidebar');
+      expect(tocSidebar).toBeNull();
+    });
+
+    it('未打开文件时（空路径）不显示 TOC 面板', () => {
+      // 使用默认空 currentFilePath
+      render(<MarkdownEditor />);
+
+      const tocSidebar = document.querySelector('.toc-sidebar');
+      expect(tocSidebar).toBeNull();
+    });
+  });
 });
