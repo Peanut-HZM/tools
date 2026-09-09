@@ -10,7 +10,7 @@
  * 依赖 utils/fileType.ts 的 getFileLanguage 进行语言识别
  */
 import React, { useRef, useCallback, useEffect } from 'react';
-import Editor, { type OnMount } from '@monaco-editor/react';
+import Editor, { type OnMount, useMonaco } from '@monaco-editor/react';
 import { getFileLanguage } from '../../utils/fileType';
 
 /** CodeEditor 组件属性 */
@@ -37,10 +37,23 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ filePath, content, onChange, re
   /** 将应用主题映射为 Monaco 主题名 */
   const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
 
+  /** 获取 Monaco 实例用于手动设置语言 */
+  const monaco = useMonaco();
+
   /** Editor 挂载完成时保存实例引用 */
-  const handleEditorDidMount: OnMount = useCallback((editor, monaco) => {
+  const handleEditorDidMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
   }, []);
+
+  /** 当 Monaco 加载完成时，确保正确设置语言 */
+  useEffect(() => {
+    if (monaco && editorRef.current) {
+      const model = editorRef.current.getModel();
+      if (model) {
+        monaco.editor.setModelLanguage(model, language);
+      }
+    }
+  }, [monaco, language]);
 
   /** 内容变更时透传给外部回调 */
   const handleChange = useCallback(
