@@ -6,7 +6,8 @@
  * - 文本文件（.md/.txt/...）→ Editor（textarea）
  * - PDF → PdfViewer（react-pdf，支持翻页）
  * - Excel → ExcelViewer（SheetJS，渲染表格）
- * - Word / 图片 → PlaceholderViewer（阶段 3 实现具体查看器）
+ * - Word → WordViewer（mammoth，转换为 HTML）
+ * - 图片 → PlaceholderViewer（阶段 3 实现具体查看器）
  * - 未知类型 → PlaceholderViewer
  *
  * 类型判断逻辑统一由 utils/fileType.ts 提供，FileViewer 仅负责路由。
@@ -17,6 +18,7 @@ import Editor from './Editor/Editor';
 import CodeEditor from './CodeEditor';
 import PdfViewer from './PdfViewer';
 import ExcelViewer from './ExcelViewer';
+import WordViewer from './WordViewer';
 import type { EditorConfig } from '../../types/markdownEditor';
 
 /** FileViewer 对外接口 */
@@ -53,7 +55,6 @@ const PlaceholderViewer: React.FC<{ fileType: string }> = ({ fileType }) => (
 /** 文件分类到展示名称的映射（用于 PlaceholderViewer 显示） */
 const CATEGORY_LABEL: Record<string, string> = {
   excel: 'Excel',
-  word: 'Word',
   image: '图片',
 };
 
@@ -115,8 +116,16 @@ const FileViewer: React.FC<FileViewerProps> = ({
       );
 
     case 'word':
+      // Word 文件使用 WordViewer（mammoth）转换为 HTML 渲染
+      return (
+        <WordViewer
+          content={fileContent}
+          fileName={filePath.split('/').pop()}
+        />
+      );
+
     case 'image':
-      // 阶段 3 实现具体的二进制文件查看器
+      // 阶段 3 实现具体的图片查看器
       return <PlaceholderViewer fileType={CATEGORY_LABEL[category] || category} />;
 
     case 'unknown':

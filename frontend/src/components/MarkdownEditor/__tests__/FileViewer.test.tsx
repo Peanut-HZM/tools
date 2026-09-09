@@ -6,7 +6,8 @@
  * - 文本文件 → 渲染 Editor（textarea）
  * - PDF → 渲染 PdfViewer（react-pdf）
  * - Excel → 渲染 ExcelViewer（SheetJS）
- * - Word / 图片 / 未知类型 → 渲染 PlaceholderViewer
+ * - Word → 渲染 WordViewer（mammoth）
+ * - 图片 / 未知类型 → 渲染 PlaceholderViewer
  */
 import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
@@ -85,6 +86,26 @@ function MockExcelViewer(props: Record<string, unknown>) {
 vi.mock('../ExcelViewer', () => ({
   __esModule: true,
   default: MockExcelViewer,
+}));
+
+/**
+ * Mock 的 WordViewer 组件
+ * jsdom 无需真实的 mammoth 解析，使用带 data-testid 的占位 div
+ */
+function MockWordViewer(props: Record<string, unknown>) {
+  return (
+    <div
+      data-testid="word-viewer-mock"
+      data-filename={props.fileName as string}
+      data-has-content={props.content != null ? 'true' : 'false'}
+    />
+  );
+}
+
+// Mock WordViewer（避免引入真实 mammoth）
+vi.mock('../WordViewer', () => ({
+  __esModule: true,
+  default: MockWordViewer,
 }));
 
 describe('FileViewer', () => {
@@ -245,17 +266,38 @@ describe('FileViewer', () => {
       ).toBe('data.xlsx');
     });
 
-    it('Word 文件显示占位查看器', () => {
+    it('Word 文件渲染 WordViewer（mammoth）', () => {
       render(
         <FileViewer
           filePath="report.docx"
-          fileContent={null}
+          fileContent="base64data"
           editorConfig={mockEditorConfig}
           onSave={mockOnSave}
         />
       );
-      expect(screen.getByText(/不支持的文件类型/)).toBeTruthy();
-      expect(screen.getByText(/Word/)).toBeTruthy();
+      expect(screen.getByTestId('word-viewer-mock')).toBeTruthy();
+      // 验证文件名透传
+      expect(
+        screen.getByTestId('word-viewer-mock').getAttribute('data-filename')
+      ).toBe('report.docx');
+      // 验证 base64 内容透传
+      expect(
+        screen.getByTestId('word-viewer-mock').getAttribute('data-has-content')
+      ).toBe('true');
+    });
+
+    it('Word 文件路径含目录时提取文件名', () => {
+      render(
+        <FileViewer
+          filePath="/docs/reports/report.docx"
+          fileContent="base64data"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(
+        screen.getByTestId('word-viewer-mock').getAttribute('data-filename')
+      ).toBe('report.docx');
     });
 
     it('图片文件显示占位查看器', () => {
