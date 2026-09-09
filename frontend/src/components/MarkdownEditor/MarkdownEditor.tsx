@@ -9,7 +9,7 @@ import Preview from './Preview/Preview';
 import HtmlPreview from './Preview/HtmlPreview';
 import CodeEditor from './CodeEditor';
 import { getFileCategory } from '../../utils/fileType';
-import SearchDialog from './SearchDialog/SearchDialog';
+import SearchPanel from './SearchPanel/SearchPanel';
 import SettingsDialog from './SettingsDialog/SettingsDialog';
 import StatusBar from './StatusBar/StatusBar';
 import FileUpload from './FileUpload/FileUpload';
@@ -33,6 +33,7 @@ const Icons = {
   Setting: () => <svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 0 0 9.3-35.2l-.9-2.6a443.74 443.74 0 0 0-79.7-137.9l-1.8-2.1a32.12 32.12 0 0 0-35.1-9.5l-81.3 28.9c-30-24.6-63.5-44-99.7-57.6l-15.7-85a32.05 32.05 0 0 0-25.8-25.7l-2.7-.5c-52.1-9.4-106.9-9.4-159 0l-2.7.5a32.05 32.05 0 0 0-25.8 25.7l-15.8 85.4a351.86 351.86 0 0 0-99 57.4l-81.9-29.1a32 32 0 0 0-35.1 9.5l-1.8 2.1a446.02 446.02 0 0 0-79.7 137.9l-.9 2.6c-4.5 12.5-.8 26.5 9.3 35.2l66.3 56.6c-3.1 18.8-4.6 38-4.6 57.1 0 19.2 1.5 38.4 4.6 57.1L99 625.5a32.03 32.03 0 0 0-9.3 35.2l.9 2.6c18.1 50.4 44.9 96.9 79.7 137.9l1.8 2.1a32.12 32.12 0 0 0 35.1 9.5l81.9-29.1c29.8 24.5 63.1 43.9 99 57.4l15.8 85.4a32.05 32.05 0 0 0 25.8 25.7l2.7.5a449.4 449.4 0 0 0 159 0l2.7-.5a32.05 32.05 0 0 0 25.8-25.7l15.7-85a350 350 0 0 0 99.7-57.6l81.3 28.9a32 32 0 0 0 35.1-9.5l1.8-2.1c34.8-41.1 61.6-87.5 79.7-137.9l.9-2.6a32.03 32.03 0 0 0-9.3-35.2zM512 714c-111.6 0-202-90.4-202-202s90.4-202 202-202 202 90.4 202 202-90.4 202-202 202z"/></svg>,
   Sunny: () => <svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M512 736c-123.7 0-224-100.3-224-224s100.3-224 224-224 224 100.3 224 224-100.3 224-224 224zm0-384c-88.4 0-160 71.6-160 160s71.6 160 160 160 160-71.6 160-160-71.6-160-160-160zm0-256c-17.7 0-32 14.3-32 32v96c0 17.7 14.3 32 32 32s32-14.3 32-32V128c0-17.7-14.3-32-32-32zm0 640c-17.7 0-32 14.3-32 32v96c0 17.7 14.3 32 32 32s32-14.3 32-32v-96c0-17.7-14.3-32-32-32zM128 512c0-17.7 14.3-32 32-32h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H160c-17.7 0-32-14.3-32-32zm640 0c0-17.7 14.3-32 32-32h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H800c-17.7 0-32-14.3-32-32zm-539.3-265.4c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l67.9 67.9c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0l-67.9-67.9zm429.3 429.3c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l67.9 67.9c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0l-67.9-67.9zM228.7 737.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l67.9 67.9c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-67.9-67.9zm429.3-429.3c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l67.9 67.9c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-67.9-67.9z"/></svg>,
   Moon: () => <svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M222.7 573.5c8.3-2.9 17.3-1.4 24.2 4.1 36 28.5 81.3 45.4 130.4 45.4 116.3 0 210.7-94.4 210.7-210.7 0-49.1-16.9-94.4-45.4-130.4-5.5-6.9-7-15.9-4.1-24.2 2.9-8.3 9.9-14.6 18.2-16.6C673 218 768 313 768 432c0 150.2-121.8 272-272 272-119 0-214-95-251.1-211.7-2-8.3 4.3-15.3 12.6-18.2zM496 832c220.9 0 400-179.1 400-400 0-79-23.2-152.8-63.3-215.3-7.5-11.7-22.7-14.8-33.8-6.9-11.2 8-13.8 23.6-5.8 35.1C824.2 291.6 840 359.3 840 432c0 189.9-154.1 344-344 344-72.7 0-140.4-15.8-192.9-46.9-11.5-8-27.1-5.4-35.1 5.8-8 11.2-4.9 26.3 6.9 33.8C343.2 808.8 417 832 496 832z"/></svg>,
+  Search: () => <svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M909.6 854.5L649.9 594.8C690.2 542.7 714 478.4 714 410c0-167.4-135.6-303-303-303S108 242.6 108 410s135.6 303 303 303c68.4 0 132.7-23.8 184.8-64.1l259.7 259.7a8.2 8.2 0 0 0 11.6 0l42.5-42.5c3.2-3.2 3.2-8.4 0-11.6zM411 673c-145.3 0-263-117.7-263-263s117.7-263 263-263 263 117.7 263 263-117.7 263-263 263z"/></svg>,
 };
 
 type ViewMode = 'edit' | 'preview';
@@ -599,6 +600,14 @@ export default function MarkdownEditor() {
             />
           </label>
 
+          <button
+            className={`neon-button icon-only ${showSearch ? 'primary' : ''}`}
+            onClick={() => setShowSearch(!showSearch)}
+            title={`搜索文件内容 ${showSearch ? '(Escape 关闭)' : '(Ctrl+P)'}`}
+          >
+            <Icons.Search />
+          </button>
+
           <button className="neon-button icon-only" onClick={toggleTheme} title={t.settings.theme}>
             {isDark ? <Icons.Sunny /> : <Icons.Moon />}
           </button>
@@ -608,6 +617,14 @@ export default function MarkdownEditor() {
           </button>
         </div>
       </div>
+
+      {/* 搜索面板 - 可折叠内联面板，嵌入在顶部工具栏下方 */}
+      {showSearch && (
+        <SearchPanel
+          onClose={() => setShowSearch(false)}
+          onFileSelect={handleFileSelect}
+        />
+      )}
 
       {/* Main Content */}
       <div className="main-content">
@@ -856,12 +873,6 @@ export default function MarkdownEditor() {
       </div>
 
       {/* Dialogs */}
-      <SearchDialog
-        open={showSearch}
-        onClose={() => setShowSearch(false)}
-        onFileSelect={handleFileSelect}
-      />
-
       <SettingsDialog
         open={showSettings}
         onClose={() => setShowSettings(false)}

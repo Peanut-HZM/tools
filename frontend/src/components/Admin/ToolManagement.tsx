@@ -13,6 +13,11 @@ import {
   CircleDot,
   Folder,
   ArrowDownAZ,
+  Monitor,
+  Smartphone,
+  Lock,
+  Check,
+  Pencil,
 } from 'lucide-react';
 import { resolveIcon, faIconMap, resolveFaIconName } from '../../utils/iconResolver';
 import {

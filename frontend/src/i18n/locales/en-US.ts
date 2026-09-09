@@ -471,7 +471,7 @@ export const enUS = {
 
   // Editor (Existing)
   editor: {
-    title: 'Markdown Editor',
+    title: 'File Editor',
     edit: 'Edit',
     preview: 'Preview',
     split: 'Split',

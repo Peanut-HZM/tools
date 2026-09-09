@@ -49,9 +49,19 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         // 检查是否已有该工具的标签
         const existing = tabs.find((t) => t.toolId === tool.id);
         if (existing) {
+          // 检查名称和图标是否需要更新（管理后台修改后同步）
+          if (existing.toolName !== tool.title || existing.toolIcon !== tool.icon) {
+            const updatedTabs = tabs.map(tab =>
+              tab.id === existing.id
+                ? { ...tab, toolName: tool.title, toolIcon: tool.icon }
+                : tab
+            );
+            set({ tabs: updatedTabs, activeTabId: existing.id });
+          } else {
+            set({ activeTabId: existing.id });
+          }
           // 激活已打开的工具同样算一次使用（左侧列表点击已打开工具的场景）
-          trackToolUsage(existing.toolId, existing.toolName);
-          set({ activeTabId: existing.id });
+          trackToolUsage(existing.toolId, tool.title);
           return;
         }
         // 新建标签

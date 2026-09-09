@@ -18,11 +18,11 @@ export default function ToolGrid({ tools, onToolClick }: ToolGridProps) {
     }
   };
 
+  // 直接使用 API 返回的数据，确保首页展示与管理后台配置一致
   const getToolInfo = (tool: Tool) => {
-    const toolData = (t.tools as any)[tool.id];
     return {
-      title: toolData?.title || tool.title,
-      description: toolData?.description || tool.description
+      title: tool.title,
+      description: tool.description
     };
   };
 

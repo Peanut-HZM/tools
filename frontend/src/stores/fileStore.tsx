@@ -294,7 +294,10 @@ export function FileProvider({ children }: { children: ReactNode }) {
     }
   }, [loadDirectoryTree]);
 
-  const toggleNode = useCallback((path: string) => {
+  const toggleNode = useCallback(async (path: string) => {
+    // 先判断是否要展开（当前未展开）
+    const willExpand = !expandedNodes.has(path);
+
     setExpandedNodes(prev => {
       const next = new Set(prev);
       if (next.has(path)) {
@@ -304,7 +307,12 @@ export function FileProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
-  }, []);
+
+    // 展开时加载子目录内容
+    if (willExpand) {
+      await loadSubDirectory(path);
+    }
+  }, [expandedNodes, loadSubDirectory]);
 
   const closeCurrentFile = useCallback(() => {
     setCurrentFile(null);

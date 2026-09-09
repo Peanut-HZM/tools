@@ -1,0 +1,371 @@
+/**
+ * SearchPanel 样式 - 内联可折叠搜索面板
+ * 嵌入在顶部工具栏下方，支持文件名搜索和内容搜索
+ */
+
+.search-panel {
+  background: var(--color-surface-1, #1a1f2e);
+  border-bottom: 1px solid var(--color-border, #2d3748);
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: search-panel-slide-down 0.15s ease-out;
+}
+
+@keyframes search-panel-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 第一行：控件 + 输入框 + 操作按钮 */
+.search-panel-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 左侧搜索类型控件 */
+.search-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.search-type-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface-2, #252b3b);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.search-type-tab {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--color-ink-muted, #94a3b8);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.search-type-tab:hover {
+  color: var(--color-ink, #e2e8f0);
+  background: var(--color-surface-3, #2d3748);
+}
+
+.search-type-tab.active {
+  color: var(--color-ink-inverse, #0f172a);
+  background: var(--color-accent, #06b6d4);
+}
+
+/* 搜索选项（正则、大小写） */
+.search-options {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-option {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-ink-muted, #94a3b8);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.search-option input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--color-accent, #06b6d4);
+}
+
+/* 中间输入框 */
+.search-panel-input-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-panel-input {
+  width: 100%;
+  padding: 6px 12px;
+  background: var(--color-surface-2, #252b3b);
+  border: 1px solid var(--color-border, #2d3748);
+  border-radius: 6px;
+  color: var(--color-ink, #e2e8f0);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-panel-input:focus {
+  border-color: var(--color-accent-cyan, #06b6d4);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15);
+}
+
+.search-panel-input::placeholder {
+  color: var(--color-ink-faint, #64748b);
+}
+
+/* 右侧操作按钮 */
+.search-panel-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.search-panel-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--color-ink-muted, #94a3b8);
+  background: var(--color-surface-2, #252b3b);
+  border: 1px solid var(--color-border, #2d3748);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.search-panel-btn:hover {
+  color: var(--color-ink, #e2e8f0);
+  background: var(--color-surface-3, #2d3748);
+}
+
+.search-panel-btn.primary {
+  color: var(--color-ink-inverse, #0f172a);
+  background: var(--color-accent, #06b6d4);
+  border-color: var(--color-accent, #06b6d4);
+}
+
+.search-panel-btn.primary:hover:not(:disabled) {
+  background: var(--color-accent-hover, #0891b2);
+}
+
+.search-panel-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 搜索结果区域 */
+.search-panel-results {
+  max-height: 300px;
+  overflow-y: auto;
+  border-top: 1px solid var(--color-border, #2d3748);
+  padding-top: 8px;
+}
+
+.search-panel-error {
+  padding: 8px 12px;
+  color: #f87171;
+  font-size: 12px;
+  background: rgba(248, 113, 113, 0.1);
+  border-radius: 4px;
+}
+
+.search-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 文件名搜索结果项 */
+.search-result-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.search-result-item:hover {
+  background: var(--color-surface-2, #252b3b);
+}
+
+.search-result-name {
+  font-size: 13px;
+  color: var(--color-ink, #e2e8f0);
+  font-weight: 500;
+}
+
+.search-result-path {
+  font-size: 11px;
+  color: var(--color-ink-muted, #94a3b8);
+  margin-top: 2px;
+}
+
+/* 内容搜索结果分组 */
+.search-result-group {
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-surface-2, #252b3b);
+}
+
+.search-result-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: var(--color-surface-3, #2d3748);
+  transition: background 0.15s ease;
+}
+
+.search-result-file:hover {
+  background: var(--color-surface-3, #2d3748);
+  filter: brightness(1.1);
+}
+
+.search-result-count {
+  font-size: 11px;
+  color: var(--color-ink-muted, #94a3b8);
+  flex-shrink: 0;
+}
+
+.search-result-matches {
+  padding: 4px 12px 8px;
+}
+
+.search-result-match {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  padding: 2px 0;
+  line-height: 1.5;
+}
+
+.match-line {
+  color: var(--color-ink-faint, #64748b);
+  flex-shrink: 0;
+  min-width: 48px;
+}
+
+.match-content {
+  color: var(--color-ink-muted, #94a3b8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-more {
+  font-size: 11px;
+  color: var(--color-ink-faint, #64748b);
+  padding-top: 4px;
+}
+
+/* 空状态 */
+.search-panel-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--color-ink-muted, #94a3b8);
+  font-size: 12px;
+}
+
+/* 浅色主题适配 */
+.light-mode .search-panel {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+.light-mode .search-panel-inner {
+  background: transparent;
+}
+
+.light-mode .search-type-tabs {
+  background: #e2e8f0;
+}
+
+.light-mode .search-type-tab {
+  color: #64748b;
+}
+
+.light-mode .search-type-tab:hover {
+  color: #1e293b;
+  background: #cbd5e1;
+}
+
+.light-mode .search-type-tab.active {
+  color: #ffffff;
+}
+
+.light-mode .search-panel-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.light-mode .search-panel-input:focus {
+  border-color: #06b6d4;
+}
+
+.light-mode .search-panel-input::placeholder {
+  color: #94a3b8;
+}
+
+.light-mode .search-panel-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+.light-mode .search-panel-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.light-mode .search-panel-btn.primary {
+  color: #ffffff;
+}
+
+.light-mode .search-panel-results {
+  border-top-color: #e2e8f0;
+}
+
+.light-mode .search-result-item:hover {
+  background: #f1f5f9;
+}
+
+.light-mode .search-result-name {
+  color: #1e293b;
+}
+
+.light-mode .search-result-path {
+  color: #64748b;
+}
+
+.light-mode .search-result-group {
+  background: #f1f5f9;
+}
+
+.light-mode .search-result-file {
+  background: #e2e8f0;
+}
+
+.light-mode .search-result-file:hover {
+  background: #cbd5e1;
+}
+
+.light-mode .match-content {
+  color: #475569;
+}
+
+.light-mode .search-panel-empty {
+  color: #64748b;
+}
+
+.light-mode .search-option {
+  color: #64748b;
+}

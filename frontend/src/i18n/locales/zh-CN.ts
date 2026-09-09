@@ -471,7 +471,7 @@ export const zhCN = {
 
   // Editor (Existing)
   editor: {
-    title: 'Markdown 编辑器',
+    title: '文件编辑器',
     edit: '编辑',
     preview: '预览',
     split: '分屏',
