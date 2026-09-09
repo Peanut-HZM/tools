@@ -5,7 +5,8 @@
  * - 代码文件（.py/.js/.ts/...）→ CodeEditor（Monaco Editor 语法高亮）
  * - 文本文件（.md/.txt/...）→ Editor（textarea）
  * - PDF → PdfViewer（react-pdf，支持翻页）
- * - Excel / Word / 图片 → PlaceholderViewer（阶段 3 实现具体查看器）
+ * - Excel → ExcelViewer（SheetJS，渲染表格）
+ * - Word / 图片 → PlaceholderViewer（阶段 3 实现具体查看器）
  * - 未知类型 → PlaceholderViewer
  *
  * 类型判断逻辑统一由 utils/fileType.ts 提供，FileViewer 仅负责路由。
