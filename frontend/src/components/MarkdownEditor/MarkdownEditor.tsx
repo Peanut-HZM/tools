@@ -7,6 +7,8 @@ import OssFileList from './OssFileList/OssFileList';
 import FileViewer from './FileViewer';
 import Preview from './Preview/Preview';
 import HtmlPreview from './Preview/HtmlPreview';
+import CodeEditor from './CodeEditor';
+import { getFileCategory } from '../../utils/fileType';
 import SearchDialog from './SearchDialog/SearchDialog';
 import SettingsDialog from './SettingsDialog/SettingsDialog';
 import StatusBar from './StatusBar/StatusBar';
@@ -711,9 +713,23 @@ export default function MarkdownEditor() {
                  <div className="resize-handle toc-resize" onMouseDown={() => startResize('toc')} />
                  
                  <div className="preview-full">
-                    {currentFileType === 'html' ? (
-                      <HtmlPreview content={content} theme={config.theme} />
+                    {getFileCategory(currentFilePath || '') === 'code' ? (
+                      // HTML 文件仍使用 HtmlPreview 渲染完整页面效果
+                      currentFileType === 'html' ? (
+                        <HtmlPreview content={content} theme={config.theme} />
+                      ) : (
+                        // 其他代码文件：使用 CodeEditor 只读模式（语法高亮）
+                        <div className="flex-1 h-full">
+                          <CodeEditor
+                            filePath={currentFilePath || ''}
+                            content={content}
+                            readOnly={true}
+                            theme={config.theme as 'light' | 'dark'}
+                          />
+                        </div>
+                      )
                     ) : (
+                      // Markdown/文本文件：使用 Preview（TOC + 渲染）
                       <Preview content={content} theme={config.theme} />
                     )}
                  </div>
