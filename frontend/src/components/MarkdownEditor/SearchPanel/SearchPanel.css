@@ -274,6 +274,15 @@
   font-size: 12px;
 }
 
+/* 搜索结果高亮样式 - 黄色背景在深色/浅色主题下都清晰可见 */
+mark.search-highlight {
+  background-color: #fef08a;
+  color: #1f2937;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+
 /* 浅色主题适配 */
 .light-mode .search-panel {
   background: #f8fafc;
@@ -368,4 +377,10 @@
 
 .light-mode .search-option {
   color: #64748b;
+}
+
+/* 浅色主题高亮 - 使用稍深的黄色以在白色背景上保持对比度 */
+.light-mode mark.search-highlight {
+  background-color: #fde047;
+  color: #1e293b;
 }

@@ -5,6 +5,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import './SearchPanel.css';
 import * as markdownEditorApi from '../../../api/markdownEditorApi';
+import { highlightText } from '../../../utils/highlight';
 import type { FileSearchResult, ContentSearchResult } from '../../../types/markdownEditor';
 
 interface SearchPanelProps {
@@ -170,8 +171,8 @@ export default function SearchPanel({ onClose, onFileSelect }: SearchPanelProps)
                   onClick={() => handleFileClick(result.path)}
                   className="search-result-item"
                 >
-                  <div className="search-result-name">{result.name}</div>
-                  <div className="search-result-path">{result.path}</div>
+                  <div className="search-result-name">{highlightText(result.name, keyword)}</div>
+                  <div className="search-result-path">{highlightText(result.path, keyword)}</div>
                 </div>
               ))}
             </div>
@@ -186,14 +187,14 @@ export default function SearchPanel({ onClose, onFileSelect }: SearchPanelProps)
                     onClick={() => handleFileClick(result.file)}
                     className="search-result-file"
                   >
-                    <span className="search-result-name">{result.file}</span>
+                    <span className="search-result-name">{highlightText(result.file, keyword)}</span>
                     <span className="search-result-count">{result.matches.length} 个匹配</span>
                   </div>
                   <div className="search-result-matches">
                     {result.matches.slice(0, 3).map((match, idx) => (
                       <div key={idx} className="search-result-match">
                         <span className="match-line">行 {match.line}:</span>
-                        <span className="match-content">{match.content}</span>
+                        <span className="match-content">{highlightText(match.content, keyword)}</span>
                       </div>
                     ))}
                     {result.matches.length > 3 && (
