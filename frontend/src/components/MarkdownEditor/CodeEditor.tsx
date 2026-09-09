@@ -9,7 +9,7 @@
  *
  * 依赖 utils/fileType.ts 的 getFileLanguage 进行语言识别
  */
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import { getFileLanguage } from '../../utils/fileType';
 
@@ -37,20 +37,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ filePath, content, onChange, re
   /** 将应用主题映射为 Monaco 主题名 */
   const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
 
-  /** Editor 挂载完成时保存实例引用，并确保语言模型正确设置 */
+  /** Editor 挂载完成时保存实例引用 */
   const handleEditorDidMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
-
-    // 确保 bash/shell 语言支持已加载并设置
-    if (language === 'bash') {
-      monaco.languages.register({ id: 'bash', aliases: ['bash', 'sh', 'shell'] });
-      // 重新设置语言以确保高亮生效
-      const model = editor.getModel();
-      if (model) {
-        monaco.editor.setModelLanguage(model, 'bash');
-      }
-    }
-  }, [language]);
+  }, []);
 
   /** 内容变更时透传给外部回调 */
   const handleChange = useCallback(
