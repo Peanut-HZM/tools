@@ -3,11 +3,13 @@
  *
  * 验证 FileViewer 根据文件扩展名正确路由到对应的查看器：
  * - 代码文件 → 渲染 CodeEditor（Monaco Editor）
+ * - HTML 文件 → 渲染 HtmlPreview（iframe 沙箱渲染）
  * - 文本文件 → 渲染 Editor（textarea）
  * - PDF → 渲染 PdfViewer（react-pdf）
  * - Excel → 渲染 ExcelViewer（SheetJS）
  * - Word → 渲染 WordViewer（mammoth）
- * - 图片 / 未知类型 → 渲染 PlaceholderViewer
+ * - 图片 → 渲染 ImageViewer（base64 + 缩放）
+ * - 未知类型 → 渲染 PlaceholderViewer
  */
 import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
@@ -43,9 +45,11 @@ function MockMonacoEditor(props: Record<string, unknown>) {
 }
 
 // Mock @monaco-editor/react（vi.mock 会自动提升到文件顶部）
+// 提供 useMonaco hook 的 mock 返回 null（测试环境无需真实 Monaco 实例）
 vi.mock('@monaco-editor/react', () => ({
   __esModule: true,
   default: MockMonacoEditor,
+  useMonaco: () => null,
 }));
 
 /**
@@ -106,6 +110,46 @@ function MockWordViewer(props: Record<string, unknown>) {
 vi.mock('../WordViewer', () => ({
   __esModule: true,
   default: MockWordViewer,
+}));
+
+/**
+ * Mock 的 ImageViewer 组件
+ * jsdom 无需真实图片渲染，使用带 data-testid 的占位 div
+ */
+function MockImageViewer(props: Record<string, unknown>) {
+  return (
+    <div
+      data-testid="image-viewer-mock"
+      data-filename={props.fileName as string}
+      data-has-content={props.content != null ? 'true' : 'false'}
+    />
+  );
+}
+
+// Mock ImageViewer
+vi.mock('../ImageViewer', () => ({
+  __esModule: true,
+  default: MockImageViewer,
+}));
+
+/**
+ * Mock 的 HtmlPreview 组件
+ * jsdom 无需真实 iframe 渲染，使用带 data-testid 的占位 div
+ */
+function MockHtmlPreview(props: Record<string, unknown>) {
+  return (
+    <div
+      data-testid="html-preview-mock"
+      data-theme={props.theme as string}
+      data-has-content={props.content != null && (props.content as string).length > 0 ? 'true' : 'false'}
+    />
+  );
+}
+
+// Mock HtmlPreview
+vi.mock('../Preview/HtmlPreview', () => ({
+  __esModule: true,
+  default: MockHtmlPreview,
 }));
 
 describe('FileViewer', () => {
@@ -300,17 +344,94 @@ describe('FileViewer', () => {
       ).toBe('report.docx');
     });
 
-    it('图片文件显示占位查看器', () => {
+    it('图片文件渲染 ImageViewer', () => {
       render(
         <FileViewer
           filePath="photo.png"
+          fileContent="base64data"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(screen.getByTestId('image-viewer-mock')).toBeTruthy();
+      // 验证文件名透传
+      expect(
+        screen.getByTestId('image-viewer-mock').getAttribute('data-filename')
+      ).toBe('photo.png');
+      // 验证 base64 内容透传
+      expect(
+        screen.getByTestId('image-viewer-mock').getAttribute('data-has-content')
+      ).toBe('true');
+    });
+
+    it('图片文件路径含目录时提取文件名', () => {
+      render(
+        <FileViewer
+          filePath="/images/photos/photo.png"
+          fileContent="base64data"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(
+        screen.getByTestId('image-viewer-mock').getAttribute('data-filename')
+      ).toBe('photo.png');
+    });
+  });
+
+  describe('HTML 文件路由', () => {
+    it('HTML 文件渲染 HtmlPreview（非 Monaco）', () => {
+      render(
+        <FileViewer
+          filePath="page.html"
+          fileContent="<h1>Hello</h1>"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(screen.getByTestId('html-preview-mock')).toBeTruthy();
+      // HTML 文件不渲染 Monaco CodeEditor
+      expect(screen.queryByTestId('monaco-editor-mock')).toBeNull();
+    });
+
+    it('HTM 文件渲染 HtmlPreview', () => {
+      render(
+        <FileViewer
+          filePath="page.htm"
+          fileContent="<h1>Hello</h1>"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(screen.getByTestId('html-preview-mock')).toBeTruthy();
+    });
+
+    it('HtmlPreview 接收主题配置', () => {
+      render(
+        <FileViewer
+          filePath="page.html"
+          fileContent="<h1>Hello</h1>"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(
+        screen.getByTestId('html-preview-mock').getAttribute('data-theme')
+      ).toBe('dark');
+    });
+
+    it('HTML 文件 fileContent 为 null 时 HtmlPreview 接收空字符串', () => {
+      render(
+        <FileViewer
+          filePath="page.html"
           fileContent={null}
           editorConfig={mockEditorConfig}
           onSave={mockOnSave}
         />
       );
-      expect(screen.getByText(/不支持的文件类型/)).toBeTruthy();
-      expect(screen.getByText(/图片/)).toBeTruthy();
+      expect(
+        screen.getByTestId('html-preview-mock').getAttribute('data-has-content')
+      ).toBe('false');
     });
   });
 

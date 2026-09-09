@@ -3,22 +3,25 @@
  *
  * 根据文件扩展名将文件路由到不同的查看器：
  * - 代码文件（.py/.js/.ts/...）→ CodeEditor（Monaco Editor 语法高亮）
+ * - HTML 文件（.html/.htm）→ HtmlPreview（iframe 沙箱渲染）
  * - 文本文件（.md/.txt/...）→ Editor（textarea）
  * - PDF → PdfViewer（react-pdf，支持翻页）
  * - Excel → ExcelViewer（SheetJS，渲染表格）
  * - Word → WordViewer（mammoth，转换为 HTML）
- * - 图片 → PlaceholderViewer（阶段 3 实现具体查看器）
+ * - 图片 → ImageViewer（base64 渲染 + 缩放）
  * - 未知类型 → PlaceholderViewer
  *
  * 类型判断逻辑统一由 utils/fileType.ts 提供，FileViewer 仅负责路由。
  */
 import React from 'react';
-import { getFileCategory } from '../../utils/fileType';
+import { getFileCategory, getFileLanguage } from '../../utils/fileType';
 import Editor from './Editor/Editor';
 import CodeEditor from './CodeEditor';
 import PdfViewer from './PdfViewer';
 import ExcelViewer from './ExcelViewer';
 import WordViewer from './WordViewer';
+import ImageViewer from './ImageViewer';
+import HtmlPreview from './Preview/HtmlPreview';
 import type { EditorConfig } from '../../types/markdownEditor';
 
 /** FileViewer 对外接口 */
@@ -40,8 +43,7 @@ interface FileViewerProps {
 }
 
 /**
- * 占位查看器 - 用于尚未实现的查看器类型（Excel / Word / 图片等）
- * 阶段 3 会替换为具体实现
+ * 占位查看器 - 用于尚未实现的查看器类型
  */
 const PlaceholderViewer: React.FC<{ fileType: string }> = ({ fileType }) => (
   <div className="flex items-center justify-center h-full text-ink-muted">
@@ -51,12 +53,6 @@ const PlaceholderViewer: React.FC<{ fileType: string }> = ({ fileType }) => (
     </div>
   </div>
 );
-
-/** 文件分类到展示名称的映射（用于 PlaceholderViewer 显示） */
-const CATEGORY_LABEL: Record<string, string> = {
-  excel: 'Excel',
-  image: '图片',
-};
 
 const FileViewer: React.FC<FileViewerProps> = ({
   filePath,
@@ -70,8 +66,17 @@ const FileViewer: React.FC<FileViewerProps> = ({
   const category = getFileCategory(filePath);
 
   switch (category) {
-    case 'code':
-      // 代码文件使用 Monaco Editor，支持语法高亮、行号、代码折叠
+    case 'code': {
+      // HTML 文件使用 HtmlPreview（iframe 沙箱渲染），其他代码文件使用 Monaco Editor
+      const language = getFileLanguage(filePath);
+      if (language === 'html') {
+        return (
+          <HtmlPreview
+            content={fileContent || ''}
+            theme={editorConfig.theme}
+          />
+        );
+      }
       return (
         <CodeEditor
           filePath={filePath}
@@ -81,6 +86,7 @@ const FileViewer: React.FC<FileViewerProps> = ({
           theme={editorConfig.theme}
         />
       );
+    }
 
     case 'text': {
       // 文本文件（Markdown / TXT 等）继续使用现有 Editor
@@ -125,8 +131,13 @@ const FileViewer: React.FC<FileViewerProps> = ({
       );
 
     case 'image':
-      // 阶段 3 实现具体的图片查看器
-      return <PlaceholderViewer fileType={CATEGORY_LABEL[category] || category} />;
+      // 图片文件使用 ImageViewer（base64 渲染 + 缩放控制）
+      return (
+        <ImageViewer
+          content={fileContent}
+          fileName={filePath.split('/').pop()}
+        />
+      );
 
     case 'unknown':
     default:
