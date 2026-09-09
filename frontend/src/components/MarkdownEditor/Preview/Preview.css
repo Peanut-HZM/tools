@@ -342,3 +342,36 @@
   font-size: 0.8em;
   font-weight: bold;
 }
+
+/* ========================================
+   内容搜索高亮
+   ======================================== */
+
+/* 搜索结果高亮 - 黄色标记 */
+.markdown-body mark.search-highlight {
+  background-color: #fef08a;
+  color: #1f2937;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-weight: 500;
+  box-shadow: 0 0 4px rgba(254, 240, 138, 0.4);
+}
+
+/* 当前选中匹配项 - 橙色高亮突出显示 */
+.markdown-body mark.search-highlight.active-search-match {
+  background-color: #fb923c;
+  color: #1f2937;
+  box-shadow: 0 0 8px rgba(251, 146, 60, 0.6);
+  outline: 2px solid rgba(251, 146, 60, 0.4);
+}
+
+/* 浅色主题适配 */
+.dark-theme .markdown-body mark.search-highlight {
+  background-color: #ca8a04;
+  color: #fefce8;
+}
+
+.dark-theme .markdown-body mark.search-highlight.active-search-match {
+  background-color: #ea580c;
+  color: #fff7ed;
+}

@@ -11,9 +11,13 @@ import './Preview.css';
 interface PreviewProps {
   content: string;
   theme?: 'light' | 'dark';
+  /** 内容搜索关键词，用于在渲染的 HTML 中高亮匹配文本 */
+  searchQuery?: string;
+  /** 当前匹配的索引，用于高亮当前选中匹配项并滚动到可视区域 */
+  currentMatchIndex?: number;
 }
 
-export default function Preview({ content, theme = 'dark' }: PreviewProps) {
+export default function Preview({ content, theme = 'dark', searchQuery = '', currentMatchIndex = 0 }: PreviewProps) {
   const md = useMemo(() => {
     const markdownIt: any = new MarkdownIt({
       html: true,
@@ -120,6 +124,85 @@ export default function Preview({ content, theme = 'dark' }: PreviewProps) {
         });
     };
   }, [html]);
+
+  // 内容搜索高亮：在渲染的 HTML 中查找并高亮匹配文本
+  useEffect(() => {
+    const container = document.querySelector('.markdown-body');
+    if (!container) return;
+
+    // 清除之前的高亮标记
+    const existingMarks = container.querySelectorAll('mark.search-highlight');
+    existingMarks.forEach((mark) => {
+      const parent = mark.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(mark.textContent || ''), mark);
+        parent.normalize();
+      }
+    });
+
+    if (!searchQuery.trim()) return;
+
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQuery, 'gi');
+
+    // 收集所有文本节点
+    const textNodes: Text[] = [];
+    const walker = document.createTreeWalker(
+      container,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      textNodes.push(node as Text);
+    }
+
+    // 在每个文本节点中查找匹配并创建高亮标记
+    const allMarks: HTMLElement[] = [];
+    textNodes.forEach((textNode) => {
+      const text = textNode.textContent || '';
+      if (!regex.test(text)) return;
+      regex.lastIndex = 0;
+
+      const frag = document.createDocumentFragment();
+      let lastIdx = 0;
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(text)) !== null) {
+        // 匹配前的普通文本
+        if (match.index > lastIdx) {
+          frag.appendChild(document.createTextNode(text.slice(lastIdx, match.index)));
+        }
+        // 高亮匹配文本
+        const mark = document.createElement('mark');
+        mark.className = 'search-highlight';
+        mark.textContent = match[0];
+        frag.appendChild(mark);
+        allMarks.push(mark);
+        lastIdx = regex.lastIndex;
+      }
+
+      // 剩余文本
+      if (lastIdx < text.length) {
+        frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+      }
+
+      textNode.parentNode?.replaceChild(frag, textNode);
+    });
+
+    // 高亮当前选中匹配项（如果有）并滚动到可视区域
+    if (allMarks.length > 0 && currentMatchIndex >= 0) {
+      const idx = currentMatchIndex % allMarks.length;
+      allMarks.forEach((m, i) => {
+        if (i === idx) {
+          m.classList.add('active-search-match');
+          m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          m.classList.remove('active-search-match');
+        }
+      });
+    }
+  }, [html, searchQuery, currentMatchIndex]);
 
   return (
     <div className={`h-full overflow-auto bg-transparent text-inherit ${theme === 'dark' ? 'dark-theme' : ''}`}>

@@ -206,6 +206,12 @@ export default function MarkdownEditor() {
   const [isResizing, setIsResizing] = useState(false);
   const [resizeType, setResizeType] = useState<'sidebar' | 'preview' | 'toc' | null>(null);
 
+  // 内容搜索状态（搜索当前打开文件的内容）
+  const [showContentSearch, setShowContentSearch] = useState(false);
+  const [contentSearchQuery, setContentSearchQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [totalMatches, setTotalMatches] = useState(0);
+
   // TOC State
   const [documentToc, setDocumentToc] = useState<TocItem[]>([]);
   const [activeTocId, setActiveTocId] = useState('');
@@ -283,6 +289,42 @@ export default function MarkdownEditor() {
       setActiveTocId(toc[0].id);
     }
   }, [content]);
+
+  // 内容搜索：计算匹配总数并重置当前索引
+  useEffect(() => {
+    if (!contentSearchQuery.trim() || !content) {
+      setTotalMatches(0);
+      setCurrentMatchIndex(0);
+      return;
+    }
+    const escapedQuery = contentSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQuery, 'gi');
+    const matches = content.match(regex);
+    const count = matches ? matches.length : 0;
+    setTotalMatches(count);
+    // 重置当前索引，避免超出范围
+    setCurrentMatchIndex((prev) => (count > 0 ? Math.min(prev, count - 1) : 0));
+  }, [contentSearchQuery, content]);
+
+  // 内容搜索：跳转到上一个匹配
+  const goToPreviousMatch = useCallback(() => {
+    if (totalMatches === 0) return;
+    setCurrentMatchIndex((prev) => (prev - 1 + totalMatches) % totalMatches);
+  }, [totalMatches]);
+
+  // 内容搜索：跳转到下一个匹配
+  const goToNextMatch = useCallback(() => {
+    if (totalMatches === 0) return;
+    setCurrentMatchIndex((prev) => (prev + 1) % totalMatches);
+  }, [totalMatches]);
+
+  // 内容搜索：搜索栏键盘事件（Escape 关闭）
+  const handleContentSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowContentSearch(false);
+    }
+  }, []);
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -608,6 +650,17 @@ export default function MarkdownEditor() {
             <Icons.Search />
           </button>
 
+          {/* 内容搜索按钮 - 搜索当前打开文件的内容 */}
+          {(currentFile || ossFilePath) && (
+            <button
+              className={`neon-button icon-only ${showContentSearch ? 'primary' : ''}`}
+              onClick={() => setShowContentSearch(!showContentSearch)}
+              title="搜索文件内容"
+            >
+              🔍
+            </button>
+          )}
+
           <button className="neon-button icon-only" onClick={toggleTheme} title={t.settings.theme}>
             {isDark ? <Icons.Sunny /> : <Icons.Moon />}
           </button>
@@ -624,6 +677,33 @@ export default function MarkdownEditor() {
           onClose={() => setShowSearch(false)}
           onFileSelect={handleFileSelect}
         />
+      )}
+
+      {/* 内容搜索栏 - 搜索当前打开文件的内容 */}
+      {showContentSearch && (
+        <div className="content-search-bar flex items-center gap-2 px-4 py-2 border-b border-border bg-surface-1">
+          <input
+            type="text"
+            placeholder="搜索内容..."
+            value={contentSearchQuery}
+            onChange={(e) => setContentSearchQuery(e.target.value)}
+            onKeyDown={handleContentSearchKeyDown}
+            className="flex-1 px-2 py-1 text-sm bg-surface-2 border border-border rounded text-ink"
+            autoFocus
+          />
+          <span className="text-sm text-ink-muted whitespace-nowrap">
+            {totalMatches > 0 ? `${currentMatchIndex + 1}/${totalMatches}` : '0/0'}
+          </span>
+          <button onClick={goToPreviousMatch} className="px-2 py-1 text-sm" title="上一个匹配项 (Shift+Enter)">
+            ▲
+          </button>
+          <button onClick={goToNextMatch} className="px-2 py-1 text-sm" title="下一个匹配项 (Enter)">
+            ▼
+          </button>
+          <button onClick={() => setShowContentSearch(false)} className="px-2 py-1 text-sm" title="关闭搜索 (Escape)">
+            ✕
+          </button>
+        </div>
       )}
 
       {/* Main Content */}
@@ -747,7 +827,7 @@ export default function MarkdownEditor() {
                       )
                     ) : (
                       // Markdown/文本文件：使用 Preview（TOC + 渲染）
-                      <Preview content={content} theme={config.theme} />
+                      <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} />
                     )}
                  </div>
                </div>
@@ -842,7 +922,7 @@ export default function MarkdownEditor() {
               {currentFileType === 'html' ? (
                 <HtmlPreview content={content} theme={config.theme} />
               ) : (
-                <Preview content={content} theme={config.theme} />
+                <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} />
               )}
             </div>
           </>
