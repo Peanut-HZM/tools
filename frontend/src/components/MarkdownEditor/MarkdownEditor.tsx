@@ -8,6 +8,10 @@ import FileViewer from './FileViewer';
 import Preview from './Preview/Preview';
 import HtmlPreview from './Preview/HtmlPreview';
 import CodeEditor from './CodeEditor';
+import ImageViewer from './ImageViewer';
+import PdfViewer from './PdfViewer';
+import ExcelViewer from './ExcelViewer';
+import WordViewer from './WordViewer';
 import { getFileCategory } from '../../utils/fileType';
 import SearchPanel from './SearchPanel/SearchPanel';
 import SettingsDialog from './SettingsDialog/SettingsDialog';
@@ -830,25 +834,36 @@ export default function MarkdownEditor() {
                  )}
 
                  <div className="preview-full">
-                    {getFileCategory(currentFilePath || '') === 'code' ? (
-                      // HTML 文件仍使用 HtmlPreview 渲染完整页面效果
-                      currentFileType === 'html' ? (
-                        <HtmlPreview content={content} theme={config.theme} />
-                      ) : (
-                        // 其他代码文件：使用 CodeEditor 只读模式（语法高亮）
-                        <div className="flex-1 h-full">
-                          <CodeEditor
-                            filePath={currentFilePath || ''}
-                            content={content}
-                            readOnly={true}
-                            theme={config.theme as 'light' | 'dark'}
-                          />
-                        </div>
-                      )
-                    ) : (
-                      // Markdown/文本文件：使用 Preview（TOC + 渲染）
-                      <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} onMatchCountChange={handleMatchCountChange} />
-                    )}
+                    {(() => {
+                      const category = getFileCategory(currentFilePath || '');
+                      const fileName = currentFilePath?.split('/').pop();
+                      switch (category) {
+                        case 'pdf':
+                          return <PdfViewer content={content} fileName={fileName} />;
+                        case 'excel':
+                          return <ExcelViewer content={content} fileName={fileName} />;
+                        case 'word':
+                          return <WordViewer content={content} fileName={fileName} />;
+                        case 'image':
+                          return <ImageViewer content={content} fileName={fileName} />;
+                        case 'code':
+                          if (currentFileType === 'html') {
+                            return <HtmlPreview content={content || ''} theme={config.theme} />;
+                          }
+                          return (
+                            <div className="flex-1 h-full">
+                              <CodeEditor
+                                filePath={currentFilePath || ''}
+                                content={content}
+                                readOnly={true}
+                                theme={config.theme as 'light' | 'dark'}
+                              />
+                            </div>
+                          );
+                        default:
+                          return <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} onMatchCountChange={handleMatchCountChange} />;
+                      }
+                    })()}
                  </div>
                </div>
              ) : (
