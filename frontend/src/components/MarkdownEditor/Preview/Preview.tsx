@@ -1,7 +1,7 @@
 /**
  * Preview Component - Markdown preview with syntax highlighting
  */
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
@@ -15,9 +15,15 @@ interface PreviewProps {
   searchQuery?: string;
   /** 当前匹配的索引，用于高亮当前选中匹配项并滚动到可视区域 */
   currentMatchIndex?: number;
+  /** 实际 DOM 高亮数量变化回调（由 DOM 计算，避免 markdown/HTML 计数不一致） */
+  onMatchCountChange?: (count: number) => void;
 }
 
-export default function Preview({ content, theme = 'dark', searchQuery = '', currentMatchIndex = 0 }: PreviewProps) {
+export default function Preview({ content, theme = 'dark', searchQuery = '', currentMatchIndex = 0, onMatchCountChange }: PreviewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // 将回调存入 ref，避免加入高亮 effect 的依赖导致反复触发
+  const onMatchCountChangeRef = useRef(onMatchCountChange);
+  onMatchCountChangeRef.current = onMatchCountChange;
   const md = useMemo(() => {
     const markdownIt: any = new MarkdownIt({
       html: true,
@@ -101,25 +107,22 @@ export default function Preview({ content, theme = 'dark', searchQuery = '', cur
 
   // Handle task list checkbox clicks (prevent mutation)
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
     const handleCheckboxClick = (e: Event) => {
       const target = e.target as HTMLInputElement;
       if (target.type === 'checkbox') {
         e.preventDefault();
       }
     };
-    
-    // Attach event listener to a container if possible, or we rely on the fact 
-    // that React re-renders. But native events on dangerouslySetInnerHTML content 
-    // need manual handling if we want to intercept them, though preventDefault on click works.
-    // We'll attach to the document or specific container if we had a ref.
-    // Since we don't have a ref in this simple component, we can skip or add one.
-    // Let's add a class to the container and delegate.
-    document.querySelectorAll('.markdown-body input[type="checkbox"]').forEach(el => {
+
+    container.querySelectorAll('input[type="checkbox"]').forEach(el => {
         el.addEventListener('click', handleCheckboxClick);
     });
-    
+
     return () => {
-        document.querySelectorAll('.markdown-body input[type="checkbox"]').forEach(el => {
+        container.querySelectorAll('input[type="checkbox"]').forEach(el => {
             el.removeEventListener('click', handleCheckboxClick);
         });
     };
@@ -127,7 +130,7 @@ export default function Preview({ content, theme = 'dark', searchQuery = '', cur
 
   // 内容搜索高亮：在渲染的 HTML 中查找并高亮匹配文本
   useEffect(() => {
-    const container = document.querySelector('.markdown-body');
+    const container = containerRef.current;
     if (!container) return;
 
     // 清除之前的高亮标记
@@ -202,11 +205,15 @@ export default function Preview({ content, theme = 'dark', searchQuery = '', cur
         }
       });
     }
+
+    // 将实际 DOM 高亮数量回传给父组件（确保与渲染后的 HTML 一致）
+    onMatchCountChangeRef.current?.(allMarks.length);
   }, [html, searchQuery, currentMatchIndex]);
 
   return (
     <div className={`h-full overflow-auto bg-transparent text-inherit ${theme === 'dark' ? 'dark-theme' : ''}`}>
       <div
+        ref={containerRef}
         className="markdown-body"
         dangerouslySetInnerHTML={{ __html: html }}
       />

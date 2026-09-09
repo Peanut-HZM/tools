@@ -210,7 +210,6 @@ export default function MarkdownEditor() {
   const [showContentSearch, setShowContentSearch] = useState(false);
   const [contentSearchQuery, setContentSearchQuery] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-  const [totalMatches, setTotalMatches] = useState(0);
 
   // TOC State
   const [documentToc, setDocumentToc] = useState<TocItem[]>([]);
@@ -290,33 +289,43 @@ export default function MarkdownEditor() {
     }
   }, [content]);
 
-  // 内容搜索：计算匹配总数并重置当前索引
+  // 内容搜索：由 Preview 报告的 DOM 实际高亮数量（与渲染后的 HTML 一致，避免 markdown/HTML 计数偏差）
+  const domMatchCountRef = useRef(0);
+  const [domMatchCount, setDomMatchCount] = useState(0);
+  const onMatchCountChangeRef = useRef<(count: number) => void>(() => {});
+  onMatchCountChangeRef.current = (count: number) => setDomMatchCount(count);
+
+  const handleMatchCountChange = useCallback((count: number) => {
+    domMatchCountRef.current = count;
+    onMatchCountChangeRef.current(count);
+  }, []);
+
+  // 内容搜索：当查询/内容变更时，重置计数并钳制当前索引
   useEffect(() => {
     if (!contentSearchQuery.trim() || !content) {
-      setTotalMatches(0);
+      domMatchCountRef.current = 0;
+      setDomMatchCount(0);
       setCurrentMatchIndex(0);
       return;
     }
-    const escapedQuery = contentSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escapedQuery, 'gi');
-    const matches = content.match(regex);
-    const count = matches ? matches.length : 0;
-    setTotalMatches(count);
-    // 重置当前索引，避免超出范围
-    setCurrentMatchIndex((prev) => (count > 0 ? Math.min(prev, count - 1) : 0));
+    // 先保守清零，等待 Preview 的 DOM 回调报告真实数量
+    setDomMatchCount(0);
+    setCurrentMatchIndex(0);
   }, [contentSearchQuery, content]);
 
   // 内容搜索：跳转到上一个匹配
   const goToPreviousMatch = useCallback(() => {
-    if (totalMatches === 0) return;
-    setCurrentMatchIndex((prev) => (prev - 1 + totalMatches) % totalMatches);
-  }, [totalMatches]);
+    const count = domMatchCountRef.current;
+    if (count === 0) return;
+    setCurrentMatchIndex((prev) => (prev - 1 + count) % count);
+  }, []);
 
   // 内容搜索：跳转到下一个匹配
   const goToNextMatch = useCallback(() => {
-    if (totalMatches === 0) return;
-    setCurrentMatchIndex((prev) => (prev + 1) % totalMatches);
-  }, [totalMatches]);
+    const count = domMatchCountRef.current;
+    if (count === 0) return;
+    setCurrentMatchIndex((prev) => (prev + 1) % count);
+  }, []);
 
   // 内容搜索：搜索栏键盘事件（Escape 关闭）
   const handleContentSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -655,7 +664,7 @@ export default function MarkdownEditor() {
             <button
               className={`neon-button icon-only ${showContentSearch ? 'primary' : ''}`}
               onClick={() => setShowContentSearch(!showContentSearch)}
-              title="搜索文件内容"
+              title="在文件中搜索 (Ctrl+F)"
             >
               🔍
             </button>
@@ -692,7 +701,7 @@ export default function MarkdownEditor() {
             autoFocus
           />
           <span className="text-sm text-ink-muted whitespace-nowrap">
-            {totalMatches > 0 ? `${currentMatchIndex + 1}/${totalMatches}` : '0/0'}
+            {domMatchCount > 0 ? `${currentMatchIndex + 1}/${domMatchCount}` : '0/0'}
           </span>
           <button onClick={goToPreviousMatch} className="px-2 py-1 text-sm" title="上一个匹配项 (Shift+Enter)">
             ▲
@@ -827,7 +836,7 @@ export default function MarkdownEditor() {
                       )
                     ) : (
                       // Markdown/文本文件：使用 Preview（TOC + 渲染）
-                      <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} />
+                      <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} onMatchCountChange={handleMatchCountChange} />
                     )}
                  </div>
                </div>
@@ -922,7 +931,7 @@ export default function MarkdownEditor() {
               {currentFileType === 'html' ? (
                 <HtmlPreview content={content} theme={config.theme} />
               ) : (
-                <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} />
+                <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} onMatchCountChange={handleMatchCountChange} />
               )}
             </div>
           </>
