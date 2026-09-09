@@ -35,7 +35,19 @@ describe('ImageViewer', () => {
     render(<ImageViewer content="base64data" fileName="image.jpg" />);
     const img = screen.getByAltText('image.jpg');
     expect(img).toBeTruthy();
-    expect(img.getAttribute('src')).toBe('data:image/*;base64,base64data');
+    expect(img.getAttribute('src')).toBe('data:image/jpeg;base64,base64data');
+  });
+
+  it('根据文件扩展名正确设置 MIME 类型', () => {
+    render(<ImageViewer content="data" fileName="logo.png" />);
+    const img = screen.getByAltText('logo.png');
+    expect(img.getAttribute('src')).toBe('data:image/png;base64,data');
+  });
+
+  it('未知扩展名默认使用 image/png', () => {
+    render(<ImageViewer content="data" fileName="file.unknown" />);
+    const img = screen.getByAltText('file.unknown');
+    expect(img.getAttribute('src')).toBe('data:image/png;base64,data');
   });
 
   it('显示文件名', () => {

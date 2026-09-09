@@ -14,6 +14,29 @@ interface ImageViewerProps {
   fileName?: string;
 }
 
+/** 根据文件扩展名获取 MIME 类型 */
+function getImageMimeType(fileName?: string): string {
+  const ext = fileName?.split('.').pop()?.toLowerCase() || '';
+  const mimeMap: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+    ico: 'image/x-icon',
+    avif: 'image/avif',
+  };
+  return mimeMap[ext] || 'image/png';
+}
+
+/** 构建图片 data URL */
+function getImageDataUrl(content: string, fileName?: string): string {
+  const mimeType = getImageMimeType(fileName);
+  return `data:${mimeType};base64,${content}`;
+}
+
 const ImageViewer: React.FC<ImageViewerProps> = ({ content, fileName }) => {
   const [zoom, setZoom] = useState(1);
 
@@ -27,7 +50,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ content, fileName }) => {
     );
   }
 
-  const imageData = `data:image/*;base64,${content}`;
+  const imageData = getImageDataUrl(content, fileName);
 
   return (
     <div className="h-full flex flex-col">
