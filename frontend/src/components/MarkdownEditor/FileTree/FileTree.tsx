@@ -298,16 +298,9 @@ export default function FileTree({
     }
   }, [newItemName, contextPath, onCreateDirectory]);
 
-  if (!tree) {
-    return (
-      <div className="p-4 text-ink-muted text-sm">
-        加载中...
-      </div>
-    );
-  }
-
-  // 使用 useMemo 缓存过滤后的树和自动展开路径
+  // 使用 useMemo 缓存过滤后的树和自动展开路径（必须在所有条件返回之前）
   const { filteredTree, autoExpandPaths } = useMemo(() => {
+    if (!tree) return { filteredTree: null, autoExpandPaths: new Set<string>() };
     const expandPaths = new Set<string>();
     const filtered = filterTree(tree, fileSearchQuery, expandPaths);
     return { filteredTree: filtered, autoExpandPaths: expandPaths };
@@ -333,6 +326,14 @@ export default function FileTree({
       e.currentTarget.blur();
     }
   }, []);
+
+  if (!tree) {
+    return (
+      <div className="p-4 text-ink-muted text-sm">
+        加载中...
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-auto flex flex-col" onClick={closeContextMenu}>
