@@ -56,6 +56,36 @@ interface TreeNodeProps {
   onContextMenu?: (e: React.MouseEvent, node: FileNode) => void;
 }
 
+/**
+ * 递归过滤文件树节点
+ * @param node 当前节点
+ * @param query 搜索关键词
+ * @returns 过滤后的节点，如果无匹配则返回 null
+ */
+function filterTree(node: FileNode, query: string): FileNode | null {
+  if (!query) return node;
+
+  const lowerQuery = query.toLowerCase();
+  const nameMatch = node.name.toLowerCase().includes(lowerQuery);
+
+  // 文件节点：名称匹配则保留，否则过滤
+  if (node.type === 'file') {
+    return nameMatch ? node : null;
+  }
+
+  // 目录节点：递归过滤子节点
+  const filteredChildren = node.children
+    ?.map(child => filterTree(child, query))
+    .filter(Boolean) as FileNode[];
+
+  // 如果目录名匹配或子目录有匹配项，保留该目录
+  if (nameMatch || (filteredChildren && filteredChildren.length > 0)) {
+    return { ...node, children: filteredChildren || [] };
+  }
+
+  return null;
+}
+
 function TreeNode({
   node,
   level,
@@ -157,6 +187,8 @@ export default function FileTree({
   const [showNewDirInput, setShowNewDirInput] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [contextPath, setContextPath] = useState('');
+  // 文件搜索关键词
+  const [fileSearchQuery, setFileSearchQuery] = useState('');
 
   const handleContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
     setContextMenu({ x: e.clientX, y: e.clientY, node });
@@ -265,27 +297,43 @@ export default function FileTree({
     );
   }
 
+  // 应用搜索过滤
+  const filteredTree = filterTree(tree, fileSearchQuery);
+
   return (
-    <div className="h-full overflow-auto" onClick={closeContextMenu}>
+    <div className="h-full overflow-auto flex flex-col" onClick={closeContextMenu}>
+      {/* 搜索框 */}
+      <div className="file-tree-search px-3 py-2 border-b border-border shrink-0">
+        <input
+          type="text"
+          placeholder="搜索文件名..."
+          value={fileSearchQuery}
+          onChange={(e) => setFileSearchQuery(e.target.value)}
+          className="w-full px-2 py-1 text-sm bg-surface-2 border border-border rounded text-ink"
+        />
+      </div>
+
       {/* Tree Content */}
-      {tree.children && tree.children.length > 0 ? (
-        tree.children.map((node) => (
-          <TreeNode
-            key={node.path}
-            node={node}
-            level={0}
-            currentFilePath={currentFilePath}
-            expandedNodes={expandedNodes}
-            onFileSelect={onFileSelect}
-            onToggleNode={onToggleNode}
-            onContextMenu={handleContextMenu}
-          />
-        ))
-      ) : (
-        <div className="p-4 text-ink-muted text-sm text-center">
-          暂无文件
-        </div>
-      )}
+      <div className="flex-1 overflow-auto">
+        {filteredTree && filteredTree.children && filteredTree.children.length > 0 ? (
+          filteredTree.children.map((node) => (
+            <TreeNode
+              key={node.path}
+              node={node}
+              level={0}
+              currentFilePath={currentFilePath}
+              expandedNodes={expandedNodes}
+              onFileSelect={onFileSelect}
+              onToggleNode={onToggleNode}
+              onContextMenu={handleContextMenu}
+            />
+          ))
+        ) : (
+          <div className="p-4 text-ink-muted text-sm text-center">
+            {fileSearchQuery ? '无匹配文件' : '暂无文件'}
+          </div>
+        )}
+      </div>
 
       {/* Context Menu */}
       {contextMenu && (
