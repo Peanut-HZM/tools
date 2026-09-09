@@ -4,7 +4,8 @@
  * 验证 FileViewer 根据文件扩展名正确路由到对应的查看器：
  * - 代码文件 → 渲染 CodeEditor（Monaco Editor）
  * - 文本文件 → 渲染 Editor（textarea）
- * - PDF / Excel / Word / 图片 / 未知类型 → 渲染 PlaceholderViewer
+ * - PDF → 渲染 PdfViewer（react-pdf）
+ * - Excel / Word / 图片 / 未知类型 → 渲染 PlaceholderViewer
  */
 import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
@@ -43,6 +44,26 @@ function MockMonacoEditor(props: Record<string, unknown>) {
 vi.mock('@monaco-editor/react', () => ({
   __esModule: true,
   default: MockMonacoEditor,
+}));
+
+/**
+ * Mock 的 PdfViewer 组件
+ * jsdom 无法承载真实 react-pdf，使用带 data-testid 的占位 div
+ */
+function MockPdfViewer(props: Record<string, unknown>) {
+  return (
+    <div
+      data-testid="pdf-viewer-mock"
+      data-filename={props.fileName as string}
+      data-has-content={props.content != null ? 'true' : 'false'}
+    />
+  );
+}
+
+// Mock PdfViewer（避免引入真实 react-pdf）
+vi.mock('../PdfViewer', () => ({
+  __esModule: true,
+  default: MockPdfViewer,
 }));
 
 describe('FileViewer', () => {
@@ -134,18 +155,39 @@ describe('FileViewer', () => {
     });
   });
 
-  describe('二进制/富媒体文件占位', () => {
-    it('PDF 文件显示占位查看器', () => {
+  describe('二进制/富媒体文件', () => {
+    it('PDF 文件渲染 PdfViewer（react-pdf）', () => {
       render(
         <FileViewer
           filePath="doc.pdf"
-          fileContent={null}
+          fileContent="base64data"
           editorConfig={mockEditorConfig}
           onSave={mockOnSave}
         />
       );
-      expect(screen.getByText(/不支持的文件类型/)).toBeTruthy();
-      expect(screen.getByText(/PDF/)).toBeTruthy();
+      expect(screen.getByTestId('pdf-viewer-mock')).toBeTruthy();
+      // 验证文件名透传
+      expect(
+        screen.getByTestId('pdf-viewer-mock').getAttribute('data-filename')
+      ).toBe('doc.pdf');
+      // 验证 base64 内容透传
+      expect(
+        screen.getByTestId('pdf-viewer-mock').getAttribute('data-has-content')
+      ).toBe('true');
+    });
+
+    it('PDF 文件路径含目录时提取文件名', () => {
+      render(
+        <FileViewer
+          filePath="/docs/reports/annual.pdf"
+          fileContent="base64data"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(
+        screen.getByTestId('pdf-viewer-mock').getAttribute('data-filename')
+      ).toBe('annual.pdf');
     });
 
     it('Excel 文件显示占位查看器', () => {

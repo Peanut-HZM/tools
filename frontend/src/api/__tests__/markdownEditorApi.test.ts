@@ -68,10 +68,8 @@ describe('fileStore.openFile (文本/二进制分支)', () => {
   }): string {
     // 与 fileStore.tsx 中 openFile 的分支保持一致
     if (file.text) return file.text;
-    if (file.data) {
-      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      return `[二进制文件：${file.content_type}，${sizeMB} MB]`;
-    }
+    // 二进制文件直接传递 base64 数据，由具体查看器（如 PdfViewer）负责渲染
+    if (file.data) return file.data;
     return '';
   }
 
@@ -84,22 +82,22 @@ describe('fileStore.openFile (文本/二进制分支)', () => {
     expect(out).toBe('# Title');
   });
 
-  it('二进制文件：显示 content_type 与 MB 大小', () => {
+  it('二进制文件：content 为 base64 数据（供查看器渲染）', () => {
     const out = resolveContent({
       data: 'AAAA',
       content_type: 'application/pdf',
       size: 2 * 1024 * 1024, // 2 MB
     });
-    expect(out).toBe('[二进制文件：application/pdf，2.00 MB]');
+    expect(out).toBe('AAAA');
   });
 
-  it('二进制文件：小尺寸正确显示为小数 MB', () => {
+  it('二进制文件：不同 content_type 同样传递 base64 数据', () => {
     const out = resolveContent({
       data: 'BBBB',
       content_type: 'image/png',
       size: 512 * 1024, // 0.5 MB
     });
-    expect(out).toBe('[二进制文件：image/png，0.50 MB]');
+    expect(out).toBe('BBBB');
   });
 
   it('既无 text 也无 data：返回空字符串', () => {

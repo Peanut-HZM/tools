@@ -64,7 +64,7 @@ describe('fileStore.openFile', () => {
     expect(result.current.currentFilePath).toBe('/notes/a.md');
   });
 
-  it('二进制文件：content 为含 content_type 与 MB 大小的占位符', async () => {
+  it('二进制文件：content 为 base64 数据（供 PdfViewer 等查看器渲染）', async () => {
     mockedReadFileRaw.mockResolvedValueOnce({
       path: '/assets/x.pdf',
       content_type: 'application/pdf',
@@ -83,9 +83,8 @@ describe('fileStore.openFile', () => {
       expect(result.current.currentFile).not.toBeNull();
     });
 
-    expect(result.current.currentFile?.content).toBe(
-      '[二进制文件：application/pdf，3.00 MB]'
-    );
+    // 二进制文件直接传递 base64 数据，由具体查看器负责渲染
+    expect(result.current.currentFile?.content).toBe('BASE64DATA');
   });
 
   it('openFile 失败时：设置 error 并重新抛出', async () => {
