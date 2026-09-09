@@ -5,7 +5,8 @@
  * - 代码文件 → 渲染 CodeEditor（Monaco Editor）
  * - 文本文件 → 渲染 Editor（textarea）
  * - PDF → 渲染 PdfViewer（react-pdf）
- * - Excel / Word / 图片 / 未知类型 → 渲染 PlaceholderViewer
+ * - Excel → 渲染 ExcelViewer（SheetJS）
+ * - Word / 图片 / 未知类型 → 渲染 PlaceholderViewer
  */
 import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
@@ -64,6 +65,26 @@ function MockPdfViewer(props: Record<string, unknown>) {
 vi.mock('../PdfViewer', () => ({
   __esModule: true,
   default: MockPdfViewer,
+}));
+
+/**
+ * Mock 的 ExcelViewer 组件
+ * jsdom 无需真实的 SheetJS 解析，使用带 data-testid 的占位 div
+ */
+function MockExcelViewer(props: Record<string, unknown>) {
+  return (
+    <div
+      data-testid="excel-viewer-mock"
+      data-filename={props.fileName as string}
+      data-has-content={props.content != null ? 'true' : 'false'}
+    />
+  );
+}
+
+// Mock ExcelViewer（避免引入真实 xlsx）
+vi.mock('../ExcelViewer', () => ({
+  __esModule: true,
+  default: MockExcelViewer,
 }));
 
 describe('FileViewer', () => {
@@ -190,17 +211,38 @@ describe('FileViewer', () => {
       ).toBe('annual.pdf');
     });
 
-    it('Excel 文件显示占位查看器', () => {
+    it('Excel 文件渲染 ExcelViewer（SheetJS）', () => {
       render(
         <FileViewer
           filePath="data.xlsx"
-          fileContent={null}
+          fileContent="base64data"
           editorConfig={mockEditorConfig}
           onSave={mockOnSave}
         />
       );
-      expect(screen.getByText(/不支持的文件类型/)).toBeTruthy();
-      expect(screen.getByText(/Excel/)).toBeTruthy();
+      expect(screen.getByTestId('excel-viewer-mock')).toBeTruthy();
+      // 验证文件名透传
+      expect(
+        screen.getByTestId('excel-viewer-mock').getAttribute('data-filename')
+      ).toBe('data.xlsx');
+      // 验证 base64 内容透传
+      expect(
+        screen.getByTestId('excel-viewer-mock').getAttribute('data-has-content')
+      ).toBe('true');
+    });
+
+    it('Excel 文件路径含目录时提取文件名', () => {
+      render(
+        <FileViewer
+          filePath="/docs/reports/data.xlsx"
+          fileContent="base64data"
+          editorConfig={mockEditorConfig}
+          onSave={mockOnSave}
+        />
+      );
+      expect(
+        screen.getByTestId('excel-viewer-mock').getAttribute('data-filename')
+      ).toBe('data.xlsx');
     });
 
     it('Word 文件显示占位查看器', () => {

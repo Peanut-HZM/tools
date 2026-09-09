@@ -15,6 +15,7 @@ import { getFileCategory } from '../../utils/fileType';
 import Editor from './Editor/Editor';
 import CodeEditor from './CodeEditor';
 import PdfViewer from './PdfViewer';
+import ExcelViewer from './ExcelViewer';
 import type { EditorConfig } from '../../types/markdownEditor';
 
 /** FileViewer 对外接口 */
@@ -104,6 +105,14 @@ const FileViewer: React.FC<FileViewerProps> = ({
       );
 
     case 'excel':
+      // Excel 文件使用 ExcelViewer（SheetJS）渲染表格
+      return (
+        <ExcelViewer
+          content={fileContent}
+          fileName={filePath.split('/').pop()}
+        />
+      );
+
     case 'word':
     case 'image':
       // 阶段 3 实现具体的二进制文件查看器
