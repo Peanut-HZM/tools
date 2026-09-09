@@ -549,7 +549,9 @@ export default function MarkdownEditor() {
 
   // 判断是否显示 TOC 面板（只对文本/文档类文件显示，代码/图片等不显示）
   // getFileCategory 返回 'text' 的类型包括：.md, .markdown, .txt, .log, .rst, .adoc
-  const showTocPanel = getFileCategory(currentFilePath || '') === 'text';
+  // TOC 面板只对文档类文件显示（排除 .log 等无标题结构的文本文件）
+  const currentExt = currentFilePath?.split('.').pop()?.toLowerCase();
+  const showTocPanel = getFileCategory(currentFilePath || '') === 'text' && currentExt !== 'log';
 
   // HTML 文件"在浏览器中打开"处理
   const handleOpenInBrowser = useCallback(() => {
