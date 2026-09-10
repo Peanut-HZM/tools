@@ -5,6 +5,7 @@ import { useWorkspaceStore } from '../../../../stores/workspaceStore';
 import { DatabaseConfig, Environment, DatabaseStructure, TableItem, TableDetailResponse } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';
+import { DBCache } from '../../../../utils/dbCache';
 import DatabaseFilterDialog from './DatabaseFilterDialog';
 import { ContextMenu, MenuItem } from '../../../../components/Common/ContextMenu';
 import CreateDatabaseDialog from './CreateDatabaseDialog';
@@ -857,6 +858,10 @@ const DatabaseStructureNode: React.FC<DatabaseStructureNodeProps> = ({ configId,
         label: t.database.contextMenu.refresh,
         icon: <RefreshCw className="w-4 h-4" />,
         action: async () => {
+            // 先清除缓存，再重新获取数据
+            const cacheKey = `structure:${configId}:${dbName}`;
+            await DBCache.invalidate(cacheKey);
+            setStructure(null);
             await fetchStructure();
         }
       },
