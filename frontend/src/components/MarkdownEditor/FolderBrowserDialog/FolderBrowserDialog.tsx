@@ -74,7 +74,7 @@ export default function FolderBrowserDialog({
 
   /** 返回上层目录 */
   const handleGoUp = useCallback(() => {
-    if (!currentPath || currentPath === '.') return;
+    if (!currentPath) return;
     const parts = currentPath.split('/');
     parts.pop();
     const parentPath = parts.join('/');
@@ -143,7 +143,7 @@ export default function FolderBrowserDialog({
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-surface-2/30">
           <button
             onClick={handleGoUp}
-            disabled={!currentPath || currentPath === '.'}
+            disabled={!currentPath}
             className="px-2 py-1 text-sm text-ink-muted hover:text-ink disabled:opacity-30 cursor-pointer disabled:cursor-default rounded hover:bg-surface-2 transition-colors"
             title="返回上层目录"
           >
@@ -152,6 +152,16 @@ export default function FolderBrowserDialog({
 
           {/* 面包屑导航 */}
           <div className="flex items-center gap-1 text-sm text-ink-muted flex-1 min-w-0 overflow-x-auto">
+            {/* 根目录按钮 */}
+            <button
+              onClick={() => handleBreadcrumbClick('')}
+              className={`hover:text-accent-cyan cursor-pointer transition-colors ${
+                !currentPath ? 'text-ink font-medium' : ''
+              }`}
+            >
+              根目录
+            </button>
+            {data?.breadcrumbs.length > 0 && <span className="text-ink-faint">/</span>}
             {data?.breadcrumbs.map((crumb: BreadcrumbItem, i: number) => (
               <span key={crumb.path || 'root'} className="flex items-center gap-1 shrink-0">
                 {i > 0 && <span className="text-ink-faint">/</span>}
