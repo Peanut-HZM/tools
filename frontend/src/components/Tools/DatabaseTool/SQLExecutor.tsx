@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useDatabaseTool } from '../../../contexts/DatabaseToolContext';
 import * as api from '../../../api/databaseToolApi';
+import { DBCache } from '../../../utils/dbCache';
 import { useToast } from '../../../hooks/useToast';
 import { SQLExecutionResult, TableItem } from '../../../types/databaseTool';
 import SQLEditor from './components/SQLEditor';
@@ -198,12 +199,33 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
         toast.error(res.error_message || t.errors.executionFailed || 'Execution failed');
       } else {
         await refreshHistory();
+        // DDL 语句执行成功后，清除表结构缓存并触发表列表刷新
+        if (res.sql_type === 'DML/DDL' && isDDLStatement(sql)) {
+          const targetDb = currentDatabase || currentConfig?.database_name;
+          if (targetDb) {
+            const cacheKey = `structure:${configId}:${targetDb}${schema ? ':' + schema : ''}`;
+            await DBCache.invalidate(cacheKey);
+            // 触发自定义事件通知 ConnectionList 刷新
+            window.dispatchEvent(new CustomEvent('db-cache-updated', {
+              detail: { cacheKey }
+            }));
+          }
+        }
       }
     } catch (error: any) {
       toast.error(error.message || t.errors.executionFailed || 'Execution failed');
     } finally {
       setLoading(false);
     }
+  };
+
+  // 判断是否为 DDL 语句
+  const isDDLStatement = (sqlText: string): boolean => {
+    const trimmed = sqlText.trim().toUpperCase();
+    return trimmed.startsWith('CREATE') ||
+           trimmed.startsWith('ALTER') ||
+           trimmed.startsWith('DROP') ||
+           trimmed.startsWith('TRUNCATE');
   };
 
   const handlePageChange = (newPage: number) => {
