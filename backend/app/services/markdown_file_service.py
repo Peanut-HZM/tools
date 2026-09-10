@@ -653,7 +653,8 @@ class MarkdownFileService:
             if isinstance(self._root_path, Path)
             else Path(self._root_path)
         ).resolve()
-        breadcrumbs = [{"name": root.name, "path": ""}]
+        # 根目录面包屑使用固定的"根目录"名称，而不是 root.name
+        breadcrumbs = [{"name": "根目录", "path": ""}]
 
         try:
             relative = target_path.relative_to(root)
