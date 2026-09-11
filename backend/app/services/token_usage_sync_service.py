@@ -366,7 +366,13 @@ def sync_token_usage(
         from app.utils.zcode_usage_reader import fetch_zcode_records
         zcode_result = fetch_zcode_records(since_date, until_date)
         zcode_records = zcode_result["records"]
-        result["errors"].extend(zcode_result["errors"])
+        # 透传结构化错误（含 candidates_checked 等 details）
+        for err in zcode_result["errors"]:
+            # 给 zcode 错误的 details 补 source_raw / db_path 便于排查
+            if err.get("error_code") == "DB_NOT_FOUND":
+                details = err.setdefault("details", {})
+                details.setdefault("source", "zcode:path_discovery")
+            result["errors"].append(err)
     except Exception as e:
         logger.error(f"[zcode] 抓取失败: {e}", exc_info=True)
         result["errors"].append({
