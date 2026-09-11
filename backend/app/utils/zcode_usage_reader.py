@@ -39,7 +39,7 @@ def _build_candidate(home: Path) -> list[dict]:
     return candidates
 
 
-def _inspect_candidate(raw_path) -> dict:
+def _inspect_candidate(raw_path: Optional[Path]) -> dict:
     """检查单个候选路径的存在性与可读性。"""
     if raw_path is None:
         return {
@@ -135,10 +135,10 @@ def fetch_zcode_records(
             "records": [],
             "errors": [{
                 "source": "zcode",
-                "error": "未找到 ZCode 数据库（~/.zcode/cli/db/db.sqlite）",
+                "error": "未找到 ZCode 数据库。请确认 ZCode 已安装并使用过，详见 details.candidates_checked 中检查过的所有候选路径。",
                 "error_code": "DB_NOT_FOUND",
                 "remediation": "请确认 ZCode 已安装并使用过",
-                "details": {},
+                "details": {"candidates_checked": db_info["candidates_checked"]},
             }],
         }
 
