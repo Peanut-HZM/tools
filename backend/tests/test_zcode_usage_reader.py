@@ -226,7 +226,7 @@ class TestFetchZcodeRecords:
         assert result["records"][0]["model"] == "unknown"
 
     def test_empty_model_id_coalesced_to_unknown(self, tmp_path, monkeypatch):
-        db_file = tmp_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
         ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
         _create_zcode_db(db_file, rows=[
             (ms, "", "completed", 100, 50, 0, 0, 150),
