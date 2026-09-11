@@ -124,21 +124,25 @@ def fetch_zcode_records(
     Returns:
         {
             "records": list[dict],  # 每条含 record_date, model, input_tokens, ...
-            "errors": list[dict],
+            "errors": list[dict],  # 结构化错误
         }
     """
     db_info = _find_zcode_db()
     db_path = db_info["path"]
+    candidates_checked = db_info["candidates_checked"]
+
     if not db_path:
         logger.info("[zcode] 未找到 ZCode 数据库，跳过")
         return {
             "records": [],
             "errors": [{
                 "source": "zcode",
-                "error": "未找到 ZCode 数据库。请确认 ZCode 已安装并使用过，详见 details.candidates_checked 中检查过的所有候选路径。",
+                "error": "未找到 ZCode 数据库（~/.zcode/cli/db/db.sqlite）",
                 "error_code": "DB_NOT_FOUND",
                 "remediation": "请确认 ZCode 已安装并使用过",
-                "details": {"candidates_checked": db_info["candidates_checked"]},
+                "details": {
+                    "candidates_checked": candidates_checked,
+                },
             }],
         }
 
@@ -154,11 +158,37 @@ def fetch_zcode_records(
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        # 按 (日期, 模型) 聚合 model_usage 中 completed 状态的记录
-        cur.execute("""
+        # 检测 model_usage 是否存在以及 status 列是否存在
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='model_usage'")
+        if cur.fetchone() is None:
+            conn.close()
+            logger.warning(f"[zcode] 表 model_usage 不存在: {db_path}")
+            return {
+                "records": [],
+                "errors": [{
+                    "source": "zcode",
+                    "error": "ZCode 数据库缺 model_usage 表",
+                    "error_code": "TABLE_MISSING",
+                    "remediation": "请升级 ZCode 到包含 model_usage 表的版本",
+                    "details": {
+                        "exception": "no such table: model_usage",
+                        "candidates_checked": candidates_checked,
+                    },
+                }],
+            }
+
+        cur.execute("PRAGMA table_info(model_usage)")
+        columns = {row["name"] for row in cur.fetchall()}
+        has_status = "status" in columns
+        status_expr = "COALESCE(status, 'completed')" if has_status else "'completed'"
+
+        # 按 (日期, 模型) 聚合 model_usage 中已完成状态的记录
+        # COALESCE 兜底：NULL model_id 归入 'unknown'；缺失 status 列也视作 completed
+        # started_at IS NOT NULL 过滤掉没有时间戳的脏数据
+        cur.execute(f"""
             SELECT
                 DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
-                model_id,
+                COALESCE(model_id, 'unknown') AS model_id,
                 SUM(input_tokens) AS input_tokens,
                 SUM(output_tokens) AS output_tokens,
                 SUM(cache_creation_input_tokens) AS cache_creation_tokens,
@@ -166,7 +196,8 @@ def fetch_zcode_records(
                 SUM(computed_total_tokens) AS total_tokens,
                 COUNT(*) AS request_count
             FROM model_usage
-            WHERE status = 'completed'
+            WHERE {status_expr} = 'completed'
+              AND started_at IS NOT NULL
               AND started_at >= ?
               AND started_at <= ?
             GROUP BY record_date, model_id
@@ -214,7 +245,20 @@ def fetch_zcode_records(
         )
 
     except sqlite3.OperationalError as e:
-        if "locked" in str(e).lower() or "busy" in str(e).lower():
+        msg = str(e).lower()
+        if "no such table" in msg:
+            logger.warning(f"[zcode] 表 model_usage 不存在: {e}")
+            errors.append({
+                "source": "zcode",
+                "error": f"ZCode 数据库缺 model_usage 表: {e}",
+                "error_code": "TABLE_MISSING",
+                "remediation": "请升级 ZCode 到包含 model_usage 表的版本",
+                "details": {
+                    "exception": str(e),
+                    "candidates_checked": candidates_checked,
+                },
+            })
+        elif "locked" in msg or "busy" in msg:
             logger.warning(f"[zcode] 数据库被锁定（ZCode 可能正在使用）: {e}")
             errors.append({
                 "source": "zcode",
@@ -232,6 +276,15 @@ def fetch_zcode_records(
                 "remediation": "请检查 ZCode 数据库是否完整",
                 "details": {"exception": str(e)},
             })
+    except sqlite3.DatabaseError as e:
+        logger.error(f"[zcode] 数据库损坏或不可用: {e}", exc_info=True)
+        errors.append({
+            "source": "zcode",
+            "error": f"ZCode 数据库损坏: {e}",
+            "error_code": "DB_READ_ERROR",
+            "remediation": "请检查 ZCode 数据库是否完整",
+            "details": {"exception": str(e)},
+        })
     except Exception as e:
         logger.error(f"[zcode] 读取异常: {e}", exc_info=True)
         errors.append({

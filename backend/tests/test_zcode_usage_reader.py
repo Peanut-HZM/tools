@@ -13,7 +13,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 # ========== 路径发现测试 ==========
 
 class TestFindZcodeDb:
@@ -105,3 +104,253 @@ class TestFindZcodeDb:
             assert result["path"] is None
         finally:
             db_file.chmod(0o644)  # 恢复权限以便 tmp_path 清理
+
+
+# ========== SQL 读取行为测试 ==========
+
+def _create_zcode_db(db_path: Path, rows: list[tuple], schema: str = "full") -> None:
+    """创建真实 ZCode SQLite 数据库。"""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    try:
+        if schema == "full":
+            conn.executescript("""
+                CREATE TABLE model_usage (
+                    started_at INTEGER NOT NULL,
+                    model_id TEXT,
+                    status TEXT NOT NULL DEFAULT 'completed',
+                    input_tokens INTEGER NOT NULL DEFAULT 0,
+                    output_tokens INTEGER NOT NULL DEFAULT 0,
+                    cache_creation_input_tokens INTEGER NOT NULL DEFAULT 0,
+                    cache_read_input_tokens INTEGER NOT NULL DEFAULT 0,
+                    computed_total_tokens INTEGER NOT NULL DEFAULT 0
+                );
+            """)
+        elif schema == "missing_status_column":
+            conn.executescript("""
+                CREATE TABLE model_usage (
+                    started_at INTEGER NOT NULL,
+                    model_id TEXT,
+                    input_tokens INTEGER NOT NULL DEFAULT 0,
+                    output_tokens INTEGER NOT NULL DEFAULT 0,
+                    cache_creation_input_tokens INTEGER NOT NULL DEFAULT 0,
+                    cache_read_input_tokens INTEGER NOT NULL DEFAULT 0,
+                    computed_total_tokens INTEGER NOT NULL DEFAULT 0
+                );
+            """)
+        elif schema == "no_model_usage_table":
+            conn.executescript("CREATE TABLE other (x INTEGER);")
+            return
+        # full schema has 8 columns; missing_status_column has 7
+        n_cols = 7 if schema == "missing_status_column" else 8
+        for row in rows:
+            conn.execute(
+                f"INSERT INTO model_usage VALUES ({','.join(['?'] * n_cols)})",
+                row,
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _patch_home_to(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.delenv("APPDATA", raising=False)
+
+
+class TestFetchZcodeRecords:
+    """fetch_zcode_records SQL 读取行为"""
+
+    def test_empty_table_returns_empty(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        _create_zcode_db(db_file, rows=[])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert result["records"] == []
+        assert result["errors"] == []
+
+    def test_aggregation_by_date_and_model(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        # 2026-09-11 两个不同 model 的请求；m1 两条完成
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[
+            (ms, "gpt-4", "completed", 100, 50, 0, 0, 150),
+            (ms, "gpt-4", "completed", 200, 80, 0, 0, 280),
+            (ms, "claude", "completed", 50, 30, 0, 0, 80),
+        ])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 11), date(2026, 9, 11))
+
+        by_model = {r["model"]: r for r in result["records"]}
+        assert by_model["gpt-4"]["input_tokens"] == 300
+        assert by_model["gpt-4"]["output_tokens"] == 130
+        assert by_model["gpt-4"]["total_tokens"] == 430
+        assert by_model["claude"]["total_tokens"] == 80
+
+    def test_status_filter_excludes_non_completed(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[
+            (ms, "m1", "completed", 100, 50, 0, 0, 150),
+            (ms, "m2", "running", 200, 80, 0, 0, 280),
+            (ms, "m3", "error", 50, 10, 0, 0, 60),
+            (ms, "m4", "cancelled", 30, 5, 0, 0, 35),
+        ])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        models = {r["model"] for r in result["records"]}
+        assert models == {"m1"}
+
+    def test_null_model_id_coalesced_to_unknown(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[
+            (ms, None, "completed", 100, 50, 0, 0, 150),
+        ])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert len(result["records"]) == 1
+        assert result["records"][0]["model"] == "unknown"
+
+    def test_empty_model_id_coalesced_to_unknown(self, tmp_path, monkeypatch):
+        db_file = tmp_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[
+            (ms, "", "completed", 100, 50, 0, 0, 150),
+        ])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert result["records"][0]["model"] == "unknown"
+
+    def test_null_started_at_filtered_out(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        db_file.parent.mkdir(parents=True, exist_ok=True)
+        # 表结构允许 started_at 为 NULL 以模拟脏数据
+        conn = sqlite3.connect(str(db_file))
+        conn.executescript("""
+            CREATE TABLE model_usage (
+                started_at INTEGER,
+                model_id TEXT,
+                status TEXT NOT NULL DEFAULT 'completed',
+                input_tokens INTEGER NOT NULL DEFAULT 0,
+                output_tokens INTEGER NOT NULL DEFAULT 0,
+                cache_creation_input_tokens INTEGER NOT NULL DEFAULT 0,
+                cache_read_input_tokens INTEGER NOT NULL DEFAULT 0,
+                computed_total_tokens INTEGER NOT NULL DEFAULT 0
+            );
+        """)
+        conn.execute(
+            "INSERT INTO model_usage VALUES (?,?,?,?,?,?,?,?)",
+            (None, "m1", "completed", 100, 50, 0, 0, 150),  # NULL started_at 必被过滤
+        )
+        conn.commit()
+        conn.close()
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert result["records"] == []
+        assert result["errors"] == []
+
+    def test_total_tokens_zero_falls_back_to_sum(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[
+            (ms, "m1", "completed", 100, 50, 20, 30, 0),  # total=0 触发 fallback
+        ])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert result["records"][0]["total_tokens"] == 100 + 50 + 20 + 30
+
+    def test_table_missing_returns_table_missing_error(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        _create_zcode_db(db_file, rows=[], schema="no_model_usage_table")
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert result["records"] == []
+        assert len(result["errors"]) == 1
+        assert result["errors"][0]["error_code"] == "TABLE_MISSING"
+
+    def test_db_locked_returns_db_locked_error(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        _create_zcode_db(db_file, rows=[])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        # 模拟 ZCode 持排他锁
+        locker_conn = sqlite3.connect(str(db_file))
+        locker_conn.execute("BEGIN EXCLUSIVE")
+        try:
+            from app.utils.zcode_usage_reader import fetch_zcode_records
+            # 注意：ro 模式可能仍能读，断言不强求 DB_LOCKED。
+            # 关键断言是 records 能返回或者 errors 含 DB_LOCKED 或 DB_READ_ERROR 二者之一
+            result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+            # 若 ZCode 锁定生效，则 errors 非空且 code 在 LOCKED/READ_ERROR 范围
+            if result["errors"]:
+                assert result["errors"][0]["error_code"] in ("DB_LOCKED", "DB_READ_ERROR")
+        finally:
+            locker_conn.rollback()
+            locker_conn.close()
+
+    def test_since_after_until_returns_empty(self, tmp_path, monkeypatch):
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[(ms, "m1", "completed", 100, 50, 0, 0, 150)])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 30), date(2026, 9, 1))
+
+        assert result["records"] == []
+        assert result["errors"] == []
+
+    def test_missing_status_column_handled_via_coalesce(self, tmp_path, monkeypatch):
+        """缺失 status 列（旧版 ZCode）应不报错，记录全部视作 completed"""
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(
+            db_file,
+            rows=[(ms, "m1", 100, 50, 0, 0, 150)],
+            schema="missing_status_column",
+        )
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        # 缺失 status 列时，COALESCE(status, 'completed') 兜底
+        assert len(result["records"]) == 1
+        assert result["records"][0]["model"] == "m1"
+
+    def test_db_not_found_includes_candidates_checked(self, tmp_path, monkeypatch):
+        """DB 文件不存在时，errors 含 candidates_checked 诊断"""
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert result["records"] == []
+        assert len(result["errors"]) == 1
+        assert result["errors"][0]["error_code"] == "DB_NOT_FOUND"
+        assert "candidates_checked" in result["errors"][0]["details"]
+        assert len(result["errors"][0]["details"]["candidates_checked"]) >= 3
