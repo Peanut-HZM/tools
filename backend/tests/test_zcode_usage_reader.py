@@ -9,7 +9,6 @@ import threading
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -410,21 +409,3 @@ class TestSyncTokenUsageZcode:
         assert "candidates_checked" in result["errors"][0]["details"]
         assert len(result["errors"][0]["details"]["candidates_checked"]) >= 3
 
-    def test_zcode_fetch_exception_is_caught(self, tmp_path, monkeypatch):
-        """fetch_zcode_records 抛异常时被 sync_token_usage 兜住"""
-        _patch_home_to(monkeypatch, tmp_path)
-
-        # 模拟 fetch_zcode_records 抛 OSError
-        with patch("app.utils.zcode_usage_reader.fetch_zcode_records") as mock_fetch:
-            mock_fetch.side_effect = OSError("模拟 I/O 异常")
-            # 这里直接调用 sync 入口，但需要 mock DB 连接。
-            # 为保持轻量，验证异常能被 try/except 包裹（mock 一个最小 sync 流程）
-
-            # 直接验证：调用方不应让异常逃逸到 sync 主流程外
-            try:
-                mock_fetch(date(2026, 9, 11), date(2026, 9, 11))
-            except OSError:
-                pass  # 模拟 sync_token_usage 的 try/except 行为
-
-            # 断言 mock 被调用且未抛到外面（已被 sync 的 try 块捕获）
-            mock_fetch.assert_called_once()
