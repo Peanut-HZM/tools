@@ -14,21 +14,101 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-def _find_zcode_db() -> Optional[str]:
-    """定位 ZCode CLI 数据库文件路径。"""
-    home = Path.home()
+def _build_candidate(home: Path) -> list[dict]:
+    """构造路径候选列表。"""
     candidates = [
-        home / ".zcode" / "cli" / "db" / "db.sqlite",
+        {"raw": home / ".zcode" / "cli" / "db" / "db.sqlite", "label": "Mac/Linux home"},
     ]
-    # Windows: 也检查 AppData/Roaming
+    # macOS 标准 AppData 路径
+    candidates.append({
+        "raw": home / "Library" / "Application Support" / "ZCode" / "cli" / "db" / "db.sqlite",
+        "label": "macOS AppData",
+    })
+    # Windows APPDATA 路径
     appdata = os.environ.get("APPDATA")
     if appdata:
-        candidates.append(Path(appdata) / "ZCode" / "cli" / "db" / "db.sqlite")
+        candidates.append({
+            "raw": Path(appdata) / "ZCode" / "cli" / "db" / "db.sqlite",
+            "label": "Windows APPDATA",
+        })
+    else:
+        candidates.append({
+            "raw": None,
+            "label": "Windows APPDATA (env APPDATA not set)",
+        })
+    return candidates
 
-    for path in candidates:
-        if path.exists():
-            return str(path)
-    return None
+
+def _inspect_candidate(raw_path) -> dict:
+    """检查单个候选路径的存在性与可读性。"""
+    if raw_path is None:
+        return {
+            "path": None,
+            "exists": False,
+            "readable": False,
+            "reason": "FILE_NOT_FOUND",
+        }
+    path_str = str(raw_path)
+    exists = raw_path.exists()
+    if not exists:
+        return {
+            "path": path_str,
+            "exists": False,
+            "readable": False,
+            "reason": "FILE_NOT_FOUND",
+        }
+    readable = os.access(path_str, os.R_OK)
+    if not readable:
+        return {
+            "path": path_str,
+            "exists": True,
+            "readable": False,
+            "reason": "NOT_READABLE",
+        }
+    return {
+        "path": path_str,
+        "exists": True,
+        "readable": True,
+        "reason": None,
+    }
+
+
+def _find_zcode_db() -> dict:
+    """定位 ZCode CLI 数据库文件路径，返回结构化诊断信息。
+
+    Returns:
+        {
+            "path": Optional[str],        # 第一个可用的候选路径，未命中则为 None
+            "candidates_checked": list[dict]  # 每个候选的检查结果
+        }
+    """
+    home = Path.home()
+    candidates = _build_candidate(home)
+    inspected: list[dict] = []
+    chosen: Optional[str] = None
+
+    for idx, cand in enumerate(candidates, start=1):
+        info = _inspect_candidate(cand["raw"])
+        info["label"] = cand["label"]
+        inspected.append(info)
+        logger.info(
+            f"[zcode:diag] 检查候选 {idx}/{len(candidates)}: "
+            f"{info['path'] or cand['label']} -> "
+            f"exists={info['exists']}, readable={info['readable']}, reason={info['reason']}"
+        )
+        if chosen is None and info["path"] and info["readable"]:
+            chosen = info["path"]
+
+    if chosen:
+        logger.info(f"[zcode:diag] 命中候选: {chosen}")
+    else:
+        summary = "; ".join(
+            f"[{i+1}] {c['path'] or c['label']} -> {c['reason']}"
+            for i, c in enumerate(inspected)
+        )
+        logger.info(f"[zcode:diag] 未找到 ZCode 数据库。已检查 {len(inspected)} 个候选: {summary}")
+
+    return {"path": chosen, "candidates_checked": inspected}
 
 
 def fetch_zcode_records(
@@ -47,7 +127,8 @@ def fetch_zcode_records(
             "errors": list[dict],
         }
     """
-    db_path = _find_zcode_db()
+    db_info = _find_zcode_db()
+    db_path = db_info["path"]
     if not db_path:
         logger.info("[zcode] 未找到 ZCode 数据库，跳过")
         return {
