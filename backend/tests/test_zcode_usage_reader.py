@@ -14,6 +14,15 @@ import pytest
 
 # ========== 路径发现测试 ==========
 
+def _patch_home_to(monkeypatch, tmp_path: Path) -> None:
+    """monkeypatch _get_real_home 返回 tmp_path，绕过真实系统 home。"""
+    from app.utils import zcode_usage_reader
+    monkeypatch.setattr(
+        zcode_usage_reader, "_get_real_home", lambda: tmp_path
+    )
+    monkeypatch.delenv("APPDATA", raising=False)
+
+
 class TestFindZcodeDb:
     """_find_zcode_db 路径候选与诊断输出"""
 
@@ -23,8 +32,7 @@ class TestFindZcodeDb:
         zcode_dir.mkdir(parents=True)
         db_file = zcode_dir / "db.sqlite"
         db_file.touch()
-        monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        monkeypatch.delenv("APPDATA", raising=False)
+        _patch_home_to(monkeypatch, tmp_path)
 
         from app.utils.zcode_usage_reader import _find_zcode_db
         result = _find_zcode_db()
@@ -43,8 +51,7 @@ class TestFindZcodeDb:
         appdata_dir.mkdir(parents=True)
         db_file = appdata_dir / "db.sqlite"
         db_file.touch()
-        monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        monkeypatch.delenv("APPDATA", raising=False)
+        _patch_home_to(monkeypatch, tmp_path)
 
         from app.utils.zcode_usage_reader import _find_zcode_db
         result = _find_zcode_db()
@@ -57,7 +64,10 @@ class TestFindZcodeDb:
         appdata_dir.mkdir(parents=True)
         db_file = appdata_dir / "db.sqlite"
         db_file.touch()
-        monkeypatch.setattr(Path, "home", lambda: tmp_path / "nonexistent")
+        from app.utils import zcode_usage_reader
+        monkeypatch.setattr(
+            zcode_usage_reader, "_get_real_home", lambda: tmp_path / "nonexistent"
+        )
         monkeypatch.setenv("APPDATA", str(tmp_path))
 
         from app.utils.zcode_usage_reader import _find_zcode_db
@@ -67,8 +77,7 @@ class TestFindZcodeDb:
 
     def test_no_candidate_returns_none_with_full_diagnostics(self, tmp_path, monkeypatch):
         """所有候选都不存在时 path=None 但 candidates_checked 含全部"""
-        monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        monkeypatch.delenv("APPDATA", raising=False)
+        _patch_home_to(monkeypatch, tmp_path)
 
         from app.utils.zcode_usage_reader import _find_zcode_db
         result = _find_zcode_db()
@@ -86,8 +95,7 @@ class TestFindZcodeDb:
         db_file = zcode_dir / "db.sqlite"
         db_file.touch()
         db_file.chmod(0o000)
-        monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        monkeypatch.delenv("APPDATA", raising=False)
+        _patch_home_to(monkeypatch, tmp_path)
 
         try:
             from app.utils.zcode_usage_reader import _find_zcode_db
@@ -150,11 +158,6 @@ def _create_zcode_db(db_path: Path, rows: list[tuple], schema: str = "full") -> 
         conn.commit()
     finally:
         conn.close()
-
-
-def _patch_home_to(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.delenv("APPDATA", raising=False)
 
 
 class TestFetchZcodeRecords:
@@ -408,4 +411,34 @@ class TestSyncTokenUsageZcode:
         # 关键：candidates_checked 透传给调用方，便于诊断
         assert "candidates_checked" in result["errors"][0]["details"]
         assert len(result["errors"][0]["details"]["candidates_checked"]) >= 3
+
+
+# ========== _get_real_home 测试 ==========
+
+class TestGetRealHome:
+    """验证 _get_real_home 不受 HOME 环境变量覆盖影响"""
+
+    def test_unix_ignores_home_env_override(self, monkeypatch):
+        """Unix 上即使 HOME 被覆盖为 data/cache，也返回真实家目录"""
+        from app.utils.zcode_usage_reader import _get_real_home
+        monkeypatch.setenv("HOME", "/some/fake/cache/dir")
+        real = _get_real_home()
+        # Unix 平台：必须等于 pwd 数据库查询的真实路径，不等于被覆盖的 HOME
+        assert str(real) != "/some/fake/cache/dir"
+        # 必须以 /Users/ 开头（macOS）或 /home/ 开头（Linux）
+        import platform
+        if platform.system() == "Darwin":
+            assert str(real).startswith("/Users/")
+        elif platform.system() == "Linux":
+            assert str(real).startswith("/home/")
+
+    def test_unix_ignores_chdir_to_cache(self, tmp_path, monkeypatch):
+        """即使 cwd 是 data/cache、HOME 被覆盖，仍返回真实家目录"""
+        cache_dir = tmp_path / "data" / "cache"
+        cache_dir.mkdir(parents=True)
+        monkeypatch.setenv("HOME", str(cache_dir))
+        monkeypatch.chdir(cache_dir)
+        from app.utils.zcode_usage_reader import _get_real_home
+        real = _get_real_home()
+        assert str(real) != str(cache_dir)
 

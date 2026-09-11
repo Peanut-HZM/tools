@@ -6,6 +6,8 @@
 
 import logging
 import os
+import platform
+import pwd
 import sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -14,17 +16,44 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-def _build_candidate(home: Path) -> list[dict]:
-    """构造路径候选列表。"""
+def _get_real_home() -> Path:
+    """获取真实用户主目录，绕过 config.py 对 HOME 环境变量的覆盖。
+
+    背景：app/config/config.py:38 在非桌面模式下把 HOME 重写为 backend/data/cache，
+    以隔离 paddleocr/huggingface 等库的缓存目录。但这会让 Path.home() 返回错误路径，
+    导致需要访问真实用户目录的模块（如本模块的 ~/.zcode/cli/db/db.sqlite）找不到目标。
+
+    跨平台策略（与 cursor_history_service.py:28-34 一致）：
+    - macOS/Linux: 通过 pwd 数据库查询当前用户的真实家目录（不依赖 $HOME）
+    - Windows: 通过 %USERPROFILE% 环境变量获取（无 pwd 模块）
+
+    Returns:
+        真实用户主目录的 Path 对象
+    """
+    if platform.system() == "Windows":
+        userprofile = os.environ.get("USERPROFILE", "")
+        if userprofile:
+            return Path(userprofile)
+        # 兜底：在 Windows 上若 USERPROFILE 未设置，退化到 Path.home()
+        return Path.home()
+    # macOS/Linux: 用 pwd 数据库直接查系统级 home
+    try:
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (KeyError, OSError):
+        # 极端兜底：pwd 查询失败
+        return Path.home()
+
+
+def _build_candidate() -> list[dict]:
+    """构造路径候选列表（使用真实 HOME，绕过 config.py 覆盖）。"""
+    home = _get_real_home()
     candidates = [
         {"raw": home / ".zcode" / "cli" / "db" / "db.sqlite", "label": "Mac/Linux home"},
     ]
-    # macOS 标准 AppData 路径
     candidates.append({
         "raw": home / "Library" / "Application Support" / "ZCode" / "cli" / "db" / "db.sqlite",
         "label": "macOS AppData",
     })
-    # Windows APPDATA 路径
     appdata = os.environ.get("APPDATA")
     if appdata:
         candidates.append({
@@ -82,8 +111,7 @@ def _find_zcode_db() -> dict:
             "candidates_checked": list[dict]  # 每个候选的检查结果
         }
     """
-    home = Path.home()
-    candidates = _build_candidate(home)
+    candidates = _build_candidate()
     inspected: list[dict] = []
     chosen: Optional[str] = None
 
