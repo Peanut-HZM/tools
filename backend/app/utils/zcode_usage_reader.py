@@ -180,29 +180,47 @@ def fetch_zcode_records(
         cur.execute("PRAGMA table_info(model_usage)")
         columns = {row["name"] for row in cur.fetchall()}
         has_status = "status" in columns
-        status_expr = "COALESCE(status, 'completed')" if has_status else "'completed'"
 
         # 按 (日期, 模型) 聚合 model_usage 中已完成状态的记录
         # COALESCE 兜底：NULL model_id 归入 'unknown'；缺失 status 列也视作 completed
         # started_at IS NOT NULL 过滤掉没有时间戳的脏数据
-        cur.execute(f"""
-            SELECT
-                DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
-                COALESCE(model_id, 'unknown') AS model_id,
-                SUM(input_tokens) AS input_tokens,
-                SUM(output_tokens) AS output_tokens,
-                SUM(cache_creation_input_tokens) AS cache_creation_tokens,
-                SUM(cache_read_input_tokens) AS cache_read_tokens,
-                SUM(computed_total_tokens) AS total_tokens,
-                COUNT(*) AS request_count
-            FROM model_usage
-            WHERE {status_expr} = 'completed'
-              AND started_at IS NOT NULL
-              AND started_at >= ?
-              AND started_at <= ?
-            GROUP BY record_date, model_id
-            ORDER BY record_date DESC, total_tokens DESC
-        """, (since_ms, until_ms))
+        if has_status:
+            cur.execute("""
+                SELECT
+                    DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
+                    COALESCE(model_id, 'unknown') AS model_id,
+                    SUM(input_tokens) AS input_tokens,
+                    SUM(output_tokens) AS output_tokens,
+                    SUM(cache_creation_input_tokens) AS cache_creation_tokens,
+                    SUM(cache_read_input_tokens) AS cache_read_tokens,
+                    SUM(computed_total_tokens) AS total_tokens,
+                    COUNT(*) AS request_count
+                FROM model_usage
+                WHERE COALESCE(status, 'completed') = 'completed'
+                  AND started_at IS NOT NULL
+                  AND started_at >= ?
+                  AND started_at <= ?
+                GROUP BY record_date, model_id
+                ORDER BY record_date DESC, total_tokens DESC
+            """, (since_ms, until_ms))
+        else:
+            cur.execute("""
+                SELECT
+                    DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
+                    COALESCE(model_id, 'unknown') AS model_id,
+                    SUM(input_tokens) AS input_tokens,
+                    SUM(output_tokens) AS output_tokens,
+                    SUM(cache_creation_input_tokens) AS cache_creation_tokens,
+                    SUM(cache_read_input_tokens) AS cache_read_tokens,
+                    SUM(computed_total_tokens) AS total_tokens,
+                    COUNT(*) AS request_count
+                FROM model_usage
+                WHERE started_at IS NOT NULL
+                  AND started_at >= ?
+                  AND started_at <= ?
+                GROUP BY record_date, model_id
+                ORDER BY record_date DESC, total_tokens DESC
+            """, (since_ms, until_ms))
 
         for row in cur.fetchall():
             record_date_str = row["record_date"]
