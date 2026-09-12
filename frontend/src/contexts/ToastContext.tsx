@@ -34,11 +34,13 @@ const typeIcons: Record<ToastType, string> = {
   info: 'ℹ',
 };
 
-const typeColors: Record<ToastType, { border: string; bg: string; icon: string }> = {
-  success: { border: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)', icon: '#22c55e' },
-  error: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', icon: '#ef4444' },
-  warning: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', icon: '#f59e0b' },
-  info: { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)', icon: '#06b6d4' },
+// 类型对应的左侧色条与图标颜色（style 内联使用 rgb(var()) 形式，随主题 accent token 联动）
+// icon 色与 border 同源（同一 accent 变量、同透明度）
+const typeColors: Record<ToastType, { border: string; icon: string }> = {
+  success: { border: 'rgb(var(--accent-success) / 0.3)', icon: 'rgb(var(--accent-success) / 0.3)' },
+  error: { border: 'rgb(var(--accent-danger) / 0.3)', icon: 'rgb(var(--accent-danger) / 0.3)' },
+  warning: { border: 'rgb(var(--accent-warning) / 0.3)', icon: 'rgb(var(--accent-warning) / 0.3)' },
+  info: { border: 'rgb(var(--accent-info) / 0.3)', icon: 'rgb(var(--accent-info) / 0.3)' },
 };
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -118,7 +120,6 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       <Toaster
         position="top-right"
         toastOptions={{
-          className: 'sonner-toast-dark',
           // 玻璃面板：透明底 + 细描边 + 模糊（inline style 覆盖 sonner 默认实色底）
           style: {
             background: 'var(--glass-bg-strong)',

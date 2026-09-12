@@ -215,10 +215,10 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
               mode === 'export'
-                ? 'bg-gradient-to-br from-success/20 to-success/20 border border-success/30'
+                ? 'bg-success/20 border border-success/30'
                 : mode === 'import'
                 ? 'bg-gradient-to-br from-warning/20 to-accent-warm/20 border border-warning/30'
-                : 'bg-gradient-to-br from-accent-info/20 to-blue-500/20 border border-accent/30'
+                : 'bg-accent-info/20 border border-accent/30'
             }`}>
               {mode === 'export' ? (
                 <Download className="w-5 h-5 text-success" />
@@ -254,7 +254,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           {mode === 'export' && (
             <div className="space-y-6">
               {/* 导出说明卡片 */}
-              <div className="bg-gradient-to-br from-success/10 to-success/10 rounded-xl border border-success/20 p-5">
+              <div className="bg-success/10 rounded-xl border border-success/20 p-5">
                 <h3 className="text-success font-semibold mb-2 flex items-center gap-2">
                   <Info className="w-4 h-4" />
                   导出说明
@@ -437,7 +437,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
             <div className="space-y-5">
               {/* 统计卡片 */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-accent-info/10 to-accent-info/10 rounded-xl border border-accent-info/20 p-4">
+                <div className="bg-accent-info/10 rounded-xl border border-accent-info/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">导入章节</div>
                   <div className="text-ink text-3xl font-bold">{previewData.chapters_to_import || 0}</div>
                 </div>
@@ -445,7 +445,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                   <div className="text-ink-muted text-sm mb-1">更新章节</div>
                   <div className="text-ink text-3xl font-bold">{previewData.chapters_to_update || 0}</div>
                 </div>
-                <div className="bg-gradient-to-br from-surface-3/10 to-surface-3/10 rounded-xl border border-border/20 p-4">
+                <div className="bg-surface-3/10 rounded-xl border border-border/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">跳过章节</div>
                   <div className="text-ink text-3xl font-bold">{previewData.chapters_to_skip || 0}</div>
                 </div>
@@ -525,7 +525,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               <button
                 onClick={handleExport}
                 disabled={loading}
-                className="px-6 py-2.5 bg-gradient-to-r from-success to-success hover:from-success hover:to-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2"
+                className="px-6 py-2.5 bg-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -550,10 +550,11 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               >
                 取消
               </button>
+              {/* 主 CTA 走设计系统 .btn-primary 品牌渐变 + 发光阴影 token（自带白字/阴影，故移除原 amber 渐变与 shadow-warning 类） */}
               <button
                 onClick={handlePreviewImport}
                 disabled={!selectedFile || loading}
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-warning/20 hover:shadow-warning/30 hover:-translate-y-0.5 flex items-center gap-2"
+                className="btn-primary px-6 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium hover:-translate-y-0.5 flex items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -585,7 +586,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               <button
                 onClick={handleDoImport}
                 disabled={loading}
-                className="px-6 py-2.5 bg-gradient-to-r from-success to-success hover:from-success hover:to-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2"
+                className="px-6 py-2.5 bg-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2"
               >
                 {loading ? (
                   <>

@@ -58,18 +58,18 @@ export function TraceViewer({ agentId, conversationId }: TraceViewerProps) {
   };
 
   if (loading) {
-    return <div className="p-4 text-center text-gray-500">加载中...</div>;
+    return <div className="p-4 text-center text-ink-faint">加载中...</div>;
   }
   if (error) {
     return (
-      <div className="p-4 text-center text-red-500">
+      <div className="p-4 text-center text-accent-danger">
         加载失败: {error}
       </div>
     );
   }
   if (traces.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="p-4 text-center text-ink-faint">
         本次对话还没有执行记录
       </div>
     );
@@ -82,19 +82,19 @@ export function TraceViewer({ agentId, conversationId }: TraceViewerProps) {
           <div
             key={t.id}
             onClick={() => handleSelect(t)}
-            className={`flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-50 ${
-              selected?.id === t.id ? 'bg-blue-50' : ''
+            className={`flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-glass-bg ${
+              selected?.id === t.id ? 'bg-glass-bg' : ''
             }`}
           >
             <StatusIcon status={t.status} />
-            <span className="text-sm text-gray-700 flex-1 truncate">
+            <span className="text-sm text-ink-muted flex-1 truncate">
               {t.input_text.slice(0, 80)}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-ink-faint">
               {formatDuration(t.total_duration_ms)}
             </span>
-            <span className="text-xs text-gray-500">{t.total_tokens} tok</span>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-ink-faint">{t.total_tokens} tok</span>
+            <span className="text-xs text-ink-faint">
               {t.started_at ? new Date(t.started_at).toLocaleTimeString() : '-'}
             </span>
           </div>
@@ -108,7 +108,7 @@ export function TraceViewer({ agentId, conversationId }: TraceViewerProps) {
           <div className="text-sm font-medium mb-2">Steps</div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-500 border-b">
+              <tr className="text-left text-ink-faint border-b">
                 <th className="pb-1">#</th>
                 <th className="pb-1">类型</th>
                 <th className="pb-1">耗时</th>
@@ -133,10 +133,10 @@ function StepRow({ step }: { step: TraceStep }) {
     step.metadata && (step.metadata as Record<string, unknown>).error;
   const isHandoff = step.step_type === 'handoff';
   return (
-    <tr className={`border-b ${hasError ? 'bg-red-50' : ''} ${isHandoff ? 'bg-amber-50' : ''}`}>
+    <tr className={`border-b ${hasError ? 'bg-[rgba(248,113,113,0.12)]' : ''} ${isHandoff ? 'bg-[rgba(251,191,36,0.12)]' : ''}`}>
       <td className="py-1">{step.step_index}</td>
       <td className="py-1">
-        {isHandoff && <span className="mr-1 text-amber-600">→ 移交</span>}
+        {isHandoff && <span className="mr-1 text-accent-warning">→ 移交</span>}
         {step.step_type}
       </td>
       <td className="py-1">{formatDuration(step.duration_ms)}</td>
@@ -148,12 +148,12 @@ function StepRow({ step }: { step: TraceStep }) {
 
 function StatusIcon({ status }: { status: Trace['status'] }) {
   if (status === 'running') {
-    return <span className="text-blue-500 animate-spin">◌</span>;
+    return <span className="text-accent-info animate-spin">◌</span>;
   }
   if (status === 'success') {
-    return <span className="text-green-600">✓</span>;
+    return <span className="text-accent-success">✓</span>;
   }
-  return <span className="text-red-600">✗</span>;
+  return <span className="text-accent-danger">✗</span>;
 }
 
 function formatDuration(ms: number | null | undefined): string {
