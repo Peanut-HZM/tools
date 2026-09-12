@@ -7,6 +7,8 @@ import { GraduationCap, Search, Inbox, ChevronLeft, ChevronRight } from 'lucide-
 import CourseCard from '../components/Courses/CourseCard';
 import FilterSidebar from '../components/Courses/FilterSidebar';
 import { getCourseList, getCourseCategories, type Course } from '../services/coursePlatform';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -59,8 +61,8 @@ const CoursesPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
-      {/* 顶部 Header */}
-      <div className="bg-surface-1/50 border-b border-border/50">
+      {/* 顶部 Header：玻璃面板（去左右/顶部描边使其贴边），与 Header 悬浮条同款处理 */}
+      <div className="glass-panel border-x-0 border-t-0 rounded-none">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* 标题区：移动端纵向堆叠，sm 起横向排布（避免 390px 下标题/搜索框互相挤压折行） */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -74,15 +76,15 @@ const CoursesPage: React.FC = () => {
               </p>
             </div>
 
-            {/* 搜索框：移动端占满整行，sm 起恢复固定宽度 */}
+            {/* 搜索框：换 ui/Input 玻璃输入框；外层 w-full sm:w-80，输入框自身 w-full（修复原固定 w-80 在 <352px 视口溢出） */}
             <div className="relative w-full sm:w-80">
-              <input
+              <Input
                 type="text"
                 placeholder="搜索课程..."
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && loadCourses()}
-                className="w-80 px-5 py-3 pl-12 bg-surface-2/50 border border-border rounded-xl text-ink placeholder-ink-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="pl-10"
               />
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" />
             </div>
@@ -134,12 +136,10 @@ const CoursesPage: React.FC = () => {
               <div className="text-center py-20">
                 <Inbox className="w-12 h-12 text-ink-faint mb-4 mx-auto" />
                 <p className="text-ink-muted text-lg">暂无课程</p>
-                <button
-                  onClick={handleReset}
-                  className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
-                >
+                {/* 空状态主操作走设计系统 default 变体（品牌渐变底） */}
+                <Button type="button" onClick={handleReset} className="mt-4">
                   重置筛选
-                </button>
+                </Button>
               </div>
             ) : (
               /* 课程网格 */
@@ -160,26 +160,30 @@ const CoursesPage: React.FC = () => {
               </div>
             )}
 
-            {/* 分页 */}
+            {/* 分页：翻页按钮走设计系统 outline 变体，当前页徽标走品牌渐变底（保持非交互 span 语义） */}
             {!loading && courses.length > 0 && (
               <div className="mt-8 flex items-center justify-center space-x-2">
-                <button
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="px-4 py-2 bg-accent text-ink-inverse rounded-lg font-medium">
+                </Button>
+                <span className="px-4 py-2 bg-[image:var(--gradient-brand)] text-white rounded-lg font-medium">
                   {page}
                 </span>
-                <button
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page * limit >= total}
-                  className="px-4 py-2 bg-surface-1 border border-border rounded-lg text-ink-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2 hover:text-ink transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             )}
           </div>

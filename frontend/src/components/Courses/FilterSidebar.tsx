@@ -43,10 +43,10 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
   return (
     <>
-      {/* 移动端切换按钮 */}
+      {/* 移动端切换按钮：玻璃卡片底 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden mb-4 w-full px-4 py-3 bg-surface-1/50 border border-border/50 rounded-xl text-ink font-medium flex items-center justify-between"
+        className="glass-card rounded-xl lg:hidden mb-4 w-full px-4 py-3 text-ink font-medium flex items-center justify-between"
       >
         <span>
           <Filter className="w-4 h-4 mr-2 inline" />
@@ -60,7 +60,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         className={`lg:block ${isOpen ? 'block' : 'hidden'} w-full lg:w-64 space-y-6`}
       >
         {/* 分类筛选 */}
-        <div className="bg-surface-1/30 rounded-xl p-5 border border-border/50">
+        <div className="glass-card rounded-xl p-5">
           <h3 className="text-ink font-semibold mb-4 flex items-center">
             <Layers className="w-4 h-4 text-accent mr-2" />
             课程分类
@@ -78,7 +78,11 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                     value={category.value}
                     checked={selectedCategory === category.value}
                     onChange={(e) => onCategoryChange?.(e.target.value)}
-                    className="w-4 h-4 bg-accent bg-surface-2 border-border focus:ring-accent focus:ring-2"
+                    className={`w-4 h-4 cursor-pointer appearance-none rounded-full border transition-colors focus:ring-accent focus:ring-2 ${
+                      selectedCategory === category.value
+                        ? 'bg-[image:var(--gradient-brand)] border-transparent text-white'
+                        : 'bg-glass-bg border-glass-border'
+                    }`}
                   />
                   <span
                     className={`ml-3 text-sm ${
@@ -101,7 +105,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         </div>
 
         {/* 排序筛选 */}
-        <div className="bg-surface-1/30 rounded-xl p-5 border border-border/50">
+        <div className="glass-card rounded-xl p-5">
           <h3 className="text-ink font-semibold mb-4 flex items-center">
             <ArrowDownWideNarrow className="w-4 h-4 text-accent mr-2" />
             排序方式
@@ -118,7 +122,11 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                   value={sort.value}
                   checked={selectedSort === sort.value}
                   onChange={(e) => onSortChange?.(e.target.value)}
-                  className="w-4 h-4 bg-accent bg-surface-2 border-border focus:ring-accent focus:ring-2"
+                  className={`w-4 h-4 cursor-pointer appearance-none rounded-full border transition-colors focus:ring-accent focus:ring-2 ${
+                    selectedSort === sort.value
+                      ? 'bg-[image:var(--gradient-brand)] border-transparent text-white'
+                      : 'bg-glass-bg border-glass-border'
+                  }`}
                 />
                 <span
                   className={`ml-3 text-sm ${

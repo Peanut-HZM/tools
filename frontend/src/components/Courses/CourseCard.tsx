@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
+import { Button } from '@/components/ui/Button';
 import { GraduationCap, Star, User, Heart, Bookmark } from 'lucide-react';
 
 interface CourseCardProps {
@@ -56,7 +57,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   return (
     <div
       onClick={handleClick}
-      className="group cursor-pointer bg-surface-1/50 rounded-2xl overflow-hidden border border-border/50 hover:border-accent/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-accent/10"
+      className="glass-card hover-lift rounded-xl overflow-hidden group cursor-pointer"
     >
       {/* 封面图 */}
       <div className="relative overflow-hidden">
@@ -142,9 +143,10 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
         {/* 操作按钮 */}
         <div className="mt-4 flex items-center justify-between">
-          <button className="px-4 py-2 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-ink-inverse text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-accent/25">
+          {/* 主 CTA 走设计系统 default 变体（.btn-primary 品牌渐变），占满行内剩余空间 */}
+          <Button type="button" size="sm" className="w-full">
             {progress ? '继续学习' : '立即学习'}
-          </button>
+          </Button>
           <div className="flex items-center space-x-2">
             <TooltipProvider>
               <Tooltip>
