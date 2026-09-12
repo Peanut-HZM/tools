@@ -28,7 +28,7 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
           <div className="flex items-center space-x-10">
             <Link
               to="/"
-              className="text-2xl font-['Pacifico'] bg-gradient-to-br from-accent to-accent-secondary bg-clip-text text-transparent"
+              className="text-2xl font-extrabold bg-gradient-to-br from-accent to-accent-secondary bg-clip-text text-transparent"
               key={language}
             >
               {t.common.logo}

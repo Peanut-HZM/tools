@@ -118,7 +118,7 @@ export default function DevComponentsPage() {
       {/* Logo 渐变 */}
       <section className="space-y-4">
         <h2 className="text-heading-lg font-medium">Logo 渐变</h2>
-        <p className="text-display-md font-['Pacifico'] bg-gradient-to-br from-accent to-accent-secondary bg-clip-text text-transparent">
+        <p className="text-display-md font-extrabold bg-gradient-to-br from-accent to-accent-secondary bg-clip-text text-transparent">
           工具箱
         </p>
       </section>

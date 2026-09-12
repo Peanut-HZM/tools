@@ -45,11 +45,6 @@ body {
   transition: all var(--duration-fast) var(--ease-stripe);
 }
 
-/* Pacifico 字体 fallback (当 Google Fonts 不可用时) */
-.font-\[Pacifico\] {
-  font-family: 'Pacifico', 'Microsoft YaHei', 'PingFang SC', sans-serif;
-}
-
 /* ============================================================
  * 弹框 / 进入动画
  * ============================================================ */
