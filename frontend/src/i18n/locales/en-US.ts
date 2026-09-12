@@ -133,7 +133,8 @@ export const enUS = {
   // Footer
   footer: {
     desc: 'One-stop collection of practical tools to improve work efficiency and simplify daily tasks.',
-    copyright: '© 2024 Toolbox. All rights reserved.',
+    copyright: '© 2026 Toolbox',
+    tagline: '20+ developer tools · Ready to use · Cloud synced',
     contactUs: 'Contact Us',
   },
 

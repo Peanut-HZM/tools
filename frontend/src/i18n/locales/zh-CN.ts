@@ -132,7 +132,8 @@ export const zhCN = {
   // Footer
   footer: {
     desc: '一站式实用工具集合，提升工作效率，简化日常任务。',
-    copyright: '© 2026 工具箱。All rights reserved.',
+    copyright: '© 2026 Toolbox',
+    tagline: '20+ 开发者工具 · 数据云端同步',
     contactUs: '联系我们',
   },
 

@@ -42,8 +42,8 @@ export default function Footer() {
 
           {/* 栏3：说明区（版权 + 产品说明） */}
           <div className="text-sm text-ink-muted">
-            <p>© 2026 Toolbox</p>
-            <p className="mt-2">20+ 开发者工具 · 数据云端同步</p>
+            <p>{t.footer.copyright}</p>
+            <p className="mt-2">{t.footer.tagline}</p>
           </div>
         </div>
       </div>

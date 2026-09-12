@@ -25,7 +25,7 @@ export default function CategoryTabs({ categories, activeCategory, onCategoryCha
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
             activeCategory === category
               ? // 激活态：品牌渐变底 + 品牌色发光阴影
-                'text-white bg-[image:var(--gradient-brand)] shadow-[0_4px_14px_rgba(120,90,250,0.35)]'
+                'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)]'
               : // 非激活态：弱化文字色，hover 增强
                 'text-ink-muted hover:text-ink'
           )}

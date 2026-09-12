@@ -41,7 +41,8 @@
 .btn-primary {
   background-image: var(--gradient-brand);
   color: #fff;
-  box-shadow: 0 4px 18px rgba(120, 90, 250, 0.35);
+  /* 品牌发光阴影走 token：暗色全量辉光，亮色特意降档（禁止写死色值） */
+  box-shadow: var(--shadow-glow-accent);
 }
 .btn-primary:hover {
   background-image: var(--gradient-brand-hover);
