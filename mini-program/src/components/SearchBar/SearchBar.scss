@@ -1,42 +1,43 @@
+/**
+ * 搜索栏 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * 搜索/清除图标为 SVG Icon（Image，固定 px 尺寸），本地样式只保留布局与弹性收缩。
+ */
+
 .search-bar {
   display: flex;
   align-items: center;
   gap: 16rpx;
   padding: 16rpx 24rpx;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface-1);
+  border-bottom: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
+/* 图标为固定尺寸 Image，仅防 flex 压缩 */
 .search-icon {
-  font-size: 32rpx;
-  color: var(--text-tertiary);
   flex-shrink: 0;
-  line-height: 1;
 }
 
 .search-input {
   flex: 1;
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   height: 64rpx;
 }
 
 .search-placeholder {
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
 .search-clear {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-tertiary);
   flex-shrink: 0;
 
   .clear-icon {
-    font-size: 28rpx;
-    line-height: 1;
+    flex-shrink: 0;
   }
 }

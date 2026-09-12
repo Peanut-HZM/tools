@@ -1,13 +1,20 @@
+/**
+ * Markdown 渲染器 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * 代码块保留深底域惯例（Web 端 markdown-body pre 同为深色底），
+ * 底色由 rgba(0,0,0,0.3) 改走 token --bg-overlay；代码文字 #e2e8f0 → --ink-default；
+ * 行内 code/th 的品牌蓝 rgba 按 --accent-primary（rgb(91,107,245)）同源展开 alpha。
+ */
+
 .markdown-renderer {
   line-height: 1.6;
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   word-break: break-word;
 
   p { margin-bottom: 12rpx; }
 
   .markdown-placeholder {
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
     font-size: 24rpx;
   }
 
@@ -15,8 +22,9 @@
   h2 { font-size: 32rpx; font-weight: 600; margin: 14rpx 0 6rpx; }
   h3 { font-size: 30rpx; font-weight: 600; margin: 12rpx 0 4rpx; }
 
+  /* 代码块深底域：--bg-overlay（rgba(10,18,37,0.72)），对齐 Web 端深色代码块惯例 */
   pre {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--bg-overlay);
     border-radius: 8rpx;
     padding: 16rpx;
     overflow-x: auto;
@@ -25,13 +33,14 @@
     code {
       font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
       font-size: 24rpx;
-      color: #e2e8f0;
+      color: var(--ink-default);
     }
   }
 
+  /* 行内 code：--accent-primary（rgb(91,107,245)）同源展开 alpha（原 rgba(59,130,246,0.15)） */
   code {
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--color-primary);
+    background: rgba(91, 107, 245, 0.15);
+    color: var(--accent-primary);
     padding: 2rpx 8rpx;
     border-radius: 4rpx;
     font-size: 26rpx;
@@ -41,13 +50,13 @@
   li { margin-bottom: 6rpx; }
 
   blockquote {
-    border-left: 4rpx solid var(--color-primary);
+    border-left: 4rpx solid var(--accent-primary);
     padding-left: 16rpx;
-    color: var(--text-secondary);
+    color: var(--ink-muted);
     margin: 12rpx 0;
   }
 
-  a { color: var(--color-primary); }
+  a { color: var(--accent-primary); }
 
   table {
     border-collapse: collapse;
@@ -56,18 +65,19 @@
   }
 
   th, td {
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--glass-border);
     padding: 8rpx 12rpx;
   }
 
+  /* 表头：--accent-primary（rgb(91,107,245)）同源展开 alpha（原 rgba(59,130,246,0.1)） */
   th {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(91, 107, 245, 0.1);
     font-weight: 600;
   }
 
   hr {
     border: none;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--glass-border);
     margin: 16rpx 0;
   }
 }

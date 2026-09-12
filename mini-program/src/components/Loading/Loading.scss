@@ -1,3 +1,9 @@
+/**
+ * 加载组件 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * spinner 对齐 Web/Admin 标准：--border-accent（rgba(91,107,245,0.4)）描边环
+ * + 透明顶口（等价 border-t-transparent），随品牌 token 换肤。
+ */
+
 .loading {
   display: flex;
   flex-direction: column;
@@ -9,15 +15,15 @@
   &-spinner {
     width: 48rpx;
     height: 48rpx;
-    border: 4rpx solid var(--border-color);
-    border-top-color: var(--color-primary);
+    border: 4rpx solid var(--border-accent);
+    border-top-color: transparent;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
 
   &-text {
     font-size: 26rpx;
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
   }
 }
 

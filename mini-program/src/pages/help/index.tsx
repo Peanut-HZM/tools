@@ -2,6 +2,12 @@ import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import './index.scss'
 
+/**
+ * 帮助页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）：
+ * FAQ 卡片/关于条目套全局 .glass-card（背景/描边/投影/磨砂模糊），本地只保留布局；
+ * 标题品牌竖线对齐 --accent-primary。纯静态展示页，交互逻辑不变。
+ */
+
 interface FAQItem {
   question: string
   answer: string
@@ -56,7 +62,7 @@ export default function HelpPage() {
       <View className='section'>
         <Text className='section-title'>常见问题</Text>
         {faqData.map((item, index) => (
-          <View key={index} className='faq-item'>
+          <View key={index} className='faq-item glass-card'>
             <Text className='faq-question'>{item.question}</Text>
             <Text className='faq-answer'>{item.answer}</Text>
           </View>
@@ -66,7 +72,7 @@ export default function HelpPage() {
       {/* 关于 */}
       <View className='section'>
         <Text className='section-title'>关于</Text>
-        <View className='about-item' onClick={handleCopyVersion}>
+        <View className='about-item glass-card' onClick={handleCopyVersion}>
           <Text className='about-label'>版本</Text>
           <Text className='about-value'>v{version}（点击复制）</Text>
         </View>

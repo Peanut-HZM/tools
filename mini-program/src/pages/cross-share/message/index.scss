@@ -1,8 +1,15 @@
+/**
+ * 跨设备传消息页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * 消息气泡走玻璃 token（--glass-bg/--glass-border）；JSON/代码块保留深底域惯例，
+ * 底色用 token --bg-overlay；品牌蓝 rgba 一律按 --accent-primary 同源展开 alpha；
+ * 渐变遮罩按 --bg-surface-1（rgb(15,25,48)）同源展开 alpha。
+ */
+
 .message-page {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
 }
 
 .messages-scroll {
@@ -24,19 +31,22 @@
   margin-bottom: 8rpx;
 }
 
+/* 消息类型图标容器：SVG Icon（Image）固定尺寸，此处仅布局 */
 .message-icon {
-  font-size: 28rpx;
+  display: flex;
+  align-items: center;
   margin-right: 8rpx;
 }
 
 .message-time {
   font-size: 22rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
+/* 消息气泡：玻璃底 + 发丝描边 */
 .message-bubble {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: 24rpx;
 }
@@ -45,9 +55,9 @@
   margin-bottom: 16rpx;
 }
 
-/* JSON 样式 */
+/* JSON 样式（深底域：--bg-overlay，对齐代码块深色惯例） */
 .json-block {
-  background: var(--bg-primary);
+  background: var(--bg-overlay);
   border-radius: var(--radius-sm);
   padding: 20rpx;
 }
@@ -61,18 +71,18 @@
 
 .json-label {
   font-size: 22rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
   font-weight: 600;
 }
 
 .json-lines {
   font-size: 20rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
 .json-text {
   font-size: 22rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   font-family: 'Courier New', monospace;
   line-height: 1.5;
   display: block;
@@ -85,16 +95,16 @@
   text-align: center;
 }
 
-/* 代码块样式 */
+/* 代码块样式（深底域：--bg-overlay） */
 .code-block {
-  background: var(--bg-primary);
+  background: var(--bg-overlay);
   border-radius: var(--radius-sm);
   padding: 20rpx;
 }
 
 .code-text {
   font-size: 22rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   font-family: 'Courier New', monospace;
   line-height: 1.5;
   display: block;
@@ -102,16 +112,16 @@
   word-break: break-all;
 }
 
-/* 链接样式 */
+/* 链接样式：--accent-primary（rgb(91,107,245)）同源展开 alpha（原 rgba(59,130,246,0.08)） */
 .link-block {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(91, 107, 245, 0.08);
   border-radius: var(--radius-sm);
   padding: 20rpx;
 }
 
 .link-text {
   font-size: 26rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
   word-break: break-all;
 }
 
@@ -129,7 +139,7 @@
 .md-h1 {
   font-size: 36rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink-default);
   display: block;
   margin-bottom: 12rpx;
 }
@@ -137,7 +147,7 @@
 .md-h2 {
   font-size: 32rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink-default);
   display: block;
   margin-bottom: 10rpx;
 }
@@ -145,7 +155,7 @@
 .md-h3 {
   font-size: 28rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink-default);
   display: block;
   margin-bottom: 8rpx;
 }
@@ -157,13 +167,13 @@
 }
 
 .md-list-bullet {
-  color: var(--text-primary);
+  color: var(--ink-default);
   margin-right: 12rpx;
   flex-shrink: 0;
 }
 
 .md-list-number {
-  color: var(--text-primary);
+  color: var(--ink-default);
   margin-right: 12rpx;
   flex-shrink: 0;
   min-width: 32rpx;
@@ -171,12 +181,12 @@
 
 .md-list-text {
   flex: 1;
-  color: var(--text-primary);
+  color: var(--ink-default);
   font-size: 28rpx;
 }
 
 .md-text {
-  color: var(--text-primary);
+  color: var(--ink-default);
   font-size: 28rpx;
   display: block;
   word-break: break-word;
@@ -186,13 +196,14 @@
   height: 12rpx;
 }
 
+/* 折叠渐变遮罩：--bg-surface-1（rgb(15,25,48)）同源展开 alpha（原 rgba(30,30,46,*)） */
 .markdown-gradient {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   height: 80rpx;
-  background: linear-gradient(to bottom, rgba(30, 30, 46, 0), rgba(30, 30, 46, 0.95));
+  background: linear-gradient(to bottom, rgba(15, 25, 48, 0), rgba(15, 25, 48, 0.95));
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -207,7 +218,7 @@
 /* 文本内容样式 */
 .text-content {
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   line-height: 1.6;
   word-break: break-word;
 }
@@ -216,21 +227,21 @@
 .expand-btn {
   display: flex;
   align-items: center;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--accent-primary);
+  color: var(--ink-default);
   padding: 12rpx 24rpx;
   border-radius: var(--radius-sm);
 }
 
 .expand-text {
   font-size: 24rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
 }
 
+/* chevron 图标顺时针转 90° 指向下方（原 ▼ 字形） */
 .expand-arrow {
-  font-size: 20rpx;
-  color: var(--color-primary);
   margin-left: 8rpx;
+  transform: rotate(90deg);
 }
 
 /* 消息操作按钮 */
@@ -243,12 +254,12 @@
 
 .action-btn {
   font-size: 22rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
   padding: 4rpx 12rpx;
 }
 
 .action-delete {
-  color: var(--color-danger);
+  color: var(--accent-danger);
 }
 
 /* 滚动到底部按钮 */
@@ -256,17 +267,17 @@
   position: fixed;
   bottom: 160rpx;
   right: 30rpx;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--accent-primary);
+  color: var(--ink-default);
   padding: 16rpx 24rpx;
   border-radius: 30rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
   z-index: 100;
 }
 
 .scroll-bottom-text {
   font-size: 24rpx;
-  color: #fff;
+  color: var(--ink-default);
 }
 
 /* 输入区域 */
@@ -275,8 +286,8 @@
   align-items: center;
   gap: 16rpx;
   padding: 24rpx;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-color);
+  background: var(--bg-surface-1);
+  border-top: 1px solid var(--glass-border);
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
 
@@ -285,26 +296,25 @@
 }
 
 .message-input {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 0 24rpx;
   height: 72rpx;
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   width: 100%;
 
   &::placeholder {
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
   }
 }
 
+/* 发送按钮：主按钮（渐变底/白字/辉光由全局 .btn-primary 提供） */
 .send-btn {
   flex-shrink: 0;
   width: 120rpx;
   height: 72rpx;
-  background: var(--color-primary);
-  color: #fff;
   font-size: 28rpx;
   font-weight: 500;
   border-radius: var(--radius-sm);
@@ -318,8 +328,10 @@
     border: none;
   }
 
+  /* 禁用态压掉渐变与辉光（background 简写重置 background-image） */
   &.disabled {
     background: var(--text-disabled);
     opacity: 0.5;
+    box-shadow: none;
   }
 }

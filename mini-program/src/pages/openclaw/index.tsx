@@ -6,6 +6,12 @@ import Markdown from '../../components/Markdown'
 import { useAuthGuard } from '../../hooks'
 import './index.scss'
 
+/**
+ * OpenClaw 对话页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）：
+ * - 发送按钮套全局 .btn-primary 品牌渐变（渐变底/白字/辉光见 styles/_glass.scss）；
+ * - 两枚 base64 SVG 头像为功能资产按品牌渐变保留；对话/发送逻辑不变。
+ */
+
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -347,7 +353,7 @@ export default function OpenClawPage() {
           </button>
         ) : (
           <button
-            className={`send-btn ${!inputValue.trim() ? 'disabled' : ''}`}
+            className={`send-btn btn-primary ${!inputValue.trim() ? 'disabled' : ''}`}
             disabled={!inputValue.trim() || !connected}
             onClick={handleSend}
           >

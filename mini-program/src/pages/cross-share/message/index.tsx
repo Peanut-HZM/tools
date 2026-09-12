@@ -7,7 +7,16 @@ import { formatDateTime, detectContentType, isUrl } from '../../../utils'
 import { useAuthGuard } from '../../../hooks'
 import Loading from '../../../components/Loading'
 import EmptyState from '../../../components/EmptyState'
+import Icon from '../../../components/Icon'
 import './index.scss'
+
+/**
+ * 跨设备传消息页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）：
+ * - 消息气泡/输入框走玻璃 token（--glass-bg/--glass-border），本地只保留布局；
+ * - 消息类型/空状态/展开箭头的 emoji 与 Unicode 符号换为 SVG Icon（烘色传入，
+ *   Icon 不能嵌在 Text 内，容器相应改为 View）；
+ * - 发送按钮套全局 .btn-primary 品牌渐变；收发/折叠/复制逻辑不变。
+ */
 
 const COLLAPSE_HEIGHT = 400 // 折叠高度阈值（rpx）
 const JSON_COLLAPSE_LINES = 10 // JSON 折叠行数阈值
@@ -279,7 +288,8 @@ export default function CrossShareMessage() {
           <View className='markdown-gradient'>
             <View className='expand-btn' onClick={() => toggleExpand(messageId)}>
               <Text className='expand-text'>展开</Text>
-              <Text className='expand-arrow'>▼</Text>
+              {/* ▼ 换为 chevron 图标旋转 90°（Icon 表无向下箭头） */}
+              <Icon name='chevron-right' size={14} color='#5B6BF5' className='expand-arrow' />
             </View>
           </View>
         )}
@@ -304,14 +314,14 @@ export default function CrossShareMessage() {
     return renderMarkdownContent(content, msg.id)
   }
 
+  // 消息类型图标：原 emoji 映射为 SVG Icon（颜色烘入 stroke，中性 ink 系）
   const getMessageIcon = (type: string) => {
     switch (type) {
-      case 'text': return '💬'
-      case 'file': return '📎'
-      case 'link': return '🔗'
-      case 'clipboard': return '📋'
-      case 'image': return '🖼️'
-      default: return '💬'
+      case 'file': return <Icon name='file' size={16} color='#6E7A8F' />
+      case 'link': return <Icon name='globe' size={16} color='#6E7A8F' />
+      case 'clipboard': return <Icon name='edit' size={16} color='#6E7A8F' />
+      case 'image': return <Icon name='image' size={16} color='#6E7A8F' />
+      default: return <Icon name='mail' size={16} color='#6E7A8F' />
     }
   }
 
@@ -322,7 +332,7 @@ export default function CrossShareMessage() {
         <Loading text='加载消息...' />
       ) : messages.length === 0 ? (
         <EmptyState
-          icon='💬'
+          icon={<Icon name='share' size={48} />}
           title='暂无消息'
           description='发送一条消息开始跨设备同步'
         />
@@ -342,7 +352,8 @@ export default function CrossShareMessage() {
             {messages.map((msg) => (
               <View key={msg.id} className='message-item'>
                 <View className='message-header'>
-                  <Text className='message-icon'>{getMessageIcon(msg.message_type)}</Text>
+                  {/* Icon（Image）不可嵌于 Text，容器改用 View */}
+                  <View className='message-icon'>{getMessageIcon(msg.message_type)}</View>
                   <Text className='message-time'>{formatDateTime(msg.created_at)}</Text>
                 </View>
                 <View className='message-bubble'>
@@ -388,8 +399,9 @@ export default function CrossShareMessage() {
             onConfirm={handleSend}
           />
         </View>
+        {/* 发送按钮：主按钮走品牌渐变 .btn-primary */}
         <button
-          className={`send-btn ${!inputValue.trim() || sending ? 'disabled' : ''}`}
+          className={`send-btn btn-primary ${!inputValue.trim() || sending ? 'disabled' : ''}`}
           disabled={!inputValue.trim() || sending}
           onClick={handleSend}
         >

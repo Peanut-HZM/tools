@@ -1,5 +1,12 @@
-import { View, Text, Input } from '@tarojs/components'
+import { View, Input } from '@tarojs/components'
+import Icon from '../Icon'
 import './SearchBar.scss'
+
+/**
+ * 搜索栏 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）：
+ * 搜索/清除的 Unicode 字形（⌕/✕）换为 SVG Icon（烘色中性 ink 系），
+ * Icon（Image）不可嵌于 Text，直接作为 flex 子项渲染。搜索逻辑不变。
+ */
 
 interface SearchBarProps {
   value: string;
@@ -10,7 +17,7 @@ interface SearchBarProps {
 export default function SearchBar({ value, onChange, placeholder = '搜索工具...' }: SearchBarProps) {
   return (
     <View className='search-bar'>
-      <Text className='search-icon'>⌕</Text>
+      <Icon name='search' size={16} color='#6E7A8F' className='search-icon' />
       <Input
         className='search-input'
         placeholder={placeholder}
@@ -23,7 +30,7 @@ export default function SearchBar({ value, onChange, placeholder = '搜索工具
           className='search-clear'
           onClick={() => onChange('')}
         >
-          <Text className='clear-icon'>✕</Text>
+          <Icon name='close' size={16} color='#6E7A8F' className='clear-icon' />
         </View>
       )}
     </View>

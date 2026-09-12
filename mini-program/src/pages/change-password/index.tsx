@@ -5,6 +5,13 @@ import { request } from '../../services/request'
 import { useAuthStore } from '../../stores/auth'
 import './index.scss'
 
+/**
+ * 修改密码页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）：
+ * - 提交按钮套全局 .btn-primary 品牌渐变；强度色/错误提示对齐语义 accent token；
+ * - 成功图标 ✓ 换为 CSS 对勾（Icon 表无 check 图标，避免动共享组件）；
+ *   校验/提交/登出跳转逻辑不变。
+ */
+
 export default function ChangePasswordPage() {
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -25,11 +32,12 @@ export default function ChangePasswordPage() {
     if (/\d/.test(pwd)) score++
     if (/[^a-zA-Z0-9]/.test(pwd)) score++
 
-    if (score <= 1) return { level: 1, label: '弱', color: 'var(--color-danger)' }
-    if (score === 2) return { level: 2, label: '一般', color: 'var(--color-warning)' }
-    if (score === 3) return { level: 3, label: '中等', color: 'var(--color-info)' }
-    if (score === 4) return { level: 4, label: '强', color: 'var(--color-success)' }
-    return { level: 5, label: '非常强', color: 'var(--color-success)' }
+    // 强度色对齐语义 accent token（信息色保持青色 --accent-cyan，与全局别名层同值）
+    if (score <= 1) return { level: 1, label: '弱', color: 'var(--accent-danger)' }
+    if (score === 2) return { level: 2, label: '一般', color: 'var(--accent-warning)' }
+    if (score === 3) return { level: 3, label: '中等', color: 'var(--accent-cyan)' }
+    if (score === 4) return { level: 4, label: '强', color: 'var(--accent-success)' }
+    return { level: 5, label: '非常强', color: 'var(--accent-success)' }
   }
 
   const strength = getPasswordStrength(newPassword)
@@ -86,7 +94,10 @@ export default function ChangePasswordPage() {
     <View className='change-password-page'>
       {success ? (
         <View className='success-state'>
-          <Text className='success-icon'>✓</Text>
+          {/* ✓ 换为 CSS 对勾（Icon 表无 check 图标） */}
+          <View className='success-icon'>
+            <View className='success-check' />
+          </View>
           <Text className='success-text'>密码修改成功</Text>
           <Text className='success-hint'>正在跳转到登录页...</Text>
         </View>
@@ -153,9 +164,9 @@ export default function ChangePasswordPage() {
             </View>
           )}
 
-          {/* 提交按钮 */}
+          {/* 提交按钮：主按钮走品牌渐变 .btn-primary */}
           <View className='submit-bar'>
-            <button className='submit-btn' onClick={handleSubmit} disabled={loading}>
+            <button className='submit-btn btn-primary' onClick={handleSubmit} disabled={loading}>
               {loading ? '提交中...' : '修改密码'}
             </button>
           </View>

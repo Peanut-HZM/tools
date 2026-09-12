@@ -1,6 +1,13 @@
+/**
+ * 修改密码页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * 输入框走 token（--bg-surface-2 底 + --glass-border 描边 + --ink-* 文字）；
+ * 提交按钮渐变/白字/辉光由全局 .btn-primary 提供；
+ * 错误提示按 --accent-danger（rgb(248,113,113)）同源展开 alpha（原 rgba(239,68,68,*)）。
+ */
+
 .change-password-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
   padding: var(--spacing-lg) var(--spacing-md);
 }
 
@@ -11,27 +18,27 @@
 .form-label {
   display: block;
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   margin-bottom: var(--spacing-sm);
   font-weight: 500;
 }
 
 .form-input {
   width: 100%;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 0 var(--spacing-md);
   min-height: var(--touch-target);
-  color: var(--text-primary);
+  color: var(--ink-default);
   font-size: 28rpx;
 
   &:focus {
-    border-color: var(--color-primary);
+    border-color: var(--accent-primary);
   }
 
   &.error {
-    border-color: var(--color-danger);
+    border-color: var(--accent-danger);
   }
 }
 
@@ -45,7 +52,7 @@
 .strength-segment {
   flex: 1;
   height: 6rpx;
-  background: var(--bg-tertiary);
+  background: var(--bg-surface-2);
   border-radius: 3rpx;
   transition: background var(--transition-fast);
 
@@ -63,13 +70,14 @@
 .match-hint {
   display: block;
   font-size: 24rpx;
-  color: var(--color-success);
+  color: var(--accent-success);
   margin-top: var(--spacing-xs);
 }
 
+/* 错误提示：--accent-danger（rgb(248,113,113)）同源展开 alpha（原 rgba(239,68,68,*)） */
 .error-section {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
   border-radius: var(--radius-sm);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
@@ -77,30 +85,32 @@
 
 .error-text {
   font-size: 26rpx;
-  color: var(--color-danger);
+  color: var(--accent-danger);
 }
 
 .submit-bar {
   margin-top: var(--spacing-xl);
 }
 
+/* 提交按钮：主按钮（渐变底/白字/辉光由全局 .btn-primary 提供） */
 .submit-btn {
   width: 100%;
   min-height: var(--touch-target);
-  background: var(--color-primary);
-  color: #fff;
   border: none;
   border-radius: var(--radius-sm);
   font-size: 30rpx;
   font-weight: 500;
 
+  /* 按压态对齐 .btn-primary-hover 的提亮渐变 */
   &:active {
-    background: var(--color-primary-dark);
+    background-image: var(--gradient-brand-hover);
   }
 
+  /* 禁用态压掉渐变与辉光（background 简写重置 background-image） */
   &[disabled] {
     background: var(--text-disabled);
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
+    box-shadow: none;
   }
 }
 
@@ -112,26 +122,35 @@
   padding: 200rpx var(--spacing-md);
 }
 
+/* 成功图标圆：原 ✓ 字形换为 CSS 对勾（Icon 表无 check 图标） */
 .success-icon {
   width: 120rpx;
   height: 120rpx;
-  line-height: 120rpx;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  background: var(--color-success);
-  color: #fff;
-  font-size: 60rpx;
+  background: var(--accent-success);
   margin-bottom: var(--spacing-lg);
+}
+
+.success-check {
+  width: 52rpx;
+  height: 26rpx;
+  border-left: 8rpx solid var(--ink-default);
+  border-bottom: 8rpx solid var(--ink-default);
+  transform: rotate(-45deg);
+  margin-top: -8rpx; /* 对勾视觉重心偏下，上移修正居中 */
 }
 
 .success-text {
   font-size: 32rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   font-weight: 500;
   margin-bottom: var(--spacing-sm);
 }
 
 .success-hint {
   font-size: 26rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }

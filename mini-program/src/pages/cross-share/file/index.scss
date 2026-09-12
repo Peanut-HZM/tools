@@ -1,6 +1,12 @@
+/**
+ * 跨设备传文件页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * 文件条目质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），本地只保留布局与圆角；
+ * 上传按钮渐变/白字/辉光由全局 .btn-primary 提供；图标容器只做布局，尺寸由 Icon 决定。
+ */
+
 .file-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
   display: flex;
   flex-direction: column;
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom) + 120rpx);
@@ -10,13 +16,13 @@
   display: flex;
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface-1);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .stats-text {
   font-size: 24rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
 .file-list {
@@ -35,37 +41,39 @@
 
 .loading-text {
   font-size: 28rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
+/* 空状态图标容器：SVG Icon 固定尺寸，此处仅布局 */
 .empty-icon {
-  font-size: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: var(--spacing-md);
 }
 
 .empty-text {
   font-size: 30rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   margin-bottom: var(--spacing-xs);
 }
 
 .empty-hint {
   font-size: 26rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
+/* 文件条目：底色/描边/投影基底由 .glass-card 提供 */
 .file-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-md);
   margin: 0 var(--spacing-sm) var(--spacing-xs);
-  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
 
   &:active {
-    border-color: var(--color-primary);
+    border-color: var(--accent-primary);
   }
 }
 
@@ -77,8 +85,10 @@
   min-width: 0;
 }
 
+/* 文件类型图标容器：SVG Icon 固定尺寸，此处仅布局 */
 .file-icon {
-  font-size: 48rpx;
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 
@@ -92,7 +102,7 @@
 
 .file-name {
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -100,7 +110,7 @@
 
 .file-meta {
   font-size: 22rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
 .file-actions {
@@ -110,7 +120,7 @@
 
 .action-btn {
   font-size: 26rpx;
-  color: var(--color-danger);
+  color: var(--accent-danger);
   min-height: var(--touch-target);
   line-height: var(--touch-target);
 }
@@ -122,27 +132,29 @@
   right: 0;
   padding: var(--spacing-md);
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-color);
+  background: var(--bg-canvas);
+  border-top: 1px solid var(--glass-border);
   z-index: 10;
 }
 
+/* 上传按钮：主按钮（渐变底/白字/辉光由全局 .btn-primary 提供） */
 .upload-btn {
   width: 100%;
   min-height: var(--touch-target);
-  background: var(--color-primary);
-  color: #fff;
   border: none;
   border-radius: var(--radius-sm);
   font-size: 30rpx;
   font-weight: 500;
 
+  /* 按压态对齐 .btn-primary-hover 的提亮渐变 */
   &:active {
-    background: var(--color-primary-dark);
+    background-image: var(--gradient-brand-hover);
   }
 
+  /* 禁用态压掉渐变与辉光（background 简写重置 background-image） */
   &[disabled] {
     background: var(--text-disabled);
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
+    box-shadow: none;
   }
 }

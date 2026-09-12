@@ -3,7 +3,15 @@ import Taro from '@tarojs/taro'
 import { View, Text, ScrollView } from '@tarojs/components'
 import { fileApi } from '../../../services/crossShare'
 import { useAuthGuard } from '../../../hooks'
+import Icon from '../../../components/Icon'
 import './index.scss'
+
+/**
+ * 跨设备传文件页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）：
+ * - 文件条目套全局 .glass-card（背景/描边/投影/磨砂模糊），上传按钮套 .btn-primary；
+ * - 文件类型/空状态 emoji 换为 SVG Icon（烘色传入，Icon 不能嵌在 Text 内，
+ *   容器相应改为 View）；上传/下载/删除逻辑不变。
+ */
 
 interface FileInfo {
   id: string
@@ -101,14 +109,15 @@ export default function FileTransferPage() {
     }
   }
 
-  // 获取文件类型图标
+  // 获取文件类型图标：原 emoji 映射为 SVG Icon（颜色烘入 stroke，中性 ink 系；
+  // Icon 表无回形针/表格/文件夹，按语义就近映射 file/edit/database）
   const getFileIcon = (mimeType: string) => {
-    if (mimeType?.startsWith('image/')) return '🖼️'
-    if (mimeType === 'application/pdf') return '📄'
-    if (mimeType?.includes('word') || mimeType?.includes('document')) return '📝'
-    if (mimeType?.includes('excel') || mimeType?.includes('spreadsheet')) return '📊'
-    if (mimeType?.includes('text')) return '📃'
-    return '📁'
+    if (mimeType?.startsWith('image/')) return <Icon name='image' size={22} color='#6E7A8F' />
+    if (mimeType === 'application/pdf') return <Icon name='file' size={22} color='#6E7A8F' />
+    if (mimeType?.includes('word') || mimeType?.includes('document')) return <Icon name='edit' size={22} color='#6E7A8F' />
+    if (mimeType?.includes('excel') || mimeType?.includes('spreadsheet')) return <Icon name='database' size={22} color='#6E7A8F' />
+    if (mimeType?.includes('text')) return <Icon name='file' size={22} color='#6E7A8F' />
+    return <Icon name='file' size={22} color='#6E7A8F' />
   }
 
   // 格式化文件大小
@@ -147,15 +156,19 @@ export default function FileTransferPage() {
           </View>
         ) : files.length === 0 ? (
           <View className='empty-state'>
-            <Text className='empty-icon'>📂</Text>
+            {/* 📂 换为文件图标（空状态装饰，品牌默认色） */}
+            <View className='empty-icon'>
+              <Icon name='file' size={48} />
+            </View>
             <Text className='empty-text'>暂无文件</Text>
             <Text className='empty-hint'>点击下方按钮上传文件</Text>
           </View>
         ) : (
           files.map(file => (
-            <View key={file.id} className='file-item'>
+            <View key={file.id} className='file-item glass-card'>
               <View className='file-info' onClick={() => handleDownload(file)}>
-                <Text className='file-icon'>{getFileIcon(file.mime_type)}</Text>
+                {/* Icon（Image）不可嵌于 Text，容器改用 View */}
+                <View className='file-icon'>{getFileIcon(file.mime_type)}</View>
                 <View className='file-detail'>
                   <Text className='file-name'>{file.name}</Text>
                   <Text className='file-meta'>{formatFileSize(file.size)} · {formatTime(file.uploaded_at)}</Text>
@@ -169,9 +182,9 @@ export default function FileTransferPage() {
         )}
       </ScrollView>
 
-      {/* 上传按钮 */}
+      {/* 上传按钮：主按钮走品牌渐变 .btn-primary */}
       <View className='upload-bar'>
-        <button className='upload-btn' onClick={handleUpload} disabled={uploading}>
+        <button className='upload-btn btn-primary' onClick={handleUpload} disabled={uploading}>
           {uploading ? '上传中...' : '上传文件'}
         </button>
       </View>

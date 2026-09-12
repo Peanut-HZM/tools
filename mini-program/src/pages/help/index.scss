@@ -1,6 +1,12 @@
+/**
+ * 帮助页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * FAQ 卡片/关于条目质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），
+ * 本地只保留布局与圆角；文字走 --ink-* token。
+ */
+
 .help-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
   padding: var(--spacing-md);
 }
 
@@ -12,15 +18,14 @@
   display: block;
   font-size: 30rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink-default);
   margin-bottom: var(--spacing-md);
   padding-left: var(--spacing-xs);
-  border-left: 4px solid var(--color-primary);
+  border-left: 4px solid var(--accent-primary);
 }
 
+/* FAQ 卡片：底色/描边/投影基底由 .glass-card 提供 */
 .faq-item {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-sm);
@@ -30,40 +35,39 @@
   display: block;
   font-size: 28rpx;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--ink-default);
   margin-bottom: var(--spacing-xs);
 }
 
 .faq-answer {
   display: block;
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   line-height: 1.7;
 }
 
+/* 关于条目：底色/描边/投影基底由 .glass-card 提供 */
 .about-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-sm);
 
   &:active {
-    background: var(--bg-tertiary);
+    background: var(--bg-surface-2);
   }
 }
 
 .about-label {
   font-size: 28rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
 .about-value {
   font-size: 26rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   max-width: 60%;
   text-align: right;
   word-break: break-all;

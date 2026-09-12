@@ -1,15 +1,22 @@
 import { View, Text } from '@tarojs/components'
 import type { ReactNode } from 'react'
+import Icon from '../Icon'
 import './EmptyState.scss'
 
+/**
+ * 空状态组件 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）：
+ * 默认图标由 emoji 📭 改为 <Icon name='file' size={48} />（品牌默认色）；
+ * icon prop 仍兼容字符串（emoji 旧用法）与自定义组件节点。
+ */
+
 interface EmptyStateProps {
-  /** 图标：支持 emoji 字符串（旧用法）或组件节点（如 SVG Icon；渲染于 View 容器） */
+  /** 图标：支持 emoji 字符串（旧用法）或组件节点（如 SVG Icon；渲染于 View 容器），缺省为文件图标 */
   icon?: ReactNode;
   title: string;
   description?: string;
 }
 
-export default function EmptyState({ icon = '📭', title, description }: EmptyStateProps) {
+export default function EmptyState({ icon = <Icon name='file' size={48} />, title, description }: EmptyStateProps) {
   return (
     <View className='empty-state'>
       {/* 字符串走 Text（emoji 字形）；组件节点必须用 View 容器——

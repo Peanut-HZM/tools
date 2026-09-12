@@ -1,8 +1,16 @@
+/**
+ * OpenClaw 对话页 — 玻璃光晕换肤（阶段⑧-⑨ Task 7）
+ * 聊天气泡/输入框走玻璃 token（--glass-bg/--glass-border），本地只保留布局与圆角；
+ * 发送按钮渐变/白字/辉光由全局 .btn-primary 提供（见 styles/_glass.scss）；
+ * 空状态装饰圆换品牌渐变 var(--gradient-brand)；半透明场景按 token 同源色值展开 alpha。
+ * 注：TSX 内两枚 base64 SVG 头像为功能资产，随品牌渐变保留，不做 token 化。
+ */
+
 .openclaw-page {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
 }
 
 /* ===== 顶部工具栏 ===== */
@@ -11,40 +19,42 @@
   align-items: center;
   justify-content: space-between;
   padding: 20rpx 32rpx;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface-1);
+  border-bottom: 1px solid var(--glass-border);
   min-height: 88rpx;
 }
 
 .toolbar-btn {
   font-size: 28rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
   padding: 8rpx 16rpx;
   border-radius: var(--radius-sm);
   cursor: pointer;
 
+  /* --accent-primary（rgb(91,107,245)）同源展开 alpha（原 rgba(59,130,246,0.1)） */
   &:active {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(91, 107, 245, 0.1);
   }
 }
 
+/* 未连接徽标：--accent-warning（rgb(251,191,36)）同源展开 alpha（原 rgba(245,158,11,0.1)） */
 .disconnected-badge {
   font-size: 24rpx;
-  color: var(--color-warning);
+  color: var(--accent-warning);
   padding: 4rpx 12rpx;
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(251, 191, 36, 0.1);
   border-radius: var(--radius-sm);
 }
 
 .connect-guide {
   padding: 16rpx 32rpx;
-  background: rgba(245, 158, 11, 0.1);
-  border-bottom: 1px solid var(--border-color);
+  background: rgba(251, 191, 36, 0.1);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .connect-guide-text {
   font-size: 24rpx;
-  color: var(--color-warning);
+  color: var(--accent-warning);
 }
 
 /* ===== 空状态 ===== */
@@ -64,24 +74,25 @@
   margin-bottom: 32rpx;
 }
 
+/* 装饰圆：原硬编码渐变 var(--color-primary,#3b82f6)→#8b5cf6 换品牌渐变 token */
 .empty-icon-circle {
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary, #3b82f6), #8b5cf6);
+  background: var(--gradient-brand);
   opacity: 0.15;
 }
 
 .empty-title {
   font-size: 36rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink-default);
   margin-bottom: 16rpx;
 }
 
 .empty-desc {
   font-size: 28rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
 /* ===== 消息列表 ===== */
@@ -117,7 +128,7 @@
   border-radius: 50%;
   flex-shrink: 0;
   overflow: hidden;
-  background: var(--bg-tertiary);
+  background: var(--bg-surface-2);
 }
 
 .avatar-image {
@@ -152,15 +163,16 @@
 }
 
 .bubble-user {
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--accent-primary);
+  color: var(--ink-default);
   border-top-right-radius: 4rpx;
 }
 
+/* AI 气泡：玻璃底 + 发丝描边 */
 .bubble-assistant {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--ink-default);
   border-top-left-radius: 4rpx;
 }
 
@@ -172,7 +184,7 @@
 /* 流式指示器 */
 .streaming-indicator {
   font-size: 28rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
   animation: pulse 1s infinite;
 }
 
@@ -184,7 +196,7 @@
 /* 时间戳 */
 .message-time {
   font-size: 22rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
   margin-top: 8rpx;
   padding: 0 4rpx;
 }
@@ -204,8 +216,8 @@
   gap: 16rpx;
   padding: 20rpx 24rpx;
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-color);
+  background: var(--bg-surface-1);
+  border-top: 1px solid var(--glass-border);
 }
 
 .input-wrapper {
@@ -217,28 +229,26 @@
 
 .chat-input {
   width: 100%;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: 16rpx 24rpx;
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   min-height: 72rpx;
   max-height: 200rpx;
   line-height: 1.5;
 
   &::placeholder {
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
   }
 }
 
-/* 发送按钮 */
+/* 发送按钮：主按钮（渐变底/白字/辉光由全局 .btn-primary 提供） */
 .send-btn {
   flex-shrink: 0;
   width: 120rpx;
   height: 72rpx;
-  background: var(--color-primary);
-  color: #fff;
   font-size: 28rpx;
   font-weight: 500;
   border-radius: var(--radius-md);
@@ -248,22 +258,26 @@
   justify-content: center;
   line-height: 1;
 
+  /* 禁用态压掉渐变与辉光（background 简写重置 background-image） */
   &.disabled {
     background: var(--text-disabled);
     opacity: 0.5;
+    box-shadow: none;
   }
 
+  /* 按压态对齐 .btn-primary-hover 的提亮渐变 */
   &:active:not(.disabled) {
-    background: var(--color-primary-dark);
+    background-image: var(--gradient-brand-hover);
   }
 }
 
+/* 停止按钮：危险语义（--accent-danger） */
 .stop-btn {
   flex-shrink: 0;
   width: 120rpx;
   height: 72rpx;
-  background: var(--color-danger);
-  color: #fff;
+  background: var(--accent-danger);
+  color: var(--ink-default);
   font-size: 28rpx;
   font-weight: 500;
   border-radius: var(--radius-md);
@@ -274,7 +288,7 @@
   line-height: 1;
 
   &:active {
-    background: #dc2626;
+    background: var(--accent-danger);
   }
 }
 
@@ -290,8 +304,8 @@
 .loading-spinner {
   width: 64rpx;
   height: 64rpx;
-  border: 4rpx solid var(--border-color);
-  border-top-color: var(--color-primary);
+  border: 4rpx solid var(--glass-border);
+  border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -299,7 +313,7 @@
 .loading-text {
   margin-top: 24rpx;
   font-size: 28rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
 @keyframes spin {
