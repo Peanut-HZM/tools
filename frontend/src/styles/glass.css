@@ -1,0 +1,71 @@
+/* ============================================================
+ * 玻璃光晕 · 工具类词汇表
+ * 设计规范见 openspec/changes/glass-glow-redesign/design.md §5.4
+ * 只引用 semantic token，禁止写死色值
+ * ============================================================ */
+
+/* 玻璃卡片：半透明底 + 细描边 + 模糊 + 悬浮阴影 + 顶部内高光 */
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+}
+/* 不支持 backdrop-filter 时的实色降级（web 端兜底，小程序端同思路） */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card { background: var(--glass-bg-fallback); }
+}
+
+/* 玻璃面板：比卡片更强的底色（导航/抽屉/弹层用） */
+.glass-panel {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(calc(var(--glass-blur) * 1.3));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.3));
+  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel { background: var(--glass-bg-fallback); }
+}
+
+/* 品牌渐变文字 */
+.gradient-text {
+  background-image: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 品牌渐变主按钮底（供 Button default variant 使用） */
+.btn-primary {
+  background-image: var(--gradient-brand);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(120, 90, 250, 0.35);
+}
+.btn-primary:hover {
+  background-image: var(--gradient-brand-hover);
+}
+
+/* 渐变描边（双背景法：内容底 + 渐变边）。用法：元素本身 border transparent */
+.gradient-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--bg-surface-1), var(--bg-surface-1)) padding-box,
+    var(--gradient-brand) border-box;
+}
+
+/* 悬浮抬升：hover 上移 4px + 渐变描边 + 发光阴影 */
+.hover-lift {
+  transition: transform var(--duration-fast, 150ms) var(--ease-stripe, ease-out),
+              box-shadow var(--duration-fast, 150ms) var(--ease-stripe, ease-out),
+              border-color var(--duration-fast, 150ms) var(--ease-stripe, ease-out);
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-glow-accent), inset 0 1px 0 var(--glass-highlight);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift:hover { transform: none; }
+}
