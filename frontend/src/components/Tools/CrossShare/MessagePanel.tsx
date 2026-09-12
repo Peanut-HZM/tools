@@ -502,7 +502,7 @@ const MessagePanel: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="搜索消息..."
-            className="w-full pl-10 pr-24 py-2.5 bg-surface-2/50 placeholder-slate-500 text-sm focus-visible:border-accent-info"
+            className="w-full pl-10 pr-24 py-2.5 bg-surface-2/50 placeholder-ink-faint text-sm focus-visible:border-accent-info"
           />
           {searchTerm && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
@@ -612,7 +612,7 @@ const MessagePanel: React.FC = () => {
             onKeyPress={handleKeyPress}
             onPaste={handlePaste}
             placeholder="输入消息... (支持 Markdown，Ctrl+V 同步剪贴板)"
-            className="flex-1 bg-surface-2/50 border border-border rounded-lg px-4 py-3 text-ink placeholder-slate-500 focus:outline-none focus:border-accent-info resize-none"
+            className="flex-1 bg-surface-2/50 border border-border rounded-lg px-4 py-3 text-ink placeholder-ink-faint focus:outline-none focus:border-accent-info resize-none"
             rows={2}
           />
           <Button

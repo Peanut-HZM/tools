@@ -132,8 +132,9 @@ function StepRow({ step }: { step: TraceStep }) {
   const hasError =
     step.metadata && (step.metadata as Record<string, unknown>).error;
   const isHandoff = step.step_type === 'handoff';
+  // 判分底色使用语义弱底 token，与 CollabTimeline/TokenUsage 同分支写法统一
   return (
-    <tr className={`border-b ${hasError ? 'bg-[rgba(248,113,113,0.12)]' : ''} ${isHandoff ? 'bg-[rgba(251,191,36,0.12)]' : ''}`}>
+    <tr className={`border-b ${hasError ? 'bg-danger/10' : ''} ${isHandoff ? 'bg-warning/10' : ''}`}>
       <td className="py-1">{step.step_index}</td>
       <td className="py-1">
         {isHandoff && <span className="mr-1 text-accent-warning">→ 移交</span>}

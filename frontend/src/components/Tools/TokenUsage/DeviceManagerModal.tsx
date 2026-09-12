@@ -186,7 +186,7 @@ export default function DeviceManagerModal({
                   type="checkbox"
                   checked={selectedIds.has(device.id)}
                   onChange={() => toggleSelection(device.id)}
-                  className="h-4 w-4 accent-blue-600"
+                  className="h-4 w-4 accent-primary"
                 />
                 <Monitor className="h-4 w-4 text-ink-muted" />
                 <div className="min-w-0 flex-1">
