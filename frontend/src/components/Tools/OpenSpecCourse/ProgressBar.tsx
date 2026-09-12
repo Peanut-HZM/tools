@@ -16,18 +16,19 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, total }) => {
   return (
     <div className="flex items-center space-x-3">
       <div className="text-right">
-        <div className="text-sm text-white/60">学习进度</div>
-        <div className="text-white font-semibold">
+        <div className="text-sm text-ink-muted">学习进度</div>
+        <div className="text-ink font-semibold">
           {completedCount} / {total} 章节
         </div>
       </div>
-      <div className="w-48 h-3 bg-gray-700 rounded-full overflow-hidden">
+      <div className="w-48 h-3 bg-surface-2 rounded-full overflow-hidden">
+        {/* 进度条渐变走品牌 accent 渐变（同 CourseLearnPage 进度条范式） */}
         <div
-          className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-300"
+          className="h-full bg-gradient-to-r from-accent to-accent-hover transition-all duration-300"
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <div className="text-yellow-400 font-semibold">{percentage.toFixed(0)}%</div>
+      <div className="text-accent-warning font-semibold">{percentage.toFixed(0)}%</div>
     </div>
   );
 };

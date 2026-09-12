@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Chapter, Quiz } from '../../../services/openspecCourse';
 import { submitQuiz } from '../../../services/openspecCourse';
+import { Button } from '@/components/ui/Button';
 
 interface QuizViewProps {
   chapter: Chapter;
@@ -90,15 +91,16 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
 
   if (loading && !quiz) {
     return (
-      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
-        <div className="text-center text-white">正在加载测验...</div>
+      <div className="glass-card rounded-xl p-8">
+        <div className="text-center text-ink-muted">正在加载测验...</div>
       </div>
     );
   }
 
   if (error && !quiz) {
     return (
-      <div className="bg-red-500/20 border border-red-500 rounded-xl p-6 text-red-300">
+      // 错误提示走语义 danger token（与其他工具页错误条同款规格）
+      <div className="bg-danger/10 border border-danger rounded-xl p-6 text-danger">
         {error}
       </div>
     );
@@ -106,8 +108,8 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
 
   if (!quiz) {
     return (
-      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
-        <div className="text-center text-white">暂无测验</div>
+      <div className="glass-card rounded-xl p-8">
+        <div className="text-center text-ink-muted">暂无测验</div>
       </div>
     );
   }
@@ -116,8 +118,8 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
     <div className="max-w-3xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">📝 {quiz.title}</h2>
-        <p className="text-white/60">
+        <h2 className="text-2xl font-bold text-ink mb-2">📝 {quiz.title}</h2>
+        <p className="text-ink-muted">
           共 {quiz.questions.length} 题，及格分数：{quiz.passing_score}%
         </p>
       </div>
@@ -138,20 +140,21 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
           return (
             <div
               key={question.id}
-              className={`bg-white/5 backdrop-blur-sm rounded-xl p-6 border ${
+              // 题卡：默认玻璃卡片；判分后按对错叠加语义色底（glass-card 自带描边，仅在判分态覆盖边色）
+              className={`rounded-xl p-6 border ${
                 isCorrect
-                  ? 'border-green-500 bg-green-500/10'
+                  ? 'bg-accent-success/10 border-accent-success'
                   : isWrong
-                  ? 'border-red-500 bg-red-500/10'
-                  : 'border-white/10'
+                  ? 'bg-danger/10 border-danger'
+                  : 'glass-card'
               }`}
             >
               <div className="flex items-start space-x-3 mb-4">
-                <span className="text-lg font-semibold text-white">
+                <span className="text-lg font-semibold text-ink">
                   {qIndex + 1}.
                 </span>
                 <div className="flex-1">
-                  <p className="text-white mb-4">{question.question_text}</p>
+                  <p className="text-ink mb-4">{question.question_text}</p>
 
                   {/* Options */}
                   <div className="space-y-2">
@@ -172,14 +175,14 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
                             handleOptionSelect(question.id, option.option_index, isMultiple)
                           }
                           disabled={submitted}
-                          className={`w-full text-left p-4 rounded-lg transition-all ${
+                          className={`w-full text-left p-4 rounded-lg transition-all border ${
                             showCorrect
-                              ? 'bg-green-500 border-green-500 text-white'
+                              ? 'bg-accent-success/20 border-accent-success text-ink'
                               : showWrong
-                              ? 'bg-red-500 border-red-500 text-white'
+                              ? 'bg-danger/20 border-danger text-ink'
                               : isSelected
-                              ? 'bg-yellow-500/20 border-yellow-500 text-white'
-                              : 'bg-gray-800/50 border border-gray-700 text-white hover:bg-gray-700/50'
+                              ? 'bg-accent-warning/20 border-accent-warning text-ink'
+                              : 'bg-surface-2/40 border-border text-ink hover:bg-surface-2/60'
                           }`}
                         >
                           <span className="font-medium mr-2">
@@ -194,9 +197,9 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
                   {/* Explanation */}
                   {submitted && question.explanation && (
                     <div className={`mt-4 p-4 rounded-lg ${
-                      isCorrect ? 'bg-green-500/20' : 'bg-blue-500/20'
+                      isCorrect ? 'bg-accent-success/10' : 'bg-accent-info/10'
                     }`}>
-                      <p className="text-white/80">
+                      <p className="text-ink-muted">
                         <span className="font-semibold">💡 解析：</span>
                         {question.explanation}
                       </p>
@@ -214,29 +217,30 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
         <div
           className={`mt-8 p-6 rounded-xl border ${
             result.passed
-              ? 'bg-green-500/20 border-green-500'
-              : 'bg-red-500/20 border-red-500'
+              ? 'bg-accent-success/15 border-accent-success'
+              : 'bg-danger/15 border-danger'
           }`}
         >
           <div className="text-center">
             <div className="text-4xl mb-2">{result.passed ? '🎉' : '😢'}</div>
-            <div className="text-2xl font-bold text-white mb-2">
+            <div className="text-2xl font-bold text-ink mb-2">
               {result.passed ? '恭喜通过！' : '未能通过'}
             </div>
-            <div className="text-white/60">
+            <div className="text-ink-muted">
               得分：{result.score.toFixed(1)}% ({result.correct_count}/{result.total_questions})
             </div>
             {!result.passed && (
-              <button
+              <Button
+                variant="destructive"
                 onClick={() => {
                   setSubmitted(false);
                   setAnswers({});
                   setResult(null);
                 }}
-                className="mt-4 px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                className="mt-4"
               >
                 重试
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -245,19 +249,19 @@ const QuizView: React.FC<QuizViewProps> = ({ chapter, onComplete, onCancel }) =>
       {/* Actions */}
       {!submitted && (
         <div className="mt-8 flex items-center justify-between">
-          <button
+          <Button
+            variant="secondary"
             onClick={onCancel}
-            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
           >
             取消
-          </button>
-          <button
+          </Button>
+          {/* 提交为测验主操作：走 default 变体（品牌渐变），禁用态由 Button 基类统一处理 */}
+          <Button
             onClick={handleSubmit}
             disabled={Object.keys(answers).length < quiz.questions.length}
-            className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black rounded-xl transition-colors font-medium"
           >
             提交答案
-          </button>
+          </Button>
         </div>
       )}
     </div>

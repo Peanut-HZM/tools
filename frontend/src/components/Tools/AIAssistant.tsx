@@ -11,8 +11,8 @@ export default function AIAssistant() {
 
   return (
     <div className="flex-1 text-ink flex flex-col overflow-hidden">
-      {/* 顶部工具栏 */}
-      <div className="bg-surface-1 border-b border-border px-4 py-2 flex items-center justify-between flex-shrink-0">
+      {/* 顶部工具栏（玻璃面板范式：贴边去左右/顶部描边，底部描边由玻璃边框承担） */}
+      <div className="glass-panel border-x-0 border-t-0 rounded-none px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -23,10 +23,14 @@ export default function AIAssistant() {
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center">
-              <Bot className="w-4 h-4 text-white" />
+            {/* tint chip：低饱和紫底 + 同色描边（替换紫粉渐变色块） */}
+            <div className="w-10 h-10 tint tint-purple rounded-xl">
+              <Bot className="w-4 h-4" />
             </div>
-            <h1 className="text-lg font-bold">AI助手</h1>
+            <h1 className="text-lg font-bold">
+              {/* gradient-text 会置 color: transparent，故只包文字词组 */}
+              <span className="gradient-text">AI</span>助手
+            </h1>
           </div>
         </div>
 

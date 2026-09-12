@@ -6,6 +6,7 @@ import { ChapterDetail } from '../../../services/openspecCourse';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Button } from '@/components/ui/Button';
 
 interface ChapterContentProps {
   chapter: ChapterDetail;
@@ -39,26 +40,26 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
             {chapter.chapter_type === 'quiz' && '📝'}
             {chapter.chapter_type === 'video' && '🎬'}
           </span>
-          <h2 className="text-3xl font-bold text-white">{chapter.title}</h2>
+          <h2 className="text-3xl font-bold text-ink">{chapter.title}</h2>
         </div>
       </div>
 
       {/* Video Section (if available) */}
       {chapter.video_url && (
-        <div className="mb-8 bg-black/30 rounded-xl p-6 border border-white/10">
-          <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
+        <div className="mb-8 glass-card rounded-xl p-6">
+          <div className="aspect-video bg-surface-2 rounded-lg flex items-center justify-center">
             <div className="text-center">
               <div className="text-6xl mb-4">🎬</div>
-              <div className="text-white/60">视频区域</div>
-              <div className="text-sm text-white/40 mt-2">{chapter.video_url}</div>
+              <div className="text-ink-muted">视频区域</div>
+              <div className="text-sm text-ink-faint mt-2">{chapter.video_url}</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Content */}
-      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 mb-8">
-        <div className="prose prose-invert prose-lg max-w-none">
+      <div className="glass-card rounded-xl p-8 mb-8">
+        <div className="prose dark:prose-invert prose-headings:text-ink prose-p:text-ink-muted prose-a:text-accent prose-lg max-w-none text-ink/80">
           <ReactMarkdown
             components={{
               code({ node, inline, className, children, ...props }: any) {
@@ -86,27 +87,28 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
                   );
                 }
                 return (
-                  <code className="bg-gray-800 px-2 py-1 rounded text-pink-400" {...props}>
+                  // 行内代码 chip：token 化底色（代码块高亮器仍为深色主题，独立于页面主题）
+                  <code className="bg-surface-2 px-2 py-1 rounded text-accent" {...props}>
                     {children}
                   </code>
                 );
               },
-              // 自定义 Markdown 元素样式以确保正确的预览效果
-              h1: ({node, ...props}: any) => <h1 className="text-3xl font-bold text-white mb-4" {...props} />,
-              h2: ({node, ...props}: any) => <h2 className="text-2xl font-bold text-white mb-3" {...props} />,
-              h3: ({node, ...props}: any) => <h3 className="text-xl font-semibold text-white mb-2" {...props} />,
-              p: ({node, ...props}: any) => <p className="text-white/80 leading-relaxed mb-4" {...props} />,
-              ul: ({node, ...props}: any) => <ul className="list-disc list-inside text-white/80 mb-4 space-y-1" {...props} />,
-              ol: ({node, ...props}: any) => <ol className="list-decimal list-inside text-white/80 mb-4 space-y-1" {...props} />,
-              li: ({node, ...props}: any) => <li className="text-white/80" {...props} />,
-              blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-yellow-500 pl-4 text-white/70 italic my-4" {...props} />,
-              a: ({node, ...props}: any) => <a className="text-yellow-400 hover:text-yellow-300 underline" {...props} />,
-              strong: ({node, ...props}: any) => <strong className="font-bold text-white" {...props} />,
-              em: ({node, ...props}: any) => <em className="italic text-white/70" {...props} />,
-              hr: ({node, ...props}: any) => <hr className="border-white/20 my-6" {...props} />,
-              table: ({node, ...props}: any) => <table className="w-full border-collapse border border-white/20 my-4" {...props} />,
-              th: ({node, ...props}: any) => <th className="border border-white/20 bg-white/10 px-3 py-2 text-left text-white font-semibold" {...props} />,
-              td: ({node, ...props}: any) => <td className="border border-white/20 px-3 py-2 text-white/80" {...props} />,
+              // 自定义 Markdown 元素样式以确保正确的预览效果（文字统一走 ink 系 token 适配双主题）
+              h1: ({node, ...props}: any) => <h1 className="text-3xl font-bold text-ink mb-4" {...props} />,
+              h2: ({node, ...props}: any) => <h2 className="text-2xl font-bold text-ink mb-3" {...props} />,
+              h3: ({node, ...props}: any) => <h3 className="text-xl font-semibold text-ink mb-2" {...props} />,
+              p: ({node, ...props}: any) => <p className="text-ink-muted leading-relaxed mb-4" {...props} />,
+              ul: ({node, ...props}: any) => <ul className="list-disc list-inside text-ink-muted mb-4 space-y-1" {...props} />,
+              ol: ({node, ...props}: any) => <ol className="list-decimal list-inside text-ink-muted mb-4 space-y-1" {...props} />,
+              li: ({node, ...props}: any) => <li className="text-ink-muted" {...props} />,
+              blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-accent-warning pl-4 text-ink-muted italic my-4" {...props} />,
+              a: ({node, ...props}: any) => <a className="text-accent hover:text-accent-hover underline" {...props} />,
+              strong: ({node, ...props}: any) => <strong className="font-bold text-ink" {...props} />,
+              em: ({node, ...props}: any) => <em className="italic text-ink-muted" {...props} />,
+              hr: ({node, ...props}: any) => <hr className="border-border my-6" {...props} />,
+              table: ({node, ...props}: any) => <table className="w-full border-collapse border border-border my-4" {...props} />,
+              th: ({node, ...props}: any) => <th className="border border-border bg-surface-2 px-3 py-2 text-left text-ink font-semibold" {...props} />,
+              td: ({node, ...props}: any) => <td className="border border-border px-3 py-2 text-ink-muted" {...props} />,
             }}
           >
             {chapter.content}
@@ -117,12 +119,12 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
       {/* Resources Section */}
       {chapter.resources && chapter.resources.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-xl font-semibold text-white mb-4">📎 相关资源</h3>
+          <h3 className="text-xl font-semibold text-ink mb-4">📎 相关资源</h3>
           <div className="grid gap-4">
             {chapter.resources.map((resource) => (
               <div
                 key={resource.id}
-                className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-yellow-500/50 transition-colors cursor-pointer"
+                className="glass-card rounded-xl p-6 hover:border-accent transition-colors cursor-pointer"
                 onClick={() => {
                   if (resource.resource_type === 'code_sample') {
                     onOpenSpecEditor();
@@ -137,8 +139,8 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
                     {resource.resource_type === 'template' && '📄'}
                   </span>
                   <div>
-                    <h4 className="text-white font-medium">{resource.title}</h4>
-                    <p className="text-white/60 text-sm">{resource.content.substring(0, 100)}...</p>
+                    <h4 className="text-ink font-medium">{resource.title}</h4>
+                    <p className="text-ink-muted text-sm">{resource.content.substring(0, 100)}...</p>
                   </div>
                 </div>
               </div>
@@ -148,29 +150,29 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
       )}
 
       {/* Actions */}
+      {/* 操作按钮走 ui/Button 语义变体：编辑器次要、测验强调描边、下一章为主操作（品牌渐变） */}
       <div className="flex items-center justify-between">
-        <button
+        <Button
+          variant="secondary"
           onClick={onOpenSpecEditor}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors font-medium"
         >
           💻 打开 Spec 编辑器
-        </button>
+        </Button>
 
         {chapter.quiz && (
-          <button
+          <Button
+            variant="outline"
             onClick={onStartQuiz}
-            className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl transition-colors font-medium"
           >
             📝 开始测验
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button
           onClick={onNextChapter}
-          className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors font-medium"
         >
           继续下一章 →
-        </button>
+        </Button>
       </div>
     </div>
   );

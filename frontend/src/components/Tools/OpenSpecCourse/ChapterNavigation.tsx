@@ -37,9 +37,10 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
   };
 
   return (
-    <aside className="w-80 bg-black/20 backdrop-blur-sm border-r border-white/10 overflow-y-auto">
+    // 侧栏为全高玻璃面板：去上/下/左描边，仅保留右侧玻璃描边与主内容区分隔（同 CourseLearnPage 写法）
+    <aside className="w-80 glass-panel rounded-none border-y-0 border-l-0 overflow-y-auto">
       <div className="p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">📚 课程章节</h2>
+        <h2 className="text-lg font-semibold text-ink mb-4">📚 课程章节</h2>
         <div className="space-y-2">
           {chapters.map((chapter, index) => {
             const status = getChapterStatus(chapter.id);
@@ -51,22 +52,22 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
                 onClick={() => onSelectChapter(chapter.id)}
                 className={`w-full text-left p-4 rounded-xl transition-all ${
                   isActive
-                    ? 'bg-yellow-500/20 border-2 border-yellow-500'
-                    : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                    ? 'bg-accent/20 border-2 border-accent'
+                    : 'bg-surface-2/30 border border-border/50 hover:bg-surface-2/50'
                 }`}
               >
                 <div className="flex items-start space-x-3">
                   <span className="text-xl">{getStatusIcon(status)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs text-white/40">#{index + 1}</span>
+                      <span className="text-xs text-ink-muted">#{index + 1}</span>
                     </div>
-                    <h3 className="text-white font-medium truncate mt-1">{chapter.title}</h3>
+                    <h3 className="text-ink font-medium truncate mt-1">{chapter.title}</h3>
                     {status === 'completed' && (
-                      <div className="text-xs text-green-400 mt-1">已完成</div>
+                      <div className="text-xs text-success mt-1">已完成</div>
                     )}
                     {status === 'in_progress' && (
-                      <div className="text-xs text-yellow-400 mt-1">学习中...</div>
+                      <div className="text-xs text-accent-warning mt-1">学习中...</div>
                     )}
                   </div>
                 </div>

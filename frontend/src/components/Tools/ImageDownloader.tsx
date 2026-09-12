@@ -167,10 +167,14 @@ export default function ImageDownloader() {
 
         {/* 标题 */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
-            <Download className="w-6 h-6 text-white" />
+          {/* tint chip：低饱和紫底 + 同色描边（替换实心 bg-accent 圆形色块） */}
+          <div className="w-12 h-12 tint tint-violet rounded-xl mx-auto mb-4">
+            <Download className="w-6 h-6" />
           </div>
-          <h1 className="text-4xl font-bold mb-4">网页图片下载器</h1>
+          <h1 className="text-4xl font-bold mb-4 text-ink">
+            {/* gradient-text 会置 color: transparent，故只包文字词组，避免图标（currentColor）被透明化 */}
+            网页<span className="gradient-text">图片下载器</span>
+          </h1>
           <p className="text-xl text-ink-muted max-w-2xl mx-auto">
             粘贴网页URL，自动提取并下载该网页的所有图片，支持所有格式，保证原图质量
           </p>
@@ -246,10 +250,10 @@ export default function ImageDownloader() {
               <h2 className="text-2xl font-bold">
                 找到 {images.length} 张图片
               </h2>
+              {/* 批量下载为页面主操作：去手写 bg-success 覆盖，走设计系统 default 变体（品牌渐变主按钮） */}
               <Button
                 onClick={downloadAllImages}
                 disabled={downloading}
-                className="bg-success hover:opacity-90"
               >
                 {downloading ? (
                   <>
