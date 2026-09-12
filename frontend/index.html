@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>工具箱 - 聚合类工具网站</title>
+
+    <!-- 主题引导内联脚本：首帧渲染前同步 data-theme，消除亮色用户刷新时的暗色闪烁（FOUC）。
+         语义与 src/lib/theme.tsx 保持一致：localStorage key 'tk-theme'，
+         值 dark|light|system，默认 dark；仅显式 'system' 时按系统偏好解析，
+         未存储/空值/无效值一律回退默认 dark（对应 theme.tsx 的 || DEFAULT_THEME）。 -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('tk-theme');
+          if (t !== 'light' && t !== 'dark') {
+            // 仅显式 'system' 读取系统偏好；其余（null/''/无效值）回退默认 dark
+            t = (t === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)
+              ? 'light'
+              : 'dark';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          // localStorage 不可用（隐私模式等）时回退默认 dark
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
     <!-- Geist Sans + Geist Mono (Vercel, 通过 Google Fonts) -->
