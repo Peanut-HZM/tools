@@ -45,7 +45,7 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
                 'w-full justify-start gap-3 h-auto py-3 px-4 text-left',
                 activeSection === item.id
                   ? // 激活态：品牌渐变底 + 发光阴影的玻璃 chip（透明描边避免与渐变打架）
-                    'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)] border-transparent'
+                    'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)] border-transparent hover:border-transparent'
                   : // 非激活态：弱化文字色，hover 提亮玻璃底
                     'text-ink-muted hover:text-ink hover:bg-glass-bg border border-glass-border'
               )}
@@ -85,7 +85,7 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
                 'flex-shrink-0 whitespace-nowrap rounded-full',
                 activeSection === item.id
                   ? // 激活态：品牌渐变底 + 发光阴影的玻璃 chip（透明描边避免与渐变打架）
-                    'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)] border-transparent'
+                    'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)] border-transparent hover:border-transparent'
                   : // 非激活态：弱化文字色，hover 提亮玻璃底
                     'text-ink-muted hover:text-ink hover:bg-glass-bg border border-glass-border'
               )}

@@ -3,6 +3,7 @@
  */
 import React, { useState } from 'react';
 import { Filter, ChevronDown, ChevronUp, Layers, ArrowDownWideNarrow, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface FilterOption {
   value: string;
@@ -142,14 +143,17 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
           </div>
         </div>
 
-        {/* 重置按钮 */}
-        <button
+        {/* 重置按钮：走设计系统 ghost 变体，与新样式统一 */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={onReset}
-          className="w-full px-4 py-3 bg-surface-2/50 hover:bg-surface-3/50 text-ink-muted hover:text-ink rounded-xl transition-all duration-200 font-medium"
+          className="w-full"
         >
           <RotateCcw className="w-4 h-4 mr-2 inline" />
           重置筛选
-        </button>
+        </Button>
       </aside>
     </>
   );

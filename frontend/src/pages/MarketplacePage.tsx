@@ -93,7 +93,7 @@ const MarketplacePage: React.FC = () => {
             {agents.map((a) => (
               <div
                 key={a.id}
-                className="glass-card hover-lift rounded-xl p-4 cursor-pointer flex flex-col gap-2"
+                className="glass-card hover-lift rounded-xl p-4 flex flex-col gap-2"
               >
                 <div className="flex items-center gap-2">
                   {/* icon_color 改经 tint 色板映射（饱和色块已废弃），图标颜色由 tint 类提供 */}
