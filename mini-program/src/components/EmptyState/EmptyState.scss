@@ -11,6 +11,15 @@
     margin-bottom: 16rpx;
   }
 
+  /* 组件型图标（SVG Icon 等）容器：不继承 emoji 的 80rpx 字号，
+     仅做弹性盒子居中，尺寸完全由传入的 Icon 组件决定 */
+  &-icon-node {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: inherit;
+  }
+
   &-title {
     font-size: 32rpx;
     font-weight: 600;

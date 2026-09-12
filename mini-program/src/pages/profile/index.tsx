@@ -4,6 +4,8 @@ import { View, Text } from '@tarojs/components'
 import { useAuthStore } from '../../stores/auth'
 import { useAuthGuard } from '../../hooks'
 import { authApi } from '../../services/auth'
+import StatusBarSpacer from '../../components/StatusBarSpacer'
+import Icon from '../../components/Icon'
 import './index.scss'
 
 export default function Profile() {
@@ -49,6 +51,15 @@ export default function Profile() {
 
   return (
     <View className='profile-page'>
+      {/* 自定义导航占位（navigationStyle: custom 后状态栏由页面自行承接） */}
+      <StatusBarSpacer />
+
+      {/* 品牌标题栏：渐变主词 + 右侧用户小图标 */}
+      <View className='profile-navbar'>
+        <Text className='profile-navbar-title gradient-text'>我的</Text>
+        <Icon name='user' size={20} />
+      </View>
+
       {/* 用户信息头部 */}
       <View className='profile-header'>
         <View className='profile-avatar'>
@@ -67,24 +78,27 @@ export default function Profile() {
 
       {/* 功能列表 */}
       <View className='profile-menu'>
-        <View className='menu-group'>
+        <View className='menu-group glass-card'>
           <View className='menu-item' onClick={() => Taro.navigateTo({ url: '/pages/change-password/index' })}>
             <Text className='menu-label'>修改密码</Text>
-            <Text className='menu-arrow'>›</Text>
+            {/* 右箭头图标：小程序 Image 不继承 CSS color，色值以 prop 烘入 SVG（#6E7A8F = --ink-faint 同源） */}
+            <Icon name='chevron-right' size={16} color='#6E7A8F' />
           </View>
         </View>
 
-        <View className='menu-group'>
+        <View className='menu-group glass-card'>
           <View className='menu-item' onClick={() => Taro.navigateTo({ url: '/pages/help/index' })}>
             <Text className='menu-label'>帮助与关于</Text>
-            <Text className='menu-arrow'>›</Text>
+            {/* 右箭头图标：小程序 Image 不继承 CSS color，色值以 prop 烘入 SVG（#6E7A8F = --ink-faint 同源） */}
+            <Icon name='chevron-right' size={16} color='#6E7A8F' />
           </View>
         </View>
 
-        <View className='menu-group'>
+        <View className='menu-group glass-card'>
           <View className='menu-item menu-item-danger' onClick={handleLogout}>
             <Text className='menu-label'>退出登录</Text>
-            <Text className='menu-arrow'>›</Text>
+            {/* 右箭头图标：小程序 Image 不继承 CSS color，色值以 prop 烘入 SVG（#6E7A8F = --ink-faint 同源） */}
+            <Icon name='chevron-right' size={16} color='#6E7A8F' />
           </View>
         </View>
       </View>

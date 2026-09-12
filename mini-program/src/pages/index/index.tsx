@@ -7,6 +7,8 @@ import ToolCard from '../../components/ToolCard'
 import SearchBar from '../../components/SearchBar'
 import Loading from '../../components/Loading'
 import EmptyState from '../../components/EmptyState'
+import StatusBarSpacer from '../../components/StatusBarSpacer'
+import Icon from '../../components/Icon'
 import './index.scss'
 
 export default function Index() {
@@ -76,6 +78,18 @@ export default function Index() {
 
   return (
     <View className='index-page'>
+      {/* 自定义导航占位（navigationStyle: custom 后状态栏由页面自行承接） */}
+      <StatusBarSpacer />
+
+      {/* 品牌标题栏：渐变主词 + 右侧品牌小图标 */}
+      <View className='index-hero'>
+        <View className='index-hero-row'>
+          <Text className='index-hero-title gradient-text'>开发者工具箱</Text>
+          <Icon name='tools' size={20} />
+        </View>
+        <Text className='index-hero-subtitle'>20+ 精选工具 · 即开即用</Text>
+      </View>
+
       {/* 搜索栏 */}
       <SearchBar
         value={searchKeyword}
@@ -88,7 +102,7 @@ export default function Index() {
         <Loading text='加载工具列表...' />
       ) : filteredTools.length === 0 ? (
         <EmptyState
-          icon='🔍'
+          icon={<Icon name='search' size={48} />}
           title={searchKeyword ? '未找到相关工具' : '暂无工具'}
           description={searchKeyword ? '试试其他关键词' : '请联系管理员添加工具'}
         />

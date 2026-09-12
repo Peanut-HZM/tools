@@ -5,6 +5,31 @@
   background: var(--bg-primary);
 }
 
+/* ===== 品牌标题栏（玻璃光晕 Task 4） ===== */
+.index-hero {
+  padding: 16rpx 24rpx 20rpx;
+}
+
+.index-hero-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 渐变主词：颜色由全局 .gradient-text（styles/_glass.scss）提供，此处只管字号 */
+.index-hero-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.index-hero-subtitle {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
 .tools-scroll {
   flex: 1;
   padding: 24rpx;
