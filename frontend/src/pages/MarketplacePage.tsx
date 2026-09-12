@@ -50,7 +50,8 @@ const MarketplacePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-canvas">
       <div className="container mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
+        {/* 标题区：移动端纵向堆叠，sm 起横向排布；刷新按钮不收缩防折行 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
               <Bot className="w-6 h-6" />
@@ -64,7 +65,7 @@ const MarketplacePage: React.FC = () => {
             type="button"
             onClick={load}
             disabled={loading}
-            className="flex items-center gap-1 px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center justify-center gap-1 shrink-0 whitespace-nowrap self-start sm:self-auto px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className="w-4 h-4" />
             刷新

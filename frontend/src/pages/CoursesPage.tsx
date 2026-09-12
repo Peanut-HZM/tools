@@ -62,8 +62,9 @@ const CoursesPage: React.FC = () => {
       {/* 顶部 Header */}
       <div className="bg-surface-1/50 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div>
+          {/* 标题区：移动端纵向堆叠，sm 起横向排布（避免 390px 下标题/搜索框互相挤压折行） */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="shrink-0">
               <h1 className="text-4xl font-bold text-ink mb-2">
                 <GraduationCap className="w-8 h-8 text-accent mr-3 inline" />
                 课程中心
@@ -73,8 +74,8 @@ const CoursesPage: React.FC = () => {
               </p>
             </div>
 
-            {/* 搜索框 */}
-            <div className="relative">
+            {/* 搜索框：移动端占满整行，sm 起恢复固定宽度 */}
+            <div className="relative w-full sm:w-80">
               <input
                 type="text"
                 placeholder="搜索课程..."
@@ -91,7 +92,8 @@ const CoursesPage: React.FC = () => {
 
       {/* 主要内容 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-6">
+        {/* 主内容区：移动端纵向堆叠（筛选按钮/侧栏与课程列表各占整行），lg 起左右分栏 */}
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* 侧边栏筛选 */}
           <FilterSidebar
             selectedCategory={selectedCategory}
