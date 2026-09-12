@@ -147,7 +147,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-surface-1 rounded-xl p-8 shadow-md">
+      <div className="glass-card rounded-2xl p-8 relative">
         <h2 className="text-2xl font-bold text-ink mb-6 text-center">{t.auth.registerTitle}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">

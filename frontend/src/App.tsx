@@ -105,7 +105,12 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
+    <div className="min-h-screen bg-canvas relative overflow-hidden flex items-center justify-center p-4">
+      {/* 氛围光晕装饰层（纯视觉，pointer-events-none） */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute -bottom-32 -right-20 w-[26rem] h-[26rem] rounded-full bg-accent-secondary/15 blur-3xl" />
+      </div>
       {showRegister ? (
         <RegisterForm
           onSuccess={handleSuccess}
