@@ -1,8 +1,15 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Image } from '@tarojs/components'
+import { View, Text, Image, Button } from '@tarojs/components'
 import { request } from '../../services/request'
 import './index.scss'
+
+/**
+ * OCR 识别页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）：
+ * - 图片选择区/结果容器套全局 .glass-card（背景/描边/投影/磨砂模糊，见 styles/_glass.scss）；
+ * - 主按钮（开始识别）套 .btn-primary 品牌渐变，按压反馈走 hover-class='btn-primary-hover'；
+ * - 选图/识别/复制逻辑不变。
+ */
 
 export default function OCRPage() {
   const [imagePath, setImagePath] = useState('')
@@ -81,8 +88,8 @@ export default function OCRPage() {
         <Text className={`lang-item ${lang === 'en' ? 'active' : ''}`} onClick={() => setLang('en')}>English</Text>
       </View>
 
-      {/* 图片选择区 */}
-      <View className='image-section' onClick={handleChooseImage}>
+      {/* 图片选择区（玻璃卡片） */}
+      <View className='image-section glass-card' onClick={handleChooseImage}>
         {imagePath ? (
           <Image src={imagePath} mode='aspectFit' className='preview-image' />
         ) : (
@@ -92,11 +99,11 @@ export default function OCRPage() {
         )}
       </View>
 
-      {/* 识别按钮 */}
+      {/* 识别按钮：主按钮走品牌渐变 .btn-primary */}
       <View className='action-bar'>
-        <button className='recognize-btn' onClick={handleRecognize} disabled={loading || !imagePath}>
+        <Button className='recognize-btn btn-primary' hoverClass='btn-primary-hover' onClick={handleRecognize} disabled={loading || !imagePath}>
           {loading ? '识别中...' : '开始识别'}
-        </button>
+        </Button>
       </View>
 
       {/* 错误提示 */}
@@ -106,9 +113,9 @@ export default function OCRPage() {
         </View>
       )}
 
-      {/* 识别结果 */}
+      {/* 识别结果（玻璃卡片） */}
       {result && (
-        <View className='result-section'>
+        <View className='result-section glass-card'>
           <View className='result-header'>
             <Text className='result-title'>识别结果</Text>
             <Text className='copy-link' onClick={handleCopy}>复制</Text>

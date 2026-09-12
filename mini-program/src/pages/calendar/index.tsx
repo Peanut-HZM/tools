@@ -2,7 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { request } from '../../services/request'
+import Icon from '../../components/Icon'
 import './index.scss'
+
+/**
+ * 日历页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）：
+ * - 卡片/图例/网格/提示容器套全局 .glass-card（见 styles/_glass.scss），本地样式只管布局；
+ * - Unicode 图标（‹ › ✕ 💡）替换为 SVG Icon 组件（烘色传入，Image 不继承 CSS color）；
+ * - 多色 legend（绿/橙/蓝/粉/青）按语义就近映射 accent token（映射表见 task-6-report.md）；
+ * - 数据请求/日历生成逻辑不变。
+ */
 
 interface HolidayDay {
   name: string
@@ -257,11 +266,15 @@ export default function Calendar() {
 
   return (
     <View className='calendar-page'>
-      {/* 日历头部 */}
+      {/* 日历头部：‹ › 换为 SVG chevron 图标（Image 不能放进 Text，容器改 View；上月用 rotate 翻转） */}
       <View className='calendar-header'>
-        <Text className='nav-btn' onClick={handlePrevMonth}>‹</Text>
+        <View className='nav-btn' onClick={handlePrevMonth}>
+          <Icon name='chevron-right' size={20} color='#8B9BFF' className='nav-icon-flip' />
+        </View>
         <Text className='month-title'>{formatHeader()}</Text>
-        <Text className='nav-btn' onClick={handleNextMonth}>›</Text>
+        <View className='nav-btn' onClick={handleNextMonth}>
+          <Icon name='chevron-right' size={20} color='#8B9BFF' />
+        </View>
       </View>
 
       {/* 农历年份信息 */}
@@ -276,8 +289,8 @@ export default function Calendar() {
         <Text className='today-btn' onClick={handleToday}>今天</Text>
       </View>
 
-      {/* 图例 */}
-      <View className='legend-bar'>
+      {/* 图例（玻璃卡片；色点语义映射见 index.scss 顶部注释） */}
+      <View className='legend-bar glass-card'>
         <View className='legend-item'>
           <View className='legend-dot legend-green' />
           <Text className='legend-text'>法定假日</Text>
@@ -296,9 +309,9 @@ export default function Calendar() {
         </View>
       </View>
 
-      {/* 选中日期详情 */}
+      {/* 选中日期详情（玻璃卡片 + 品牌紫描边强调） */}
       {selectedDayInfo && (
-        <View className='selected-detail'>
+        <View className='selected-detail glass-card'>
           <View className='detail-left'>
             <Text className='detail-day'>{selectedDayInfo.date}</Text>
           </View>
@@ -324,7 +337,10 @@ export default function Calendar() {
               )}
             </View>
           </View>
-          <Text className='detail-close' onClick={() => setSelectedDate(null)}>✕</Text>
+          {/* ✕ 换为 SVG close 图标（Image 不能放进 Text，容器改 View） */}
+          <View className='detail-close' onClick={() => setSelectedDate(null)}>
+            <Icon name='close' size={16} color='#6E7A8F' />
+          </View>
         </View>
       )}
 
@@ -337,11 +353,11 @@ export default function Calendar() {
 
       {/* 日历网格 */}
       {loading ? (
-        <View className='loading-state'>
+        <View className='loading-state glass-card'>
           <Text className='loading-text'>加载数据中...</Text>
         </View>
       ) : (
-        <View className='calendar-grid'>
+        <View className='calendar-grid glass-card'>
           {calendarDays.map((day) => {
             const lunarDisplay = getLunarDisplay(day)
             const hasHoliday = !!day.holiday
@@ -395,9 +411,12 @@ export default function Calendar() {
         </View>
       )}
 
-      {/* 底部说明 */}
-      <View className='usage-tips'>
-        <Text className='tips-title'>💡 使用提示：</Text>
+      {/* 底部说明（玻璃卡片；💡 换为 SVG lightbulb 图标） */}
+      <View className='usage-tips glass-card'>
+        <View className='tips-title'>
+          <Icon name='lightbulb' size={16} color='#FBBF24' />
+          <Text className='tips-title-text'>使用提示：</Text>
+        </View>
         <Text className='tips-text'>• 点击日期选中并查看详情</Text>
         <Text className='tips-text'>• 点击上/下月的灰色日期可切换月份</Text>
         <Text className='tips-text'>• 绿色"休"=法定假日，橙色"班"=调休上班</Text>

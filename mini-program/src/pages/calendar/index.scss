@@ -1,6 +1,20 @@
+/**
+ * 日历页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）
+ * 卡片/图例/网格/提示容器由全局 .glass-card 提供底色/描边/投影/磨砂模糊，本地只保留布局与圆角。
+ * 多色 legend 语义映射表（原 hex → token，详见 task-6-report.md）：
+ *   法定假日绿 rgb(34,197,94)/rgb(74,222,128) → var(--accent-success)
+ *   调休上班橙 rgb(245,158,11)/rgb(251,191,36) → var(--accent-warning)
+ *   今天/品牌蓝 rgb(59,130,246)               → var(--accent-primary)（描边用 var(--border-accent)）
+ *   传统节日粉 rgb(236,72,153)/rgb(244,114,182) → var(--accent-secondary)
+ *   阳历节日青 rgb(34,211,238)                → var(--accent-cyan-hover)（值相同）
+ *   周末红     rgb(239,68,68)                 → var(--accent-danger)
+ *   选中紫 rgba(168,85,247,*)  → rgba(161,85,247,*)（--accent-secondary 同源展开 alpha）
+ * 半透明场景按 token 同源色值展开 alpha（WXSS 不支持 color-mix/透明度修饰 var）。
+ */
+
 .calendar-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
   padding: 24rpx;
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
@@ -13,8 +27,6 @@
 }
 
 .nav-btn {
-  font-size: 48rpx;
-  color: var(--color-primary);
   width: 64rpx;
   height: 64rpx;
   display: flex;
@@ -23,14 +35,19 @@
   border-radius: var(--radius-sm);
 
   &:active {
-    background: var(--bg-tertiary);
+    background: var(--bg-surface-3);
   }
+}
+
+/* 上月箭头：chevron-right 旋转 180° 得到向左方向（Icon 表无 chevron-left） */
+.nav-icon-flip {
+  transform: rotate(180deg);
 }
 
 .month-title {
   font-size: 36rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink-default);
 }
 
 .lunar-year-info {
@@ -40,7 +57,7 @@
 
 .lunar-year-text {
   font-size: 24rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
 .today-btn-wrapper {
@@ -49,16 +66,17 @@
   margin-bottom: 16rpx;
 }
 
+/* 今天快捷按钮：品牌主色 tint 胶囊（--accent-primary rgb(91,107,245) 同源展开 alpha，原 rgba(59,130,246,*)） */
 .today-btn {
   font-size: 24rpx;
-  color: var(--color-primary);
-  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-primary);
+  background: rgba(91, 107, 245, 0.1);
   border-radius: var(--radius-full);
   padding: 8rpx 32rpx;
   font-weight: 500;
 
   &:active {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(91, 107, 245, 0.2);
   }
 }
 
@@ -67,7 +85,6 @@
   flex-wrap: wrap;
   gap: 16rpx;
   padding: 12rpx 16rpx;
-  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   margin-bottom: 16rpx;
 }
@@ -84,40 +101,43 @@
   border-radius: 50%;
 }
 
-.legend-green { background: #22C55E; }
-.legend-orange { background: #F59E0B; }
-.legend-blue { background: #3B82F6; }
+/* 语义映射：法定假日=成功绿 / 调休=警告琥珀 / 今天=品牌主色 */
+.legend-green { background: var(--accent-success); }
+.legend-orange { background: var(--accent-warning); }
+.legend-blue { background: var(--accent-primary); }
 
 .legend-text {
   font-size: 22rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
+/* 传统节日：原粉 rgb(236,72,153) 就近映射品牌副色（紫） */
 .legend-festival {
   font-size: 20rpx;
-  color: #EC4899;
+  color: var(--accent-secondary);
   font-weight: 600;
 }
 
+/* 选中详情卡：底色/描边基底由 .glass-card 提供，此处以品牌紫描边强调选中态 */
 .selected-detail {
   display: flex;
   align-items: center;
   gap: 20rpx;
   padding: 20rpx;
-  background: var(--bg-secondary);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  border: 1px solid rgba(161, 85, 247, 0.3);
   border-radius: var(--radius-md);
   margin-bottom: 16rpx;
   position: relative;
 }
 
+/* 日期徽标底：--accent-primary 同源展开 alpha（原 rgba(59,130,246,0.15)） */
 .detail-left {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 80rpx;
   height: 80rpx;
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(91, 107, 245, 0.15);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
@@ -125,7 +145,7 @@
 .detail-day {
   font-size: 40rpx;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--ink-default);
 }
 
 .detail-right {
@@ -138,12 +158,12 @@
 
 .detail-date {
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
 .detail-lunar {
   font-size: 24rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
 .detail-ganzhi {
@@ -163,32 +183,40 @@
   border-radius: 4rpx;
 }
 
+/* 标签 tint 底色按 token 同源展开 alpha */
 .tag-green {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ADE80;
+  /* --accent-success（rgb(52,211,153)）同源展开（原 rgba(34,197,94,0.2)） */
+  background: rgba(52, 211, 153, 0.2);
+  color: var(--accent-success);
 }
 
 .tag-orange {
-  background: rgba(245, 158, 11, 0.2);
-  color: #FBBF24;
+  /* --accent-warning（rgb(251,191,36)）同源展开（原 rgba(245,158,11,0.2)） */
+  background: rgba(251, 191, 36, 0.2);
+  color: var(--accent-warning);
 }
 
 .tag-pink {
-  background: rgba(236, 72, 153, 0.2);
-  color: #F472B6;
+  /* 传统节日：--accent-secondary（rgb(161,85,247)）同源展开（原 rgba(236,72,153,0.2)） */
+  background: rgba(161, 85, 247, 0.2);
+  color: var(--accent-secondary);
 }
 
 .tag-cyan {
+  /* --accent-cyan（rgb(6,182,212)）同源展开，值与原 rgba(6,182,212,0.2) 一致 */
   background: rgba(6, 182, 212, 0.2);
-  color: #22D3EE;
+  color: var(--accent-cyan-hover);
 }
 
 .detail-close {
   position: absolute;
   top: 12rpx;
   right: 16rpx;
-  font-size: 24rpx;
-  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .weekday-row {
@@ -200,20 +228,18 @@
 
 .weekday-text {
   font-size: 24rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
   width: 14.28%;
   text-align: center;
 
   &.weekend {
-    color: #EF4444;
+    color: var(--accent-danger);
   }
 }
 
 .calendar-grid {
   display: flex;
   flex-wrap: wrap;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 8rpx;
 }
@@ -229,21 +255,23 @@
   min-height: 100rpx;
 
   &:active {
-    background: var(--bg-tertiary);
+    background: var(--bg-surface-3);
   }
 
   &.other-month {
     opacity: 0.35;
   }
 
+  /* 今天：品牌 tint 底 + 语义 accent 描边（原 rgba(59,130,246,*)） */
   &.today {
-    background: rgba(59, 130, 246, 0.12);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: rgba(91, 107, 245, 0.12);
+    border: 1px solid var(--border-accent);
   }
 
+  /* 选中：品牌副色（紫）tint，--accent-secondary 同源展开 alpha（原 rgba(168,85,247,*)） */
   &.selected {
-    background: rgba(168, 85, 247, 0.15);
-    border: 1px solid rgba(168, 85, 247, 0.4);
+    background: rgba(161, 85, 247, 0.15);
+    border: 1px solid rgba(161, 85, 247, 0.4);
   }
 }
 
@@ -257,12 +285,13 @@
 
 .day-number {
   font-size: 26rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   line-height: 1;
 
+  /* 今天日期徽标：品牌主色实底（原 rgb(59,130,246)），文字用 ink-default 近白保持可读 */
   &.today-number {
-    background: #3B82F6;
-    color: #fff;
+    background: var(--accent-primary);
+    color: var(--ink-default);
     width: 40rpx;
     height: 40rpx;
     border-radius: 50%;
@@ -273,11 +302,11 @@
   }
 
   &.other-number {
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
   }
 
   &.weekend-number {
-    color: #EF4444;
+    color: var(--accent-danger);
   }
 }
 
@@ -289,13 +318,13 @@
   line-height: 1;
 
   &.badge-green {
-    background: #22C55E;
-    color: #fff;
+    background: var(--accent-success);
+    color: var(--ink-default);
   }
 
   &.badge-orange {
-    background: #F59E0B;
-    color: #fff;
+    background: var(--accent-warning);
+    color: var(--ink-default);
   }
 }
 
@@ -305,15 +334,17 @@
   text-align: center;
   width: 100%;
 
+  /* 传统节日：原粉 rgb(236,72,153) 就近映射品牌副色（紫） */
   &.lunar-festival {
-    color: #EC4899;
+    color: var(--accent-secondary);
     font-weight: 500;
   }
 
   &.lunar-normal {
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
   }
 
+  /* 非当月农历文字：沿用别名 token --text-disabled（app.scss 兼容层），视觉与原版一致 */
   &.lunar-other {
     color: var(--text-disabled);
   }
@@ -327,31 +358,29 @@
   margin-top: 2rpx;
 
   &.name-green {
-    color: #4ADE80;
+    color: var(--accent-success);
   }
 
   &.name-orange {
-    color: #FBBF24;
+    color: var(--accent-warning);
   }
 }
 
 .loading-state {
   text-align: center;
   padding: 40rpx;
-  background: var(--bg-secondary);
   border-radius: var(--radius-md);
   margin-top: 8rpx;
 }
 
 .loading-text {
   font-size: 26rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
 }
 
 .usage-tips {
   margin-top: 24rpx;
   padding: 20rpx;
-  background: var(--bg-secondary);
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
@@ -359,13 +388,21 @@
 }
 
 .tips-title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   font-size: 24rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   margin-bottom: 4rpx;
+}
+
+.tips-title-text {
+  font-size: 24rpx;
+  color: var(--ink-muted);
 }
 
 .tips-text {
   font-size: 22rpx;
-  color: var(--text-tertiary);
+  color: var(--ink-faint);
   line-height: 1.5;
 }

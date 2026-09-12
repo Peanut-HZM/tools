@@ -2,7 +2,16 @@ import { useState, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { uploadFile } from '../../services/request'
+import Icon from '../../components/Icon'
 import './index.scss'
+
+/**
+ * 语音识别页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）：
+ * - 结果容器套全局 .glass-card（背景/描边/投影/磨砂模糊，见 styles/_glass.scss）；
+ * - 录音按钮改玻璃描边质感；emoji 图标 🎙 换为 SVG mic 图标（烘色传入），
+ *   ⏹ 换为 CSS 圆角方块（Icon 表无 stop 图标，避免动共享组件）；
+ * - 录音/上传/识别逻辑不变。
+ */
 
 export default function ASRPage() {
   const [isRecording, setIsRecording] = useState(false)
@@ -119,11 +128,11 @@ export default function ASRPage() {
         <Text className={`lang-item ${lang === 'en' ? 'active' : ''}`} onClick={() => setLang('en')}>English</Text>
       </View>
 
-      {/* 录音按钮 */}
+      {/* 录音按钮（玻璃描边圆形；🎙→mic 图标，⏹→CSS 停止方块） */}
       <View className='record-section'>
         <View className={`record-btn ${isRecording ? 'recording' : ''}`} onClick={toggleRecording}>
           <View className={`record-icon ${isRecording ? 'pulse' : ''}`}>
-            {isRecording ? '⏹' : '🎙'}
+            {isRecording ? <View className='stop-square' /> : <Icon name='mic' size={32} color='#6E7A8F' />}
           </View>
           <Text className='record-label'>
             {isRecording ? '点击停止' : '点击录音'}
@@ -148,9 +157,9 @@ export default function ASRPage() {
         </View>
       )}
 
-      {/* 识别结果 */}
+      {/* 识别结果（玻璃卡片） */}
       {result && (
-        <View className='result-section'>
+        <View className='result-section glass-card'>
           <View className='result-header'>
             <Text className='result-title'>识别结果</Text>
             <Text className='copy-link' onClick={handleCopy}>复制</Text>

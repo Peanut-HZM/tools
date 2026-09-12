@@ -1,8 +1,17 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Input, Picker } from '@tarojs/components'
+import { View, Text, Textarea, Input, Picker, Button } from '@tarojs/components'
 import { request } from '../../services/request'
+import Icon from '../../components/Icon'
 import './index.scss'
+
+/**
+ * HTTP 调试页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）：
+ * - 请求面板/响应容器套全局 .glass-card（背景/描边/投影/磨砂模糊，见 styles/_glass.scss）；
+ * - method 选择器与发送按钮套 .btn-primary 品牌渐变，按压反馈走 hover-class='btn-primary-hover'；
+ * - Unicode 图标 × 换为 SVG close 图标（烘色传入，Image 不继承 CSS color）；
+ * - 请求构造/响应解析逻辑不变。
+ */
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 
@@ -116,10 +125,10 @@ export default function HttpClientPage() {
 
   return (
     <View className='http-client-page'>
-      {/* URL 输入 */}
+      {/* URL 输入（method 选择器走品牌渐变 .btn-primary） */}
       <View className='url-bar'>
         <Picker mode='selector' range={methods} value={methods.indexOf(method)} onChange={(e) => setMethod(methods[e.detail.value])}>
-          <View className='method-picker'>{method}</View>
+          <View className='method-picker btn-primary' hoverClass='btn-primary-hover'>{method}</View>
         </Picker>
         <Input
           className='url-input'
@@ -131,8 +140,8 @@ export default function HttpClientPage() {
         />
       </View>
 
-      {/* 请求参数折叠面板 */}
-      <View className='request-panel'>
+      {/* 请求参数折叠面板（玻璃卡片） */}
+      <View className='request-panel glass-card'>
         <View className='panel-tabs'>
           <Text className={`tab ${activeTab === 'headers' ? 'active' : ''}`} onClick={() => setActiveTab('headers')}>Headers</Text>
           <Text className={`tab ${activeTab === 'body' ? 'active' : ''}`} onClick={() => setActiveTab('body')}>Body</Text>
@@ -154,7 +163,10 @@ export default function HttpClientPage() {
                   value={h.value}
                   onInput={(e) => updateHeader(i, 'value', e.detail.value)}
                 />
-                <Text className='remove-btn' onClick={() => removeHeader(i)}>×</Text>
+                {/* × 换为 SVG close 图标（Image 不能放进 Text，容器改 View） */}
+                <View className='remove-btn' onClick={() => removeHeader(i)}>
+                  <Icon name='close' size={16} color='#F87171' />
+                </View>
               </View>
             ))}
             <Text className='add-btn' onClick={addHeader}>+ 添加 Header</Text>
@@ -180,11 +192,11 @@ export default function HttpClientPage() {
         )}
       </View>
 
-      {/* 发送按钮 */}
+      {/* 发送按钮：主按钮走品牌渐变 .btn-primary */}
       <View className='send-bar'>
-        <button className='send-btn' onClick={handleSend} disabled={loading}>
+        <Button className='send-btn btn-primary' hoverClass='btn-primary-hover' onClick={handleSend} disabled={loading}>
           {loading ? '发送中...' : '发送请求'}
-        </button>
+        </Button>
       </View>
 
       {/* 错误提示 */}
@@ -194,9 +206,9 @@ export default function HttpClientPage() {
         </View>
       )}
 
-      {/* 响应区域 */}
+      {/* 响应区域（玻璃卡片） */}
       {response && (
-        <View className='response-section'>
+        <View className='response-section glass-card'>
           <View className='response-tabs'>
             <Text className={`resp-tab ${responseTab === 'status' ? 'active' : ''}`} onClick={() => setResponseTab('status')}>
               状态 <Text style={{ color: getStatusColor(response.statusCode) }}>{response.statusCode}</Text>

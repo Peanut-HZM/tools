@@ -3,6 +3,13 @@ import { View, Text, Button, Switch, Slider } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import './index.scss'
 
+/**
+ * 密钥生成页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）：
+ * - 配置/结果容器套全局 .glass-card（背景/描边/投影/磨砂模糊，见 styles/_glass.scss）；
+ * - 主按钮（生成密钥）套 .btn-primary 品牌渐变，按压反馈走 hover-class='btn-primary-hover'；
+ * - 生成/复制逻辑不变。
+ */
+
 export default function KeyGenerator() {
   const [keyLength, setKeyLength] = useState(32)
   const [useUpper, setUseUpper] = useState(true)
@@ -79,8 +86,8 @@ export default function KeyGenerator() {
 
   return (
     <View className='key-generator-page'>
-      {/* 配置区域 */}
-      <View className='config-section'>
+      {/* 配置区域（玻璃卡片） */}
+      <View className='config-section glass-card'>
         <Text className='section-title'>密钥配置</Text>
 
         {/* 密钥长度 */}
@@ -132,19 +139,19 @@ export default function KeyGenerator() {
         </View>
       </View>
 
-      {/* 生成按钮 */}
+      {/* 生成按钮：主按钮走品牌渐变 .btn-primary，次按钮走玻璃描边 */}
       <View className='button-group'>
-        <button className='generate-btn' onClick={handleGenerate}>
+        <Button className='generate-btn btn-primary' hoverClass='btn-primary-hover' onClick={handleGenerate}>
           生成密钥
-        </button>
-        <button className='uuid-btn' onClick={handleGenerateUUID}>
+        </Button>
+        <Button className='uuid-btn' onClick={handleGenerateUUID}>
           生成 UUID
-        </button>
+        </Button>
       </View>
 
-      {/* 生成结果 */}
+      {/* 生成结果（玻璃卡片） */}
       {generatedKeys.length > 0 && (
-        <View className='result-section'>
+        <View className='result-section glass-card'>
           <View className='result-header'>
             <Text className='result-title'>生成结果 ({generatedKeys.length})</Text>
             <View className='result-actions'>

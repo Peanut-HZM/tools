@@ -1,6 +1,13 @@
+/**
+ * OCR 识别页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）
+ * 图片选择区/结果卡片质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），本地只保留布局与圆角；
+ * 主按钮渐变/白字/辉光由全局 .btn-primary 提供；
+ * 半透明场景按 token 同源色值展开 alpha（WXSS 不支持 color-mix/透明度修饰 var）。
+ */
+
 .ocr-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
   padding: var(--spacing-md);
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
 }
@@ -11,28 +18,28 @@
   margin-bottom: var(--spacing-md);
 }
 
+/* 语言切换 chip：次按钮玻璃描边（半透明白底 + 发丝线），选中态品牌 tint */
 .lang-item {
   flex: 1;
   text-align: center;
   padding: var(--spacing-sm) 0;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   min-height: var(--touch-target);
   line-height: calc(var(--touch-target) - 2px);
 
+  /* --accent-primary（rgb(91,107,245)）同源展开 alpha（原 rgba(59,130,246,0.15)） */
   &.active {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+    background: rgba(91, 107, 245, 0.15);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
   }
 }
 
 .image-section {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   min-height: 400rpx;
   display: flex;
@@ -42,7 +49,7 @@
   cursor: pointer;
 
   &:active {
-    border-color: var(--color-primary);
+    border-color: var(--accent-primary);
   }
 }
 
@@ -55,7 +62,7 @@
 
 .upload-hint {
   font-size: 28rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
 .preview-image {
@@ -71,26 +78,25 @@
 .recognize-btn {
   width: 100%;
   min-height: var(--touch-target);
-  background: var(--color-primary);
-  color: #fff;
   border: none;
   border-radius: var(--radius-sm);
   font-size: 30rpx;
   font-weight: 500;
 
-  &:active {
-    background: var(--color-primary-dark);
-  }
+  /* 渐变底/白字/辉光由全局 .btn-primary 提供 */
 
   &[disabled] {
+    /* 禁用态压掉渐变与辉光，底色沿用别名 token --text-disabled（视觉与原版一致） */
     background: var(--text-disabled);
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
+    box-shadow: none;
   }
 }
 
+/* 错误提示：--accent-danger（rgb(248,113,113)）同源展开 alpha（原 rgba(239,68,68,*)） */
 .error-section {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
   border-radius: var(--radius-sm);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
@@ -98,12 +104,10 @@
 
 .error-text {
   font-size: 26rpx;
-  color: var(--color-danger);
+  color: var(--accent-danger);
 }
 
 .result-section {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -113,18 +117,18 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .result-title {
   font-size: 28rpx;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--ink-default);
 }
 
 .copy-link {
   font-size: 26rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
   min-height: var(--touch-target);
   line-height: var(--touch-target);
 }
@@ -135,7 +139,7 @@
 
 .result-text {
   font-size: 26rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   line-height: 1.8;
   word-break: break-all;
   white-space: pre-wrap;

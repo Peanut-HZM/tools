@@ -1,6 +1,13 @@
+/**
+ * 语音识别页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）
+ * 结果卡片质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），本地只保留布局与圆角；
+ * 录音按钮为玻璃描边圆形（半透明白底 + 强发丝线）；语言 chip 为玻璃描边次按钮；
+ * 半透明场景按 token 同源色值展开 alpha（WXSS 不支持 color-mix/透明度修饰 var）。
+ */
+
 .asr-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
   padding: var(--spacing-md);
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
 }
@@ -11,22 +18,24 @@
   margin-bottom: var(--spacing-lg);
 }
 
+/* 语言切换 chip：次按钮玻璃描边（半透明白底 + 发丝线），选中态品牌 tint */
 .lang-item {
   flex: 1;
   text-align: center;
   padding: var(--spacing-sm) 0;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   min-height: var(--touch-target);
   line-height: calc(var(--touch-target) - 2px);
 
+  /* --accent-primary（rgb(91,107,245)）同源展开 alpha（原 rgba(59,130,246,0.15)） */
   &.active {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+    background: rgba(91, 107, 245, 0.15);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
   }
 }
 
@@ -37,11 +46,12 @@
   margin-bottom: var(--spacing-lg);
 }
 
+/* 录音按钮：玻璃描边圆形（描边沿用别名 token --border-color-strong，视觉与原版一致） */
 .record-btn {
   width: 240rpx;
   height: 240rpx;
   border-radius: 50%;
-  background: var(--bg-secondary);
+  background: var(--glass-bg);
   border: 3px solid var(--border-color-strong);
   display: flex;
   flex-direction: column;
@@ -53,18 +63,31 @@
     transform: scale(0.95);
   }
 
+  /* 录音中：--accent-danger 强调描边，底色同源展开 alpha（原 rgba(239,68,68,0.1)） */
   &.recording {
-    border-color: var(--color-danger);
-    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--accent-danger);
+    background: rgba(248, 113, 113, 0.1);
   }
 }
 
 .record-icon {
-  font-size: 64rpx;
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &.pulse {
     animation: pulse 1.5s ease-in-out infinite;
   }
+}
+
+/* 停止态方块：Icon 表无 stop 图标，用 CSS 圆角方块等价呈现原 ⏹ */
+.stop-square {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 8rpx;
+  background: var(--accent-danger);
 }
 
 @keyframes pulse {
@@ -74,12 +97,12 @@
 
 .record-label {
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
 .record-time {
   font-size: 32rpx;
-  color: var(--color-danger);
+  color: var(--accent-danger);
   font-weight: 600;
   margin-top: var(--spacing-md);
   font-family: 'SF Mono', 'Fira Code', monospace;
@@ -92,12 +115,13 @@
 
 .loading-text {
   font-size: 28rpx;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
 }
 
+/* 错误提示：--accent-danger（rgb(248,113,113)）同源展开 alpha（原 rgba(239,68,68,*)） */
 .error-section {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
   border-radius: var(--radius-sm);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
@@ -105,12 +129,10 @@
 
 .error-text {
   font-size: 26rpx;
-  color: var(--color-danger);
+  color: var(--accent-danger);
 }
 
 .result-section {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -120,18 +142,18 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .result-title {
   font-size: 28rpx;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--ink-default);
 }
 
 .copy-link {
   font-size: 26rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
   min-height: var(--touch-target);
   line-height: var(--touch-target);
 }
@@ -142,7 +164,7 @@
 
 .result-text {
   font-size: 28rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   line-height: 1.8;
   word-break: break-all;
   white-space: pre-wrap;

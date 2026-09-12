@@ -1,13 +1,18 @@
+/**
+ * JSON 格式化页 — 玻璃光晕换肤（阶段⑧-⑨ Task 6）
+ * 卡片质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），本地只保留布局与圆角；
+ * 主按钮渐变/白字/辉光由全局 .btn-primary 提供；
+ * 半透明场景按 token 同源色值展开 alpha（WXSS 不支持 color-mix/透明度修饰 var）。
+ */
+
 .json-formatter-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
   padding: 24rpx;
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
 
 .section {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 24rpx;
   margin-bottom: 24rpx;
@@ -23,29 +28,30 @@
 .section-title {
   font-size: 28rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink-default);
 }
 
 .clear-btn,
 .copy-btn {
   font-size: 24rpx;
-  color: var(--color-primary);
+  color: var(--accent-primary);
   padding: 8rpx 16rpx;
 }
 
+/* 输入域：token 边框底色（surface-2 底 + 玻璃描边 + ink 文字） */
 .input-area {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 20rpx;
   font-size: 24rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   min-height: 200rpx;
   width: 100%;
   font-family: 'Courier New', monospace;
 
   &::placeholder {
-    color: var(--text-tertiary);
+    color: var(--ink-faint);
   }
 }
 
@@ -66,21 +72,20 @@
   align-items: center;
   justify-content: center;
 
-  &.format-btn {
-    background: var(--color-primary);
-    color: #fff;
-  }
+  /* 主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
 
+  /* 次按钮：玻璃描边（半透明白底 + 发丝线 + ink 文字） */
   &.compress-btn {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
+    background: var(--glass-bg);
+    color: var(--ink-default);
+    border: 1px solid var(--glass-border);
   }
 }
 
+/* 错误提示：--accent-danger（rgb(248,113,113)）同源展开 alpha（原 rgba(239,68,68,*)） */
 .error-section {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
   border-radius: var(--radius-sm);
   padding: 20rpx;
   margin-bottom: 24rpx;
@@ -88,13 +93,14 @@
 
 .error-text {
   font-size: 24rpx;
-  color: var(--color-danger);
+  color: var(--accent-danger);
   font-family: 'Courier New', monospace;
 }
 
+/* 输出区：输入域同款 token 边框底色 */
 .output-area {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 20rpx;
   max-height: 600rpx;
@@ -103,7 +109,7 @@
 
 .output-text {
   font-size: 24rpx;
-  color: var(--text-primary);
+  color: var(--ink-default);
   font-family: 'Courier New', monospace;
   line-height: 1.6;
   white-space: pre-wrap;
