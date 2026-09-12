@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Bot, Copy, RefreshCw } from 'lucide-react';
 import { marketplaceApi, MarketAgent } from '../api/marketplaceApi';
 import { iconTintClass } from '../utils/iconTint';
+import { Button } from '@/components/ui/Button';
 
 const MarketplacePage: React.FC = () => {
   const [agents, setAgents] = useState<MarketAgent[]>([]);
@@ -55,21 +56,25 @@ const MarketplacePage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
               <Bot className="w-6 h-6" />
-              Agent 市场
+              {/* gradient-text 会置 color: transparent，故只包文字词组，避免图标（currentColor）被透明化 */}
+              <span className="gradient-text">Agent 市场</span>
             </h1>
             <p className="text-sm text-ink-muted mt-1">
               浏览公开 Agent，fork 一份私有副本到自己的工作区
             </p>
           </div>
-          <button
+          {/* 刷新按钮走设计系统 outline 变体；保留 flex 布局类（shrink-0 防折行、self-* 控制移动端对齐） */}
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={load}
             disabled={loading}
-            className="flex items-center justify-center gap-1 shrink-0 whitespace-nowrap self-start sm:self-auto px-4 py-2 bg-surface-2 hover:bg-surface-3 text-ink rounded-lg transition-colors disabled:opacity-50"
+            className="gap-1 shrink-0 self-start sm:self-auto"
           >
             <RefreshCw className="w-4 h-4" />
             刷新
-          </button>
+          </Button>
         </div>
 
         {notice && (
@@ -88,7 +93,7 @@ const MarketplacePage: React.FC = () => {
             {agents.map((a) => (
               <div
                 key={a.id}
-                className="p-4 border border-border rounded-lg bg-surface-1 flex flex-col gap-2"
+                className="glass-card hover-lift rounded-xl p-4 cursor-pointer flex flex-col gap-2"
               >
                 <div className="flex items-center gap-2">
                   {/* icon_color 改经 tint 色板映射（饱和色块已废弃），图标颜色由 tint 类提供 */}
@@ -104,15 +109,17 @@ const MarketplacePage: React.FC = () => {
                 </p>
                 <div className="flex items-center justify-between mt-auto pt-2">
                   <span className="text-xs text-ink-muted">{a.category}</span>
-                  <button
+                  {/* Fork 主按钮走设计系统 default 变体（.btn-primary 品牌渐变） */}
+                  <Button
                     type="button"
+                    size="sm"
                     onClick={() => handleFork(a)}
                     disabled={forkingId === a.id}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg text-sm transition-colors disabled:opacity-50"
+                    className="gap-1"
                   >
                     <Copy className="w-3.5 h-3.5" />
                     {forkingId === a.id ? 'fork 中...' : 'Fork'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
