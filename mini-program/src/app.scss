@@ -191,3 +191,7 @@ page {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ===== 玻璃光晕工具类（对应 Web glass.css）=====
+ * 置于文件末尾：其中的 .btn-primary 渐变版需覆盖上方纯色旧定义 */
+@import './styles/_glass.scss';

@@ -1,0 +1,111 @@
+/* ============================================================
+ * 玻璃光晕 · 小程序工具类词汇表（阶段⑧-⑨ Task 3）
+ * 对应 Web 端 frontend/src/styles/glass.css，色值/阴影语义保持一致。
+ * 原则：优先引用 styles/_tokens.scss 的语义 token，不写死品牌色值；
+ *       px 长度值由 Taro pxtransform 按 750 设计稿转为 rpx（1px → 1rpx），
+ *       与 Task 1 阴影 token 的处理约定一致。
+ * 交互差异：小程序无 :hover（无鼠标悬停），Web 端的 hover 态
+ *       通过 Taro 组件的 hover-class 提供（见 .btn-primary-hover）。
+ * ============================================================ */
+
+/* ---------- 玻璃卡片 ----------
+ * 半透明底 + 发丝描边 + 顶部内高光 + 玻璃投影 + 背景模糊。
+ * backdrop-filter 为渐进增强：不支持的环境降级为 --glass-bg-fallback 实色底，
+ * 与 Web glass.css 的 @supports not (...) 降级分支同思路。
+ * 注：--glass-blur 未随 Task 1 token 管道迁移（长度类 token 不迁移），
+ *     此处按设计规范 §5.4 使用字面量 blur(14px)。 */
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  /* 玻璃投影 + 顶部内高光（token 值见 _tokens.scss） */
+  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+}
+
+/* 支持 backdrop-filter 的环境启用磨砂模糊（渐进增强）。
+ * @supports 查询条件不会被 pxtransform 转换，块内声明会转为 rpx，等价生效 */
+@supports (backdrop-filter: blur(14px)) or (-webkit-backdrop-filter: blur(14px)) {
+  .glass-card {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+/* 不支持 backdrop-filter 时降级为实色底，保证可读性 */
+@supports not ((backdrop-filter: blur(14px)) or (-webkit-backdrop-filter: blur(14px))) {
+  .glass-card {
+    background: var(--glass-bg-fallback);
+  }
+}
+
+/* ---------- 玻璃面板 ----------
+ * 比 .glass-card 更强的底色与模糊（导航/抽屉/弹层用），对应 Web .glass-panel。
+ * blur 强度按 Web 端 14px * 1.3 取整为 18px。 */
+.glass-panel {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+}
+
+@supports (backdrop-filter: blur(18px)) or (-webkit-backdrop-filter: blur(18px)) {
+  .glass-panel {
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+}
+
+@supports not ((backdrop-filter: blur(18px)) or (-webkit-backdrop-filter: blur(18px))) {
+  .glass-panel {
+    background: var(--glass-bg-fallback);
+  }
+}
+
+/* ---------- 品牌渐变文字 ----------
+ * 对应 Web .gradient-text；-webkit-text-fill-color 兜底部分渲染环境
+ * 仅认 fill-color 不认 color: transparent 的情况。 */
+.gradient-text {
+  background-image: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---------- 品牌渐变主按钮底 ----------
+ * 对应 Web .btn-primary（渐变底 + 白字 + 品牌辉光阴影）。
+ * 本文件在 app.scss 末尾引入，覆盖其顶部的纯色 .btn-primary 旧定义。
+ * 圆角沿用 var(--radius-sm)，与 .btn 基类一致，不改变既有按钮形状。
+ * 辉光阴影走 token --shadow-glow-accent（Web 端同款，禁止写死色值）。 */
+.btn-primary {
+  background-image: var(--gradient-brand);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-glow-accent);
+}
+
+/* 按下态：小程序无 :hover，需要按压反馈的组件可传
+ * hover-class='btn-primary-hover'（对齐 Web 端 .btn-primary:hover 的提亮渐变） */
+.btn-primary-hover {
+  background-image: var(--gradient-brand-hover);
+}
+
+/* ============================================================
+ * Tint 图标色板：低饱和色底 + 同色描边 + 同色图标（替换饱和色块）。
+ * 色值照抄 Web frontend/src/styles/glass.css 的 tint 段。
+ * 注意：小程序 Image 组件不继承 CSS color，SVG 图标颜色无法通过
+ * 这里的 color 声明生效，需经 src/utils/tint.ts 的 tintColorOf()
+ * 取同源色值并以 Icon 组件的 color prop 烘入 SVG（见 components/Icon）。
+ * color 声明仍保留，供字体图标/文字场景兜底使用。
+ * ============================================================ */
+.tint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tint-blue    { color: #60A5FA; background: rgba(59, 130, 246, 0.14);  border: 1px solid rgba(59, 130, 246, 0.28); }
+.tint-violet  { color: #8B9BFF; background: rgba(101, 116, 255, 0.14); border: 1px solid rgba(101, 116, 255, 0.28); }
+.tint-emerald { color: #34D399; background: rgba(52, 211, 153, 0.12);  border: 1px solid rgba(52, 211, 153, 0.28); }
+.tint-indigo  { color: #818CF8; background: rgba(99, 102, 241, 0.14);  border: 1px solid rgba(99, 102, 241, 0.28); }
+.tint-orange  { color: #FB923C; background: rgba(251, 146, 60, 0.13);  border: 1px solid rgba(251, 146, 60, 0.28); }
+.tint-red     { color: #F87171; background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.28); }
+.tint-purple  { color: #C084FC; background: rgba(192, 132, 252, 0.13); border: 1px solid rgba(192, 132, 252, 0.28); }
+.tint-cyan    { color: #22D3EE; background: rgba(34, 211, 238, 0.12);  border: 1px solid rgba(34, 211, 238, 0.28); }

@@ -1,7 +1,11 @@
+/*
+ * 工具卡片样式（玻璃光晕改版 Task 3）
+ * 背景/描边/顶部高光由全局 .glass-card（styles/_glass.scss）提供，
+ * 组件样式只保留布局与文字（组件 wxss 后加载，勿在此重复定义背景，
+ * 否则会覆盖玻璃底）。
+ */
 .tool-card {
-  background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
   padding: 28rpx 24rpx;
   display: flex;
   flex-direction: column;
@@ -14,22 +18,19 @@
 
   &:active {
     transform: scale(0.97);
-    background: var(--bg-tertiary);
+    /* 按下提亮：玻璃底加浓（原 var(--bg-tertiary) 实色底会击穿玻璃质感） */
+    background: var(--glass-bg-strong);
   }
 
   &-icon {
     width: 72rpx;
     height: 72rpx;
     border-radius: var(--radius-sm);
-    background: rgba(59, 130, 246, 0.12);
+    /* 底色/描边/图标色由 tint 色板类提供（_glass.scss tint 段） */
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 4rpx;
-  }
-
-  &-emoji {
-    font-size: 40rpx;
   }
 
   &-custom-icon {
@@ -70,10 +71,15 @@
   }
 }
 
+/*
+ * 登录角标（需登录标记）。
+ * 色彩对齐语义 token --accent-warning（rgb(251, 191, 36)）：
+ * 半透明底/描边无法从 token 拆分透明度，使用其同源 rgb 分量派生。
+ */
 .auth-badge {
   font-size: 18rpx;
-  color: var(--color-warning);
-  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent-warning);
+  background: rgba(251, 191, 36, 0.12); /* --accent-warning 同源 12% 底 */
   padding: 4rpx 12rpx;
   border-radius: var(--radius-full);
   line-height: 1.4;
@@ -83,13 +89,14 @@
   position: absolute;
   top: 8rpx;
   right: 8rpx;
-  background: rgba(249, 115, 22, 0.2);
-  border: 1rpx solid rgba(249, 115, 22, 0.3);
+  /* 原 #F97316 系硬编码橙 → --accent-warning（rgb(251, 191, 36)）同源派生 */
+  background: rgba(251, 191, 36, 0.15);
+  border: 1rpx solid rgba(251, 191, 36, 0.3);
   border-radius: 4rpx;
   padding: 2rpx 8rpx;
 
   .tool-card-login-badge-text {
     font-size: 18rpx;
-    color: #f97316;
+    color: var(--accent-warning);
   }
 }

@@ -1,61 +1,34 @@
 import { View, Text, Image } from '@tarojs/components'
 import type { Tool } from '../../types'
+import Icon, { resolveIconName } from '../Icon'
+import { tintColorOf } from '../../utils/tint'
 import './ToolCard.scss'
-
-// Font Awesome 图标名到 Emoji 的映射
-const FA_TO_EMOJI: Record<string, string> = {
-  'fa-file-image': '🖼️',      // OCR 文字识别
-  'fa-microphone': '🎤',      // 语音识别
-  'fa-share-alt': '🔗',       // CrossShare
-  'fa-calendar-alt': '📅',    // 万年历
-  'fa-plug': '🔌',            // HTTP API 客户端
-  'fa-code': '💻',            // JSON 格式化
-  'fa-key': '🔑',             // 密钥生成器
-  'fa-robot': '🤖',           // AI 相关
-  'fa-image': '🖼️',          // 图片相关
-  'fa-music': '🎵',           // 音频相关
-  'fa-video': '🎥',           // 视频相关
-  'fa-database': '🗄️',       // 数据库工具
-  'fa-terminal': '⌨️',        // 终端/SSH
-  'fa-edit': '✏️',            // 编辑器
-  'fa-lock': '🔒',            // 加密/密码
-  'fa-shield-alt': '🛡️',     // 安全相关
-  'fa-globe': '🌐',           // 网络相关
-  'fa-download': '📥',        // 下载工具
-  'fa-upload': '📤',          // 上传工具
-  'fa-search': '🔍',          // 搜索工具
-  'fa-cog': '⚙️',             // 设置/工具
-  'fa-tools': '🛠️',           // 工具箱
-  'fa-lightbulb': '💡',       // 学习/创意
-}
 
 interface ToolCardProps {
   tool: Tool;
   onClick: () => void;
 }
 
-// 将 icon 字段转换为 emoji
-function getToolEmoji(icon?: string): string {
-  if (!icon) return '🔧'
-  // 如果是 Font Awesome 图标名
-  if (icon.startsWith('fa-')) {
-    return FA_TO_EMOJI[icon] || '🔧'
-  }
-  // 如果已经是 emoji 或其他字符，直接返回
-  return icon
-}
-
+/**
+ * 工具卡片（玻璃光晕改版 Task 3）：
+ * - 图标不再使用 emoji，改为 SVG 线性 Icon 组件（custom_icon_url 优先，逻辑不变）
+ * - 图标底色走 tint 色板（styles/_glass.scss），由后端 iconColor 解析类名与同源色值
+ * - 卡片容器套 .glass-card 玻璃工具类（背景/描边/高光），本地样式只保留布局
+ */
 export default function ToolCard({ tool, onClick }: ToolCardProps) {
   const hasCustomIcon = !!tool.custom_icon_url
+  // tint 底 + 同源图标色（Image 不继承 CSS color，色值需以 prop 烘入 SVG）
+  const tint = tintColorOf(tool.iconColor)
+  const iconName = resolveIconName(tool.icon)
 
   return (
-    <View className='tool-card' onClick={onClick}>
+    <View className='tool-card glass-card' onClick={onClick}>
       {tool.require_login && (
         <View className='tool-card-login-badge'>
           <Text className='tool-card-login-badge-text'>需登录</Text>
         </View>
       )}
-      <View className='tool-card-icon'>
+      <View className={`tool-card-icon ${tint.className}`}>
         {hasCustomIcon ? (
           <Image
             src={tool.custom_icon_url!}
@@ -63,7 +36,7 @@ export default function ToolCard({ tool, onClick }: ToolCardProps) {
             mode='aspectFit'
           />
         ) : (
-          <Text className='tool-card-emoji'>{getToolEmoji(tool.icon)}</Text>
+          <Icon name={iconName} size={22} color={tint.color} />
         )}
       </View>
       <View className='tool-card-info'>
