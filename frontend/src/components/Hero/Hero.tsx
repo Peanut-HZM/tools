@@ -20,7 +20,7 @@ export default function Hero({ activeCategory, onCategoryChange, tools, onToolCl
     <section className="mb-16">
       {/* 大标题主视觉：徽标 + 渐变标题 + 副标题 + 搜索 CTA（点击打开 ⌘K 命令面板） */}
       <div className="text-center pt-10 pb-10">
-        <span className="inline-block text-xs px-3 py-1 rounded-full mb-5 text-accent-primary bg-glass-bg border border-glass-border">
+        <span className="inline-block text-xs px-3 py-1 rounded-full mb-5 text-accent bg-glass-bg border border-glass-border">
           {t.home.heroBadge}
         </span>
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-ink mb-4">
