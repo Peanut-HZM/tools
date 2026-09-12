@@ -1,80 +1,113 @@
 :root {
   /* === 暗色 (默认) === */
-  --bg-canvas:        10 26 47;
-  --bg-surface-1:     17 45 82;
-  --bg-surface-2:     26 58 107;
-  --bg-surface-3:     42 74 127;
-  --bg-overlay:       rgba(10, 26, 47, 0.72);
+  --bg-canvas:        var(--p-navy-900);
+  --bg-surface-1:     var(--p-navy-800);
+  --bg-surface-2:     var(--p-navy-700);
+  --bg-surface-3:     var(--p-navy-600);
+  --bg-overlay:       rgba(10, 18, 37, 0.72);
 
-  --ink-default:      245 247 250;
-  --ink-muted:        184 194 209;
-  --ink-faint:        110 122 143;
-  --ink-inverse:      10 26 47;
+  --ink-default:      var(--p-ink-light-1);
+  --ink-muted:        var(--p-ink-light-2);
+  --ink-faint:        var(--p-ink-light-3);
+  --ink-inverse:      var(--p-navy-900);
 
-  --accent-primary:   91 107 245;
-  --accent-hover:     110 126 255;
-  --accent-press:     74 90 229;
-  --accent-secondary: 161 85 247;
+  --accent-primary:   var(--p-violet-500);
+  --accent-hover:     var(--p-violet-400);
+  --accent-press:     var(--p-violet-600);
+  --accent-secondary: var(--p-purple-500);
   --accent-warm:      255 138 76;
-  --accent-cyan:      6 182 212;   /* 辅助强调色：焦点环/链接/选中态/代码高亮（保留代码库事实标准） */
-  --accent-cyan-hover:34 211 238;
-  --accent-cyan-press:8 145 178;
-  --accent-success:   52 211 153;
-  --accent-warning:   251 191 36;
-  --accent-danger:    248 113 113;
-  --accent-info:      96 165 250;
+  --accent-cyan:      var(--p-cyan-500);
+  --accent-cyan-hover:var(--p-cyan-400);
+  --accent-cyan-press:var(--p-cyan-600);
+  --accent-success:   var(--p-green-500);
+  --accent-warning:   var(--p-amber-400);
+  --accent-danger:    var(--p-red-400);
+  --accent-info:      var(--p-blue-400);
 
   --hairline:         rgba(255, 255, 255, 0.08);
   --border-default:   31 58 101;
   --border-strong:    45 79 138;
   --border-accent:    rgba(91, 107, 245, 0.4);
 
-  /* 渐变签名 */
+  /* === 玻璃表面组（新增） === */
+  --glass-bg:          rgba(255, 255, 255, 0.045);
+  --glass-bg-strong:   rgba(255, 255, 255, 0.07);
+  --glass-bg-fallback: #131C33;
+  --glass-border:      rgba(255, 255, 255, 0.09);
+  --glass-highlight:   rgba(255, 255, 255, 0.07);
+  --glass-blur:        14px;
+
+  /* === 品牌渐变组（扩展现有签名渐变） === */
+  --gradient-brand:       linear-gradient(135deg, #5B6BF5 0%, #A155F7 100%);
+  --gradient-brand-hover: linear-gradient(135deg, #6E7EFF 0%, #B266FF 100%);
+  --gradient-text:        linear-gradient(120deg, #7C8CFF 10%, #B36BFF 60%, #67E8F9 105%);
+  --shadow-glow-accent:   0 6px 24px rgba(120, 90, 250, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --shadow-glass:         0 12px 32px rgba(3, 7, 20, 0.50);
+
+  /* 渐变签名（mesh 保留现有定义不动） */
   --gradient-mesh-1:  radial-gradient(ellipse 80% 60% at 20% 0%,
                        rgba(91, 107, 245, 0.18) 0%, transparent 50%);
   --gradient-mesh-2:  radial-gradient(ellipse 70% 50% at 80% 100%,
                        rgba(161, 85, 247, 0.15) 0%, transparent 50%);
   --gradient-mesh-3:  radial-gradient(ellipse 60% 40% at 50% 50%,
                        rgba(91, 107, 245, 0.08) 0%, transparent 60%);
-  --gradient-accent:  linear-gradient(135deg, #5B6BF5 0%, #A155F7 100%);
-  --gradient-accent-hover: linear-gradient(135deg, #6E7EFF 0%, #B266FF 100%);
+  --gradient-accent:  var(--gradient-brand);
+  --gradient-accent-hover: var(--gradient-brand-hover);
 }
 
 :root[data-theme="light"] {
-  --bg-canvas:        245 233 212;
+  /* === 亮色：冷调灰白（玻璃质感配套，原米黄纸感废弃） === */
+  --bg-canvas:        var(--p-gray-50);
   --bg-surface-1:     255 255 255;
-  --bg-surface-2:     253 247 236;
-  --bg-surface-3:     245 237 220;
-  --bg-overlay:       rgba(245, 233, 212, 0.72);
+  --bg-surface-2:     var(--p-gray-100);
+  --bg-surface-3:     var(--p-gray-200);
+  --bg-overlay:       rgba(246, 247, 251, 0.72);
 
-  --ink-default:      13 37 61;
-  --ink-muted:        74 85 104;
-  --ink-faint:        139 149 163;
-  --ink-inverse:      245 247 250;
+  --ink-default:      var(--p-ink-dark-1);
+  --ink-muted:        var(--p-ink-dark-2);
+  --ink-faint:        var(--p-ink-dark-3);
+  --ink-inverse:      var(--p-ink-light-1);
 
-  --accent-primary:   91 107 245;
-  --accent-hover:     74 90 229;
-  --accent-press:     59 75 213;
-  --accent-secondary: 161 85 247;
+  --accent-primary:   var(--p-violet-500);
+  --accent-hover:     var(--p-violet-600);
+  --accent-press:     var(--p-violet-700);
+  --accent-secondary: var(--p-purple-500);
   --accent-warm:      232 107 26;
-  --accent-cyan:      8 145 178;   /* 亮色下 cyan 调深以保持对比度 */
+  --accent-cyan:      var(--p-cyan-600);
   --accent-cyan-hover:14 116 144;
   --accent-cyan-press:21 94 117;
-  --accent-success:   16 185 129;
-  --accent-warning:   217 119 6;
-  --accent-danger:    239 68 68;
-  --accent-info:      59 130 246;
+  --accent-success:   var(--p-green-600);
+  --accent-warning:   var(--p-amber-600);
+  --accent-danger:    var(--p-red-500);
+  --accent-info:      var(--p-blue-600);
 
   --hairline:         rgba(13, 37, 61, 0.08);
-  --border-default:   232 223 204;
-  --border-strong:    212 200 168;
+  --border-default:   var(--p-gray-300);
+  --border-strong:    var(--p-gray-400);
   --border-accent:    rgba(91, 107, 245, 0.3);
 
-  /* 亮色下渐变更微妙 */
+  /* === 玻璃表面组（亮色：白半透明 + 细灰描边） === */
+  --glass-bg:          rgba(255, 255, 255, 0.65);
+  --glass-bg-strong:   rgba(255, 255, 255, 0.85);
+  --glass-bg-fallback: #FFFFFF;
+  --glass-border:      rgba(13, 37, 61, 0.08);
+  --glass-highlight:   rgba(255, 255, 255, 0.90);
+  --glass-blur:        14px;
+
+  /* === 品牌渐变组（亮色降档不透明度） === */
+  --gradient-brand:       linear-gradient(135deg, #5B6BF5 0%, #A155F7 100%);
+  --gradient-brand-hover: linear-gradient(135deg, #5158E8 0%, #9440E8 100%);
+  --gradient-text:        linear-gradient(120deg, #4F5BE8 10%, #8B3EE8 60%, #0891B2 105%);
+  --shadow-glow-accent:   0 6px 20px rgba(91, 107, 245, 0.28);
+  --shadow-glass:         0 12px 32px rgba(13, 37, 61, 0.10);
+
+  /* mesh 亮色降档（保留现有定义） */
   --gradient-mesh-1:  radial-gradient(ellipse 80% 60% at 20% 0%,
                        rgba(91, 107, 245, 0.10) 0%, transparent 50%);
   --gradient-mesh-2:  radial-gradient(ellipse 70% 50% at 80% 100%,
                        rgba(161, 85, 247, 0.08) 0%, transparent 50%);
   --gradient-mesh-3:  radial-gradient(ellipse 60% 40% at 50% 50%,
                        rgba(91, 107, 245, 0.04) 0%, transparent 60%);
+  --gradient-accent:  var(--gradient-brand);
+  --gradient-accent-hover: var(--gradient-brand-hover);
 }

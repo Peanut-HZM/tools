@@ -46,6 +46,12 @@ export default {
           accent: 'var(--border-accent)',  // rgba 值，不能用 rgb() 包裹
           hairline: 'var(--hairline)',      // rgba 值，不能用 rgb() 包裹
         },
+        // 玻璃表面组：rgba 值，不能用 rgb() 包裹
+        glass: {
+          bg: 'var(--glass-bg)',
+          'bg-strong': 'var(--glass-bg-strong)',
+          border: 'var(--glass-border)',
+        },
         // 兼容旧色名（避免业务组件全部报错，Phase 3 再清理）
         primary: 'rgb(var(--accent-primary) / <alpha-value>)',
         secondary: 'rgb(var(--accent-secondary) / <alpha-value>)',
@@ -89,6 +95,8 @@ export default {
         xl:    'var(--shadow-xl)',
         glow:  'var(--shadow-glow)',
         focus: 'var(--shadow-focus)',
+        glass: 'var(--shadow-glass)',
+        'glow-accent': 'var(--shadow-glow-accent)',
       },
       transitionTimingFunction: {
         stripe: 'var(--ease-stripe)',
