@@ -3,29 +3,33 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Input, Button } from '@tarojs/components'
 import { authApi } from '../../services/auth'
 import { useAuthStore } from '../../stores/auth'
+import Icon from '../../components/Icon'
 import './index.scss'
 
-// Unicode 图标组件
+// SVG 线性图标（玻璃光晕 Task 5：emoji 图标全部替换为 Icon 组件）。
+// 注：小程序 Image 不继承 CSS color，颜色须经 color prop 烘入 SVG（见 components/Icon）：
+// 输入框图标走 ink 系（--ink-faint 同源 #6E7A8F），警示图标走危险色（--accent-danger
+// 同源 #F87171），Logo 图标用组件默认品牌浅紫 #8B9BFF。
 const ToolboxIcon = () => (
   <View className='logo-icon'>
-    <Text className='logo-char'>⚙</Text>
+    <Icon name='settings' size={26} />
   </View>
 )
 
 const UserIcon = () => (
-  <Text className='input-icon'>👤</Text>
+  <Icon name='user' size={16} color='#6E7A8F' />
 )
 
 const LockIcon = () => (
-  <Text className='input-icon'>🔒</Text>
+  <Icon name='lock' size={16} color='#6E7A8F' />
 )
 
 const MailIcon = () => (
-  <Text className='input-icon'>✉</Text>
+  <Icon name='mail' size={16} color='#6E7A8F' />
 )
 
 const AlertIcon = () => (
-  <Text className='alert-icon'>⚠</Text>
+  <Icon name='warning' size={14} color='#F87171' />
 )
 
 export default function Login() {
@@ -160,8 +164,9 @@ export default function Login() {
           </Text>
         </View>
 
-        {/* 表单区域 */}
-        <View className='login-form'>
+        {/* 表单区域（玻璃质感由全局 .glass-card 提供：半透明底+发丝描边+磨砂模糊+投影，
+            不支持 backdrop-filter 的环境自动降级实色底，见 styles/_glass.scss） */}
+        <View className='login-form glass-card'>
           {/* Tab 切换器 */}
           <View className='tab-switcher'>
             <View
@@ -234,9 +239,9 @@ export default function Login() {
             </View>
           )}
 
-          {/* 提交按钮 */}
+          {/* 提交按钮（品牌渐变底/白字/辉光由全局 .btn-primary 提供，见 styles/_glass.scss） */}
           <Button
-            className='btn-submit'
+            className='btn-submit btn-primary'
             loading={loading}
             disabled={loading}
             onClick={handleSubmit}

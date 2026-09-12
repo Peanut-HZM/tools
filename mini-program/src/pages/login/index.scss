@@ -1,8 +1,17 @@
+/**
+ * 登录页 — 玻璃光晕改版（Task 5）
+ * 色值全部走 styles/_tokens.scss 语义 token，本文件零裸 hex。
+ * 半透明场景（WXSS 不支持 color-mix/透明度修饰 var）按 token 同源色值展开 alpha，
+ * 与 profile 页 role-badge 的既定约定一致。
+ * 表单卡与提交按钮的玻璃质感由全局 .glass-card / .btn-primary（styles/_glass.scss）提供。
+ */
+
 .login-container {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+  /* 品牌暗色渐变：canvas → surface-1（与全局 page 背景、profile 头部同源） */
+  background: linear-gradient(180deg, var(--bg-canvas) 0%, var(--bg-surface-1) 100%);
 }
 
 /* 背景装饰 */
@@ -27,7 +36,8 @@
 .bg-orb-1 {
   width: 400rpx;
   height: 400rpx;
-  background: #3B82F6;
+  /* 品牌主色光斑（原品牌蓝硬编码） */
+  background: var(--accent-primary);
   top: -100rpx;
   right: -100rpx;
 }
@@ -35,7 +45,8 @@
 .bg-orb-2 {
   width: 300rpx;
   height: 300rpx;
-  background: #10B981;
+  /* 成功色光斑（原绿色系硬编码） */
+  background: var(--accent-success);
   bottom: 100rpx;
   left: -80rpx;
 }
@@ -66,41 +77,38 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 24rpx;
-  background: rgba(59, 130, 246, 0.1);
+  /* 品牌色低透明底/描边：--accent-primary（rgb(91, 107, 245)）同源展开 alpha
+     （原蓝色系 rgba(59,130,246,*)） */
+  background: rgba(91, 107, 245, 0.1);
   border-radius: 24rpx;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.logo-char {
-  font-size: 52rpx;
-  color: #3B82F6;
-  line-height: 1;
-  filter: drop-shadow(0 0 20rpx rgba(59, 130, 246, 0.3));
+  border: 1px solid rgba(91, 107, 245, 0.2);
+  /* 品牌光晕：原 .logo-char 的 drop-shadow 随 emoji 替换移至容器（同源展开 alpha） */
+  box-shadow: 0 0 20rpx rgba(91, 107, 245, 0.3);
 }
 
 .login-title {
   font-size: 48rpx;
   font-weight: 700;
-  color: #F8FAFC;
+  /* 主标题（原近白硬编码） */
+  color: var(--ink-default);
   margin-bottom: 12rpx;
   letter-spacing: 2rpx;
 }
 
 .login-subtitle {
   font-size: 28rpx;
-  color: #94A3B8;
+  /* 副标题（原中性灰硬编码） */
+  color: var(--ink-muted);
 }
 
-/* 表单卡片 */
+/* 表单卡片：底色/描边/投影/磨砂模糊（@supports 渐进增强 + 实色降级）
+   由全局 .glass-card（styles/_glass.scss）提供，此处仅保留布局与圆角
+   （同 ToolCard/menu-group 约定：勿重复定义背景，否则击穿玻璃质感） */
 .login-form {
   width: 100%;
   max-width: 640rpx;
-  background: rgba(30, 41, 59, 0.8);
-  backdrop-filter: blur(20rpx);
-  border: 1px solid rgba(51, 65, 85, 0.5);
   border-radius: 24rpx;
   padding: 48rpx 40rpx;
-  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.3);
 }
 
 /* Tab 切换器 */
@@ -108,7 +116,8 @@
   display: flex;
   position: relative;
   margin-bottom: 40rpx;
-  background: rgba(15, 23, 42, 0.6);
+  /* 切换轨底色：--bg-canvas（rgb(10, 18, 37)）同源展开 alpha（原 rgba(15,23,42,0.6)） */
+  background: rgba(10, 18, 37, 0.6);
   border-radius: 16rpx;
   padding: 8rpx;
 }
@@ -126,13 +135,15 @@
 
 .tab-text {
   font-size: 28rpx;
-  color: #64748B;
+  /* 未激活态（原中性灰硬编码） */
+  color: var(--ink-faint);
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .tab-item.active .tab-text {
-  color: #F8FAFC;
+  /* 激活态（原近白硬编码） */
+  color: var(--ink-default);
   font-weight: 600;
 }
 
@@ -143,7 +154,8 @@
   transform: translateX(-50%);
   width: 48rpx;
   height: 6rpx;
-  background: #3B82F6;
+  /* 指示条（原品牌蓝硬编码） */
+  background: var(--accent-primary);
   border-radius: 3rpx;
 }
 
@@ -152,9 +164,11 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-left: 4rpx solid #EF4444;
+  /* 危险色低透明底/描边：--accent-danger（rgb(248, 113, 113)）同源展开 alpha
+     （原红色系 rgba(239,68,68,*)） */
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-left: 4rpx solid var(--accent-danger);
   border-radius: 12rpx;
   padding: 20rpx 24rpx;
   margin-bottom: 32rpx;
@@ -174,15 +188,10 @@
   flex-shrink: 0;
 }
 
-.alert-icon {
-  font-size: 28rpx;
-  color: #EF4444;
-  line-height: 1;
-}
-
 .error-text {
   font-size: 26rpx;
-  color: #FCA5A5;
+  /* 错误文字（原浅红硬编码）：token 体系内最接近的危险色语义 */
+  color: var(--accent-danger);
   flex: 1;
 }
 
@@ -194,16 +203,19 @@
 .input-wrapper {
   display: flex;
   align-items: center;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid #334155;
+  /* 输入框底：--bg-canvas（rgb(10, 18, 37)）同源展开 alpha（原 rgba(15,23,42,0.8)） */
+  background: rgba(10, 18, 37, 0.8);
+  /* 描边走语义 token（原 slate 深灰硬编码） */
+  border: 1px solid var(--border-default);
   border-radius: 16rpx;
   padding: 0 24rpx;
   height: 96rpx;
   transition: all 0.2s ease;
 
   &:focus-within {
-    border-color: #3B82F6;
-    box-shadow: 0 0 0 4rpx rgba(59, 130, 246, 0.15);
+    border-color: var(--accent-primary);
+    /* 聚焦光晕：--accent-primary 同源展开 alpha（原 rgba(59,130,246,0.15)） */
+    box-shadow: 0 0 0 4rpx rgba(91, 107, 245, 0.15);
   }
 }
 
@@ -217,31 +229,26 @@
   flex-shrink: 0;
 }
 
-.input-icon {
-  font-size: 32rpx;
-  line-height: 1;
-  opacity: 0.6;
-}
-
 .form-input {
   flex: 1;
   font-size: 28rpx;
-  color: #F8FAFC;
+  /* 输入文字（原近白硬编码） */
+  color: var(--ink-default);
   height: 100%;
   border: none;
   background: transparent;
 
   &::placeholder {
-    color: #64748B;
+    /* 占位文字（原中性灰硬编码） */
+    color: var(--ink-faint);
   }
 }
 
-/* 提交按钮 */
+/* 提交按钮：品牌渐变底/白字/品牌辉光由全局 .btn-primary（styles/_glass.scss）提供，
+   此处保留布局尺寸与按压反馈；禁用态以 surface token 渐变替代原 slate 硬编码 */
 .btn-submit {
   width: 100%;
   height: 96rpx;
-  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  color: #fff;
   font-size: 32rpx;
   font-weight: 600;
   border-radius: 16rpx;
@@ -250,19 +257,19 @@
   margin-bottom: 32rpx;
   letter-spacing: 4rpx;
   transition: all 0.2s ease;
-  box-shadow: 0 4rpx 16rpx rgba(59, 130, 246, 0.3);
 
   &::after {
     border: none;
   }
 
   &:active {
+    /* 按压反馈保留缩放；品牌辉光（--shadow-glow-accent）常亮 */
     transform: scale(0.98);
-    box-shadow: 0 2rpx 8rpx rgba(59, 130, 246, 0.2);
   }
 
   &[disabled] {
-    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    /* 禁用态（原 slate 灰渐变硬编码）→ surface token 同构渐变 */
+    background: linear-gradient(135deg, var(--bg-surface-3) 0%, var(--bg-surface-2) 100%);
     box-shadow: none;
     opacity: 0.7;
   }
@@ -279,11 +286,13 @@
 
 .switch-text {
   font-size: 26rpx;
-  color: #64748B;
+  /* 提示文字（原中性灰硬编码） */
+  color: var(--ink-faint);
 }
 
 .switch-link {
   font-size: 26rpx;
-  color: #3B82F6;
+  /* 链接色（原品牌蓝硬编码） */
+  color: var(--accent-primary);
   font-weight: 500;
 }
