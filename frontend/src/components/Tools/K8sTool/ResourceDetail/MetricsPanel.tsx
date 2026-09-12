@@ -38,9 +38,41 @@ interface MetricsDataPoint {
 // 最多保留 60 个数据点（15s * 60 = 15 分钟）
 const MAX_POINTS = 60;
 
-// CPU 颜色 / 内存颜色
-const CPU_COLOR = '#3b82f6';
-const MEMORY_COLOR = '#10b981';
+/** 图表语义色（与 styles/tokens/colors.css 中 --chart-* 六项一一对应） */
+interface ChartColors {
+  cpu: string;     // CPU 折线
+  memory: string;  // 内存折线
+  grid: string;    // 网格线 / 分隔线
+  axis: string;    // 坐标轴线
+  surface: string; // Tooltip 面板底色
+  label: string;   // 刻度与图例文字
+}
+
+/**
+ * 从 CSS token 读取图表颜色的"已解析值"（具体色值，非 var() 引用）
+ *
+ * 为什么不用 var() 直接传给 recharts：
+ * recharts 会把 stroke/fill 以 SVG attribute 形式渲染到 <path>/<line>/<text>，
+ * 而 SVG presentation attribute 不做 CSS 变量替换（部分浏览器不解析 var()）；
+ * 且折线颜色还会驱动图例图标、Tooltip 色点、悬停圆点等 recharts 内部 SVG 元素，
+ * 这些元素不接受外部 style prop，无法通过内联样式覆盖。
+ * 因此统一经 getComputedStyle 读取 token 的最终值，attribute 与 style 均可安全使用。
+ */
+const readChartColors = (): ChartColors => {
+  // 防御：非浏览器环境（SSR/测试）下返回空串，交由 recharts 默认值兜底
+  const styles =
+    typeof window === 'undefined' ? null : getComputedStyle(document.documentElement);
+  const read = (name: string): string =>
+    styles ? styles.getPropertyValue(name).trim() : '';
+  return {
+    cpu: read('--chart-cpu'),
+    memory: read('--chart-memory'),
+    grid: read('--chart-grid'),
+    axis: read('--chart-axis'),
+    surface: read('--chart-surface'),
+    label: read('--chart-label'),
+  };
+};
 
 /**
  * 将 K8s 资源量字符串转换为数值
@@ -78,6 +110,19 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
     podName,
     namespace,
   );
+
+  // 图表颜色：初始从 CSS token 读取，主题切换（<html data-theme> 变更）时自动重读
+  const [chartColors, setChartColors] = useState<ChartColors>(readChartColors);
+  useEffect(() => {
+    // ThemeProvider 挂载后才写入初始 data-theme，渲染期读取时序不可靠，
+    // 改用 MutationObserver 监听属性变更，保证任意主题切换路径都能联动
+    const observer = new MutationObserver(() => setChartColors(readChartColors()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   // 累积数据点
   const [dataPoints, setDataPoints] = useState<MetricsDataPoint[]>([]);
@@ -160,7 +205,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
       <div className="grid grid-cols-2 gap-3">
         <Card className="bg-surface-1/50 border-border/50 p-3 shadow-none">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 rounded-full" style={{ background: CPU_COLOR }}></div>
+            <div className="w-2 h-2 rounded-full" style={{ background: chartColors.cpu }}></div>
             <span className="text-xs text-ink-muted">CPU</span>
           </div>
           <div className="text-xl font-mono text-ink">
@@ -171,7 +216,7 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
 
         <Card className="bg-surface-1/50 border-border/50 p-3 shadow-none">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 rounded-full" style={{ background: MEMORY_COLOR }}></div>
+            <div className="w-2 h-2 rounded-full" style={{ background: chartColors.memory }}></div>
             <span className="text-xs text-ink-muted">Memory</span>
           </div>
           <div className="text-xl font-mono text-ink">
@@ -189,31 +234,31 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
         <div className="bg-surface-1/30 border border-border/50 rounded-lg p-2" style={{ height: 180 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={dataPoints}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
               <XAxis
                 dataKey="time"
-                tick={{ fill: '#9ca3af', fontSize: 10 }}
-                stroke="#4b5563"
+                tick={{ fill: chartColors.label, fontSize: 10 }}
+                stroke={chartColors.axis}
               />
               <YAxis
-                tick={{ fill: '#9ca3af', fontSize: 10 }}
-                stroke="#4b5563"
+                tick={{ fill: chartColors.label, fontSize: 10 }}
+                stroke={chartColors.axis}
                 width={50}
                 tickFormatter={(v) => `${v}`}
               />
               <Tooltip
                 contentStyle={{
-                  background: '#1e293b',
-                  border: '1px solid #374151',
+                  background: chartColors.surface,
+                  border: `1px solid ${chartColors.grid}`,
                   borderRadius: 4,
                   fontSize: 12,
                 }}
-                labelStyle={{ color: '#9ca3af' }}
+                labelStyle={{ color: chartColors.label }}
               />
               <Line
                 type="monotone"
                 dataKey="cpu"
-                stroke={CPU_COLOR}
+                stroke={chartColors.cpu}
                 strokeWidth={2}
                 dot={false}
                 name="CPU (cores)"
@@ -231,34 +276,34 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
         <div className="bg-surface-1/30 border border-border/50 rounded-lg p-2" style={{ height: 180 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={dataPoints}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
               <XAxis
                 dataKey="time"
-                tick={{ fill: '#9ca3af', fontSize: 10 }}
-                stroke="#4b5563"
+                tick={{ fill: chartColors.label, fontSize: 10 }}
+                stroke={chartColors.axis}
               />
               <YAxis
-                tick={{ fill: '#9ca3af', fontSize: 10 }}
-                stroke="#4b5563"
+                tick={{ fill: chartColors.label, fontSize: 10 }}
+                stroke={chartColors.axis}
                 width={50}
                 tickFormatter={(v) => `${v}`}
               />
               <Tooltip
                 contentStyle={{
-                  background: '#1e293b',
-                  border: '1px solid #374151',
+                  background: chartColors.surface,
+                  border: `1px solid ${chartColors.grid}`,
                   borderRadius: 4,
                   fontSize: 12,
                 }}
-                labelStyle={{ color: '#9ca3af' }}
+                labelStyle={{ color: chartColors.label }}
               />
               <Legend
-                wrapperStyle={{ fontSize: 11, color: '#9ca3af' }}
+                wrapperStyle={{ fontSize: 11, color: chartColors.label }}
               />
               <Line
                 type="monotone"
                 dataKey="memory"
-                stroke={MEMORY_COLOR}
+                stroke={chartColors.memory}
                 strokeWidth={2}
                 dot={false}
                 name="Memory (Mi)"
