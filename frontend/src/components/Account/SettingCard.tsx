@@ -9,8 +9,9 @@ interface SettingCardProps {
 }
 
 export default function SettingCard({ title, icon, children, className = '' }: SettingCardProps) {
+  // 玻璃化改版：统一走设计系统玻璃卡片，保留原内边距与过渡动画
   return (
-    <Card className={`backdrop-blur-sm bg-surface-1/50 border-border/50 p-6 transition-all duration-200 ${className}`}>
+    <Card className={`glass-card rounded-xl p-6 transition-all duration-200 ${className}`}>
       {title && (
         <h3 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
           {icon}

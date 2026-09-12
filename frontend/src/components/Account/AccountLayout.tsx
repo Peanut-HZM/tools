@@ -36,8 +36,9 @@ export default function AccountLayout() {
     // 可选：跳转到登录页或刷新用户信息
   };
 
+  // 玻璃化改版：整页底色回归纯 canvas，氛围光晕交给 mesh 背景与玻璃卡片，不再用整页斜向渐变
   return (
-    <div className="min-h-screen bg-gradient-to-br from-canvas via-surface-1 to-canvas">
+    <div className="min-h-screen bg-canvas">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <AccountHeader />
 

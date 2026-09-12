@@ -44,14 +44,17 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
               className={cn(
                 'w-full justify-start gap-3 h-auto py-3 px-4 text-left',
                 activeSection === item.id
-                  ? 'bg-accent/10 border-accent text-accent hover:bg-accent/20'
-                  : 'border border-transparent hover:bg-surface-2/50 text-ink-muted'
+                  ? // 激活态：品牌渐变底 + 发光阴影的玻璃 chip（透明描边避免与渐变打架）
+                    'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)] border-transparent'
+                  : // 非激活态：弱化文字色，hover 提亮玻璃底
+                    'text-ink-muted hover:text-ink hover:bg-glass-bg border border-glass-border'
               )}
               type="button"
             >
               <span className={cn(
                 'flex-shrink-0 mt-0.5',
-                activeSection === item.id ? 'text-accent' : 'text-ink-faint'
+                // 激活 chip 为渐变底，图标改用白色保证对比度
+                activeSection === item.id ? 'text-white' : 'text-ink-faint'
               )}>
                 {item.icon}
               </span>
@@ -59,7 +62,8 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
                 <div className="font-medium text-sm">{item.label}</div>
                 <div className={cn(
                   'text-xs mt-0.5',
-                  activeSection === item.id ? 'text-accent/70' : 'text-ink-faint'
+                  // 激活 chip 为渐变底，描述文字用半透明白保证可读性
+                  activeSection === item.id ? 'text-white/70' : 'text-ink-faint'
                 )}>
                   {item.description}
                 </div>
@@ -78,10 +82,12 @@ export default function AccountSidebar({ activeSection, onSectionChange }: Accou
               onClick={() => onSectionChange(item.id)}
               variant={activeSection === item.id ? 'outline' : 'ghost'}
               className={cn(
-                'flex-shrink-0 whitespace-nowrap',
+                'flex-shrink-0 whitespace-nowrap rounded-full',
                 activeSection === item.id
-                  ? 'bg-accent/10 border-accent text-accent'
-                  : 'border border-transparent text-ink-muted'
+                  ? // 激活态：品牌渐变底 + 发光阴影的玻璃 chip（透明描边避免与渐变打架）
+                    'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)] border-transparent'
+                  : // 非激活态：弱化文字色，hover 提亮玻璃底
+                    'text-ink-muted hover:text-ink hover:bg-glass-bg border border-glass-border'
               )}
               type="button"
             >
