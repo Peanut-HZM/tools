@@ -119,11 +119,10 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             >
               {language === 'zh-CN' ? 'EN' : '中'}
             </Button>
-            {/* 主题切换：暗色 → 亮色 → 跟随系统 循环 */}
+            {/* 主题切换：暗色 → 亮色 → 跟随系统 循环（移动端常显：主题属高频操作，不随桌面导航收纳隐藏） */}
             <Button
               variant="ghost"
               size="icon"
-              className="hidden md:inline-flex"
               onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
               title={`主题: ${theme === 'dark' ? '暗色' : theme === 'light' ? '亮色' : '跟随系统'}`}
             >

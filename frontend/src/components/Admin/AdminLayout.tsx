@@ -2,6 +2,7 @@ import { useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '../../stores/authStore';
 import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
 import Header from '../Header/Header';
+import CommandPalette from '../Common/CommandPalette';
 import {
   LineChart,
   Wrench,
@@ -103,6 +104,8 @@ export default function AdminLayout() {
         </main>
       </div>
 
+      {/* 全局 ⌘K 命令面板：与 Layout.tsx 挂载方式一致，修复 /admin 下搜索图标点击无响应（面板此前不在 Admin 域内） */}
+      <CommandPalette />
     </div>
   );
 }
