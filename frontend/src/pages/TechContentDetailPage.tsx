@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AlertCircle, Eye, ThumbsUp, Bookmark, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Button } from '@/components/ui/Button';
 import { useI18n } from '../i18n/index.ts';
 import { API_BASE_URL } from '../config/api.ts';
 
@@ -100,12 +101,10 @@ export default function TechContentDetailPage() {
         <div className="text-center text-ink-muted">
           <AlertCircle className="w-8 h-8 mb-4 mx-auto" />
           <p className="mb-4">{error || '内容不存在'}</p>
-          <button
-            onClick={() => navigate('/tech-contents')}
-            className="px-4 py-2 bg-primary text-ink-inverse rounded-lg hover:bg-accent-hover transition-colors"
-          >
+          {/* 返回列表按钮走设计系统 default 变体（品牌渐变底，替代手写 bg-primary） */}
+          <Button variant="default" onClick={() => navigate('/tech-contents')}>
             返回列表
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -224,26 +223,27 @@ export default function TechContentDetailPage() {
       {/* 正文内容 */}
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-4xl mx-auto">
-          <article className="prose prose-invert prose-lg max-w-none">
+          {/* prose 双主题：不再写死 prose-invert，标题/段落/链接走语义 token（同 CourseDetailPage 写法） */}
+          <article className="prose dark:prose-invert prose-headings:text-ink prose-p:text-ink-muted prose-a:text-accent prose-lg max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {content.content}
             </ReactMarkdown>
           </article>
 
-          {/* 互动区 */}
+          {/* 互动区：点赞/收藏/分享走 ghost 变体玻璃容器，图标与文案语义保持不变 */}
           <div className="flex items-center gap-4 mt-12 pt-8 border-t border-border">
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface-1 text-ink-muted rounded-lg hover:bg-surface-2 transition-colors">
+            <Button variant="ghost" className="gap-2">
               <ThumbsUp className="w-4 h-4" />
               点赞 ({content.likes})
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface-1 text-ink-muted rounded-lg hover:bg-surface-2 transition-colors">
+            </Button>
+            <Button variant="ghost" className="gap-2">
               <Bookmark className="w-4 h-4" />
               收藏 ({content.bookmarks})
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface-1 text-ink-muted rounded-lg hover:bg-surface-2 transition-colors">
+            </Button>
+            <Button variant="ghost" className="gap-2">
               <Share2 className="w-4 h-4" />
               分享
-            </button>
+            </Button>
           </div>
         </div>
       </div>

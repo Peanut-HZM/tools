@@ -72,7 +72,7 @@ export default function TechContentCard({
   return (
     <div
       onClick={handleClick}
-      className="bg-surface-1 rounded-xl overflow-hidden border border-border hover:border-border transition-all cursor-pointer group"
+      className="glass-card hover-lift rounded-xl overflow-hidden cursor-pointer group"
     >
       {/* 封面图 */}
       {coverImage ? (
