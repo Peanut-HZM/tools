@@ -214,8 +214,8 @@ const CourseLearnPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Progress Bar */}
-              <div className="w-64">
+              {/* Progress Bar：移动端占满可用宽度，sm 起恢复固定宽 */}
+              <div className="w-full sm:w-64">
                 <div className="flex items-center justify-between text-sm text-ink-muted mb-1">
                   <span>学习进度</span>
                   <span>{Math.round(progressPercent)}%</span>
@@ -233,10 +233,12 @@ const CourseLearnPage: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-80px)]">
+      {/* 移动端纵向堆叠（章节列表在上、内容在下）并整区滚动；lg 起恢复左右分栏且锁定高度 */}
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] lg:overflow-hidden overflow-y-auto">
         {/* Left Sidebar - Chapter Navigation */}
         {/* 侧栏为全高面板：用 glass-panel 强底色 + 去上/下/左描边，仅保留右侧玻璃描边与主内容区分隔 */}
-        <aside className="w-80 glass-panel rounded-none border-y-0 border-l-0 overflow-y-auto">
+        {/* 移动端占满一行堆叠在内容上方，lg 起固定 80 宽侧栏 */}
+        <aside className="w-full lg:w-80 lg:flex-shrink-0 glass-panel rounded-none border-y-0 border-l-0 overflow-y-auto">
           <div className="p-4">
             <h2 className="text-lg font-semibold text-ink mb-4">📚 课程章节</h2>
             <div className="space-y-2">
@@ -277,8 +279,8 @@ const CourseLearnPage: React.FC = () => {
           </div>
         </aside>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Main Content Area：min-w-0 允许 flex 子项收缩，防止宽代码块/表格把行撑出横向溢出 */}
+        <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="container mx-auto px-8 py-8">
             {!enrolled ? (
               /* 未报名状态 - 显示课程详情和报名表单 */
