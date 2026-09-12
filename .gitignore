@@ -171,6 +171,8 @@ backend/scripts/minio_nginx.conf
 # 敏感文档（包含部署细节/服务器信息，绝不提交）
 # ========================================
 docs/
+# 例外：小程序验收清单（glass-glow-acceptance.md）为阶段⑧-⑨交付物，需纳入版本管理
+!mini-program/docs/
 DEPLOYMENT.md
 认证流程分析报告.md
 AGENT_SYSTEM_DESIGN.md

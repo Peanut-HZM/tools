@@ -238,6 +238,12 @@
   color: var(--accent-primary);
 }
 
+/* 品牌蓝底（--accent-primary）上文字改白色，修复品牌字叠品牌底不可读；
+   作用域限定 .expand-btn，不影响 json 深底展开按钮（.json-expand-btn）沿用品牌蓝字 */
+.expand-btn .expand-text {
+  color: #FFFFFF;
+}
+
 /* chevron 图标顺时针转 90° 指向下方（原 ▼ 字形） */
 .expand-arrow {
   margin-left: 8rpx;

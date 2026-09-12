@@ -287,8 +287,9 @@
   justify-content: center;
   line-height: 1;
 
+  /* 按压态改用 --p-red-500（rgb(239,68,68)），比常态 --accent-danger 更深，恢复按压反馈 */
   &:active {
-    background: var(--accent-danger);
+    background: var(--p-red-500);
   }
 }
 

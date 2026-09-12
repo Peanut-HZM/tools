@@ -420,7 +420,7 @@ export default function Calendar() {
         <Text className='tips-text'>• 点击日期选中并查看详情</Text>
         <Text className='tips-text'>• 点击上/下月的灰色日期可切换月份</Text>
         <Text className='tips-text'>• 绿色"休"=法定假日，橙色"班"=调休上班</Text>
-        <Text className='tips-text'>• 粉色文字=传统节日（春节、中秋等）</Text>
+        <Text className='tips-text'>• 紫色文字=传统节日（春节、中秋等）</Text>
       </View>
     </View>
   )

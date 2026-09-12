@@ -289,7 +289,7 @@ export default function CrossShareMessage() {
             <View className='expand-btn' onClick={() => toggleExpand(messageId)}>
               <Text className='expand-text'>展开</Text>
               {/* ▼ 换为 chevron 图标旋转 90°（Icon 表无向下箭头） */}
-              <Icon name='chevron-right' size={14} color='#5B6BF5' className='expand-arrow' />
+              <Icon name='chevron-right' size={14} color='#FFFFFF' className='expand-arrow' />
             </View>
           </View>
         )}
