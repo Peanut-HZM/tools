@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bot, Copy, RefreshCw } from 'lucide-react';
 import { marketplaceApi, MarketAgent } from '../api/marketplaceApi';
+import { iconTintClass } from '../utils/iconTint';
 
 const MarketplacePage: React.FC = () => {
   const [agents, setAgents] = useState<MarketAgent[]>([]);
@@ -89,8 +90,9 @@ const MarketplacePage: React.FC = () => {
                 className="p-4 border border-border rounded-lg bg-surface-1 flex flex-col gap-2"
               >
                 <div className="flex items-center gap-2">
+                  {/* icon_color 改经 tint 色板映射（饱和色块已废弃），图标颜色由 tint 类提供 */}
                   <span
-                    className={`w-8 h-8 rounded ${a.icon_color || 'bg-blue-500'} flex items-center justify-center text-white`}
+                    className={`w-8 h-8 rounded ${iconTintClass(a.icon_color)}`}
                   >
                     <Bot className="w-4 h-4" />
                   </span>

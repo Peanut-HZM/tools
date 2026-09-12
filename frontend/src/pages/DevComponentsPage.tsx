@@ -1,4 +1,6 @@
+import { Globe, Sparkles, CheckCircle2, Boxes, Flame, Trash2, Wand2, Zap, Shapes } from 'lucide-react';
 import { useTheme } from '@/lib/theme';
+import { iconTintClass } from '@/utils/iconTint';
 
 const radiusClasses = { sm: 'rounded-sm', md: 'rounded-md', lg: 'rounded-lg', xl: 'rounded-xl', '2xl': 'rounded-2xl', pill: 'rounded-pill' } as const;
 const shadowClasses = { sm: 'shadow-sm', md: 'shadow-md', lg: 'shadow-lg', xl: 'shadow-xl', glow: 'shadow-glow', focus: 'shadow-focus' } as const;
@@ -170,6 +172,34 @@ export default function DevComponentsPage() {
             <p className="text-body-lg font-medium">悬浮抬升卡片</p>
             <p className="text-body-sm text-ink-muted">鼠标移入试试：上移 4px + 发光描边</p>
           </div>
+        </div>
+      </section>
+      {/* Tint 图标色板：低饱和色底 + 同色描边 + 同色图标（替换饱和色块）。
+          每块经 iconTintClass() 映射后端 iconColor 类名，最后一块演示未知色回退 violet */}
+      <section className="space-y-4">
+        <h2 className="text-heading-lg font-medium">Tint 图标色板</h2>
+        <div className="flex gap-6 flex-wrap">
+          {([
+            { iconColor: 'bg-blue-500',       Icon: Globe },
+            { iconColor: 'bg-violet-500',     Icon: Sparkles },
+            { iconColor: 'bg-emerald-500',    Icon: CheckCircle2 },
+            { iconColor: 'bg-indigo-500',     Icon: Boxes },
+            { iconColor: 'bg-orange-500',     Icon: Flame },
+            { iconColor: 'bg-red-600',        Icon: Trash2 },
+            { iconColor: 'bg-purple-500',     Icon: Wand2 },
+            { iconColor: 'bg-cyan-500',       Icon: Zap },
+            { iconColor: 'bg-chartreuse-900', Icon: Shapes }, // 未知色 → 回退 tint-violet
+          ] as const).map(({ iconColor, Icon }) => (
+            <div key={iconColor} className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-xl ${iconTintClass(iconColor)}`}>
+                <Icon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-body-sm font-mono">{iconTintClass(iconColor)}</p>
+                <p className="text-caption text-ink-faint">{iconColor}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>

@@ -3,6 +3,7 @@ import { ToolCardProps } from '../../types';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { resolveIcon } from '../../utils/iconResolver';
+import { iconTintClass } from '../../utils/iconTint';
 
 export default function ToolCard({
   icon,
@@ -22,7 +23,7 @@ export default function ToolCard({
   return (
     <Card
       onClick={onClick}
-      className="p-6 hover:border-accent transition-all cursor-pointer relative"
+      className="p-6 hover-lift cursor-pointer relative"
     >
       {/* 需登录标签 */}
       {require_login && (
@@ -30,11 +31,11 @@ export default function ToolCard({
           需登录
         </Badge>
       )}
-      <div className={`w-12 h-12 ${iconColor} rounded-lg flex items-center justify-center mb-4`}>
+      <div className={`w-12 h-12 rounded-xl mb-4 ${iconTintClass(iconColor)}`}>
         {custom_icon_url ? (
           <img src={custom_icon_url} alt={title} className="w-6 h-6 object-contain" />
         ) : (
-          <Icon className="w-6 h-6 text-white" />
+          <Icon className="w-6 h-6" />
         )}
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>

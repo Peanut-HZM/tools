@@ -3,16 +3,17 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/cn"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2",
+  "inline-flex items-center rounded-full border border-glass-border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-accent text-white",
-        secondary: "border-transparent bg-surface-2 text-ink",
-        destructive: "border-transparent bg-accent-danger text-white",
+        // 实底色块统一改玻璃底（bg-glass-bg），语义色保留在文字上
+        default: "bg-glass-bg text-white",
+        secondary: "bg-glass-bg text-ink",
+        destructive: "bg-glass-bg text-white",
         outline: "text-ink",
-        success: "border-transparent bg-accent-success text-white",
-        warning: "border-transparent bg-accent-warning text-white",
+        success: "bg-glass-bg text-white",
+        warning: "bg-glass-bg text-white",
         // Tint variants — transparent backgrounds + matching text + soft border
         "tint-success": "border-success/30 bg-success/10 text-success",
         "tint-danger": "border-danger/30 bg-danger/10 text-danger",

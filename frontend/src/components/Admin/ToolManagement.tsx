@@ -20,6 +20,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { resolveIcon, faIconMap, resolveFaIconName } from '../../utils/iconResolver';
+import { iconTintClass } from '../../utils/iconTint';
 import {
   Select,
   SelectContent,
@@ -679,10 +680,11 @@ export default function ToolManagement() {
                     </label>
                   </td>
                   <td className="px-6 py-4 flex items-center">
+                    {/* iconColor 改经 tint 色板映射（饱和色块已废弃），图标颜色由 tint 类提供 */}
                     {tool.custom_icon_url ? (
                       <img src={tool.custom_icon_url} alt={tool.title} className="w-8 h-8 rounded object-contain mr-3 bg-surface-3" />
                     ) : (
-                      <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${tool.iconColor} text-ink mr-3`}>
+                      <div className={`w-8 h-8 rounded-lg mr-3 ${iconTintClass(tool.iconColor)}`}>
                         <DynamicFaIcon iconString={tool.icon} className="w-4 h-4" />
                       </div>
                     )}

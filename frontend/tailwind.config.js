@@ -5,11 +5,10 @@ export default {
     './src/**/*.{js,ts,jsx,tsx}',
   ],
   safelist: [
-    // iconColor classes from backend/app/data/tools_data.py
-    // Tailwind JIT only scans frontend/src — these backend-defined classes
-    // must be safelisted or they won't generate CSS rules
-    'bg-blue-500', 'bg-blue-600', 'bg-violet-500', 'bg-emerald-500',
-    'bg-indigo-500', 'bg-orange-500', 'bg-red-600', 'bg-purple-500',
+    // tint 图标色板类（styles/glass.css 定义）；iconColor 由后端 tools_data.py 下发，
+    // 经 utils/iconTint.ts 映射，这里 safelist 供 JIT 保留
+    // 注意：tint-* 为普通 CSS 类（非 Tailwind 工具类），无需 safelist；
+    // 此处保留空数组占位说明。若后续新增 Tailwind 动态类再加。
   ],
   darkMode: ['selector', '[data-theme="dark"]'],
   theme: {

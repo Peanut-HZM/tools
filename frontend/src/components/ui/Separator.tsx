@@ -11,7 +11,8 @@ const Separator = React.forwardRef<
     decorative={decorative}
     orientation={orientation}
     className={cn(
-      "shrink-0 bg-border",
+      // 分隔线用玻璃描边色，与玻璃卡边框一致
+      "shrink-0 bg-glass-border",
       orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
       className
     )}

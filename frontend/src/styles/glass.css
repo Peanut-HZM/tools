@@ -71,3 +71,20 @@
 @media (prefers-reduced-motion: reduce) {
   .hover-lift:hover { transform: none; }
 }
+
+/* ============================================================
+ * Tint 图标色板：低饱和色底 + 同色描边 + 同色图标（替换饱和色块）
+ * ============================================================ */
+.tint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tint-blue    { color: #60A5FA; background: rgba(59, 130, 246, 0.14);  border: 1px solid rgba(59, 130, 246, 0.28); }
+.tint-violet  { color: #8B9BFF; background: rgba(101, 116, 255, 0.14); border: 1px solid rgba(101, 116, 255, 0.28); }
+.tint-emerald { color: #34D399; background: rgba(52, 211, 153, 0.12);  border: 1px solid rgba(52, 211, 153, 0.28); }
+.tint-indigo  { color: #818CF8; background: rgba(99, 102, 241, 0.14);  border: 1px solid rgba(99, 102, 241, 0.28); }
+.tint-orange  { color: #FB923C; background: rgba(251, 146, 60, 0.13);  border: 1px solid rgba(251, 146, 60, 0.28); }
+.tint-red     { color: #F87171; background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.28); }
+.tint-purple  { color: #C084FC; background: rgba(192, 132, 252, 0.13); border: 1px solid rgba(192, 132, 252, 0.28); }
+.tint-cyan    { color: #22D3EE; background: rgba(34, 211, 238, 0.12);  border: 1px solid rgba(34, 211, 238, 0.28); }
