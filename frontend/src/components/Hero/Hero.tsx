@@ -3,6 +3,7 @@ import CategoryTabs from './CategoryTabs';
 import ToolGrid from './ToolGrid';
 import DeployTimeIndicator from './DeployTimeIndicator';
 import { useI18n } from '../../i18n';
+import { OPEN_COMMAND_PALETTE_EVENT } from '../../lib/navigation';
 
 interface HeroProps {
   activeCategory: Category;
@@ -28,9 +29,9 @@ export default function Hero({ activeCategory, onCategoryChange, tools, onToolCl
         </h1>
         <p className="text-ink-muted text-base mb-8">{t.home.heroSubtitle}</p>
         <div className="flex items-center justify-center gap-4">
-          {/* CTA 复用全局命令面板：派发 open-command-palette 事件（CommandPalette 已监听） */}
+          {/* CTA 复用全局命令面板：派发命令面板打开事件（事件名见 lib/navigation.ts 常量，CommandPalette 已监听） */}
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+            onClick={() => window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT))}
             className="btn-primary rounded-full px-6 h-11 text-sm font-medium inline-flex items-center gap-2"
           >
             {t.home.heroCta}

@@ -1,16 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../../i18n';
+import { NAV_ROUTES } from '../../lib/navigation';
 
 export default function Footer() {
   const { t } = useI18n();
-
-  // 页面导航项：路由与 Header 的 NAV_ITEMS 保持一致，文案复用 i18n 的 nav 键
-  const NAV_ITEMS = [
-    { to: '/', label: t.nav.home },
-    { to: '/marketplace', label: t.nav.marketplace },
-    { to: '/courses', label: t.nav.courses },
-    { to: '/tech-contents', label: t.nav.techContents },
-  ];
 
   return (
     <footer className="border-t border-glass-border bg-surface-1/50 backdrop-blur-md">
@@ -24,16 +17,16 @@ export default function Footer() {
             <p className="mt-2 text-sm text-ink-muted">{t.footer.desc}</p>
           </div>
 
-          {/* 栏2：页面导航 */}
+          {/* 栏2：页面导航（路由单一来源 lib/navigation.ts 的 NAV_ROUTES，match 字段此处不使用） */}
           <nav>
             <ul className="space-y-2">
-              {NAV_ITEMS.map((item) => (
+              {NAV_ROUTES.map((item) => (
                 <li key={item.to}>
                   <Link
                     to={item.to}
                     className="text-sm text-ink-muted transition-colors hover:text-ink"
                   >
-                    {item.label}
+                    {t.nav[item.key]}
                   </Link>
                 </li>
               ))}

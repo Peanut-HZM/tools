@@ -7,6 +7,7 @@ import { useI18n } from '../../i18n';
 import ContactModal from '../ContactModal/ContactModal';
 import { useAuth } from '../../stores/authStore';
 import { useTheme } from '../../lib/theme';
+import { NAV_ROUTES, OPEN_COMMAND_PALETTE_EVENT } from '../../lib/navigation';
 import { Button } from "@/components/ui/Button";
 
 interface HeaderProps {
@@ -23,14 +24,6 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
   // 当前路由路径：用于导航链接激活判定
   const { pathname } = useLocation();
 
-  // 桌面导航项：match 为激活判定函数（首页全等匹配，其余按路径前缀匹配）
-  const NAV_ITEMS = [
-    { to: '/', label: t.nav.home, match: (p: string) => p === '/' },
-    { to: '/marketplace', label: t.nav.marketplace, match: (p: string) => p.startsWith('/marketplace') },
-    { to: '/courses', label: t.nav.courses, match: (p: string) => p.startsWith('/courses') },
-    { to: '/tech-contents', label: t.nav.techContents, match: (p: string) => p.startsWith('/tech-contents') },
-  ];
-
   return (
     <>
       {/* 玻璃悬浮条：glass-panel 提供半透明模糊底 + 描边，去掉左右/顶部边框使其贴边 */}
@@ -45,10 +38,12 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             >
               {t.common.logo}
             </Link>
-            {/* 桌面导航链接（移动端收纳，完整移动端导航属阶段⑦） */}
+            {/* 桌面导航链接（移动端收纳，完整移动端导航属阶段⑦）；
+                路由与激活判定来自 lib/navigation.ts 的 NAV_ROUTES，文案用 t.nav[item.key] */}
             <nav className="hidden md:flex items-center space-x-1">
-              {NAV_ITEMS.map((item) => {
+              {NAV_ROUTES.map((item) => {
                 const isActive = item.match(pathname);
+                const label = t.nav[item.key];
                 return (
                   <Link
                     key={item.to}
@@ -59,7 +54,7 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
                         : 'text-ink-muted hover:text-ink hover:bg-glass-bg'
                     }`}
                   >
-                    {item.label}
+                    {label}
                     {/* 激活态 2px 品牌渐变下划线；非激活渲染透明占位，避免切换页面时布局抖动 */}
                     <span
                       aria-hidden="true"
@@ -83,13 +78,13 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
                 onSearch={onSearch}
               />
             </div>
-            {/* 移动端/平板搜索图标：点击派发 open-command-palette 自定义事件，
+            {/* 移动端/平板搜索图标：点击派发命令面板打开事件（事件名见 lib/navigation.ts 常量），
                 由 Task 12 的命令面板监听并打开（lg 起显示完整搜索条，此按钮隐藏） */}
             <Button
               variant="ghost"
               size="icon"
               className="lg:hidden"
-              onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+              onClick={() => window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT))}
               aria-label={t.common.search}
               title={t.common.search}
             >

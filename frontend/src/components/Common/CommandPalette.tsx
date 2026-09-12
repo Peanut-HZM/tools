@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '../ui/Dialog';
 import { fetchTools } from '../../services/api';
 import { buildCommandItems, filterCommands, PAGE_ITEMS, type CommandItem } from '../../lib/commandPalette';
+import { OPEN_COMMAND_PALETTE_EVENT } from '../../lib/navigation';
 
 /**
  * 全局 ⌘K 命令面板：搜索工具与页面并跳转。
@@ -36,10 +37,10 @@ export default function CommandPalette() {
     };
     const onOpen = () => setOpen(true);
     window.addEventListener('keydown', onKey);
-    window.addEventListener('open-command-palette', onOpen);
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
     return () => {
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('open-command-palette', onOpen);
+      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
     };
   }, []);
 
