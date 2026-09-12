@@ -6,6 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, GraduationCap, Star, User, Eye, Book, MessagesSquare, Inbox } from 'lucide-react';
 import { getCourseDetail, getCourseReviews, submitReview } from '../services/coursePlatform';
 import type { CourseDetail, Review } from '../services/coursePlatform';
+import { Button } from '@/components/ui/Button';
 
 const CourseDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -62,12 +63,10 @@ const CourseDetailPage: React.FC = () => {
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-danger mb-4 mx-auto" />
           <p className="text-ink text-xl">课程不存在</p>
-          <button
-            onClick={() => navigate('/courses')}
-            className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
-          >
+          {/* 错误态主操作走设计系统 default 变体（品牌渐变底），替换手写 bg-accent */}
+          <Button type="button" onClick={() => navigate('/courses')} className="mt-4">
             返回课程列表
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -89,8 +88,8 @@ const CourseDetailPage: React.FC = () => {
 
       {/* 课程信息 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10 pb-12">
-        {/* 课程基本信息卡片 */}
-        <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 p-6 mb-6">
+        {/* 课程基本信息卡片：玻璃卡（描边/模糊/悬浮阴影由 glass-card 统一承担） */}
+        <div className="glass-card rounded-xl p-6 mb-6">
           <h1 className="text-3xl font-bold text-ink mb-4">{course.title}</h1>
 
           {/* 统计数据 */}
@@ -127,14 +126,14 @@ const CourseDetailPage: React.FC = () => {
             </span>
           )}
 
-          {/* 课程描述 */}
-          <div className="prose prose-invert max-w-none">
+          {/* 课程描述：prose 走双主题（dark: 绑定 data-theme），并 token 化标题/正文/链接色，避免亮色主题下 prose-invert 反白 */}
+          <div className="prose dark:prose-invert prose-headings:text-ink prose-p:text-ink-muted prose-a:text-accent max-w-none">
             <p className="text-ink-muted">{course.description}</p>
           </div>
         </div>
 
-        {/* Tab 导航 */}
-        <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden mb-6">
+        {/* Tab 导航：玻璃卡外壳（overflow-hidden 保留圆角裁切） */}
+        <div className="glass-card rounded-xl overflow-hidden mb-6">
           <div className="flex border-b border-border/50">
             <button
               onClick={() => setActiveTab('chapters')}
@@ -172,12 +171,14 @@ const CourseDetailPage: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <button
+                    {/* 章节行主操作走设计系统 default 变体（sm 尺寸贴近原紧凑布局） */}
+                    <Button
+                      type="button"
+                      size="sm"
                       onClick={() => navigate(`/courses/${slug}/learn?chapterId=${chapter.id}`)}
-                      className="px-4 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg text-sm transition-colors"
                     >
                       开始学习
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -185,8 +186,8 @@ const CourseDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 学员评价 - 底部区域 */}
-        <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 p-6">
+        {/* 学员评价 - 底部区域：玻璃卡外壳 */}
+        <div className="glass-card rounded-xl p-6">
           <h3 className="text-xl font-semibold text-ink mb-6 flex items-center">
             <MessagesSquare className="w-4 h-4 text-accent mr-3" />
             学员评价
@@ -216,12 +217,10 @@ const CourseDetailPage: React.FC = () => {
               className="w-full px-4 py-3 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-muted focus:outline-none focus:border-accent"
               rows={3}
             />
-            <button
-              onClick={handleSubmitReview}
-              className="mt-3 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
-            >
+            {/* 提交评价主操作走设计系统 default 变体 */}
+            <Button type="button" onClick={handleSubmitReview} className="mt-3">
               提交评价
-            </button>
+            </Button>
           </div>
 
           {/* 评价列表 */}

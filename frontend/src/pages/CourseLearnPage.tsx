@@ -16,6 +16,7 @@ import {
   type CourseDetail,
   type CourseChapter,
 } from '../services/coursePlatform';
+import { Button } from '@/components/ui/Button';
 
 interface ChapterProgress {
   chapter_id: number;
@@ -181,12 +182,10 @@ const CourseLearnPage: React.FC = () => {
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-danger mb-4 mx-auto" />
           <p className="text-ink text-xl">课程不存在</p>
-          <button
-            onClick={() => navigate('/courses')}
-            className="mt-4 px-6 py-2 bg-accent hover:bg-accent-hover text-ink-inverse rounded-lg transition-colors"
-          >
+          {/* 错误态主操作走设计系统 default 变体（与详情页同款处理），替换手写 bg-accent */}
+          <Button type="button" onClick={() => navigate('/courses')} className="mt-4">
             返回课程列表
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -194,8 +193,8 @@ const CourseLearnPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
-      {/* Header */}
-      <header className="bg-surface-1/50 backdrop-blur-sm border-b border-border/50">
+      {/* Header：玻璃面板（去左右/顶部描边使其贴边），底部描边由 glass-panel 的玻璃边框承担 */}
+      <header className="glass-panel border-x-0 border-t-0 rounded-none">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -234,7 +233,8 @@ const CourseLearnPage: React.FC = () => {
       {/* Main Content */}
       <div className="flex h-[calc(100vh-80px)]">
         {/* Left Sidebar - Chapter Navigation */}
-        <aside className="w-80 bg-surface-1/30 backdrop-blur-sm border-r border-border/50 overflow-y-auto">
+        {/* 侧栏为全高面板：用 glass-panel 强底色 + 去上/下/左描边，仅保留右侧玻璃描边与主内容区分隔 */}
+        <aside className="w-80 glass-panel rounded-none border-y-0 border-l-0 overflow-y-auto">
           <div className="p-4">
             <h2 className="text-lg font-semibold text-ink mb-4">📚 课程章节</h2>
             <div className="space-y-2">
@@ -281,7 +281,8 @@ const CourseLearnPage: React.FC = () => {
             {!enrolled ? (
               /* 未报名状态 - 显示课程详情和报名表单 */
               <div className="max-w-3xl mx-auto">
-                <div className="bg-surface-1/50 backdrop-blur-sm rounded-2xl border border-border/50 p-8 text-center">
+                {/* 报名卡：玻璃卡外壳（内含报名 CTA，与页面其余玻璃卡保持一致） */}
+                <div className="glass-card rounded-xl p-8 text-center">
                   <div className="mb-6">
                     <GraduationCap className="w-12 h-12 text-accent mx-auto" />
                   </div>
@@ -311,13 +312,15 @@ const CourseLearnPage: React.FC = () => {
                       <div className="text-sm text-ink-muted">评分</div>
                     </div>
                   </div>
-                  <button
+                  {/* 报名 CTA 走设计系统 default 变体（btn-primary 品牌渐变底 + 发光阴影 token），保留原文案/图标/尺寸语义 */}
+                  <Button
+                    type="button"
                     onClick={handleEnroll}
-                    className="px-8 py-4 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-ink-inverse font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-accent/25"
+                    className="h-auto px-8 py-4 rounded-xl font-semibold"
                   >
                     <BookOpen className="w-4 h-4 mr-2 inline" />
                     免费报名开始学习
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : currentChapter ? (
@@ -336,9 +339,9 @@ const CourseLearnPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Video Section (if available) */}
+                {/* Video Section (if available)：玻璃卡外壳 */}
                 {currentChapter.video_url && (
-                  <div className="mb-8 bg-surface-1/50 rounded-xl p-6 border border-border/50">
+                  <div className="mb-8 glass-card rounded-xl p-6">
                     <div className="aspect-video bg-canvas rounded-lg flex items-center justify-center">
                       <div className="text-center">
                         <PlayCircle className="w-12 h-12 text-accent mb-4 mx-auto" />
@@ -349,9 +352,10 @@ const CourseLearnPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Content */}
-                <div className="bg-surface-1/50 backdrop-blur-sm rounded-xl p-8 border border-border/50 mb-8">
-                  <div className="prose prose-invert prose-lg max-w-none text-ink/80">
+                {/* Content：玻璃卡外壳 */}
+                <div className="glass-card rounded-xl p-8 mb-8">
+                  {/* 章节正文 prose 走双主题（dark: 绑定 data-theme），token 化标题/正文/链接色，避免亮色主题下 prose-invert 反白 */}
+                  <div className="prose dark:prose-invert prose-headings:text-ink prose-p:text-ink-muted prose-a:text-accent prose-lg max-w-none text-ink/80">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       rehypePlugins={[rehypeHighlight, rehypeSanitize]}
