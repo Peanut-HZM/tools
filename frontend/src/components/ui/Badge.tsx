@@ -7,13 +7,15 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        // 实底色块统一改玻璃底（bg-glass-bg），语义色保留在文字上
-        default: "bg-glass-bg text-white",
+        // 中性 variant：玻璃底 + ink 文字（亮/暗主题均可读）
+        default: "bg-glass-bg text-ink",
         secondary: "bg-glass-bg text-ink",
-        destructive: "bg-glass-bg text-white",
         outline: "text-ink",
-        success: "bg-glass-bg text-white",
-        warning: "bg-glass-bg text-white",
+        // 语义 variant：低饱和语义色底 + 语义色文字 + 同色软描边（与 tint 图标同思路，
+        // 保证亮/暗双主题可读；border 宽度由 base 的 border 提供，这里只覆盖颜色）
+        destructive: "bg-[rgba(248,113,113,0.12)] text-accent-danger border-[rgba(248,113,113,0.3)]",
+        success: "bg-[rgba(52,211,153,0.12)] text-accent-success border-[rgba(52,211,153,0.3)]",
+        warning: "bg-[rgba(251,191,36,0.12)] text-accent-warning border-[rgba(251,191,36,0.3)]",
         // Tint variants — transparent backgrounds + matching text + soft border
         "tint-success": "border-success/30 bg-success/10 text-success",
         "tint-danger": "border-danger/30 bg-danger/10 text-danger",
