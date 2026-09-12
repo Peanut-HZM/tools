@@ -37,14 +37,7 @@ body {
   box-shadow: var(--shadow-focus);
 }
 
-.category-tab.active {
-  background-color: rgb(var(--accent-primary));
-  color: white;
-}
-
-.category-tab {
-  transition: all var(--duration-fast) var(--ease-stripe);
-}
+/* 分类 Tab 已迁移至 CategoryTabs 组件内的玻璃胶囊样式（Tailwind 类），旧 .category-tab 业务类随之删除 */
 
 /* ============================================================
  * 弹框 / 进入动画

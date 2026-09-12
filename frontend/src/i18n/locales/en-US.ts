@@ -100,6 +100,16 @@ export const enUS = {
     subtitle: 'One-stop collection of practical tools to improve work efficiency and simplify daily tasks. From text processing to format conversion, from calculation aids to design tools, everything you need is here.',
   },
 
+  // 首页 Hero 大标题主视觉（Task 14 玻璃光晕改版）
+  home: {
+    heroBadge: '✦ Newly Upgraded',
+    // 注意：保留尾随空格，保证英文下标题与渐变强调词之间有空隙
+    heroTitle: 'One-stop ',
+    heroTitleAccent: 'Developer Toolbox',
+    heroSubtitle: '20+ curated tools · ready to use · cloud synced',
+    heroCta: 'Start Exploring',
+  },
+
   // Features
   features: {
     whyChoose: 'Why Choose Us',

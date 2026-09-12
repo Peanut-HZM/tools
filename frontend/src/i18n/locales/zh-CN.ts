@@ -100,6 +100,15 @@ export const zhCN = {
     subtitle: '一站式实用工具集合，提升工作效率，简化日常任务。从文本处理到格式转换，从计算辅助到设计工具，应有尽有。',
   },
 
+  // 首页 Hero 大标题主视觉（Task 14 玻璃光晕改版）
+  home: {
+    heroBadge: '✦ 全新升级',
+    heroTitle: '一站式',
+    heroTitleAccent: '开发者工具箱',
+    heroSubtitle: '20+ 精选工具 · 即开即用 · 数据云端同步',
+    heroCta: '开始探索',
+  },
+
   // Features
   features: {
     whyChoose: '为什么选择',
