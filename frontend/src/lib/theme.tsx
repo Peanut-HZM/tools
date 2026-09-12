@@ -61,6 +61,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setResolved(resolveTheme(theme));
   }, [theme]);
 
+  // 挂载/主题变化时把已解析主题写入 <html data-theme>：
+  // applyTheme 原先仅在 setTheme（用户点击）时执行，刷新页面后
+  // 持久化的亮色主题不会应用到 DOM，视觉回暗但按钮仍显示亮色。
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', resolved);
+  }, [resolved]);
+
   return (
     <ThemeContext.Provider value={{ theme, resolved, setTheme }}>
       {children}

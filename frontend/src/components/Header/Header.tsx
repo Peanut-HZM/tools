@@ -75,20 +75,20 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
 
           {/* 右侧：搜索 + 功能按钮组 */}
           <div className="flex items-center space-x-2 shrink-0">
-            {/* 桌面端搜索条 */}
-            <div className="hidden md:block">
+            {/* 桌面端搜索条（lg 起显示：md 区间容器宽度不足以同时容纳完整导航与搜索条，改用搜索图标按钮打开 ⌘K 面板） */}
+            <div className="hidden lg:block">
               <SearchBar
                 value={searchValue}
                 onChange={onSearchChange}
                 onSearch={onSearch}
               />
             </div>
-            {/* 移动端搜索图标：点击派发 open-command-palette 自定义事件，
-                由 Task 12 的命令面板监听并打开（跨任务约定，面板实现前点击暂无响应） */}
+            {/* 移动端/平板搜索图标：点击派发 open-command-palette 自定义事件，
+                由 Task 12 的命令面板监听并打开（lg 起显示完整搜索条，此按钮隐藏） */}
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="lg:hidden"
               onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
               aria-label={t.common.search}
               title={t.common.search}
