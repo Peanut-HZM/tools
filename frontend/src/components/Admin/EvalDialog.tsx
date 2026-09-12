@@ -100,7 +100,7 @@ const EvalDialog: React.FC<EvalDialogProps> = ({ agentId, agentName, onClose }) 
             </button>
             <button
               type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-60"
+              className="btn-primary px-4 py-2 rounded disabled:opacity-60"
               disabled={running}
             >
               {running ? '评测中（含 LLM 调用，可能较慢）...' : '运行评测'}
@@ -141,7 +141,7 @@ const EvalDialog: React.FC<EvalDialogProps> = ({ agentId, agentName, onClose }) 
                         c.status === 'error'
                           ? 'text-danger'
                           : c.score >= 0.7
-                            ? 'text-green-600'
+                            ? 'text-accent-success'
                             : 'text-warning'
                       }
                     >

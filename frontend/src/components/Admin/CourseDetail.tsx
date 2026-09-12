@@ -7,7 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { Loader2, ArrowLeft, GraduationCap, Download, Upload, Pencil, Plus, Users, Star, BookOpen, ChevronRight, ClipboardCheck, FolderOpen } from 'lucide-react';
+import { ArrowLeft, GraduationCap, Download, Upload, Pencil, Plus, Users, Star, BookOpen, ChevronRight, ClipboardCheck, FolderOpen } from 'lucide-react';
 import { useChapterStore, useQuizStore, useResourceStore, useCourseAdminStore } from '../../stores/courseAdminStore';
 import ChapterList from './CourseManagement/ChapterList';
 import ChapterForm from './CourseManagement/ChapterForm';
@@ -119,7 +119,8 @@ export default function CourseDetail() {
   if (!course) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-ink-muted">
-        <Loader2 className="w-16 h-16 mb-4 animate-spin" />
+        {/* 加载态：Admin 域标准 border spinner */}
+        <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin mb-4"></div>
         <p>加载中...</p>
       </div>
     );
@@ -179,7 +180,7 @@ export default function CourseDetail() {
           {/* 编辑课程按钮 */}
           <button
             onClick={handleEditCourse}
-            className="group px-5 py-2.5 bg-gradient-to-r from-accent-secondary/10 to-pink-500/10 hover:from-accent-secondary/20 hover:to-pink-500/20 border border-accent-secondary/30 hover:border-accent-secondary text-accent-secondary rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent-secondary/10 hover:shadow-accent-secondary/20"
+            className="group px-5 py-2.5 bg-gradient-to-r from-accent-secondary/10 to-accent-secondary/10 hover:from-accent-secondary/20 hover:to-accent-secondary/20 border border-accent-secondary/30 hover:border-accent-secondary text-accent-secondary rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent-secondary/10 hover:shadow-accent-secondary/20"
           >
             <Pencil className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>编辑课程</span>

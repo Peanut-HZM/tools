@@ -504,11 +504,12 @@ export default function AgentManagement() {
       {/* Agent列表 */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+          {/* 加载态：Admin 域标准 border spinner */}
+          <div className="inline-block h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>
           <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : agents.length === 0 ? (
-        <div className="bg-surface-2 rounded-lg p-12 text-center border border-border">
+        <div className="glass-card rounded-xl p-12 text-center">
           <div className="text-6xl mb-4">🤖</div>
           <h3 className="text-lg font-medium text-ink mb-2">暂无Agent</h3>
           <p className="text-ink-muted mb-4">添加一个Agent以开始使用</p>
@@ -570,7 +571,7 @@ export default function AgentManagement() {
                       </button>
                       <button
                         onClick={() => setDashAgent(agent)}
-                        className="px-3 py-1 text-sm bg-blue-500/20 text-blue-600 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors"
+                        className="px-3 py-1 text-sm bg-accent-info/10 text-accent-info border border-accent-info/30 rounded hover:bg-accent-info/20 transition-colors"
                       >
                         仪表盘
                       </button>

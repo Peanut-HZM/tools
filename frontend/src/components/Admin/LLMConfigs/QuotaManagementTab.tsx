@@ -152,7 +152,8 @@ export default function QuotaManagementTab() {
       {/* 列表 */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-info"></div>
+          {/* 加载态：Admin 域标准 border spinner */}
+          <div className="inline-block h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>
           <p className="text-ink-muted mt-2">加载中...</p>
         </div>
       ) : (
@@ -163,7 +164,7 @@ export default function QuotaManagementTab() {
           </div>
 
           {items.length === 0 ? (
-            <Card className="bg-surface-2 p-12 text-center">
+            <Card className="p-12 text-center">
               <div className="text-6xl mb-4"></div>
               <h3 className="text-lg font-medium text-ink mb-2">暂无配额记录</h3>
               <p className="text-ink-muted mb-4">点击「分配额度」为用户创建配额</p>
@@ -552,7 +553,7 @@ function GrantModal({
                   type="checkbox"
                   checked={permanent}
                   onChange={(e) => setPermanent(e.target.checked)}
-                  className="w-4 h-4 accent-cyan-500"
+                  className="w-4 h-4 accent-cyan"
                 />
                 <label htmlFor="permanent-checkbox" className="text-sm text-ink cursor-pointer select-none">
                   永久有效（不设置生效时间/过期时间）

@@ -47,7 +47,7 @@ const TestResultDialog: React.FC<Props> = ({ result, onClose }) => {
         <div className="flex justify-end mt-6">
           <button
             onClick={onClose}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="btn-primary px-4 py-2 rounded"
           >
             关闭
           </button>

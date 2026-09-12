@@ -68,14 +68,15 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
     return icons[type] || <File className="w-5 h-5 text-ink" />;
   };
 
+  // 资源类型分类色标：统一品牌系（渐变/纯色交替），替代旧饱和色渐变
   const getResourceColor = (type: string) => {
     const colors: Record<string, string> = {
-      code_sample: 'from-blue-500 to-cyan-500',
-      contrast: 'from-purple-500 to-pink-500',
-      video: 'from-red-500 to-orange-500',
-      template: 'from-success to-emerald-500',
+      code_sample: 'bg-[image:var(--gradient-brand)]',
+      contrast: 'bg-accent-info',
+      video: 'bg-accent-danger',
+      template: 'bg-accent-success',
     };
-    return colors[type] || 'from-slate-500 to-gray-500';
+    return colors[type] || 'bg-ink-muted';
   };
 
   const getTypeLabel = (type: string) => {
@@ -153,7 +154,8 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
             {loadingResourceId === selectedChapterId ? (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-info mx-auto mb-4"></div>
+                  {/* 加载态：Admin 域标准 border spinner */}
+                  <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin mx-auto mb-4"></div>
                   <p className="text-ink-muted">加载中...</p>
                 </div>
               </div>
@@ -166,7 +168,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${getResourceColor(resource.resource_type)} rounded-xl flex items-center justify-center`}>
+                        <div className={`w-12 h-12 ${getResourceColor(resource.resource_type)} rounded-xl flex items-center justify-center`}>
                           {getResourceIcon(resource.resource_type)}
                         </div>
                         <div>

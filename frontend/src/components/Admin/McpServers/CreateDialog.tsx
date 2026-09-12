@@ -269,7 +269,7 @@ const CreateDialog: React.FC<Props> = ({ server, onClose, onCreate, onUpdate }) 
             </button>
             <button
               type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-60"
+              className="btn-primary px-4 py-2 rounded disabled:opacity-60"
               disabled={submitting}
             >
               {submitting ? '保存中...' : server ? '保存' : '创建'}

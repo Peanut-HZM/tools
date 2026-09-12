@@ -105,7 +105,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-accent-info/20 to-blue-500/20 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-accent-info/20 to-accent-info/20 rounded-lg flex items-center justify-center mr-3">
                       {getTypeIcon(chapter.chapter_type)}
                     </div>
                     <span className="text-white font-medium">{chapter.title}</span>
@@ -162,7 +162,7 @@ const ChapterList: React.FC<ChapterListProps> = ({
         </table>
       </div>
       {chapters.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16">
+        <div className="glass-card rounded-xl px-6 py-10 flex flex-col items-center justify-center">
           <div className="w-20 h-20 bg-surface-2/30 rounded-full flex items-center justify-center mb-4">
             <BookOpen className="w-16 h-16 text-ink-faint" />
           </div>

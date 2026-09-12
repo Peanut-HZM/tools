@@ -96,7 +96,13 @@ const McpServers: React.FC = () => {
   };
 
   if (loading && servers.length === 0) {
-    return <div className="p-4 text-ink-muted">加载中...</div>;
+    return (
+      <div className="p-6 text-center">
+        {/* 加载态：Admin 域标准 border spinner */}
+        <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin mx-auto mb-4"></div>
+        <p className="text-ink-muted">加载中...</p>
+      </div>
+    );
   }
 
   return (
@@ -105,7 +111,7 @@ const McpServers: React.FC = () => {
         <h1 className="text-2xl font-bold">MCP Servers</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+          className="btn-primary px-4 py-2 rounded flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> 添加 Server
         </button>
@@ -132,11 +138,11 @@ const McpServers: React.FC = () => {
           <tbody className="divide-y divide-border">
             {servers.length === 0 ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-8 text-center text-ink-faint text-sm"
-                >
-                  暂无 MCP server，点击右上角"添加 Server"创建
+                <td colSpan={6} className="px-6 py-8 text-center">
+                  {/* 空态：Admin 域标准玻璃容器 */}
+                  <div className="glass-card rounded-xl px-6 py-10 text-sm text-ink-faint">
+                    暂无 MCP server，点击右上角"添加 Server"创建
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -148,11 +154,11 @@ const McpServers: React.FC = () => {
                   <td className="px-4 py-3 text-center">{server.tools_count}</td>
                   <td className="px-4 py-3 text-center">
                     {server.is_active ? (
-                      <span className="text-green-600 flex items-center justify-center gap-1">
+                      <span className="text-accent-success flex items-center justify-center gap-1">
                         <Wifi className="w-4 h-4" /> Active
                       </span>
                     ) : (
-                      <span className="text-gray-400 flex items-center justify-center gap-1">
+                      <span className="text-ink-faint flex items-center justify-center gap-1">
                         <WifiOff className="w-4 h-4" /> Inactive
                       </span>
                     )}
@@ -165,35 +171,35 @@ const McpServers: React.FC = () => {
                   <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                     <button
                       onClick={() => handleTest(server.id)}
-                      className="text-blue-500 hover:text-blue-700"
+                      className="text-accent-info hover:text-accent-info/80 transition-colors"
                       title="测试连接"
                     >
                       <RefreshCw className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleSync(server.id)}
-                      className="text-cyan-500 hover:text-cyan-700"
+                      className="text-accent-cyan hover:text-accent-cyan/80 transition-colors"
                       title="同步工具"
                     >
                       <RefreshCw className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setEditingServer(server)}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-ink-muted hover:text-ink transition-colors"
                       title="编辑"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleToggleActive(server)}
-                      className="text-yellow-500 hover:text-yellow-700"
+                      className="text-accent-warning hover:text-accent-warning/80 transition-colors"
                       title={server.is_active ? '禁用' : '启用'}
                     >
                       {server.is_active ? <WifiOff className="w-4 h-4" /> : <Wifi className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => handleDelete(server.id)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-danger hover:text-danger/80 transition-colors"
                       title="删除"
                     >
                       <Trash2 className="w-4 h-4" />

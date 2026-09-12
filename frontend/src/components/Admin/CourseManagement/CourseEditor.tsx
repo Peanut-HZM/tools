@@ -265,7 +265,7 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ courseId, onClose }) => {
               </div>
               <div className="bg-surface-1/50 rounded-xl overflow-hidden border border-border/50">
                 {/* 封面图预览 */}
-                <div className="aspect-video bg-gradient-to-br from-accent-info/20 to-blue-600/20 flex items-center justify-center relative overflow-hidden">
+                <div className="aspect-video bg-gradient-to-br from-accent-info/20 to-accent-info/20 flex items-center justify-center relative overflow-hidden">
                   {formData.cover_image ? (
                     <img
                       src={formData.cover_image}
