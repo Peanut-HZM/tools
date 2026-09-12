@@ -20,7 +20,8 @@ const buttonVariants = cva(
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-lg px-3",
         lg: "h-11 rounded-lg px-8",
-        icon: "h-10 w-10",
+        // 图标按钮统一 44px（h-11），满足移动端触控目标 ≥44px 的可达性要求
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {

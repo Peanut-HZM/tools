@@ -200,7 +200,9 @@ const CourseLearnPage: React.FC = () => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate(`/courses/${slug}`)}
-                className="text-ink/80 hover:text-ink transition-colors"
+                title="返回课程详情"
+                aria-label="返回课程详情"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink/80 transition-colors hover:bg-glass-bg hover:text-ink"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>

@@ -231,16 +231,17 @@ export default function TechContentDetailPage() {
           </article>
 
           {/* 互动区：点赞/收藏/分享走 ghost 变体玻璃容器，图标与文案语义保持不变 */}
+          {/* min-h/min-w 44px 保证触控目标达标；同排三键统一尺寸避免基线错位 */}
           <div className="flex items-center gap-4 mt-12 pt-8 border-t border-border">
-            <Button variant="ghost" className="gap-2">
+            <Button variant="ghost" className="min-h-[44px] min-w-[44px] gap-2">
               <ThumbsUp className="w-4 h-4" />
               点赞 ({content.likes})
             </Button>
-            <Button variant="ghost" className="gap-2">
+            <Button variant="ghost" className="min-h-[44px] min-w-[44px] gap-2">
               <Bookmark className="w-4 h-4" />
               收藏 ({content.bookmarks})
             </Button>
-            <Button variant="ghost" className="gap-2">
+            <Button variant="ghost" className="min-h-[44px] min-w-[44px] gap-2">
               <Share2 className="w-4 h-4" />
               分享
             </Button>
