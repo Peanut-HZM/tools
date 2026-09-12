@@ -48,10 +48,12 @@
 }
 
 /* 渐变描边（双背景法：内容底 + 渐变边）。用法：元素本身 border transparent */
+/* 注意：--bg-surface-1 是 "R G B" 三元组（供 Tailwind rgb(var() / alpha) 拼接），
+ * 直接放进 linear-gradient 会整条 background 声明失效，必须用 rgb() 包裹 */
 .gradient-border {
   border: 1px solid transparent;
   background:
-    linear-gradient(var(--bg-surface-1), var(--bg-surface-1)) padding-box,
+    linear-gradient(rgb(var(--bg-surface-1)), rgb(var(--bg-surface-1))) padding-box,
     var(--gradient-brand) border-box;
 }
 
