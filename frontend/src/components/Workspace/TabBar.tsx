@@ -9,7 +9,8 @@ export const TabBar: React.FC = () => {
   const { tabs, activeTabId, setActiveTab, removeTab, isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
 
   return (
-    <div className="flex items-end bg-surface-1 border-b border-border h-10 px-2 gap-0.5 overflow-x-auto">
+    <div className="flex items-end glass-panel border-x-0 border-t-0 rounded-none h-10 px-2 gap-0.5 overflow-x-auto">
+      {/* 玻璃化改版：标签栏走 glass-panel 玻璃底，贴边展示故去掉左右/顶部描边（同 Header 悬浮条模式） */}
       {/* 工具列表展开/折叠按钮 */}
       <button
         onClick={toggleToolSidebar}
@@ -30,10 +31,11 @@ export const TabBar: React.FC = () => {
             data-tab-id={tab.id}
             data-active={isActive}
             className={[
-              'flex items-center gap-2 px-3 py-1.5 rounded-t-md text-sm cursor-pointer transition-colors min-w-0 max-w-[180px] group',
+              // 玻璃化改版：chip 改为圆角胶囊，激活态用品牌渐变底 + 发光阴影，非激活态用玻璃底 hover 提亮
+              'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors min-w-0 max-w-[180px] group',
               isActive
-                ? 'bg-canvas text-ink border-t border-l border-r border-border'
-                : 'bg-surface-1 text-ink-muted hover:text-ink hover:bg-surface-2',
+                ? 'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)]'
+                : 'text-ink-muted hover:text-ink hover:bg-glass-bg',
             ].join(' ')}
             onClick={() => setActiveTab(tab.id)}
           >
