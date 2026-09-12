@@ -20,8 +20,9 @@ export default function CategoryTabs({ categories, activeCategory, onCategoryCha
           key={category}
           onClick={() => onCategoryChange(category)}
           className={cn(
-            // 公共胶囊样式：不换行 + 过渡动画
+            // 公共胶囊样式：不换行 + 过渡动画；focus-visible 焦点环与设计系统 Button 基类保持一致
             'rounded-full px-4 py-1.5 text-sm whitespace-nowrap transition-all duration-200',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
             activeCategory === category
               ? // 激活态：品牌渐变底 + 品牌色发光阴影
                 'text-white bg-[image:var(--gradient-brand)] shadow-[0_4px_14px_rgba(120,90,250,0.35)]'
