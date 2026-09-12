@@ -58,6 +58,8 @@ export const zhCN = {
     contactUs: '联系我们',
     admin: '后台管理',
     marketplace: 'Agent 市场',
+    courses: '课程',
+    techContents: '技术内容',
   },
 
   // Auth

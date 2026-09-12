@@ -58,6 +58,8 @@ export const enUS = {
     contactUs: 'Contact Us',
     admin: 'Admin',
     marketplace: 'Agent Market',
+    courses: 'Courses',
+    techContents: 'Tech Content',
   },
 
   // Auth
