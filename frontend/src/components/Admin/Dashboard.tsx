@@ -27,7 +27,8 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent mx-auto mb-4"></div>
+          {/* Admin 域标准加载 spinner（玻璃化规范统一，后续页面复用） */}
+          <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin mx-auto mb-4"></div>
           <p className="text-ink-muted">加载中...</p>
         </div>
       </div>
@@ -56,7 +57,7 @@ export default function Dashboard() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* 总工具数卡片 */}
-        <div className="group bg-surface-2 rounded-xl p-6 border border-border hover:border-accent transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <div className="group glass-card hover-lift rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center">
               <Wrench className="w-5 h-5 text-white" />
@@ -68,7 +69,7 @@ export default function Dashboard() {
         </div>
 
         {/* 总访问次数卡片 */}
-        <div className="group bg-surface-2 rounded-xl p-6 border border-border hover:border-accent transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <div className="group glass-card hover-lift rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-accent-secondary to-accent rounded-lg flex items-center justify-center">
               <LineChart className="w-5 h-5 text-white" />
@@ -80,22 +81,24 @@ export default function Dashboard() {
         </div>
 
         {/* 新增卡片 - 平均访问 */}
-        <div className="group bg-surface-2 rounded-xl p-6 border border-border hover:border-accent-secondary transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <div className="group glass-card hover-lift rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-accent-secondary to-purple-500 rounded-lg flex items-center justify-center">
+            {/* 装饰性品牌渐变图标底：中性指标卡，无成功/失败状态语义 */}
+            <div className="w-12 h-12 bg-[image:var(--gradient-brand)] rounded-lg flex items-center justify-center">
               <Calculator className="w-5 h-5 text-white" />
             </div>
             <span className="text-xs text-ink-faint uppercase font-medium">平均值</span>
           </div>
           <h3 className="text-ink-muted text-sm font-medium mb-1">平均访问/工具</h3>
-          <p className="text-4xl font-bold bg-gradient-to-r from-accent-secondary to-purple-500 bg-clip-text text-transparent">
+          {/* 装饰性品牌渐变数字（非状态色语义），沿用 bg-clip-text 渐变文字模式 */}
+          <p className="text-4xl font-bold bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">
             {stats.total_tools > 0 ? Math.round(stats.total_visits / stats.total_tools).toLocaleString() : 0}
           </p>
         </div>
       </div>
 
       {/* Popular Tools Chart/Table */}
-      <div className="bg-surface-2 rounded-xl p-6 border border-border shadow-sm">
+      <div className="glass-card rounded-xl overflow-hidden p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-bold text-ink flex items-center">
@@ -123,14 +126,17 @@ export default function Dashboard() {
             <tbody className="divide-y divide-border/50">
               {stats.popular_tools.length === 0 ? (
                 <tr>
+                  {/* 空态：Admin 域标准玻璃容器，保留原 Inbox 图标与文案 */}
                   <td colSpan={5} className="px-6 py-12 text-center">
-                    <Inbox className="w-16 h-16 text-ink-faint mb-4" />
-                    <p className="text-ink-faint">暂无数据</p>
+                    <div className="glass-card rounded-xl px-6 py-10">
+                      <Inbox className="w-16 h-16 text-ink-faint mb-4" />
+                      <p className="text-ink-faint">暂无数据</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 stats.popular_tools.map((tool, index) => (
-                  <tr key={tool.tool_id} className="hover:bg-surface-3 transition-colors">
+                  <tr key={tool.tool_id} className="hover:bg-glass-bg transition-colors">
                     <td className="px-6 py-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
                         index === 0 ? 'bg-warning/20 text-warning' :
