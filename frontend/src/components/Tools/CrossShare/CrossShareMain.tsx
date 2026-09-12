@@ -122,7 +122,7 @@ const CrossShareMain: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent mx-auto mb-4"></div>
           <div className="text-ink-muted text-xl">正在加载 CrossShare...</div>
         </div>
       </div>

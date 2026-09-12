@@ -128,7 +128,7 @@ export default function DeviceManagerModal({
 
         <div className="flex-1 overflow-auto p-4">
           {error && (
-            <div className="mb-3 rounded-md border border-red-500/30 bg-danger/10 px-3 py-2 text-sm text-red-200">
+            <div className="mb-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
               <AlertCircle className="mr-1 inline h-4 w-4" />
               {error}
             </div>
@@ -178,7 +178,7 @@ export default function DeviceManagerModal({
                 key={device.id}
                 className={`flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm ${
                   selectedIds.has(device.id)
-                    ? 'border-blue-500/50 bg-accent-info/10'
+                    ? 'border-accent-info/50 bg-accent-info/10'
                     : 'border-border bg-canvas'
                 }`}
               >

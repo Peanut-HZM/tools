@@ -79,7 +79,7 @@ const SettingsPanel: React.FC = () => {
               onChange={(e) =>
                 setConfig({ ...config, max_file_size: Number(e.target.value) * 1024 * 1024 })
               }
-              className="focus-visible:border-blue-500"
+              className="focus-visible:border-accent"
               min="1"
               max="10240"
             />
@@ -99,7 +99,7 @@ const SettingsPanel: React.FC = () => {
               onChange={(e) =>
                 setConfig({ ...config, storage_quota: Number(e.target.value) * 1024 * 1024 * 1024 })
               }
-              className="focus-visible:border-blue-500"
+              className="focus-visible:border-accent"
               min="1"
               max="1024"
             />
@@ -119,7 +119,7 @@ const SettingsPanel: React.FC = () => {
               onChange={(e) =>
                 setConfig({ ...config, file_expire_days: Number(e.target.value) })
               }
-              className="focus-visible:border-blue-500"
+              className="focus-visible:border-accent"
               min="1"
               max="365"
             />

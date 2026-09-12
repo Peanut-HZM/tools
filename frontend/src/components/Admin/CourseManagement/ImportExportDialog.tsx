@@ -550,7 +550,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               >
                 取消
               </button>
-              {/* 主 CTA 走设计系统 .btn-primary 品牌渐变 + 发光阴影 token（自带白字/阴影，故移除原 amber 渐变与 shadow-warning 类） */}
+              {/* 主 CTA 走设计系统 .btn-primary 品牌渐变 + 发光阴影 token（自带白字/阴影，故移除原琥珀色渐变与警示阴影类） */}
               <button
                 onClick={handlePreviewImport}
                 disabled={!selectedFile || loading}

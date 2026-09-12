@@ -42,7 +42,13 @@ export const TabBar: React.FC = () => {
             <Icon className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">{tab.toolName}</span>
             <button
-              className="ml-1 text-ink-faint hover:text-ink hover:bg-surface-3 rounded px-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              className={[
+                // 关闭 ×：激活态在品牌渐变底上用白色系保证可读性；非激活态沿用墨色 hover
+                'ml-1 rounded px-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity',
+                isActive
+                  ? 'text-white/70 hover:text-white hover:bg-white/20'
+                  : 'text-ink-faint hover:text-ink hover:bg-surface-3',
+              ].join(' ')}
               onClick={(e) => {
                 e.stopPropagation();
                 removeTab(tab.id);

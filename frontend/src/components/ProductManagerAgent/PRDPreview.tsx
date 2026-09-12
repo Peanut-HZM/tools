@@ -75,7 +75,7 @@ const PRDPreview: React.FC<PRDPreviewProps> = ({
           svgMap[block.id] = svg;
         } catch (e) {
           console.error(`渲染图表 ${block.id} 失败:`, e);
-          svgMap[block.id] = '<div class="text-red-500">图表渲染失败</div>';
+          svgMap[block.id] = '<div class="text-danger">图表渲染失败</div>';
         }
       }
       

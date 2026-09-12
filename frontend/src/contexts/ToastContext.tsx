@@ -35,12 +35,12 @@ const typeIcons: Record<ToastType, string> = {
 };
 
 // 类型对应的左侧色条与图标颜色（style 内联使用 rgb(var()) 形式，随主题 accent token 联动）
-// icon 色与 border 同源（同一 accent 变量、同透明度）
+// icon 用实色：0.3 透明度图标对比度约 2:1，低于 WCAG 非文本元素 3:1 要求；border 保留 /0.3 弱化色条
 const typeColors: Record<ToastType, { border: string; icon: string }> = {
-  success: { border: 'rgb(var(--accent-success) / 0.3)', icon: 'rgb(var(--accent-success) / 0.3)' },
-  error: { border: 'rgb(var(--accent-danger) / 0.3)', icon: 'rgb(var(--accent-danger) / 0.3)' },
-  warning: { border: 'rgb(var(--accent-warning) / 0.3)', icon: 'rgb(var(--accent-warning) / 0.3)' },
-  info: { border: 'rgb(var(--accent-info) / 0.3)', icon: 'rgb(var(--accent-info) / 0.3)' },
+  success: { border: 'rgb(var(--accent-success) / 0.3)', icon: 'rgb(var(--accent-success))' },
+  error: { border: 'rgb(var(--accent-danger) / 0.3)', icon: 'rgb(var(--accent-danger))' },
+  warning: { border: 'rgb(var(--accent-warning) / 0.3)', icon: 'rgb(var(--accent-warning))' },
+  info: { border: 'rgb(var(--accent-info) / 0.3)', icon: 'rgb(var(--accent-info))' },
 };
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

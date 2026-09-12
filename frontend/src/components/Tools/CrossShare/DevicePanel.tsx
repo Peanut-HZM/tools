@@ -140,7 +140,7 @@ const DevicePanel: React.FC = () => {
                         <div className="text-ink font-medium flex items-center space-x-2">
                           <span>{device.device_name}</span>
                           {online && (
-                            <span className="px-2 py-0.5 bg-green-500/10 text-accent-success text-xs rounded-full">
+                            <span className="px-2 py-0.5 bg-success/10 text-accent-success text-xs rounded-full">
                               在线
                             </span>
                           )}
@@ -168,7 +168,7 @@ const DevicePanel: React.FC = () => {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDeleteDevice(device.id, device.device_name)}
-                    className="text-accent-danger bg-red-500/10 hover:bg-red-500/20"
+                    className="text-accent-danger bg-danger/10 hover:bg-danger/20"
                   >
                     🗑️ 删除
                   </Button>

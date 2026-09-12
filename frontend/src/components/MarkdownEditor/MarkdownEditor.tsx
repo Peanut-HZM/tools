@@ -876,7 +876,8 @@ export default function MarkdownEditor() {
                  padding: '40px',
                  textAlign: 'center'
                }}>
-                 <p style={{ marginBottom: '20px', fontSize: '16px', color: '#94a3b8' }}>
+                 {/* 空状态提示文本：faint 墨色 token，随主题联动 */}
+                <p style={{ marginBottom: '20px', fontSize: '16px', color: 'rgb(var(--ink-faint))' }}>
                    {t.editor.selectFile || '请先打开或上传一个文件'}
                  </p>
                  <button 
@@ -908,13 +909,14 @@ export default function MarkdownEditor() {
                      onError={handleUploadError}
                    />
                    {uploadError && (
+                     // 上传错误块：danger 语义 token（弱底 + 语义字），随主题联动
                      <div className="upload-error" style={{
                        marginTop: '16px',
                        padding: '12px',
-                       backgroundColor: '#7f1d1d',
-                       border: '1px solid #dc2626',
+                       backgroundColor: 'rgb(var(--accent-danger) / 0.15)',
+                       border: '1px solid rgb(var(--accent-danger))',
                        borderRadius: '4px',
-                       color: '#fca5a5',
+                       color: 'rgb(var(--accent-danger))',
                        maxWidth: '600px',
                        width: '100%'
                      }}>
@@ -925,11 +927,12 @@ export default function MarkdownEditor() {
                ) : (
                  <>
                    {ossFilePath && (
+                     // OSS 文件指示条：info 语义 token（弱底 + 语义字），随主题联动
                      <div className="oss-file-indicator" style={{
                        padding: '8px 16px',
-                       backgroundColor: '#1e3a8a',
-                       borderBottom: '1px solid #3b82f6',
-                       color: '#93c5fd',
+                       backgroundColor: 'rgb(var(--accent-info) / 0.15)',
+                       borderBottom: '1px solid rgb(var(--accent-info))',
+                       color: 'rgb(var(--accent-info))',
                        fontSize: '14px'
                      }}>
                        <Cloud className="w-4 h-4 mr-2 inline-block" />

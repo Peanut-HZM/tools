@@ -136,7 +136,7 @@ const CodeViewer: React.FC<CodeViewerProps> = ({
         <div className="mt-2 text-center">
           <button
             onClick={handleCodeToggle}
-            className="text-xs text-accent-info hover:text-blue-300 transition-colors"
+            className="text-xs text-accent-info hover:brightness-125 transition-colors"
           >
             点击展开查看完整内容 ({lineCount} 行)
           </button>

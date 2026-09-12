@@ -19,7 +19,8 @@ const HighlightText: React.FC<HighlightTextProps> = ({ text, highlight, classNam
     <span className={className}>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <mark key={i} className="bg-yellow-500/30 text-yellow-200 rounded px-0.5">
+          <mark key={i} className="bg-warning/20 text-accent-warning rounded px-0.5">
+            {/* 搜索命中高亮：warning 语义 token，双主题联动 */}
             {part}
           </mark>
         ) : (

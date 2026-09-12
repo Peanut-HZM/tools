@@ -22,8 +22,8 @@ export default function FingerprintMatchDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-md rounded-lg border border-border bg-canvas p-5 shadow-md">
         <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-            <Monitor className="h-5 w-5 text-amber-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning/10">
+            <Monitor className="h-5 w-5 text-accent-warning" />
           </div>
           <div>
             <h3 className="text-base font-medium text-ink-inverse">检测到已存在的设备</h3>

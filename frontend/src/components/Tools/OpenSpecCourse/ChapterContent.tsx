@@ -79,7 +79,7 @@ const ChapterContent: React.FC<ChapterContentProps> = ({
                       </SyntaxHighlighter>
                       <button
                         onClick={() => handleCopyCode(code)}
-                        className="absolute top-2 right-2 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 px-3 py-1 bg-black/60 hover:bg-black/80 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         {copiedCode === code ? '✅ 已复制' : '📋 复制'}
                       </button>

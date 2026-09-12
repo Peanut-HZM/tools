@@ -324,7 +324,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             outline: none;
           }
           .ProseMirror p.is-editor-empty:first-child::before {
-            color: #64748b;
+            /* 占位符用 faint 墨色 token，随主题联动 */
+            color: rgb(var(--ink-faint));
             content: attr(data-placeholder);
             float: left;
             height: 0;
@@ -343,10 +344,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             overflow-x: auto;
           }
           .ProseMirror blockquote {
-            border-left: 4px solid #06b6d4;
+            /* 引用条与文本走 info 语义 token（原 hex 即 accent-info 同源色），随主题联动 */
+            border-left: 4px solid rgb(var(--accent-info));
             padding-left: 1rem;
             margin-left: 0;
-            color: #94a3b8;
+            color: rgb(var(--ink-faint));
           }
         `}</style>
       </div>

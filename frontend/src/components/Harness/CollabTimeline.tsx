@@ -62,8 +62,9 @@ export const CollabTimeline: React.FC<{ steps: TraceStep[] }> = ({ steps }) => {
       <div className="flex flex-wrap items-center gap-1 mb-3">
         {chain.map((name, i) => (
           <React.Fragment key={`${name}-${i}`}>
-            {i > 0 && <span className="text-gray-400 mx-1">→</span>}
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
+            {i > 0 && <span className="text-ink-faint mx-1">→</span>}
+            {/* 协作链徽章：warning 弱底 + 语义字，双主题随 accent token 联动 */}
+            <span className="px-2 py-0.5 bg-warning/10 text-accent-warning rounded-full text-xs font-medium">
               {name}
             </span>
           </React.Fragment>
@@ -73,12 +74,12 @@ export const CollabTimeline: React.FC<{ steps: TraceStep[] }> = ({ steps }) => {
       {/* 交接明细 */}
       <ul className="space-y-1">
         {records.map((r, i) => (
-          <li key={i} className="text-xs text-gray-600">
-            <span className="text-gray-400 mr-2">#{r.stepIndex}</span>
-            <span className="font-medium text-gray-700">{r.from.name}</span>
-            <span className="mx-1 text-amber-600">移交 →</span>
-            <span className="font-medium text-gray-700">{r.to.name}</span>
-            {r.reason && <span className="ml-2 text-gray-400">({r.reason})</span>}
+          <li key={i} className="text-xs text-ink-muted">
+            <span className="text-ink-faint mr-2">#{r.stepIndex}</span>
+            <span className="font-medium text-ink">{r.from.name}</span>
+            <span className="mx-1 text-accent-warning">移交 →</span>
+            <span className="font-medium text-ink">{r.to.name}</span>
+            {r.reason && <span className="ml-2 text-ink-faint">({r.reason})</span>}
           </li>
         ))}
       </ul>

@@ -136,7 +136,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索文件..."
-              className="w-64 placeholder-slate-500 focus-visible:border-blue-500"
+              className="w-64 placeholder-ink-faint focus-visible:border-accent"
             />
 
             {/* Upload Button */}
@@ -209,7 +209,7 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
                   size="sm"
                   variant="ghost"
                   onClick={() => handleDelete(file.id)}
-                  className="text-accent-danger bg-red-500/10 hover:bg-red-500/20"
+                  className="text-accent-danger bg-danger/10 hover:bg-danger/20"
                 >
                   🗑️ 删除
                 </Button>

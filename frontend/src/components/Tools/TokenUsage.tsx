@@ -765,12 +765,12 @@ export default function TokenUsage() {
 
       {(error || refreshError || refreshErrors.length > 0 || deviceError || pollError || summary.data.auto_expanded) && (
         <div className="mb-5 space-y-2">
-          {error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">{error}</div>}
-          {refreshError && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">{refreshError}</div>}
+          {error && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-accent-danger">{error}</div>}
+          {refreshError && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-accent-danger">{refreshError}</div>}
           {refreshErrors.length > 0 && (
             <div className="space-y-2">
               {refreshErrors.map((err, idx) => (
-                <div key={idx} className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+                <div key={idx} className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="h-4 w-4 flex-shrink-0 text-accent-warning" />
                     <div className="flex-1">
@@ -793,11 +793,11 @@ export default function TokenUsage() {
               ))}
             </div>
           )}
-          {deviceError && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-accent-warning">{deviceError}</div>}
+          {deviceError && <div className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-accent-warning">{deviceError}</div>}
           {pollError && <div className="rounded-md border border-border bg-canvas px-4 py-3 text-sm text-ink-muted">后台轮询失败：{pollError}</div>}
-          {summary.error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">数据加载失败：{summary.error}</div>}
-          {details.error && <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-accent-danger">明细加载失败：{details.error}</div>}
-          {summary.data.auto_expanded && <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-accent-warning">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
+          {summary.error && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-accent-danger">数据加载失败：{summary.error}</div>}
+          {details.error && <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-accent-danger">明细加载失败：{details.error}</div>}
+          {summary.data.auto_expanded && <div className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-accent-warning">当前范围无数据，已自动扩大到最近 {summary.data.actual_days} 天。</div>}
         </div>
       )}
 

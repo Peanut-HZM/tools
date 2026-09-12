@@ -120,7 +120,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       {/* 删除 */}
       <button
         onClick={handleDelete}
-        className={`${buttonBase} bg-red-500/10 hover:bg-red-500/20 text-accent-danger`}
+        className={`${buttonBase} bg-danger/10 hover:bg-danger/20 text-accent-danger`}
         title="删除消息"
       >
         <Trash2 size={12} strokeWidth={1.5} />
