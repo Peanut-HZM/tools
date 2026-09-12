@@ -51,14 +51,14 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       (t) => (
         <div
           className={`
-            flex items-center gap-3 px-5 py-4 rounded-xl shadow-lg
-            bg-surface-1/95 backdrop-blur-sm border border-border/50
+            glass-panel
+            flex items-center gap-3 px-5 py-4 rounded-xl
             text-ink
             max-w-[400px] min-w-[280px]
           `}
           style={{
+            // 左侧类型色条保留（区分 success/error/warning/info）
             borderLeft: `4px solid ${colors.border}`,
-            background: `linear-gradient(135deg, ${colors.bg}, rgba(30, 41, 59, 0.95))`,
           }}
         >
           <span className="text-xl font-bold" style={{ color: colors.icon }}>{icon}</span>
@@ -119,10 +119,15 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         position="top-right"
         toastOptions={{
           className: 'sonner-toast-dark',
+          // 玻璃面板：透明底 + 细描边 + 模糊（inline style 覆盖 sonner 默认实色底）
           style: {
-            background: '#1e293b',
-            color: '#f1f5f9',
-            border: '1px solid #334155',
+            background: 'var(--glass-bg-strong)',
+            color: 'rgb(var(--ink-default))',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-xl)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            boxShadow: 'var(--shadow-glass)',
           },
         }}
         theme="dark"
