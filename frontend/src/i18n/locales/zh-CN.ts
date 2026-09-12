@@ -21,7 +21,7 @@ export const zhCN = {
     new: '新建',
     fileName: '文件名',
     folderName: '所在目录',
-    logo: '首页',
+    logo: 'Toolbox',
     allTools: '全部工具',
     tools: '工具',
     view: '查看',

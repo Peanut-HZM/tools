@@ -19,7 +19,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 space-y-6 md:grid-cols-3 md:space-y-0 md:gap-x-8">
           {/* 栏1：品牌区（渐变 Logo + 一句话简介） */}
           <div>
-            {/* 品牌名取 hero.title（工具箱/Toolbox）；common.logo 中文值当前为"首页"，不宜再作品牌文案 */}
+            {/* 品牌名取 hero.title（工具箱/Toolbox），中英文均适合作品牌文案 */}
             <div className="text-xl font-extrabold gradient-text">{t.hero.title}</div>
             <p className="mt-2 text-sm text-ink-muted">{t.footer.desc}</p>
           </div>
