@@ -7,7 +7,8 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-glass-border bg-surface-1/50 backdrop-blur-md">
-      <div className="container mx-auto px-6 py-10">
+      {/* 移动端底部大留白（pb-24），避免被固定玻璃 Tab 栏遮挡最后一行内容；md 起恢复原 py-10 */}
+      <div className="container mx-auto px-6 pt-10 pb-24 md:pb-10">
         {/* 三栏布局：移动端单列纵向堆叠（space-y-6），md 起三等分横排（md:gap-x-8 提供栏间距） */}
         <div className="grid grid-cols-1 space-y-6 md:grid-cols-3 md:space-y-0 md:gap-x-8">
           {/* 栏1：品牌区（渐变 Logo + 一句话简介） */}

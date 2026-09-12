@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
 import CommandPalette from '../Common/CommandPalette';
+import MobileTabBar from './MobileTabBar';
 import { useSearch } from '../../hooks/useSearch';
 
 export default function Layout() {
@@ -44,7 +45,13 @@ export default function Layout() {
       }`}>
         <Outlet context={{ searchValue, debouncedValue, handleSearchChange, handleSearch }} />
       </main>
-      {!isImmersion && <Footer />}
+      {!isImmersion && (
+        <>
+          <Footer />
+          {/* 移动端底部玻璃 Tab 栏（M1 方案）：仅非沉浸路由渲染，组件内部 md:hidden 限定移动端 */}
+          <MobileTabBar />
+        </>
+      )}
       {/* 全局 ⌘K 命令面板：全路由可用（含沉浸模式），监听 Cmd/Ctrl+K 与 open-command-palette 事件 */}
       <CommandPalette />
     </div>

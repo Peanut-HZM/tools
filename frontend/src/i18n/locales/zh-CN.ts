@@ -60,6 +60,7 @@ export const zhCN = {
     marketplace: 'Agent 市场',
     courses: '课程',
     techContents: '技术内容',
+    profile: '我的',
   },
 
   // Auth

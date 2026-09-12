@@ -60,6 +60,7 @@ export const enUS = {
     marketplace: 'Agent Market',
     courses: 'Courses',
     techContents: 'Tech Content',
+    profile: 'Me',
   },
 
   // Auth
