@@ -1,11 +1,20 @@
 import * as React from "react"
 import { cn } from "@/lib/cn"
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** glass=玻璃拟态（默认），solid=实色表面（兼容个别需要实底的场景） */
+  variant?: "glass" | "solid"
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant = "glass", ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("rounded-lg border border-border bg-surface-1 text-ink shadow-sm", className)}
+      className={cn(
+        "rounded-xl text-ink",
+        variant === "glass" ? "glass-card" : "border border-border bg-surface-1 shadow-sm",
+        className
+      )}
       {...props}
     />
   )
