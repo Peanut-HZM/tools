@@ -1,0 +1,104 @@
+// ==========================================================
+// AUTO-GENERATED FILE — DO NOT EDIT
+// 由 frontend/scripts/generate-miniapp-tokens.js 自动生成，勿手改
+// 生成时间：2026-09-12T19:36:20.224Z
+// 来源文件：
+//   - frontend/src/styles/tokens/_primitives.css
+//   - frontend/src/styles/tokens/colors.css（:root 暗色块，亮色主题已忽略）
+// 说明：
+//   - 全部为字面量（内部 var 引用已全部解析），最大化 WXSS 兼容
+//   - rgb 空格语法已归一化为逗号语法，裸三元组已包装为 rgb()
+//   - 仅含颜色/渐变/阴影类 token；--font-* 与长度类 token 不迁移
+//   - 用法：app.scss 顶部 @import 本文件，页面以 var 函数引用 --token-name
+// ==========================================================
+
+page {
+  /* 原始调色板（--p-*，三元组已包装为 rgb()） */
+  --p-violet-300: rgb(165, 180, 252);
+  --p-violet-400: rgb(139, 155, 255);
+  --p-violet-500: rgb(91, 107, 245);
+  --p-violet-600: rgb(74, 90, 229);
+  --p-violet-700: rgb(59, 75, 213);
+  --p-purple-400: rgb(192, 132, 252);
+  --p-purple-500: rgb(161, 85, 247);
+  --p-purple-600: rgb(146, 66, 240);
+  --p-blue-300: rgb(147, 197, 253);
+  --p-blue-400: rgb(96, 165, 250);
+  --p-blue-500: rgb(59, 130, 246);
+  --p-blue-600: rgb(37, 99, 235);
+  --p-cyan-300: rgb(103, 232, 249);
+  --p-cyan-400: rgb(34, 211, 238);
+  --p-cyan-500: rgb(6, 182, 212);
+  --p-cyan-600: rgb(8, 145, 178);
+  --p-navy-950: rgb(6, 10, 22);
+  --p-navy-900: rgb(10, 18, 37);
+  --p-navy-800: rgb(15, 25, 48);
+  --p-navy-700: rgb(21, 33, 64);
+  --p-navy-600: rgb(27, 42, 80);
+  --p-gray-50: rgb(246, 247, 251);
+  --p-gray-100: rgb(241, 243, 249);
+  --p-gray-200: rgb(231, 234, 243);
+  --p-gray-300: rgb(226, 230, 240);
+  --p-gray-400: rgb(203, 210, 227);
+  --p-ink-light-1: rgb(245, 247, 250);
+  --p-ink-light-2: rgb(184, 194, 209);
+  --p-ink-light-3: rgb(110, 122, 143);
+  --p-ink-dark-1: rgb(13, 37, 61);
+  --p-ink-dark-2: rgb(74, 85, 104);
+  --p-ink-dark-3: rgb(139, 149, 163);
+  --p-green-400: rgb(110, 231, 183);
+  --p-green-500: rgb(52, 211, 153);
+  --p-green-600: rgb(16, 185, 129);
+  --p-amber-400: rgb(251, 191, 36);
+  --p-amber-600: rgb(217, 119, 6);
+  --p-red-400: rgb(248, 113, 113);
+  --p-red-500: rgb(239, 68, 68);
+
+  /* 语义色板（colors.css 暗色主题：背景/文字/品牌/玻璃/渐变/阴影/图表） */
+  --bg-canvas: rgb(10, 18, 37);
+  --bg-surface-1: rgb(15, 25, 48);
+  --bg-surface-2: rgb(21, 33, 64);
+  --bg-surface-3: rgb(27, 42, 80);
+  --bg-overlay: rgba(10, 18, 37, 0.72);
+  --ink-default: rgb(245, 247, 250);
+  --ink-muted: rgb(184, 194, 209);
+  --ink-faint: rgb(110, 122, 143);
+  --ink-inverse: rgb(10, 18, 37);
+  --accent-primary: rgb(91, 107, 245);
+  --accent-hover: rgb(139, 155, 255);
+  --accent-press: rgb(74, 90, 229);
+  --accent-secondary: rgb(161, 85, 247);
+  --accent-warm: rgb(255, 138, 76);
+  --accent-cyan: rgb(6, 182, 212);
+  --accent-cyan-hover: rgb(34, 211, 238);
+  --accent-cyan-press: rgb(8, 145, 178);
+  --accent-success: rgb(52, 211, 153);
+  --accent-warning: rgb(251, 191, 36);
+  --accent-danger: rgb(248, 113, 113);
+  --accent-info: rgb(96, 165, 250);
+  --hairline: rgba(255, 255, 255, 0.08);
+  --border-default: rgb(31, 58, 101);
+  --border-strong: rgb(45, 79, 138);
+  --border-accent: rgba(91, 107, 245, 0.4);
+  --glass-bg: rgba(255, 255, 255, 0.045);
+  --glass-bg-strong: rgba(255, 255, 255, 0.07);
+  --glass-bg-fallback: #131C33;
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.07);
+  --gradient-brand: linear-gradient(135deg, #5B6BF5 0%, #A155F7 100%);
+  --gradient-brand-hover: linear-gradient(135deg, #6E7EFF 0%, #B266FF 100%);
+  --gradient-text: linear-gradient(120deg, #7C8CFF 10%, #B36BFF 60%, #67E8F9 105%);
+  --shadow-glow-accent: 0 6px 24px rgba(120, 90, 250, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --shadow-glass: 0 12px 32px rgba(3, 7, 20, 0.50);
+  --gradient-mesh-1: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(91, 107, 245, 0.18) 0%, transparent 50%);
+  --gradient-mesh-2: radial-gradient(ellipse 70% 50% at 80% 100%, rgba(161, 85, 247, 0.15) 0%, transparent 50%);
+  --gradient-mesh-3: radial-gradient(ellipse 60% 40% at 50% 50%, rgba(91, 107, 245, 0.08) 0%, transparent 60%);
+  --gradient-accent: linear-gradient(135deg, #5B6BF5 0%, #A155F7 100%);
+  --gradient-accent-hover: linear-gradient(135deg, #6E7EFF 0%, #B266FF 100%);
+  --chart-cpu: rgb(96, 165, 250);
+  --chart-memory: rgb(52, 211, 153);
+  --chart-grid: rgba(148, 163, 204, 0.15);
+  --chart-axis: rgb(184, 194, 209);
+  --chart-surface: #1E293B;
+  --chart-label: rgb(110, 122, 143);
+}

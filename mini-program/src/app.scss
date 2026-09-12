@@ -1,34 +1,41 @@
 /**
  * 工具箱小程序 - 全局暗色主题
- * 设计风格：Dark Mode (OLED) + 工具类应用
- * 参考：TDesign 暗色主题 + Linear 极简风格
+ * 设计风格：玻璃光晕 Glass Glow（品牌紫蓝）暗色单主题
+ * 设计 token：styles/_tokens.scss（由 frontend/scripts/generate-miniapp-tokens.js
+ * 从 Web 端 tokens/_primitives.css + colors.css 自动生成，勿手改）
  */
 
-/* ===== 设计系统变量 ===== */
-page {
-  /* 背景色 */
-  --bg-primary: #0A0E27;       /* 深空蓝主背景 */
-  --bg-secondary: #1E1E2E;     /* 卡片背景 */
-  --bg-tertiary: #2A2A3C;      /* 次级背景（输入框等） */
-  --bg-overlay: rgba(10, 14, 39, 0.8);
+/* ===== 品牌设计 token（page 级 CSS 自定义属性，全字面量，最大 WXSS 兼容） ===== */
+@import './styles/_tokens.scss';
 
-  /* 文字颜色 */
-  --text-primary: #E8EAF0;     /* 主文字（高对比度） */
-  --text-secondary: #94A3B8;   /* 辅助文字 */
-  --text-tertiary: #64748B;    /* 弱化文字 */
+/* ===== 别名层：旧变量名 → 新 token 的兼容映射 ===== */
+/* 让既有 27 个页面零改动即可获得品牌色。注意：token 文件中的三元组已包装为
+   rgb() 字面量，此处直接 var 引用即可，不可再套 rgb()（否则产生 rgb(rgb(...)) 非法值） */
+page {
+  /* 背景色（旧名 → 玻璃暗色 token） */
+  --bg-primary: var(--bg-canvas);      /* 主背景 → 品牌暗夜蓝 rgb(10, 18, 37) */
+  --bg-secondary: var(--bg-surface-1); /* 卡片背景 */
+  --bg-tertiary: var(--bg-surface-2);  /* 次级背景（输入框等） */
+  /* --bg-overlay 已由 _tokens.scss 提供（rgba(10, 18, 37, 0.72)），此处不再重复定义 */
+
+  /* 文字颜色（旧名 → ink token） */
+  --text-primary: var(--ink-default);  /* 主文字（高对比度） */
+  --text-secondary: var(--ink-muted);  /* 辅助文字 */
+  --text-tertiary: var(--ink-faint);   /* 弱化文字 */
   --text-disabled: #475569;
 
-  /* 主题色 */
-  --color-primary: #3B82F6;    /* 信任蓝 */
-  --color-primary-dark: #2563EB;
-  --color-primary-light: #60A5FA;
-  --color-success: #22C55E;    /* 成功绿 */
-  --color-warning: #F59E0B;    /* 警告橙 */
-  --color-danger: #EF4444;     /* 危险红 */
-  --color-info: #06B6D4;       /* 信息青 */
+  /* 主题色（品牌紫蓝，对应 --p-violet-500 / --p-violet-600 / --p-violet-400） */
+  --color-primary: #5B6BF5;
+  --color-primary-dark: #4A5AE5;
+  --color-primary-light: #8B9BFF;
+  /* 状态色对齐语义 accent token */
+  --color-success: var(--accent-success);
+  --color-warning: var(--accent-warning);
+  --color-danger: var(--accent-danger);
+  --color-info: var(--accent-cyan); /* 保持青色信息色，与旧值 #06B6D4 一致 */
 
-  /* 边框 */
-  --border-color: rgba(148, 163, 184, 0.12);
+  /* 边框（对齐玻璃描边体系：白色半透明发丝线） */
+  --border-color: var(--glass-border);
   --border-color-strong: rgba(148, 163, 184, 0.24);
 
   /* 圆角 */
@@ -45,10 +52,10 @@ page {
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* 阴影 */
+  /* 阴影（--shadow-lg 对齐玻璃投影 token；sm/md 为中性暗投影） */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-lg: var(--shadow-glass);
 
   /* 触摸目标最小尺寸 */
   --touch-target: 88rpx; /* 44px * 2 = 88rpx */
@@ -67,7 +74,8 @@ view, text, image, scroll-view, button, input, textarea {
 
 /* ===== 页面容器 ===== */
 page {
-  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+  /* 品牌暗色渐变：暗夜蓝 → 深蓝（#0A1225 = --bg-canvas，#0F1930 = --p-navy-800 系） */
+  background: linear-gradient(180deg, #0A1225 0%, #0F1930 100%);
   color: var(--text-primary);
   font-size: 28rpx;
   line-height: 1.6;

@@ -49,15 +49,15 @@ export default {
   preloadRule: {},
   window: {
     backgroundTextStyle: 'dark',
-    navigationBarBackgroundColor: '#0F172A',
+    navigationBarBackgroundColor: '#0A1225',
     navigationBarTitleText: '工具箱',
     navigationBarTextStyle: 'white',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A1225',
   },
   tabBar: {
-    color: '#64748B',
-    selectedColor: '#3B82F6',
-    backgroundColor: '#1E293B',
+    color: '#5C6784',
+    selectedColor: '#8B9BFF',
+    backgroundColor: '#0A1225',
     borderStyle: 'black',
     list: [
       {
