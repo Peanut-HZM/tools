@@ -8,6 +8,16 @@ import Loading from '../../../components/Loading';
 import SearchBar from '../../../components/SearchBar';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 课程卡对齐 Web 端 CourseCard 的 glass 模式：套全局 .glass-card（半透明底+发丝描边+磨砂模糊+投影），
+ *   本地样式只保留布局/圆角，勿重复定义背景以免击穿玻璃质感；
+ * - 分类 chip：常态玻璃描边，选中态 accent-primary 实底（对齐 Web MyCoursesPage 筛选 chip）；
+ * - Web CourseCard 的渐变进度条（background-image: var(--gradient-brand)）在"我的课程"场景使用，
+ *   本页课程列表 API 无进度字段，无数据来源故不新增进度条 DOM，行为保持不变；
+ * - 搜索/分页/分类筛选逻辑不变。
+ */
+
 type PageState = 'loading' | 'error' | 'success';
 
 export default function CoursePlatformPage() {
@@ -112,7 +122,7 @@ export default function CoursePlatformPage() {
             </View>
           ) : (
             courses.map(course => (
-              <View key={course.id} className="course-card" onClick={() => handleCourseClick(course.slug)}>
+              <View key={course.id} className="course-card glass-card" onClick={() => handleCourseClick(course.slug)}>
                 {course.cover_image && (
                   <Image className="cover" src={course.cover_image} mode="aspectFill" lazyLoad />
                 )}

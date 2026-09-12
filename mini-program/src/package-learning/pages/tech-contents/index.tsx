@@ -7,6 +7,15 @@ import { formatApiError } from '../../../utils/mobileTool';
 import Loading from '../../../components/Loading';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 内容卡套全局 .glass-card（半透明底+发丝描边+磨砂模糊+投影，见 styles/_glass.scss），
+ *   本地样式只保留布局/圆角，勿重复定义背景以免击穿玻璃质感；
+ * - 类型条为全宽条形面板：surface-1 底 + 玻璃发丝线；类型 chip 常态玻璃描边、选中态 accent 实底；
+ * - 类型标签由 #6366f1 实底改 accent-primary 语义对号（文字近白 ink token）；
+ * - 分页/类型筛选逻辑不变。
+ */
+
 type PageState = 'loading' | 'error' | 'success';
 
 export default function TechContentsPage() {
@@ -91,7 +100,7 @@ export default function TechContentsPage() {
             <View className="empty-state"><Text>暂无内容</Text></View>
           ) : (
             contents.map(item => (
-              <View key={item.id} className="content-card" onClick={() => handleContentClick(item.slug)}>
+              <View key={item.id} className="content-card glass-card" onClick={() => handleContentClick(item.slug)}>
                 {item.cover_image && <Image className="cover" src={item.cover_image} mode="aspectFill" lazyLoad />}
                 <View className="info">
                   <Text className="type-tag">{item.content_type_label}</Text>

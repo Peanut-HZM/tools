@@ -1,34 +1,48 @@
+/**
+ * 视频下载器页 — 玻璃光晕换肤（阶段⑧-⑨ Task 8）
+ * 输入面板/任务状态面板/视频列表项质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），本地只保留布局与圆角；
+ * 主按钮渐变/白字/辉光由全局 .btn-primary 提供；
+ * 半透明场景按 token 同源色值展开 alpha（WXSS 不支持 color-mix/透明度修饰 var）。
+ */
+
 .video-downloader-page {
   padding: 30rpx;
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
 
   .input-section {
+    padding: 30rpx;
+    border-radius: var(--radius-md);
     margin-bottom: 30rpx;
 
     .url-input {
       width: 100%;
       height: 80rpx;
       padding: 0 20rpx;
-      background: var(--bg-secondary);
+      background: var(--bg-surface-2);
+      border: 1px solid var(--glass-border);
       border-radius: 12rpx;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 28rpx;
       margin-bottom: 20rpx;
       box-sizing: border-box;
+
+      &::placeholder {
+        color: var(--ink-faint);
+      }
     }
 
+    /* 主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
     .extract-btn {
       width: 100%;
       height: 80rpx;
       line-height: 80rpx;
-      background: #6366f1;
-      color: #fff;
       border-radius: 12rpx;
       font-size: 30rpx;
 
       &[disabled] {
         opacity: 0.6;
+        box-shadow: none;
       }
     }
   }
@@ -36,31 +50,31 @@
   .task-status {
     text-align: center;
     padding: 60rpx 40rpx;
-    background: var(--bg-secondary);
     border-radius: 16rpx;
     margin-bottom: 30rpx;
 
     .status-text {
       display: block;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 32rpx;
       margin-bottom: 20rpx;
     }
 
     .speed, .eta {
       display: block;
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 26rpx;
       margin-top: 10rpx;
     }
 
+    /* 取消为危险操作按钮：accent-danger 实底（原 #ef4444 语义对号），文字用近白 ink token */
     .cancel-btn {
       margin-top: 30rpx;
       width: 200rpx;
       height: 70rpx;
       line-height: 70rpx;
-      background: #ef4444;
-      color: #fff;
+      background: var(--accent-danger);
+      color: var(--ink-default);
       border-radius: 12rpx;
     }
   }
@@ -70,16 +84,15 @@
     padding: 100rpx 40rpx;
 
     .error-text {
-      color: #ef4444;
+      color: var(--accent-danger);
       margin-bottom: 30rpx;
     }
 
+    /* 主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
     .retry-btn {
       width: 200rpx;
       height: 70rpx;
       line-height: 70rpx;
-      background: #6366f1;
-      color: #fff;
       border-radius: 12rpx;
     }
   }
@@ -88,7 +101,7 @@
     .count-text {
       display: block;
       margin-bottom: 20rpx;
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 26rpx;
     }
 
@@ -97,7 +110,6 @@
       align-items: center;
       padding: 24rpx;
       margin-bottom: 20rpx;
-      background: var(--bg-secondary);
       border-radius: 16rpx;
 
       .video-info {
@@ -106,7 +118,7 @@
 
         .title {
           display: block;
-          color: var(--text-primary);
+          color: var(--ink-default);
           font-size: 28rpx;
           margin-bottom: 10rpx;
           overflow: hidden;
@@ -116,25 +128,25 @@
 
         .meta {
           display: block;
-          color: var(--text-secondary);
+          color: var(--ink-muted);
           font-size: 24rpx;
           margin-top: 6rpx;
         }
       }
 
+      /* 下载主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
       .download-btn {
         width: 140rpx;
         height: 64rpx;
         line-height: 64rpx;
         font-size: 26rpx;
         padding: 0;
-        background: #6366f1;
-        color: #fff;
         border-radius: 10rpx;
         flex-shrink: 0;
 
         &[disabled] {
           opacity: 0.5;
+          box-shadow: none;
         }
       }
     }

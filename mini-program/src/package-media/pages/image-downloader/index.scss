@@ -1,34 +1,48 @@
+/**
+ * 图片下载器页 — 玻璃光晕换肤（阶段⑧-⑨ Task 8）
+ * 输入面板/图片列表项质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），本地只保留布局与圆角；
+ * 主按钮渐变/白字/辉光由全局 .btn-primary 提供；
+ * 半透明场景按 token 同源色值展开 alpha（WXSS 不支持 color-mix/透明度修饰 var）。
+ */
+
 .image-downloader-page {
   padding: 30rpx;
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
 
   .input-section {
+    padding: 30rpx;
+    border-radius: var(--radius-md);
     margin-bottom: 30rpx;
 
     .url-input {
       width: 100%;
       height: 80rpx;
       padding: 0 20rpx;
-      background: var(--bg-secondary);
+      background: var(--bg-surface-2);
+      border: 1px solid var(--glass-border);
       border-radius: 12rpx;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 28rpx;
       margin-bottom: 20rpx;
       box-sizing: border-box;
+
+      &::placeholder {
+        color: var(--ink-faint);
+      }
     }
 
+    /* 主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
     .extract-btn {
       width: 100%;
       height: 80rpx;
       line-height: 80rpx;
-      background: #6366f1;
-      color: #fff;
       border-radius: 12rpx;
       font-size: 30rpx;
 
       &[disabled] {
         opacity: 0.6;
+        box-shadow: none;
       }
     }
   }
@@ -37,7 +51,7 @@
   .error-state {
     text-align: center;
     padding: 100rpx 40rpx;
-    color: var(--text-secondary);
+    color: var(--ink-muted);
 
     .hint {
       display: block;
@@ -46,16 +60,15 @@
     }
 
     .error-text {
-      color: #ef4444;
+      color: var(--accent-danger);
       margin-bottom: 30rpx;
     }
 
+    /* 主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
     .retry-btn {
       width: 200rpx;
       height: 70rpx;
       line-height: 70rpx;
-      background: #6366f1;
-      color: #fff;
       border-radius: 12rpx;
     }
   }
@@ -64,7 +77,7 @@
     .count-text {
       display: block;
       margin-bottom: 20rpx;
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 26rpx;
     }
 
@@ -73,7 +86,6 @@
       align-items: center;
       padding: 20rpx;
       margin-bottom: 20rpx;
-      background: var(--bg-secondary);
       border-radius: 16rpx;
 
       .thumbnail {
@@ -90,13 +102,13 @@
 
         .format {
           display: block;
-          color: var(--text-primary);
+          color: var(--ink-default);
           font-size: 28rpx;
         }
 
         .size {
           display: block;
-          color: var(--text-secondary);
+          color: var(--ink-muted);
           font-size: 24rpx;
           margin-top: 8rpx;
         }
@@ -107,19 +119,21 @@
         flex-direction: column;
         gap: 10rpx;
 
+        /* 次按钮：玻璃描边（半透明白底 + 发丝线 + ink 文字） */
         .action-btn {
           width: 120rpx;
           height: 56rpx;
           line-height: 56rpx;
           font-size: 24rpx;
           padding: 0;
-          background: var(--bg-primary);
-          color: var(--text-primary);
+          background: var(--glass-bg);
+          color: var(--ink-default);
+          border: 1px solid var(--glass-border);
           border-radius: 8rpx;
 
+          /* 下载主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
           &.primary {
-            background: #6366f1;
-            color: #fff;
+            border: none;
           }
         }
       }

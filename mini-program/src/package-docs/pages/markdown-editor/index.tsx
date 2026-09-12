@@ -6,6 +6,15 @@ import { copyText, formatApiError } from '../../../utils/mobileTool';
 import Markdown from '../../../components/Markdown';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 编辑/预览 tab、工具栏、OSS 文件弹层全部 token 化：编辑域走 surface-2 底 + 玻璃描边，
+ *   弹层容器套全局 .glass-panel（比 glass-card 更强的底色与模糊，弹层惯例，见 styles/_glass.scss）；
+ * - 遮罩由 rgba(0,0,0,0.5) 改为 token --bg-overlay（品牌同源深底）；
+ * - 工具栏三键均为次级操作，走玻璃描边（本页无主按钮）；
+ * - 草稿保存/复制/清空/OSS 文件加载逻辑不变。
+ */
+
 type Tab = 'edit' | 'preview';
 
 export default function MarkdownEditorPage() {
@@ -118,7 +127,7 @@ export default function MarkdownEditorPage() {
       {showOssList && (
         <View className="oss-modal">
           <View className="oss-overlay" onClick={() => setShowOssList(false)} />
-          <View className="oss-content">
+          <View className="oss-content glass-panel">
             <View className="oss-header">
               <Text className="oss-title">选择文件</Text>
               <Text className="oss-close" onClick={() => setShowOssList(false)}>关闭</Text>

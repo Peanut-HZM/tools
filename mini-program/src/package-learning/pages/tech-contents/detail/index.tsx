@@ -8,6 +8,13 @@ import Markdown from '../../../../components/Markdown';
 import Loading from '../../../../components/Loading';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 头部/正文为全宽条形面板，走 surface-1 底 + 玻璃发丝线 token（不套 glass-card，保持通栏布局）；
+ * - 类型标签由 #6366f1 实底改 accent-primary 语义对号（文字近白 ink token）；标签 chip 走玻璃描边；
+ * - 内容详情获取/渲染逻辑不变。
+ */
+
 export default function TechContentDetailPage() {
   const router = useRouter();
   const slug = router.params.slug || '';

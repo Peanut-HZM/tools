@@ -7,6 +7,14 @@ import { copyText, openOrCopyUrl, formatApiError } from '../../../utils/mobileTo
 import Loading from '../../../components/Loading';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 输入面板/图片列表项套全局 .glass-card（半透明底+发丝描边+磨砂模糊+投影，见 styles/_glass.scss），
+ *   本地样式只保留布局/圆角，勿重复定义背景以免击穿玻璃质感；
+ * - 主按钮（提取图片/下载/重试）套 .btn-primary 品牌渐变，按压反馈走 hover-class='btn-primary-hover'；
+ * - 次按钮（预览）走玻璃描边；提取逻辑/下载轮询/预览行为不变。
+ */
+
 type PageState = 'idle' | 'loading' | 'empty' | 'error' | 'success';
 
 export default function ImageDownloaderPage() {
@@ -60,7 +68,7 @@ export default function ImageDownloaderPage() {
 
   return (
     <View className="image-downloader-page">
-      <View className="input-section">
+      <View className="input-section glass-card">
         <Input
           className="url-input"
           placeholder="输入网页链接，提取页面中的图片"
@@ -68,7 +76,12 @@ export default function ImageDownloaderPage() {
           onInput={(e) => setUrl(e.detail.value)}
           type="text"
         />
-        <Button className="extract-btn" onClick={handleExtract} disabled={pageState === 'loading'}>
+        <Button
+          className="extract-btn btn-primary"
+          hoverClass="btn-primary-hover"
+          onClick={handleExtract}
+          disabled={pageState === 'loading'}
+        >
           {pageState === 'loading' ? '提取中...' : '提取图片'}
         </Button>
       </View>
@@ -85,7 +98,7 @@ export default function ImageDownloaderPage() {
       {pageState === 'error' && (
         <View className="error-state">
           <Text className="error-text">{errorMsg}</Text>
-          <Button className="retry-btn" onClick={handleExtract}>重试</Button>
+          <Button className="retry-btn btn-primary" hoverClass="btn-primary-hover" onClick={handleExtract}>重试</Button>
         </View>
       )}
 
@@ -93,7 +106,7 @@ export default function ImageDownloaderPage() {
         <ScrollView className="image-list" scrollY>
           <Text className="count-text">共提取 {images.length} 张图片</Text>
           {images.map((img, idx) => (
-            <View key={idx} className="image-item">
+            <View key={idx} className="image-item glass-card">
               <Image
                 className="thumbnail"
                 src={img.thumbnail || img.url}
@@ -109,7 +122,13 @@ export default function ImageDownloaderPage() {
               </View>
               <View className="actions">
                 <Button className="action-btn" onClick={() => handlePreview(img.url)}>预览</Button>
-                <Button className="action-btn primary" onClick={() => handleDownload(img)}>下载</Button>
+                <Button
+                  className="action-btn primary btn-primary"
+                  hoverClass="btn-primary-hover"
+                  onClick={() => handleDownload(img)}
+                >
+                  下载
+                </Button>
               </View>
             </View>
           ))}

@@ -8,6 +8,15 @@ import Markdown from '../../../../components/Markdown';
 import Loading from '../../../../components/Loading';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 主按钮（立即报名）套 .btn-primary 品牌渐变（内部即 background-image: var(--gradient-brand)），
+ *   按压反馈走 hover-class='btn-primary-hover'；
+ * - 头部/章节列表/章节内容为全宽条形面板，走 surface-1 底 + 玻璃发丝线 token（不套 glass-card，保持通栏布局）；
+ * - 章节选中态：序号徽标 accent-primary 实底 + 标题 accent 字色（原 #6366f1 语义对号）；
+ * - 课程详情获取/报名逻辑不变。
+ */
+
 export default function CourseDetailPage() {
   const router = useRouter();
   const slug = router.params.slug || '';
@@ -65,7 +74,7 @@ export default function CourseDetailPage() {
       <View className="header">
         <Text className="title">{course.title}</Text>
         <Text className="desc">{course.description}</Text>
-        <Button className="enroll-btn" onClick={handleEnroll}>立即报名</Button>
+        <Button className="enroll-btn btn-primary" hoverClass="btn-primary-hover" onClick={handleEnroll}>立即报名</Button>
       </View>
 
       <View className="chapter-list">

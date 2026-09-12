@@ -1,6 +1,13 @@
+/**
+ * 课程详情页 — 玻璃光晕换肤（阶段⑧-⑨ Task 8）
+ * 头部/章节列表/章节内容为全宽条形面板：surface-1 底 + 玻璃发丝线（不套 glass-card，保持通栏布局）；
+ * 主按钮渐变/白字/辉光由全局 .btn-primary 提供；
+ * 章节选中态走 accent-primary 语义对号（原 #6366f1）。
+ */
+
 .course-detail-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
 
   .cover {
     width: 100%;
@@ -9,12 +16,13 @@
 
   .header {
     padding: 30rpx;
-    background: var(--bg-secondary);
+    background: var(--bg-surface-1);
+    border-bottom: 1rpx solid var(--glass-border);
     margin-bottom: 20rpx;
 
     .title {
       display: block;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 36rpx;
       font-weight: bold;
       margin-bottom: 16rpx;
@@ -22,18 +30,17 @@
 
     .desc {
       display: block;
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 26rpx;
       line-height: 1.5;
       margin-bottom: 24rpx;
     }
 
+    /* 主按钮：渐变底/白字/辉光由全局 .btn-primary 提供 */
     .enroll-btn {
       width: 100%;
       height: 80rpx;
       line-height: 80rpx;
-      background: #6366f1;
-      color: #fff;
       border-radius: 12rpx;
       font-size: 30rpx;
     }
@@ -41,12 +48,14 @@
 
   .chapter-list {
     padding: 20rpx 30rpx;
-    background: var(--bg-secondary);
+    background: var(--bg-surface-1);
+    border-top: 1rpx solid var(--glass-border);
+    border-bottom: 1rpx solid var(--glass-border);
     margin-bottom: 20rpx;
 
     .section-title {
       display: block;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 30rpx;
       font-weight: bold;
       margin-bottom: 20rpx;
@@ -56,16 +65,16 @@
       display: flex;
       align-items: center;
       padding: 20rpx;
-      border-bottom: 1rpx solid var(--border-color);
+      border-bottom: 1rpx solid var(--glass-border);
 
       .chapter-order {
         width: 48rpx;
         height: 48rpx;
         line-height: 48rpx;
         text-align: center;
-        background: var(--bg-primary);
+        background: var(--bg-surface-2);
         border-radius: 50%;
-        color: var(--text-secondary);
+        color: var(--ink-muted);
         font-size: 24rpx;
         margin-right: 20rpx;
         flex-shrink: 0;
@@ -73,18 +82,19 @@
 
       .chapter-title {
         flex: 1;
-        color: var(--text-primary);
+        color: var(--ink-default);
         font-size: 28rpx;
       }
 
+      /* 选中态：序号徽标 accent 实底（原 #6366f1 语义对号），标题 accent 字色 */
       &.active {
         .chapter-order {
-          background: #6366f1;
-          color: #fff;
+          background: var(--accent-primary);
+          color: var(--ink-default);
         }
 
         .chapter-title {
-          color: #6366f1;
+          color: var(--accent-primary);
           font-weight: bold;
         }
       }
@@ -93,18 +103,18 @@
 
   .chapter-content {
     padding: 30rpx;
-    background: var(--bg-secondary);
+    background: var(--bg-surface-1);
 
     .chapter-name {
       display: block;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 32rpx;
       font-weight: bold;
       margin-bottom: 20rpx;
     }
 
     .no-content {
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 28rpx;
       text-align: center;
       padding: 100rpx;

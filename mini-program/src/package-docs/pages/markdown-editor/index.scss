@@ -1,26 +1,34 @@
+/**
+ * Markdown 编辑器页 — 玻璃光晕换肤（阶段⑧-⑨ Task 8）
+ * OSS 文件弹层质感由全局 .glass-panel 提供（更强底色与模糊，弹层惯例），本地只保留布局与圆角；
+ * 本页无主按钮：工具栏三键均为次级操作，走玻璃描边；
+ * 遮罩改用 token --bg-overlay（品牌同源深底，原 rgba(0,0,0,0.5)）。
+ */
+
 .markdown-editor-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
 
+  /* 顶部 tab 条：surface-1 底 + 玻璃发丝线 */
   .tab-bar {
     display: flex;
     height: 80rpx;
-    background: var(--bg-secondary);
-    border-bottom: 1rpx solid var(--border-color);
+    background: var(--bg-surface-1);
+    border-bottom: 1rpx solid var(--glass-border);
 
     .tab {
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 28rpx;
       position: relative;
 
       &.active {
-        color: #6366f1;
+        color: var(--accent-primary);
         font-weight: bold;
 
         &::after {
@@ -30,7 +38,7 @@
           left: 30%;
           right: 30%;
           height: 4rpx;
-          background: #6366f1;
+          background: var(--accent-primary);
           border-radius: 2rpx;
         }
       }
@@ -41,16 +49,22 @@
     flex: 1;
     padding: 20rpx;
 
+    /* 编辑域：surface-2 底 + 玻璃描边 + ink 文字 */
     .editor-textarea {
       width: 100%;
       height: 100%;
-      background: var(--bg-secondary);
+      background: var(--bg-surface-2);
+      border: 1px solid var(--glass-border);
       border-radius: 12rpx;
       padding: 20rpx;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 28rpx;
       line-height: 1.6;
       box-sizing: border-box;
+
+      &::placeholder {
+        color: var(--ink-faint);
+      }
     }
   }
 
@@ -62,27 +76,29 @@
     .empty-preview {
       text-align: center;
       padding: 200rpx 40rpx;
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 28rpx;
     }
   }
 
+  /* 底部工具栏：surface-1 底 + 玻璃发丝线 */
   .toolbar {
     display: flex;
     padding: 20rpx;
     gap: 20rpx;
-    border-top: 1rpx solid var(--border-color);
-    background: var(--bg-secondary);
+    border-top: 1rpx solid var(--glass-border);
+    background: var(--bg-surface-1);
 
+    /* 次按钮：玻璃描边（半透明白底 + 发丝线 + ink 文字） */
     .tool-btn {
       flex: 1;
       height: 70rpx;
       line-height: 70rpx;
-      background: var(--bg-primary);
-      color: var(--text-primary);
+      background: var(--glass-bg);
+      color: var(--ink-default);
       border-radius: 10rpx;
       font-size: 26rpx;
-      border: 1rpx solid var(--border-color);
+      border: 1rpx solid var(--glass-border);
 
       &:active {
         opacity: 0.8;
@@ -98,22 +114,23 @@
     bottom: 0;
     z-index: 1000;
 
+    /* 遮罩：token 深底（--bg-overlay = rgba(10,18,37,0.72)，品牌同源） */
     .oss-overlay {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: var(--bg-overlay);
     }
 
+    /* 弹层容器：背景/描边/投影由全局 .glass-panel 提供 */
     .oss-content {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
       max-height: 60%;
-      background: var(--bg-secondary);
       border-radius: 24rpx 24rpx 0 0;
       display: flex;
       flex-direction: column;
@@ -123,16 +140,16 @@
         justify-content: space-between;
         align-items: center;
         padding: 30rpx;
-        border-bottom: 1rpx solid var(--border-color);
+        border-bottom: 1rpx solid var(--glass-border);
 
         .oss-title {
-          color: var(--text-primary);
+          color: var(--ink-default);
           font-size: 32rpx;
           font-weight: bold;
         }
 
         .oss-close {
-          color: #6366f1;
+          color: var(--accent-primary);
           font-size: 28rpx;
         }
       }
@@ -146,21 +163,21 @@
           display: block;
           text-align: center;
           padding: 100rpx;
-          color: var(--text-secondary);
+          color: var(--ink-muted);
           font-size: 28rpx;
         }
 
         .oss-item {
           padding: 24rpx;
-          border-bottom: 1rpx solid var(--border-color);
+          border-bottom: 1rpx solid var(--glass-border);
 
           .oss-filename {
-            color: var(--text-primary);
+            color: var(--ink-default);
             font-size: 28rpx;
           }
 
           &:active {
-            background: var(--bg-primary);
+            background: var(--bg-surface-2);
           }
         }
       }

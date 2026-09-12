@@ -7,6 +7,14 @@ import { formatApiError } from '../../../utils/mobileTool';
 import Loading from '../../../components/Loading';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 汇总卡/数据表卡套全局 .glass-card（半透明底+发丝描边+磨砂模糊+投影，见 styles/_glass.scss），
+ *   本地样式只保留布局与圆角，勿重复定义背景以免击穿玻璃质感；
+ * - 筛选条为全宽条形面板，走 surface-1 底 + 玻璃发丝线 token；选择器值域走输入类 token（surface-2 + 玻璃描边）；
+ * - 统计数值由 #6366f1 改 accent-primary 语义对号；维度/天数/设备切换与查询逻辑不变。
+ */
+
 type Dimension = 'daily' | 'weekly' | 'monthly';
 
 const DIMENSION_LABELS: Record<Dimension, string> = {
@@ -101,17 +109,17 @@ export default function TokenUsagePage() {
       {data && (
         <ScrollView className="stats-content" scrollY>
           <View className="summary-cards">
-            <View className="summary-card">
+            <View className="summary-card glass-card">
               <Text className="card-value">{(data.summary.total_tokens / 1000).toFixed(1)}K</Text>
               <Text className="card-label">总 Token</Text>
             </View>
-            <View className="summary-card">
+            <View className="summary-card glass-card">
               <Text className="card-value">{data.summary.total_count}</Text>
               <Text className="card-label">请求数</Text>
             </View>
           </View>
 
-          <View className="data-list">
+          <View className="data-list glass-card">
             <View className="list-header">
               <Text className="header-cell">时间</Text>
               <Text className="header-cell">Token</Text>

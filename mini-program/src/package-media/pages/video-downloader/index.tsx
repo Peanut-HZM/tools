@@ -7,6 +7,15 @@ import { openOrCopyUrl, formatApiError, pollTask } from '../../../utils/mobileTo
 import Loading from '../../../components/Loading';
 import './index.scss';
 
+/**
+ * 玻璃光晕换肤（阶段⑧-⑨ Task 8）：
+ * - 输入面板/任务状态面板/视频列表项套全局 .glass-card（半透明底+发丝描边+磨砂模糊+投影，见 styles/_glass.scss），
+ *   本地样式只保留布局/圆角，勿重复定义背景以免击穿玻璃质感；
+ * - 主按钮（提取视频/下载/重试）套 .btn-primary 品牌渐变，按压反馈走 hover-class='btn-primary-hover'；
+ * - 取消按钮为危险操作，保留 accent-danger 实底（原 #ef4444 → --accent-danger 语义对号）；
+ * - 提取/下载轮询/取消逻辑不变。
+ */
+
 type PageState = 'idle' | 'extracting' | 'downloading' | 'error' | 'success' | 'task-running';
 
 export default function VideoDownloaderPage() {
@@ -76,7 +85,7 @@ export default function VideoDownloaderPage() {
 
   return (
     <View className="video-downloader-page">
-      <View className="input-section">
+      <View className="input-section glass-card">
         <Input
           className="url-input"
           placeholder="输入视频页面链接"
@@ -85,7 +94,8 @@ export default function VideoDownloaderPage() {
           type="text"
         />
         <Button
-          className="extract-btn"
+          className="extract-btn btn-primary"
+          hoverClass="btn-primary-hover"
           onClick={handleExtract}
           disabled={pageState === 'extracting' || pageState === 'downloading'}
         >
@@ -98,7 +108,7 @@ export default function VideoDownloaderPage() {
       )}
 
       {pageState === 'task-running' && taskStatus && (
-        <View className="task-status">
+        <View className="task-status glass-card">
           <Text className="status-text">
             {taskStatus.status === 'pending' ? '排队中' :
              taskStatus.status === 'downloading' ? `下载中 ${taskStatus.progress}%` :
@@ -113,7 +123,7 @@ export default function VideoDownloaderPage() {
       {pageState === 'error' && (
         <View className="error-state">
           <Text className="error-text">{errorMsg}</Text>
-          <Button className="retry-btn" onClick={handleExtract}>重试</Button>
+          <Button className="retry-btn btn-primary" hoverClass="btn-primary-hover" onClick={handleExtract}>重试</Button>
         </View>
       )}
 
@@ -121,7 +131,7 @@ export default function VideoDownloaderPage() {
         <ScrollView className="video-list" scrollY>
           <Text className="count-text">共提取 {videos.length} 个视频</Text>
           {videos.map((video, idx) => (
-            <View key={idx} className="video-item">
+            <View key={idx} className="video-item glass-card">
               <View className="video-info">
                 <Text className="title">{video.title || '未命名视频'}</Text>
                 {video.duration && (
@@ -130,7 +140,8 @@ export default function VideoDownloaderPage() {
                 {video.quality && <Text className="meta">质量: {video.quality}</Text>}
               </View>
               <Button
-                className="download-btn"
+                className="download-btn btn-primary"
+                hoverClass="btn-primary-hover"
                 onClick={() => handleDownload(video.url)}
                 disabled={pageState === 'downloading' || pageState === 'task-running'}
               >

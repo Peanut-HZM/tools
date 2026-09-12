@@ -1,6 +1,12 @@
+/**
+ * 技术内容详情页 — 玻璃光晕换肤（阶段⑧-⑨ Task 8）
+ * 头部/正文为全宽条形面板：surface-1 底 + 玻璃发丝线（不套 glass-card，保持通栏布局）；
+ * 类型标签走 accent-primary 语义对号（原 #6366f1），标签 chip 走玻璃描边。
+ */
+
 .tech-content-detail-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-canvas);
 
   .cover {
     width: 100%;
@@ -9,14 +15,16 @@
 
   .header {
     padding: 30rpx;
-    background: var(--bg-secondary);
+    background: var(--bg-surface-1);
+    border-bottom: 1rpx solid var(--glass-border);
     margin-bottom: 20rpx;
 
+    /* 类型标签：accent 实底（原 #6366f1 语义对号），文字近白 ink token */
     .type {
       display: inline-block;
       padding: 6rpx 16rpx;
-      background: #6366f1;
-      color: #fff;
+      background: var(--accent-primary);
+      color: var(--ink-default);
       border-radius: 8rpx;
       font-size: 22rpx;
       margin-bottom: 16rpx;
@@ -24,7 +32,7 @@
 
     .title {
       display: block;
-      color: var(--text-primary);
+      color: var(--ink-default);
       font-size: 36rpx;
       font-weight: bold;
       line-height: 1.4;
@@ -38,7 +46,7 @@
       margin-bottom: 20rpx;
 
       .author, .date, .views {
-        color: var(--text-secondary);
+        color: var(--ink-muted);
         font-size: 24rpx;
       }
     }
@@ -48,10 +56,12 @@
       flex-wrap: wrap;
       gap: 12rpx;
 
+      /* 标签 chip：玻璃描边（半透明白底 + 发丝线 + ink 文字） */
       .tag {
         padding: 4rpx 16rpx;
-        background: var(--bg-primary);
-        color: var(--text-secondary);
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        color: var(--ink-muted);
         border-radius: 8rpx;
         font-size: 22rpx;
       }
@@ -60,10 +70,10 @@
 
   .body {
     padding: 30rpx;
-    background: var(--bg-secondary);
+    background: var(--bg-surface-1);
 
     .no-content {
-      color: var(--text-secondary);
+      color: var(--ink-muted);
       font-size: 28rpx;
       text-align: center;
       padding: 100rpx;
