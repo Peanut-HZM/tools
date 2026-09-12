@@ -1,320 +1,149 @@
-# 工具箱 开发指南
+# AGENTS.md - 项目智能代理规则
 
-从所有功能计划自动生成。最后更新：2026-02-11
+**所有项目规则详见 [CLAUDE.md](./CLAUDE.md)**
 
-## 活跃技术栈
+本文件是 CLAUDE.md 的引用入口，供不同 agent 加载。所有规则（Git 工作流、问题排查、部署流程、前后端规范等）均在 CLAUDE.md 中维护。
 
-- Python 3.10+ (后端), TypeScript/React 18 (前端) + FastAPI, oss2 (阿里云 OSS SDK), React, Zustand (状态管理), IndexedDB (离线缓存) (001-markdown-oss-manager)
+**最后同步：2026-09-13**
+- 初始版本：从 logistics-finance 项目规则适配而来
+- 适配内容：
+  - 删除 Java/Spring Boot/微服务特定规则
+  - 删除 Vue3/Element Plus 前端特定规则
+  - 删除菜单权限、对账业务等业务特定规则
+  - 新增 Python/FastAPI 后端开发规范
+  - 新增 React/TypeScript/Tailwind 前端开发规范
+  - 新增 pytest/Vitest 测试规范
+  - 保留通用工程实践（事后规则沉淀、问题排查、Git 工作流等）
 
-## 项目结构
+---
 
-```text
-backend/
-frontend/
-tests/
-```
+## 快速参考
 
-## 命令
+### 核心原则
 
-cd src [仅用于活跃技术栈的命令][仅用于活跃技术栈的命令] pytest [仅用于活跃技术栈的命令][仅用于活跃技术栈的命令] ruff check .
+1. **事后规则沉淀**：问题解决后必须沉淀规则，防止重复踩坑
+2. **禁止 Mock 与兜底**：真实问题必须如实暴露，禁止掩盖
+3. **问题排查强制规则**：必须找到代码级根因，禁止猜测
+4. **Git 工作流**：统一使用 rebase，禁止 merge
+5. **临时产物清理**：任务完成后必须清理所有临时文件
+6. **禁止批量脚本修改**：所有代码修改必须逐个文件手动进行
 
-## 代码风格
+### 技术栈
 
-Python 3.10+ (后端), TypeScript/React 18 (前端): 遵循标准规范
+- **后端**: Python 3.10+ / FastAPI / SQLAlchemy / PostgreSQL
+- **前端**: React 18 / TypeScript / Vite / Tailwind CSS / Zustand
+- **存储**: 阿里云 OSS
+- **测试**: pytest (后端) / Vitest (前端)
 
-## 最近变更
-
-- 001-markdown-oss-manager: 新增 Python 3.10+ (后端), TypeScript/React 18 (前端) + FastAPI, oss2 (阿里云 OSS SDK), React, Zustand (状态管理), IndexedDB (离线缓存)
-
-<!-- 手动添加内容开始 -->
-
-## 开发规范与约束
-
-### 1. 语言规范
-
-#### 1.1 对话语言
-- **所有与用户对话必须使用中文**，包括解释、说明、询问等
-- 技术术语可保留英文（如 API、JSON、HTTP 等），但需在首次出现时附带中文解释
-- 错误提示和日志信息建议使用中文，便于用户理解
-
-#### 1.2 代码注释
-- **所有代码注释必须使用中文**
-- 函数/方法注释：说明功能、参数、返回值、异常
-- 复杂逻辑注释：解释为什么这样做，而非做了什么
-- TODO/FIXME 注释：必须明确说明待办事项和原因
-- 示例：
-  ```python
-  # 获取用户文件列表，支持分页
-  # 参数：user_id - 用户ID，page - 页码，page_size - 每页数量
-  # 返回：文件列表和总数量
-  # 异常：UserNotFoundError - 用户不存在
-  ```
-
-#### 1.3 例外情况
-以下情况可保留英文：
-- 代码中的变量名、函数名、类名（遵循代码命名规范）
-- 第三方库/框架的标准注释模板
-- 对外暴露的 API 文档（OpenAPI/Swagger）
-- 国际化相关的字符串键名
-
-### 2. 热重载规范
-
-**核心原则：优先使用 `dev-services.py` 管理服务，脚本已内置热重载支持。**
-
-#### 2.1 服务管理脚本
-
-项目根目录提供 `dev-services.py` 脚本，**所有服务启停操作必须使用该脚本**：
+### 常用命令
 
 ```bash
-python dev-services.py                  # 启动前后端服务（默认）
-python dev-services.py status           # 查看服务状态
-python dev-services.py restart          # 重启前后端服务
-python dev-services.py stop             # 停止前后端服务
-python dev-services.py kill backend     # 强制终止后端
-python dev-services.py kill all         # 强制终止所有服务
-python dev-services.py logs backend     # 查看后端实时日志
-python dev-services.py logs frontend    # 查看前端实时日志
-python dev-services.py start -f         # 前台模式启动（调试用）
-python dev-services.py start --backend-only  # 只启动后端
-python dev-services.py start --frontend-only # 只启动前端
-```
+# 服务管理
+python dev-services.py              # 启动服务
+python dev-services.py restart      # 重启服务
+python dev-services.py status       # 查看状态
 
-**脚本特性：**
-- 彩色日志输出，便于区分日志级别
-- 自动检测端口占用并清理残留进程
-- 双阶段健康检查（日志关键字 + HTTP 探测）
-- 后端自动使用 Python venv 虚拟环境
-- 日志文件位于 `logs/backend.log` 和 `logs/frontend.log`
-
-#### 2.2 前端热重载
-- **优先使用 Vite HMR**：前端基于 Vite，支持模块热替换（HMR）
-- **非必要不重启**：在开发过程中，应优先使用热重载功能，避免手动重启开发服务器
-- 不需要重启的情况：
-  - 修改 React 组件
-  - 修改样式文件（CSS/Tailwind）
-  - 修改工具函数
-  - 修改类型定义
-  - 修改业务逻辑代码
-- 必须重启的情况：
-  - 修改 Vite 配置文件（vite.config.ts）
-  - 修改环境变量文件（.env）
-  - 添加/删除依赖包
-  - 修改 TypeScript 配置文件（tsconfig.json）
-
-#### 2.3 后端热重载
-- **使用 Uvicorn --reload**：支持代码变更自动重载
-- **非必要不重启**：在开发过程中，应优先使用热重载功能，避免手动重启服务
-- 不需要重启的情况：
-  - 修改路由处理函数
-  - 修改业务逻辑代码
-  - 修改数据模型（Pydantic）
-  - 修改工具函数
-- 必须重启的情况：
-  - 修改依赖注入配置
-  - 修改数据库连接配置
-  - 添加/删除 Python 包
-  - 修改环境变量
-
-#### 2.4 判断流程
-```
-用户请求修改代码
-    ↓
-判断：是否影响运行时配置？
-    ├─ 是 → 使用 dev-services.py restart 重启
-    └─ 否 → 使用热重载，通知用户无需重启
-```
-
-### 3. 日志规范
-
-#### 3.1 后端日志要求
-**所有后端代码必须包含关键日志**，便于问题定位：
-
-##### 必须打印日志的场景：
-1. **API 入口**：记录请求方法、路径、请求ID
-2. **业务关键节点**：如文件上传开始/完成、数据保存、删除操作
-3. **异常捕获**：记录异常类型、消息、堆栈
-4. **外部调用**：调用 OSS、数据库、第三方 API 前后
-5. **长时间操作**：耗时超过 1 秒的操作
-
-##### 日志级别规范：
-- **DEBUG**：详细调试信息，仅在开发环境开启
-  - 函数入参/出参
-  - 循环内部状态
-  - SQL 查询语句
-- **INFO**：关键业务流程节点
-  - API 请求开始/完成
-  - 文件操作开始/完成
-  - 用户登录/登出
-- **WARNING**：警告信息，可能影响功能但不致命
-  - 重试操作
-  - 降级处理
-  - 资源接近上限
-- **ERROR**：错误信息，影响功能正常执行
-  - 异常捕获
-  - 业务逻辑失败
-  - 外部服务调用失败
-
-##### 日志格式示例：
-```python
-import logging
-import uuid
-
-logger = logging.getLogger(__name__)
-
-# API 入口日志
-request_id = str(uuid.uuid4())
-logger.info(f"[{request_id}] 请求开始: {method} {path}, 用户: {user_id}")
-
-try:
-    # 业务逻辑
-    logger.info(f"[{request_id}] 正在处理文件上传: {filename}")
-    result = process_file(file)
-    logger.info(f"[{request_id}] 文件处理完成: {filename}, 大小: {size} bytes")
-    
-except Exception as e:
-    logger.error(f"[{request_id}] 文件处理失败: {filename}, 错误: {str(e)}", exc_info=True)
-    raise
-
-logger.info(f"[{request_id}] 请求完成: {method} {path}, 耗时: {elapsed}ms")
-```
-
-#### 3.2 前端日志要求
-- 开发环境：可使用 console.log 进行调试
-- 生产环境：禁止直接使用 console.log，使用封装后的日志工具
-- 关键用户操作：记录到日志服务（如有）
-
-### 4. 代码变更规范
-
-#### 4.1 变更范围控制
-**严格遵守最小化变更原则**：
-
-##### 允许修改的范围：
-1. 用户明确要求修改的文件/函数
-2. 实现新功能必需的依赖文件
-3. 修复 Bug 相关的代码路径
-
-##### 禁止修改的范围：
-1. 对话中未提及的现有业务代码
-2. 看似"有问题"但与当前任务无关的代码
-3. 代码格式化、命名风格等纯 cosmetic 变更
-4. 重构与需求无关的代码
-
-##### 变更前检查清单：
-- [ ] 是否只修改了用户提到的文件？
-- [ ] 是否有不必要的格式变更？
-- [ ] 是否修改了无关的函数/类？
-- [ ] 是否保持了原有代码风格？
-
-#### 4.2 编译与验证
-**所有代码变更必须通过验证**：
-
-##### 前端验证：
-```bash
-cd frontend
-npm run build          # 确保构建成功
-npm run type-check     # TypeScript 类型检查（如有）
-npm run lint           # ESLint 检查（如有）
-```
-
-##### 后端验证：
-```bash
+# 后端
 cd backend
-python -m py_compile app/main.py    # 语法检查
-ruff check .                        # 代码规范检查
-pytest                              # 运行测试（如有）
+uvicorn app.main:app --reload --port 19092
+ruff check .
+pytest
+
+# 前端
+cd frontend
+npm run dev
+npm run build
+npm run test
 ```
 
-##### 验证流程：
-1. **修改后立即验证**：不要等待所有修改完成再验证
-2. **逐步验证**：每个文件修改后进行语法检查
-3. **最终验证**：所有修改完成后进行完整构建/测试
-4. **失败处理**：
-   - 立即修复错误
-   - 如无法修复，回滚变更并报告用户
-   - 绝不提交有编译错误的代码
+### 关键规则
 
-#### 4.3 业务兼容性
-**新代码不得破坏现有功能**：
+- ✅ 所有对话和代码注释使用中文
+- ✅ 优先使用热重载，非必要不重启服务
+- ✅ 修改后必须在浏览器中验收（前端视觉验证 + 后端集成验证）
+- ✅ 后端关键代码必须包含日志记录
+- ✅ 使用 `dev-services.py` 管理服务，不要手动启动
+- ❌ 禁止批量脚本修改代码
+- ❌ 禁止 Mock 与兜底
+- ❌ 禁止猜测式修复
+- ❌ 禁止只改代码不验收就声称"已修复"
+- ❌ 禁止 `git pull`（不带 `--rebase`）
+- ❌ 禁止 `git merge` 更新本地分支
+- ❌ 禁止硬编码敏感信息
 
-##### 兼容性检查：
-1. **API 变更**：
-   - 保持向后兼容
-   - 修改参数必须提供默认值
-   - 删除接口必须标记废弃并保留至少一个版本
-   
-2. **数据库变更**：
-   - 新增字段必须有默认值或为可选
-   - 禁止删除已有字段（除非确认无使用）
-   - 修改字段类型需谨慎评估
+---
 
-3. **配置变更**：
-   - 新增配置项必须有默认值
-   - 修改配置格式需兼容旧格式
+## 与 logistics-finance 项目的差异
 
-##### 破坏性变更处理：
-如需进行破坏性变更：
-1. 告知用户影响和范围
-2. 提供迁移方案
-3. 获得用户明确同意后才执行
+本项目的规则是从 logistics-finance 项目适配而来，主要差异：
 
-#### 4.4 代码审查清单
-提交代码前自问：
-- [ ] 这次修改是否只影响目标功能？
-- [ ] 是否引入了新的依赖？（需用户同意）
-- [ ] 是否修改了公共接口？（需检查调用方）
-- [ ] 是否添加了足够的日志？
-- [ ] 是否能成功编译/运行？
-- [ ] 是否破坏了现有测试？
-- [ ] 是否有未使用的代码/导入？
+### 已删除的规则（不适用于本项目）
 
-### 5. 工作流程规范
+- ❌ keep-alive 缓存命名规则（Vue 特有）
+- ❌ 物理删除实现规则（Java/MyBatis 特有）
+- ❌ 业务表禁止冗余组织/部门字段（logistics-finance 业务）
+- ❌ MyBatis-Plus 写法规则（Java 特有）
+- ❌ 菜单与权限管理规则（logistics-finance 复杂权限系统）
+- ❌ @RequiresPermission 通配符规则（Spring Security 特有）
+- ❌ API 路由与 Gateway 配置规则（微服务特有）
+- ❌ 双前端菜单独立性规则（logistics-finance 多前端）
+- ❌ 移动端样式规则（小程序特有）
+- ❌ 小程序包大小规则（Taro 特有）
+- ❌ OCR 服务规则（logistics-finance 业务）
+- ❌ 对账数据生成规则（logistics-finance 业务）
+- ❌ 实体 update 方法的 String 字段规则（Java 特有）
+- ❌ 内部 ID 字段不在前端页面展示规则（logistics-finance 业务）
+- ❌ 清理与删除脚本必须先 SELECT 精确 ID 规则（logistics-finance 数据清理）
+- ❌ 数据库唯一约束治理规则（logistics-finance 数据治理）
+- ❌ 数据库操作执行方式强制规则（logistics-finance 数据库管理）
+- ❌ 动态路由注册规则（Vue 特有）
+- ❌ 动态 import 加载失败兜底规则（Vue 特有）
 
-#### 5.1 开发流程
-```
-用户提出需求
-    ↓
-分析需求，明确变更范围（询问澄清）
-    ↓
-查看相关代码，理解现有实现
-    ↓
-制定修改方案，告知用户
-    ↓
-获得用户确认后开始修改
-    ↓
-按文件逐步修改，即时验证
-    ↓
-完整构建/测试验证
-    ↓
-向用户汇报变更摘要
-```
+### 已新增的规则（本项目特有）
 
-#### 5.2 问题处理流程
-```
-发现问题
-    ↓
-判断是否在当前任务范围内？
-    ├─ 否 → 记录并报告用户，不修改
-    └─ 是 → 评估影响
-              ↓
-        是否会导致破坏性变更？
-            ├─ 是 → 告知用户，获得同意
-            └─ 否 → 直接修复
-```
+- ✅ FastAPI 路由设计规范
+- ✅ SQLAlchemy ORM 使用规范
+- ✅ React 函数组件 + Hooks 规范
+- ✅ Zustand 状态管理规范
+- ✅ Tailwind CSS 样式规范
+- ✅ pytest 测试规范
+- ✅ Vitest 测试规范
+- ✅ FastAPI 错误处理规范
+- ✅ CORS 配置规范
+- ✅ JWT 认证规范
 
-#### 5.3 沟通规范
-- **开始前**：确认理解需求，说明变更计划
-- **进行中**：遇到不确定问题时立即询问
-- **完成后**：总结变更内容，说明验证结果
-- **发现问题**：清晰描述问题、影响、建议方案
+### 已保留并适配的规则（通用工程实践）
 
-### 6. 强制执行
+- ✅ 事后规则沉淀机制
+- ✅ 禁止批量脚本修改代码
+- ✅ 临时产物及时清理
+- ✅ 禁止 Mock 与兜底
+- ✅ 问题排查强制规则
+- ✅ 客户端代码路径 DRY
+- ✅ Git 工作流规范（rebase）
+- ✅ 配置文件管理规范
+- ✅ 浏览器进程管理
+- ✅ ID 字段类型规则（适配 Python）
+- ✅ 日志管理规范（适配 Python logging）
+- ✅ 热加载与重启规则（适配 dev-services.py）
+- ✅ 部署规范（简化）
+- ✅ 安全规范（通用部分）
 
-以上规范每次对话都必须遵守，AI 助手应在每次响应前自检：
-1. 是否使用了中文？
-2. 是否需要重启？能否热重载？
-3. 是否添加了关键日志？
-4. 变更是否能编译通过？
-5. 是否只修改了必要代码？
-6. 是否破坏了现有功能？
+---
 
-<!-- 手动添加内容结束 -->
+## 规则演进记录
+
+### 2026-09-13 - 初始版本
+
+- 从 logistics-finance 项目规则适配
+- 删除所有 Java/Spring Boot/Vue3 特定规则
+- 新增 Python/FastAPI/React 技术栈规范
+- 保留通用工程实践
+- 简化部署流程（单机部署，无微服务）
+- 调整日志规范（Python logging 模块）
+
+---
+
+**所有详细规则请参见 [CLAUDE.md](./CLAUDE.md)**
+
+**END**
