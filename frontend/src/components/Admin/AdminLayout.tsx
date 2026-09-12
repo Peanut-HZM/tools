@@ -86,7 +86,8 @@ export default function AdminLayout() {
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-canvas text-ink">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+      {/* 启动加载态：Admin 域标准 border spinner（类串与其他加载态一致） */}
+      <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>
     </div>;
   }
 

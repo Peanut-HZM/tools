@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { Inbox } from 'lucide-react';
 
 export default function QuotaManagementTab() {
   const [items, setItems] = useState<QuotaInfo[]>([]);
@@ -164,8 +165,9 @@ export default function QuotaManagementTab() {
           </div>
 
           {items.length === 0 ? (
-            <Card className="p-12 text-center">
-              <div className="text-6xl mb-4"></div>
+            <Card className="glass-card rounded-xl p-12 text-center">
+              {/* 空态：显式补玻璃容器类对齐 Admin 域空态标准；原空 text-6xl div 补 Inbox 图标 */}
+              <Inbox className="w-12 h-12 text-ink-faint mx-auto mb-3" />
               <h3 className="text-lg font-medium text-ink mb-2">暂无配额记录</h3>
               <p className="text-ink-muted mb-4">点击「分配额度」为用户创建配额</p>
             </Card>
