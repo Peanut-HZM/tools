@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode, useEffect, useState } from 'react';
 import { toast as sonnerToast, Toaster } from 'sonner';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -44,6 +44,26 @@ const typeColors: Record<ToastType, { border: string; icon: string }> = {
 };
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Toaster 主题跟随 <html data-theme>：index.html 内联脚本保证首帧前就位（回退 dark），
+  // 渲染期直接读取与 CSS 主题联动源一致；data-theme 属性变化不触发 React 重渲染，
+  // 故参考 MetricsPanel 用 MutationObserver 监听 <html> 属性变更，实现轻量联动
+  const [toasterTheme, setToasterTheme] = useState<'dark' | 'light'>(() =>
+    document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setToasterTheme(
+        document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+      );
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const showToast = useCallback((message: string, type: ToastType = 'info', duration?: number) => {
     const icon = typeIcons[type];
     const colors = typeColors[type];
@@ -131,7 +151,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             boxShadow: 'var(--shadow-glass)',
           },
         }}
-        theme="dark"
+        theme={toasterTheme}
         richColors
       />
     </ToastContext.Provider>
