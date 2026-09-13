@@ -3,15 +3,21 @@ import Taro from '@tarojs/taro';
 // API 地址必须通过 TARO_APP_API_URL 环境变量注入（见 .env.development / .env.production / .env.test）
 // 不再内置默认域名，避免泄露部署方信息。
 //
-// 守护说明：TARO_APP_* 在构建期由 Taro DefinePlugin 替换；若本机缺少 .env 文件，
-// 字面量会原样留进产物，而微信运行时没有 process 对象，裸引用会在每个页面
-// 抛 ReferenceError: process is not defined（appServiceSDKScriptError）。
-// typeof 守护让缺失 env 时优雅降级为空串（保留下方 warn 提示），env 配置齐全时
-// 编译期常量替换后行为与原先完全一致。
-const TARO_APP_API_URL =
-  typeof process !== 'undefined' && process.env && process.env.TARO_APP_API_URL
-    ? process.env.TARO_APP_API_URL
-    : '';
+// 读取说明：TARO_APP_* 在构建期由 DefinePlugin 替换为字符串字面量——env 配置齐全时
+// 此处就是常量，运行时不抛错；本机缺 .env 文件时字面量原样留进产物，而微信运行时
+// 没有 process 对象，求值会抛 ReferenceError，用 try/catch 兜底为空串（保留下方 warn）。
+// 注意不能用 typeof process 守护：DefinePlugin 只替换 process.env.*，不替换裸 process，
+// 微信运行时 typeof 判断恒为 false，会把已注入的地址也短路掉（386bc827 的回归教训）。
+function readTaroAppApiUrl(): string {
+  try {
+    // @ts-expect-error process 在微信运行时可能未定义，ReferenceError 由 catch 兜底
+    return process.env.TARO_APP_API_URL || '';
+  } catch {
+    return '';
+  }
+}
+
+const TARO_APP_API_URL = readTaroAppApiUrl();
 
 const API_BASE_URL =
   TARO_APP_API_URL && TARO_APP_API_URL !== 'https://your-domain.com/api'
