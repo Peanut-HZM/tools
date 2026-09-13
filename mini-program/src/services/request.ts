@@ -2,9 +2,20 @@ import Taro from '@tarojs/taro';
 
 // API 地址必须通过 TARO_APP_API_URL 环境变量注入（见 .env.development / .env.production / .env.test）
 // 不再内置默认域名，避免泄露部署方信息。
-const API_BASE_URL =
-  process.env.TARO_APP_API_URL && process.env.TARO_APP_API_URL !== 'https://your-domain.com/api'
+//
+// 守护说明：TARO_APP_* 在构建期由 Taro DefinePlugin 替换；若本机缺少 .env 文件，
+// 字面量会原样留进产物，而微信运行时没有 process 对象，裸引用会在每个页面
+// 抛 ReferenceError: process is not defined（appServiceSDKScriptError）。
+// typeof 守护让缺失 env 时优雅降级为空串（保留下方 warn 提示），env 配置齐全时
+// 编译期常量替换后行为与原先完全一致。
+const TARO_APP_API_URL =
+  typeof process !== 'undefined' && process.env && process.env.TARO_APP_API_URL
     ? process.env.TARO_APP_API_URL
+    : '';
+
+const API_BASE_URL =
+  TARO_APP_API_URL && TARO_APP_API_URL !== 'https://your-domain.com/api'
+    ? TARO_APP_API_URL
     : '';
 
 if (!API_BASE_URL) {
