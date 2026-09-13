@@ -7,11 +7,18 @@
 import logging
 import os
 import platform
-import pwd
 import sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
+
+try:
+    # pwd 为 Unix 独有模块：仅在非 Windows 平台可用。
+    # Windows 上若顶层裸 import 会让整个模块导入失败（ModuleNotFoundError），
+    # 进而导致 sync_token_usage 的 zcode 数据源整体失效（f67fb418 引入的回归）。
+    import pwd
+except ImportError:  # pragma: no cover - Windows 平台
+    pwd = None
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +43,14 @@ def _get_real_home() -> Path:
             return Path(userprofile)
         # 兜底：在 Windows 上若 USERPROFILE 未设置，退化到 Path.home()
         return Path.home()
-    # macOS/Linux: 用 pwd 数据库直接查系统级 home
-    try:
-        return Path(pwd.getpwuid(os.getuid()).pw_dir)
-    except (KeyError, OSError):
-        # 极端兜底：pwd 查询失败
-        return Path.home()
+    # macOS/Linux: 用 pwd 数据库直接查系统级 home（pwd 已在顶部守护导入）
+    if pwd is not None:
+        try:
+            return Path(pwd.getpwuid(os.getuid()).pw_dir)
+        except (KeyError, OSError):
+            # 极端兜底：pwd 查询失败
+            return Path.home()
+    return Path.home()
 
 
 def _build_candidate() -> list[dict]:

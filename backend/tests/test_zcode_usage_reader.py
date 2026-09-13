@@ -3,6 +3,7 @@
 覆盖 _find_zcode_db 路径发现、fetch_zcode_records SQL 行为、
 sync_token_usage zcode 分支集成。
 """
+import sys
 import os
 import sqlite3
 import threading
@@ -88,6 +89,10 @@ class TestFindZcodeDb:
             assert c["exists"] is False
             assert c["reason"] in ("FILE_NOT_FOUND", None)
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Windows 的 chmod(0o000) 不产生 POSIX 读权限语义，os.access(R_OK) 恒为 True",
+    )
     def test_unreadable_file_marked_not_readable(self, tmp_path, monkeypatch):
         """DB 存在但不可读时 readable=False，整体 path=None"""
         zcode_dir = tmp_path / ".zcode" / "cli" / "db"
