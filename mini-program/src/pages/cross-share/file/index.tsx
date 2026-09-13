@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, ScrollView } from '@tarojs/components'
 import { fileApi } from '../../../services/crossShare'
 import { useAuthGuard } from '../../../hooks'
+import { parseDateSafe } from '../../../utils'
 import Icon from '../../../components/Icon'
 import './index.scss'
 
@@ -128,9 +129,9 @@ export default function FileTransferPage() {
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
   }
 
-  // 格式化时间
+  // 格式化时间（兼容 iOS：用 parseDateSafe 替代直接 new Date()）
   const formatTime = (timeStr: string) => {
-    const date = new Date(timeStr)
+    const date = parseDateSafe(timeStr);
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
     const day = date.getDate().toString().padStart(2, '0')
     const hours = date.getHours().toString().padStart(2, '0')
@@ -150,6 +151,7 @@ export default function FileTransferPage() {
 
       {/* 文件列表 */}
       <ScrollView scrollY className='file-list'>
+        <View className='file-list-inner'>
         {loading ? (
           <View className='loading-state'>
             <Text className='loading-text'>加载中...</Text>
@@ -180,6 +182,7 @@ export default function FileTransferPage() {
             </View>
           ))
         )}
+        </View>
       </ScrollView>
 
       {/* 上传按钮：主按钮走品牌渐变 .btn-primary */}

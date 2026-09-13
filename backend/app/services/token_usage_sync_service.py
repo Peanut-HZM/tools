@@ -103,27 +103,30 @@ def _calc_total_tokens(
     return input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens
 
 
+# source → tool 映射表（模块级常量，供多处引用，避免硬编码 source 列表）
+SOURCE_TOOL_MAPPING: dict[str, dict] = {
+    "claude": {"tool_id": "claude-code", "tool_name": "Claude Code"},
+    "opencode": {"tool_id": "opencode", "tool_name": "OpenCode"},
+    "codex": {"tool_id": "codex", "tool_name": "Codex"},
+    "openclaw": {"tool_id": "openclaw", "tool_name": "OpenClaw"},
+    "amp": {"tool_id": "amp", "tool_name": "Amp"},
+    "droid": {"tool_id": "droid", "tool_name": "Droid"},
+    "codebuff": {"tool_id": "codebuff", "tool_name": "Codebuff"},
+    "hermes": {"tool_id": "hermes", "tool_name": "Hermes"},
+    "pi": {"tool_id": "pi", "tool_name": "pi"},
+    "goose": {"tool_id": "goose", "tool_name": "Goose"},
+    "kilo": {"tool_id": "kilo", "tool_name": "Kilo"},
+    "copilot": {"tool_id": "copilot", "tool_name": "GitHub Copilot"},
+    "gemini": {"tool_id": "gemini", "tool_name": "Gemini"},
+    "kimi": {"tool_id": "kimi", "tool_name": "Kimi"},
+    "qwen": {"tool_id": "qwen", "tool_name": "Qwen"},
+    "zcode": {"tool_id": "zcode", "tool_name": "ZCode"},
+}
+
+
 def _map_source_to_tool(source: str) -> dict:
     source_value = source or "unknown"
-    mapping = {
-        "claude": {"tool_id": "claude-code", "tool_name": "Claude Code"},
-        "opencode": {"tool_id": "opencode", "tool_name": "OpenCode"},
-        "codex": {"tool_id": "codex", "tool_name": "Codex"},
-        "openclaw": {"tool_id": "openclaw", "tool_name": "OpenClaw"},
-        "amp": {"tool_id": "amp", "tool_name": "Amp"},
-        "droid": {"tool_id": "droid", "tool_name": "Droid"},
-        "codebuff": {"tool_id": "codebuff", "tool_name": "Codebuff"},
-        "hermes": {"tool_id": "hermes", "tool_name": "Hermes"},
-        "pi": {"tool_id": "pi", "tool_name": "pi"},
-        "goose": {"tool_id": "goose", "tool_name": "Goose"},
-        "kilo": {"tool_id": "kilo", "tool_name": "Kilo"},
-        "copilot": {"tool_id": "copilot", "tool_name": "GitHub Copilot"},
-        "gemini": {"tool_id": "gemini", "tool_name": "Gemini"},
-        "kimi": {"tool_id": "kimi", "tool_name": "Kimi"},
-        "qwen": {"tool_id": "qwen", "tool_name": "Qwen"},
-        "zcode": {"tool_id": "zcode", "tool_name": "ZCode"},
-    }
-    return mapping.get(
+    return SOURCE_TOOL_MAPPING.get(
         source_value,
         {"tool_id": source_value, "tool_name": source_value},
     )

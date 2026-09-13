@@ -4,7 +4,7 @@ import { authedFetch } from './http';
 
 const BASE_URL = `${API_BASE_URL}/token-usage`;
 
-export type TokenUsageSource = 'claude' | 'opencode' | 'codex' | 'all';
+export type TokenUsageSource = 'claude' | 'opencode' | 'codex' | 'zcode' | 'all';
 export type TokenUsageReportType = 'daily' | 'weekly' | 'monthly';
 export type TokenUsageGroupBy = 'none' | 'device' | 'tool' | 'model';
 export type TokenUsageSortBy = 'date' | 'total_tokens' | 'total_cost' | 'input_tokens' | 'output_tokens' | 'cache_tokens' | 'created_at';

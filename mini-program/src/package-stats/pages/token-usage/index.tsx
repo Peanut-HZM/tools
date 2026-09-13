@@ -108,6 +108,7 @@ export default function TokenUsagePage() {
 
       {data && (
         <ScrollView className="stats-content" scrollY>
+          <View className="stats-content-inner">
           <View className="summary-cards">
             <View className="summary-card glass-card">
               <Text className="card-value">{(data.summary.total_tokens / 1000).toFixed(1)}K</Text>
@@ -139,6 +140,7 @@ export default function TokenUsagePage() {
           {data.cached && (
             <Text className="cached-hint">数据来自缓存</Text>
           )}
+          </View>
         </ScrollView>
       )}
     </View>

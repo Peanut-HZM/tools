@@ -213,7 +213,7 @@ export default function CrossShareMessage() {
             </Text>
           )}
         </View>
-        <Text className='json-text' selectable>{displayLines}</Text>
+        <Text className='json-text' userSelect="text">{displayLines}</Text>
         {!isJsonExpanded && lineCount > JSON_COLLAPSE_LINES && (
           <View className='json-expand-btn' onClick={() => toggleJsonExpand(messageId)}>
             <Text className='expand-text'>点击展开查看完整内容 ({lineCount} 行)</Text>
@@ -231,7 +231,7 @@ export default function CrossShareMessage() {
 
     return (
       <View className='code-block'>
-        <Text className='code-text' selectable>{code}</Text>
+        <Text className='code-text' userSelect="text">{code}</Text>
       </View>
     )
   }

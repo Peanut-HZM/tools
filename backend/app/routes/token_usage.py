@@ -38,6 +38,7 @@ from app.models.token_usage_models import (
     DeviceMergeLog,
 )
 from app.services.token_usage_sync_service import sync_token_usage, sync_token_usage_v2
+from app.services.token_usage_sync_service import _map_source_to_tool, SOURCE_TOOL_MAPPING
 from app.services.token_usage_background_sync import register_pending_sync_user
 from app.services.ccusage_scheduler import get_sync_lock
 from app.routes.auth import get_current_user_id
@@ -891,9 +892,15 @@ def _build_summary_payload(
     devices = [{"id": did, "name": name} for did, name in device_names.items()]
 
     # 8. 图表数据（单独查询，只取必要字段，避免全列扫描）
+    # 注意：必须包含 source、tool_id、device_id，否则 build_chart_series 按工具/设备分组时
+    # 无法正确识别维度，所有记录会落入 "unknown" 分组
     chart_records = (
         db.query(
             TokenUsageRecord.record_date,
+            TokenUsageRecord.source,
+            TokenUsageRecord.tool_id,
+            TokenUsageRecord.device_id,
+            TokenUsageRecord.model,
             TokenUsageRecord.input_tokens,
             TokenUsageRecord.output_tokens,
             TokenUsageRecord.cache_creation_tokens,
@@ -1771,18 +1778,8 @@ def _align_datetime_to_reference(value, reference: datetime):
     return value.replace(tzinfo=reference.tzinfo)
 
 
-def _map_source_to_tool(source: str) -> dict:
-    source_value = source or "unknown"
-    mapping = {
-        "claude": {"tool_id": "claude-code", "tool_name": "Claude Code"},
-        "opencode": {"tool_id": "opencode", "tool_name": "OpenCode"},
-        "codex": {"tool_id": "codex", "tool_name": "Codex"},
-        "zcode": {"tool_id": "zcode", "tool_name": "ZCode"},
-    }
-    return mapping.get(
-        source_value,
-        {"tool_id": source_value, "tool_name": source_value},
-    )
+# _map_source_to_tool 已从 app.services.token_usage_sync_service 导入（line 41）
+# 注意：不要在此文件重复定义，避免映射不一致
 
 
 def _display_model_name(model: str, tool_name: str = "Unknown Tool") -> str:
@@ -2537,10 +2534,11 @@ def _build_record_filters(
             filters.append(TokenUsageRecord.device_id == req.device_id)
     tool_id = getattr(req, "tool_id", None)
     if tool_id:
+        # 动态查找所有已知 source 中 tool_id 匹配的（避免硬编码 source 列表）
         source_matches = [
             source
-            for source in ("claude", "opencode", "codex")
-            if _map_source_to_tool(source)["tool_id"] == tool_id
+            for source in SOURCE_TOOL_MAPPING
+            if SOURCE_TOOL_MAPPING[source]["tool_id"] == tool_id
         ]
         if tool_id not in source_matches:
             source_matches.append(tool_id)
