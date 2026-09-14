@@ -184,3 +184,78 @@ def is_previewable(name: str) -> bool:
     file_type = get_file_type(name)
     return file_type in PREVIEWABLE_TYPES
 
+
+
+# ---------------------------------------------------------------------------
+# 敏感路径安全验证
+# ---------------------------------------------------------------------------
+
+# 敏感路径黑名单（禁止访问）
+SENSITIVE_PATHS = [
+    '/etc/shadow',
+    '/etc/passwd',
+    '/proc/',
+    '/sys/',
+    '/dev/',
+    '/root/',
+]
+
+
+def is_sensitive_path(path: str) -> bool:
+    """检查路径是否为系统敏感路径
+
+    Args:
+        path: 绝对路径
+
+    Returns:
+        是否为敏感路径
+    """
+    resolved = Path(path).resolve()
+    path_str = str(resolved)
+
+    for sensitive in SENSITIVE_PATHS:
+        # 同时匹配原始路径和解析后的路径（处理 macOS /etc -> /private/etc 等符号链接）
+        sensitive_resolved = str(Path(sensitive.rstrip('/')).resolve())
+        # 对于目录前缀匹配，确保带尾部斜杠
+        if sensitive.endswith('/'):
+            prefix_original = sensitive
+            prefix_resolved = sensitive_resolved + '/'
+            if path_str.startswith(prefix_original) or path_str.startswith(prefix_resolved):
+                return True
+        else:
+            if path_str == sensitive or path_str.startswith(sensitive + '/') or path_str == sensitive_resolved or path_str.startswith(sensitive_resolved + '/'):
+                return True
+    return False
+
+
+def validate_any_path(path: str) -> Tuple[bool, str]:
+    """验证任意路径（允许访问任何非敏感路径）
+
+    Args:
+        path: 用户输入的路径（可以是绝对或相对）
+
+    Returns:
+        Tuple[是否有效，错误信息或解析后的绝对路径]
+    """
+    if not path:
+        return False, "路径不能为空"
+
+    # 检查路径遍历攻击
+    if '..' in path:
+        return False, "路径遍历攻击检测：不允许 '..'"
+
+    try:
+        # 解析路径
+        if os.path.isabs(path):
+            resolved = Path(path).resolve()
+        else:
+            resolved = Path(os.getcwd()) / path
+            resolved = resolved.resolve()
+
+        # 检查敏感路径
+        if is_sensitive_path(str(resolved)):
+            return False, "禁止访问系统敏感路径"
+
+        return True, str(resolved)
+    except Exception as e:
+        return False, f"路径解析失败：{str(e)}"

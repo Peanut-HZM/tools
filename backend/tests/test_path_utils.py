@@ -118,3 +118,101 @@ class TestJoinUserPath:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestSensitivePathDetection:
+    """Tests for sensitive path detection"""
+
+    def test_sensitive_path_shadow(self):
+        """Test /etc/shadow detection"""
+        from app.utils.path_utils import is_sensitive_path
+        assert is_sensitive_path('/etc/shadow') is True
+
+    def test_sensitive_path_passwd(self):
+        """Test /etc/passwd detection"""
+        from app.utils.path_utils import is_sensitive_path
+        assert is_sensitive_path('/etc/passwd') is True
+
+    def test_sensitive_path_proc(self):
+        """Test /proc/ detection"""
+        from app.utils.path_utils import is_sensitive_path
+        assert is_sensitive_path('/proc/123') is True
+        assert is_sensitive_path('/proc/cpuinfo') is True
+
+    def test_sensitive_path_sys(self):
+        """Test /sys/ detection"""
+        from app.utils.path_utils import is_sensitive_path
+        assert is_sensitive_path('/sys/class') is True
+        assert is_sensitive_path('/sys/kernel') is True
+
+    def test_sensitive_path_dev(self):
+        """Test /dev/ detection"""
+        from app.utils.path_utils import is_sensitive_path
+        assert is_sensitive_path('/dev/null') is True
+        assert is_sensitive_path('/dev/sda') is True
+
+    def test_sensitive_path_root(self):
+        """Test /root/ detection"""
+        from app.utils.path_utils import is_sensitive_path
+        assert is_sensitive_path('/root/.ssh') is True
+
+    def test_non_sensitive_path(self):
+        """Test non-sensitive paths"""
+        from app.utils.path_utils import is_sensitive_path
+        assert is_sensitive_path('/home/user/docs') is False
+        assert is_sensitive_path('/tmp/file.txt') is False
+        assert is_sensitive_path('/var/log/syslog') is False
+
+
+class TestValidateAnyPath:
+    """Tests for validate_any_path function"""
+
+    def test_validate_any_path_valid_absolute(self):
+        """Test valid absolute path"""
+        from app.utils.path_utils import validate_any_path
+        is_valid, result = validate_any_path('/home/user/docs')
+        assert is_valid is True
+        assert '/home/user/docs' in result
+
+    def test_validate_any_path_valid_relative(self):
+        """Test valid relative path"""
+        from app.utils.path_utils import validate_any_path
+        is_valid, result = validate_any_path('documents/file.md')
+        assert is_valid is True
+        # Should return absolute path
+        assert os.path.isabs(result)
+
+    def test_validate_any_path_empty(self):
+        """Test empty path"""
+        from app.utils.path_utils import validate_any_path
+        is_valid, error = validate_any_path('')
+        assert is_valid is False
+        assert '空' in error
+
+    def test_validate_any_path_traversal(self):
+        """Test path traversal prevention"""
+        from app.utils.path_utils import validate_any_path
+        is_valid, error = validate_any_path('../../etc/passwd')
+        assert is_valid is False
+        assert '遍历' in error
+
+    def test_validate_any_path_sensitive(self):
+        """Test sensitive path rejection"""
+        from app.utils.path_utils import validate_any_path
+        is_valid, error = validate_any_path('/etc/shadow')
+        assert is_valid is False
+        assert '敏感' in error
+
+    def test_validate_any_path_sensitive_proc(self):
+        """Test /proc path rejection"""
+        from app.utils.path_utils import validate_any_path
+        is_valid, error = validate_any_path('/proc/123')
+        assert is_valid is False
+        assert '敏感' in error
+
+    def test_validate_any_path_returns_absolute(self):
+        """Test that result is always absolute path"""
+        from app.utils.path_utils import validate_any_path
+        is_valid, result = validate_any_path('/home/user/file.md')
+        assert is_valid is True
+        assert os.path.isabs(result)
