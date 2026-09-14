@@ -167,3 +167,41 @@ export interface FilePathData {
   file_name: string;
   root_path: string;
 }
+
+// ==================== File Manager Types (任意路径浏览) ====================
+
+export interface FileManagerItem {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size: number;
+  modified_at: string;
+  extension: string;
+  is_previewable: boolean;
+}
+
+export interface FileManagerBrowseResponse {
+  current_path: string;
+  breadcrumbs: BreadcrumbItem[];
+  items: FileManagerItem[];
+  total: number;
+  has_more: boolean;
+}
+
+export interface FileManagerState {
+  currentPath: string;
+  items: FileManagerItem[];
+  selectedItems: string[];
+  loading: boolean;
+  error: string | null;
+  quickAccess: string[];
+  sortField: 'name' | 'size' | 'modified';
+  sortOrder: 'asc' | 'desc';
+  page: number;
+  hasMore: boolean;
+}
+
+export interface FileOperationResult {
+  success: boolean;
+  message: string;
+}
