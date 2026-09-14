@@ -108,3 +108,23 @@ class ErrorResponse(BaseModel):
     error: str
     path: Optional[str] = None
     details: Optional[str] = None
+
+
+class FileItem(BaseModel):
+    """文件或文件夹信息"""
+    name: str
+    path: str
+    type: str = Field(..., pattern="^(file|directory)$")
+    size: int = 0  # 字节数，目录为 0
+    modified_at: str  # ISO 时间字符串
+    extension: str = ""  # 文件扩展名（目录为空）
+    is_previewable: bool = False  # 是否可预览
+
+
+class BrowseResponse(BaseModel):
+    """目录浏览响应"""
+    current_path: str
+    breadcrumbs: List[dict]
+    items: List[FileItem]
+    total: int
+    has_more: bool = False
