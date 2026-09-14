@@ -3,11 +3,12 @@ Markdown Editor API Router - Handles file, config, and search operations
 """
 
 from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File, Header
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from typing import Optional, List
 import os
 import uuid
 import io
+from pathlib import Path
 
 from app.models.file_models import (
     FileNode,
@@ -20,6 +21,8 @@ from app.models.file_models import (
     RenameResult,
     DeleteResult,
     RootPathResponse,
+    BrowseResponse,
+    FileItem,
 )
 from app.models.config_models import EditorConfig
 from app.models.search_models import FileSearchResult, ContentSearchResult
@@ -917,3 +920,305 @@ async def delete_file_version(
         raise HTTPException(
             status_code=500, detail=f"Failed to delete version: {str(e)}"
         )
+
+
+# ==================== Task 4: 文件管理器 API 端点 ====================
+
+
+class CopyRequest(BaseModel):
+    source_path: str
+    target_path: str
+
+
+class CopyResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class MoveRequest(BaseModel):
+    source_path: str
+    target_path: str
+
+
+class MoveResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class RenameItemRequest(BaseModel):
+    path: str
+    new_name: str
+
+
+class FileOperationResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class DeleteItemRequest(BaseModel):
+    path: str
+
+
+class CreateItemRequest(BaseModel):
+    parent_path: str
+    name: str
+    type: str  # "file" 或 "directory"
+
+
+# ---------------------------------------------------------------------------
+# Step 1: 浏览目录 API
+# ---------------------------------------------------------------------------
+
+@router.get("/files/browse", response_model=BrowseResponse)
+async def browse_directory(
+    path: str = Query(default="", description="要浏览的目录路径"),
+    page: int = Query(default=1, ge=1, description="页码"),
+    page_size: int = Query(default=100, ge=1, le=1000, description="每页数量"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """浏览任意目录（支持分页）"""
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        return service.browse_directory(path, page, page_size)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 2: 复制 API
+# ---------------------------------------------------------------------------
+
+@router.post("/files/copy", response_model=CopyResponse)
+async def copy_file(
+    request: CopyRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """复制文件或文件夹"""
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        result = service.copy_item(request.source_path, request.target_path)
+
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+
+        return result
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 3: 移动 API
+# ---------------------------------------------------------------------------
+
+@router.post("/files/move", response_model=MoveResponse)
+async def move_file(
+    request: MoveRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """移动文件或文件夹"""
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        result = service.move_item(request.source_path, request.target_path)
+
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+
+        return result
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 4: 下载 API
+# ---------------------------------------------------------------------------
+
+@router.get("/files/download")
+async def download_file(
+    path: str = Query(..., description="要下载的文件路径"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """下载文件"""
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        file_path = service.get_download_path(path)
+
+        return FileResponse(
+            path=str(file_path),
+            filename=file_path.name,
+            media_type="application/octet-stream"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 5: 重命名 API（增强：支持文件/文件夹 + 任意路径）
+# ---------------------------------------------------------------------------
+
+@router.post("/files/rename-item", response_model=FileOperationResponse)
+async def rename_item(
+    request: RenameItemRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """重命名文件或文件夹（支持任意路径）"""
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        source = service._validate_and_resolve(request.path)
+        if not source.exists():
+            raise HTTPException(status_code=400, detail="源路径不存在")
+        new_path = source.parent / request.new_name
+        result = service.move_item(request.path, str(new_path))
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+        return FileOperationResponse(success=True, message="重命名成功")
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 6: 删除 API（增强：支持文件/文件夹 + 任意路径）
+# ---------------------------------------------------------------------------
+
+@router.post("/files/delete-item", response_model=FileOperationResponse)
+async def delete_item(
+    request: DeleteItemRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """删除文件或文件夹（支持任意路径）"""
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        target = service._validate_and_resolve(request.path)
+        if not target.exists():
+            raise HTTPException(status_code=400, detail="路径不存在")
+        if target.is_dir():
+            import shutil
+            shutil.rmtree(str(target))
+            message = "目录删除成功"
+        else:
+            target.unlink()
+            message = "文件删除成功"
+        return FileOperationResponse(success=True, message=message)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 7: 新建文件或文件夹 API
+# ---------------------------------------------------------------------------
+
+@router.post("/files/create-item", response_model=FileOperationResponse)
+async def create_item(
+    request: CreateItemRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """新建文件或文件夹"""
+    if request.type not in ("file", "directory"):
+        raise HTTPException(status_code=400, detail="type 必须是 'file' 或 'directory'")
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        full_path = os.path.join(request.parent_path, request.name)
+        if request.type == "directory":
+            result = service.create_directory(full_path)
+        else:
+            result = service.create_file(full_path, "")
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.message)
+        kind = "文件夹" if request.type == "directory" else "文件"
+        return FileOperationResponse(success=True, message=f"{kind}创建成功")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 8: 上传任意文件 API
+# ---------------------------------------------------------------------------
+
+@router.post("/files/upload-any")
+async def upload_any_file(
+    file: UploadFile = File(...),
+    parent_path: str = Query(default="", description="目标目录路径"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """上传任意文件到指定目录"""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="未提供文件名")
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        if not parent_path:
+            raise HTTPException(status_code=400, detail="parent_path 参数必填")
+        target_dir = service._validate_and_resolve(parent_path)
+        if not target_dir.is_dir():
+            raise HTTPException(status_code=400, detail="目标路径不是目录")
+        target_file = target_dir / file.filename
+        if target_file.exists():
+            raise HTTPException(status_code=400, detail="目标文件已存在")
+        content_bytes = await file.read()
+        target_file.write_bytes(content_bytes)
+        return FileOperationResponse(success=True, message="上传成功")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Step 9: 文件信息 API
+# ---------------------------------------------------------------------------
+
+@router.get("/files/info")
+async def get_file_info_endpoint(
+    path: str = Query(..., description="文件/文件夹路径"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """获取文件或文件夹详细信息"""
+    try:
+        config_service = MarkdownConfigService(user_id)
+        config = config_service.load_config()
+        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        return service.get_file_info(path)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"内部错误：{str(e)}")
