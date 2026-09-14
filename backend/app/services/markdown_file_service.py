@@ -704,7 +704,7 @@ class MarkdownFileService:
         """浏览任意目录（支持分页）
 
         Args:
-            path: 目标路径（空字符串表示根目录）
+            path: 目标路径（空字符串表示根目录；allow_any_path 模式下默认为 /）
             page: 页码（从 1 开始）
             page_size: 每页数量（默认 100）
 
@@ -713,6 +713,8 @@ class MarkdownFileService:
         """
         if path:
             target_path = self._validate_and_resolve(path)
+        elif self.allow_any_path:
+            target_path = Path("/").resolve()
         else:
             target_path = self._root_path
 
@@ -765,14 +767,18 @@ class MarkdownFileService:
 
     def _build_breadcrumbs_for_any_path(self, target_path: Path) -> List[dict]:
         """为任意路径构建面包屑导航"""
-        breadcrumbs = [{"name": "根目录", "path": ""}]
+        breadcrumbs: List[dict] = []
+        resolved = target_path.resolve()
 
-        parts = target_path.parts
+        # 根目录
+        breadcrumbs.append({"name": "/", "path": "/"})
+
+        # 逐级构建路径
         current = ""
-        for part in parts:
+        for part in resolved.parts:
             if part == '/':
                 continue
-            current = current + part if not current else current + "/" + part
+            current = current + "/" + part
             breadcrumbs.append({"name": part, "path": current})
 
         return breadcrumbs

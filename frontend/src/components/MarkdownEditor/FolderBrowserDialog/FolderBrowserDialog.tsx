@@ -291,7 +291,7 @@ export default function FolderBrowserDialog({
         {/* ===== 文件管理器 Tab 内容 ===== */}
         {activeTab === 'manager' && (
           <div className="flex-1 overflow-hidden">
-            <FileManager onConfirm={handleFileManagerConfirm} initialPath={rootPath} />
+            <FileManager onConfirm={handleFileManagerConfirm} initialPath="" />
           </div>
         )}
       </div>

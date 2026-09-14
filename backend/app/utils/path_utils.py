@@ -232,7 +232,7 @@ def validate_any_path(path: str) -> Tuple[bool, str]:
     """验证任意路径（允许访问任何非敏感路径）
 
     Args:
-        path: 用户输入的路径（可以是绝对或相对）
+        path: 用户输入的路径（可以是绝对或相对，支持 ~ 展开）
 
     Returns:
         Tuple[是否有效，错误信息或解析后的绝对路径]
@@ -240,17 +240,25 @@ def validate_any_path(path: str) -> Tuple[bool, str]:
     if not path:
         return False, "路径不能为空"
 
-    # 检查路径遍历攻击
-    if '..' in path:
+    # 展开 ~ 为用户 home 目录
+    # 注意：HOME 环境变量可能被覆盖为缓存目录，需要使用 REAL_HOME
+    from app.config.config import REAL_HOME
+    if path.startswith('~'):
+        expanded = path.replace('~', REAL_HOME, 1)
+    else:
+        expanded = path
+
+    # 检查路径遍历攻击：只阻止 '..' 作为独立路径组件
+    parts = Path(expanded).parts
+    if '..' in parts:
         return False, "路径遍历攻击检测：不允许 '..'"
 
     try:
         # 解析路径
-        if os.path.isabs(path):
-            resolved = Path(path).resolve()
+        if os.path.isabs(expanded):
+            resolved = Path(expanded).resolve()
         else:
-            resolved = Path(os.getcwd()) / path
-            resolved = resolved.resolve()
+            resolved = (Path(os.getcwd()) / expanded).resolve()
 
         # 检查敏感路径
         if is_sensitive_path(str(resolved)):
