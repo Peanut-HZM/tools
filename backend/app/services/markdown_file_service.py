@@ -886,3 +886,100 @@ class MarkdownFileService:
             "extension": get_extension(file_path.name) if file_path.is_file() else "",
             "is_previewable": is_previewable(file_path.name) if file_path.is_file() else False,
         }
+
+    def delete_item(self, path: str) -> dict:
+        """删除文件或文件夹
+
+        自动判断类型并执行删除。
+
+        Args:
+            path: 文件/文件夹路径
+
+        Returns:
+            dict with success and message
+        """
+        target = self._validate_and_resolve(path)
+
+        if not target.exists():
+            return {"success": False, "message": "路径不存在"}
+
+        if target.is_dir():
+            result = self.delete_directory(path, recursive=True)
+            return {"success": result.success, "message": result.message}
+        else:
+            result = self.delete_file(path)
+            return {"success": result.success, "message": result.message}
+
+    def rename_item(self, source_path: str, new_name: str) -> dict:
+        """重命名文件或文件夹
+
+        验证源路径和目标路径均合法后执行重命名。
+
+        Args:
+            source_path: 源路径
+            new_name: 新名称
+
+        Returns:
+            dict with success and message
+        """
+        source = self._validate_and_resolve(source_path)
+
+        if not source.exists():
+            return {"success": False, "message": "源路径不存在"}
+
+        # 构造目标路径并验证其合法性
+        target = source.parent / new_name
+        try:
+            target = self._validate_and_resolve(str(target))
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
+        if target.exists():
+            return {"success": False, "message": "目标路径已存在"}
+
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(source), str(target))
+            return {"success": True, "message": "重命名成功"}
+        except Exception as e:
+            return {"success": False, "message": f"重命名失败：{str(e)}"}
+
+    def upload_file(self, parent_path: str, filename: str, content_bytes: bytes) -> dict:
+        """上传文件到指定目录
+
+        验证父路径合法性，检查文件大小限制，写入文件。
+
+        Args:
+            parent_path: 目标目录路径
+            filename: 文件名
+            content_bytes: 文件内容
+
+        Returns:
+            dict with success and message
+        """
+        MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100MB
+
+        if len(content_bytes) > MAX_UPLOAD_SIZE:
+            return {"success": False, "message": "文件过大（最大 100MB）"}
+
+        target_dir = self._validate_and_resolve(parent_path)
+
+        if not target_dir.is_dir():
+            return {"success": False, "message": "目标路径不是目录"}
+
+        target_file = target_dir / filename
+
+        # 验证目标文件路径合法性
+        try:
+            target_file = self._validate_and_resolve(str(target_file))
+        except ValueError as e:
+            return {"success": False, "message": str(e)}
+
+        if target_file.exists():
+            return {"success": False, "message": "目标文件已存在"}
+
+        try:
+            target_file.write_bytes(content_bytes)
+            return {"success": True, "message": "上传成功"}
+        except Exception as e:
+            return {"success": False, "message": f"上传失败：{str(e)}"}

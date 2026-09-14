@@ -1089,11 +1089,7 @@ async def rename_item(
         config_service = MarkdownConfigService(user_id)
         config = config_service.load_config()
         service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
-        source = service._validate_and_resolve(request.path)
-        if not source.exists():
-            raise HTTPException(status_code=400, detail="源路径不存在")
-        new_path = source.parent / request.new_name
-        result = service.move_item(request.path, str(new_path))
+        result = service.rename_item(request.path, request.new_name)
         if not result["success"]:
             raise HTTPException(status_code=400, detail=result["message"])
         return FileOperationResponse(success=True, message="重命名成功")
@@ -1119,17 +1115,10 @@ async def delete_item(
         config_service = MarkdownConfigService(user_id)
         config = config_service.load_config()
         service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
-        target = service._validate_and_resolve(request.path)
-        if not target.exists():
-            raise HTTPException(status_code=400, detail="路径不存在")
-        if target.is_dir():
-            import shutil
-            shutil.rmtree(str(target))
-            message = "目录删除成功"
-        else:
-            target.unlink()
-            message = "文件删除成功"
-        return FileOperationResponse(success=True, message=message)
+        result = service.delete_item(request.path)
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+        return FileOperationResponse(success=True, message="删除成功")
     except HTTPException:
         raise
     except ValueError as e:
@@ -1188,14 +1177,10 @@ async def upload_any_file(
         service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
         if not parent_path:
             raise HTTPException(status_code=400, detail="parent_path 参数必填")
-        target_dir = service._validate_and_resolve(parent_path)
-        if not target_dir.is_dir():
-            raise HTTPException(status_code=400, detail="目标路径不是目录")
-        target_file = target_dir / file.filename
-        if target_file.exists():
-            raise HTTPException(status_code=400, detail="目标文件已存在")
         content_bytes = await file.read()
-        target_file.write_bytes(content_bytes)
+        result = service.upload_file(parent_path, file.filename, content_bytes)
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
         return FileOperationResponse(success=True, message="上传成功")
     except HTTPException:
         raise
