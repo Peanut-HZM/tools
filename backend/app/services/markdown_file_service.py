@@ -6,14 +6,14 @@ import shutil
 import base64
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Set
+from typing import Optional, Set, List
 
 from app.models.file_models import (
     FileNode, FileRawContent, SaveResult, CreateResult,
-    RenameResult, DeleteResult
+    RenameResult, DeleteResult, FileItem, BrowseResponse
 )
 from app.utils.path_utils import (
-    validate_path, is_hidden, is_markdown_file,
+    validate_path, validate_any_path, is_hidden, is_markdown_file,
     get_relative_path, normalize_path, ensure_user_directory,
     get_file_type, get_extension, is_previewable
 )
@@ -33,7 +33,7 @@ class MarkdownFileService:
                 return f"{size:.2f} {unit}"
         return f"{size:.2f} TB"
     
-    def __init__(self, user_id: str, base_path: str = "./data/users", custom_root: Optional[str] = None):
+    def __init__(self, user_id: str, base_path: str = "./data/users", custom_root: Optional[str] = None, allow_any_path: bool = False):
         """
         Initialize MarkdownFileService with user-specific root directory.
         
@@ -44,6 +44,7 @@ class MarkdownFileService:
         """
         self.user_id = user_id
         self.base_path = base_path
+        self.allow_any_path = allow_any_path
         
         if custom_root and os.path.exists(custom_root) and os.path.isdir(custom_root):
             self._root_path = Path(custom_root).resolve()
@@ -93,11 +94,17 @@ class MarkdownFileService:
         return False
     
     def _validate_and_resolve(self, path: str) -> Path:
-        """Validate path and return resolved Path object"""
-        is_valid, result = validate_path(path, str(self._root_path))
-        if not is_valid:
-            raise ValueError(result)
-        return Path(result)
+        """验证路径并返回解析后的 Path 对象"""
+        if self.allow_any_path:
+            is_valid, result = validate_any_path(path)
+            if not is_valid:
+                raise ValueError(result)
+            return Path(result)
+        else:
+            is_valid, result = validate_path(path, str(self._root_path))
+            if not is_valid:
+                raise ValueError(result)
+            return Path(result)
     
     def get_root_path(self) -> str:
         """Get the user's root path"""
@@ -687,4 +694,195 @@ class MarkdownFileService:
             "relative_path": normalize_path(relative_path),
             "file_name": resolved.name,
             "root_path": str(self._root_path),
+        }
+
+    # ---------------------------------------------------------------------------
+    # Task 3: 任意路径浏览 & 文件操作
+    # ---------------------------------------------------------------------------
+
+    def browse_directory(self, path: str = "", page: int = 1, page_size: int = 100) -> BrowseResponse:
+        """浏览任意目录（支持分页）
+
+        Args:
+            path: 目标路径（空字符串表示根目录）
+            page: 页码（从 1 开始）
+            page_size: 每页数量（默认 100）
+
+        Returns:
+            BrowseResponse 包含文件列表和分页信息
+        """
+        if path:
+            target_path = self._validate_and_resolve(path)
+        else:
+            target_path = self._root_path
+
+        if not target_path.exists() or not target_path.is_dir():
+            raise ValueError(f"目录不存在：{path}")
+
+        # 获取所有条目
+        try:
+            entries = sorted(
+                target_path.iterdir(),
+                key=lambda x: (not x.is_dir(), x.name.lower())
+            )
+        except PermissionError:
+            raise ValueError(f"无权限访问目录：{path}")
+
+        # 过滤隐藏文件和忽略文件
+        items = []
+        for entry in entries:
+            if self._is_ignored(entry.name, entry.is_dir()):
+                continue
+
+            stat = entry.stat()
+            item = FileItem(
+                name=entry.name,
+                path=str(entry),
+                type="directory" if entry.is_dir() else "file",
+                size=stat.st_size if entry.is_file() else 0,
+                modified_at=datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                extension=get_extension(entry.name) if entry.is_file() else "",
+                is_previewable=is_previewable(entry.name) if entry.is_file() else False,
+            )
+            items.append(item)
+
+        # 分页
+        total = len(items)
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated_items = items[start:end]
+
+        # 构建面包屑
+        breadcrumbs = self._build_breadcrumbs_for_any_path(target_path)
+
+        return BrowseResponse(
+            current_path=str(target_path),
+            breadcrumbs=breadcrumbs,
+            items=paginated_items,
+            total=total,
+            has_more=end < total,
+        )
+
+    def _build_breadcrumbs_for_any_path(self, target_path: Path) -> List[dict]:
+        """为任意路径构建面包屑导航"""
+        breadcrumbs = [{"name": "根目录", "path": ""}]
+
+        parts = target_path.parts
+        current = ""
+        for part in parts:
+            if part == '/':
+                continue
+            current = current + part if not current else current + "/" + part
+            breadcrumbs.append({"name": part, "path": current})
+
+        return breadcrumbs
+
+    def copy_item(self, source_path: str, target_path: str) -> dict:
+        """复制文件或文件夹
+
+        Args:
+            source_path: 源路径
+            target_path: 目标路径
+
+        Returns:
+            dict with success and message
+        """
+        source = self._validate_and_resolve(source_path)
+        target = self._validate_and_resolve(target_path)
+
+        if not source.exists():
+            return {"success": False, "message": "源路径不存在"}
+
+        if target.exists():
+            return {"success": False, "message": "目标路径已存在"}
+
+        try:
+            if source.is_dir():
+                shutil.copytree(str(source), str(target))
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(str(source), str(target))
+
+            return {"success": True, "message": "复制成功"}
+        except Exception as e:
+            return {"success": False, "message": f"复制失败：{str(e)}"}
+
+    def move_item(self, source_path: str, target_path: str) -> dict:
+        """移动文件或文件夹
+
+        Args:
+            source_path: 源路径
+            target_path: 目标路径
+
+        Returns:
+            dict with success and message
+        """
+        source = self._validate_and_resolve(source_path)
+        target = self._validate_and_resolve(target_path)
+
+        if not source.exists():
+            return {"success": False, "message": "源路径不存在"}
+
+        if target.exists():
+            return {"success": False, "message": "目标路径已存在"}
+
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(source), str(target))
+            return {"success": True, "message": "移动成功"}
+        except Exception as e:
+            return {"success": False, "message": f"移动失败：{str(e)}"}
+
+    def get_download_path(self, path: str) -> Path:
+        """获取文件下载路径（验证文件存在且不是敏感路径）
+
+        Args:
+            path: 文件路径
+
+        Returns:
+            解析后的文件路径
+
+        Raises:
+            ValueError: 文件不存在或路径无效
+        """
+        file_path = self._validate_and_resolve(path)
+
+        if not file_path.exists():
+            raise ValueError(f"文件不存在：{path}")
+
+        if not file_path.is_file():
+            raise ValueError(f"路径不是文件：{path}")
+
+        # 文件大小限制 100MB
+        if file_path.stat().st_size > 100 * 1024 * 1024:
+            raise ValueError("文件过大（最大 100MB）")
+
+        return file_path
+
+    def get_file_info(self, path: str) -> dict:
+        """获取文件或目录的详细信息
+
+        Args:
+            path: 文件/目录路径
+
+        Returns:
+            dict 包含 name, path, type, size, modified_at, extension, is_previewable
+
+        Raises:
+            ValueError: 路径不存在
+        """
+        file_path = self._validate_and_resolve(path)
+
+        if not file_path.exists():
+            raise ValueError(f"路径不存在：{path}")
+
+        stat = file_path.stat()
+        return {
+            "name": file_path.name,
+            "path": str(file_path),
+            "type": "directory" if file_path.is_dir() else "file",
+            "size": stat.st_size if file_path.is_file() else 0,
+            "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            "extension": get_extension(file_path.name) if file_path.is_file() else "",
+            "is_previewable": is_previewable(file_path.name) if file_path.is_file() else False,
         }
