@@ -15,6 +15,9 @@ import type {
   ContentSearchResult,
   DirectoryBrowseData,
   FilePathData,
+  FileManagerBrowseResponse,
+  FileManagerItem,
+  FileOperationResult,
 } from '../types/markdownEditor';
 
 import { MARKDOWN_EDITOR_API_BASE_URL } from '../config/api';
@@ -386,3 +389,134 @@ export async function listOssMarkdownFiles(): Promise<OssFileInfo[]> {
 }
 
 export const listOssFiles = listOssMarkdownFiles;
+
+// ==================== File Manager Operations (任意路径浏览 + 文件操作) ====================
+
+/**
+ * 浏览任意目录（支持分页）
+ */
+export async function browseFileManager(
+  path: string = '',
+  page: number = 1,
+  pageSize: number = 100
+): Promise<FileManagerBrowseResponse> {
+  const params = new URLSearchParams();
+  if (path) params.append('path', path);
+  params.append('page', page.toString());
+  params.append('page_size', pageSize.toString());
+
+  const response = await authedFetch(`${API_BASE_URL}/files/browse?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  return handleResponse<FileManagerBrowseResponse>(response);
+}
+
+/**
+ * 复制文件或文件夹
+ */
+export async function copyFileItem(sourcePath: string, targetPath: string): Promise<FileOperationResult> {
+  const response = await authedFetch(`${API_BASE_URL}/files/copy`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ source_path: sourcePath, target_path: targetPath })
+  });
+  return handleResponse<FileOperationResult>(response);
+}
+
+/**
+ * 移动文件或文件夹
+ */
+export async function moveFileItem(sourcePath: string, targetPath: string): Promise<FileOperationResult> {
+  const response = await authedFetch(`${API_BASE_URL}/files/move`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ source_path: sourcePath, target_path: targetPath })
+  });
+  return handleResponse<FileOperationResult>(response);
+}
+
+/**
+ * 重命名文件或文件夹
+ */
+export async function renameFileManagerItem(path: string, newName: string): Promise<FileOperationResult> {
+  const response = await authedFetch(`${API_BASE_URL}/files/rename-item`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, new_name: newName })
+  });
+  return handleResponse<FileOperationResult>(response);
+}
+
+/**
+ * 删除文件或文件夹
+ */
+export async function deleteFileManagerItem(path: string): Promise<FileOperationResult> {
+  const response = await authedFetch(`${API_BASE_URL}/files/delete-item`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path })
+  });
+  return handleResponse<FileOperationResult>(response);
+}
+
+/**
+ * 新建文件或文件夹
+ */
+export async function createFileManagerItem(
+  parentPath: string,
+  name: string,
+  type: 'file' | 'directory'
+): Promise<FileOperationResult> {
+  const response = await authedFetch(`${API_BASE_URL}/files/create-item`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ parent_path: parentPath, name, type })
+  });
+  return handleResponse<FileOperationResult>(response);
+}
+
+/**
+ * 上传文件到指定目录
+ */
+export async function uploadFileToPath(file: File, parentPath: string): Promise<FileOperationResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const headers = getAuthHeaders() as Record<string, string>;
+  delete headers['Content-Type'];
+
+  const response = await authedFetch(
+    `${API_BASE_URL}/files/upload-any?parent_path=${encodeURIComponent(parentPath)}`,
+    {
+      method: 'POST',
+      headers,
+      body: formData
+    }
+  );
+  return handleResponse<FileOperationResult>(response);
+}
+
+/**
+ * 获取文件下载 URL（不发起请求，仅拼接地址）
+ */
+export function getDownloadUrl(path: string): string {
+  return `${API_BASE_URL}/files/download?path=${encodeURIComponent(path)}`;
+}
+
+/**
+ * 获取文件或文件夹详细信息
+ */
+export async function getFileManagerInfo(path: string): Promise<FileManagerItem> {
+  const params = new URLSearchParams({ path });
+  const response = await authedFetch(`${API_BASE_URL}/files/info?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  return handleResponse<FileManagerItem>(response);
+}
