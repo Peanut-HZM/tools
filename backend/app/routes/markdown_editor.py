@@ -162,6 +162,9 @@ async def get_directory_tree(
     try:
         service = get_file_service(user_id)
         return service.get_directory_tree(root, depth)
+    except FileNotFoundError as e:
+        # 文件夹已被外部删除，返回 404 让前端能识别并移除节点
+        raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -983,6 +986,9 @@ async def browse_directory(
 
         service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
         return service.browse_directory(path, page, page_size)
+    except FileNotFoundError as e:
+        # 文件夹已被外部删除，返回 404 让前端能识别
+        raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

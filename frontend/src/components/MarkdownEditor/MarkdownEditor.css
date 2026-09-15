@@ -309,38 +309,6 @@
 }
 
 /* ========================================
-   PREVIEW AREA
-   ======================================== */
-.preview-area {
-  min-width: 100px;
-  overflow: auto;
-  border-left: 1px solid var(--border-color);
-  flex-shrink: 0;
-  background: var(--bg-card);
-  position: relative;
-}
-
-.preview-area::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg, 
-    var(--neon-purple) 0%, 
-    var(--neon-pink) 50%, 
-    var(--neon-cyan) 100%
-  );
-  opacity: 0.3;
-}
-
-.dark-theme .preview-area {
-  border-color: var(--border-color);
-  background: var(--bg-card);
-}
-
-/* ========================================
    VIEW MODE
    ======================================== */
 .content-area.view-mode {

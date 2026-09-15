@@ -192,7 +192,7 @@ class TestListDirectory:
         result = file_service.list_directory("docs/api")
         crumb_names = [b["name"] for b in result["breadcrumbs"]]
 
-        assert crumb_names[0] == os.path.basename(temp_dir)  # 根目录名
+        assert crumb_names[0] == "根目录"  # 根模式下面包屑首项为根目录
         assert "docs" in crumb_names
         assert "api" in crumb_names
 

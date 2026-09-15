@@ -223,7 +223,7 @@ class TestBrowseDirectory:
         """面包屑导航正确构建"""
         result = any_path_service.browse_directory(temp_dir)
         assert len(result.breadcrumbs) >= 1
-        assert result.breadcrumbs[0]["name"] == "根目录"
+        assert result.breadcrumbs[0]["name"] == "/"  # 任意路径模式下面包屑首项为文件系统根
 
 
 # ---------------------------------------------------------------------------

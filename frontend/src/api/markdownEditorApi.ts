@@ -26,12 +26,24 @@ import { authedFetch } from './http';
 const API_BASE_URL = MARKDOWN_EDITOR_API_BASE_URL;
 
 /**
+ * API 错误类，携带 HTTP 状态码，便于调用方按状态区分处理
+ */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+/**
  * Handle API response errors
  */
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || `HTTP error ${response.status}`);
+    throw new ApiError(error.detail || `HTTP error ${response.status}`, response.status);
   }
   return response.json();
 }

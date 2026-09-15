@@ -76,7 +76,10 @@ export default function MarkdownEditor() {
     setRootPath,
     loadRootPath,
     loadOssFiles,
-    loadSubDirectory
+    loadSubDirectory,
+    refreshTree,
+    refreshingPath,
+    refreshingAll
   } = useFileStore();
 
   const {
@@ -187,7 +190,6 @@ export default function MarkdownEditor() {
   // Local state
   const [viewMode, setViewMode] = useState<ViewMode>('edit'); // 'edit' or 'preview' (where preview means read-only with TOC)
   const [sidebarWidth, setSidebarWidth] = useState(250);
-  const [previewWidth, setPreviewWidth] = useState(450); // For edit mode
   const [tocSidebarWidth, setTocSidebarWidth] = useState(220); // For view mode
   const [editorFlex, setEditorFlex] = useState(1);
 
@@ -208,7 +210,7 @@ export default function MarkdownEditor() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   
   const [isResizing, setIsResizing] = useState(false);
-  const [resizeType, setResizeType] = useState<'sidebar' | 'preview' | 'toc' | null>(null);
+  const [resizeType, setResizeType] = useState<'sidebar' | 'toc' | null>(null);
 
   // 内容搜索状态（搜索当前打开文件的内容）
   const [showContentSearch, setShowContentSearch] = useState(false);
@@ -405,8 +407,24 @@ export default function MarkdownEditor() {
     setViewMode('preview'); // 默认进入预览模式
   }, [isDirty, handleSave, openFile]);
 
+  /** 打开内容搜索：高亮只能由 Preview 渲染，编辑模式下自动切到预览模式 */
+  const openSearch = useCallback(() => {
+    setShowSearch(true);
+    setViewMode((mode) => (mode === 'edit' ? 'preview' : mode));
+  }, []);
+
+  /** 文件树刷新：null/空字符串刷新整树，否则刷新对应子树 */
+  const handleRefresh = useCallback(async (path: string | null) => {
+    try {
+      await refreshTree(path ?? '');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '未知错误';
+      showToast(`刷新失败：${message}`, 'error');
+    }
+  }, [refreshTree, showToast]);
+
   // Handle Resizing
-  const startResize = (type: 'sidebar' | 'preview' | 'toc') => {
+  const startResize = (type: 'sidebar' | 'toc') => {
     setIsResizing(true);
     setResizeType(type);
   };
@@ -418,11 +436,6 @@ export default function MarkdownEditor() {
       if (resizeType === 'sidebar') {
         const newWidth = Math.max(150, Math.min(500, e.clientX));
         setSidebarWidth(newWidth);
-      } else if (resizeType === 'preview') {
-        // Right side resize
-        const maxPreviewWidth = window.innerWidth - sidebarWidth - 200;
-        const newWidth = Math.max(100, Math.min(maxPreviewWidth, window.innerWidth - e.clientX));
-        setPreviewWidth(newWidth);
       } else if (resizeType === 'toc') {
          const tocX = e.clientX - sidebarWidth - 5;
          setTocSidebarWidth(Math.max(150, Math.min(400, tocX)));
@@ -454,7 +467,7 @@ export default function MarkdownEditor() {
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
-        setShowSearch(true);
+        openSearch();
       }
       if ((e.ctrlKey || e.metaKey) && e.key === ',') {
         e.preventDefault();
@@ -464,7 +477,7 @@ export default function MarkdownEditor() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave]);
+  }, [handleSave, openSearch]);
 
   // Handlers for Header Actions
   const handleFolderBrowserConfirm = useCallback(async (path: string) => {
@@ -663,7 +676,7 @@ export default function MarkdownEditor() {
 
           <button
             className={`neon-button icon-only ${showSearch ? 'primary' : ''}`}
-            onClick={() => setShowSearch(!showSearch)}
+            onClick={() => (showSearch ? setShowSearch(false) : openSearch())}
             title={`搜索文件内容 ${showSearch ? '(Escape 关闭)' : '(Ctrl+P)'}`}
           >
             <Icons.Search />
@@ -786,6 +799,9 @@ export default function MarkdownEditor() {
                   onRenameFile={renameFile}
                   onToggleNode={toggleNode}
                   onCopyPath={(msg) => showToast(msg, 'success')}
+                  onRefresh={handleRefresh}
+                  refreshingPath={refreshingPath}
+                  refreshingAll={refreshingAll}
                   rootPath={rootPath}
                 />
               )
@@ -952,16 +968,6 @@ export default function MarkdownEditor() {
                    )}
                  </>
                )}
-            </div>
-            
-            <div className="resize-handle" onMouseDown={() => startResize('preview')} />
-            
-            <div className="preview-area" style={{ width: previewWidth }}>
-              {currentFileType === 'html' ? (
-                <HtmlPreview content={content} theme={config.theme} />
-              ) : (
-                <Preview content={content} theme={config.theme} searchQuery={contentSearchQuery} currentMatchIndex={currentMatchIndex} onMatchCountChange={handleMatchCountChange} />
-              )}
             </div>
           </>
         )}

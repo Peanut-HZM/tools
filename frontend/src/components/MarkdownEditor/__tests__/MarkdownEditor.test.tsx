@@ -10,7 +10,7 @@
  * 统一 mock 以避免引入真实实现。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import MarkdownEditor from '../MarkdownEditor';
 
 /* ------------------------------------------------------------------ */
@@ -31,6 +31,7 @@ function MockMonacoEditor(props: Record<string, unknown>) {
 vi.mock('@monaco-editor/react', () => ({
   __esModule: true,
   default: MockMonacoEditor,
+  useMonaco: () => null,
 }));
 
 /* ------------------------------------------------------------------ */
@@ -95,6 +96,9 @@ function createFileStoreMock(overrides: Record<string, unknown> = {}) {
     loadRootPath: vi.fn(() => Promise.resolve({ exists: false })),
     loadOssFiles: vi.fn(),
     loadSubDirectory: vi.fn(),
+    refreshTree: vi.fn(),
+    refreshingPath: null,
+    refreshingAll: false,
     ...overrides,
   };
 }
@@ -193,8 +197,11 @@ vi.mock('../../../i18n', () => ({
 /* ------------------------------------------------------------------ */
 /* Mock 其他 hooks / 组件                                             */
 /* ------------------------------------------------------------------ */
+/** 稳定的 showToast mock，便于断言调用参数 */
+const mockShowToast = vi.fn();
+
 vi.mock('../../../hooks/useToast', () => ({
-  useToast: () => ({ toast: null, showToast: vi.fn() }),
+  useToast: () => ({ toast: null, showToast: mockShowToast }),
 }));
 
 vi.mock('../../../api/markdownEditorApi', () => ({
@@ -327,5 +334,59 @@ describe('MarkdownEditor 预览模式路由', () => {
       const tocSidebar = document.querySelector('.toc-sidebar');
       expect(tocSidebar).toBeNull();
     });
+  });
+});
+
+describe('MarkdownEditor 搜索与刷新', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fileStoreMock = createFileStoreMock({
+      currentFile: { name: 'readme.md', content: '# Hello', path: 'readme.md' },
+      currentFilePath: 'readme.md',
+    });
+    editorStoreMock = createEditorStoreMock({ content: '# Hello' });
+    configStoreMock = createConfigStoreMock();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('点击搜索按钮打开搜索面板，且编辑模式自动切到预览', () => {
+    render(<MarkdownEditor />);
+
+    // 编辑模式：editor-area 存在，view-mode 容器不存在
+    expect(document.querySelector('.editor-area')).not.toBeNull();
+    expect(document.querySelector('.content-area.view-mode')).toBeNull();
+
+    fireEvent.click(screen.getByTitle(/搜索文件内容/));
+
+    // 搜索面板打开
+    expect(document.querySelector('.search-panel')).not.toBeNull();
+    // 编辑模式已切到预览：editor-area 消失，view-mode 容器出现
+    expect(document.querySelector('.editor-area')).toBeNull();
+    expect(document.querySelector('.content-area.view-mode')).not.toBeNull();
+  });
+
+  it('工具栏刷新按钮以空路径调用 refreshTree', async () => {
+    render(<MarkdownEditor />);
+
+    fireEvent.click(screen.getByTitle('刷新整棵文件树'));
+
+    await waitFor(() => expect(fileStoreMock.refreshTree).toHaveBeenCalledWith(''));
+  });
+
+  it('刷新失败时显示错误 Toast', async () => {
+    fileStoreMock = createFileStoreMock({
+      currentFilePath: 'readme.md',
+      refreshTree: vi.fn().mockRejectedValue(new Error('network down')),
+    });
+    render(<MarkdownEditor />);
+
+    fireEvent.click(screen.getByTitle('刷新整棵文件树'));
+
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('刷新失败：network down', 'error')
+    );
   });
 });

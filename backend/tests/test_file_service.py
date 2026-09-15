@@ -65,14 +65,14 @@ class TestMarkdownFileService:
             f.write(content)
         
         # Read the file
-        result = file_service.read_file("test.md")
-        assert result.content == content
+        result = file_service.read_file_raw("test.md")
+        assert result.text == content
         assert result.path == "test.md"
 
     def test_read_nonexistent_file(self, file_service):
         """Test reading non-existent file"""
         with pytest.raises(FileNotFoundError):
-            file_service.read_file("nonexistent.md")
+            file_service.read_file_raw("nonexistent.md")
 
     def test_save_file(self, file_service, temp_dir):
         """Test file saving"""
@@ -187,7 +187,7 @@ class TestPathTraversalPrevention:
     def test_path_traversal_read(self, file_service):
         """Test path traversal prevention in read"""
         with pytest.raises(ValueError):
-            file_service.read_file("../../../etc/passwd")
+            file_service.read_file_raw("../../../etc/passwd")
 
     def test_path_traversal_save(self, file_service):
         """Test path traversal prevention in save"""

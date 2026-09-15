@@ -44,6 +44,12 @@ interface FileTreeProps {
   onRenameFile?: (oldPath: string, newPath: string) => void;
   onCopyPath?: (message: string) => void;
   rootPath?: string;
+  /** 刷新回调：path=null 表示刷新整树，非空表示刷新该子目录 */
+  onRefresh?: (path: string | null) => void;
+  /** 当前正在刷新的节点路径 */
+  refreshingPath?: string | null;
+  /** 是否正在刷新整棵树 */
+  refreshingAll?: boolean;
 }
 
 interface TreeNodeProps {
@@ -54,6 +60,8 @@ interface TreeNodeProps {
   onFileSelect: (path: string) => void;
   onToggleNode: (path: string) => void;
   onContextMenu?: (e: React.MouseEvent, node: FileNode) => void;
+  /** 当前正在刷新的节点路径 */
+  refreshingPath?: string | null;
 }
 
 /**
@@ -102,7 +110,8 @@ function TreeNode({
   expandedNodes,
   onFileSelect,
   onToggleNode,
-  onContextMenu
+  onContextMenu,
+  refreshingPath
 }: TreeNodeProps) {
   const isExpanded = expandedNodes.has(node.path);
   const isSelected = node.path === currentFilePath;
@@ -119,6 +128,7 @@ function TreeNode({
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     onContextMenu?.(e, node);
   }, [node, onContextMenu]);
 
@@ -150,8 +160,13 @@ function TreeNode({
         
         {/* Name */}
         <span className="truncate text-sm">{node.name}</span>
+
+        {/* 刷新中指示器 */}
+        {refreshingPath === node.path && (
+          <span className="text-xs text-ink-faint shrink-0 animate-spin">⟳</span>
+        )}
       </div>
-      
+
       {/* Children */}
       {isDirectory && isExpanded && node.children && (
         <div>
@@ -165,6 +180,7 @@ function TreeNode({
               onFileSelect={onFileSelect}
               onToggleNode={onToggleNode}
               onContextMenu={onContextMenu}
+              refreshingPath={refreshingPath}
             />
           ))}
         </div>
@@ -186,6 +202,9 @@ export default function FileTree({
   onRenameFile,
   onCopyPath,
   rootPath,
+  onRefresh,
+  refreshingPath,
+  refreshingAll,
 }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -198,10 +217,14 @@ export default function FileTree({
   const [contextPath, setContextPath] = useState('');
   // 文件搜索关键词
   const [fileSearchQuery, setFileSearchQuery] = useState('');
+  /** 空白区域右键菜单位置 */
+  const [blankMenu, setBlankMenu] = useState<{ x: number; y: number } | null>(null);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
+    // 打开节点菜单时关闭空白区域菜单，避免两个菜单同屏渲染
+    setBlankMenu(null);
     setContextMenu({ x: e.clientX, y: e.clientY, node });
-  }, []);
+  }, [setBlankMenu]);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -279,6 +302,27 @@ export default function FileTree({
     }
   }, [contextMenu, onDeleteFile, onDeleteDirectory, closeContextMenu]);
 
+  /** 空白区域右键：仅显示刷新菜单 */
+  const handleBlankContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu(null);
+    setBlankMenu({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  /** 节点刷新：文件夹刷新该子树，文件刷新整树 */
+  const handleRefresh = useCallback(() => {
+    if (!contextMenu) return;
+    const target = contextMenu.node.type === 'directory' ? contextMenu.node.path : null;
+    onRefresh?.(target);
+    closeContextMenu();
+  }, [contextMenu, onRefresh, closeContextMenu]);
+
+  /** 空白区刷新：整树 */
+  const handleRefreshAll = useCallback(() => {
+    onRefresh?.(null);
+    setBlankMenu(null);
+  }, [onRefresh]);
+
   const handleCreateFile = useCallback(() => {
     if (newItemName.trim()) {
       const path = contextPath ? `${contextPath}/${newItemName.trim()}` : newItemName.trim();
@@ -336,32 +380,47 @@ export default function FileTree({
   }
 
   return (
-    <div className="h-full overflow-auto flex flex-col" onClick={closeContextMenu}>
+    <div className="h-full overflow-auto flex flex-col" onClick={() => { closeContextMenu(); setBlankMenu(null); }}>
       {/* 搜索框 */}
       <div className="file-tree-search px-3 py-2 border-b border-border shrink-0">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="搜索文件名..."
-            value={fileSearchQuery}
-            onChange={(e) => setFileSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            className="w-full px-2 py-1 pr-7 text-sm bg-surface-2 border border-border rounded text-ink"
-          />
-          {fileSearchQuery && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink text-xs cursor-pointer"
-              title="清除搜索 (Esc)"
-            >
-              ✕
-            </button>
-          )}
+        <div className="flex items-center gap-1">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="搜索文件名..."
+              value={fileSearchQuery}
+              onChange={(e) => setFileSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="w-full px-2 py-1 pr-7 text-sm bg-surface-2 border border-border rounded text-ink"
+            />
+            {fileSearchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink text-xs cursor-pointer"
+                title="清除搜索 (Esc)"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => onRefresh(null)}
+            disabled={!!refreshingAll}
+            className="px-1.5 py-1 text-xs text-ink-muted hover:text-ink cursor-pointer disabled:opacity-40 disabled:cursor-default rounded hover:bg-surface-2 transition-colors shrink-0"
+            title="刷新整棵文件树"
+          >
+            ⟳
+          </button>
         </div>
       </div>
 
       {/* Tree Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto relative" onContextMenu={handleBlankContextMenu}>
+        {refreshingAll && (
+          <div className="absolute inset-0 z-40 bg-black/30 flex items-center justify-center">
+            <span className="text-sm text-ink-muted animate-spin">⟳ 刷新中...</span>
+          </div>
+        )}
         {filteredTree && filteredTree.children && filteredTree.children.length > 0 ? (
           filteredTree.children.map((node) => (
             <TreeNode
@@ -373,6 +432,7 @@ export default function FileTree({
               onFileSelect={onFileSelect}
               onToggleNode={onToggleNode}
               onContextMenu={handleContextMenu}
+              refreshingPath={refreshingPath}
             />
           ))
         ) : (
@@ -389,6 +449,14 @@ export default function FileTree({
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            onClick={handleRefresh}
+            disabled={!!refreshingPath || !!refreshingAll}
+          >
+            刷新
+          </button>
+          <div className="border-t border-border my-1" />
           {/* 复制路径菜单项（仅文件节点显示） */}
           {contextMenu.node.type === 'file' && (
             <>
@@ -431,6 +499,23 @@ export default function FileTree({
             onClick={handleDelete}
           >
             删除
+          </button>
+        </div>
+      )}
+
+      {/* 空白区域右键菜单 */}
+      {blankMenu && (
+        <div
+          className="fixed bg-surface-1 border border-border rounded-lg shadow-md py-1 z-50"
+          style={{ left: blankMenu.x, top: blankMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            onClick={handleRefreshAll}
+            disabled={!!refreshingPath || !!refreshingAll}
+          >
+            刷新
           </button>
         </div>
       )}

@@ -2,7 +2,9 @@
  * File Store - Manages directory tree and current file state using React Context
  */
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import * as markdownEditorApi from '../api/markdownEditorApi';
+import { ApiError } from '../api/markdownEditorApi';
 import type { FileNode, FileContent, RootPathResponse } from '../types/markdownEditor';
 import type { OssFileInfo } from '../types/offlineCache';
 import { getMetadata, saveMetadata } from '../utils/indexedDb';
@@ -19,6 +21,10 @@ export interface FileState {
   ossFiles: OssFileInfo[];
   ossFilesLoading: boolean;
   currentOssFile: string | null;
+  // 正在刷新的子树路径（null 表示没有子树在刷新）
+  refreshingPath: string | null;
+  // 是否正在刷新整棵树
+  refreshingAll: boolean;
 }
 
 export interface FileActions {
@@ -39,6 +45,8 @@ export interface FileActions {
   loadOssFiles: () => Promise<void>;
   refreshOssFiles: () => Promise<void>;
   setCurrentOssFile: (path: string | null) => void;
+  // 刷新文件树：path 为空刷新整树，否则递归刷新该子树（绕过缓存）
+  refreshTree: (path?: string) => Promise<void>;
 }
 
 export type FileContextType = FileState & FileActions;
@@ -47,23 +55,54 @@ const FileContext = createContext<FileContextType | null>(null);
 
 
 /**
- * 合并子目录树到主目录树
+ * 不可变替换树中指定路径节点的 children
+ * 路径不存在时返回原树引用（不做拷贝）
  */
-function mergeSubTree(root: FileNode, targetPath: string, subTree: FileNode): FileNode {
+export function replaceSubtree(root: FileNode, targetPath: string, subTree: FileNode): FileNode {
   if (root.path === targetPath) {
     return { ...root, children: subTree.children };
   }
-  
+
   if (root.children) {
-    return {
-      ...root,
-      children: root.children.map(child => 
-        child.type === 'directory' ? mergeSubTree(child, targetPath, subTree) : child
-      )
-    };
+    let changed = false;
+    const children = root.children.map((child) => {
+      if (child.type !== 'directory') return child;
+      const nextChild = replaceSubtree(child, targetPath, subTree);
+      if (nextChild !== child) changed = true;
+      return nextChild;
+    });
+    // 目标路径不存在（未产生任何变化）时，返回原引用，避免无意义的重新渲染
+    if (!changed) return root;
+    return { ...root, children };
   }
-  
+
   return root;
+}
+
+/**
+ * 不可变移除树中指定路径的节点
+ * 路径不存在或目标为根节点时返回原树引用
+ */
+export function removeSubtree(root: FileNode, targetPath: string): FileNode {
+  if (root.path === targetPath || !root.children) {
+    return root;
+  }
+
+  let changed = false;
+  const children: FileNode[] = [];
+  for (const child of root.children) {
+    if (child.path === targetPath) {
+      changed = true;
+      continue;
+    }
+    const nextChild = removeSubtree(child, targetPath);
+    if (nextChild !== child) changed = true;
+    children.push(nextChild);
+  }
+
+  // 目标路径不存在（未产生任何变化）时，返回原引用，避免无意义的重新渲染
+  if (!changed) return root;
+  return { ...root, children };
 }
 
 export function FileProvider({ children }: { children: ReactNode }) {
@@ -77,6 +116,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [ossFiles, setOssFiles] = useState<OssFileInfo[]>([]);
   const [ossFilesLoading, setOssFilesLoading] = useState(false);
   const [currentOssFile, setCurrentOssFile] = useState<string | null>(null);
+  // 文件树刷新状态：分别标记子树刷新与整树刷新
+  const [refreshingPath, setRefreshingPath] = useState<string | null>(null);
+  const [refreshingAll, setRefreshingAll] = useState(false);
 
   const loadRootPath = useCallback(async () => {
     try {
@@ -128,7 +170,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
         // 缓存命中，更新目录树
         setDirectoryTree(prev => {
           if (!prev) return prev;
-          return mergeSubTree(prev, path, cached.tree);
+          return replaceSubtree(prev, path, cached.tree);
         });
         return;
       }
@@ -145,12 +187,50 @@ export function FileProvider({ children }: { children: ReactNode }) {
       // 更新目录树
       setDirectoryTree(prev => {
         if (!prev) return prev;
-        return mergeSubTree(prev, path, subTree);
+        return replaceSubtree(prev, path, subTree);
       });
     } catch (e) {
       console.error('Failed to load sub directory:', e);
     }
   }, []);
+
+  /**
+   * 刷新文件树（绕过子树缓存，一次性请求，不做轮询）
+   * @param path 空字符串刷新整树；否则递归刷新该路径子树的所有层级
+   */
+  const refreshTree = useCallback(async (path: string = '') => {
+    if (!path) {
+      setRefreshingAll(true);
+      try {
+        await loadDirectoryTree('', -1);
+      } finally {
+        setRefreshingAll(false);
+      }
+      return;
+    }
+    setRefreshingPath(path);
+    try {
+      const subTree = await markdownEditorApi.getDirectoryTree(path, -1);
+      // 更新缓存，避免刷新结果被旧缓存覆盖
+      await saveMetadata(`directory_tree_${path}`, {
+        tree: subTree,
+        timestamp: Date.now(),
+      });
+      setDirectoryTree((prev) => (prev ? replaceSubtree(prev, path, subTree) : prev));
+    } catch (e) {
+      // 后端对 FileNotFoundError 返回 404，按状态码判断而非错误文案
+      if (e instanceof ApiError && e.status === 404) {
+        // 文件夹已被外部删除：从树中移除该节点
+        // 同步 flush，保证调用方捕获异常时 UI 已反映节点移除
+        flushSync(() => {
+          setDirectoryTree((prev) => (prev ? removeSubtree(prev, path) : prev));
+        });
+      }
+      throw e;
+    } finally {
+      setRefreshingPath(null);
+    }
+  }, [loadDirectoryTree]);
 
   const setRootPathAction = useCallback(async (path: string) => {
     try {
@@ -370,7 +450,10 @@ export function FileProvider({ children }: { children: ReactNode }) {
     clearError,
     loadOssFiles,
     refreshOssFiles,
-    setCurrentOssFile: setCurrentOssFileAction
+    setCurrentOssFile: setCurrentOssFileAction,
+    refreshingPath,
+    refreshingAll,
+    refreshTree
   };
 
   return (
