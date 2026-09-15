@@ -219,7 +219,7 @@ async def serve_file(
     """
     try:
         # Authenticate: accept token from header or query param
-        from app.middleware.auth_middleware import auth_service
+        from app.services.auth_service import get_auth_service
         from app.models.auth_models import TokenData
 
         token_value = None
@@ -239,6 +239,7 @@ async def serve_file(
                 detail="Authorization header missing. Use ?token=<jwt_token> query parameter for browser tab access.",
             )
 
+        auth_service = get_auth_service()
         token_data: TokenData = auth_service.verify_token_data(token_value)
         user_id = token_data.user_id
 
@@ -259,11 +260,15 @@ async def serve_file(
         with open(resolved_path, 'rb') as f:
             content = f.read()
 
+        # Encode filename for Content-Disposition (RFC 5987)
+        import urllib.parse
+        encoded_name = urllib.parse.quote(resolved_path.name, safe='')
+
         return Response(
             content=content,
             media_type=content_type,
             headers={
-                'Content-Disposition': f'inline; filename="{resolved_path.name}"'
+                'Content-Disposition': f'inline; filename="{encoded_name}"; filename*=UTF-8\'\'{encoded_name}'
             }
         )
     except HTTPException:
