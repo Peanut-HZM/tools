@@ -457,30 +457,28 @@ export default function FileTree({
             刷新
           </button>
           <div className="border-t border-border my-1" />
-          {/* 复制路径菜单项（仅文件节点显示） */}
-          {contextMenu.node.type === 'file' && (
-            <>
-              <button
-                className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
-                onClick={handleCopyAbsolutePath}
-              >
-                复制绝对路径
-              </button>
-              <button
-                className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
-                onClick={handleCopyRelativePath}
-              >
-                复制相对路径
-              </button>
-              <button
-                className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
-                onClick={handleCopyFileName}
-              >
-                复制文件名
-              </button>
-              <div className="border-t border-border my-1" />
-            </>
-          )}
+          {/* 复制路径菜单项（文件和文件夹均显示） */}
+          <>
+            <button
+              className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
+              onClick={handleCopyAbsolutePath}
+            >
+              复制绝对路径
+            </button>
+            <button
+              className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
+              onClick={handleCopyRelativePath}
+            >
+              复制相对路径
+            </button>
+            <button
+              className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
+              onClick={handleCopyFileName}
+            >
+              复制{contextMenu.node.type === 'directory' ? '文件夹' : '文件'}名
+            </button>
+            <div className="border-t border-border my-1" />
+          </>
           <button
             className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
             onClick={handleNewFile}

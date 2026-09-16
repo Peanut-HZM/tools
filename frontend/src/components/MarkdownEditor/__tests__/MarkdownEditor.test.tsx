@@ -59,6 +59,21 @@ vi.mock('../WordViewer', () => ({
 }));
 
 /* ------------------------------------------------------------------ */
+/* Mock HtmlPreview（避免 jsdom 中 URL.createObjectURL 不可用）       */
+/* ------------------------------------------------------------------ */
+vi.mock('../Preview/HtmlPreview', () => ({
+  __esModule: true,
+  default: (props: Record<string, unknown>) => (
+    <div
+      data-testid="html-preview-mock"
+      data-theme={props.theme as string}
+    >
+      {(props.content as string) || ''}
+    </div>
+  ),
+}));
+
+/* ------------------------------------------------------------------ */
 /* Mock react-router-dom                                              */
 /* ------------------------------------------------------------------ */
 vi.mock('react-router-dom', () => ({
