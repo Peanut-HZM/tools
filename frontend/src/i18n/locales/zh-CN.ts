@@ -630,6 +630,14 @@ export const zhCN = {
       NETWORK_ERROR: '网络异常，连接中断或服务器关闭了连接',
       UNKNOWN_ERROR: '连接失败',
     },
+    pagination: {
+      pageSize: '每页条数',
+      total: '共 {count} 条',
+      page: '第 {current} / {totalPages} 页',
+      pageSimple: '第 {current} 页',
+      prev: '上一页',
+      next: '下一页',
+    },
     executor: {
       title: 'SQL 执行器',
       run: '执行',

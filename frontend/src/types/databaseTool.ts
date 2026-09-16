@@ -111,6 +111,7 @@ export interface SQLExecutionResult {
   error_message?: string;
   result_data?: Record<string, any>[];
   columns?: string[];
+  total_count?: number | null;
 }
 
 export interface ExecutionHistory {

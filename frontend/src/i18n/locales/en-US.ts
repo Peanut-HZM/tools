@@ -631,6 +631,14 @@ export const enUS = {
       NETWORK_ERROR: 'Network error. Connection lost or server closed the connection',
       UNKNOWN_ERROR: 'Connection failed',
     },
+    pagination: {
+      pageSize: 'Page size',
+      total: '{count} rows in total',
+      page: 'Page {current} of {totalPages}',
+      pageSimple: 'Page {current}',
+      prev: 'Previous',
+      next: 'Next',
+    },
     executor: {
       title: 'SQL Executor',
       run: 'Run',

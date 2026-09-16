@@ -212,6 +212,13 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       fetchData(newPage);
   };
 
+  // 分页展示派生值：总行数由后端 count 查询回填；缺失时退回"仅当前页"展示
+  const totalCount = result?.success ? result.total_count ?? null : null;
+  const totalPages = totalCount !== null ? Math.max(1, Math.ceil(totalCount / pageSize)) : null;
+  const isLastPage = totalPages !== null
+    ? page >= totalPages
+    : !result?.result_data || result.result_data.length < pageSize;
+
   const getFieldsPlaceholder = (includeDesc?: boolean) => {
     if (!schema || schema.columns.length === 0) {
       return includeDesc ? 'id = 1' : 'id desc';
@@ -349,9 +356,9 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
       </div>
 
       {/* Pagination Footer */}
-      <div className="p-2 border-t border-border bg-surface-1 flex items-center justify-between text-sm text-ink-muted">
-          <div className="flex items-center space-x-2">
-             <span>Page size:</span>
+      <div className="px-4 py-2 border-t border-border bg-surface-1 flex items-center justify-between gap-4 text-sm text-ink-muted">
+          <div className="flex items-center gap-2 whitespace-nowrap">
+             <span>{t.database.pagination.pageSize}</span>
              <Select
                value={String(pageSize)}
                onValueChange={(v) => {
@@ -361,7 +368,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
                    fetchData(1, newPageSize);
                }}
              >
-               <SelectTrigger className="w-auto">
+               <SelectTrigger className="w-auto h-7">
                  <SelectValue />
                </SelectTrigger>
                <SelectContent>
@@ -373,28 +380,37 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
              </Select>
           </div>
 
-          <div className="flex items-center space-x-4">
-             <button
-               disabled={page <= 1 || loading}
-               onClick={() => handlePageChange(page - 1)}
-               className="hover:text-ink disabled:opacity-30"
-             >
-               <ChevronLeft className="w-4 h-4" /> Previous
-             </button>
-             <span>Page {page}</span>
-             <button
-               disabled={!result?.result_data || result.result_data.length < pageSize || loading} 
-               // Note: This simple pagination logic assumes if we got less than pageSize items, we are at the end.
-               // For exact "Next" button enabling, we'd need total count from backend.
-               // Backend currently doesn't return total count in `SQLExecutionResult` (it returns affected_rows).
-               // `query_table_data` does execute COUNT(*) but it's not currently returned in `SQLExecutionResult`.
-               // We might want to improve `SQLExecutionResult` or return a different structure.
-               // For now, let's just allow Next unless we got 0 rows or less than page size.
-               onClick={() => handlePageChange(page + 1)}
-               className="hover:text-ink disabled:opacity-30"
-             >
-               Next <ChevronRight className="w-4 h-4" />
-             </button>
+          <div className="flex items-center gap-3 whitespace-nowrap">
+             {totalCount !== null && (
+               <span>{t.database.pagination.total.replace('{count}', String(totalCount))}</span>
+             )}
+             <span>
+               {totalCount !== null
+                 ? t.database.pagination.page
+                     .replace('{current}', String(page))
+                     .replace('{totalPages}', String(totalPages))
+                 : t.database.pagination.pageSimple.replace('{current}', String(page))}
+             </span>
+             <div className="flex items-center gap-1">
+               <button
+                 disabled={page <= 1 || loading}
+                 onClick={() => handlePageChange(page - 1)}
+                 title={t.database.pagination.prev}
+                 aria-label={t.database.pagination.prev}
+                 className="p-1 rounded border border-border bg-surface-2 hover:bg-surface-3 hover:text-ink disabled:opacity-40 disabled:hover:bg-surface-2 disabled:hover:text-ink-muted"
+               >
+                 <ChevronLeft className="w-4 h-4" />
+               </button>
+               <button
+                 disabled={isLastPage || loading}
+                 onClick={() => handlePageChange(page + 1)}
+                 title={t.database.pagination.next}
+                 aria-label={t.database.pagination.next}
+                 className="p-1 rounded border border-border bg-surface-2 hover:bg-surface-3 hover:text-ink disabled:opacity-40 disabled:hover:bg-surface-2 disabled:hover:text-ink-muted"
+               >
+                 <ChevronRight className="w-4 h-4" />
+               </button>
+             </div>
           </div>
       </div>
     </div>
