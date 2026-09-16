@@ -432,8 +432,8 @@ pytest                                      # 运行测试
 ```
 
 **强制规则**：
-- **必须** 使用 `ruff` 进行代码规范检查
 - **必须** 使用 `dev-services.py` 管理服务，不要手动启动 uvicorn
+- **推荐** 使用 `ruff` 进行代码规范检查（如已安装）
 
 ### 前端（frontend/ 目录）
 
@@ -442,9 +442,7 @@ npm run dev           # 启动开发服务器 (热重载)
 npm run build         # 构建生产版本
 npm run test          # 运行测试
 npm run preview       # 预览生产构建
-npm run type-check    # TypeScript 类型检查
-npm run lint          # ESLint 检查并修复
-npm run format        # Prettier 格式化
+npm run cleanup       # 清理端口占用后启动开发服务器
 ```
 
 ### 服务管理（项目根目录）
