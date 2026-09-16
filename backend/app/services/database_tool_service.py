@@ -53,7 +53,11 @@ from app.services.backup_generators import get_generator
 from app.services.backup_storage import backup_storage
 from app.utils.encryption import EncryptionUtils
 from app.utils.db_connection_manager import DBConnectionManager
-from app.utils.sql_executor import SQLExecutor, sqlparse, is_executable_statement
+from app.utils.sql_executor import (
+    SQLExecutor,
+    split_sql_script,
+    is_executable_statement,
+)
 from sqlalchemy import inspect, text
 
 logger = logging.getLogger(__name__)
@@ -1047,10 +1051,16 @@ class DatabaseToolService:
             final_sql = process_sql_with_schema_injection(request.sql, request.schema_name)
 
         # 仅在单条 SELECT 语句时应用自动分页，避免影响多语句脚本
-        statements = [
-            s for s in sqlparse.split(final_sql)
-            if is_executable_statement(s)
-        ]
+        try:
+            statements = [
+                s for s in split_sql_script(final_sql)
+                if is_executable_statement(s)
+            ]
+        except ValueError as e:
+            # 非标准 DELIMITER 写法：按既有错误返回风格回中文消息
+            return SQLExecutionResult(
+                success=False, execution_time_ms=0, error_message=str(e)
+            )
 
         if len(statements) == 1:
             if (
@@ -1670,7 +1680,18 @@ class DatabaseToolService:
             # MySQL, PostgreSQL, SQLite
             sql += f" LIMIT {page_size} OFFSET {offset}"
 
-        return SQLExecutor.execute(engine_key, config_dict, sql)
+        data_result = SQLExecutor.execute(engine_key, config_dict, sql)
+        if not data_result.success:
+            return data_result
+
+        # 回填总行数供前端分页展示（count 与数据查询使用同一 WHERE 条件）
+        count_result = SQLExecutor.execute(engine_key, config_dict, count_sql)
+        if not count_result.success:
+            return count_result
+        total_count: Optional[int] = None
+        if count_result.result_data:
+            total_count = int(next(iter(count_result.result_data[0].values())))
+        return data_result.model_copy(update={"total_count": total_count})
 
     # --------------------------------------------------------------------------
     # Database Administration (DDL)

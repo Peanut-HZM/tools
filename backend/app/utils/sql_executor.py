@@ -22,7 +22,6 @@ SQL_KEYWORDS = {
     'CALL', 'USE', 'LOCK', 'UNLOCK',
     'GRANT', 'REVOKE', 'FLUSH', 'OPTIMIZE', 'ANALYZE',
     'REPLACE', 'MERGE', 'LOAD', 'HANDLER',
-    'DELIMITER',
 }
 
 # 用于剥离 SQL 注释但保留字符串字面量的正则（含 '' / "" 转义识别）
@@ -42,6 +41,167 @@ def strip_sql_comments(raw: str) -> str:
             return m.group(0)
         return ''
     return _STRIP_COMMENTS_RE.sub(_replace, raw)
+
+
+# 扫描状态机状态常量：正常 / 单引号字符串 / 双引号字符串 / 反引号标识符 / 行注释 / 块注释
+_STATE_NORMAL = 'NORMAL'
+_STATE_SQ = 'SQ'
+_STATE_DQ = 'DQ'
+_STATE_BT = 'BT'
+_STATE_LC = 'LC'
+_STATE_BC = 'BC'
+
+
+def _advance_scan_state(sql: str, i: int, state: str) -> tuple:
+    """字符级扫描状态机前进一步，返回 (新状态, 新位置)。
+
+    指令与终止符只在 NORMAL 状态识别；字符串/注释内的 DELIMITER、分号、
+    自定义终止符一律视为字面量。
+    """
+    ch = sql[i]
+    two = sql[i:i + 2]
+    if state == _STATE_NORMAL:
+        if ch == "'":
+            return _STATE_SQ, i + 1
+        if ch == '"':
+            return _STATE_DQ, i + 1
+        if ch == '`':
+            return _STATE_BT, i + 1
+        if two == '--' and (i + 2 >= len(sql) or sql[i + 2] in ' \t\r\n'):
+            return _STATE_LC, i + 2
+        if ch == '#':
+            return _STATE_LC, i + 1
+        if two == '/*':
+            return _STATE_BC, i + 2
+        return _STATE_NORMAL, i + 1
+    if state == _STATE_SQ:
+        if ch == '\\':
+            return _STATE_SQ, i + 2
+        if ch == "'" and sql[i + 1:i + 2] == "'":
+            return _STATE_SQ, i + 2
+        if ch == "'":
+            return _STATE_NORMAL, i + 1
+        return _STATE_SQ, i + 1
+    if state == _STATE_DQ:
+        if ch == '\\':
+            return _STATE_DQ, i + 2
+        if ch == '"' and sql[i + 1:i + 2] == '"':
+            return _STATE_DQ, i + 2
+        if ch == '"':
+            return _STATE_NORMAL, i + 1
+        return _STATE_DQ, i + 1
+    if state == _STATE_BT:
+        if ch == '`' and sql[i + 1:i + 2] == '`':
+            return _STATE_BT, i + 2
+        if ch == '`':
+            return _STATE_NORMAL, i + 1
+        return _STATE_BT, i + 1
+    if state == _STATE_LC:
+        if ch == '\n':
+            return _STATE_NORMAL, i + 1
+        return _STATE_LC, i + 1
+    # _STATE_BC
+    if two == '*/':
+        return _STATE_NORMAL, i + 2
+    return _STATE_BC, i + 1
+
+
+def _split_by_terminator(segment: str, terminator: str) -> list:
+    """自定义终止符 segment 内按终止符切分语句（仅 NORMAL 状态匹配）。
+
+    与 mysql CLI 语义一致：自定义终止符生效期间分号不结束语句；
+    EOF 余留的非空白内容作为一条语句。
+    """
+    statements = []
+    buf = []
+    state = _STATE_NORMAL
+    i = 0
+    while i < len(segment):
+        if state == _STATE_NORMAL and segment.startswith(terminator, i):
+            statements.append(''.join(buf))
+            buf = []
+            i += len(terminator)
+            continue
+        start = i
+        state, i = _advance_scan_state(segment, i, state)
+        buf.append(segment[start:i])
+    remainder = ''.join(buf)
+    if remainder.strip():
+        statements.append(remainder)
+    return [s for s in statements if s.strip()]
+
+
+# DELIMITER 指令：独占一行、大小写不敏感、形如 DELIMITER <终止符>
+_DELIMITER_DIRECTIVE_RE = re.compile(
+    r'^[ \t]*DELIMITER[ \t]+(\S+)[ \t]*(?:\r?\n)?$', re.IGNORECASE
+)
+
+
+def _split_segments(sql: str) -> list:
+    """按 DELIMITER 指令行把脚本切成 (segment 文本, 生效终止符) 列表。
+
+    指令行本身不进入任何 segment；指令仅在整行处于 NORMAL 状态时识别。
+    """
+    segments = []
+    segment_buf = []
+    line_buf = []
+    line_all_normal = True
+    terminator = ';'
+    state = _STATE_NORMAL
+    i = 0
+    while i < len(sql):
+        start = i
+        state, i = _advance_scan_state(sql, i, state)
+        ch = sql[start]
+        line_buf.append(sql[start:i])
+        if state != _STATE_NORMAL:
+            line_all_normal = False
+        if ch == '\n' or i >= len(sql):
+            raw_line = ''.join(line_buf)
+            directive = (
+                _DELIMITER_DIRECTIVE_RE.match(raw_line)
+                if line_all_normal and state == _STATE_NORMAL
+                else None
+            )
+            if directive:
+                segments.append((''.join(segment_buf), terminator))
+                segment_buf = []
+                terminator = directive.group(1)
+            else:
+                segment_buf.extend(line_buf)
+            line_buf = []
+            line_all_normal = state == _STATE_NORMAL
+    segments.append((''.join(segment_buf), terminator))
+    return segments
+
+
+# 切分后仍以 DELIMITER 开头的语句 = 非标准写法（行中指令、缺参数等）
+_DELIMITER_LEFTOVER_RE = re.compile(r'^DELIMITER(\s|$)', re.IGNORECASE)
+
+_DELIMITER_ERROR_MESSAGE = (
+    'DELIMITER 是 mysql 客户端指令，仅支持独占一行的写法：DELIMITER <终止符>'
+)
+
+
+def split_sql_script(sql: str) -> list:
+    """把 SQL 脚本切分为语句列表（感知 mysql 客户端 DELIMITER 指令）。
+
+    默认 ';' 终止符的 segment 委托 sqlparse.split（保留 BEGIN...END 不切语义）；
+    自定义终止符的 segment 按终止符直接切断、段内不二次切分。
+    非标准 DELIMITER 写法抛 ValueError（中文消息）。
+    """
+    statements = []
+    for segment_text, terminator in _split_segments(sql):
+        if not segment_text.strip():
+            continue
+        if terminator == ';':
+            statements.extend(sqlparse.split(segment_text))
+        else:
+            statements.extend(_split_by_terminator(segment_text, terminator))
+    for stmt in statements:
+        if _DELIMITER_LEFTOVER_RE.match(strip_sql_comments(stmt).strip()):
+            raise ValueError(_DELIMITER_ERROR_MESSAGE)
+    return [s for s in statements if s.strip()]
 
 
 def is_executable_statement(stmt: str) -> bool:
@@ -68,7 +228,7 @@ class SQLExecutor:
             with engine.connect() as conn:
                 # 切分 SQL 为多条语句，过滤空/纯注释/无合法关键字的语句
                 statements = [
-                    s for s in sqlparse.split(sql)
+                    s for s in split_sql_script(sql)
                     if is_executable_statement(s)
                 ]
 

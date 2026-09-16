@@ -107,6 +107,7 @@ class SQLExecutionResult(BaseModel):
     error_message: Optional[str] = None
     result_data: Optional[List[Dict[str, Any]]] = None  # For SELECT
     columns: Optional[List[str]] = None  # Column names
+    total_count: Optional[int] = None  # 满足分页展示需要的总行数（仅表数据查询回填）
 
 
 class ExecutionHistory(BaseModel):
