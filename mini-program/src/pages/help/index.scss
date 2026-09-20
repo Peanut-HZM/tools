@@ -8,6 +8,8 @@
   min-height: 100vh;
   background: var(--bg-canvas);
   padding: var(--spacing-md);
+  /* 底部安全区：末尾条目不被 home indicator 遮挡 */
+  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
 }
 
 .section {

@@ -15,10 +15,10 @@
  * 注：--glass-blur 未随 Task 1 token 管道迁移（长度类 token 不迁移），
  *     此处按设计规范 §5.4 使用字面量 blur(14px)。 */
 .glass-card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   /* 玻璃投影 + 顶部内高光（token 值见 _tokens.scss） */
-  box-shadow: var(--shadow-glass), inset 0 1px 0 var(--glass-highlight);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* 支持 backdrop-filter 的环境启用磨砂模糊（渐进增强）。
@@ -33,7 +33,7 @@
 /* 不支持 backdrop-filter 时降级为实色底，保证可读性 */
 @supports not ((backdrop-filter: blur(14px)) or (-webkit-backdrop-filter: blur(14px))) {
   .glass-card {
-    background: var(--glass-bg-fallback);
+    background: rgba(20, 30, 55, 0.95);
   }
 }
 
@@ -101,11 +101,11 @@
   align-items: center;
   justify-content: center;
 }
-.tint-blue    { color: #60A5FA; background: rgba(59, 130, 246, 0.14);  border: 1px solid rgba(59, 130, 246, 0.28); }
-.tint-violet  { color: #8B9BFF; background: rgba(101, 116, 255, 0.14); border: 1px solid rgba(101, 116, 255, 0.28); }
-.tint-emerald { color: #34D399; background: rgba(52, 211, 153, 0.12);  border: 1px solid rgba(52, 211, 153, 0.28); }
-.tint-indigo  { color: #818CF8; background: rgba(99, 102, 241, 0.14);  border: 1px solid rgba(99, 102, 241, 0.28); }
-.tint-orange  { color: #FB923C; background: rgba(251, 146, 60, 0.13);  border: 1px solid rgba(251, 146, 60, 0.28); }
-.tint-red     { color: #F87171; background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.28); }
-.tint-purple  { color: #C084FC; background: rgba(192, 132, 252, 0.13); border: 1px solid rgba(192, 132, 252, 0.28); }
-.tint-cyan    { color: #22D3EE; background: rgba(34, 211, 238, 0.12);  border: 1px solid rgba(34, 211, 238, 0.28); }
+.tint-blue    { color: #60A5FA; background: rgba(59, 130, 246, 0.18);  border: 1px solid rgba(59, 130, 246, 0.35); }
+.tint-violet  { color: #8B9BFF; background: rgba(101, 116, 255, 0.18); border: 1px solid rgba(101, 116, 255, 0.35); }
+.tint-emerald { color: #34D399; background: rgba(52, 211, 153, 0.16);  border: 1px solid rgba(52, 211, 153, 0.35); }
+.tint-indigo  { color: #818CF8; background: rgba(99, 102, 241, 0.18);  border: 1px solid rgba(99, 102, 241, 0.35); }
+.tint-orange  { color: #FB923C; background: rgba(251, 146, 60, 0.17);  border: 1px solid rgba(251, 146, 60, 0.35); }
+.tint-red     { color: #F87171; background: rgba(248, 113, 113, 0.16); border: 1px solid rgba(248, 113, 113, 0.35); }
+.tint-purple  { color: #C084FC; background: rgba(192, 132, 252, 0.17); border: 1px solid rgba(192, 132, 252, 0.35); }
+.tint-cyan    { color: #22D3EE; background: rgba(34, 211, 238, 0.16);  border: 1px solid rgba(34, 211, 238, 0.35); }

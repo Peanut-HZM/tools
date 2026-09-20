@@ -267,11 +267,14 @@
     transform: scale(0.98);
   }
 
-  &[disabled] {
+  /* loading/disabled 态（原 Button [disabled] 伪类，改为类名控制，
+     因为已用 View 替代 Button 以修复 ::after 拦截点击的问题） */
+  &--loading {
     /* 禁用态（原 slate 灰渐变硬编码）→ surface token 同构渐变 */
     background: linear-gradient(135deg, var(--bg-surface-3) 0%, var(--bg-surface-2) 100%);
     box-shadow: none;
     opacity: 0.7;
+    pointer-events: none;
   }
 }
 

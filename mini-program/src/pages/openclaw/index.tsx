@@ -115,16 +115,13 @@ export default function OpenClawPage() {
   const loadMessages = async () => {
     try {
       const history = await loadHistory('main')
-      console.log('[loadMessages] 历史消息数量:', history.length)
       const formatted: ChatMessage[] = []
       for (const [idx, msg] of history.entries()) {
         if (msg.role === 'toolResult') continue
         const text = extractText(msg.content)
         if (!text) {
-          console.log('[loadMessages] 跳过空消息, idx:', idx, 'role:', msg.role)
           continue
         }
-        console.log('[loadMessages] 添加消息, idx:', idx, 'role:', msg.role, 'text:', text.substring(0, 50))
         formatted.push({
           id: `hist-${idx}`,
           role: msg.role === 'user' ? 'user' : 'assistant',
@@ -132,7 +129,6 @@ export default function OpenClawPage() {
           timestamp: msg.timestamp || Date.now(),
         })
       }
-      console.log('[loadMessages] 最终消息数量:', formatted.length)
       setMessages(formatted)
       if (formatted.length > 0) {
         // 延迟滚动到底部，确保 DOM 已渲染
@@ -148,10 +144,7 @@ export default function OpenClawPage() {
   }
 
   const handleSend = async () => {
-    Taro.showToast({ title: 'handleSend 被调用', icon: 'none', duration: 1000 })
-    console.log('[handleSend] 被调用，inputValue:', inputValue, 'isStreaming:', isStreaming)
     if (!inputValue.trim() || isStreaming) {
-      console.log('[handleSend] 提前返回，原因:', !inputValue.trim() ? '内容为空' : '正在流式生成')
       return
     }
 

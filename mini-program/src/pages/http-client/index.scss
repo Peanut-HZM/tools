@@ -70,6 +70,10 @@
     color: var(--accent-primary);
     border-bottom-color: var(--accent-primary);
   }
+
+  &:not(.active):active {
+    color: var(--ink-default);
+  }
 }
 
 .headers-editor {
@@ -196,6 +200,10 @@
   &.active {
     color: var(--accent-primary);
     border-bottom-color: var(--accent-primary);
+  }
+
+  &:not(.active):active {
+    color: var(--ink-default);
   }
 }
 

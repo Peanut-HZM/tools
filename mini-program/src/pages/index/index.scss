@@ -7,7 +7,7 @@
 
 /* ===== 品牌标题栏（玻璃光晕 Task 4） ===== */
 .index-hero {
-  padding: 16rpx 24rpx 20rpx;
+  padding: 32rpx 28rpx 20rpx;
 }
 
 .index-hero-row {
@@ -38,6 +38,6 @@
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24rpx;
+  gap: 20rpx;
   padding-bottom: env(safe-area-inset-bottom);
 }

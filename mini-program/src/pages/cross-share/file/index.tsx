@@ -5,6 +5,8 @@ import { fileApi } from '../../../services/crossShare'
 import { useAuthGuard } from '../../../hooks'
 import { parseDateSafe } from '../../../utils'
 import Icon from '../../../components/Icon'
+import Loading from '../../../components/Loading'
+import EmptyState from '../../../components/EmptyState'
 import './index.scss'
 
 /**
@@ -153,18 +155,13 @@ export default function FileTransferPage() {
       <ScrollView scrollY className='file-list'>
         <View className='file-list-inner'>
         {loading ? (
-          <View className='loading-state'>
-            <Text className='loading-text'>加载中...</Text>
-          </View>
+          <Loading text='加载文件中...' />
         ) : files.length === 0 ? (
-          <View className='empty-state'>
-            {/* 📂 换为文件图标（空状态装饰，品牌默认色） */}
-            <View className='empty-icon'>
-              <Icon name='file' size={48} />
-            </View>
-            <Text className='empty-text'>暂无文件</Text>
-            <Text className='empty-hint'>点击下方按钮上传文件</Text>
-          </View>
+          <EmptyState
+            icon={<Icon name='file' size={48} />}
+            title='暂无文件'
+            description='点击下方按钮上传文件'
+          />
         ) : (
           files.map(file => (
             <View key={file.id} className='file-item glass-card'>

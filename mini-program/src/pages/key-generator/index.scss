@@ -99,6 +99,10 @@
   align-items: center;
   justify-content: center;
 
+  &:active {
+    background: var(--glass-bg-strong);
+  }
+
   &::after {
     border: none;
   }

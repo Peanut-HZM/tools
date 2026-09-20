@@ -7,7 +7,6 @@ import ToolCard from '../../components/ToolCard'
 import SearchBar from '../../components/SearchBar'
 import Loading from '../../components/Loading'
 import EmptyState from '../../components/EmptyState'
-import StatusBarSpacer from '../../components/StatusBarSpacer'
 import Icon from '../../components/Icon'
 import './index.scss'
 
@@ -78,16 +77,15 @@ export default function Index() {
 
   return (
     <View className='index-page'>
-      {/* 自定义导航占位（navigationStyle: custom 后状态栏由页面自行承接） */}
-      <StatusBarSpacer />
-
-      {/* 品牌标题栏：渐变主词 + 右侧品牌小图标 */}
+      {/* 品牌标题栏：渐变主词 + 右侧品牌小图标（原生导航栏已处理状态栏） */}
       <View className='index-hero'>
         <View className='index-hero-row'>
           <Text className='index-hero-title gradient-text'>开发者工具箱</Text>
           <Icon name='tools' size={20} />
         </View>
-        <Text className='index-hero-subtitle'>20+ 精选工具 · 即开即用</Text>
+        <Text className='index-hero-subtitle'>
+          {tools.length > 0 ? `${tools.length} 个精选工具 · 即开即用` : '精选工具 · 即开即用'}
+        </Text>
       </View>
 
       {/* 搜索栏 */}

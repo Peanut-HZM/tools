@@ -76,7 +76,7 @@ export default function HelpPage() {
           <Text className='about-label'>版本</Text>
           <Text className='about-value'>v{version}（点击复制）</Text>
         </View>
-        <View className='about-item'>
+        <View className='about-item glass-card'>
           <Text className='about-label'>技术栈</Text>
           <Text className='about-value'>Taro 4 + React 18 + TypeScript</Text>
         </View>

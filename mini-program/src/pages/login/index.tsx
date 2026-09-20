@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, Input, Button } from '@tarojs/components'
+import { View, Text, Input } from '@tarojs/components'
 import { authApi } from '../../services/auth'
 import { useAuthStore } from '../../stores/auth'
 import Icon from '../../components/Icon'
@@ -239,15 +239,15 @@ export default function Login() {
             </View>
           )}
 
-          {/* 提交按钮（品牌渐变底/白字/辉光由全局 .btn-primary 提供，见 styles/_glass.scss） */}
-          <Button
-            className='btn-submit btn-primary'
-            loading={loading}
-            disabled={loading}
-            onClick={handleSubmit}
+          {/* 提交按钮（品牌渐变底/白字/辉光由全局 .btn-primary 提供，见 styles/_glass.scss）
+              使用 View 而非 Button：微信原生 <button> 的 ::after 伪元素会拦截点击事件，
+              View + onClick 是小程序中最可靠的按钮点击模式。 */}
+          <View
+            className={`btn-submit btn-primary ${loading ? 'btn-submit--loading' : ''}`}
+            onClick={loading ? undefined : handleSubmit}
           >
             {loading ? (isLogin ? '登录中...' : '注册中...') : (isLogin ? '登 录' : '注 册')}
-          </Button>
+          </View>
 
           {/* 切换链接 */}
           <View className='login-switch'>

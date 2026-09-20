@@ -79,6 +79,10 @@
     background: var(--glass-bg);
     color: var(--ink-default);
     border: 1px solid var(--glass-border);
+
+    &:active {
+      background: var(--glass-bg-strong);
+    }
   }
 }
 

@@ -25,6 +25,8 @@ const TOOL_PATH_MAP: Record<string, string | null> = {
   'tech-contents': '/package-learning/pages/tech-contents/index',
   // 第三批：统计
   'token-usage': '/package-stats/pages/token-usage/index',
+  // 生活
+  'food-picker': '/package-life/pages/food-picker/index',
   // 隐藏工具（保持 null）
   'database-tool': null,
   'redis-tool': null,

@@ -33,38 +33,7 @@
   padding: var(--spacing-sm) 0;
 }
 
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 120rpx var(--spacing-md);
-}
-
-.loading-text {
-  font-size: 28rpx;
-  color: var(--ink-muted);
-}
-
-/* 空状态图标容器：SVG Icon 固定尺寸，此处仅布局 */
-.empty-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--spacing-md);
-}
-
-.empty-text {
-  font-size: 30rpx;
-  color: var(--ink-default);
-  margin-bottom: var(--spacing-xs);
-}
-
-.empty-hint {
-  font-size: 26rpx;
-  color: var(--ink-faint);
-}
+/* 加载/空状态复用全局 Loading / EmptyState 组件（样式见组件目录） */
 
 /* 文件条目：底色/描边/投影基底由 .glass-card 提供 */
 .file-item {

@@ -37,6 +37,10 @@
     border-color: var(--accent-primary);
     color: var(--accent-primary);
   }
+
+  &:not(.active):active {
+    background: var(--glass-bg-strong);
+  }
 }
 
 .record-section {
