@@ -48,6 +48,27 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/token-usage", tags=["token-usage"])
 
+# 统一 total 口径：四项分量之和。
+# 历史 zcode 源落库 total_tokens 只含 input+output（不含 cache_read），
+# 且未升级的旧部署设备仍会按旧口径回写；所有聚合/展示一律按分量推导，
+# 不依赖落库 total_tokens 列，保证顶栏、环形图、趋势图、明细口径一致。
+_TOTAL_TOKENS_EXPR = (
+    TokenUsageRecord.input_tokens
+    + TokenUsageRecord.output_tokens
+    + TokenUsageRecord.cache_creation_tokens
+    + TokenUsageRecord.cache_read_tokens
+)
+
+
+def _computed_total(row) -> int:
+    """从 ORM 行四项分量计算 total（与 summary 顶栏口径一致）"""
+    return (
+        _row_safe_int(getattr(row, "input_tokens", 0))
+        + _row_safe_int(getattr(row, "output_tokens", 0))
+        + _row_safe_int(getattr(row, "cache_creation_tokens", 0))
+        + _row_safe_int(getattr(row, "cache_read_tokens", 0))
+    )
+
 
 class UsageRequest(BaseModel):
     source: str = Field(default="claude", description="claude, opencode")
@@ -950,7 +971,7 @@ async def get_token_usage_summary(
 
     # 尝试从 Redis 缓存读取（优先返回缓存）
     from app.services.token_usage_cache import get_query_cached_payload, set_query_cached_data
-    
+
     cache_payload = get_query_cached_payload(
         source=source,
         report_type=type,
@@ -963,9 +984,10 @@ async def get_token_usage_summary(
         sort_by="date",
         sort_order="desc",
     )
-    
+
     if cache_payload:
         logger.info(f"summary 缓存命中: user={user_id}, source={source}, days={days}")
+        _maybe_trigger_stale_sync(user_id, cache_payload)
         cached_response = dict(cache_payload)
         cached_response.pop("_cache_ttl_seconds", None)
         return SummaryResponse(**cached_response, cached=True)
@@ -1000,6 +1022,9 @@ async def get_token_usage_summary(
                 )
             )
 
+        # 数据过期时异步触发同步（先于缓存写入判断，保证本轮也能感知）
+        _maybe_trigger_stale_sync(user_id, payload)
+
         # 写入 Redis 缓存
         set_query_cached_data(
             source=source,
@@ -1018,6 +1043,46 @@ async def get_token_usage_summary(
         return SummaryResponse(**payload, cached=False)
     finally:
         db.close()
+
+
+def _maybe_trigger_stale_sync(user_id: str, payload: dict) -> None:
+    """数据过期时自动触发后台同步（异步线程，不阻塞本次响应）。
+
+    背景：后台同步循环在部署里默认关闭、每日调度只在 00:05 跑一次，
+    页面打开时数据可能已滞后数小时。这里在 /summary 检测到 sync_meta.is_stale
+    时用守护线程补一次全量同步（90 天，upsert 幂等），完成后失效该用户
+    查询缓存并预热，前端轮询下一次 /summary 即拿到新数据。
+    锁 TTL 取 600s：同步含多个 CLI 子进程，默认 120s 会在同步中途过期，
+    导致并发同步撞唯一约束。
+    """
+    try:
+        sync_meta = (payload or {}).get("sync_meta") or {}
+        if not sync_meta.get("is_stale"):
+            return
+
+        owner = str(uuid.uuid4())
+        lock = acquire_refresh_lock(user_id, owner, ttl_seconds=600)
+        if not lock.get("acquired"):
+            return
+
+        def _run_stale_sync():
+            try:
+                logger.info(f"[stale-sync] 用户 {user_id} 数据过期，自动触发后台同步")
+                sync_token_usage(user_id=user_id, days=90)
+            except Exception as exc:
+                logger.warning(f"[stale-sync] 用户 {user_id} 自动同步失败: {exc}")
+            finally:
+                invalidate_user_query_cache(user_id)
+                try:
+                    warm_query_cache(user_id)
+                except Exception:
+                    pass
+                release_refresh_lock(user_id, owner)
+
+        threading.Thread(target=_run_stale_sync, daemon=True).start()
+    except Exception as exc:
+        # 自动追新属于增强能力，任何异常都不能影响查询本身
+        logger.warning(f"[stale-sync] 触发失败（不影响查询）: {exc}")
 
 
 
@@ -1150,7 +1215,7 @@ async def get_token_usage_details(
                     output_tokens=_row_safe_int(r.output_tokens),
                     cache_creation_tokens=_row_safe_int(r.cache_creation_tokens),
                     cache_read_tokens=_row_safe_int(r.cache_read_tokens),
-                    total_tokens=_row_safe_int(r.total_tokens),
+                    total_tokens=_computed_total(r),
                     total_cost=_row_safe_float(r.total_cost),
                     models_used=[r.model] if r.model else [],
                     model_breakdowns=[],
@@ -1952,7 +2017,7 @@ def _rollup_dimension(bucket: dict, row, dims: dict) -> None:
         getattr(row, "cache_creation_tokens", 0) or 0
     )
     bucket["cache_read_tokens"] += int(getattr(row, "cache_read_tokens", 0) or 0)
-    bucket["total_tokens"] += int(getattr(row, "total_tokens", 0) or 0)
+    bucket["total_tokens"] += _computed_total(row)
     bucket["total_cost"] += float(getattr(row, "total_cost", 0) or 0)
     bucket["records_count"] += 1
     updated_at = getattr(row, "updated_at", None) or getattr(row, "created_at", None)
@@ -2181,7 +2246,7 @@ def build_chart_series(
                 "input_tokens": 0, "output_tokens": 0, "cache_tokens": 0,
             }
         )
-        bucket["total_tokens"] += int(getattr(row, "total_tokens", 0) or 0)
+        bucket["total_tokens"] += _computed_total(row)
         bucket["total_cost"] += float(getattr(row, "total_cost", 0) or 0)
         bucket["input_tokens"] += int(getattr(row, "input_tokens", 0) or 0)
         bucket["output_tokens"] += int(getattr(row, "output_tokens", 0) or 0)
@@ -2218,7 +2283,7 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
             func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
             func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
             func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
             func.sum(TokenUsageRecord.total_cost).label("total_cost"),
             func.count(TokenUsageRecord.id).label("records_count"),
             func.max(TokenUsageRecord.updated_at).label("last_used_at"),
@@ -2275,7 +2340,7 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
             func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
             func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
             func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
             func.sum(TokenUsageRecord.total_cost).label("total_cost"),
             func.count(TokenUsageRecord.id).label("records_count"),
             func.max(TokenUsageRecord.updated_at).label("last_used_at"),
@@ -2322,7 +2387,7 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
             func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
             func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
             func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
             func.sum(TokenUsageRecord.total_cost).label("total_cost"),
             func.count(TokenUsageRecord.id).label("records_count"),
             func.max(TokenUsageRecord.updated_at).label("last_used_at"),
@@ -2741,7 +2806,7 @@ def _execute_model_summary_query(db, user_id: str, req, since_date: datetime, al
                 "cache_creation_tokens"
             ),
             func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-            func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+            func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
             func.sum(TokenUsageRecord.total_cost).label("total_cost"),
         )
         .filter(*filters)
@@ -2996,7 +3061,7 @@ def _execute_db_query(
                     "cache_creation_tokens"
                 ),
                 func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-                func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+                func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
                 func.sum(TokenUsageRecord.total_cost).label("total_cost"),
             )
             .filter(*base_filter)
@@ -3032,7 +3097,7 @@ def _execute_db_query(
             bucket["output_tokens"] += int(record.output_tokens or 0)
             bucket["cache_creation_tokens"] += int(record.cache_creation_tokens or 0)
             bucket["cache_read_tokens"] += int(record.cache_read_tokens or 0)
-            bucket["total_tokens"] += int(record.total_tokens or 0)
+            bucket["total_tokens"] += _computed_total(record)
             bucket["total_cost"] += float(record.total_cost or 0)
         results = [_bucket_to_row(bucket) for bucket in buckets.values()]
     elif req.group_by == "model":
@@ -3047,7 +3112,7 @@ def _execute_db_query(
                     "cache_creation_tokens"
                 ),
                 func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-                func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+                func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
                 func.sum(TokenUsageRecord.total_cost).label("total_cost"),
             )
             .filter(*base_filter)
@@ -3066,7 +3131,7 @@ def _execute_db_query(
                     "cache_creation_tokens"
                 ),
                 func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
-                func.sum(TokenUsageRecord.total_tokens).label("total_tokens"),
+                func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
                 func.sum(TokenUsageRecord.total_cost).label("total_cost"),
             )
             .filter(*base_filter)

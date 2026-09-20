@@ -47,9 +47,26 @@ def clear_pending_sync_users() -> None:
     _pending_sync_users.clear()
 
 
+def _is_valid_user_id(user_id: str) -> bool:
+    """校验 user_id 是否为合法 UUID。
+
+    历史 bug（session 污染后 ORM 属性返回列名字符串）曾把
+    'token_usage_records_user_id' 等列名当作 user_id 写入数据库；
+    后台同步按库内 user_id 发现用户时会把这些垃圾账号捞回来继续复制数据，
+    因此在入口统一做 UUID 格式校验（本项目真实用户 id 均为 UUID）。
+    """
+    if not user_id or user_id == "system":
+        return False
+    try:
+        uuid.UUID(str(user_id))
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return True
+
+
 def _normalize_user_ids(user_ids: set[str]) -> set[str]:
-    """过滤无效用户，避免后台任务同步系统或空用户。"""
-    return {user_id for user_id in user_ids if user_id and user_id != "system"}
+    """过滤无效用户，避免后台任务同步系统、空用户或历史污染的列名字符串账号。"""
+    return {user_id for user_id in user_ids if _is_valid_user_id(user_id)}
 
 
 def _discover_token_usage_user_ids(max_users: int) -> list[str]:

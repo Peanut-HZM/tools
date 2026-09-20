@@ -245,6 +245,17 @@ TOOLS_DATA = [
         usageCount="New",
         category="AI工具",
     ),
+    Tool(
+        id="food-picker",
+        icon="fa-utensils",
+        iconColor="bg-orange-500",
+        title="今天吃什么",
+        description="收藏爱吃的美食清单，选择困难时随机抽取一个或多个，一键决定吃什么",
+        rating=4.9,
+        usageCount="New",
+        category="实用工具",
+        show_pc=False,  # 数据存小程序本地存储，仅移动端提供
+    ),
 ]
 
 

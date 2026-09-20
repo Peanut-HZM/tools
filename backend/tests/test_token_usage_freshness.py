@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from app.routes import token_usage as token_usage_route
+from app.services import token_usage_cache
 from app.routes.token_usage import (
     DimensionSummaries,
     FilterOptions,
@@ -137,6 +138,12 @@ def test_query_registers_pending_sync_without_direct_sync(monkeypatch):
     def fail_direct_sync(*args, **kwargs):
         raise AssertionError("query 不应直接执行同步")
 
+    async def fake_fallback(req):
+        # /query 对无数据用户会降级 CLI 直查，单测中隔离为空响应
+        return token_usage_route.DbUsageResponse(
+            items=[], summary=token_usage_route.compute_summary([]), devices=[]
+        )
+
     monkeypatch.setattr(
         token_usage_route,
         "get_current_user_id",
@@ -148,26 +155,8 @@ def test_query_registers_pending_sync_without_direct_sync(monkeypatch):
         registered_users.append,
     )
     monkeypatch.setattr(token_usage_route, "sync_token_usage", fail_direct_sync)
-    monkeypatch.setattr(
-        token_usage_route,
-        "get_query_cached_payload",
-        lambda **kwargs: {
-            "items": [],
-            "summary": {
-                "total_input_tokens": 0,
-                "total_output_tokens": 0,
-                "total_tokens": 0,
-                "total_cost": 0,
-                "days_count": 0,
-                "avg_daily_cost": 0,
-            },
-            "devices": [],
-            "model_summary": [],
-            "dimension_summaries": _empty_dimension_rows().model_dump(),
-            "filter_options": _empty_filter_options().model_dump(),
-            "sync_meta": _empty_sync_meta().model_dump(),
-        },
-    )
+    monkeypatch.setattr(token_usage_route, "_fallback_to_cli", fake_fallback)
+    monkeypatch.setattr(token_usage_route, "SessionLocal", lambda: _stub_session_without_data())
 
     response = asyncio.run(
         token_usage_route.query_token_usage(
@@ -177,8 +166,32 @@ def test_query_registers_pending_sync_without_direct_sync(monkeypatch):
     )
 
     assert registered_users == ["user-1"]
-    assert response.cached is True
     assert response.items == []
+
+
+class _StubQuery:
+    """返回 None 的 query 桩，模拟用户无数据"""
+
+    def filter_by(self, *args, **kwargs):
+        return self
+
+    def filter(self, *args, **kwargs):
+        return self
+
+    def first(self):
+        return None
+
+
+class _StubSession:
+    def query(self, *args, **kwargs):
+        return _StubQuery()
+
+    def close(self):
+        pass
+
+
+def _stub_session_without_data():
+    return _StubSession()
 
 
 def test_query_returns_empty_response_when_database_unavailable(monkeypatch):
@@ -196,7 +209,7 @@ def test_query_returns_empty_response_when_database_unavailable(monkeypatch):
         lambda user_id: None,
     )
     monkeypatch.setattr(
-        token_usage_route,
+        token_usage_cache,
         "get_query_cached_payload",
         lambda **kwargs: None,
     )

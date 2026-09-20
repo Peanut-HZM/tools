@@ -273,9 +273,10 @@ def fetch_zcode_records(
             output_tokens = int(row["output_tokens"] or 0)
             cache_creation = int(row["cache_creation_tokens"] or 0)
             cache_read = int(row["cache_read_tokens"] or 0)
-            total_tokens = int(row["total_tokens"] or 0)
-            if total_tokens == 0:
-                total_tokens = input_tokens + output_tokens + cache_creation + cache_read
+            # total 统一口径：四项分量之和。ZCode SQLite 的 computed_total_tokens
+            # 只含 input+output（不含 cache_read），直接采信会导致设备/工具环形图
+            # 与顶栏（四项求和）口径不一致，因此不使用源库的 total 字段
+            total_tokens = input_tokens + output_tokens + cache_creation + cache_read
 
             records.append({
                 "record_date": record_date,

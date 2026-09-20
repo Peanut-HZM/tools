@@ -127,10 +127,12 @@ class ToolsService:
                     # usage_count is initialized to 0 for new tools, but preserved for existing ones via ON CONFLICT
                     # rating is updated from static data
                     # IMPORTANT: ON CONFLICT does NOT update title/description to preserve admin edits
+                    # show_pc/show_mobile 取静态数据声明值（如 food-picker 声明 show_pc=False 仅移动端），
+                    # ON CONFLICT 不更新这两列，已有工具保留管理员在后台改过的平台开关
                     cur.execute(
                         """
                         INSERT INTO tools (id, title, description, icon, icon_color, category, usage_count, rating, custom_icon_url, show_pc, show_mobile, require_login)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, TRUE, TRUE, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, %s, %s, %s)
                         ON CONFLICT (id) DO UPDATE SET
                             icon = EXCLUDED.icon,
                             icon_color = EXCLUDED.icon_color,
@@ -147,6 +149,8 @@ class ToolsService:
                             tool.category,
                             0,
                             tool.rating,
+                            tool.show_pc,
+                            tool.show_mobile,
                             tool.require_login,
                         ),
                     )
