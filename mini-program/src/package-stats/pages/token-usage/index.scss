@@ -1,5 +1,5 @@
 /**
- * Token 用量统计页 — 玻璃光晕换肤（阶段⑧-⑨ Task 8）
+ * Token 用量统计页 — 玻璃光晕换肤（阶段⑧-⑨ Task 8，/summary 新接口版）
  * 汇总卡/数据表卡质感由全局 .glass-card 提供（背景/描边/投影/磨砂模糊），本地只保留布局与圆角；
  * 筛选条为全宽条形面板：surface-1 底 + 玻璃发丝线；选择器值域走输入类 token。
  */
@@ -7,6 +7,8 @@
 .token-usage-page {
   min-height: 100vh;
   background: var(--bg-canvas);
+  /* 底部安全区：数据表末行不被 home indicator 遮挡 */
+  padding-bottom: env(safe-area-inset-bottom);
 
   .filters {
     padding: 20rpx 30rpx;
@@ -58,6 +60,43 @@
   .stats-content-inner {
     padding: 20rpx;
 
+    /* 同步状态条：最后同步时间 + 手动同步入口 */
+    .sync-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16rpx;
+      margin-bottom: 20rpx;
+
+      .sync-text {
+        flex: 1;
+        color: var(--ink-muted);
+        font-size: 22rpx;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sync-btn {
+        display: flex;
+        align-items: center;
+        gap: 6rpx;
+        min-height: 52rpx;
+        padding: 0 20rpx;
+        border-radius: var(--radius-full);
+        background: var(--bg-surface-2);
+        border: 1px solid var(--glass-border);
+        color: var(--color-primary-light);
+        font-size: 22rpx;
+        flex-shrink: 0;
+
+        &--busy {
+          opacity: 0.6;
+          pointer-events: none;
+        }
+      }
+    }
+
     .summary-cards {
       display: flex;
       gap: 20rpx;
@@ -65,7 +104,7 @@
 
       .summary-card {
         flex: 1;
-        padding: 30rpx;
+        padding: 30rpx 24rpx;
         border-radius: 16rpx;
         text-align: center;
 
@@ -79,8 +118,18 @@
         }
 
         .card-label {
+          display: block;
           color: var(--ink-muted);
           font-size: 24rpx;
+          margin-bottom: 12rpx;
+        }
+
+        /* 分量拆分小字（输入/输出/缓存） */
+        .card-sub {
+          display: block;
+          color: var(--ink-faint);
+          font-size: 20rpx;
+          line-height: 1.7;
         }
       }
     }
@@ -101,20 +150,25 @@
           font-size: 24rpx;
           text-align: center;
 
-          &:first-child {
+          &--wide {
+            flex: 1.4;
             text-align: left;
           }
         }
       }
 
-      .list-row {
-        display: flex;
-        padding: 20rpx;
+      .list-row-wrap {
         border-bottom: 1rpx solid var(--glass-border);
 
         &:last-child {
           border-bottom: none;
         }
+      }
+
+      .list-row {
+        display: flex;
+        align-items: baseline;
+        padding: 20rpx 20rpx 4rpx;
 
         .cell {
           flex: 1;
@@ -122,10 +176,32 @@
           font-size: 26rpx;
           text-align: center;
 
-          &:first-child {
+          &--wide {
+            flex: 1.4;
             text-align: left;
+            color: var(--ink-muted);
+            font-size: 24rpx;
           }
         }
+      }
+
+      /* 明细副行：输入/输出/缓存拆分 */
+      .list-subrow {
+        display: flex;
+        gap: 24rpx;
+        padding: 4rpx 20rpx 18rpx 20rpx;
+
+        text {
+          color: var(--ink-faint);
+          font-size: 20rpx;
+        }
+      }
+
+      .list-empty {
+        padding: 60rpx 30rpx;
+        text-align: center;
+        color: var(--ink-faint);
+        font-size: 24rpx;
       }
     }
 
