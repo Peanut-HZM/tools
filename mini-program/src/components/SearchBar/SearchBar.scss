@@ -36,6 +36,10 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  /* 扩大触摸热区至 64rpx（约 44px 触摸目标的最小要求，图标仍 16px） */
+  width: 64rpx;
+  height: 64rpx;
+  margin: -8rpx -12rpx -8rpx 0;
 
   .clear-icon {
     flex-shrink: 0;

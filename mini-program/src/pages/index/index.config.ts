@@ -1,6 +1,5 @@
 /**
- * 首页页面配置（玻璃光晕改版 Task 4）
- * navigationStyle: 'custom' 关闭原生导航栏，由页面内
- * StatusBarSpacer + 品牌标题栏（gradient-text）自行承接导航区
+ * 首页页面配置
+ * 使用微信原生导航栏（navigationBar），自动处理状态栏安全区适配
  */
-export default { navigationStyle: 'custom' } as const;
+export default { navigationStyle: 'default' } as const;

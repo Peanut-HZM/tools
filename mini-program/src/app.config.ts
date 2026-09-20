@@ -45,6 +45,12 @@ export default {
         'pages/token-usage/index',
       ],
     },
+    {
+      root: 'package-life',
+      pages: [
+        'pages/food-picker/index',
+      ],
+    },
   ],
   preloadRule: {},
   window: {

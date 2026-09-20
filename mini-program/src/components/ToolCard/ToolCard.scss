@@ -1,11 +1,11 @@
 /*
- * 工具卡片样式（玻璃光晕改版 Task 3）
+ * 工具卡片样式（玻璃光晕改版 Task 3 + 视觉优化）
  * 背景/描边/顶部高光由全局 .glass-card（styles/_glass.scss）提供，
  * 组件样式只保留布局与文字（组件 wxss 后加载，勿在此重复定义背景，
  * 否则会覆盖玻璃底）。
  */
 .tool-card {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 28rpx 24rpx;
   display: flex;
   flex-direction: column;
@@ -23,9 +23,9 @@
   }
 
   &-icon {
-    width: 72rpx;
-    height: 72rpx;
-    border-radius: var(--radius-sm);
+    width: 76rpx;
+    height: 76rpx;
+    border-radius: var(--radius-md);
     /* 底色/描边/图标色由 tint 色板类提供（_glass.scss tint 段） */
     display: flex;
     align-items: center;

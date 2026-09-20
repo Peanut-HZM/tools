@@ -13,8 +13,6 @@ marked.setOptions({
 })
 
 export default function Markdown({ content }: MarkdownProps) {
-  console.log('[Markdown] 渲染，content 长度:', content ? content.length : 0, '内容预览:', content ? content.substring(0, 50) : '空')
-
   if (!content) {
     return (
       <View className='markdown-renderer'>
@@ -25,7 +23,6 @@ export default function Markdown({ content }: MarkdownProps) {
 
   try {
     const html = marked(content)
-    console.log('[Markdown] HTML 生成成功，长度:', html.length)
 
     return (
       <View className='markdown-renderer'>

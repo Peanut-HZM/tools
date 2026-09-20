@@ -97,6 +97,31 @@ const ICON_PATHS: Record<string, string[]> = {
     'M9 18h6',
     'M10 22h4',
   ],
+  // 餐具：叉 + 刀（今天吃什么）
+  utensils: [
+    'M3 2v7a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V2',
+    'M6 2v20',
+    'M21 15V2a5 5 0 0 0-5 5v6a2 2 0 0 0 2 2h3zm0 0v7',
+  ],
+  // 骰子：圆角方 + 五点（随机抽取）
+  dice: [
+    'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z',
+    'M8.5 8.5h.01',
+    'M15.5 8.5h.01',
+    'M12 12h.01',
+    'M8.5 15.5h.01',
+    'M15.5 15.5h.01',
+  ],
+  // 加号（新增录入）
+  plus: ['M12 5v14', 'M5 12h14'],
+  // 垃圾桶（删除）
+  trash: [
+    'M3 6h18',
+    'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6',
+    'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+    'M10 11v6',
+    'M14 11v6',
+  ],
   // 关闭
   close: ['M18 6L6 18', 'M6 6l12 12'],
   // 右箭头
@@ -169,6 +194,11 @@ const FA_TO_ICON: Record<string, string> = {
   'fa-tools': 'tools',
   'fa-wrench': 'tools',
   'fa-lightbulb': 'lightbulb',
+  'fa-utensils': 'utensils',
+  'fa-dice': 'dice',
+  'fa-plus': 'plus',
+  'fa-trash': 'trash',
+  'fa-trash-can': 'trash',
 };
 
 /** FA class 中可能出现的样式前缀（fas/fa-solid 等），解析时跳过 */
