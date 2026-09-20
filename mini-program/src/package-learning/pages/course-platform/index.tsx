@@ -5,6 +5,7 @@ import { coursePlatformApi } from '../../../services/coursePlatform';
 import type { Course, CourseCategory } from '../../../services/coursePlatform';
 import { formatApiError } from '../../../utils/mobileTool';
 import Loading from '../../../components/Loading';
+import EmptyState from '../../../components/EmptyState';
 import SearchBar from '../../../components/SearchBar';
 import './index.scss';
 
@@ -84,7 +85,6 @@ export default function CoursePlatformPage() {
         placeholder="搜索课程..."
         value={searchKeyword}
         onChange={setSearchKeyword}
-        onSearch={() => fetchCourses(true)}
       />
 
       <ScrollView className="category-bar" scrollX>
@@ -117,12 +117,16 @@ export default function CoursePlatformPage() {
       {pageState === 'success' && (
         <ScrollView className="course-list" scrollY onScrollToLower={handleLoadMore}>
           {courses.length === 0 ? (
-            <View className="empty-state">
-              <Text>暂无课程</Text>
-            </View>
+            <EmptyState title="暂无课程" description="换个分类或关键词看看" />
           ) : (
             courses.map(course => (
-              <View key={course.id} className="course-card glass-card" onClick={() => handleCourseClick(course.slug)}>
+              <View
+                key={course.id}
+                className="course-card glass-card"
+                hoverClass="course-card-hover"
+                hoverStayTime={100}
+                onClick={() => handleCourseClick(course.slug)}
+              >
                 {course.cover_image && (
                   <Image className="cover" src={course.cover_image} mode="aspectFill" lazyLoad />
                 )}

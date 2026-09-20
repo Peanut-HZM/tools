@@ -26,11 +26,18 @@ export default function CourseDetailPage() {
   const [activeChapter, setActiveChapter] = useState<CourseChapter | null>(null);
 
   useEffect(() => {
+    loadDetail();
+  }, [slug]);
+
+  /** 拉取课程详情（错误态"点击重试"复用） */
+  const loadDetail = () => {
     if (!slug) {
       setError('课程 ID 缺失');
       setLoading(false);
       return;
     }
+    setLoading(true);
+    setError('');
     coursePlatformApi.getCourseDetail(slug)
       .then(data => {
         setCourse(data);
@@ -43,7 +50,7 @@ export default function CourseDetailPage() {
         setError(formatApiError(err));
         setLoading(false);
       });
-  }, [slug]);
+  };
 
   const handleEnroll = async () => {
     if (!course) return;
@@ -61,7 +68,8 @@ export default function CourseDetailPage() {
   if (loading) return <Loading text="加载课程..." />;
   if (error) return (
     <View className="error-state">
-      <Text>{error}</Text>
+      <Text className="error-text">{error}</Text>
+      {slug && <Text className="retry-text" onClick={loadDetail}>点击重试</Text>}
     </View>
   );
   if (!course) return null;

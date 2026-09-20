@@ -7,6 +7,8 @@
 
 .video-downloader-page {
   padding: 30rpx;
+  /* 底部安全区：末尾视频不被 home indicator 遮挡 */
+  padding-bottom: calc(30rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   background: var(--bg-canvas);
 

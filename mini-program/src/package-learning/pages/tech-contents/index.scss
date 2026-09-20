@@ -7,6 +7,8 @@
 .tech-contents-page {
   min-height: 100vh;
   background: var(--bg-canvas);
+  /* 底部安全区：末尾内容卡不被 home indicator 遮挡 */
+  padding-bottom: env(safe-area-inset-bottom);
 
   .type-bar {
     white-space: nowrap;
@@ -44,16 +46,18 @@
   .content-list {
     padding: 20rpx;
 
-    .empty-state {
-      text-align: center;
-      padding: 200rpx;
-      color: var(--ink-muted);
-    }
+    /* 空状态复用全局 EmptyState 组件 */
 
     .content-card {
       padding: 24rpx;
       margin-bottom: 20rpx;
       border-radius: 16rpx;
+
+      /* 按压反馈（hover-class）：缩放 + 品牌描边 */
+      &-hover {
+        transform: scale(0.98);
+        border-color: var(--border-accent);
+      }
 
       .cover {
         width: 100%;

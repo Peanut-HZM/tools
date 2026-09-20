@@ -85,6 +85,8 @@
   .toolbar {
     display: flex;
     padding: 20rpx;
+    /* 底部安全区：避免全面屏 home indicator 遮挡工具按钮 */
+    padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
     gap: 20rpx;
     border-top: 1rpx solid var(--glass-border);
     background: var(--bg-surface-1);

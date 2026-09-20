@@ -23,11 +23,18 @@ export default function TechContentDetailPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    loadDetail();
+  }, [slug]);
+
+  /** 拉取内容详情（错误态"点击重试"复用） */
+  const loadDetail = () => {
     if (!slug) {
       setError('内容 ID 缺失');
       setLoading(false);
       return;
     }
+    setLoading(true);
+    setError('');
     techContentsApi.getContentDetail(slug)
       .then(data => {
         setContent(data);
@@ -37,10 +44,15 @@ export default function TechContentDetailPage() {
         setError(formatApiError(err));
         setLoading(false);
       });
-  }, [slug]);
+  };
 
   if (loading) return <Loading text="加载中..." />;
-  if (error) return <View className="error-state"><Text>{error}</Text></View>;
+  if (error) return (
+    <View className="error-state">
+      <Text className="error-text">{error}</Text>
+      {slug && <Text className="retry-text" onClick={loadDetail}>点击重试</Text>}
+    </View>
+  );
   if (!content) return null;
 
   return (

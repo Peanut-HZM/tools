@@ -5,6 +5,7 @@ import { techContentsApi } from '../../../services/techContents';
 import type { TechContent, ContentType } from '../../../services/techContents';
 import { formatApiError } from '../../../utils/mobileTool';
 import Loading from '../../../components/Loading';
+import EmptyState from '../../../components/EmptyState';
 import './index.scss';
 
 /**
@@ -97,10 +98,16 @@ export default function TechContentsPage() {
       {pageState === 'success' && (
         <ScrollView className="content-list" scrollY onScrollToLower={() => hasMore && fetchContents()}>
           {contents.length === 0 ? (
-            <View className="empty-state"><Text>暂无内容</Text></View>
+            <EmptyState title="暂无内容" description="换个类型看看" />
           ) : (
             contents.map(item => (
-              <View key={item.id} className="content-card glass-card" onClick={() => handleContentClick(item.slug)}>
+              <View
+                key={item.id}
+                className="content-card glass-card"
+                hoverClass="content-card-hover"
+                hoverStayTime={100}
+                onClick={() => handleContentClick(item.slug)}
+              >
                 {item.cover_image && <Image className="cover" src={item.cover_image} mode="aspectFill" lazyLoad />}
                 <View className="info">
                   <Text className="type-tag">{item.content_type_label}</Text>
