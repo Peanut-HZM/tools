@@ -28,10 +28,109 @@ SQL_KEYWORDS = {
 _STRIP_COMMENTS_RE = re.compile(
     r"""('(?:[^'\\]|\\.|'')*')"""
     r"""|("(?:[^"\\]|\\.|(?:""))*")"""
-    r"""|(--[^\r\n]*)"""
+    r"""|(--[ 	
+][^
+]*)"""
     r"""|(/\*[\s\S]*?\*/)""",
     re.DOTALL,
 )
+
+
+
+def _normalize_mysql_line_comments(sql: str) -> str:
+    """规范化 MySQL 行注释：确保 -- 后跟空白字符。
+
+    MySQL 要求 -- 注释的第二根横线后必须是空白字符（空格、Tab、换行）或 EOL，
+    否则不识别为注释（如 '--（' 不是合法注释）。
+    本函数将 '--X'（X 非空白）自动补空格为 '-- X'，同时跳过字符串字面量和块注释内部。
+    """
+    result = []
+    i = 0
+    n = len(sql)
+    in_sq = False  # 单引号字符串
+    in_dq = False  # 双引号字符串
+    in_bt = False  # 反引号标识符
+    in_block_comment = False
+
+    while i < n:
+        ch = sql[i]
+
+        if in_block_comment:
+            result.append(ch)
+            if ch == '*' and i + 1 < n and sql[i + 1] == '/':
+                result.append(sql[i + 1])
+                i += 2
+                in_block_comment = False
+            else:
+                i += 1
+            continue
+
+        if in_sq:
+            result.append(ch)
+            if ch == '\\' and i + 1 < n:
+                result.append(sql[i + 1])
+                i += 2
+                continue
+            if ch == "'" and i + 1 < n and sql[i + 1] == "'":
+                result.append(sql[i + 1])
+                i += 2
+                continue
+            if ch == "'":
+                in_sq = False
+            i += 1
+            continue
+
+        if in_dq:
+            result.append(ch)
+            if ch == '\\' and i + 1 < n:
+                result.append(sql[i + 1])
+                i += 2
+                continue
+            if ch == '"' and i + 1 < n and sql[i + 1] == '"':
+                result.append(sql[i + 1])
+                i += 2
+                continue
+            if ch == '"':
+                in_dq = False
+            i += 1
+            continue
+
+        if in_bt:
+            result.append(ch)
+            if ch == '`':
+                in_bt = False
+            i += 1
+            continue
+
+        # NORMAL 状态
+        if ch == "'":
+            in_sq = True
+            result.append(ch)
+            i += 1
+        elif ch == '"':
+            in_dq = True
+            result.append(ch)
+            i += 1
+        elif ch == '`':
+            in_bt = True
+            result.append(ch)
+            i += 1
+        elif ch == '/' and i + 1 < n and sql[i + 1] == '*':
+            in_block_comment = True
+            result.append(ch)
+        elif ch == '-' and i + 1 < n and sql[i + 1] == '-':
+            # -- 行注释：检查后面是否跟空白字符
+            result.append('--')
+            i += 2
+            if i >= n or sql[i] in ' \t\r\n':
+                pass  # 已符合 MySQL 规范
+            else:
+                result.append(' ')  # 补一个空格
+        else:
+            result.append(ch)
+            i += 1
+
+    return ''.join(result)
 
 
 def strip_sql_comments(raw: str) -> str:
@@ -226,9 +325,10 @@ class SQLExecutor:
 
         try:
             with engine.connect() as conn:
-                # 切分 SQL 为多条语句，过滤空/纯注释/无合法关键字的语句
+                # 规范化 MySQL 行注释（-- 后补空格），再切分
+                normalized_sql = _normalize_mysql_line_comments(sql)
                 statements = [
-                    s for s in split_sql_script(sql)
+                    s for s in split_sql_script(normalized_sql)
                     if is_executable_statement(s)
                 ]
 
@@ -261,37 +361,20 @@ class SQLExecutor:
                     #   %(1x) → replace %(2x) → compile %(4x) → DBAPI(无处理) → DB 看到 %%%%
                     # ------------------------------------------------------------------
 
+                    # ------------------------------------------------------------------
+                    # 执行策略
+                    # ------------------------------------------------------------------
+                    # 无 params：使用 exec_driver_sql 直接执行，绕过 SQLAlchemy 的 text()
+                    # 解析。text() 会把 :10 当作绑定参数，导致 JSON 字符串中的 :数字 报错。
+                    # exec_driver_sql 直接调用底层 DBAPI，SQL 原样发送，与 mysql CLI 行为一致。
+                    #
+                    # 有 params：使用 text() + execute，让 SQLAlchemy 处理参数绑定。
+                    # ------------------------------------------------------------------
                     if not params:
-                        # 无 params：DBAPI 不会执行 % 操作，必须手动撤销编译器的 %% 转义
-
-                        # 步骤 1: 先转义冒号，防止 text() 把 JSON 的 :key 当作绑定参数
-                        # （\: 是 SQLAlchemy 的字面冒号转义；保留 :: 即 PG 类型转换）
-                        stmt_with_escaped_colons = re.sub(
-                            r'(?<!:)(?<!\\):([a-zA-Z_]\w*|\d+)',
-                            r'\\:\1',
-                            stmt_str,
-                        )
-
-                        # 步骤 2: 编译（编译器把 % → %%），然后撤销 %% → %
-                        # 最终结果：用户输入 %，DB 看到 %（LIKE 通配符正确）
-                        compiled = text(stmt_with_escaped_colons).compile(
-                            dialect=engine.dialect
-                        )
-                        final_sql = str(compiled).replace('%%', '%')
-                        stmt = text(final_sql)
+                        result = conn.exec_driver_sql(stmt_str)
                     else:
-                        # 有 params：完整处理链会自动还原 %
-                        # 编译器 % → %%，DBAPI 执行 sql % params 时 %% → %
                         stmt = text(stmt_str)
-
-                    # Execute
-                    if params:
                         result = conn.execute(stmt, params)
-                    else:
-                        result = conn.execute(stmt)
-
-                    if not result.returns_rows:
-                        total_affected += result.rowcount
 
                     last_result = result
 

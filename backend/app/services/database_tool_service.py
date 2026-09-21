@@ -57,6 +57,7 @@ from app.utils.sql_executor import (
     SQLExecutor,
     split_sql_script,
     is_executable_statement,
+    _normalize_mysql_line_comments,
 )
 from sqlalchemy import inspect, text
 
@@ -1043,12 +1044,12 @@ class DatabaseToolService:
             "max_pool_size": config_row["max_pool_size"],
         }
 
-        final_sql = request.sql
+        final_sql = _normalize_mysql_line_comments(request.sql)
 
         # PostgreSQL schema 注入：当指定了 schema_name 时，自动为未指定 schema 的表名添加前缀
         if config_row["db_type"] == DatabaseType.POSTGRESQL and request.schema_name:
             from app.utils.sql_schema_injector import process_sql_with_schema_injection
-            final_sql = process_sql_with_schema_injection(request.sql, request.schema_name)
+            final_sql = process_sql_with_schema_injection(final_sql, request.schema_name)
 
         # 仅在单条 SELECT 语句时应用自动分页，避免影响多语句脚本
         try:
