@@ -16,11 +16,14 @@ const mockRequest: HttpRequest = {
   name: '测试请求',
   method: 'GET',
   url: 'https://example.com/api',
-  headers: {},
-  params: {},
+  headers: [],
+  params: [],
   body_type: 'none',
+  form_data: [],
   auth_type: 'none',
   auth_config: {},
+  extract_variables: [],
+  assertions: [],
   sort_order: 0,
   created_at: '',
   updated_at: '',
@@ -42,7 +45,7 @@ describe('RequestEditor 保存/删除按钮', () => {
         onSave={vi.fn()}
       />
     );
-    const saveButton = screen.getByTitle('保存') as HTMLButtonElement;
+    const saveButton = screen.getByTitle('Ctrl+S') as HTMLButtonElement;
     expect(saveButton.disabled).toBe(true);
   });
 
@@ -58,7 +61,7 @@ describe('RequestEditor 保存/删除按钮', () => {
         onSave={onSave}
       />
     );
-    const saveButton = screen.getByTitle('保存') as HTMLButtonElement;
+    const saveButton = screen.getByTitle('Ctrl+S') as HTMLButtonElement;
     expect(saveButton.disabled).toBe(false);
     fireEvent.click(saveButton);
     expect(onSave).toHaveBeenCalledTimes(1);
@@ -90,7 +93,31 @@ describe('RequestEditor 保存/删除按钮', () => {
         sending={false}
       />
     );
-    expect(screen.queryByTitle('保存')).toBeNull();
+    expect(screen.queryByTitle('Ctrl+S')).toBeNull();
     expect(screen.queryByTitle('删除')).toBeNull();
+  });
+
+  it('URL 输入 ?key=value 时 query 参数同步到 Params 表', () => {
+    const onUpdate = vi.fn();
+    render(
+      <RequestEditor
+        request={mockRequest}
+        isModified={false}
+        onUpdate={onUpdate}
+        onSend={vi.fn()}
+        sending={false}
+      />
+    );
+    const urlEditor = screen.getByTestId('mock-script-editor') as HTMLInputElement;
+    fireEvent.change(urlEditor, { target: { value: 'https://example.com/api?page=1&size=20' } });
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://example.com/api',
+        params: expect.arrayContaining([
+          expect.objectContaining({ key: 'page', value: '1', enabled: true }),
+          expect.objectContaining({ key: 'size', value: '20', enabled: true }),
+        ]),
+      })
+    );
   });
 });

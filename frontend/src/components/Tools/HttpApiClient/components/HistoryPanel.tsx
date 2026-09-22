@@ -2,19 +2,32 @@
  * 请求历史面板
  */
 
+import { useMemo, useState } from 'react';
 import { RequestHistory } from '../../../../services/httpClientApi';
-import { Loader2, History, Trash2, RotateCw } from 'lucide-react';
+import { Loader2, History, Trash2, RotateCw, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
 
 interface HistoryPanelProps {
   history: RequestHistory[];
   loading: boolean;
   onReplay: (item: RequestHistory) => void;
   onClear: () => void;
+  onDeleteItem?: (id: string) => void;
 }
 
-export default function HistoryPanel({ history, loading, onReplay, onClear }: HistoryPanelProps) {
+export default function HistoryPanel({ history, loading, onReplay, onClear, onDeleteItem }: HistoryPanelProps) {
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return history;
+    const kw = search.trim().toLowerCase();
+    return history.filter(item =>
+      item.url.toLowerCase().includes(kw) || item.method.toLowerCase().includes(kw)
+    );
+  }, [history, search]);
+
   const getStatusColor = (status: number) => {
     if (status >= 200 && status < 300) return 'text-success';
     if (status >= 300 && status < 400) return 'text-accent-warning';
@@ -68,67 +81,108 @@ export default function HistoryPanel({ history, loading, onReplay, onClear }: Hi
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-ink-muted">共 {history.length} 条记录</span>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="relative flex-1">
+          <Search className="w-3.5 h-3.5 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="按 URL 或方法过滤..."
+            className="h-8 text-xs pl-8 pr-7"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={onClear}
-          className="text-xs text-danger hover:text-danger"
+          className="text-xs text-danger hover:text-danger h-8"
         >
-          <Trash2 className="w-4 h-4 mr-1" />
-          清空历史
+          <Trash2 className="w-3.5 h-3.5 mr-1" />
+          清空
         </Button>
       </div>
 
-      <div className="max-h-[60vh] overflow-y-auto space-y-1">
-        {history.map(item => (
-          <div
-            key={item.id}
-            onClick={() => onReplay(item)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer
-                       hover:bg-surface-2/50 transition-colors text-sm group"
-          >
-            {/* 状态码 */}
-            <span className={`font-mono font-bold text-xs w-10 text-center ${getStatusColor(item.status_code)}`}>
-              {item.status_code || '-'}
-            </span>
+      <div className="text-xs text-ink-faint mb-1">
+        共 {filtered.length} 条记录{search && `（筛选自 ${history.length} 条）`}
+      </div>
 
-            {/* 方法 */}
-            <Badge variant={getMethodBadgeVariant(item.method)} className="font-mono">
-              {item.method}
-            </Badge>
-
-            {/* URL */}
-            <span className="flex-1 text-ink-muted truncate text-xs font-mono" title={item.url}>
-              {item.url}
-            </span>
-
-            {/* 响应时间 */}
-            <span className="text-xs text-ink-faint font-mono w-16 text-right">
-              {item.response_time}ms
-            </span>
-
-            {/* 时间 */}
-            <span className="text-xs text-ink-faint w-20 text-right">
-              {formatTime(item.timestamp)}
-            </span>
-
-            {/* 重放按钮 */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                onReplay(item);
-              }}
-              className="h-6 w-6 text-ink-faint group-hover:text-accent-secondary opacity-0 group-hover:opacity-100"
-              title="重放"
+      <div className="max-h-[55vh] overflow-y-auto space-y-1">
+        {filtered.length === 0 ? (
+          <div className="text-center py-8 text-ink-faint text-sm">无匹配的历史记录</div>
+        ) : (
+          filtered.map(item => (
+            <div
+              key={item.id}
+              onClick={() => onReplay(item)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer
+                         hover:bg-surface-2/50 transition-colors text-sm group"
             >
-              <RotateCw className="w-4 h-4" />
-            </Button>
-          </div>
-        ))}
+              {/* 状态码 */}
+              <span className={`font-mono font-bold text-xs w-10 text-center ${getStatusColor(item.status_code)}`}>
+                {item.status_code || '-'}
+              </span>
+
+              {/* 方法 */}
+              <Badge variant={getMethodBadgeVariant(item.method)} className="font-mono">
+                {item.method}
+              </Badge>
+
+              {/* URL */}
+              <span className="flex-1 text-ink-muted truncate text-xs font-mono" title={item.url}>
+                {item.url}
+              </span>
+
+              {/* 响应时间 */}
+              <span className="text-xs text-ink-faint font-mono w-16 text-right">
+                {item.response_time}ms
+              </span>
+
+              {/* 时间 */}
+              <span className="text-xs text-ink-faint w-20 text-right">
+                {formatTime(item.timestamp)}
+              </span>
+
+              {/* 重放按钮 */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReplay(item);
+                }}
+                className="h-6 w-6 text-ink-faint group-hover:text-accent-secondary opacity-0 group-hover:opacity-100"
+                title="重放到新标签页"
+              >
+                <RotateCw className="w-4 h-4" />
+              </Button>
+
+              {/* 单条删除按钮 */}
+              {onDeleteItem && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteItem(item.id);
+                  }}
+                  className="h-6 w-6 text-ink-faint group-hover:text-danger opacity-0 group-hover:opacity-100"
+                  title="删除此记录"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,17 @@ import type { HttpRequest } from '../services/httpClientApi';
 // Mock API 层，避免真实网络请求
 vi.mock('../services/httpClientApi', () => ({
   updateRequest: vi.fn(),
+  fetchCollections: vi.fn().mockResolvedValue([]),
+  fetchRequests: vi.fn().mockResolvedValue([]),
+  fetchEnvironments: vi.fn().mockResolvedValue([]),
+  fetchActiveEnvironment: vi.fn().mockResolvedValue(null),
+  sendHttpRequest: vi.fn(),
+  fetchHistory: vi.fn().mockResolvedValue([]),
+  clearHistory: vi.fn(),
+  deleteHistoryItem: vi.fn(),
+  deleteRequest: vi.fn(),
+  activateEnvironment: vi.fn(),
+  duplicateRequest: vi.fn(),
 }));
 
 /** 构造最小 HttpRequest 测试数据 */
@@ -15,11 +26,14 @@ const makeRequest = (id: string, url = 'https://example.com/api'): HttpRequest =
   name: '测试请求',
   method: 'GET',
   url,
-  headers: {},
-  params: {},
+  headers: [],
+  params: [],
   body_type: 'none',
+  form_data: [],
   auth_type: 'none',
   auth_config: {},
+  extract_variables: [],
+  assertions: [],
   sort_order: 0,
   created_at: '',
   updated_at: '',
@@ -93,6 +107,26 @@ describe('httpClientStore.saveRequest', () => {
     expect(tab?.isModified).toBe(false);
     expect(tab?.request.url).toBe('https://example.com/during');
   });
+
+  it('保存时 form_data 中的 File 对象被序列化为文件名（不丢字段）', async () => {
+    const file = new File(['content'], 'upload.png', { type: 'image/png' });
+    const request = makeRequest('req-fd');
+    request.body_type = 'form-data';
+    request.form_data = [
+      { key: 'name', value: 'abc', type: 'text', enabled: true, description: '' },
+      { key: 'file', value: '', type: 'file', enabled: true, file, description: '' },
+    ];
+    useHttpClientStore.getState().openTab(request);
+
+    vi.mocked(updateRequest).mockResolvedValue(request);
+
+    await useHttpClientStore.getState().saveRequest('req-fd');
+
+    const payload = vi.mocked(updateRequest).mock.calls[0][1] as HttpRequest;
+    expect(payload.form_data?.[0].value).toBe('abc');
+    expect(payload.form_data?.[1].value).toBe('upload.png');
+    expect((payload.form_data?.[1] as any).file).toBeUndefined();
+  });
 });
 
 describe('httpClientStore.renameRequest', () => {
@@ -130,5 +164,72 @@ describe('httpClientStore.renameRequest', () => {
     const tab = useHttpClientStore.getState().openTabs.find(t => t.requestId === 'req-2');
     expect(tab?.request.name).toBe('测试请求');
     expect(tab?.isModified).toBe(false);
+  });
+});
+
+describe('httpClientStore.sendRequest（per-tab 响应）', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useHttpClientStore.setState({ openTabs: [], activeTabId: null });
+  });
+
+  it('响应写入发起请求的标签页，不影响其他标签页', async () => {
+    const { sendHttpRequest } = await import('../services/httpClientApi');
+    const reqA = makeRequest('req-a', 'https://example.com/a');
+    const reqB = makeRequest('req-b', 'https://example.com/b');
+    useHttpClientStore.getState().openTab(reqA);
+    useHttpClientStore.getState().openTab(reqB);
+
+    const successResponse = {
+      status_code: 200,
+      status_text: 'OK',
+      headers: {},
+      body: '{}',
+      response_time: 100,
+      size: 2,
+      content_type: 'application/json',
+      request_url: 'https://example.com/a',
+      request_headers: {},
+      extracted_variables: {},
+      assertion_results: [],
+      error: null,
+    };
+    vi.mocked(sendHttpRequest).mockResolvedValue(successResponse);
+
+    await useHttpClientStore.getState().sendRequest('req-a', {
+      method: 'GET',
+      url: 'https://example.com/a',
+      headers: [],
+      params: [],
+    });
+
+    const state = useHttpClientStore.getState();
+    const tabA = state.openTabs.find(t => t.requestId === 'req-a');
+    const tabB = state.openTabs.find(t => t.requestId === 'req-b');
+    expect(tabA?.response?.status_code).toBe(200);
+    expect(tabA?.sending).toBe(false);
+    expect(tabB?.response).toBeNull();
+  });
+
+  it('网络失败时错误响应仍写入标签页且 sending 复位', async () => {
+    const { sendHttpRequest } = await import('../services/httpClientApi');
+    const req = makeRequest('req-err');
+    useHttpClientStore.getState().openTab(req);
+
+    vi.mocked(sendHttpRequest).mockRejectedValue(new Error('connect refused'));
+
+    await expect(
+      useHttpClientStore.getState().sendRequest('req-err', {
+        method: 'GET',
+        url: 'https://example.com/x',
+        headers: [],
+        params: [],
+      })
+    ).rejects.toThrow('connect refused');
+
+    const tab = useHttpClientStore.getState().openTabs.find(t => t.requestId === 'req-err');
+    expect(tab?.sending).toBe(false);
+    expect(tab?.response?.status_code).toBe(0);
+    expect(tab?.response?.error).toContain('connect refused');
   });
 });

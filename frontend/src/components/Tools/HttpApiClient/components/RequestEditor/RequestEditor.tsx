@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { HttpRequest, FormDataEntry } from '../../../../../services/httpClientApi';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { HttpRequest, FormDataEntry, KeyValueItem, BodyType, AssertionRule, ExtractVariableRule, kvFromDict } from '../../../../../services/httpClientApi';
 import FormDataEditor from '../FormDataEditor/FormDataEditor';
+import KeyValueTable, { COMMON_HEADERS, CONTENT_TYPE_SUGGESTIONS, DYNAMIC_VARIABLES } from '../KeyValueTable/KeyValueTable';
+import PostOperations from '../PostOperations/PostOperations';
 import ScriptEditor from '../ScriptEditor/ScriptEditor';
-import { Loader2, Send, Save, Trash2, Table, Heading, Code, Lock, BookOpen, Unlock } from 'lucide-react';
+import { buildUrlWithQuery, rebuildParamsFromUrl, splitUrlQuery } from '../../utils/urlParamsSync';
+import { Loader2, Send, Save, Trash2, Table, Heading, Code, Lock, BookOpen, Zap, FileUp, Braces, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
@@ -30,6 +33,14 @@ interface RequestEditorProps {
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
+const MAX_BINARY_FILE_BYTES = 25 * 1024 * 1024;
+
+/** 兼容旧数据：headers/params 可能是 dict 格式 */
+function ensureKvList(v: unknown): KeyValueItem[] {
+  if (Array.isArray(v)) return v as KeyValueItem[];
+  return kvFromDict(v as Record<string, string>);
+}
+
 export default function RequestEditor({
   request,
   isModified,
@@ -40,14 +51,29 @@ export default function RequestEditor({
   onSave,
   onDelete,
 }: RequestEditorProps) {
-  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'docs'>('params');
+  const [activeTab, setActiveTab] = useState<'params' | 'body' | 'auth' | 'headers' | 'post' | 'docs'>('params');
+  const binaryInputRef = useRef<HTMLInputElement>(null);
+  const [binaryLoading, setBinaryLoading] = useState(false);
+
+  const headers = useMemo(() => ensureKvList(request.headers), [request.headers]);
+  const params = useMemo(() => ensureKvList(request.params), [request.params]);
+
+  const envVariableNames = useMemo(() => Object.keys(envVariables), [envVariables]);
 
   const handleMethodChange = (method: string) => {
     onUpdate({ method });
   };
 
+  // URL 编辑：解析 query 同步到 Params 表（保留已禁用参数）
   const handleUrlChange = (url: string) => {
-    onUpdate({ url });
+    const newParams = rebuildParamsFromUrl(params, url);
+    const path = splitUrlQuery(url).path;
+    onUpdate({ url: path, params: newParams });
+  };
+
+  // Params 表编辑：启用的参数同步回 URL
+  const handleParamsChange = (newParams: KeyValueItem[]) => {
+    onUpdate({ params: newParams, url: buildUrlWithQuery(request.url, newParams) });
   };
 
   const handleBodyChange = (body: string) => {
@@ -67,15 +93,35 @@ export default function RequestEditor({
     return colors[method] || 'text-ink-muted';
   };
 
+  // binary 文件选择 → base64 data URL 存入 body
+  const handleBinaryFile = async (file: File) => {
+    if (file.size > MAX_BINARY_FILE_BYTES) {
+      alert(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），binary 请求体上限 25MB`);
+      return;
+    }
+    setBinaryLoading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('FileReader error'));
+        reader.readAsDataURL(file);
+      });
+      onUpdate({ body: dataUrl });
+    } finally {
+      setBinaryLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* URL 栏 */}
       <div className="p-4 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
-          {/* 方法选择器 */}
+          {/* 方法选择器（固定宽度，避免 w-full 基础类挤压缩 URL 输入框） */}
           <Select value={request.method} onValueChange={handleMethodChange}>
             <SelectTrigger
-              className={`bg-surface-2 px-3 py-2 font-mono text-sm focus:border-accent-secondary ${getMethodColor(request.method)}`}
+              className={`w-32 shrink-0 bg-surface-2 px-3 py-2 font-mono text-sm focus:border-accent-secondary ${getMethodColor(request.method)}`}
             >
               <SelectValue />
             </SelectTrigger>
@@ -94,7 +140,7 @@ export default function RequestEditor({
               language="plaintext"
               variables={envVariables}
               height="40px"
-              placeholder="输入请求 URL，支持 {{变量}} 语法"
+              placeholder="输入请求 URL（支持 {{变量}}，路径以 / 开头时自动拼接环境前置 URL）"
             />
           </div>
 
@@ -109,6 +155,7 @@ export default function RequestEditor({
                 : 'bg-gradient-to-r from-accent-secondary to-accent-info hover:from-accent-secondary hover:to-accent-hover text-ink-inverse'
               }
             `}
+            title="Ctrl+Enter"
           >
             {sending ? (
               <>
@@ -130,7 +177,7 @@ export default function RequestEditor({
               size="sm"
               onClick={onSave}
               disabled={!isModified}
-              title="保存"
+              title="Ctrl+S"
             >
               <Save className="w-4 h-4 mr-1" />
               保存
@@ -155,25 +202,54 @@ export default function RequestEditor({
       {/* 标签页 */}
       <Tabs
         value={activeTab}
-        onValueChange={(v) => setActiveTab(v as 'params' | 'headers' | 'body' | 'auth' | 'docs')}
+        onValueChange={(v) => setActiveTab(v as typeof activeTab)}
         className="flex flex-col flex-1 overflow-hidden"
       >
         <TabsList className="px-4 bg-surface-1/50 flex-shrink-0 w-full justify-start rounded-none border-b border-border">
           <TabsTrigger value="params" className="gap-2">
             <Table className="w-4 h-4" />
             Params
-          </TabsTrigger>
-          <TabsTrigger value="headers" className="gap-2">
-            <Heading className="w-4 h-4" />
-            Headers
+            {params.filter(p => p.enabled).length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent-secondary/20 text-accent-secondary text-[10px]">
+                {params.filter(p => p.enabled).length}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="body" className="gap-2">
             <Code className="w-4 h-4" />
             Body
+            {request.body_type !== 'none' && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent-secondary/20 text-accent-secondary text-[10px]">
+                {request.body_type === 'form-data' ? 'form' : request.body_type}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="auth" className="gap-2">
             <Lock className="w-4 h-4" />
             Auth
+            {request.auth_type !== 'none' && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent-secondary/20 text-accent-secondary text-[10px]">
+                {request.auth_type}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="headers" className="gap-2">
+            <Heading className="w-4 h-4" />
+            Headers
+            {headers.filter(h => h.enabled).length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent-secondary/20 text-accent-secondary text-[10px]">
+                {headers.filter(h => h.enabled).length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="post" className="gap-2">
+            <Zap className="w-4 h-4" />
+            后置操作
+            {(request.assertions?.length || 0) + (request.extract_variables?.length || 0) > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-accent-secondary/20 text-accent-secondary text-[10px]">
+                {(request.assertions?.length || 0) + (request.extract_variables?.length || 0)}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="docs" className="gap-2">
             <BookOpen className="w-4 h-4" />
@@ -185,36 +261,55 @@ export default function RequestEditor({
         <div className="flex-1 overflow-y-auto p-4">
           <TabsContent value="params">
             <ParamsPanel
-              params={request.params}
-              onChange={(params) => onUpdate({ params })}
-              envVariables={envVariables}
+              params={params}
+              onChange={handleParamsChange}
+              envVariableNames={envVariableNames}
             />
           </TabsContent>
+
           <TabsContent value="headers">
             <HeadersPanel
-              headers={request.headers}
-              onChange={(headers) => onUpdate({ headers })}
-              envVariables={envVariables}
+              headers={headers}
+              onChange={(newHeaders) => onUpdate({ headers: newHeaders })}
+              envVariableNames={envVariableNames}
             />
           </TabsContent>
+
           <TabsContent value="body">
             <BodyPanel
               bodyType={request.body_type}
               body={request.body}
               formData={request.form_data}
-              onBodyTypeChange={(bodyType) => onUpdate({ body_type: bodyType as any })}
+              envVariables={envVariables}
+              envVariableNames={envVariableNames}
+              binaryInputRef={binaryInputRef}
+              binaryLoading={binaryLoading}
+              onBodyTypeChange={(bodyType) => onUpdate({ body_type: bodyType as BodyType })}
               onBodyChange={handleBodyChange}
               onFormDataChange={(entries) => onUpdate({ form_data: entries })}
+              onBinaryFile={handleBinaryFile}
             />
           </TabsContent>
+
           <TabsContent value="auth">
             <AuthPanel
               authType={request.auth_type}
               authConfig={request.auth_config}
-              onAuthTypeChange={(authType) => onUpdate({ auth_type: authType as any })}
+              onAuthTypeChange={(authType) => onUpdate({ auth_type: authType as HttpRequest['auth_type'] })}
               onAuthConfigChange={(authConfig) => onUpdate({ auth_config: authConfig })}
+              envVariables={envVariables}
             />
           </TabsContent>
+
+          <TabsContent value="post">
+            <PostOperations
+              assertions={(request.assertions || []) as AssertionRule[]}
+              extractVariables={(request.extract_variables || []) as ExtractVariableRule[]}
+              onAssertionsChange={(rules) => onUpdate({ assertions: rules })}
+              onExtractVariablesChange={(rules) => onUpdate({ extract_variables: rules })}
+            />
+          </TabsContent>
+
           <TabsContent value="docs">
             <DocsPanel
               description={request.description || ''}
@@ -230,80 +325,52 @@ export default function RequestEditor({
 // ============= Sub-components =============
 
 interface ParamsPanelProps {
-  params: Record<string, string>;
-  onChange: (params: Record<string, string>) => void;
-  envVariables: Record<string, string>;
+  params: KeyValueItem[];
+  onChange: (params: KeyValueItem[]) => void;
+  envVariableNames: string[];
 }
 
-/**
- * 参数面板：使用 ScriptEditor 支持 {{变量}} 高亮
- * 每行一个参数，格式：key=value
- */
-function ParamsPanel({ params, onChange, envVariables }: ParamsPanelProps) {
-  const text = Object.entries(params).map(([k, v]) => `${k}=${v}`).join('\n');
-
+/** Params 面板：与 URL query 双向同步的表格 */
+function ParamsPanel({ params, onChange, envVariableNames }: ParamsPanelProps) {
   return (
     <div className="space-y-2">
-      <ScriptEditor
-        value={text}
-        onChange={(newText) => {
-          const newParams = newText.split('\n').reduce((acc, line) => {
-            const eqIndex = line.indexOf('=');
-            if (eqIndex > 0) {
-              const key = line.slice(0, eqIndex).trim();
-              const value = line.slice(eqIndex + 1).trim();
-              if (key) {
-                acc[key] = value;
-              }
-            }
-            return acc;
-          }, {} as Record<string, string>);
-          onChange(newParams);
-        }}
-        language="plaintext"
-        variables={envVariables}
-        height="150px"
-        placeholder="每行一个参数，格式：key=value（支持 {{变量}}）"
+      <p className="text-xs text-ink-faint">
+        启用的参数自动同步到上方 URL 的查询字符串，直接编辑 URL 也会同步到这里
+      </p>
+      <KeyValueTable
+        items={params}
+        onChange={onChange}
+        keyPlaceholder="参数名"
+        valuePlaceholder="参数值（支持 {{变量}}）"
+        envVariableNames={envVariableNames}
+        emptyHint="暂无查询参数，点击下方按钮添加，或直接在 URL 中输入 ?key=value"
       />
     </div>
   );
 }
 
 interface HeadersPanelProps {
-  headers: Record<string, string>;
-  onChange: (headers: Record<string, string>) => void;
-  envVariables: Record<string, string>;
+  headers: KeyValueItem[];
+  onChange: (headers: KeyValueItem[]) => void;
+  envVariableNames: string[];
 }
 
-/**
- * Headers 面板：使用 ScriptEditor 支持 {{变量}} 高亮
- * 每行一个 header，格式：key: value
- */
-function HeadersPanel({ headers, onChange, envVariables }: HeadersPanelProps) {
-  const text = Object.entries(headers).map(([k, v]) => `${k}: ${v}`).join('\n');
-
+/** Headers 面板：常用头自动补全 + 启用/禁用 */
+function HeadersPanel({ headers, onChange, envVariableNames }: HeadersPanelProps) {
   return (
     <div className="space-y-2">
-      <ScriptEditor
-        value={text}
-        onChange={(newText) => {
-          const newHeaders = newText.split('\n').reduce((acc, line) => {
-            const colonIndex = line.indexOf(':');
-            if (colonIndex > 0) {
-              const key = line.slice(0, colonIndex).trim();
-              const value = line.slice(colonIndex + 1).trim();
-              if (key) {
-                acc[key] = value;
-              }
-            }
-            return acc;
-          }, {} as Record<string, string>);
-          onChange(newHeaders);
-        }}
-        language="plaintext"
-        variables={envVariables}
-        height="150px"
-        placeholder="每行一个 Header，格式：key: value（支持 {{变量}}）"
+      <p className="text-xs text-ink-faint">
+        Content-Type 会按 Body 类型自动设置（可在此手动覆盖）；取消勾选的 Header 不会发送
+      </p>
+      <KeyValueTable
+        items={headers}
+        onChange={onChange}
+        keyPlaceholder="Header 名称"
+        valuePlaceholder="Header 值（支持 {{变量}}）"
+        keySuggestions={COMMON_HEADERS}
+        valueSuggestions={{ 'content-type': CONTENT_TYPE_SUGGESTIONS }}
+        envVariableNames={envVariableNames}
+        emptyHint="暂无自定义 Header，点击下方按钮添加"
       />
     </div>
   );
@@ -313,49 +380,83 @@ interface BodyPanelProps {
   bodyType: string;
   body?: string;
   formData?: FormDataEntry[];
+  envVariables: Record<string, string>;
+  envVariableNames: string[];
+  binaryInputRef: React.RefObject<HTMLInputElement | null>;
+  binaryLoading: boolean;
   onBodyTypeChange: (type: string) => void;
   onBodyChange: (body: string) => void;
   onFormDataChange?: (entries: FormDataEntry[]) => void;
+  onBinaryFile: (file: File) => void;
 }
 
-const BODY_TYPES = [
-  { value: 'none', label: 'none' },
-  { value: 'json', label: 'JSON' },
-  { value: 'form', label: 'Form' },
-  { value: 'form-data', label: 'Form-data' },
-  { value: 'raw', label: 'Raw' },
+const BODY_TYPES: { value: BodyType; label: string; hint: string }[] = [
+  { value: 'none', label: 'none', hint: '不发送请求体' },
+  { value: 'json', label: 'JSON', hint: 'application/json' },
+  { value: 'xml', label: 'XML', hint: 'application/xml' },
+  { value: 'form', label: 'Form', hint: 'x-www-form-urlencoded' },
+  { value: 'form-data', label: 'Form-data', hint: 'multipart/form-data，支持文件上传' },
+  { value: 'raw', label: 'Raw', hint: '任意文本' },
+  { value: 'binary', label: 'Binary', hint: '二进制文件' },
+  { value: 'graphql', label: 'GraphQL', hint: 'GraphQL Query + Variables' },
 ];
 
 function BodyPanel({
   bodyType,
   body,
   formData,
+  envVariables,
+  envVariableNames,
+  binaryInputRef,
+  binaryLoading,
   onBodyTypeChange,
   onBodyChange,
   onFormDataChange,
+  onBinaryFile,
 }: BodyPanelProps) {
-  // form-data 类型：将 FormDataEntry[] 转换为 JSON 字符串存到 body
-  const handleFormDataChange = (entries: FormDataEntry[]) => {
-    // 通知父组件更新 form_data 字段
-    if (onFormDataChange) {
-      onFormDataChange(entries);
+  const [gqlQuery, setGqlQuery] = useState('');
+  const [gqlVars, setGqlVars] = useState('');
+  const gqlInitializedFor = useRef<string | null>(null);
+
+  // 切换到 GraphQL 类型时，从已保存的 body 中拆出 query / variables（每类型切换只初始化一次）
+  useEffect(() => {
+    if (bodyType === 'graphql' && gqlInitializedFor.current !== 'graphql') {
+      gqlInitializedFor.current = 'graphql';
+      if (body) {
+        try {
+          const parsed = JSON.parse(body);
+          setGqlQuery(parsed.query || '');
+          setGqlVars(typeof parsed.variables === 'string' ? parsed.variables : JSON.stringify(parsed.variables || {}, null, 2));
+        } catch {
+          setGqlQuery(body);
+        }
+      }
     }
-    // 将 FormDataEntry[] 转换为后端格式
-    const formDataObj = entries.reduce((acc, entry) => {
-      acc[entry.key] = entry.type === 'file' ? entry.file?.name || '' : entry.value;
-      return acc;
-    }, {} as Record<string, any>);
-    onBodyChange(JSON.stringify(formDataObj));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bodyType]);
+
+  // GraphQL 编辑：合并 query + variables 存回 body
+  const handleGqlChange = (query: string, vars: string) => {
+    setGqlQuery(query);
+    setGqlVars(vars);
+    let variablesObj: any = {};
+    try {
+      variablesObj = vars.trim() ? JSON.parse(vars) : {};
+    } catch {
+      variablesObj = { __invalid: vars };
+    }
+    onBodyChange(JSON.stringify({ query, variables: variablesObj }));
   };
 
   return (
     <div className="space-y-3">
       {/* Body 类型选择 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {BODY_TYPES.map(type => (
           <button
             key={type.value}
             onClick={() => onBodyTypeChange(type.value)}
+            title={type.hint}
             className={`
               px-3 py-1.5 rounded text-xs font-medium transition-colors
               ${bodyType === type.value
@@ -373,26 +474,119 @@ function BodyPanel({
       {bodyType === 'form-data' && (
         <FormDataEditor
           formData={formData || []}
-          onChange={handleFormDataChange}
+          onChange={onFormDataChange || (() => {})}
+          envVariableNames={envVariableNames}
         />
       )}
 
-      {/* 其他类型 Body 编辑器 */}
-      {bodyType !== 'none' && bodyType !== 'form-data' && (
-        <textarea
-          value={body || ''}
-          onChange={(e) => onBodyChange(e.target.value)}
-          placeholder={
-            bodyType === 'json'
-              ? '{\n  "key": "value"\n}'
-              : bodyType === 'form'
-              ? 'key1=value1&key2=value2'
-              : '输入请求体...'
-          }
-          className="w-full h-64 bg-canvas text-ink px-4 py-3 rounded-lg
-                     border border-border font-mono text-sm resize-none
-                     focus:border-accent-secondary focus:outline-none"
-        />
+      {/* binary 文件选择 */}
+      {bodyType === 'binary' && (
+        <div className="space-y-2">
+          <input
+            ref={binaryInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && onBinaryFile(e.target.files[0])}
+          />
+          <div
+            onClick={() => binaryInputRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-2 border border-dashed border-border
+                       rounded-lg py-10 cursor-pointer hover:border-accent-secondary/60 hover:bg-surface-2/40 transition-colors"
+          >
+            {binaryLoading ? (
+              <Loader className="w-6 h-6 text-accent-secondary animate-spin" />
+            ) : (
+              <FileUp className="w-6 h-6 text-ink-faint" />
+            )}
+            {body ? (
+              <>
+                <p className="text-sm text-ink">已选择文件</p>
+                <p className="text-xs text-ink-faint">点击可重新选择；大小 {(body.length * 0.75 / 1024).toFixed(1)} KB</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-ink-muted">点击选择二进制文件</p>
+                <p className="text-xs text-ink-faint">单文件上限 25MB，发送时以原始字节流传输</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* GraphQL 编辑器 */}
+      {bodyType === 'graphql' && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-ink-muted font-medium">Query</label>
+            <ScriptEditor
+              value={gqlQuery}
+              onChange={(v) => handleGqlChange(v, gqlVars)}
+              language="plaintext"
+              variables={envVariables}
+              height="220px"
+              placeholder={'query {\\n  user(id: "1") {\\n    name\\n  }\\n}'}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-ink-muted font-medium">Variables（JSON）</label>
+            <ScriptEditor
+              value={gqlVars}
+              onChange={(v) => handleGqlChange(gqlQuery, v)}
+              language="json"
+              variables={envVariables}
+              height="220px"
+              placeholder={'{\\n  "id": "1"\\n}'}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* JSON / XML / Raw / Form 编辑器 */}
+      {(bodyType === 'json' || bodyType === 'xml' || bodyType === 'raw' || bodyType === 'form') && (
+        <div className="space-y-1">
+          {bodyType === 'json' && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-ink-faint">支持 {'{{变量}}'} 替换；格式非法时以原文发送</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-6 text-ink-muted"
+                onClick={() => {
+                  if (!body) return;
+                  try {
+                    onBodyChange(JSON.stringify(JSON.parse(body), null, 2));
+                  } catch { /* 非法 JSON 不处理 */ }
+                }}
+                title="格式化 JSON"
+              >
+                <Braces className="w-3.5 h-3.5 mr-1" />
+                格式化
+              </Button>
+            </div>
+          )}
+          <ScriptEditor
+            value={body || ''}
+            onChange={onBodyChange}
+            language={bodyType === 'json' ? 'json' : 'plaintext'}
+            variables={envVariables}
+            height="240px"
+            placeholder={
+              bodyType === 'json'
+                ? '{\n  "key": "{{变量}}"\n}'
+                : bodyType === 'xml'
+                ? '<?xml version="1.0"?>\n<request>\n  <key>value</key>\n</request>'
+                : bodyType === 'form'
+                ? 'key1=value1&key2=value2'
+                : '输入请求体...'
+            }
+          />
+        </div>
+      )}
+
+      {bodyType === 'none' && (
+        <div className="text-ink-faint text-sm text-center py-10">
+          此请求不携带请求体
+        </div>
       )}
     </div>
   );
@@ -403,6 +597,7 @@ interface AuthPanelProps {
   authConfig: Record<string, any>;
   onAuthTypeChange: (type: string) => void;
   onAuthConfigChange: (config: Record<string, any>) => void;
+  envVariables: Record<string, string>;
 }
 
 const AUTH_TYPES = [
@@ -412,7 +607,7 @@ const AUTH_TYPES = [
   { value: 'apikey', label: 'API Key' },
 ];
 
-function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange }: AuthPanelProps) {
+function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange, envVariables }: AuthPanelProps) {
   const handleBearerChange = (token: string) => {
     onAuthConfigChange({ ...authConfig, token });
   };
@@ -424,6 +619,12 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
   const handleApiKeyChange = (key: string, value: string, inHeader: boolean) => {
     onAuthConfigChange({ ...authConfig, key, value, in: inHeader ? 'header' : 'query' });
   };
+
+  const VarHint = () => (
+    <p className="text-xs text-ink-faint mt-1">
+      支持环境变量 {'{{变量}}'} 与动态值（{DYNAMIC_VARIABLES.slice(0, 3).join('、')} 等）
+    </p>
+  );
 
   return (
     <div className="space-y-4">
@@ -448,21 +649,23 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
 
       {/* Bearer Token */}
       {authType === 'bearer' && (
-        <div className="space-y-2">
+        <div className="space-y-2 max-w-2xl">
           <label className="text-sm text-ink-muted">Token</label>
           <Input
             type="text"
             value={authConfig.token || ''}
             onChange={(e) => handleBearerChange(e.target.value)}
-            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            className="w-full text-sm"
+            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... 或 {{token}}"
+            className="w-full text-sm font-mono"
           />
+          <VarHint />
+          <p className="text-xs text-ink-faint">发送时自动附加 Header：<code className="text-accent-secondary">Authorization: Bearer &lt;token&gt;</code></p>
         </div>
       )}
 
       {/* Basic Auth */}
       {authType === 'basic' && (
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-2xl">
           <div className="space-y-2">
             <label className="text-sm text-ink-muted">Username</label>
             <Input
@@ -470,7 +673,7 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
               value={authConfig.username || ''}
               onChange={(e) => handleBasicChange(e.target.value, authConfig.password || '')}
               placeholder="username"
-              className="w-full text-sm"
+              className="w-full text-sm font-mono"
             />
           </div>
           <div className="space-y-2">
@@ -480,15 +683,16 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
               value={authConfig.password || ''}
               onChange={(e) => handleBasicChange(authConfig.username || '', e.target.value)}
               placeholder="password"
-              className="w-full text-sm"
+              className="w-full text-sm font-mono"
             />
           </div>
+          <p className="text-xs text-ink-faint">发送时自动 Base64 编码并附加 Authorization Header</p>
         </div>
       )}
 
       {/* API Key */}
       {authType === 'apikey' && (
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-2xl">
           <div className="space-y-2">
             <label className="text-sm text-ink-muted">Key Name</label>
             <Input
@@ -496,7 +700,7 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
               value={authConfig.key || ''}
               onChange={(e) => handleApiKeyChange(e.target.value, authConfig.value || '', authConfig.in === 'header')}
               placeholder="X-API-Key"
-              className="w-full text-sm"
+              className="w-full text-sm font-mono"
             />
           </div>
           <div className="space-y-2">
@@ -505,8 +709,8 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
               type="text"
               value={authConfig.value || ''}
               onChange={(e) => handleApiKeyChange(authConfig.key || '', e.target.value, authConfig.in === 'header')}
-              placeholder="your-api-key-value"
-              className="w-full text-sm"
+              placeholder="your-api-key-value 或 {{apiKey}}"
+              className="w-full text-sm font-mono"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -517,14 +721,14 @@ function AuthPanel({ authType, authConfig, onAuthTypeChange, onAuthConfigChange 
               onChange={(e) => handleApiKeyChange(authConfig.key || '', authConfig.value || '', e.target.checked)}
               className="h-4 w-4 p-0 cursor-pointer"
             />
-            <label htmlFor="inHeader" className="text-sm text-ink-muted">放在 Header 中</label>
+            <label htmlFor="inHeader" className="text-sm text-ink-muted">放在 Header 中（取消勾选则追加到 Query 参数）</label>
           </div>
         </div>
       )}
 
       {authType === 'none' && (
         <div className="text-ink-faint text-sm text-center py-8">
-          <Unlock className="w-10 h-10 mb-3 opacity-30" />
+          <Lock className="w-10 h-10 mb-3 opacity-30" />
           <p>此请求不需要认证</p>
         </div>
       )}

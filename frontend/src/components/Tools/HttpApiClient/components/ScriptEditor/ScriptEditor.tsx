@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { useVariableHighlighter } from './VariableHighlighter';
@@ -35,9 +35,27 @@ export default function ScriptEditor({
 }: ScriptEditorProps) {
   // 使用 state 持有编辑器实例，确保设置后触发重新渲染
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // 使用变量高亮 Hook
   useVariableHighlighter(editor, variables);
+
+  // 容器尺寸变化时强制重新布局：
+  // Monaco 在创建时若容器尚未完成布局（如 Suspense 加载态刚切换、tab 首次渲染），
+  // 会以 5x5 兜底尺寸创建且 automaticLayout 不一定能恢复，导致编辑器显示空白。
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el || !editor) return;
+    const relayout = () => editor.layout();
+    const ro = new ResizeObserver(relayout);
+    ro.observe(el);
+    // 挂载后补几次布局，覆盖首帧容器尺寸未稳定的情况
+    const timers = [0, 100, 400].map(delay => window.setTimeout(relayout, delay));
+    return () => {
+      ro.disconnect();
+      timers.forEach(t => window.clearTimeout(t));
+    };
+  }, [editor]);
 
   // 编辑器挂载完成回调
   const handleEditorDidMount = (editorInstance: monaco.editor.IStandaloneCodeEditor) => {
@@ -45,7 +63,7 @@ export default function ScriptEditor({
   };
 
   return (
-    <div className="relative border border-border rounded-lg overflow-hidden">
+    <div ref={wrapperRef} className="relative border border-border rounded-lg overflow-hidden">
       <Editor
         height={height}
         language={language}

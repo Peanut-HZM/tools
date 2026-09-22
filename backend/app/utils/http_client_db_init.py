@@ -141,6 +141,27 @@ def init_http_client_tables():
             """)
             logger.info("Added description column to http_requests")
 
+            # 7. 增量迁移：请求级后置操作（提取变量 / 断言规则）
+            cur.execute("""
+                ALTER TABLE http_requests
+                ADD COLUMN IF NOT EXISTS extract_variables JSONB DEFAULT '[]'
+            """)
+            cur.execute("""
+                ALTER TABLE http_requests
+                ADD COLUMN IF NOT EXISTS assertions JSONB DEFAULT '[]'
+            """)
+            # 8. 增量迁移：环境前置 URL（baseUrl）
+            cur.execute("""
+                ALTER TABLE http_environments
+                ADD COLUMN IF NOT EXISTS base_url VARCHAR(512) DEFAULT ''
+            """)
+            # 9. form_data 列（form-data 条目持久化）
+            cur.execute("""
+                ALTER TABLE http_requests
+                ADD COLUMN IF NOT EXISTS form_data JSONB DEFAULT '[]'
+            """)
+            logger.info("Applied incremental migrations (extract_variables / assertions / base_url / form_data)")
+
             conn.commit()
             logger.info("HTTP Client tables initialized successfully")
 

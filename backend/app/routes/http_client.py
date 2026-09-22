@@ -21,6 +21,8 @@ from app.models.http_client_models import (
     RequestHistory,
     ImportResult,
     CurlImportRequest,
+    CurlParseResult,
+    OpenApiImportRequest,
     SyncStatusResponse,
 )
 from app.services.http_client_service import http_client_service, is_safe_url
@@ -125,21 +127,21 @@ def delete_request(request_id: str):
 
 @router.get("/environments", response_model=List[Environment])
 def get_environments(workspace_id: str = Query(default="default")):
-    """获取所有环境变量"""
+    """获取所有环境"""
     environments = http_client_service.get_all_environments(workspace_id)
     return environments
 
 
 @router.get("/environments/active", response_model=Optional[Environment])
 def get_active_environment(workspace_id: str = Query(default="default")):
-    """获取当前激活的环境变量"""
+    """获取当前激活的环境"""
     env = http_client_service.get_active_environment(workspace_id)
     return env
 
 
 @router.post("/environments", response_model=Environment)
 def create_environment(request: EnvironmentCreate):
-    """创建环境变量"""
+    """创建环境"""
     environment = http_client_service.create_environment(request)
     if not environment:
         raise HTTPException(status_code=500, detail="创建环境失败")
@@ -148,7 +150,7 @@ def create_environment(request: EnvironmentCreate):
 
 @router.put("/environments/{env_id}", response_model=Environment)
 def update_environment(env_id: str, request: EnvironmentUpdate):
-    """更新环境变量"""
+    """更新环境"""
     environment = http_client_service.update_environment(env_id, request)
     if not environment:
         raise HTTPException(status_code=404, detail="环境不存在")
@@ -157,7 +159,7 @@ def update_environment(env_id: str, request: EnvironmentUpdate):
 
 @router.post("/environments/{env_id}/activate", response_model=Environment)
 def activate_environment(env_id: str):
-    """激活环境变量"""
+    """激活环境"""
     environment = http_client_service.activate_environment(env_id)
     if not environment:
         raise HTTPException(status_code=404, detail="环境不存在")
@@ -166,7 +168,7 @@ def activate_environment(env_id: str):
 
 @router.delete("/environments/{env_id}")
 def delete_environment(env_id: str):
-    """删除环境变量"""
+    """删除环境"""
     success = http_client_service.delete_environment(env_id)
     if not success:
         raise HTTPException(status_code=404, detail="环境不存在")
@@ -177,7 +179,7 @@ def delete_environment(env_id: str):
 
 @router.post("/send", response_model=SendRequestResponse)
 async def send_request(request: SendRequestRequest, req: Request, user_id: Optional[str] = Depends(optional_auth)):
-    """发送 HTTP 请求（代理转发）"""
+    """发送 HTTP 请求（代理转发），执行后置断言与提取变量"""
     try:
         user_id = user_id or "anonymous"
         result = await http_client_service.send_request(request, user_id)
@@ -208,9 +210,12 @@ def get_history(
 
 
 @router.delete("/history/{history_id}")
-def delete_history(history_id: str):
+def delete_history(history_id: str, user_id: Optional[str] = Depends(optional_auth)):
     """删除单条历史记录"""
-    # TODO: 实现单条删除逻辑
+    user_id = user_id or "anonymous"
+    success = http_client_service.delete_request_history(user_id, history_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="历史记录不存在")
     return {"success": True}
 
 
@@ -240,6 +245,18 @@ def import_requests(
         return ImportResult(success=False, imported_count=0, failed_count=1, errors=[str(e)])
 
 
+@router.post("/import/openapi", response_model=ImportResult)
+def import_openapi(request_data: OpenApiImportRequest):
+    """导入 OpenAPI 3.x / Swagger 2.0 规范"""
+    try:
+        result = http_client_service.import_openapi_spec(
+            request_data.spec, request_data.collection_id)
+        return ImportResult(**result)
+    except Exception as e:
+        logger.error(f"OpenAPI import failed: {e}")
+        return ImportResult(success=False, imported_count=0, failed_count=1, errors=[str(e)])
+
+
 @router.post("/import/curl", response_model=HttpRequest)
 def import_curl(request_data: CurlImportRequest):
     """从 cURL 命令导入请求"""
@@ -251,11 +268,12 @@ def import_curl(request_data: CurlImportRequest):
             method=parsed['method'],
             url=parsed['url'],
             headers=parsed['headers'],
-            params={},
+            params=parsed['params'],
             body_type=parsed['body_type'],
             body=parsed['body'],
-            auth_type="none",
-            auth_config={},
+            form_data=parsed['form_data'],
+            auth_type=parsed['auth_type'],
+            auth_config=parsed['auth_config'],
             sort_order=0,
         ))
         if not created:
@@ -267,6 +285,28 @@ def import_curl(request_data: CurlImportRequest):
         raise
     except Exception as e:
         logger.error(f"cURL import failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/import/curl/parse", response_model=CurlParseResult)
+def parse_curl(request_data: CurlImportRequest):
+    """解析 cURL 命令（不落库，供前端预览/快速填充）"""
+    try:
+        parsed = http_client_service.parse_curl_command(request_data.curl_command)
+        return CurlParseResult(
+            method=parsed['method'],
+            url=parsed['url'],
+            headers=parsed['headers'],
+            params=parsed['params'],
+            body=parsed['body'],
+            body_type=parsed['body_type'],
+            auth_type=parsed['auth_type'],
+            auth_config=parsed['auth_config'],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"cURL 解析失败：{str(e)}")
+    except Exception as e:
+        logger.error(f"cURL parse failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -294,23 +334,8 @@ def export_collection(
 @router.get("/sync/status", response_model=SyncStatusResponse)
 def get_sync_status(req: Request):
     """获取同步状态"""
-    # TODO: 实现同步状态查询
     return SyncStatusResponse(
         is_synced=True,
         last_sync_time=None,
         pending_changes=0,
     )
-
-
-@router.post("/sync/push")
-def sync_push():
-    """推送本地数据到云端"""
-    # TODO: 实现推送同步
-    raise HTTPException(status_code=501, detail="云端同步功能暂未实现")
-
-
-@router.post("/sync/pull")
-def sync_pull():
-    """从云端拉取数据"""
-    # TODO: 实现拉取同步
-    raise HTTPException(status_code=501, detail="云端同步功能暂未实现")

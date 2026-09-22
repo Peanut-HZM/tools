@@ -11,9 +11,17 @@ import {
   XCircle,
   Folder,
   FolderOpen,
+  Braces,
 } from 'lucide-react';
 import { API_BASE_URL } from '../../../../config/api';
-import { Collection, HttpRequest, fetchCollections, fetchCollections as apiFetchCollections, importCurl, exportCollection } from '../../../../services/httpClientApi';
+import {
+  Collection,
+  HttpRequest,
+  fetchCollections,
+  importCurl,
+  importOpenApi,
+  exportCollection,
+} from '../../../../services/httpClientApi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -37,26 +45,29 @@ export default function ImportExportModal({
   onClose,
   onImportSuccess,
 }: ImportExportModalProps) {
-  const [activeTab, setActiveTab] = useState<'import-postman' | 'import-curl' | 'export'>('import-postman');
+  const [activeTab, setActiveTab] = useState<'import-postman' | 'import-curl' | 'import-openapi' | 'export'>('import-postman');
   const [importText, setImportText] = useState('');
   const [curlText, setCurlText] = useState('');
+  const [openApiText, setOpenApiText] = useState('');
+  const [openApiCollectionId, setOpenApiCollectionId] = useState<string>('');
   const [importResult, setImportResult] = useState<any>(null);
   const [curlResult, setCurlResult] = useState<HttpRequest | null>(null);
   const [curlCollectionId, setCurlCollectionId] = useState<string>('');
   const [curlName, setCurlName] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [curlLoading, setCurlLoading] = useState(false);
+  const [openApiLoading, setOpenApiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   const [exportLoading, setExportLoading] = useState(false);
 
-  // 加载集合列表
+  // 加载集合列表（导入目标集合 / 导出选择）
   useEffect(() => {
-    if (isOpen && activeTab === 'export') {
+    if (isOpen) {
       fetchCollections().then(setCollections).catch(console.error);
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen]);
 
   const handlePostmanImport = async () => {
     if (!importText.trim()) {
@@ -121,6 +132,32 @@ export default function ImportExportModal({
     }
   };
 
+  const handleOpenApiImport = async () => {
+    if (!openApiText.trim()) {
+      setError('请输入 OpenAPI/Swagger 规范内容（JSON 或 YAML）');
+      return;
+    }
+    if (!openApiCollectionId) {
+      setError('请选择目标集合（导入的接口将按 tag 分组为子集合）');
+      return;
+    }
+
+    setOpenApiLoading(true);
+    setError(null);
+
+    try {
+      const result = await importOpenApi(openApiText, openApiCollectionId);
+      setImportResult(result);
+      if (result.success && onImportSuccess) {
+        onImportSuccess(result);
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || err?.message || 'OpenAPI 导入失败');
+    } finally {
+      setOpenApiLoading(false);
+    }
+  };
+
   const handleExport = async () => {
     if (selectedCollections.length === 0) {
       setError('请选择至少一个集合');
@@ -181,16 +218,9 @@ export default function ImportExportModal({
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
-            const next = v as 'import-postman' | 'import-curl' | 'export';
-            if (next === 'import-postman') {
-              setImportResult(null);
-              setError(null);
-            } else if (next === 'import-curl') {
-              setCurlResult(null);
-              setError(null);
-            } else {
-              setError(null);
-            }
+            const next = v as 'import-postman' | 'import-curl' | 'import-openapi' | 'export';
+            setImportResult(null);
+            setError(null);
             setActiveTab(next);
           }}
           className="flex flex-col flex-1 overflow-hidden"
@@ -199,6 +229,10 @@ export default function ImportExportModal({
             <TabsTrigger value="import-postman" className="gap-2">
               <FileCode className="w-4 h-4" />
               Postman
+            </TabsTrigger>
+            <TabsTrigger value="import-openapi" className="gap-2">
+              <Braces className="w-4 h-4" />
+              OpenAPI
             </TabsTrigger>
             <TabsTrigger value="import-curl" className="gap-2">
               <Terminal className="w-4 h-4" />
@@ -284,6 +318,99 @@ export default function ImportExportModal({
                     <>
                       <Download className="w-4 h-4 mr-2" />
                       导入
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* OpenAPI 导入 */}
+          <TabsContent value="import-openapi">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-ink-muted mb-2 block">
+                  粘贴 OpenAPI 3.x / Swagger 2.0 规范（JSON 或 YAML）
+                </label>
+                <textarea
+                  value={openApiText}
+                  onChange={(e) => setOpenApiText(e.target.value)}
+                  placeholder={'{"openapi": "3.0.0", "info": {...}, "paths": {...}}\n或\nopenapi: 3.0.0\ninfo: ...'}
+                  className="w-full h-56 bg-canvas text-ink px-4 py-3 rounded-lg
+                             border border-border font-mono text-sm resize-none
+                             focus:border-accent-secondary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-ink-muted mb-1 block">目标集合（按 tag 自动创建子集合）</label>
+                <Select value={openApiCollectionId} onValueChange={setOpenApiCollectionId}>
+                  <SelectTrigger className="w-full text-sm">
+                    <SelectValue placeholder="请选择集合" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {collections.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {error && (
+                <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg text-sm">
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  {error}
+                </div>
+              )}
+
+              {importResult && (
+                <div className={`
+                  px-4 py-3 rounded-lg text-sm
+                  ${importResult.success
+                    ? 'bg-success/10 border border-success text-success'
+                    : 'bg-danger/10 border border-danger text-danger'
+                  }
+                `}>
+                  <div className="flex items-center mb-2">
+                    {importResult.success ? (
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                    ) : (
+                      <XCircle className="w-4 h-4 mr-2" />
+                    )}
+                    {importResult.success ? '导入成功' : '导入失败'}
+                  </div>
+                  {importResult.success && (
+                    <div>
+                      <p>成功导入：{importResult.imported_count} 个接口</p>
+                      {importResult.failed_count > 0 && (
+                        <p className="text-accent-warning">失败：{importResult.failed_count} 个</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={onClose}
+                >
+                  取消
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleOpenApiImport}
+                  disabled={openApiLoading || !openApiText.trim() || !openApiCollectionId}
+                >
+                  {openApiLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      导入中...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      导入 OpenAPI
                     </>
                   )}
                 </Button>

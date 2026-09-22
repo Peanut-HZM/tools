@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -10,11 +10,23 @@ import {
   FolderOpen,
   X,
   AlertTriangle,
+  Terminal,
 } from 'lucide-react';
 import { useHttpClientStore } from '../../../stores/httpClientStore';
 import { useAuth } from '../../../stores/authStore';
 import RequireAuthNotice from '../../Common/RequireAuthNotice';
-import { Collection, HttpRequest, Environment, createRequest, createCollection, updateCollection, deleteCollection, FormDataEntry } from '../../../services/httpClientApi';
+import {
+  Collection,
+  HttpRequest,
+  Environment,
+  createRequest,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+  FormDataEntry,
+  SendRequestPayload,
+  parseCurl,
+} from '../../../services/httpClientApi';
 import { useToast } from '../../../contexts/ToastContext';
 
 /** Form-data 单文件大小上限（25MB），防止前端 base64 编码耗尽内存 */
@@ -41,6 +53,7 @@ import RequestTabs from './components/RequestTabs';
 import RequestEditor from './components/RequestEditor/RequestEditor';
 import ResponseViewer from './components/ResponseViewer/ResponseViewer';
 import EnvironmentSelector from './components/EnvironmentSelector';
+import EnvironmentManagerModal from './components/EnvironmentManagerModal';
 import ImportExportModal from './components/ImportExportModal';
 import HistoryPanel from './components/HistoryPanel';
 import RequestContextMenu from './components/RequestContextMenu';
@@ -67,18 +80,17 @@ export default function HttpApiClient() {
     loadEnvironments,
     environments,
     activeEnvironment,
+    activateEnvironment,
     openTabs,
     activeTabId,
     setActiveTab,
     openTab,
     closeTab,
     updateTabRequest,
-    currentResponse,
-    sendingRequest,
     sendRequest,
-    clearResponse,
     loadHistory,
     clearHistory,
+    removeHistoryItem,
     replayFromHistory,
     duplicateRequest,
     deleteRequest,
@@ -89,8 +101,11 @@ export default function HttpApiClient() {
 
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(280);
-  const [responseHeight, setResponseHeight] = useState(300);
+  const [responseHeight, setResponseHeight] = useState(320);
   const [isImportExportModalOpen, setIsImportExportModalOpen] = useState(false);
+  const [isEnvManagerOpen, setIsEnvManagerOpen] = useState(false);
+  const [showQuickCurl, setShowQuickCurl] = useState(false);
+  const [quickCurlText, setQuickCurlText] = useState('');
   const [showNewRequestForm, setShowNewRequestForm] = useState(false);
   const [newRequestCollectionId, setNewRequestCollectionId] = useState<string>('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -133,6 +148,82 @@ export default function HttpApiClient() {
   // 历史回放标签页（requestId 以 history_ 开头）不支持保存/删除
   const isHistoryReplay = activeTab ? activeTab.requestId.startsWith('history_') : false;
 
+  const activeEnvVariables = useMemo(
+    () => activeEnvironment?.variables || {},
+    [activeEnvironment]
+  );
+
+  // 发送当前激活标签页的请求
+  const handleSendRequest = useCallback(async () => {
+    const tab = openTabs.find(t => t.requestId === activeTabId);
+    if (!tab) return;
+    const request = tab.request;
+    try {
+      // form-data 类型：将 File 对象转换为 base64 data URL，以便通过 JSON 发送给后端
+      let formDataPayload: FormDataEntry[] | undefined = request.form_data;
+      if (request.body_type === 'form-data' && request.form_data?.length) {
+        formDataPayload = await Promise.all(
+          request.form_data.map(async (entry): Promise<FormDataEntry> => {
+            if (entry.type === 'file' && entry.file) {
+              const dataUrl = await fileToDataUrl(entry.file);
+              return {
+                key: entry.key,
+                value: dataUrl,
+                type: 'file',
+                enabled: entry.enabled !== false,
+                description: entry.description,
+              };
+            }
+            return {
+              key: entry.key,
+              value: entry.value,
+              type: entry.type,
+              enabled: entry.enabled !== false,
+              description: entry.description,
+            };
+          })
+        );
+      }
+
+      const payload: SendRequestPayload = {
+        method: request.method,
+        url: request.url,
+        headers: Array.isArray(request.headers)
+          ? request.headers
+          : Object.entries(request.headers as any).map(([key, value]) => ({ key, value: String(value), enabled: true })),
+        params: Array.isArray(request.params)
+          ? request.params
+          : Object.entries(request.params as any).map(([key, value]) => ({ key, value: String(value), enabled: true })),
+        body_type: request.body_type,
+        body: request.body,
+        form_data: formDataPayload,
+        auth_type: request.auth_type,
+        auth_config: request.auth_config,
+        assertions: request.assertions || [],
+        extract_variables: request.extract_variables || [],
+        request_id: isHistoryReplay ? undefined : request.id,
+        timeout: 30000,
+        follow_redirects: true,
+        workspace_id: 'default',
+      };
+
+      const response = await sendRequest(tab.requestId, payload);
+      if (!response.error && response.status_code > 0) {
+        const failed = (response.assertion_results || []).filter(a => !a.passed).length;
+        if (failed > 0) {
+          toast.warning(`请求 ${response.status_code} · ${response.response_time}ms · ${failed} 项断言失败`);
+        } else {
+          toast.success(`请求成功 ${response.status_code} · ${response.response_time}ms`);
+        }
+      } else if (response.error) {
+        toast.error(response.error);
+      }
+    } catch (error: any) {
+      const message = error?.response?.data?.detail || error?.message || '请求失败';
+      toast.error(message);
+    }
+  }, [openTabs, activeTabId, isHistoryReplay, sendRequest, toast]);
+
   // 处理新建集合
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) return;
@@ -167,12 +258,14 @@ export default function HttpApiClient() {
         name: newRequestName,
         method: newRequestMethod,
         url: newRequestUrl,
-        headers: {},
-        params: {},
+        headers: [],
+        params: [],
         body_type: 'none',
         body: '',
         auth_type: 'none',
         auth_config: {},
+        extract_variables: [],
+        assertions: [],
         sort_order: 0,
       });
 
@@ -182,9 +275,10 @@ export default function HttpApiClient() {
       setNewRequestCollectionId('');
       setShowNewRequestForm(false);
 
-      // 刷新集合树
+      // 刷新集合树并打开新标签页
       setRefreshTrigger(prev => prev + 1);
       loadRequests(newRequestCollectionId);
+      openTab(newRequest);
     } catch (error: any) {
       toast.error(error?.response?.data?.detail || error?.message || '创建请求失败');
     }
@@ -236,8 +330,8 @@ export default function HttpApiClient() {
   };
 
   // 保存当前激活请求
-  const handleSaveActiveRequest = async () => {
-    if (!activeTabId) return;
+  const handleSaveActiveRequest = useCallback(async () => {
+    if (!activeTabId || isHistoryReplay) return;
     try {
       await saveRequest(activeTabId);
       toast.success('保存成功');
@@ -245,7 +339,7 @@ export default function HttpApiClient() {
     } catch (error: any) {
       toast.error(error?.response?.data?.detail || error?.message || '保存失败');
     }
-  };
+  }, [activeTabId, isHistoryReplay, saveRequest, toast]);
 
   // 删除当前激活请求：确认后删除并关闭标签页
   const handleDeleteActiveRequest = async () => {
@@ -275,51 +369,6 @@ export default function HttpApiClient() {
     openTab(request);
   };
 
-  // 处理发送请求
-  const handleSendRequest = async (request: HttpRequest) => {
-    try {
-      // form-data 类型：将 File 对象转换为 base64 data URL，以便通过 JSON 发送给后端
-      let formDataPayload: FormDataEntry[] | undefined = request.form_data;
-      if (request.body_type === 'form-data' && request.form_data?.length) {
-        formDataPayload = await Promise.all(
-          request.form_data.map(async (entry): Promise<FormDataEntry> => {
-            if (entry.type === 'file' && entry.file) {
-              const dataUrl = await fileToDataUrl(entry.file);
-              return {
-                key: entry.key,
-                value: dataUrl,
-                type: 'file',
-                description: entry.description,
-              };
-            }
-            return {
-              key: entry.key,
-              value: entry.value,
-              type: entry.type,
-              description: entry.description,
-            };
-          })
-        );
-      }
-
-      const response = await sendRequest({
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-        params: request.params,
-        body_type: request.body_type,
-        body: request.body,
-        form_data: formDataPayload,
-        timeout: 30000,
-        follow_redirects: true,
-      });
-      toast.success(`请求成功 ${response.status_code} · ${response.response_time}ms`);
-    } catch (error: any) {
-      const message = error?.response?.data?.detail || error?.message || '请求失败';
-      toast.error(message);
-    }
-  };
-
   // 处理历史面板
   const handleToggleHistory = useCallback(async () => {
     if (!showHistoryPanel) {
@@ -339,6 +388,51 @@ export default function HttpApiClient() {
     await clearHistory();
     toast.success('历史已清空');
   }, [clearHistory, toast]);
+
+  const handleHistoryDelete = useCallback(async (id: string) => {
+    try {
+      await removeHistoryItem(id);
+      toast.success('记录已删除');
+    } catch (error: any) {
+      toast.error(error?.message || '删除失败');
+    }
+  }, [removeHistoryItem, toast]);
+
+  // 快捷 cURL 调试：解析并直接打开为临时标签页
+  const handleQuickCurl = useCallback(async () => {
+    if (!quickCurlText.trim()) {
+      toast.warning('请粘贴 cURL 命令');
+      return;
+    }
+    try {
+      const parsed = await parseCurl(quickCurlText);
+      const request: HttpRequest = {
+        id: `curl_${Date.now()}`,
+        collection_id: '',
+        name: `cURL ${parsed.method} ${parsed.url.slice(0, 40)}`,
+        method: parsed.method,
+        url: parsed.url,
+        headers: parsed.headers || [],
+        params: parsed.params || [],
+        body_type: (parsed.body_type as HttpRequest['body_type']) || 'none',
+        body: parsed.body || '',
+        form_data: [],
+        auth_type: (parsed.auth_type as HttpRequest['auth_type']) || 'none',
+        auth_config: parsed.auth_config || {},
+        extract_variables: [],
+        assertions: [],
+        sort_order: 0,
+        created_at: '',
+        updated_at: '',
+      };
+      openTab(request);
+      setShowQuickCurl(false);
+      setQuickCurlText('');
+      toast.success('cURL 已解析并打开');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || error?.message || 'cURL 解析失败');
+    }
+  }, [quickCurlText, openTab, toast]);
 
   // 处理右键菜单
   const handleContextMenu = useCallback((e: React.MouseEvent, request: HttpRequest) => {
@@ -383,9 +477,13 @@ export default function HttpApiClient() {
     }
   }, [deleteRequest, closeTab, toast]);
 
-  // Ctrl+S / Cmd+S 保存当前请求
+  // 快捷键：Ctrl+Enter 发送 / Ctrl+S 保存
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSendRequest();
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         const tab = openTabs.find(t => t.requestId === activeTabId);
@@ -393,11 +491,14 @@ export default function HttpApiClient() {
           handleSaveActiveRequest();
         }
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        setShowQuickCurl(true);
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTabId, openTabs, isHistoryReplay]);
+  }, [handleSendRequest, handleSaveActiveRequest, activeTabId, openTabs, isHistoryReplay]);
 
   // 拖拽调整侧边栏宽度
   const handleSidebarResize = (e: React.MouseEvent) => {
@@ -467,11 +568,28 @@ export default function HttpApiClient() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* 环境选择器 */}
+          {/* 环境选择器（下拉切换 + 管理入口） */}
           <EnvironmentSelector
             environments={environments}
             activeEnvironment={activeEnvironment}
+            onEnvironmentChange={(envId) => {
+              activateEnvironment(envId).catch((error: any) => {
+                toast.error(error?.message || '切换环境失败');
+              });
+            }}
+            onManage={() => setIsEnvManagerOpen(true)}
           />
+
+          {/* 快捷 cURL 调试 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            title="粘贴 cURL 快速调试（Ctrl+I）"
+            onClick={() => setShowQuickCurl(true)}
+          >
+            <Terminal className="w-4 h-4 mr-1" />
+            cURL
+          </Button>
 
           {/* 导入/导出按钮 */}
           <Button
@@ -596,9 +714,9 @@ export default function HttpApiClient() {
                 onUpdate={(updatedRequest) => {
                   updateTabRequest(activeTab.requestId, updatedRequest);
                 }}
-                onSend={() => handleSendRequest(activeTab.request)}
-                sending={sendingRequest}
-                envVariables={activeEnvironment?.variables || {}}
+                onSend={handleSendRequest}
+                sending={activeTab.sending}
+                envVariables={activeEnvVariables}
                 onSave={isHistoryReplay ? undefined : handleSaveActiveRequest}
                 onDelete={isHistoryReplay ? undefined : handleDeleteActiveRequest}
               />
@@ -607,6 +725,9 @@ export default function HttpApiClient() {
                 <div className="text-center">
                   <Plug className="w-16 h-16 mb-4 opacity-20" />
                   <p>选择一个请求或创建新请求</p>
+                  <p className="text-xs mt-2 opacity-70">
+                    Ctrl+Enter 发送 · Ctrl+S 保存 · Ctrl+I 粘贴 cURL
+                  </p>
                 </div>
               </div>
             )}
@@ -614,8 +735,8 @@ export default function HttpApiClient() {
         </div>
       </div>
 
-      {/* 底部：响应面板 */}
-      {currentResponse && (
+      {/* 底部：响应面板（当前标签页的响应） */}
+      {activeTab?.response && (
         <>
           <div
             className="h-2 bg-surface-2 hover:bg-accent-secondary cursor-row-resize flex-shrink-0 transition-colors"
@@ -626,12 +747,20 @@ export default function HttpApiClient() {
             style={{ height: responseHeight }}
           >
             <ResponseViewer
-              response={currentResponse}
-              request={activeTab?.request}
-              envVariables={activeEnvironment?.variables}
+              response={activeTab.response}
+              request={activeTab.request}
+              envVariables={activeEnvVariables}
             />
           </div>
         </>
+      )}
+
+      {/* 当前标签页发送中的加载提示条 */}
+      {activeTab?.sending && !activeTab.response && (
+        <div className="border-t border-border px-4 py-2 flex items-center gap-2 text-xs text-ink-faint flex-shrink-0">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-secondary" />
+          正在发送请求...
+        </div>
       )}
 
       {/* 导入/导出弹窗 */}
@@ -640,13 +769,57 @@ export default function HttpApiClient() {
         onClose={() => setIsImportExportModalOpen(false)}
         onImportSuccess={() => {
           loadCollections();
+          setRefreshTrigger(prev => prev + 1);
         }}
       />
+
+      {/* 环境管理弹窗 */}
+      <EnvironmentManagerModal
+        isOpen={isEnvManagerOpen}
+        onClose={() => setIsEnvManagerOpen(false)}
+        environments={environments}
+        activeEnvironment={activeEnvironment}
+        onChanged={() => {
+          loadEnvironments();
+        }}
+      />
+
+      {/* 快捷 cURL 调试弹窗 */}
+      {showQuickCurl && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-surface-1 rounded-lg w-full max-w-2xl p-6 border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">cURL 快速调试</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowQuickCurl(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-ink-faint mb-3">
+              粘贴任意 cURL 命令（支持 -H / -d / -F / -u / Cookie 等），解析后直接打开为可编辑的请求标签页
+            </p>
+            <textarea
+              value={quickCurlText}
+              onChange={(e) => setQuickCurlText(e.target.value)}
+              placeholder={"curl -X POST 'https://api.example.com/login' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"user\": \"name\"}'"}
+              className="w-full h-40 bg-canvas text-ink px-3 py-2 rounded-lg border border-border
+                         font-mono text-sm resize-none focus:border-accent-secondary focus:outline-none"
+              autoFocus
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <Button variant="ghost" onClick={() => setShowQuickCurl(false)}>取消</Button>
+              <Button variant="default" onClick={handleQuickCurl} disabled={!quickCurlText.trim()}>
+                <Terminal className="w-4 h-4 mr-1" />
+                解析并打开
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 历史面板弹窗 */}
       {showHistoryPanel && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-lg w-full max-w-2xl max-h-[70vh] flex flex-col">
+          <div className="bg-surface-1 rounded-lg w-full max-w-2xl max-h-[70vh] flex flex-col border border-border">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h2 className="text-lg font-semibold">请求历史</h2>
               <Button variant="ghost" size="icon" onClick={() => setShowHistoryPanel(false)}>
@@ -659,6 +832,7 @@ export default function HttpApiClient() {
                 loading={historyLoading}
                 onReplay={handleHistoryReplay}
                 onClear={handleHistoryClear}
+                onDeleteItem={handleHistoryDelete}
               />
             </div>
           </div>
@@ -697,7 +871,7 @@ export default function HttpApiClient() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleCollectionModalSubmit();
                 }}
-                placeholder="例如：Glodon-SAP"
+                placeholder="例如：用户服务 API"
                 className="w-full"
                 autoFocus
               />
@@ -737,7 +911,7 @@ export default function HttpApiClient() {
         />
       )}
 
-      {/* 新建集合弹窗 */}
+      {/* 新建请求弹窗 */}
       {showNewRequestForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-surface-1 rounded-lg w-full max-w-md p-6">
@@ -796,8 +970,8 @@ export default function HttpApiClient() {
                   type="text"
                   value={newRequestUrl}
                   onChange={(e) => setNewRequestUrl(e.target.value)}
-                  placeholder="https://api.example.com/users"
-                  className="w-full"
+                  placeholder="/users 或 https://api.example.com/users"
+                  className="w-full font-mono"
                 />
               </div>
             </div>
@@ -813,7 +987,7 @@ export default function HttpApiClient() {
                 onClick={handleCreateRequest}
                 disabled={!newRequestName.trim() || !newRequestUrl.trim() || !newRequestCollectionId}
               >
-                创建
+                创建并打开
               </Button>
             </div>
           </div>

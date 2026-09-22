@@ -14,9 +14,6 @@ axios.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       // 复用 http.ts 中注册的回调（清除 token + 弹登录窗）
-      // 触发方式：发一个 401 响应给 authedFetch 的检测逻辑
-      // 这里直接通过 registerAuthFailureHandler 注册的 handler 处理
-      // 为避免循环，仅在客户端有 token 时触发
       if (getAuthToken()) {
         const handler = (window as any).__authFailureHandler;
         if (handler) handler();
@@ -44,6 +41,83 @@ httpClient.interceptors.request.use((config) => {
 
 // ============= Types =============
 
+/** Key-Value 条目（Headers / Query Params 通用，支持启用/禁用与描述） */
+export interface KeyValueItem {
+  key: string;
+  value: string;
+  enabled: boolean;
+  description?: string;
+}
+
+/** 将旧版 dict 格式键值对转换为 list 格式 */
+export const kvFromDict = (obj?: Record<string, string> | null): KeyValueItem[] =>
+  Object.entries(obj || {})
+    .filter(([k]) => k)
+    .map(([key, value]) => ({ key, value: String(value ?? ''), enabled: true, description: '' }));
+
+/** Form-data 单条目 */
+export interface FormDataEntry {
+  key: string;
+  value: string;
+  type: 'text' | 'file';
+  enabled?: boolean;
+  file?: File;
+  description?: string;
+}
+
+/** Body 类型 */
+export type BodyType = 'none' | 'json' | 'xml' | 'form' | 'form-data' | 'raw' | 'binary' | 'graphql';
+
+/** 可视化断言规则 */
+export interface AssertionRule {
+  name?: string;
+  source: 'status' | 'header' | 'body_json' | 'body_text' | 'response_time';
+  expression: string;
+  operator: string;
+  value: string;
+  enabled: boolean;
+}
+
+/** 断言比较方式 */
+export const ASSERTION_OPERATORS: { value: string; label: string }[] = [
+  { value: 'equal', label: '等于' },
+  { value: 'not_equal', label: '不等于' },
+  { value: 'contains', label: '包含' },
+  { value: 'not_contains', label: '不包含' },
+  { value: 'greater_than', label: '大于' },
+  { value: 'less_than', label: '小于' },
+  { value: 'greater_or_equal', label: '大于等于' },
+  { value: 'less_or_equal', label: '小于等于' },
+  { value: 'is_empty', label: '为空' },
+  { value: 'not_empty', label: '不为空' },
+  { value: 'exists', label: '存在' },
+  { value: 'not_exists', label: '不存在' },
+  { value: 'regex_match', label: '正则匹配' },
+  { value: 'starts_with', label: '以...开始' },
+  { value: 'ends_with', label: '以...结束' },
+];
+
+/** 后置提取变量规则 */
+export interface ExtractVariableRule {
+  name: string;
+  source: 'body_json' | 'body_text' | 'header' | 'status' | 'response_time';
+  expression: string;
+  index?: number | null;
+  enabled: boolean;
+}
+
+/** 断言执行结果 */
+export interface AssertionResult {
+  name: string;
+  source: string;
+  expression: string;
+  operator: string;
+  expected: string;
+  actual: string;
+  passed: boolean;
+  message: string;
+}
+
 export interface Collection {
   id: string;
   name: string;
@@ -61,23 +135,60 @@ export interface HttpRequest {
   name: string;
   method: string;
   url: string;
-  headers: Record<string, string>;
-  params: Record<string, string>;
-  body_type: 'json' | 'form' | 'form-data' | 'raw' | 'none';
+  headers: KeyValueItem[];
+  params: KeyValueItem[];
+  body_type: BodyType;
   body?: string;
   form_data?: FormDataEntry[];
   auth_type: 'bearer' | 'basic' | 'apikey' | 'none';
   auth_config: Record<string, any>;
+  extract_variables: ExtractVariableRule[];
+  assertions: AssertionRule[];
   description?: string;
   sort_order: number;
   created_at: string;
   updated_at: string;
 }
 
+/** 补全请求对象的可选字段（历史数据兼容） */
+export const normalizeHttpRequest = (req: Partial<HttpRequest> & { id: string; collection_id: string; name: string }): HttpRequest => {
+  const defaults: HttpRequest = {
+    id: req.id,
+    collection_id: req.collection_id,
+    name: req.name,
+    method: 'GET',
+    url: '',
+    headers: [],
+    params: [],
+    body_type: 'none',
+    form_data: [],
+    auth_type: 'none',
+    auth_config: {},
+    extract_variables: [],
+    assertions: [],
+    sort_order: 0,
+    created_at: '',
+    updated_at: '',
+  };
+  const merged = { ...defaults, ...req } as HttpRequest;
+  merged.headers = kvList(merged.headers);
+  merged.params = kvList(merged.params);
+  merged.form_data = merged.form_data || [];
+  merged.extract_variables = merged.extract_variables || [];
+  merged.assertions = merged.assertions || [];
+  return merged;
+};
+
+function kvList(v: unknown): KeyValueItem[] {
+  if (Array.isArray(v)) return v as KeyValueItem[];
+  return kvFromDict(v as Record<string, string>);
+}
+
 export interface Environment {
   id: string;
   name: string;
   workspace_id: string;
+  base_url: string;
   variables: Record<string, string>;
   is_active: boolean;
   created_at: string;
@@ -100,11 +211,16 @@ export interface RequestHistory {
 export interface SendRequestPayload {
   method: string;
   url: string;
-  headers: Record<string, string>;
-  params: Record<string, string>;
-  body_type?: 'json' | 'form' | 'form-data' | 'raw' | 'none';
+  headers: KeyValueItem[];
+  params: KeyValueItem[];
+  body_type?: BodyType;
   body?: string;
   form_data?: FormDataEntry[];
+  auth_type?: string;
+  auth_config?: Record<string, any>;
+  assertions?: AssertionRule[];
+  extract_variables?: ExtractVariableRule[];
+  request_id?: string;
   timeout?: number;
   follow_redirects?: boolean;
   workspace_id?: string;
@@ -112,19 +228,17 @@ export interface SendRequestPayload {
 
 export interface SendRequestResponse {
   status_code: number;
+  status_text: string;
   headers: Record<string, string>;
   body: string;
   response_time: number;
+  size: number;
   content_type?: string;
-}
-
-/** Form-data 条目定义 */
-export interface FormDataEntry {
-  key: string;
-  value: string;
-  type: 'text' | 'file';
-  file?: File;
-  description?: string;
+  request_url: string;
+  request_headers: Record<string, string>;
+  extracted_variables: Record<string, string>;
+  assertion_results: AssertionResult[];
+  error?: string | null;
 }
 
 // ============= Collection APIs =============
@@ -147,7 +261,7 @@ export const createCollection = async (data: {
 
 export const updateCollection = async (
   id: string,
-  data: { name?: string; description?: string; sort_order?: number }
+  data: { name?: string; description?: string; sort_order?: number; parent_id?: string }
 ): Promise<Collection> => {
   const response = await httpClient.put(`/collections/${id}`, data);
   return response.data;
@@ -169,14 +283,14 @@ export const fetchRequest = async (id: string): Promise<HttpRequest> => {
   return response.data;
 };
 
-export const createRequest = async (data: Omit<HttpRequest, 'id' | 'created_at' | 'updated_at'>): Promise<HttpRequest> => {
+export const createRequest = async (data: Partial<HttpRequest> & { collection_id: string; name: string }): Promise<HttpRequest> => {
   const response = await httpClient.post('/requests', data);
   return response.data;
 };
 
 export const updateRequest = async (
   id: string,
-  data: Partial<Omit<HttpRequest, 'id' | 'created_at' | 'updated_at'>>
+  data: Partial<HttpRequest>
 ): Promise<HttpRequest> => {
   const response = await httpClient.put(`/requests/${id}`, data);
   return response.data;
@@ -201,6 +315,7 @@ export const fetchActiveEnvironment = async (workspaceId = 'default'): Promise<E
 export const createEnvironment = async (data: {
   name: string;
   workspace_id?: string;
+  base_url?: string;
   variables?: Record<string, string>;
   is_active?: boolean;
 }): Promise<Environment> => {
@@ -210,7 +325,7 @@ export const createEnvironment = async (data: {
 
 export const updateEnvironment = async (
   id: string,
-  data: { name?: string; variables?: Record<string, string>; is_active?: boolean }
+  data: { name?: string; base_url?: string; variables?: Record<string, string>; is_active?: boolean }
 ): Promise<Environment> => {
   const response = await httpClient.put(`/environments/${id}`, data);
   return response.data;
@@ -239,11 +354,25 @@ export const fetchHistory = async (limit = 50): Promise<RequestHistory[]> => {
   return response.data;
 };
 
+export const deleteHistoryItem = async (id: string): Promise<void> => {
+  await httpClient.delete(`/history/${id}`);
+};
+
 export const clearHistory = async (): Promise<void> => {
   await httpClient.post('/history/clear');
 };
 
 // ============= Import/Export APIs =============
+
+export const importPostman = async (collectionData: any, workspaceId = 'default'): Promise<ImportResult> => {
+  const response = await httpClient.post('/import', collectionData, { params: { workspace_id: workspaceId } });
+  return response.data;
+};
+
+export const importOpenApi = async (spec: string, collectionId: string): Promise<ImportResult> => {
+  const response = await httpClient.post('/import/openapi', { spec, collection_id: collectionId });
+  return response.data;
+};
 
 export const importCurl = async (curlCommand: string, collectionId: string, name: string): Promise<HttpRequest> => {
   const response = await httpClient.post('/import/curl', {
@@ -254,12 +383,41 @@ export const importCurl = async (curlCommand: string, collectionId: string, name
   return response.data;
 };
 
+/** 解析 cURL 命令（不落库，供快速填充） */
+export const parseCurl = async (curlCommand: string): Promise<CurlParseResult> => {
+  const response = await httpClient.post('/import/curl/parse', {
+    curl_command: curlCommand,
+    collection_id: '',
+    name: '',
+  });
+  return response.data;
+};
+
+export interface ImportResult {
+  success: boolean;
+  imported_count: number;
+  failed_count: number;
+  errors: string[];
+  collection_id?: string;
+}
+
+export interface CurlParseResult {
+  method: string;
+  url: string;
+  headers: KeyValueItem[];
+  params: KeyValueItem[];
+  body?: string;
+  body_type: string;
+  auth_type: string;
+  auth_config: Record<string, any>;
+}
+
 export const exportCollection = async (collectionId: string): Promise<any> => {
   const response = await httpClient.get(`/export/${collectionId}`);
   return response.data;
 };
 
-// ============= Request duplicate/delete =============
+// ============= Request duplicate =============
 
 export const duplicateRequest = async (
   request: HttpRequest,
@@ -270,6 +428,7 @@ export const duplicateRequest = async (
     key: entry.key,
     value: entry.type === 'file' ? entry.file?.name || entry.value : entry.value,
     type: entry.type,
+    enabled: entry.enabled ?? true,
     description: entry.description,
   }));
   const response = await httpClient.post('/requests', {
@@ -284,12 +443,10 @@ export const duplicateRequest = async (
     form_data: serializedFormData,
     auth_type: request.auth_type,
     auth_config: request.auth_config,
+    extract_variables: request.extract_variables,
+    assertions: request.assertions,
     description: request.description || '',
     sort_order: 0,
   });
   return response.data;
-};
-
-export const deleteRequestById = async (id: string): Promise<void> => {
-  await httpClient.delete(`/requests/${id}`);
 };

@@ -1,5 +1,8 @@
 /**
  * HTTP Client 状态管理
+ *
+ * 每个标签页独立持有自己的响应（response）与发送状态（sending），
+ * 切换标签页时互不干扰；发送请求时在指定标签页上下文中执行。
  */
 
 import { create } from 'zustand';
@@ -8,6 +11,8 @@ import {
   HttpRequest,
   Environment,
   RequestHistory,
+  SendRequestPayload,
+  SendRequestResponse,
   fetchCollections,
   fetchRequests,
   fetchEnvironments,
@@ -15,17 +20,21 @@ import {
   sendHttpRequest,
   fetchHistory,
   clearHistory,
+  deleteHistoryItem,
+  deleteRequest as apiDeleteRequest,
+  activateEnvironment as apiActivateEnvironment,
   duplicateRequest as apiDuplicateRequest,
-  deleteRequestById as apiDeleteRequest,
   updateRequest,
-  SendRequestPayload,
-  SendRequestResponse,
 } from '../services/httpClientApi';
 
 interface OpenTab {
   requestId: string;
   request: HttpRequest;
   isModified: boolean;
+  /** 该标签页最近一次请求的响应 */
+  response: SendRequestResponse | null;
+  /** 是否正在发送请求 */
+  sending: boolean;
 }
 
 export type { OpenTab };
@@ -50,23 +59,22 @@ interface HttpClientState {
   // History
   history: RequestHistory[];
 
-  // Current request response
-  currentResponse: SendRequestResponse | null;
-  sendingRequest: boolean;
-
   // Actions
   loadCollections: () => Promise<void>;
   loadRequests: (collectionId: string) => Promise<void>;
   loadEnvironments: () => Promise<void>;
+  activateEnvironment: (envId: string) => Promise<void>;
   setActiveTab: (tabId: string | null) => void;
   openTab: (request: HttpRequest) => void;
   closeTab: (requestId: string) => void;
   updateTabRequest: (requestId: string, request: Partial<HttpRequest>) => void;
+  setTabResponse: (requestId: string, response: SendRequestResponse | null) => void;
+  setTabSending: (requestId: string, sending: boolean) => void;
   saveRequest: (requestId: string) => Promise<HttpRequest>;
   renameRequest: (requestId: string, name: string) => Promise<HttpRequest>;
-  sendRequest: (payload: SendRequestPayload) => Promise<SendRequestResponse>;
-  clearResponse: () => void;
+  sendRequest: (requestId: string, payload: SendRequestPayload) => Promise<SendRequestResponse>;
   loadHistory: () => Promise<void>;
+  removeHistoryItem: (id: string) => Promise<void>;
   clearHistory: () => Promise<void>;
   replayFromHistory: (historyItem: RequestHistory) => void;
   duplicateRequest: (request: HttpRequest, targetCollectionId: string) => Promise<void>;
@@ -84,8 +92,6 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
   openTabs: [],
   activeTabId: null,
   history: [],
-  currentResponse: null,
-  sendingRequest: false,
 
   // Load collections
   loadCollections: async () => {
@@ -124,6 +130,22 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
     }
   },
 
+  // 激活环境（后端互斥激活后更新本地状态）
+  activateEnvironment: async (envId: string) => {
+    try {
+      const activated = await apiActivateEnvironment(envId);
+      set(state => ({
+        environments: state.environments.map(e =>
+          e.id === envId ? { ...e, is_active: true } : { ...e, is_active: false }
+        ),
+        activeEnvironment: activated,
+      }));
+    } catch (error) {
+      console.error('Failed to activate environment:', error);
+      throw error;
+    }
+  },
+
   // Set active tab
   setActiveTab: (tabId: string | null) => {
     set({ activeTabId: tabId });
@@ -138,7 +160,13 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
       set({ activeTabId: request.id });
     } else {
       set({
-        openTabs: [...openTabs, { requestId: request.id, request, isModified: false }],
+        openTabs: [...openTabs, {
+          requestId: request.id,
+          request,
+          isModified: false,
+          response: null,
+          sending: false,
+        }],
         activeTabId: request.id,
       });
     }
@@ -166,6 +194,24 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
     set({ openTabs: newTabs });
   },
 
+  // 设置标签页响应
+  setTabResponse: (requestId: string, response: SendRequestResponse | null) => {
+    set(state => ({
+      openTabs: state.openTabs.map(tab =>
+        tab.requestId === requestId ? { ...tab, response } : tab
+      ),
+    }));
+  },
+
+  // 设置标签页发送状态
+  setTabSending: (requestId: string, sending: boolean) => {
+    set(state => ({
+      openTabs: state.openTabs.map(tab =>
+        tab.requestId === requestId ? { ...tab, sending } : tab
+      ),
+    }));
+  },
+
   // Save request（持久化到后端）
   saveRequest: async (requestId: string) => {
     const { openTabs } = get();
@@ -174,12 +220,21 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
       throw new Error('标签页不存在');
     }
     try {
-      const updated = await updateRequest(requestId, { ...tab.request });
+      // 序列化 form_data：去除 File 对象（不可 JSON 序列化），仅保留可序列化字段
+      const { form_data, ...restRequest } = tab.request;
+      const serializedFormData = form_data?.map((entry) => ({
+        key: entry.key,
+        value: entry.type === 'file' ? (entry.file?.name || entry.value || '') : entry.value,
+        type: entry.type,
+        enabled: entry.enabled ?? true,
+        description: entry.description || '',
+      }));
+      const updated = await updateRequest(requestId, { ...restRequest, form_data: serializedFormData });
       // 保存期间用户可能继续编辑，重新读取最新状态，避免旧快照覆盖新编辑
       const { openTabs: latestTabs } = get();
       const newTabs = latestTabs.map(t =>
         t.requestId === requestId
-          ? { ...t, request: { ...updated, ...t.request }, isModified: false }
+          ? { ...t, request: { ...(updated as HttpRequest), ...t.request }, isModified: false }
           : t
       );
       set({ openTabs: newTabs });
@@ -208,46 +263,54 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
     }
   },
 
-  // Send HTTP request
-  sendRequest: async (payload: SendRequestPayload) => {
-    set({ sendingRequest: true });
+  // Send HTTP request（在指定标签页上下文中执行，响应写入该标签页）
+  sendRequest: async (requestId: string, payload: SendRequestPayload) => {
+    get().setTabResponse(requestId, null);
+    get().setTabSending(requestId, true);
     try {
       const response = await sendHttpRequest(payload);
-      set({ currentResponse: response, sendingRequest: false });
+      get().setTabResponse(requestId, response);
+      get().setTabSending(requestId, false);
       return response;
     } catch (error: any) {
-      set({ sendingRequest: false });
-      // 设置错误响应对象，让 UI 可以显示错误信息
-      if (error.response?.data) {
+      get().setTabSending(requestId, false);
+      // 将错误信息转为失败响应展示在标签页内
+      let errorResponse: SendRequestResponse;
+      if (error?.response?.data) {
         const errorData = error.response.data;
-        set({
-          currentResponse: {
-            status_code: error.response.status,
-            headers: error.response.headers || {},
-            body: typeof errorData === 'string' ? errorData : JSON.stringify(errorData, null, 2),
-            response_time: 0,
-            content_type: 'application/json',
-          }
-        });
-      } else if (error.message) {
-        // 网络错误等无 response 的情况
-        set({
-          currentResponse: {
-            status_code: 0,
-            headers: {},
-            body: `请求失败：${error.message}`,
-            response_time: 0,
-            content_type: 'text/plain',
-          }
-        });
+        errorResponse = {
+          status_code: error.response.status || 0,
+          status_text: '',
+          headers: error.response.headers || {},
+          body: typeof errorData === 'string' ? errorData : JSON.stringify(errorData, null, 2),
+          response_time: 0,
+          size: 0,
+          content_type: 'application/json',
+          request_url: payload.url || '',
+          request_headers: {},
+          extracted_variables: {},
+          assertion_results: [],
+          error: typeof errorData?.detail === 'string' ? errorData.detail : undefined,
+        };
+      } else {
+        errorResponse = {
+          status_code: 0,
+          status_text: '',
+          headers: {},
+          body: '',
+          response_time: 0,
+          size: 0,
+          content_type: 'text/plain',
+          request_url: payload.url || '',
+          request_headers: {},
+          extracted_variables: {},
+          assertion_results: [],
+          error: `请求失败：${error?.message || '未知错误'}`,
+        };
       }
+      get().setTabResponse(requestId, errorResponse);
       throw error;
     }
-  },
-
-  // Clear response
-  clearResponse: () => {
-    set({ currentResponse: null });
   },
 
   // Load history
@@ -257,6 +320,17 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
       set({ history });
     } catch (error) {
       console.error('Failed to load history:', error);
+    }
+  },
+
+  // 删除单条历史
+  removeHistoryItem: async (id: string) => {
+    try {
+      await deleteHistoryItem(id);
+      set(state => ({ history: state.history.filter(h => h.id !== id) }));
+    } catch (error) {
+      console.error('Failed to delete history item:', error);
+      throw error;
     }
   },
 
@@ -280,12 +354,15 @@ export const useHttpClientStore = create<HttpClientState>((set, get) => ({
       name: `${historyItem.method} ${historyItem.url}`,
       method: historyItem.method,
       url: historyItem.url,
-      headers: reqData.headers || {},
-      params: reqData.params || {},
+      headers: Array.isArray(reqData.headers) ? reqData.headers : [],
+      params: Array.isArray(reqData.params) ? reqData.params : [],
       body_type: reqData.body_type || 'none',
       body: reqData.body || '',
-      auth_type: 'none',
+      form_data: [],
+      auth_type: reqData.auth_type || 'none',
       auth_config: {},
+      extract_variables: [],
+      assertions: [],
       sort_order: 0,
       created_at: historyItem.timestamp,
       updated_at: historyItem.timestamp,
