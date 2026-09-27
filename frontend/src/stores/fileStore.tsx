@@ -297,19 +297,27 @@ export function FileProvider({ children }: { children: ReactNode }) {
     }
   }, [currentFilePath, currentFile]);
 
+  /** 取路径的父目录；根级路径返回空串（整树刷新） */
+  const parentDirOf = (path: string) => {
+    const parts = path.split('/');
+    parts.pop();
+    return parts.join('/');
+  };
+
   const createFile = useCallback(async (path: string, content: string = '') => {
     setIsLoading(true);
     setError(null);
     try {
       await markdownEditorApi.createFile(path, content);
-      await loadDirectoryTree();
+      // 只刷新受影响目录的子树，避免整树重载（根目录较大时需数十秒）
+      await refreshTree(parentDirOf(path));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create file');
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [loadDirectoryTree]);
+  }, [refreshTree]);
 
   const deleteFile = useCallback(async (path: string) => {
     setIsLoading(true);
@@ -320,14 +328,14 @@ export function FileProvider({ children }: { children: ReactNode }) {
         setCurrentFile(null);
         setCurrentFilePath('');
       }
-      await loadDirectoryTree();
+      await refreshTree(parentDirOf(path));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete file');
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [currentFilePath, loadDirectoryTree]);
+  }, [currentFilePath, refreshTree]);
 
   const renameFile = useCallback(async (oldPath: string, newPath: string) => {
     setIsLoading(true);
@@ -337,42 +345,47 @@ export function FileProvider({ children }: { children: ReactNode }) {
       if (currentFilePath === oldPath) {
         setCurrentFilePath(newPath);
       }
-      await loadDirectoryTree();
+      // 新旧路径可能位于不同目录，两侧子树都刷新
+      await Promise.all([
+        refreshTree(parentDirOf(oldPath)),
+        refreshTree(parentDirOf(newPath)),
+      ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to rename file');
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [currentFilePath, loadDirectoryTree]);
+  }, [currentFilePath, refreshTree]);
 
   const createDirectory = useCallback(async (path: string) => {
     setIsLoading(true);
     setError(null);
     try {
       await markdownEditorApi.createDirectory(path);
-      await loadDirectoryTree();
+      await refreshTree(parentDirOf(path));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create directory');
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [loadDirectoryTree]);
+  }, [refreshTree]);
 
   const deleteDirectory = useCallback(async (path: string, recursive: boolean = false) => {
     setIsLoading(true);
     setError(null);
     try {
       await markdownEditorApi.deleteDirectory(path, recursive);
-      await loadDirectoryTree();
+      // 目录已删除，刷新其父目录使该节点从树中移除
+      await refreshTree(parentDirOf(path));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete directory');
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [loadDirectoryTree]);
+  }, [refreshTree]);
 
   const toggleNode = useCallback(async (path: string) => {
     // 先判断是否要展开（当前未展开）
