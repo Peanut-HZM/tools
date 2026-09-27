@@ -214,8 +214,8 @@ class TestDeleteProvider:
         assert svc.delete_provider(str(p.id)) is True
         assert svc.get_provider(str(p.id)) is None
 
-    def test_delete_provider_with_linked_models_fails(self, db_session):
-        """有模型关联时不允许删除"""
+    def test_delete_provider_with_linked_models_cascade(self, db_session):
+        """有模型关联时级联删除"""
         p_svc = LLMProviderService(db_session)
         m_svc = _import_model_service()
         p = p_svc.create_provider(
@@ -225,8 +225,9 @@ class TestDeleteProvider:
         m_svc(db_session).create_model(
             name="gpt-4o", model_name="gpt-4o", provider_id=p.id, category="chat",
         )
-        with pytest.raises(ValueError, match="存在关联模型"):
-            p_svc.delete_provider(str(p.id))
+        # 级联删除：供应商和关联模型一起删除
+        assert p_svc.delete_provider(str(p.id)) is True
+        assert p_svc.get_provider(str(p.id)) is None
 
     def test_delete_nonexistent_returns_false(self, db_session):
         svc = LLMProviderService(db_session)

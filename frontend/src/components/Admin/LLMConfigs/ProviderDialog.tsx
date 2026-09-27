@@ -90,7 +90,7 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 名称 */}
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-ink-muted mb-2">
                 名称 <span className="text-danger">*</span>
               </label>
@@ -125,7 +125,7 @@ export default function ProviderDialog({ isOpen, onClose, onSubmit, editing, isL
             </div>
 
             {/* Base URL */}
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-ink-muted mb-2">
                 Base URL <span className="text-danger">*</span>
               </label>

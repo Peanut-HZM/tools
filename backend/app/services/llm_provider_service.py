@@ -180,22 +180,25 @@ class LLMProviderService:
     def delete_provider(self, provider_id: ID_LIKE) -> bool:
         """
         删除供应商。
-        若有 LLMModel 关联则拒绝删除（抛 ValueError），需先清理/迁移子记录。
+        级联删除其下所有关联的 LLMModel 记录。
         """
         # 延迟导入避免循环依赖
         from app.models.llm_model import LLMModel
 
         pid = _to_uuid(provider_id)
-        linked = self.db.query(LLMModel).filter(LLMModel.provider_id == pid).count()
-        if linked > 0:
-            raise ValueError(f"存在关联模型 {linked} 条，请先删除/迁移")
+        # 级联删除关联的模型配置
+        linked = self.db.query(LLMModel).filter(LLMModel.provider_id == pid)
+        linked_count = linked.count()
+        if linked_count > 0:
+            linked.delete(synchronize_session=False)
+            logger.info("级联删除关联模型配置: provider_id=%s, count=%d", provider_id, linked_count)
 
         p = self.get_provider(pid)
         if not p:
             return False
         self.db.delete(p)
         self.db.commit()
-        logger.info("删除 LLMProvider: id=%s", provider_id)
+        logger.info("删除 LLMProvider: id=%s, 关联模型已清除: %d", provider_id, linked_count)
         return True
 
     # ------------------------------------------------------------------

@@ -237,13 +237,27 @@ async def get_model_usage_stats(
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT 
-                    COALESCE(llm_model_name, '未知模型') as model_name,
-                    COUNT(*) as usage_count,
-                    COALESCE(SUM(total_tokens), 0) as total_tokens
-                FROM messages
-                WHERE sender_type = 'agent' AND llm_model_name IS NOT NULL
-                GROUP BY llm_model_name
+                SELECT
+                    CASE
+                        WHEN m.llm_model_name IS NOT NULL AND m.llm_model_name != 'unknown'
+                            THEN m.llm_model_name
+                        WHEN lm.name IS NOT NULL
+                            THEN lm.name
+                        ELSE '未知模型'
+                    END AS model_name,
+                    COUNT(*) AS usage_count,
+                    COALESCE(SUM(m.total_tokens), 0) AS total_tokens
+                FROM messages m
+                LEFT JOIN llm_models lm ON m.llm_config_id = lm.id
+                WHERE m.sender_type = 'agent'
+                GROUP BY
+                    CASE
+                        WHEN m.llm_model_name IS NOT NULL AND m.llm_model_name != 'unknown'
+                            THEN m.llm_model_name
+                        WHEN lm.name IS NOT NULL
+                            THEN lm.name
+                        ELSE '未知模型'
+                    END
                 ORDER BY usage_count DESC
             """)
 

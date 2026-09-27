@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Activity,
   AlertTriangle,
-  BarChart3,
   Database,
   Download,
   Edit3,
@@ -10,7 +8,9 @@ import {
   Loader2,
   RefreshCw,
   Settings,
+  Target,
   Trash2,
+  Zap,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from "@/components/ui/Button";
@@ -75,10 +75,6 @@ function formatToken(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}百万`;
   if (num >= 10_000) return `${(num / 10_000).toFixed(1)}万`;
   return num.toLocaleString('zh-CN');
-}
-
-function formatCurrency(num: number): string {
-  return `$${Number(num || 0).toFixed(2)}`;
 }
 
 function formatDateTime(value?: string | null): string {
@@ -381,7 +377,6 @@ export default function TokenUsage() {
          cacheTokens: item.cache_tokens ?? 0,
          // 标签显示堆叠三项之和，与柱子实际高度一致（API 的 total_tokens 通常不含 cache）
          totalTokens: (item.input_tokens ?? 0) + (item.output_tokens ?? 0) + (item.cache_tokens ?? 0),
-         cost: item.total_cost,
         })),
     [summary.data.chart_series]
   );
@@ -438,7 +433,7 @@ export default function TokenUsage() {
 
   const exportCSV = () => {
     if (!details.data.items.length) return;
-    const headers = ['日期', '分组', '设备', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '成本 USD', '更新时间'];
+    const headers = ['日期', '分组', '设备', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '更新时间'];
     const rows = details.data.items.map(item => [
       item.date,
       getGroupLabel(item),
@@ -450,7 +445,6 @@ export default function TokenUsage() {
       item.cache_creation_tokens,
       item.cache_read_tokens,
       item.total_tokens,
-      item.total_cost,
       item.created_at || '',
     ]);
     const csv = [headers, ...rows]
@@ -470,7 +464,6 @@ export default function TokenUsage() {
       key: d.device_id || d.key,
       label: d.label,
       tokens: d.total_tokens,
-      cost: d.total_cost,
     })),
     [summary.data.dimension_summaries.devices]
   );
@@ -480,7 +473,6 @@ export default function TokenUsage() {
       key: t.tool_id || t.key,
       label: t.label,
       tokens: t.total_tokens,
-      cost: t.total_cost,
     })),
     [summary.data.dimension_summaries.tools]
   );
@@ -490,34 +482,9 @@ export default function TokenUsage() {
       key: m.model || m.key,
       label: m.label,
       tokens: m.total_tokens,
-      cost: m.total_cost,
     })),
     [summary.data.dimension_summaries.models]
   );
-
-  // 修复：按纯 model 字段二次合并，避免同一模型因 source 不同而被拆分
-  // label 直接用纯模型名，不再带工具/source 前缀（用户要求"不需要关注工具"）
-  const modelCostSlices: PieSlice[] = useMemo(() => {
-    const modelMap = new Map<string, { tokens: number; cost: number }>();
-    summary.data.model_summary.forEach(item => {
-      const existing = modelMap.get(item.model);
-      if (existing) {
-        existing.tokens += item.total_tokens;
-        existing.cost += item.total_cost;
-      } else {
-        modelMap.set(item.model, {
-          tokens: item.total_tokens,
-          cost: item.total_cost,
-        });
-      }
-    });
-    return [...modelMap.entries()].map(([model, data]) => ({
-      key: model,
-      label: model,
-      tokens: data.tokens,
-      cost: data.cost,
-    }));
-  }, [summary.data.model_summary]);
 
   const totalDeviceTokens = useMemo(
     () => devicePieSlices.reduce((s, x) => s + x.tokens, 0),
@@ -530,10 +497,6 @@ export default function TokenUsage() {
   const totalModelTokens = useMemo(
     () => modelPieSlices.reduce((s, x) => s + x.tokens, 0),
     [modelPieSlices]
-  );
-  const totalModelCostTokens = useMemo(
-    () => modelCostSlices.reduce((s, x) => s + x.tokens, 0),
-    [modelCostSlices]
   );
 
   const chartTitle = groupBy === 'none'
@@ -741,7 +704,6 @@ export default function TokenUsage() {
               <SelectItem value="created_at">更新时间</SelectItem>
               <SelectItem value="date">日期</SelectItem>
               <SelectItem value="total_tokens">总 Token</SelectItem>
-              <SelectItem value="total_cost">成本</SelectItem>
               <SelectItem value="input_tokens">输入</SelectItem>
               <SelectItem value="output_tokens">输出</SelectItem>
               <SelectItem value="cache_tokens">缓存</SelectItem>
@@ -803,11 +765,16 @@ export default function TokenUsage() {
 
       <Card className="mb-5 grid gap-3 md:grid-cols-5 p-0">
         {[
-          { label: '总成本', value: formatCurrency(summary.data.summary.total_cost), icon: Activity },
-          { label: '日均成本', value: formatCurrency(summary.data.summary.avg_daily_cost), icon: BarChart3 },
           { label: '总 Token', value: formatToken(summary.data.summary.total_tokens), icon: Database },
           { label: '输入 Token', value: formatToken(summary.data.summary.total_input_tokens), icon: HardDrive },
           { label: '输出 Token', value: formatToken(summary.data.summary.total_output_tokens), icon: HardDrive },
+          { label: '缓存 Token', value: formatToken((summary.data.summary.total_cache_creation_tokens ?? 0) + (summary.data.summary.total_cache_read_tokens ?? 0)), icon: Zap },
+          { label: '缓存命中率', value: (() => {
+              const cr = summary.data.summary.total_cache_read_tokens ?? 0;
+              const cc = summary.data.summary.total_cache_creation_tokens ?? 0;
+              const total = cr + cc;
+              return total > 0 ? `${((cr / total) * 100).toFixed(1)}%` : '0%';
+            })(), icon: Target },
         ].map(card => (
           <div key={card.label} className="rounded-md p-4">
             <div className="mb-2 flex items-center justify-between text-xs text-ink-muted">
@@ -819,12 +786,11 @@ export default function TokenUsage() {
         ))}
       </Card>
 
-      <div className="mb-5 grid gap-3 xl:grid-cols-4 lg:grid-cols-2 grid-cols-1">
+      <div className="mb-5 grid gap-3 xl:grid-cols-3 lg:grid-cols-2 grid-cols-1">
         <DimensionPieCard
           title="设备"
           data={devicePieSlices}
           totalTokens={totalDeviceTokens}
-          metric="tokens"
           selectedKey={selectedDevice}
           onSelect={id => setSelectedDevice(id)}
         />
@@ -832,7 +798,6 @@ export default function TokenUsage() {
           title="工具"
           data={toolPieSlices}
           totalTokens={totalToolTokens}
-          metric="tokens"
           selectedKey={selectedTool}
           onSelect={id => {
             setSelectedTool(id);
@@ -843,16 +808,8 @@ export default function TokenUsage() {
           title="模型"
           data={modelPieSlices}
           totalTokens={totalModelTokens}
-          metric="tokens"
           selectedKey={selectedModel}
           onSelect={id => setSelectedModel(id)}
-        />
-        <DimensionPieCard
-          title="模型成本占比"
-          data={modelCostSlices}
-          totalTokens={totalModelCostTokens}
-          metric="cost"
-          emptyHint="暂无模型成本数据"
         />
       </div>
 
@@ -868,7 +825,6 @@ export default function TokenUsage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border-default))" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} />
                 <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} tickFormatter={formatToken} />
-                {groupBy === 'none' && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} tickFormatter={value => `$${value}`} />}
                 <Tooltip contentStyle={{ backgroundColor: 'rgb(var(--bg-surface-2))', border: '1px solid rgb(var(--border-default))', color: 'rgb(var(--ink-default))' }} />
                 <Legend />
                 {groupBy === 'none' ? (
@@ -888,7 +844,6 @@ export default function TokenUsage() {
                         <Line yAxisId="left" type="monotone" dataKey="cacheTokens" stroke="rgb(var(--accent-warning))" strokeWidth={2} name="缓存" dot={{ r: 3 }} />
                       </>
                     )}
-                    <Line yAxisId="right" type="monotone" dataKey="cost" stroke="rgb(var(--accent-danger))" strokeWidth={2} name="成本" dot={{ r: 3 }} />
                   </>
                 ) : (
                   Object.keys(groupedData[0] || {}).filter(key => key !== 'date').map((key, index) => (
@@ -923,7 +878,6 @@ export default function TokenUsage() {
                 <th className="px-4 py-3 text-right">缓存创建</th>
                 <th className="px-4 py-3 text-right">缓存读取</th>
                 <th className="px-4 py-3 text-right">总计</th>
-                <th className="px-4 py-3 text-right">成本</th>
                 <th className="px-4 py-3 text-left">模型</th>
                 <th className="px-4 py-3 text-left">更新时间</th>
               </tr>
@@ -931,7 +885,7 @@ export default function TokenUsage() {
             <tbody>
               {!paginatedItems.length && !details.loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-ink-faint" colSpan={groupBy === 'none' ? 11 : 12}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
+                  <td className="px-4 py-8 text-center text-ink-faint" colSpan={groupBy === 'none' ? 10 : 11}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
                 </tr>
               ) : paginatedItems.map((item, index) => (
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-border hover:bg-surface-1/60">
@@ -948,7 +902,6 @@ export default function TokenUsage() {
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.cache_creation_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.cache_read_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono font-medium text-ink">{formatToken(item.total_tokens)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-accent-success">{formatCurrency(item.total_cost)}</td>
                   <td className="max-w-[240px] truncate px-4 py-3 text-ink-muted" title={formatModelsUsed(item.models_used)}>{formatModelsUsed(item.models_used)}</td>
                   <td className="px-4 py-3 text-xs text-ink-faint">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
                 </tr>
