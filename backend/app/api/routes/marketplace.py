@@ -105,6 +105,9 @@ async def fork_agent(
     forked.owner_id = uuid.UUID(str(current_user["id"]))
     forked.is_active = True
     forked.is_default = False
+    # DB 中 agents.slug 为 NOT NULL，与 agents.py 导入逻辑一致：缺省时自动生成
+    if getattr(forked, "slug", None) is None and hasattr(forked, "slug"):
+        forked.slug = f"{forked.name}-{uuid.uuid4().hex[:8]}"[:50]
     db.add(forked)
     db.flush()  # 拿到 forked.id 再复制 bindings
 

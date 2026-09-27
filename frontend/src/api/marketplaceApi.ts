@@ -9,7 +9,8 @@ import { getAuthHeaders } from './authApi';
 import { API_BASE_URL } from '../config/api';
 import { authedFetch } from './http';
 
-const MARKETPLACE_API_BASE_URL = `${API_BASE_URL}/marketplace`;
+// 后端路由前缀为 /api/v1/marketplace（API_BASE_URL 仅到 /api，需补 /v1）
+const MARKETPLACE_API_BASE_URL = `${API_BASE_URL}/v1/marketplace`;
 
 /** 市场目录条目（对应后端 list_marketplace_agents 返回） */
 export interface MarketAgent {
