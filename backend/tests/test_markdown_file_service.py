@@ -279,7 +279,8 @@ class TestGetFilePaths:
 
         assert result["relative_path"] == "docs/readme.md"
         assert result["file_name"] == "readme.md"
-        assert result["absolute_path"].endswith("docs/readme.md")
+        # absolute_path 为本地原生分隔符（Windows 为反斜杠），统一后断言
+        assert result["absolute_path"].replace("\\", "/").endswith("docs/readme.md")
         assert result["root_path"] == str(file_service._root_path)
 
     def test_get_file_paths_traversal_blocked(self, file_service):

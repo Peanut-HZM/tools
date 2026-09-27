@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import platform
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -58,16 +59,70 @@ def _expand_user(path: str) -> str:
     return os.path.expanduser(path)
 
 
+def _nvm_version_sort_key(path: str) -> tuple:
+    """从目录名解析版本号用于降序排序，如 v24.21.0 -> (24, 21, 0)"""
+    match = re.search(r"v?(\d+)\.(\d+)\.(\d+)", os.path.basename(path.rstrip("\\/")))
+    if not match:
+        return (0, 0, 0)
+    return tuple(int(part) for part in match.groups())
+
+
+def _nvm_node_dirs() -> list[str]:
+    """收集 nvm-windows 安装布局下的 node 版本目录（新版本在前）。
+
+    背景：nvm-windows 的全局 npm 包位于 {NVM_HOME}\\installs\\vX.Y.Z
+    （旧版为 {NVM_HOME}\\vX.Y.Z 或 NVM_SYMLINK / .nodejs 链接目录）。
+    服务/GUI 方式启动的进程 PATH 可能缺少当前版本目录（环境变量变更后
+    未重新登录或启动自旧 shell），这里基于 NVM_HOME/NVM_SYMLINK 环境变量
+    主动发现，不依赖 PATH。
+    """
+    dirs: list[str] = []
+    nvm_home = os.environ.get("NVM_HOME")
+    nvm_symlink = os.environ.get("NVM_SYMLINK")
+
+    base_candidates = [
+        nvm_home,
+        os.path.join(_expand_user("~"), "AppData", "Roaming", "nvm"),
+    ]
+    version_dirs: list[str] = []
+    for base in base_candidates:
+        if not base or not os.path.isdir(base):
+            continue
+        for layout in ("installs", ""):
+            version_dirs.extend(glob.glob(os.path.join(base, layout, "v*")))
+    version_dirs.sort(key=_nvm_version_sort_key, reverse=True)
+    dirs.extend(version_dirs)
+
+    for link_dir in (nvm_symlink, os.path.join(base_candidates[1], ".nodejs") if base_candidates[1] else None):
+        if link_dir and os.path.isdir(link_dir):
+            dirs.append(link_dir)
+
+    # 去重且保持顺序
+    seen: set[str] = set()
+    unique_dirs: list[str] = []
+    for d in dirs:
+        key = os.path.normcase(os.path.abspath(d))
+        if key not in seen:
+            seen.add(key)
+            unique_dirs.append(d)
+    return unique_dirs
+
+
 def _node_search_paths() -> list[str]:
     """根据当前操作系统返回 node 候选路径列表"""
     system = platform.system()
     home = _expand_user("~")
+
+    node_exe = "node.exe" if system == "Windows" else "node"
+    # nvm 安装布局下的 node（PATH 缺失版本目录时的兜底）
+    nvm_paths = [os.path.join(d, node_exe) for d in _nvm_node_dirs()]
 
     if system == "Windows":
         return [
             r"C:\Program Files\nodejs\node.exe",
             r"C:\Program Files (x86)\nodejs\node.exe",
             os.path.join(home, "AppData", "Roaming", "nvm", "current", "node.exe"),
+            *nvm_paths,
         ]
 
     # macOS / Linux
@@ -80,6 +135,7 @@ def _node_search_paths() -> list[str]:
         paths.append("/opt/homebrew/bin/node")
     # NVM 多版本目录（glob 展开）
     paths.extend(sorted(glob.glob(os.path.join(home, ".nvm", "versions", "node", "*", "bin", "node"))))
+    paths.extend(nvm_paths)
     return paths
 
 
@@ -111,6 +167,18 @@ def _ccusage_search_paths() -> list[str]:
     system = platform.system()
     home = _expand_user("~")
 
+    # nvm 安装布局下的 ccusage（nvm-windows 的全局包在版本目录内，与 node 同目录）
+    nvm_paths: list[str] = []
+    for d in _nvm_node_dirs():
+        if system == "Windows":
+            nvm_paths.extend([
+                os.path.join(d, "ccusage.cmd"),
+                os.path.join(d, "ccusage.ps1"),
+                os.path.join(d, "ccusage"),
+            ])
+        else:
+            nvm_paths.append(os.path.join(d, "ccusage"))
+
     if system == "Windows":
         return [
             os.path.join(home, "AppData", "Roaming", "npm", "ccusage.cmd"),
@@ -119,6 +187,7 @@ def _ccusage_search_paths() -> list[str]:
             os.path.join(home, "AppData", "Local", "pnpm", "ccusage.cmd"),
             os.path.join(home, "AppData", "Local", "pnpm", "ccusage"),
             r"C:\Program Files\nodejs\ccusage.cmd",
+            *nvm_paths,
         ]
 
     paths = [
@@ -134,6 +203,7 @@ def _ccusage_search_paths() -> list[str]:
 
     # NVM 多版本目录
     paths.extend(sorted(glob.glob(os.path.join(home, ".nvm", "versions", "node", "*", "bin", "ccusage"))))
+    paths.extend(nvm_paths)
     return paths
 
 
@@ -155,6 +225,17 @@ def find_ccusage() -> Optional[str]:
             _ccusage_path = p
             logger.info("[ccusage-invoker] 找到 ccusage: %s", p)
             return _ccusage_path
+
+    # 兜底：npm 全局 shim 与 node 同目录，从已找到的 node 推导 ccusage 位置
+    node_path = find_node()
+    if node_path:
+        node_dir = os.path.dirname(node_path)
+        for name in ("ccusage.cmd", "ccusage.ps1", "ccusage"):
+            candidate = os.path.join(node_dir, name)
+            if os.path.exists(candidate):
+                _ccusage_path = candidate
+                logger.info("[ccusage-invoker] 从 node 目录推导找到 ccusage: %s", candidate)
+                return _ccusage_path
 
     logger.warning(
         "[ccusage-invoker] 未找到 ccusage。系统: %s，PATH 片段: %s",

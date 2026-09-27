@@ -96,6 +96,17 @@ class MarkdownFileService:
     def _validate_and_resolve(self, path: str) -> Path:
         """验证路径并返回解析后的 Path 对象"""
         if self.allow_any_path:
+            # 真正的相对路径（非 ~、非盘符/根开头、不含 .. 组件）按用户配置的
+            # 根目录解析，而不是进程 CWD——否则同样的相对路径会随启动目录
+            # 漂移，把文件写到 backend/ 下。其余形态保持 validate_any_path
+            # 原有的敏感路径 / 路径遍历拒绝语义与报错文案。
+            looks_relative = bool(path) and not path.startswith('~') \
+                and not os.path.isabs(path) and not path.startswith(('/', '\\'))
+            if looks_relative and '..' not in Path(path).parts:
+                is_valid, result = validate_path(path, str(self._root_path))
+                if not is_valid:
+                    raise ValueError(result)
+                return Path(result)
             is_valid, result = validate_any_path(path)
             if not is_valid:
                 raise ValueError(result)
@@ -128,13 +139,22 @@ class MarkdownFileService:
         
         return self._scan_directory(target_path, depth)
     
-    def _scan_directory(self, dir_path: Path, depth: int = -1) -> FileNode:
-        """Recursively scan a directory — includes all file types"""
+    def _scan_directory(self, dir_path: Path, depth: int = -1, _rel_path: str = None) -> FileNode:
+        """Recursively scan a directory — includes all file types
+
+        性能说明：使用 os.scandir（Windows 下 is_dir/is_file/stat 复用目录
+        枚举缓存，几乎无额外系统调用），相对路径通过父级缓存字符串拼接，
+        避免旧实现中每个节点 2 次 Path.resolve() + 多次 Path.is_dir/is_file/
+        stat 的系统调用（14 万节点曾需约 60 秒）。
+        """
         if not isinstance(dir_path, Path):
             dir_path = Path(dir_path)
-        rel_path = get_relative_path(str(dir_path), str(self._root_path))
-        if rel_path == '.':
-            rel_path = ''
+        if _rel_path is None:
+            rel_path = get_relative_path(str(dir_path), str(self._root_path))
+            if rel_path == '.':
+                rel_path = ''
+        else:
+            rel_path = _rel_path
 
         node = FileNode(
             name=dir_path.name or str(self._root_path),
@@ -144,45 +164,67 @@ class MarkdownFileService:
         )
 
         try:
-            entries = sorted(dir_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
-        except PermissionError:
+            with os.scandir(dir_path) as it:
+                entries = list(it)
+        except (PermissionError, OSError):
             return node
 
+        dir_entries: list = []
+        file_entries: list = []
         for entry in entries:
-            if self._is_ignored(entry.name, entry.is_dir()):
+            try:
+                is_dir = entry.is_dir()
+            except OSError:
+                is_dir = False
+            if self._is_ignored(entry.name, is_dir):
                 continue
+            # 保持与原实现一致的排序语义：目录在前、文件在后，各自按名称升序
+            if is_dir:
+                dir_entries.append(entry)
+            else:
+                try:
+                    if entry.is_file():
+                        file_entries.append(entry)
+                except OSError:
+                    continue
 
-            if entry.is_dir():
+        dir_entries.sort(key=lambda e: e.name.lower())
+        file_entries.sort(key=lambda e: e.name.lower())
+
+        child_rel_base = f"{rel_path}/" if rel_path else ""
+
+        for entry in dir_entries:
+            child_rel_path = f"{child_rel_base}{entry.name}"
+            if depth == 0:
                 # 如果深度限制为 0，不再递归扫描子目录
-                if depth == 0:
-                    child_node = FileNode(
-                        name=entry.name,
-                        path=normalize_path(get_relative_path(str(entry), str(self._root_path))),
-                        type="directory",
-                        children=[]
-                    )
-                    node.children.append(child_node)
-                else:
-                    # 递归扫描，深度减 1（-1 表示无限制）
-                    next_depth = depth - 1 if depth > 0 else -1
-                    child_node = self._scan_directory(entry, next_depth)
-                    # Include directory if it has any files (not just markdown)
-                    if child_node.children:
-                        node.children.append(child_node)
-            elif entry.is_file():
-                stat = entry.stat()
-                child_rel_path = get_relative_path(str(entry), str(self._root_path))
-                file_node = FileNode(
+                node.children.append(FileNode(
                     name=entry.name,
                     path=normalize_path(child_rel_path),
-                    type="file",
-                    size=stat.st_size,
-                    modified=datetime.fromtimestamp(stat.st_mtime),
-                    extension=get_extension(entry.name),
-                    file_type=get_file_type(entry.name),
-                    previewable=is_previewable(entry.name),
+                    type="directory",
+                    children=[]
+                ))
+            else:
+                # 递归扫描，深度减 1（-1 表示无限制）
+                next_depth = depth - 1 if depth > 0 else -1
+                child_node = self._scan_directory(
+                    Path(entry.path), next_depth, child_rel_path
                 )
-                node.children.append(file_node)
+                # Include directory if it has any files (not just markdown)
+                if child_node.children:
+                    node.children.append(child_node)
+
+        for entry in file_entries:
+            stat = entry.stat()
+            node.children.append(FileNode(
+                name=entry.name,
+                path=normalize_path(f"{child_rel_base}{entry.name}"),
+                type="file",
+                size=stat.st_size,
+                modified=datetime.fromtimestamp(stat.st_mtime),
+                extension=get_extension(entry.name),
+                file_type=get_file_type(entry.name),
+                previewable=is_previewable(entry.name),
+            ))
 
         return node
 

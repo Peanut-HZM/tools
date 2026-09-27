@@ -35,6 +35,42 @@ def _hash_api_key(plaintext: str) -> bytes:
     return hashlib.sha256(plaintext.encode("utf-8")).digest()
 
 
+def check_provider_keys_health() -> None:
+    """
+    启动自检：尝试解密所有启用供应商的 API Key，解不开的打 WARNING。
+
+    提前暴露「密文与当前环境主密钥不匹配」类问题（多环境共用数据库时
+    最典型的配置事故），把问题从运行时报错提前到启动即可见。
+    任何异常都不应阻断启动。
+    """
+    try:
+        from app.models.base import SessionLocal
+
+        db = SessionLocal()
+        try:
+            providers = (
+                db.query(LLMProvider).filter(LLMProvider.is_active == True).all()  # noqa: E712
+            )
+            bad = []
+            for p in providers:
+                try:
+                    decrypt_api_key(p.api_key_encrypted)
+                except Exception:
+                    bad.append(p.name)
+            if bad:
+                logger.warning(
+                    "[密钥自检] %d/%d 个供应商的 API Key 无法解密: %s；"
+                    "请在「模型管理」中重新录入这些供应商的 API Key",
+                    len(bad), len(providers), "、".join(bad),
+                )
+            else:
+                logger.info("[密钥自检] 全部 %d 个供应商的 API Key 解密正常", len(providers))
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning("[密钥自检] 执行失败（不影响启动）: %s", e)
+
+
 class LLMProviderService:
     """LLM 供应商服务"""
 

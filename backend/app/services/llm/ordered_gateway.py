@@ -103,7 +103,17 @@ class OrderedLLMGateway:
             logger.warning("[gateway] image_gen adapters removed; use harness ImageGenTool instead")
             raise UnrecoverableFailure("image_gen adapters not available in this gateway")
         provider = model.provider
-        api_key = decrypt_api_key(provider.api_key_encrypted)
+        try:
+            api_key = decrypt_api_key(provider.api_key_encrypted)
+        except Exception as e:
+            # 解密失败说明密文与当前环境主密钥不匹配或数据损坏：
+            # 该供应商不可用，但不应击穿兜底链（继续尝试下一个模型）
+            logger.error(
+                "[gateway] 供应商 %s(%s) API Key 解密失败: %s", provider.name, provider.id, e
+            )
+            raise RecoverableFailure(
+                f"供应商「{provider.name}」的 API Key 解密失败，请重新录入该供应商的 API Key"
+            ) from e
         extra = self._parse_request_params(model.request_params)
         return get_provider(
             provider_type=provider.provider_type,

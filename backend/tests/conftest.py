@@ -12,7 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 为 PostgreSQL 专属类型注册 SQLite 编译器，使全量建表 fixture（Base.metadata.create_all）
 # 能在 SQLite 测试库上运行。仅影响 SQLite 测试库 DDL 编译，不触碰生产 PostgreSQL 模型。
-from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy import JSON
+from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.ext.compiler import compiles
 
 
@@ -20,6 +21,30 @@ from sqlalchemy.ext.compiler import compiles
 def _compile_inet_for_sqlite(element, compiler, **kw):
     """SQLite 无 INET 类型，降级为 VARCHAR(45)（足以容纳 IPv6 地址）。"""
     return "VARCHAR(45)"
+
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_for_sqlite(element, compiler, **kw):
+    """SQLite 无 JSONB 类型，降级为 JSON。
+
+    背景：harness 引入 JSONB 列（如 conversations.metadata）后，任何导入
+    app.models 包的测试在 SQLite 全量建表时都会编译失败，此处统一降级。
+    """
+    return "JSON"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _hermetic_master_key():
+    """
+    单元测试固定主密钥（key-in-DB 方案的测试逃生舱）。
+
+    app_secrets 主密钥默认存放在数据库；单元测试使用 SQLite 内存库但
+    encrypt/decrypt 走全局路径，若不固定密钥会触达真实数据库。
+    通过 TOOLBOX_APP_SECRET_HEX 把密钥固定为确定性值，保证测试封闭。
+    """
+    os.environ["TOOLBOX_APP_SECRET_HEX"] = "ab" * 32
+    yield
+    os.environ.pop("TOOLBOX_APP_SECRET_HEX", None)
 
 
 @pytest.fixture(scope="session")

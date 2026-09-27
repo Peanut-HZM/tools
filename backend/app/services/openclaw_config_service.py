@@ -1,6 +1,11 @@
 """
 OpenClaw 配置管理服务
 管理 Gateway 连接配置的持久化和热加载
+
+加密密钥（key-in-DB）：与 LLM API Key 主密钥同机制，存放在共享数据库
+app_secrets 表（key_id='openclaw_master_key'），首次使用时自动生成，
+多环境天然一致。历史密文（旧环境变量 / 硬编码默认密钥加密）解密时自动
+降级兼容，重新保存配置后即迁移到新密钥。
 """
 import json
 import logging
@@ -12,44 +17,91 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from app.config.database import get_pooled_db_connection, release_db_connection
 
 logger = logging.getLogger(__name__)
 
-# 加密密钥（从环境变量读取或使用固定密钥）
-def _get_encryption_key() -> bytes:
-    """获取加密密钥，至少 32 字节"""
-    key = os.environ.get("OPENCLAW_ENCRYPTION_KEY", "openclaw-default-key-32bytes!!")
-    # 确保密钥长度为 32 字节（Fernet 要求）
-    key_bytes = key.encode("utf-8")
+# 历史遗留密钥来源（仅用于解密旧数据，不再用于加密新数据）
+_LEGACY_DEFAULT_KEY = "openclaw-default-key-32bytes!!"
+
+
+def _fernet_from_str(key_str: str) -> Fernet:
+    """由字符串派生 Fernet 实例（与旧版 _get_encryption_key 逻辑一致）"""
+    key_bytes = key_str.encode("utf-8")
     if len(key_bytes) < 32:
         key_bytes = key_bytes.ljust(32, b"\0")
     elif len(key_bytes) > 32:
         key_bytes = key_bytes[:32]
-    return base64.urlsafe_b64encode(key_bytes)
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
 
-_cipher = Fernet(_get_encryption_key())
+
+def _get_cipher() -> Fernet:
+    """当前密钥的 Fernet 实例（key-in-DB，懒加载）"""
+    from app.core.app_secrets import get_or_create_secret
+
+    return Fernet(base64.urlsafe_b64encode(get_or_create_secret("openclaw_master_key", 32)))
+
+
+def _legacy_ciphers() -> list:
+    """历史密钥的 Fernet 实例列表（按优先级：环境变量 → 硬编码默认值）"""
+    ciphers = []
+    env_key = os.environ.get("OPENCLAW_ENCRYPTION_KEY")
+    if env_key:
+        ciphers.append(_fernet_from_str(env_key))
+    ciphers.append(_fernet_from_str(_LEGACY_DEFAULT_KEY))
+    return ciphers
+
 
 ENCRYPTED_KEYS = {"password"}  # 需要加密的字段
 
 
 def encrypt_value(value: str) -> str:
-    """加密值"""
+    """加密值（始终使用当前 key-in-DB 密钥）"""
     if not value:
         return value
-    return _cipher.encrypt(value.encode("utf-8")).decode("utf-8")
+    return _get_cipher().encrypt(value.encode("utf-8")).decode("utf-8")
 
 
 def decrypt_value(value: str) -> str:
-    """解密值"""
+    """解密值
+
+    优先用当前 key-in-DB 密钥；失败时降级尝试历史密钥（旧数据平滑迁移），
+    并提示重新保存以完成迁移；全部失败时保持旧行为原样返回。
+    """
     if not value:
         return value
     try:
-        return _cipher.decrypt(value.encode("utf-8")).decode("utf-8")
+        return _get_cipher().decrypt(value.encode("utf-8")).decode("utf-8")
+    except InvalidToken:
+        pass
     except Exception:
         # 可能是未加密的旧数据，直接返回
         return value
+    for legacy in _legacy_ciphers():
+        try:
+            plain = legacy.decrypt(value.encode("utf-8")).decode("utf-8")
+            _warn_legacy_once()
+            return plain
+        except InvalidToken:
+            continue
+        except Exception:
+            break
+    logger.error("OpenClaw 配置解密失败（所有已知密钥均不匹配），将原样返回")
+    return value
+
+
+_legacy_warned = False
+
+
+def _warn_legacy_once():
+    """历史密钥命中提示只打一次，避免轮询日志刷屏"""
+    global _legacy_warned
+    if not _legacy_warned:
+        _legacy_warned = True
+        logger.warning(
+            "OpenClaw 配置使用历史密钥解密成功，请在 OpenClaw 管理页重新保存以迁移到新密钥"
+        )
 
 
 DEFAULT_CONFIGS = {

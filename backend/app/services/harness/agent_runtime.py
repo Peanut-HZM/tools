@@ -142,7 +142,7 @@ class AgentRuntime:
                 except Exception as e:
                     self._safe_end_step(step, error=str(e))
                     logger.error(f"LLM 调用失败: {e}", exc_info=True)
-                    yield Event.error("LLM 调用失败")
+                    yield Event.error(self._llm_error_message(e))
                     yield Event.done(self._fallback_message("llm_error"))
                     return
 
@@ -612,6 +612,29 @@ class AgentRuntime:
         except Exception as e:
             logger.error(f"加载 agent slug={slug} 失败: {e}", exc_info=True)
             return None
+
+    def _llm_error_message(self, exc: Exception) -> str:
+        """
+        构造透传给前端的 LLM 错误消息。
+
+        兜底链全部失败时（AllModelsUnavailableError）汇总各模型的失败原因，
+        让「API Key 解密失败请重新录入」等配置类问题直接可见，
+        而不是笼统的「LLM 调用失败」；其余异常取首行并截断。
+        """
+        try:
+            from app.services.llm.exceptions import AllModelsUnavailableError
+
+            if isinstance(exc, AllModelsUnavailableError) and exc.failures:
+                # 去重保持顺序，避免同一原因刷屏
+                reasons = list(dict.fromkeys(r for _, r in exc.failures))
+                detail = "；".join(reasons)[:300]
+                if detail:
+                    return f"LLM 调用失败：{detail}"
+        except Exception:
+            pass
+        text = str(exc).strip()
+        first_line = text.splitlines()[0][:200] if text else ""
+        return f"LLM 调用失败：{first_line}" if first_line else "LLM 调用失败"
 
     def _fallback_message(self, reason: str) -> str:
         """根据原因返回用户友好的兜底消息"""

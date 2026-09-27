@@ -35,6 +35,9 @@ from app.models.llm_provider import LLMProvider
 from app.models.llm_model import LLMModel
 from app.models.agent import Agent
 
+# 应用级密钥（主密钥入库，根治多环境密钥不一致）
+from app.models.app_secret import AppSecret  # noqa: F401
+
 # CrossShare 跨设备共享模型
 from app.models.cross_share import (
     Device,

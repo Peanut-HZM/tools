@@ -304,7 +304,7 @@ async def create_file(
 ):
     """Create a new file."""
     try:
-        service = MarkdownFileService(user_id)
+        service = get_file_service(user_id)
         result = service.create_file(request.path, request.content or "")
         if not result.success:
             if "already exists" in result.message.lower():
@@ -326,7 +326,7 @@ async def delete_file(
 ):
     """Delete a file."""
     try:
-        service = MarkdownFileService(user_id)
+        service = get_file_service(user_id)
         result = service.delete_file(path)
         if not result.success:
             if "not found" in result.message.lower():
@@ -347,7 +347,7 @@ async def rename_file(
 ):
     """Rename a file."""
     try:
-        service = MarkdownFileService(user_id)
+        service = get_file_service(user_id)
         result = service.rename_file(request.old_path, request.new_path)
         if not result.success:
             if "not found" in result.message.lower():
@@ -372,7 +372,7 @@ async def create_directory(
 ):
     """Create a new directory."""
     try:
-        service = MarkdownFileService(user_id)
+        service = get_file_service(user_id)
         result = service.create_directory(path)
         if not result.success:
             if "already exists" in result.message.lower():
@@ -395,7 +395,7 @@ async def delete_directory(
 ):
     """Delete a directory. Requires recursive=True to delete non-empty directories."""
     try:
-        service = MarkdownFileService(user_id)
+        service = get_file_service(user_id)
         result = service.delete_directory(path, recursive)
         if not result.success:
             if "not found" in result.message.lower():

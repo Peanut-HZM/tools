@@ -610,6 +610,12 @@ def _upsert_records(
                 total_tokens=rec["total_tokens"],
                 total_cost=rec["total_cost"],
             ))
+            # SessionLocal 配置了 autoflush=False，同一批同步里后续相同
+            # (record_date, model) 的记录查询不到刚 add 的行（v2 zcode 与
+            # 本地 zcode 读取器就可能各产出一条同 key 记录），最终 commit 时
+            # 两条一起 INSERT 触发唯一约束冲突。这里立即 flush，保证后续
+            # 查询能看到已插入的行并走 UPDATE 分支。
+            db.flush()
             count += 1
         else:
             changed = (

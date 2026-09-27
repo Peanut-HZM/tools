@@ -1,46 +1,39 @@
 """
 安全模块 - API Key 加密/解密
 使用 AES-256-GCM 算法
+
+主密钥管理（key-in-DB，根治多环境密钥不一致）：
+    主密钥不再来自各环境 .env 的 DB_ENCRYPTION_KEY，而是存放在共享数据库
+    app_secrets 表（key_id='llm_master_key'），首次使用时自动生成。
+    任何能连接同一数据库的环境都会取到同一把主密钥，密文天然互通。
+    特殊场景（测试 / 显式固定密钥）可通过 TOOLBOX_APP_SECRET_HEX 指定，
+    详见 app/core/app_secrets.py。
+
+密文格式：
+    v1:<base64(iv[12] + ciphertext + tag)>
+    带版本前缀便于将来密钥轮换；读取时兼容无前缀的历史密文（用当前
+    主密钥解密，解不开由调用方处理）。
 """
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import base64
 import os
-from app.config.config import settings
+
+from app.core.app_secrets import get_or_create_secret
+
+# 主密钥在 app_secrets 表中的 key_id
+LLM_MASTER_KEY_ID = "llm_master_key"
+
+# 密文版本前缀
+_VERSION_PREFIX = "v1:"
 
 
-# 使用现有的数据库加密密钥
-# 如果不存在则使用默认密钥（仅开发环境）
-MASTER_KEY_HEX = settings.DB_ENCRYPTION_KEY
-if not MASTER_KEY_HEX:
-    raise ValueError("DB_ENCRYPTION_KEY configuration is required")
-
-# 转换密钥为 bytes（如果密钥是 base64 编码，先解码）
-try:
-    # 尝试作为 hex 解码
-    MASTER_KEY = bytes.fromhex(MASTER_KEY_HEX)
-except ValueError:
-    try:
-        # 如果不是 hex，尝试作为 base64 解码
-        MASTER_KEY = base64.b64decode(MASTER_KEY_HEX, validate=True)
-    except (base64.binascii.Error, ValueError):
-        # 既非 hex 也非 base64（例如 .env.example 占位符）——退化为 UTF-8 字节，
-        # 后续会通过 PBKDF2 哈希到 32 字节，仅用于开发环境启动。
-        MASTER_KEY = MASTER_KEY_HEX.encode("utf-8")
-
-# 确保密钥长度为 32 字节
-if len(MASTER_KEY) != 32:
-    # 使用 SHA256 哈希密钥到 32 字节
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=b"product-manager-agent-salt",
-        iterations=100000,
-    )
-    MASTER_KEY = kdf.derive(MASTER_KEY)
+def _load_master_key() -> bytes:
+    """加载主密钥（app_secrets 懒加载，进程内缓存）"""
+    key = get_or_create_secret(LLM_MASTER_KEY_ID, 32)
+    if len(key) != 32:
+        raise RuntimeError("llm_master_key 长度异常，应为 32 字节")
+    return key
 
 
 def encrypt_api_key(plaintext_api_key: str) -> str:
@@ -51,23 +44,14 @@ def encrypt_api_key(plaintext_api_key: str) -> str:
         plaintext_api_key: 明文 API Key
 
     Returns:
-        base64 编码的加密字符串 (iv + ciphertext + tag)
+        "v1:" 前缀 + base64 编码的加密字符串 (iv + ciphertext + tag)
     """
-    # 生成随机 IV (12 bytes for GCM)
     iv = os.urandom(12)
-
-    # 创建 AESGCM 实例
-    aesgcm = AESGCM(MASTER_KEY)
-
-    # 加密数据
+    aesgcm = AESGCM(_load_master_key())
     plaintext_bytes = plaintext_api_key.encode("utf-8")
     ciphertext = aesgcm.encrypt(iv, plaintext_bytes, None)
-
     # iv (12 bytes) + ciphertext (includes tag)
-    encrypted_data = iv + ciphertext
-
-    # 返回 base64 编码的字符串
-    return base64.b64encode(encrypted_data).decode("utf-8")
+    return _VERSION_PREFIX + base64.b64encode(iv + ciphertext).decode("utf-8")
 
 
 def decrypt_api_key(encrypted_api_key: str) -> str:
@@ -75,22 +59,20 @@ def decrypt_api_key(encrypted_api_key: str) -> str:
     解密 API Key
 
     Args:
-        encrypted_api_key: base64 编码的加密字符串
+        encrypted_api_key: "v1:" 前缀（可选）+ base64 编码的加密字符串
 
     Returns:
         明文 API Key
     """
-    # 解码 base64
-    encrypted_data = base64.b64decode(encrypted_api_key.encode("utf-8"))
+    data = encrypted_api_key
+    if data.startswith(_VERSION_PREFIX):
+        data = data[len(_VERSION_PREFIX):]
 
+    encrypted_data = base64.b64decode(data.encode("utf-8"))
     # 提取 iv (前12字节)
     iv = encrypted_data[:12]
     ciphertext = encrypted_data[12:]
 
-    # 创建 AESGCM 实例
-    aesgcm = AESGCM(MASTER_KEY)
-
-    # 解密
+    aesgcm = AESGCM(_load_master_key())
     plaintext_bytes = aesgcm.decrypt(iv, ciphertext, None)
-
     return plaintext_bytes.decode("utf-8")

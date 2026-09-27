@@ -232,6 +232,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"记忆回填启动检查失败（功能将不可用）: {e}")
 
+    # LLM API Key 密钥自检：提前暴露「密文与主密钥不匹配」类配置问题
+    try:
+        from app.services.llm_provider_service import check_provider_keys_health
+        check_provider_keys_health()
+    except Exception as e:
+        logger.warning(f"[密钥自检] 执行异常（不影响启动）: {e}")
+
     # 打印启动完成信号（dev-services.py 检测此关键字）
     logger.info("Application startup complete")
 
@@ -332,23 +339,16 @@ def _check_security_settings():
     # 开发环境安全默认值
     DEV_DEFAULTS = [
         "dev-jwt-secret-change-me",
-        "dev-db-encryption-change-me",
     ]
 
     if settings.JWT_SECRET_KEY in DEFAULT_KEYS or settings.JWT_SECRET_KEY in DEV_DEFAULTS:
         logger.warning("JWT_SECRET_KEY 使用了默认硬编码值，生产环境请务必更换！运行: python scripts/generate_keys.py")
 
-    if settings.DB_ENCRYPTION_KEY in DEFAULT_KEYS or settings.DB_ENCRYPTION_KEY in DEV_DEFAULTS:
-        logger.warning("DB_ENCRYPTION_KEY 使用了默认硬编码值，生产环境请务必更换！")
-
-    if settings.JWT_SECRET_KEY == settings.DB_ENCRYPTION_KEY:
-        logger.warning("JWT_SECRET_KEY 和 DB_ENCRYPTION_KEY 相同，建议配置为不同的密钥")
-
     if len(settings.JWT_SECRET_KEY) < 32:
         logger.warning("JWT_SECRET_KEY 长度不足 32 字符，建议更换为更长的随机密钥")
 
-    if len(settings.DB_ENCRYPTION_KEY) < 32:
-        logger.warning("DB_ENCRYPTION_KEY 长度不足 32 字符，建议更换为更长的随机密钥")
+    # 注：DB_ENCRYPTION_KEY 已废弃（LLM API Key 主密钥改为存放在 app_secrets 表，
+    # 随数据库走、多环境天然一致），不再需要对其做默认值/长度检查。
 
     # 生产环境额外检查
     if settings.ENV == "prod":
