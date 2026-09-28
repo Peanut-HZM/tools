@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#031f1c"/>
+      <stop offset="0.55" stop-color="#0b4f45"/>
+      <stop offset="1" stop-color="#021513"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.78" cy="0.3" r="0.5">
+      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.15" cy="0.85" r="0.45">
+      <stop offset="0" stop-color="#34d399" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#34d399" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <rect width="1200" height="675" fill="url(#glow1)"/>
+  <rect width="1200" height="675" fill="url(#glow2)"/>
+
+  <!-- 未来母题：火箭轨迹 + 六层护盾 + 趋势曲线 -->
+  <g>
+    <path d="M 780 520 C 880 460, 950 380, 1040 240" stroke="#2dd4bf" stroke-width="2.5" fill="none" stroke-opacity="0.7" stroke-dasharray="2 8" stroke-linecap="round"/>
+    <g transform="translate(1052,222) rotate(42)">
+      <path d="M0,-26 C10,-14 12,4 6,18 L-6,18 C-12,4 -10,-14 0,-26 Z" fill="#5eead4"/>
+      <circle cx="0" cy="-6" r="4.5" fill="#021513"/>
+      <path d="M-6,10 L-15,24 L-4,20 Z" fill="#2dd4bf"/>
+      <path d="M6,10 L15,24 L4,20 Z" fill="#2dd4bf"/>
+    </g>
+    <!-- 六层护盾 -->
+    <g transform="translate(960,430)">
+      <path d="M0,-58 C20,-46 40,-40 52,-38 C52,6 34,44 0,62 C-34,44 -52,6 -52,-38 C-40,-40 -20,-46 0,-58 Z"
+            fill="#042f2e" stroke="#2dd4bf" stroke-opacity="0.75" stroke-width="2.5"/>
+      <text text-anchor="middle" y="6" font-size="15" fill="#99f6e4">6 层防御</text>
+      <text text-anchor="middle" y="28" font-size="13" fill="#2dd4bf" opacity="0.8">Security</text>
+    </g>
+    <!-- 趋势折线 -->
+    <polyline points="760,300 830,270 900,282 970,225 1040,196 1110,150"
+              fill="none" stroke="#34d399" stroke-width="3" stroke-opacity="0.8" stroke-linecap="round"/>
+    <g fill="#34d399">
+      <circle cx="830" cy="270" r="4"/><circle cx="970" cy="225" r="4"/><circle cx="1110" cy="150" r="5"/>
+    </g>
+    <text x="762" y="336" font-family="'Microsoft YaHei',sans-serif" font-size="16" fill="#6ee7b7" opacity="0.9">MCP · 多模态 · 智能体经济</text>
+  </g>
+
+  <!-- 左侧文字区 -->
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif">
+    <rect x="80" y="120" width="176" height="40" rx="20" fill="#2dd4bf" fill-opacity="0.14" stroke="#2dd4bf" stroke-opacity="0.5"/>
+    <text x="168" y="147" text-anchor="middle" font-size="19" fill="#5eead4" letter-spacing="2">AI 觉醒系列 · 04</text>
+
+    <text x="80" y="268" font-size="66" font-weight="bold" fill="#ecfdf5">驾驭未来</text>
+    <text x="80" y="348" font-size="34" fill="#99f6e4">局限、安全与展望</text>
+
+    <rect x="82" y="388" width="230" height="6" rx="3" fill="url(#bar)"/>
+
+    <text x="80" y="452" font-size="22" fill="#9ccabb">五大局限 · 提示注入 · 六层防御 · 伦理边界</text>
+    <text x="80" y="490" font-size="22" fill="#9ccabb">MCP 趋势 · 智能体经济 · 进化路线图</text>
+
+    <text x="80" y="580" font-size="20" fill="#cbd5e1">📚 5 个章节 · ⏱ 80 分钟 · ✍️ 每章配测验</text>
+    <text x="80" y="622" font-size="19" fill="#4d7a70">系列收官 · 建议先修前三门</text>
+  </g>
+
+  <g transform="translate(1050,80)">
+    <circle r="40" fill="#021513" stroke="#2dd4bf" stroke-opacity="0.55" stroke-width="2"/>
+    <text text-anchor="middle" y="9" font-size="27">🚀</text>
+  </g>
+</svg>

@@ -21,21 +21,21 @@ vi.mock('recharts', () => ({
   Tooltip: () => null,
 }));
 
-const slice = (key: string, label: string, tokens: number, cost = 0): PieSlice => ({
-  key, label, tokens, cost,
+const slice = (key: string, label: string, tokens: number): PieSlice => ({
+  key, label, tokens,
 });
 
 const sampleData = [
-  slice('a', '设备 A', 1000, 5),
-  slice('b', '设备 B', 800, 4),
-  slice('c', '设备 C', 600, 3),
-  slice('d', '设备 D', 400, 2),
-  slice('e', '设备 E', 200, 1),
+  slice('a', '设备 A', 1000),
+  slice('b', '设备 B', 800),
+  slice('c', '设备 C', 600),
+  slice('d', '设备 D', 400),
+  slice('e', '设备 E', 200),
 ];
 
 describe('DimensionPieCard 渲染', () => {
   it('渲染 5 项数据：PieChart + 5 个 Cell + 5 行 legend', () => {
-    render(<DimensionPieCard title="设备" data={sampleData} totalTokens={3000} metric="tokens" />);
+    render(<DimensionPieCard title="设备" data={sampleData} totalTokens={3000} />);
     expect(screen.getByTestId('pie-chart')).toBeTruthy();
     expect(screen.getAllByTestId('cell')).toHaveLength(5);
     expect(screen.getByText('设备 A')).toBeTruthy();
@@ -49,7 +49,7 @@ describe('DimensionPieCard 渲染', () => {
       slice('mid', 'Mid', 500),
     ];
     const { container } = render(
-      <DimensionPieCard title="X" data={unsorted} totalTokens={1500} metric="tokens" />
+      <DimensionPieCard title="X" data={unsorted} totalTokens={1500} />
     );
     const cells = container.querySelectorAll('[data-testid="cell"]');
     const cellsByKey = Array.from(cells).map(c => c.getAttribute('data-fill'));
@@ -61,7 +61,7 @@ describe('DimensionPieCard 渲染', () => {
 describe('DimensionPieCard 切片显示', () => {
   it('12 项数据：全部 12 个 Cell 都渲染，无"其他"聚合', () => {
     const twelve = Array.from({ length: 12 }, (_, i) => slice(`s${i}`, `设备 ${i}`, 100 - i * 5));
-    render(<DimensionPieCard title="设备" data={twelve} totalTokens={1000} metric="tokens" />);
+    render(<DimensionPieCard title="设备" data={twelve} totalTokens={1000} />);
     expect(screen.getAllByTestId('cell')).toHaveLength(12);
     expect(screen.queryByText('其他')).toBeNull();
   });
@@ -69,7 +69,7 @@ describe('DimensionPieCard 切片显示', () => {
   it('20 项数据：全部渲染，图例可滚动', () => {
     const twenty = Array.from({ length: 20 }, (_, i) => slice(`s${i}`, `模型 ${i}`, 200 - i * 8));
     const { container } = render(
-      <DimensionPieCard title="模型" data={twenty} totalTokens={2000} metric="tokens" />
+      <DimensionPieCard title="模型" data={twenty} totalTokens={2000} />
     );
     expect(screen.getAllByTestId('cell')).toHaveLength(20);
     // 图例区域应有滚动能力
@@ -81,7 +81,7 @@ describe('DimensionPieCard 切片显示', () => {
 describe('DimensionPieCard 中心 Label', () => {
   it('totalTokens=123_456_789 → 中心显示 "1.2亿" + "Token"', () => {
     render(
-      <DimensionPieCard title="设备" data={sampleData} totalTokens={123_456_789} metric="tokens" />
+      <DimensionPieCard title="设备" data={sampleData} totalTokens={123_456_789} />
     );
     expect(screen.getByText('1.2亿')).toBeTruthy();
     expect(screen.getByText('Token')).toBeTruthy();
@@ -96,7 +96,6 @@ describe('DimensionPieCard 点击交互', () => {
         title="设备"
         data={sampleData}
         totalTokens={3000}
-        metric="tokens"
         onSelect={onSelect}
       />
     );
@@ -107,30 +106,23 @@ describe('DimensionPieCard 点击交互', () => {
   });
 
   it('未传 onSelect：点击不触发任何回调，不报错', () => {
-    render(<DimensionPieCard title="设备" data={sampleData} totalTokens={3000} metric="tokens" />);
+    render(<DimensionPieCard title="设备" data={sampleData} totalTokens={3000} />);
     const pie = screen.getByTestId('pie');
     expect(() => fireEvent.click(pie)).not.toThrow();
   });
 });
 
 describe('DimensionPieCard Tooltip', () => {
-  it('metric="cost" 时 PieChart 正常渲染（Tooltip 在 PieChart 内）', () => {
+  it('PieChart 正常渲染（Tooltip 在 PieChart 内）', () => {
     const { container } = render(
-      <DimensionPieCard title="模型成本占比" data={sampleData} totalTokens={3000} metric="cost" />
-    );
-    expect(container.querySelector('[data-testid="pie-chart"]')).toBeTruthy();
-  });
-
-  it('metric="tokens" 时 PieChart 正常渲染', () => {
-    const { container } = render(
-      <DimensionPieCard title="设备" data={sampleData} totalTokens={3000} metric="tokens" />
+      <DimensionPieCard title="设备" data={sampleData} totalTokens={3000} />
     );
     expect(container.querySelector('[data-testid="pie-chart"]')).toBeTruthy();
   });
 
   it('每个 slice 带 percent 字段（由 totalTokens 计算）', () => {
     const { container } = render(
-      <DimensionPieCard title="设备" data={sampleData} totalTokens={3000} metric="tokens" />
+      <DimensionPieCard title="设备" data={sampleData} totalTokens={3000} />
     );
     const cells = container.querySelectorAll('[data-testid="cell"]');
     // 5 项数据全部渲染
@@ -142,14 +134,14 @@ describe('DimensionPieCard Tooltip', () => {
 
 describe('DimensionPieCard 空数据', () => {
   it('data=[]：显示 "暂无数据"，PieChart 不渲染', () => {
-    render(<DimensionPieCard title="设备" data={[]} totalTokens={0} metric="tokens" />);
+    render(<DimensionPieCard title="设备" data={[]} totalTokens={0} />);
     expect(screen.getByText('暂无数据')).toBeTruthy();
     expect(screen.queryByTestId('pie-chart')).toBeNull();
   });
 
   it('全为 0：显示 "暂无 Token 数据"', () => {
     const zeroData = [slice('a', 'A', 0), slice('b', 'B', 0)];
-    render(<DimensionPieCard title="设备" data={zeroData} totalTokens={0} metric="tokens" />);
+    render(<DimensionPieCard title="设备" data={zeroData} totalTokens={0} />);
     expect(screen.getByText('暂无 Token 数据')).toBeTruthy();
   });
 });
@@ -158,7 +150,7 @@ describe('DimensionPieCard 颜色', () => {
   it('所有项用 COLORS 调色板循环取色（无"其他"专用色）', () => {
     const ten = Array.from({ length: 10 }, (_, i) => slice(`s${i}`, `X${i}`, 100 - i));
     const { container } = render(
-      <DimensionPieCard title="设备" data={ten} totalTokens={1000} metric="tokens" />
+      <DimensionPieCard title="设备" data={ten} totalTokens={1000} />
     );
     const cells = container.querySelectorAll('[data-testid="cell"]');
     const fills = Array.from(cells).map(c => c.getAttribute('data-fill'));
@@ -177,7 +169,6 @@ describe('DimensionPieCard 选中态', () => {
         title="设备"
         data={sampleData}
         totalTokens={3000}
-        metric="tokens"
         selectedKey="a"
       />
     );

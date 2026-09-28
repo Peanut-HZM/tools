@@ -8,7 +8,6 @@ export interface PieSlice {
   key: string;
   label: string;
   tokens: number;
-  cost: number;
   isOther?: boolean;
   percent?: number;
 }
@@ -18,7 +17,6 @@ interface DimensionPieCardProps {
   data: PieSlice[];
   totalTokens: number;
   selectedKey?: string;
-  metric: 'tokens' | 'cost';
   onSelect?: (key: string) => void;
   emptyHint?: string;
 }
@@ -31,23 +29,18 @@ function formatToken(num: number): string {
   return num.toLocaleString('zh-CN');
 }
 
-function formatCurrency(num: number): string {
-  return `$${Number(num || 0).toFixed(2)}`;
-}
-
 const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   title,
   data,
   totalTokens,
   selectedKey,
-  metric,
   onSelect,
   emptyHint = '暂无数据',
 }) => {
   const processed = useMemo(() => {
     // 区分 2 种空状态：data 未提供 vs data 全为 0
     if (data.length === 0) return { type: 'empty-no-data' as const };
-    const valid = data.filter(d => d.tokens > 0 || d.cost > 0);
+    const valid = data.filter(d => d.tokens > 0);
     if (valid.length === 0) return { type: 'empty-all-zero' as const };
     // 去掉 Top N 限制，显示全部切片，按 tokens 降序
     const sorted = [...valid].sort((a, b) => b.tokens - a.tokens);
@@ -75,11 +68,6 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   }
 
   const slices = processed.slices;
-  const displayValue = (s: PieSlice) => metric === 'cost' ? s.cost : s.tokens;
-  const valueLabel = (s: PieSlice) =>
-    metric === 'cost'
-      ? `${formatCurrency(s.cost)} / ${formatToken(s.tokens)} Token`
-      : `${formatToken(s.tokens)} Token / ${formatCurrency(s.cost)}`;
 
   return (
     <Card className="p-3 h-80 flex flex-col">
@@ -93,7 +81,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
             <PieChart>
               <Pie
                 data={slices}
-                dataKey={metric === 'cost' ? 'cost' : 'tokens'}
+                dataKey="tokens"
                 nameKey="label"
                 cx="50%"
                 cy="50%"
@@ -130,17 +118,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                     <div className="rounded border border-border bg-canvas px-3 py-2 text-xs text-ink shadow-lg">
                       <div className="mb-1 font-medium text-ink">{title}</div>
                       <div className="mb-1 text-ink-muted">{slice.label}</div>
-                      {metric === 'cost' ? (
-                        <>
-                          <div>{formatCurrency(slice.cost)} <span className="text-ink-faint">({pct})</span></div>
-                          <div className="text-ink-muted">{formatToken(slice.tokens)} Token</div>
-                        </>
-                      ) : (
-                        <>
-                          <div>{formatToken(slice.tokens)} Token <span className="text-ink-faint">({pct})</span></div>
-                          <div className="text-ink-muted">{formatCurrency(slice.cost)}</div>
-                        </>
-                      )}
+                      <div>{formatToken(slice.tokens)} Token <span className="text-ink-faint">({pct})</span></div>
                     </div>
                   );
                 }}
@@ -163,7 +141,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                 <span className="truncate">{s.label}</span>
               </span>
               <span className="font-mono text-ink-muted">
-                {metric === 'cost' ? formatCurrency(displayValue(s)) : `${formatToken(displayValue(s))} Token`}
+                {`${formatToken(s.tokens)} Token`}
               </span>
             </div>
           ))}

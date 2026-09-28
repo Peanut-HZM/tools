@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a1408"/>
+      <stop offset="0.55" stop-color="#7c3a0d"/>
+      <stop offset="1" stop-color="#1f1006"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.8" cy="0.28" r="0.5">
+      <stop offset="0" stop-color="#fbbf24" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.12" cy="0.85" r="0.45">
+      <stop offset="0" stop-color="#fb923c" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#fb923c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <rect width="1200" height="675" fill="url(#glow1)"/>
+  <rect width="1200" height="675" fill="url(#glow2)"/>
+
+  <!-- 实战场景母题：四个场景卡片 -->
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif">
+    <g transform="translate(880,150)">
+      <rect x="-95" y="-42" width="190" height="84" rx="14" fill="#431407" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="2"/>
+      <text text-anchor="middle" y="-6" font-size="26">🐛 → ✅</text>
+      <text text-anchor="middle" y="28" font-size="18" fill="#fde68a">开发修 Bug</text>
+    </g>
+    <g transform="translate(1090,300)">
+      <rect x="-95" y="-42" width="190" height="84" rx="14" fill="#431407" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="2"/>
+      <text text-anchor="middle" y="-6" font-size="26">📊 📈</text>
+      <text text-anchor="middle" y="28" font-size="18" fill="#fde68a">数据分析</text>
+    </g>
+    <g transform="translate(880,450)">
+      <rect x="-95" y="-42" width="190" height="84" rx="14" fill="#431407" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="2"/>
+      <text text-anchor="middle" y="-6" font-size="26">✉️ ⚙️</text>
+      <text text-anchor="middle" y="28" font-size="18" fill="#fde68a">工作流自动化</text>
+    </g>
+    <g transform="translate(1090,560)">
+      <rect x="-95" y="-42" width="190" height="84" rx="14" fill="#431407" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="2"/>
+      <text text-anchor="middle" y="-6" font-size="26">✍️ 🎨</text>
+      <text text-anchor="middle" y="28" font-size="18" fill="#fde68a">内容创作</text>
+    </g>
+    <g stroke="#fbbf24" stroke-width="2" stroke-opacity="0.5" fill="none" stroke-dasharray="7 6">
+      <path d="M 788 175 C 730 250, 730 380, 788 425"/>
+      <path d="M 995 330 L 985 425"/>
+      <path d="M 975 175 L 985 250"/>
+      <path d="M 790 480 C 850 540, 950 555, 995 540"/>
+    </g>
+  </g>
+
+  <!-- 左侧文字区 -->
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif">
+    <rect x="80" y="120" width="176" height="40" rx="20" fill="#fbbf24" fill-opacity="0.14" stroke="#fbbf24" stroke-opacity="0.5"/>
+    <text x="168" y="147" text-anchor="middle" font-size="19" fill="#fde68a" letter-spacing="2">AI 觉醒系列 · 03</text>
+
+    <text x="80" y="268" font-size="66" font-weight="bold" fill="#fffbeb">智能体实战</text>
+    <text x="80" y="348" font-size="34" fill="#fde68a">场景、提示与信任</text>
+
+    <rect x="82" y="388" width="230" height="6" rx="3" fill="url(#bar)"/>
+
+    <text x="80" y="452" font-size="22" fill="#d6bb92">开发修 Bug · 数据分析 · 工作流 · 内容创作</text>
+    <text x="80" y="490" font-size="22" fill="#d6bb92">任务委托四要素 · 信任阶梯 · 护栏设计</text>
+
+    <text x="80" y="580" font-size="20" fill="#cbd5e1">📚 6 个章节 · ⏱ 100 分钟 · ✍️ 每章配测验</text>
+    <text x="80" y="622" font-size="19" fill="#8a6a45">建议先修《智能体入门》</text>
+  </g>
+
+  <g transform="translate(1050,80)">
+    <circle r="40" fill="#1f1006" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="2"/>
+    <text text-anchor="middle" y="9" font-size="27">🛠️</text>
+  </g>
+</svg>

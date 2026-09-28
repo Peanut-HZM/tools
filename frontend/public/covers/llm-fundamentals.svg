@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1e3a"/>
+      <stop offset="0.55" stop-color="#123a6b"/>
+      <stop offset="1" stop-color="#0a1630"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.78" cy="0.3" r="0.5">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.15" cy="0.85" r="0.45">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <rect width="1200" height="675" fill="url(#glow1)"/>
+  <rect width="1200" height="675" fill="url(#glow2)"/>
+
+  <!-- 电路网格母题：大模型 = 互联的词元 -->
+  <g stroke="#38bdf8" stroke-opacity="0.28" stroke-width="1.6" fill="none">
+    <path d="M820 150 L920 110 L1030 160 L1120 120"/>
+    <path d="M820 150 L900 240 L1030 160"/>
+    <path d="M900 240 L1010 330 L1120 250"/>
+    <path d="M840 420 L960 380 L1080 450"/>
+    <path d="M780 520 L900 470 L1020 540 L1130 480"/>
+    <path d="M900 240 L960 380"/>
+    <path d="M1030 160 L1010 330"/>
+    <path d="M960 380 L1020 540"/>
+  </g>
+  <g fill="#7dd3fc">
+    <circle cx="820" cy="150" r="7"/><circle cx="920" cy="110" r="5"/>
+    <circle cx="1030" cy="160" r="8"/><circle cx="1120" cy="120" r="5"/>
+    <circle cx="900" cy="240" r="9"/><circle cx="1010" cy="330" r="6"/>
+    <circle cx="1120" cy="250" r="5"/><circle cx="840" cy="420" r="5"/>
+    <circle cx="960" cy="380" r="8"/><circle cx="1080" cy="450" r="5"/>
+    <circle cx="780" cy="520" r="6"/><circle cx="900" cy="470" r="5"/>
+    <circle cx="1020" cy="540" r="7"/><circle cx="1130" cy="480" r="5"/>
+  </g>
+  <g fill="#e0f2fe" font-family="Consolas, monospace" font-size="17" opacity="0.85">
+    <text x="888" y="228">AI</text>
+    <text x="998" y="352">中</text>
+    <text x="948" y="402">LLM</text>
+    <text x="795" y="545">Token</text>
+  </g>
+
+  <!-- 左侧文字区 -->
+  <g font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif">
+    <rect x="80" y="120" width="176" height="40" rx="20" fill="#38bdf8" fill-opacity="0.14" stroke="#38bdf8" stroke-opacity="0.5"/>
+    <text x="168" y="147" text-anchor="middle" font-size="19" fill="#7dd3fc" letter-spacing="2">AI 觉醒系列 · 01</text>
+
+    <text x="80" y="268" font-size="66" font-weight="bold" fill="#f1f5f9">大模型基础</text>
+    <text x="80" y="348" font-size="34" fill="#bae6fd">看懂 AI 时代的"新电力"</text>
+
+    <rect x="82" y="388" width="230" height="6" rx="3" fill="url(#bar)"/>
+
+    <text x="80" y="452" font-size="22" fill="#94a3b8">Token · 概率预测 · 上下文窗口 · Transformer</text>
+    <text x="80" y="490" font-size="22" fill="#94a3b8">提示词工程 · 幻觉与边界</text>
+
+    <g font-size="20" fill="#cbd5e1">
+      <text x="80" y="580">📚 5 个章节 · ⏱ 90 分钟 · ✍️ 每章配测验</text>
+    </g>
+    <text x="80" y="622" font-size="19" fill="#64748b">零基础入门 · 由浅入深</text>
+  </g>
+
+  <!-- 右下角徽章 -->
+  <g transform="translate(1050,585)">
+    <circle r="42" fill="#0f172a" stroke="#38bdf8" stroke-opacity="0.55" stroke-width="2"/>
+    <text text-anchor="middle" y="8" font-size="30">🧠</text>
+  </g>
+</svg>
