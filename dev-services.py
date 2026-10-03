@@ -932,8 +932,10 @@ def _build_python_service(directory: Path) -> Optional[Service]:
         start_cmd=cmd,
         health_keyword=keyword,
         health_url=f"http://127.0.0.1:{port}",
-        health_timeout=30,
-        keyword_timeout=60 if has_fastapi else 30,
+        # Python 后端启动时事件循环可能被同步初始化任务阻塞（OpenClaw 连接、
+        # Token Usage 同步、定时任务注册等），30 秒窗口不够，与 Spring Boot 对齐放宽到 120 秒
+        health_timeout=120,
+        keyword_timeout=120 if has_fastapi else 60,
     )
 
 
