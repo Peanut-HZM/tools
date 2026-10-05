@@ -599,6 +599,8 @@ from starlette.routing import WebSocketRoute as _WerewolfWSRoute
 
 app.router.routes.append(_WerewolfWSRoute("/api/games/werewolf/rooms/{room_id}/ws",
                                           werewolf_router.room_ws))
+app.router.routes.append(_WerewolfWSRoute("/api/games/sanguo/rooms/{room_id}/ws",
+                                          sanguo_router.sanguo_room_ws))
 
 # OpenClaw Admin router
 from app.routes import openclaw_admin as openclaw_admin_router
