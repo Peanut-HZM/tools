@@ -35,6 +35,16 @@ export default function GameCenter() {
             <Text className='game-card__arrow'>›</Text>
           </View>
         ))}
+        <View className='glass-card game-card' onClick={() => {
+          Taro.navigateTo({ url: '/package-game/pages/werewolf/records/index' })
+        }}>
+          <View className='game-card__icon' style={{ background: 'linear-gradient(135deg,#3d4a6b,#5C6784)' }}>📜</View>
+          <View className='game-card__info'>
+            <Text className='game-card__name'>对局记录</Text>
+            <Text className='game-card__desc'>回看已完成对局的完整过程</Text>
+          </View>
+          <Text className='game-card__arrow'>›</Text>
+        </View>
         <View className='glass-card game-card game-card--disabled'>
           <View className='game-card__icon game-card__icon--muted'>🎮</View>
           <View className='game-card__info'>

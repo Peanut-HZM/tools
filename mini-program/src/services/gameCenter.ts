@@ -73,4 +73,58 @@ export const gameApi = {
   /** 个人视角房间快照（断线重连兜底） */
   getRoom: (roomId: string) =>
     gameRequest<RoomView>(`/games/werewolf/rooms/${roomId}`),
+  /** 对局记录列表（不含回放时间线） */
+  listRecords: (limit = 20, offset = 0) =>
+    gameRequest<{ total: number; records: RecordListItem[] }>(
+      `/games/werewolf/records?limit=${limit}&offset=${offset}`),
+  /** 对局记录详情（含回放时间线与玩家明细） */
+  getRecord: (recordId: number) =>
+    gameRequest<RecordDetail>(`/games/werewolf/records/${recordId}`),
+}
+
+export interface RecordListItem {
+  id: number
+  room_id: string
+  board_name: string
+  player_count: number
+  winner: 'VILLAGER' | 'WEREWOLF'
+  day_count: number
+  duration_seconds: number
+  created_at: string | null
+}
+
+export interface TimelineItem {
+  seq: number
+  kind: 'event' | 'speech' | 'vote'
+  text?: string
+  seat?: number
+  nickname?: string
+  day?: number
+  last_words?: boolean
+  pk?: boolean
+  vote_kind?: string
+  detail?: { voter: number; target: number | null }[]
+  exiled?: number | null
+}
+
+export interface RecordDetail {
+  record: {
+    id: number
+    room_id: string
+    board_name: string
+    player_count: number
+    winner: string
+    day_count: number
+    duration_seconds: number
+    config: Record<string, any>
+    timeline: { events: any[]; speeches: any[]; votes: any[]; timeline: TimelineItem[] }
+    created_at: string | null
+  }
+  players: {
+    user_id: string
+    nickname: string
+    role: string
+    alive_at_end: boolean
+    is_winner: boolean
+  }[]
 }

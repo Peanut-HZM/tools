@@ -245,6 +245,7 @@ class GameRoom:
     def settings_view(self) -> dict:
         s = self.settings
         return {"speech_seconds": s.speech_seconds, "vote_seconds": s.vote_seconds,
+                "night_seconds": s.night_seconds,
                 "witch_self_rescue": s.witch_self_rescue,
                 "witch_guard_conflict": s.witch_guard_conflict}
 
@@ -311,4 +312,5 @@ class GameRoom:
             "duration_seconds": max(0, duration),
             "config": {**self.settings_view(), "roles": self.board["roles"]},
             "players": players,
+            "timeline": eng.public_history(),
         }

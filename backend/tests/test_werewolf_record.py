@@ -22,6 +22,9 @@ def test_save_game_record(tmp_path, monkeypatch):
         "room_id": "123456", "board_name": "6人新手局", "player_count": 6,
         "winner": "VILLAGER", "day_count": 2, "duration_seconds": 600,
         "config": {"witch_self_rescue": "never"},
+        "timeline": {"events": [{"id": 1, "text": "对局开始"}], "speeches": [],
+                     "votes": [], "timeline": [{"seq": 1, "kind": "event",
+                                                "text": "对局开始"}]},
         "players": [
             {"user_id": "1", "nickname": "甲", "role": "WEREWOLF",
              "alive_at_end": False, "is_winner": False},
@@ -35,4 +38,5 @@ def test_save_game_record(tmp_path, monkeypatch):
         rec = db.query(WerewolfGameRecord).get(rid)
         assert rec.winner == "VILLAGER"
         assert rec.players[0].nickname == "甲"
+        assert rec.timeline["timeline"][0]["text"] == "对局开始"
         assert db.query(WerewolfGameRecordPlayer).count() == 2

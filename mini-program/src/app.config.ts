@@ -57,6 +57,7 @@ export default {
         'pages/game-center/index',
         'pages/werewolf/index',
         'pages/werewolf/room/index',
+      'pages/werewolf/records/index',
       ],
     },
   ],

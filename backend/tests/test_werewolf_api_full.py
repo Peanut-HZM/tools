@@ -177,3 +177,18 @@ def test_snapshot_forbidden_for_non_member_when_playing(client):
     client.post(f"/api/games/werewolf/rooms/{room_id}/start")
     as_user("99")
     assert client.get(f"/api/games/werewolf/rooms/{room_id}").status_code == 403
+
+
+def test_create_room_with_night_seconds(client):
+    """夜晚行动时长可配置（多 agent 对局需要更长决策时间）"""
+    res = client.post("/api/games/werewolf/rooms",
+                      json={"board_id": "6p", "night_seconds": 120})
+    assert res.status_code == 200
+    view = client.get(
+        f"/api/games/werewolf/rooms/{res.json()['room_id']}").json()
+    assert view["settings"]["night_seconds"] == 120
+
+
+def test_create_room_night_seconds_out_of_range(client):
+    assert client.post("/api/games/werewolf/rooms",
+                       json={"board_id": "6p", "night_seconds": 5}).status_code == 422

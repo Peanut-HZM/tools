@@ -19,6 +19,8 @@ from app.services.werewolf.boards import PRESET_BOARDS, GameSettings, validate_b
 from app.services.werewolf.engine import EngineError
 from app.services.werewolf.manager import RoomManager
 from app.services.werewolf.record import save_game_record
+from app.services.werewolf.records_query import get_record as query_record
+from app.services.werewolf.records_query import list_records as query_records
 from app.services.werewolf.room import GameRoom
 
 logger = logging.getLogger(__name__)
@@ -61,8 +63,10 @@ def _resolve_board(payload: CreateRoomRequest) -> dict:
     raise HTTPException(status_code=422, detail="必须选择预置板子或自定义角色")
 
 
-def _build_settings(speech: int, self_rescue: str, conflict: bool) -> GameSettings:
-    return GameSettings(speech_seconds=speech, witch_self_rescue=self_rescue,
+def _build_settings(speech: int, self_rescue: str, conflict: bool,
+                    night: int = 40) -> GameSettings:
+    return GameSettings(speech_seconds=speech, night_seconds=night,
+                        witch_self_rescue=self_rescue,
                         witch_guard_conflict=conflict)
 
 
@@ -116,7 +120,7 @@ async def create_room(payload: CreateRoomRequest,
                       user_id: str = Depends(get_current_user_id)):
     board = _resolve_board(payload)
     settings = _build_settings(payload.speech_seconds, payload.witch_self_rescue,
-                               payload.witch_guard_conflict)
+                               payload.witch_guard_conflict, payload.night_seconds)
     room = manager.create_room(int(user_id), _nickname_of(user_id), board, settings)
     room.on_broadcast = _make_broadcast(room)
     room.on_send = _make_sender(room)
@@ -229,6 +233,7 @@ async def update_config(room_id: str, payload: UpdateConfigRequest,
                  "roles": payload.custom_roles}
     settings = GameSettings(
         speech_seconds=payload.speech_seconds or room.settings.speech_seconds,
+        night_seconds=payload.night_seconds or room.settings.night_seconds,
         witch_self_rescue=payload.witch_self_rescue or room.settings.witch_self_rescue,
         witch_guard_conflict=(payload.witch_guard_conflict
                               if payload.witch_guard_conflict is not None
@@ -281,6 +286,22 @@ async def room_snapshot(room_id: str, user_id: str = Depends(get_current_user_id
     if int(user_id) not in room.members:
         raise HTTPException(status_code=403, detail="你不是该房间成员")
     return room.full_view(int(user_id))
+
+
+# ---------- 对局记录查询（回放） ----------
+@router.get("/records")
+async def records_list(limit: int = 20, offset: int = 0,
+                       user_id: str = Depends(get_current_user_id)):
+    return query_records(limit=limit, offset=offset)
+
+
+@router.get("/records/{record_id}")
+async def record_detail(record_id: int,
+                        user_id: str = Depends(get_current_user_id)):
+    data = query_record(record_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return data
 
 
 # ---------- WebSocket ----------

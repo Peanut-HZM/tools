@@ -8,6 +8,7 @@ class CreateRoomRequest(BaseModel):
     custom_roles: dict[str, int] | None = Field(None, description="自定义角色数量")
     board_name: str = Field("自定义局", max_length=32)
     speech_seconds: int = Field(60, ge=30, le=120)
+    night_seconds: int = Field(40, ge=15, le=180)
     witch_self_rescue: str = Field("never", pattern="^(never|first_night|always)$")
     witch_guard_conflict: bool = True
 
@@ -17,6 +18,7 @@ class UpdateConfigRequest(BaseModel):
     custom_roles: dict[str, int] | None = None
     board_name: str | None = None
     speech_seconds: int | None = Field(None, ge=30, le=120)
+    night_seconds: int | None = Field(None, ge=15, le=180)
     witch_self_rescue: str | None = Field(None,
                                              pattern="^(never|first_night|always)$")
     witch_guard_conflict: bool | None = None

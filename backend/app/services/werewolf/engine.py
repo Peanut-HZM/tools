@@ -111,6 +111,8 @@ class WerewolfEngine:
         self._next_speech_start = 1
         self._last_exiled_seat: int | None = None
         self._votes: dict[int, int | None] = {}
+        self._vote_history: list[dict] = []  # 每轮投票的公开票型（回放用）
+        self._timeline: list[dict] = []      # 统一回放时间线（按发生顺序交错）
         self._pk_seats: list[int] = []
         self._pk_seats_orig: list[int] = []
         # 流程待办
@@ -125,6 +127,19 @@ class WerewolfEngine:
     def _emit(self, text: str) -> None:
         self._event_seq += 1
         self._events.append({"id": self._event_seq, "text": text})
+        self._timeline.append({"kind": "event", "day": self.day,
+                               "phase": self.phase.value if hasattr(self, "phase") else "",
+                               "text": text})
+
+    def _timeline_speech(self, seat: int, nickname: str, content: str,
+                         last_words: bool = False, pk: bool = False) -> None:
+        self._timeline.append({"kind": "speech", "day": self.day, "seat": seat,
+                               "nickname": nickname, "text": content,
+                               "last_words": last_words, "pk": pk})
+
+    def _timeline_vote(self, kind: str, detail: list[dict], exiled: int | None) -> None:
+        self._timeline.append({"kind": "vote", "day": self.day,
+                               "vote_kind": kind, "detail": detail, "exiled": exiled})
 
     def _to(self, user_id: int, payload: dict) -> None:
         self._private_outbox.append((user_id, payload))
@@ -474,6 +489,8 @@ class WerewolfEngine:
         self._speeches.append({"seat": p.seat, "nickname": p.nickname,
                                "content": content, "day": self.day,
                                "pk": self.phase == Phase.PK_SPEECH})
+        self._timeline_speech(p.seat, p.nickname, content,
+                              pk=self.phase == Phase.PK_SPEECH)
         self._advance_speech(now)
 
     def _advance_speech(self, now: float) -> None:
@@ -525,10 +542,16 @@ class WerewolfEngine:
         self._last_votes = self._vote_detail()
         tally = self._tally(self._votes)
         if not tally:
+            self._vote_history.append({"day": self.day, "kind": "vote",
+                                       "detail": self._last_votes, "exiled": None})
+            self._timeline_vote("vote", self._last_votes, None)
             self._emit("投票结束：全员弃票，无人出局")
             self._next_night(now)
             return
         if len(tally) > 1:
+            self._vote_history.append({"day": self.day, "kind": "vote",
+                                       "detail": self._last_votes, "exiled": None})
+            self._timeline_vote("vote", self._last_votes, None)
             self._pk_seats = [s for s, _ in tally]
             self._pk_seats_orig = list(self._pk_seats)
             names = "、".join(f"{s} 号" for s in self._pk_seats)
@@ -537,6 +560,9 @@ class WerewolfEngine:
             self._speech_idx = 0
             self._enter_phase(Phase.PK_SPEECH, now)
             return
+        self._vote_history.append({"day": self.day, "kind": "vote",
+                                   "detail": self._last_votes, "exiled": tally[0][0]})
+        self._timeline_vote("vote", self._last_votes, tally[0][0])
         self._do_exile(tally[0][0], now)
 
     def _act_vote_pk(self, p: EnginePlayer, target: int | None, now: float) -> None:
@@ -559,8 +585,14 @@ class WerewolfEngine:
         self._last_votes = self._vote_detail()
         tally = self._tally(self._votes)
         if len(tally) == 1:
+            self._vote_history.append({"day": self.day, "kind": "vote_pk",
+                                       "detail": self._last_votes, "exiled": tally[0][0]})
+            self._timeline_vote("vote_pk", self._last_votes, tally[0][0])
             self._do_exile(tally[0][0], now)
         else:
+            self._vote_history.append({"day": self.day, "kind": "vote_pk",
+                                       "detail": self._last_votes, "exiled": None})
+            self._timeline_vote("vote_pk", self._last_votes, None)
             self._emit("PK 再次平票，本轮无人出局")
             self._pk_seats = []
             if self._pk_seats_orig:
@@ -606,6 +638,7 @@ class WerewolfEngine:
             self._speeches.append({"seat": p.seat, "nickname": p.nickname,
                                    "content": content, "day": self.day,
                                    "last_words": True})
+            self._timeline_speech(p.seat, p.nickname, content, last_words=True)
         self._advance_last_words(now)
 
     def _advance_last_words(self, now: float) -> None:
@@ -806,6 +839,14 @@ class WerewolfEngine:
     def reveal(self) -> list[dict]:
         return [{"seat": p.seat, "role": p.role.value if p.role else None, "alive": p.alive}
                 for p in self.players]
+
+    def public_history(self) -> dict:
+        """公开对局过程（回放数据）：统一时间线按发生顺序交错；不含任何私有信息"""
+        timeline = []
+        for seq, item in enumerate(self._timeline, start=1):
+            timeline.append({"seq": seq, **item})
+        return {"events": self._events, "speeches": self._speeches,
+                "votes": self._vote_history, "timeline": timeline}
 
     def winner(self) -> str | None:
         return self._winner

@@ -25,6 +25,7 @@ class WerewolfGameRecord(Base):
     day_count = Column(Integer, nullable=False, default=1)
     duration_seconds = Column(Integer, nullable=False, default=0)
     config = Column(JSON, nullable=False, default=dict)  # 板子角色与对局配置
+    timeline = Column(JSON, nullable=True)  # 对局过程回放（公开事件/发言/票型）
     created_at = Column(DateTime, server_default=func.now())
 
     players = relationship("WerewolfGameRecordPlayer", back_populates="record",

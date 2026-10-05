@@ -17,6 +17,7 @@ def save_game_record(summary: dict) -> int:
             day_count=summary["day_count"],
             duration_seconds=summary["duration_seconds"],
             config=summary["config"],
+            timeline=summary.get("timeline"),
         )
         db.add(rec)
         db.flush()
