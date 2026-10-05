@@ -1,0 +1,91 @@
+@import '../../../styles/tokens.scss';
+@import '../../../styles/glass.scss';
+
+.sanguo-lobby {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+.sanguo-hero {
+  margin-bottom: 32rpx;
+
+  &__title {
+    font-size: 44rpx;
+    font-weight: 700;
+  }
+  &__sub {
+    display: block;
+    margin-top: 8rpx;
+    font-size: 24rpx;
+    color: var(--text-secondary);
+  }
+}
+.lobby-card {
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+
+  &__title {
+    display: block;
+    font-size: 30rpx;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20rpx;
+  }
+  &__desc {
+    font-size: 24rpx;
+    color: var(--text-secondary);
+  }
+}
+.hero-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-bottom: 24rpx;
+
+  &__loading {
+    font-size: 24rpx;
+    color: var(--text-secondary);
+  }
+}
+.hero-chip {
+  width: 140rpx;
+  padding: 14rpx 0;
+  border-radius: 14rpx;
+  text-align: center;
+
+  &__name {
+    display: block;
+    font-size: 26rpx;
+    font-weight: 600;
+    color: #fff;
+  }
+  &__kingdom {
+    display: block;
+    font-size: 20rpx;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 4rpx;
+  }
+}
+.lobby-btn {
+  margin-top: 8rpx;
+}
+.lobby-join {
+  display: flex;
+  gap: 16rpx;
+
+  &__input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16rpx;
+    padding: 20rpx 24rpx;
+    color: var(--text-primary);
+    font-size: 32rpx;
+    letter-spacing: 8rpx;
+  }
+  &__btn {
+    padding: 0 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

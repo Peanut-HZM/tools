@@ -1,0 +1,274 @@
+@import '../../../../styles/tokens.scss';
+@import '../../../../styles/glass.scss';
+
+.sg {
+  padding: 24rpx;
+  padding-bottom: 200rpx;
+
+  &--loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    color: var(--text-secondary);
+  }
+}
+.sg-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 28rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  background: rgba(192, 57, 43, 0.18);
+
+  &__phase {
+    color: var(--text-primary);
+    font-size: 28rpx;
+    font-weight: 600;
+  }
+  &__timer {
+    color: #ffd166;
+    font-size: 32rpx;
+    font-weight: 700;
+  }
+}
+.sg-pending {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  background: rgba(255, 209, 102, 0.15);
+
+  &__text {
+    color: #ffd166;
+    font-size: 28rpx;
+    font-weight: 600;
+  }
+  &__btn {
+    padding: 12rpx 32rpx;
+    border-radius: 12rpx;
+  }
+}
+.sg-players {
+  margin-bottom: 16rpx;
+  white-space: nowrap;
+
+  &__row {
+    display: inline-flex;
+    gap: 14rpx;
+    padding: 4rpx;
+  }
+}
+.sg-player {
+  display: inline-block;
+  width: 240rpx;
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+  vertical-align: top;
+  white-space: normal;
+
+  &--dead { opacity: 0.4; }
+  &--active { border: 2rpx solid #4ade80; }
+  &--target { border: 2rpx solid #ff6b6b; }
+
+  &__seat { display: block; font-size: 20rpx; color: var(--text-secondary); }
+  &__name { display: block; font-size: 26rpx; color: var(--text-primary); font-weight: 600; }
+  &__hero { display: block; font-size: 22rpx; color: #8B9BFF; }
+  &__hp { display: block; font-size: 24rpx; color: #ff6b6b; font-weight: 700; }
+  &__equips { display: block; font-size: 20rpx; color: var(--text-secondary); }
+  &__judge { display: block; font-size: 20rpx; color: #ffd166; }
+  &__hand { display: block; font-size: 20rpx; color: var(--text-secondary); }
+}
+.sg-hand {
+  margin-bottom: 12rpx;
+  white-space: nowrap;
+
+  &__row { display: inline-flex; gap: 14rpx; padding: 4rpx; }
+}
+.hand-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140rpx;
+  height: 190rpx;
+  border-radius: 14rpx;
+  background: linear-gradient(160deg, #2a3555, #16203c);
+  border: 2rpx solid rgba(139, 155, 255, 0.5);
+
+  &--sel {
+    border-color: #ffd166;
+    background: linear-gradient(160deg, #3a4565, #26304c);
+    transform: translateY(-10rpx);
+  }
+  &__name {
+    font-size: 30rpx;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  &__suit {
+    font-size: 26rpx;
+    margin-top: 8rpx;
+  }
+}
+.sg-myinfo {
+  padding: 12rpx 0;
+
+  &__role {
+    display: block;
+    font-size: 26rpx;
+    color: #ffd166;
+    font-weight: 600;
+  }
+  &__hero {
+    display: block;
+    font-size: 22rpx;
+    color: var(--text-secondary);
+  }
+}
+.sg-action {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 40rpx;
+  background: rgba(20, 25, 50, 0.95);
+  border-radius: 20rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+
+  &__tip {
+    color: var(--text-primary);
+    font-size: 24rpx;
+    flex: 1;
+    margin-right: 12rpx;
+  }
+  &__btns {
+    display: flex;
+    gap: 14rpx;
+    align-items: center;
+  }
+  &__btn {
+    padding: 14rpx 32rpx;
+    border-radius: 14rpx;
+  }
+}
+.wr-action__btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  text-align: center;
+  padding: 14rpx 28rpx;
+  border-radius: 14rpx;
+}
+.sg-log {
+  max-height: 240rpx;
+
+  .sg-log__item {
+    display: block;
+    font-size: 22rpx;
+    color: var(--text-secondary);
+    padding: 6rpx 0;
+  }
+}
+.sg-card {
+  padding: 40rpx;
+
+  .sg-room-no {
+    font-size: 48rpx;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+    letter-spacing: 8rpx;
+  }
+  .sg-board {
+    color: var(--text-secondary);
+    font-size: 24rpx;
+    display: block;
+    margin: 12rpx 0 24rpx;
+  }
+  .sg-members {
+    display: flex;
+    flex-direction: column;
+    gap: 10rpx;
+  }
+  .sg-member {
+    text-align: center;
+    color: var(--text-primary);
+    font-size: 26rpx;
+    padding: 12rpx;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12rpx;
+  }
+  .sg-start { margin-top: 28rpx; }
+  .sg-tip {
+    display: block;
+    margin-top: 24rpx;
+    color: var(--text-secondary);
+    font-size: 24rpx;
+  }
+  .sg-leave {
+    margin-top: 20rpx;
+    color: var(--text-secondary);
+    font-size: 24rpx;
+    text-decoration: underline;
+  }
+}
+.sg-tip { color: var(--text-secondary); font-size: 22rpx; }
+.sg-result {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(5, 8, 20, 0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 120rpx;
+
+  &__winner {
+    font-size: 48rpx;
+    font-weight: 800;
+    color: #4ade80;
+    margin-bottom: 40rpx;
+
+    &--wolf { color: #ff6b6b; }
+  }
+  &__players {
+    display: flex;
+    flex-direction: column;
+    gap: 12rpx;
+  }
+  &__player {
+    text-align: center;
+    color: var(--text-primary);
+    font-size: 26rpx;
+  }
+  &__role {
+    color: var(--text-secondary);
+    font-size: 22rpx;
+  }
+  &__btn {
+    margin-top: 48rpx;
+    padding: 20rpx 80rpx;
+  }
+  &__waiting {
+    margin-top: 48rpx;
+    color: var(--text-secondary);
+    font-size: 24rpx;
+  }
+  &__back {
+    margin-top: 24rpx;
+    color: var(--text-secondary);
+    font-size: 26rpx;
+    text-decoration: underline;
+  }
+}

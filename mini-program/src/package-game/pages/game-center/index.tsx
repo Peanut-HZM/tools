@@ -10,12 +10,21 @@ const GAMES = [
     emoji: '🐺',
     gradient: 'linear-gradient(135deg,#4a3f6b,#8B9BFF)',
   },
+  {
+    id: 'sanguo',
+    name: '三国杀',
+    desc: '4 人身份局 · 主公忠臣反贼内奸 · 标准武将',
+    emoji: '⚔️',
+    gradient: 'linear-gradient(135deg,#7a2c2c,#c0392b)',
+  },
 ]
 
 export default function GameCenter() {
   const go = (id: string) => {
     if (id === 'werewolf') {
       Taro.navigateTo({ url: '/package-game/pages/werewolf/index' })
+    } else if (id === 'sanguo') {
+      Taro.navigateTo({ url: '/package-game/pages/sanguo/index' })
     }
   }
   return (
