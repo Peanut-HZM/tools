@@ -43,6 +43,11 @@ class RoomManager:
     def rooms_of(self, user_id: int) -> list[GameRoom]:
         return [r for r in self._rooms.values() if user_id in r.members]
 
+    def start(self) -> None:
+        """启动心跳循环（lifespan 调用）"""
+        if self._task is None or self._task.done():
+            self._task = asyncio.create_task(self.run())
+
     async def run(self) -> None:
         """每秒驱动所有房间；每 30s 清扫闲置房间"""
         try:
