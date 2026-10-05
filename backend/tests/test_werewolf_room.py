@@ -65,8 +65,8 @@ def test_start_deals_roles_and_sends_private(mgr):
     sink = Sink()
     room = make_full_room(mgr, sink)
     room.start(1, now=1000.0)
-    kinds = [p["kind"] for _, p in sink.sends]
-    assert "role" in kinds  # 每个成员收到身份私发
+    kinds = [p["kind"] for _, p in sink.sends if p.get("type") == "private"]
+    assert "role" in kinds  # 每个成员收到身份私发（另有 state 快照推送）
 
 
 def test_disconnect_grace_then_escaped(mgr):
@@ -95,6 +95,17 @@ def test_room_message_routes_to_engine(mgr):
     with pytest.raises(EngineError):
         room.on_message(wolf.user_id, {"type": "act", "action": "werewolf_kill",
                                        "target": target})  # 重复行动被引擎拒绝
+
+
+def test_start_pushes_state_snapshot_to_members(mgr):
+    """对局开始必须把个人视角 state 快照推给每个成员（客户端依赖它离开等待页）"""
+    sink = Sink()
+    room = make_full_room(mgr, sink)
+    room.start(1, now=1000.0)
+    state_msgs = [p for uid, p in sink.sends if p.get("type") == "state"]
+    assert len(state_msgs) == 6  # 每个成员各一份个人视角
+    assert all("snapshot" in s["state"] for s in state_msgs)
+    assert all(s["state"]["status"] == "PLAYING" for s in state_msgs)
 
 
 def test_record_summary_after_finish(mgr):

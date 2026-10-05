@@ -20,15 +20,23 @@ const PHASE_TIPS: Record<string, string> = {
 }
 const NIGHT_PHASES = ['NIGHT_GUARD', 'NIGHT_WEREWOLF', 'NIGHT_SEER', 'NIGHT_WITCH']
 
-const CARD_BACK = require('../../../assets/cards/back.png')
+import CARD_BACK from '../../../assets/cards/back.png'
+import IMG_WEREWOLF from '../../../assets/cards/werewolf.png'
+import IMG_VILLAGER from '../../../assets/cards/villager.png'
+import IMG_SEER from '../../../assets/cards/seer.png'
+import IMG_WITCH from '../../../assets/cards/witch.png'
+import IMG_HUNTER from '../../../assets/cards/hunter.png'
+import IMG_GUARD from '../../../assets/cards/guard.png'
+import IMG_IDIOT from '../../../assets/cards/idiot.png'
+
 const ROLE_CARDS: Record<string, any> = {
-  WEREWOLF: require('../../../assets/cards/werewolf.png'),
-  VILLAGER: require('../../../assets/cards/villager.png'),
-  SEER: require('../../../assets/cards/seer.png'),
-  WITCH: require('../../../assets/cards/witch.png'),
-  HUNTER: require('../../../assets/cards/hunter.png'),
-  GUARD: require('../../../assets/cards/guard.png'),
-  IDIOT: require('../../../assets/cards/idiot.png'),
+  WEREWOLF: IMG_WEREWOLF,
+  VILLAGER: IMG_VILLAGER,
+  SEER: IMG_SEER,
+  WITCH: IMG_WITCH,
+  HUNTER: IMG_HUNTER,
+  GUARD: IMG_GUARD,
+  IDIOT: IMG_IDIOT,
 }
 
 export default function WerewolfRoom() {
@@ -81,22 +89,14 @@ export default function WerewolfRoom() {
     return Math.max(0, Math.ceil(snap.deadline - now))
   }, [snap?.deadline, now])
 
-  if (!view) {
-    return <View className='wr wr--loading'><Text>连接房间中...</Text></View>
-  }
-
-  const isWaiting = view.status === 'WAITING'
-  const phase = snap?.phase
-  const isNight = NIGHT_PHASES.includes(phase)
-  const isResult = phase === 'RESULT'
-
-  // ---- 行动选择 ----
-  const canAct = you?.acting && Array.isArray(you?.can) && you.can.length > 0
-  const hasTargetAction = canAct && you.can.some(
+  // ---- 行动选择（hooks 必须在任何条件 return 之前调用，否则 React #310 白屏） ----
+  const canAct = !!(you?.acting && Array.isArray(you?.can) && you.can.length > 0)
+  const canList: string[] = canAct ? you.can : []
+  const hasTargetAction = canAct && canList.some(
     (a: string) => a !== 'skip' && a !== 'witch_save' && a !== 'witch_poison')
   const selectableSeats = useMemo(() => {
     if (!canAct || !hasTargetAction) return []
-    const action = you.can[0]
+    const action = canList[0]
     return (snap?.players || [])
       .filter((p: any) => p.alive && p.seat !== mySeat)
       .filter((p: any) => {
@@ -105,7 +105,16 @@ export default function WerewolfRoom() {
         return true
       })
       .map((p: any) => p.seat)
-  }, [canAct, hasTargetAction, you, snap, mySeat])
+  }, [canAct, hasTargetAction, canList, you, snap, mySeat])
+
+  if (!view) {
+    return <View className='wr wr--loading'><Text>连接房间中...</Text></View>
+  }
+
+  const isWaiting = view.status === 'WAITING'
+  const phase = snap?.phase
+  const isNight = NIGHT_PHASES.includes(phase)
+  const isResult = phase === 'RESULT'
 
   const currentAction = canAct
     ? (you.can.find((a: string) => a !== 'skip') || 'skip') : null

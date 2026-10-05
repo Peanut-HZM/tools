@@ -34,6 +34,7 @@ class GameRoom:
         self.status = "WAITING"
         self.engine: WerewolfEngine | None = None
         self._event_cursor = 0
+        self._last_state_key: Optional[tuple] = None
         self._sockets: dict[int, object] = {}  # user_id -> WebSocket（由路由层注册）
         self.created_at = time.time()
         self.last_activity = time.time()
@@ -48,7 +49,8 @@ class GameRoom:
         pass
 
     def _pump(self) -> None:
-        """把引擎新增的公共事件/私有消息经回调推送出去"""
+        """把引擎新增的公共事件/私有消息经回调推送出去；
+        阶段/天数/发言数变化时向每个成员推送个人视角 state 快照（spec §5.4）"""
         if self.engine is None:
             return
         for ev in self.engine.events_since(self._event_cursor):
@@ -56,6 +58,12 @@ class GameRoom:
             self.on_broadcast({"type": "event", **ev})
         for uid, priv in self.engine.drain_all_private():
             self.on_send(uid, {"type": "private", **priv})
+        key = (self.engine.phase.value, self.engine.day, self.engine.finished(),
+               len(self.engine._speeches), self._event_cursor)
+        if key != self._last_state_key:
+            self._last_state_key = key
+            for uid in list(self.members):
+                self.on_send(uid, {"type": "state", "state": self.full_view(uid)})
 
     # ---------- 成员 ----------
     def member_count(self) -> int:

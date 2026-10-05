@@ -2,16 +2,23 @@ import { useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import './RoleCard.scss'
 
-const CARD_BACK = require('../assets/cards/back.png')
+import CARD_BACK from '../assets/cards/back.png'
+import IMG_WEREWOLF from '../assets/cards/werewolf.png'
+import IMG_VILLAGER from '../assets/cards/villager.png'
+import IMG_SEER from '../assets/cards/seer.png'
+import IMG_WITCH from '../assets/cards/witch.png'
+import IMG_HUNTER from '../assets/cards/hunter.png'
+import IMG_GUARD from '../assets/cards/guard.png'
+import IMG_IDIOT from '../assets/cards/idiot.png'
 
 const ROLE_CARDS: Record<string, any> = {
-  WEREWOLF: require('../assets/cards/werewolf.png'),
-  VILLAGER: require('../assets/cards/villager.png'),
-  SEER: require('../assets/cards/seer.png'),
-  WITCH: require('../assets/cards/witch.png'),
-  HUNTER: require('../assets/cards/hunter.png'),
-  GUARD: require('../assets/cards/guard.png'),
-  IDIOT: require('../assets/cards/idiot.png'),
+  WEREWOLF: IMG_WEREWOLF,
+  VILLAGER: IMG_VILLAGER,
+  SEER: IMG_SEER,
+  WITCH: IMG_WITCH,
+  HUNTER: IMG_HUNTER,
+  GUARD: IMG_GUARD,
+  IDIOT: IMG_IDIOT,
 }
 
 /** 自己的底牌：点按翻转看牌，可随时重看 */
