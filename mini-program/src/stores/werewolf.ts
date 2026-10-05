@@ -20,6 +20,11 @@ export const useWerewolfStore = create<WerewolfStore>((set, get) => {
     const state = get()
     if (msg.type === 'hello' || msg.type === 'state') {
       set({ view: msg.state, lastError: null })
+    } else if (msg.type === 'room') {
+      // 等待期成员变动：合并 room 视图（保留已有 snapshot 不覆盖对局数据）
+      const view = state.view
+      if (!view) return
+      set({ view: { ...msg.room, snapshot: view.snapshot } })
     } else if (msg.type === 'event') {
       const view = state.view
       if (!view) return

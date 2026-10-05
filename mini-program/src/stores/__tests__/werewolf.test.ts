@@ -47,6 +47,18 @@ describe('werewolf store', () => {
     expect(log.map((e: any) => e.id)).toEqual([1, 2])
   })
 
+  it('room 消息更新等待页成员列表', () => {
+    const onMessage = msgHandler()
+    onMessage({ type: 'hello', state: { room_id: '1', status: 'WAITING',
+      members: [{ user_id: '1', nickname: '甲', seat: 1 }] } })
+    onMessage({ type: 'room', room: { room_id: '1', status: 'WAITING',
+      members: [{ user_id: '1', nickname: '甲', seat: 1 },
+                { user_id: '2', nickname: '乙', seat: 2 }] } })
+    const view = useWerewolfStore.getState().view!
+    expect(view.members).toHaveLength(2)
+    expect(view.members[1].nickname).toBe('乙')
+  })
+
   it('sendAct 转发到 ws', () => {
     msgHandler()
     useWerewolfStore.getState().sendAct('werewolf_kill', 3)

@@ -1,6 +1,7 @@
 """游戏房间：成员/连接管理 + 引擎驱动 + 视图（公共广播/私有下发由路由层回调实现）"""
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from collections.abc import Callable
@@ -14,6 +15,20 @@ logger = logging.getLogger(__name__)
 
 DISCONNECT_GRACE_SECONDS = 60   # 断线保留座位等待重连
 IDLE_ROOM_SECONDS = 600         # WAITING/RESULT 且无连接的房间回收
+
+
+async def _close_quietly(ws) -> None:
+    try:
+        await ws.close()
+    except Exception as e:  # noqa: BLE001  连接可能已死
+        logger.debug("[werewolf] 挤线关闭旧连接失败: %s", e)
+
+
+def sync_close(ws) -> None:
+    try:
+        ws.close()
+    except Exception as e:  # noqa: BLE001
+        logger.debug("[werewolf] 关闭旧连接失败: %s", e)
 
 
 @dataclass
@@ -81,6 +96,7 @@ class GameRoom:
             raise ValueError("房间已满员")
         self.members[user_id] = Member(user_id, nickname)
         self._touch()
+        self._broadcast_room()
 
     def remove_member(self, user_id: int) -> None:
         if user_id not in self.members:
@@ -89,6 +105,7 @@ class GameRoom:
             self.members.pop(user_id)
             if user_id == self.host_id and self.members:
                 self.host_id = next(iter(self.members))  # 房主转移
+            self._broadcast_room()
         else:
             # 对局中离开视为逃跑：保留座位与身份，转托管
             m = self.members[user_id]
@@ -107,6 +124,7 @@ class GameRoom:
             raise ValueError("不能踢自己")
         self.members.pop(user_id, None)
         self._touch()
+        self._broadcast_room()
 
     def update_config(self, board: dict | None, settings: GameSettings | None,
                       by_user_id: int) -> None:
@@ -151,11 +169,13 @@ class GameRoom:
         if m:
             old = self._sockets.get(user_id)
             if old is not None and old is not ws:
-                # 挤线：关闭旧连接，新连接接管（spec §5.6）
+                # 挤线：异步关闭旧连接（starlette WebSocket.close 是协程，
+                # 同步调用不会真正执行，旧连接会变成收不到广播的孤儿）
                 try:
-                    old.close()
-                except Exception as e:  # noqa: BLE001  旧连接可能已死
-                    logger.debug("[werewolf] 挤线关闭旧连接失败: %s", e)
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(_close_quietly(old))
+                except RuntimeError:
+                    sync_close(old)  # 无事件循环（单测假连接）
             m.connected = True
             m.disconnected_at = None
             self._sockets[user_id] = ws
@@ -247,6 +267,10 @@ class GameRoom:
 
     def _touch(self) -> None:
         self.last_activity = time.time()
+
+    def _broadcast_room(self) -> None:
+        """等待期房间视图广播（成员变动实时刷新前端列表）"""
+        self.on_broadcast({"type": "room", "room": self.member_view()})
 
     # ---------- 再来一局 ----------
     def reset_for_replay(self, by_user_id: int, now: float) -> None:

@@ -176,8 +176,9 @@ def _dispatch(room: GameRoom, uid: int, payload: dict) -> None:
     async def _send():
         try:
             await ws.send_text(json.dumps(payload, ensure_ascii=False))
-        except Exception:  # noqa: BLE001  单连接推送失败不阻断广播
-            logger.warning("[werewolf] 推送失败 room=%s user=%s", room.room_id, uid)
+        except Exception as e:  # noqa: BLE001  单连接推送失败不阻断广播
+            logger.warning("[werewolf] 推送失败 room=%s user=%s err=%s",
+                           room.room_id, uid, repr(e))
     loop.create_task(_send())
 
 
@@ -342,7 +343,9 @@ async def room_ws(websocket: WebSocket) -> None:
     except Exception:
         logger.exception("[werewolf] WS 异常断开 room=%s user=%s", room_id, user_id)
     finally:
-        room.mark_disconnected(user_id, time.time())
+        # 带上当前 websocket 比对：仅当断开的是仍注册的连接才生效，
+        # 防止挤线/重连后旧连接的清理把新连接从广播名单里清掉（spec §8）
+        room.mark_disconnected(user_id, time.time(), ws=websocket)
         m = room.members.get(user_id)
         room.on_broadcast({"type": "event",
                            "text": f"{(m.nickname if m else user_id)} 与服务器断开连接"})

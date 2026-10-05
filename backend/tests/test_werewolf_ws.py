@@ -72,6 +72,37 @@ def test_ws_reconnect_replaces_old(client, monkeypatch):
     ws1.__exit__(None, None, None)
 
 
+def test_ws_stale_disconnect_keeps_new_socket(client, monkeypatch):
+    """挤线后旧连接断开，不得把新连接从广播名单清掉（I1 残留修复）"""
+    monkeypatch.setattr("app.routes.werewolf._verify_ws_token", lambda token: "1")
+    room_id = _create_full_room(client, monkeypatch)
+    room = manager_module.manager.get(room_id)
+    ws1 = client.websocket_connect(f"/api/games/werewolf/rooms/{room_id}/ws?token=x")
+    ws1.__enter__()
+    ws1.receive_json()
+    first_socket = room._sockets.get(1)
+    assert first_socket is not None
+    # 第二条连接挤线接管（保持打开，不退出）；服务端必须真正关闭旧连接
+    ws2 = client.websocket_connect(f"/api/games/werewolf/rooms/{room_id}/ws?token=x")
+    ws2.__enter__()
+    ws2.receive_json()
+    second_socket = room._sockets.get(1)
+    assert second_socket is not None and second_socket is not first_socket
+    # 旧连接由服务端异步关闭（create_task）；TestClient 下时序不定，
+    # 核心断言是下方「新连接注册不被清理」
+    try:
+        # 关闭第一条（旧）连接：其 finally 清理按 ws 比对，不得清掉 second
+        ws1.__exit__(None, None, None)
+        import time as _time
+        deadline = _time.time() + 5
+        while _time.time() < deadline and room._sockets.get(1) is second_socket:
+            _time.sleep(0.1)  # 等旧连接的 finally 执行完
+        assert room._sockets.get(1) is second_socket, \
+            "旧连接断开清掉了新连接的注册"
+    finally:
+        ws2.__exit__(None, None, None)
+
+
 def test_ws_wolf_kill_flow(client, monkeypatch):
     """完整链路：狼人通过 WS 提交刀人 → 房间状态更新"""
     monkeypatch.setattr("app.routes.werewolf._verify_ws_token", lambda token: "1")

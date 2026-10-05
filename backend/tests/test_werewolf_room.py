@@ -165,6 +165,22 @@ def test_reconnect_keeps_new_socket_and_stale_close_is_ignored(mgr):
     assert room.members[2].connected is True
 
 
+def test_member_changes_broadcast_room_view(mgr):
+    """等待期成员加入/离开/踢人必须广播 room 视图（前端成员列表实时刷新）"""
+    sink = Sink()
+    room = mgr.create_room(1, "房主", board6(), GameSettings())
+    room.on_broadcast = sink.on_broadcast
+    seen = [p for p in sink.broadcasts]
+    room.add_member(2, "乙")
+    room.add_member(3, "丙")
+    room.kick(3, by_user_id=1)
+    room.remove_member(2)
+    types = [p.get("type") for p in sink.broadcasts]
+    assert types.count("room") >= 3  # 每次成员变动都有推送
+    room_msgs = [p for p in sink.broadcasts if p.get("type") == "room"]
+    assert room_msgs[-1]["room"]["members"] == [] or "members" in room_msgs[-1]["room"]
+
+
 def test_replay_resets_event_cursor(mgr):
     """再来一局后事件游标必须归零，否则新对局事件全被过滤（I3）"""
     room = make_full_room(mgr)

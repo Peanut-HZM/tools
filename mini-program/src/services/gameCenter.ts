@@ -1,5 +1,15 @@
 import { request } from './request'
 
+/** 游戏接口统一错误处理：后端 4xx 返回 {detail} 错误体，须转为异常（request 只拦 401） */
+async function gameRequest<T>(url: string,
+                              options: { method?: 'GET' | 'POST'; data?: any } = {}): Promise<T> {
+  const res = await request<any>(url, options)
+  if (res && typeof res === 'object' && res.detail) {
+    throw new Error(typeof res.detail === 'string' ? res.detail : '请求失败')
+  }
+  return res as T
+}
+
 export interface BoardInfo {
   id: string
   name: string
@@ -38,28 +48,29 @@ export const gameApi = {
     speech_seconds?: number
     witch_self_rescue?: string
     witch_guard_conflict?: boolean
-  }) => request<{ room_id: string }>('/games/werewolf/rooms', { method: 'POST', data: payload }),
+  }) => gameRequest<{ room_id: string }>('/games/werewolf/rooms', { method: 'POST', data: payload }),
   /** 加入房间 */
   joinRoom: (roomId: string) =>
-    request(`/games/werewolf/rooms/${roomId}/join`, { method: 'POST' }),
+    gameRequest(`/games/werewolf/rooms/${roomId}/join`, { method: 'POST' }),
   /** 离开房间 */
   leaveRoom: (roomId: string) =>
-    request(`/games/werewolf/rooms/${roomId}/leave`, { method: 'POST' }),
+    gameRequest(`/games/werewolf/rooms/${roomId}/leave`, { method: 'POST' }),
   /** 踢人（房主） */
   kickMember: (roomId: string, userId: string) =>
-    request(`/games/werewolf/rooms/${roomId}/kick`, { method: 'POST', data: { user_id: userId } }),
+    gameRequest(`/games/werewolf/rooms/${roomId}/kick`, { method: 'POST', data: { user_id: userId } }),
   /** 修改配置（房主，等待阶段） */
   updateConfig: (roomId: string, payload: Record<string, any>) =>
-    request(`/games/werewolf/rooms/${roomId}/config`, { method: 'POST', data: payload }),
+    gameRequest(`/games/werewolf/rooms/${roomId}/config`, { method: 'POST', data: payload }),
   /** 开始对局（房主） */
   startGame: (roomId: string) =>
-    request(`/games/werewolf/rooms/${roomId}/start`, { method: 'POST' }),
+    gameRequest(`/games/werewolf/rooms/${roomId}/start`, { method: 'POST' }),
   /** 再来一局（房主，结算后） */
   replay: (roomId: string) =>
-    request(`/games/werewolf/rooms/${roomId}/replay`, { method: 'POST' }),
+    gameRequest(`/games/werewolf/rooms/${roomId}/replay`, { method: 'POST' }),
   /** 解散房间（房主） */
   dismiss: (roomId: string) =>
-    request(`/games/werewolf/rooms/${roomId}/dismiss`, { method: 'POST' }),
+    gameRequest(`/games/werewolf/rooms/${roomId}/dismiss`, { method: 'POST' }),
   /** 个人视角房间快照（断线重连兜底） */
-  getRoom: (roomId: string) => request<RoomView>(`/games/werewolf/rooms/${roomId}`),
+  getRoom: (roomId: string) =>
+    gameRequest<RoomView>(`/games/werewolf/rooms/${roomId}`),
 }

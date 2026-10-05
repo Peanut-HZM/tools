@@ -683,9 +683,13 @@ class WerewolfEngine:
         ph = self.phase
         if ph in (Phase.NIGHT_GUARD, Phase.NIGHT_WEREWOLF, Phase.NIGHT_SEER, Phase.NIGHT_WITCH):
             # 托管默认：守卫不守/预言家不验/女巫不用药；狼人全体超时随机刀
+            # 刀口只在非狼阵营存活玩家中选择（托管刀不会自刀）
             if ph == Phase.NIGHT_WEREWOLF and self.night.wolf is None:
-                alive_seats = [p.seat for p in self.players if p.alive]
-                self.night.wolf = self.rng.choice(alive_seats)
+                targets = [p.seat for p in self.players
+                           if p.alive and p.role != Role.WEREWOLF]
+                if not targets:
+                    targets = [p.seat for p in self.players if p.alive]
+                self.night.wolf = self.rng.choice(targets)
             self._finish_night_phase(now)
         elif ph == Phase.DAWN:
             self._after_dawn(now)

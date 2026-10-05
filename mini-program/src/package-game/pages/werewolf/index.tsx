@@ -106,6 +106,10 @@ export default function WerewolfLobby() {
 
         {isCustom && (
           <View className='lobby-custom'>
+            <View className='lobby-custom__head'>
+              <Text className='lobby-custom__clear'
+                    onClick={() => setCustom({})}>清空</Text>
+            </View>
             {CUSTOM_ROLE_KEYS.map((k) => (
               <View key={k} className='custom-row'>
                 <Text className='custom-row__name'>{ROLE_LABELS[k]}</Text>
