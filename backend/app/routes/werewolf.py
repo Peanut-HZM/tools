@@ -10,18 +10,20 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.routes.auth import get_current_user_id
 from app.schemas.werewolf import CreateRoomRequest, KickRequest, UpdateConfigRequest
+from app.services.auth_service import get_auth_service
 from app.services.werewolf.boards import PRESET_BOARDS, GameSettings, validate_board
+from app.services.werewolf.engine import EngineError
 from app.services.werewolf.manager import RoomManager
 from app.services.werewolf.record import save_game_record
 from app.services.werewolf.room import GameRoom
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/games/werewolf", tags=["werewolf"])
+router = APIRouter(prefix="/games/werewolf", tags=["werewolf"])
 manager = RoomManager()   # 本模块单例；main.py lifespan 启动 run() 任务
 
 SETTINGS_META = {
@@ -276,3 +278,72 @@ async def dismiss_room(room_id: str, user_id: str = Depends(get_current_user_id)
 async def room_snapshot(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     return room.full_view(int(user_id))
+
+
+# ---------- WebSocket ----------
+def _verify_ws_token(token: str) -> str:
+    """WS 认证：token 查询参数（小程序 Taro 全局 socket 无法带 header，沿用 openclaw_ws 先例）"""
+    try:
+        token_data = get_auth_service().verify_token_data(token)
+        return token_data.user_id
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+
+async def room_ws(websocket: WebSocket) -> None:
+    # 以纯 Starlette WebSocketRoute 挂载（见 main.py），参数从 scope 自取
+    scope = websocket.scope
+    room_id = scope.get("path_params", {}).get("room_id", "")
+    from urllib.parse import parse_qs
+    token = parse_qs(scope.get("query_string", b"").decode()).get("token", [""])[0]
+    try:
+        user_id = int(_verify_ws_token(token))
+    except HTTPException:
+        await websocket.close(code=4401)
+        return
+    room = manager.get(str(room_id))
+    if room is None or user_id not in room.members:
+        await websocket.close(code=4404)
+        return
+    await websocket.accept()
+    room.mark_connected(user_id, websocket)
+    logger.info("[werewolf] WS 接入 room=%s user=%s", room_id, user_id)
+    try:
+        await _safe_send(websocket, {"type": "hello", "state": room.full_view(user_id)})
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                await _safe_send(websocket, {"type": "error", "code": "BAD_JSON",
+                                             "message": "消息格式错误"})
+                continue
+            if data.get("type") == "ping":
+                await _safe_send(websocket, {"type": "pong"})
+                continue
+            if data.get("type") == "sync":
+                await _safe_send(websocket, {"type": "state",
+                                             "state": room.full_view(user_id)})
+                continue
+            try:
+                room.on_message(user_id, data)
+            except EngineError as e:
+                await _safe_send(websocket, {"type": "error", "code": e.code,
+                                             "message": e.message})
+    except (WebSocketDisconnect, RuntimeError):
+        logger.info("[werewolf] WS 断开 room=%s user=%s", room_id, user_id)
+    except Exception as e:
+        logger.exception("[werewolf] WS 异常断开 room=%s user=%s err=%s", room_id, user_id, repr(e))
+    finally:
+        room.mark_disconnected(user_id, time.time())
+        m = room.members.get(user_id)
+        room.on_broadcast({"type": "event",
+                           "text": f"{(m.nickname if m else user_id)} 与服务器断开连接"})
+
+
+async def _safe_send(websocket: WebSocket, payload: dict) -> None:
+    """单连接发送；连接已关闭等异常静默（广播由 _dispatch 各自容错）"""
+    try:
+        await websocket.send_text(json.dumps(payload, ensure_ascii=False))
+    except Exception as e:  # noqa: BLE001  对端已断开，发送失败不影响主流程
+        logger.debug("[werewolf] WS 发送失败: %s", e)

@@ -586,7 +586,13 @@ from app.routes import openclaw_ws as openclaw_ws_router
 from app.routes import werewolf as werewolf_router
 
 app.include_router(openclaw_ws_router.router, prefix="/api")
-app.include_router(werewolf_router.router)
+app.include_router(werewolf_router.router, prefix="/api")
+# WS 路由直接挂载：经 include_router 注册的 websocket 路由在本 Starlette 版本
+# 的 _IncludedRouter 分发下会被 1008 拒绝，故用纯 Starlette 路由挂载
+from starlette.routing import WebSocketRoute as _WerewolfWSRoute
+
+app.router.routes.append(_WerewolfWSRoute("/api/games/werewolf/rooms/{room_id}/ws",
+                                          werewolf_router.room_ws))
 
 # OpenClaw Admin router
 from app.routes import openclaw_admin as openclaw_admin_router
