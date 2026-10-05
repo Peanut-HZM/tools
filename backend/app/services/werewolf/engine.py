@@ -117,6 +117,7 @@ class WerewolfEngine:
         self._pending_hunter: int | None = None  # 待开枪座位
         self._pending_after_hunter: tuple | None = None  # 开枪后的续接流程
         self._dawn_deaths: dict[int, str] = {}
+        self._last_words_then = "night"   # 遗言结束后的去向：day=首夜→白天 / night=放逐→下一夜
 
     # ---------- 基础 ----------
     def _emit(self, text: str) -> None:
@@ -338,10 +339,6 @@ class WerewolfEngine:
         # Task 4 实现完整开枪逻辑；当前阶段判定已拦截所有合法路径
         raise EngineError("NOT_YOUR_TURN", "当前不是开枪阶段")
 
-    def _act_vote_pk(self, p: EnginePlayer, target: int | None, now: float) -> None:
-        # Task 3 实现完整 PK 投票；当前阶段判定已拦截所有合法路径
-        raise EngineError("WRONG_PHASE", "当前不是 PK 投票阶段")
-
     def _phase_complete(self) -> bool:
         if self.phase == Phase.NIGHT_GUARD:
             return all(g.user_id in self._submitted for g in self._alive_with_role(Role.GUARD))
@@ -402,9 +399,10 @@ class WerewolfEngine:
                 self._pending_after_hunter = ("after_dawn", seat)
                 self._enter_phase(Phase.HUNTER_SHOT, now)
                 return
-        # 首夜死者依次留遗言
+        # 首夜死者依次留遗言，结束后进入白天发言
         if self.day == 1 and deaths:
             self._pending_last_words = sorted(deaths)
+            self._last_words_then = "day"
             self._enter_phase(Phase.LAST_WORDS, now)
             return
         self._begin_day(now)
@@ -435,13 +433,40 @@ class WerewolfEngine:
         ordered = [((start - 1 + i) % n) + 1 for i in range(n)]
         return [s for s in ordered if self.players[s - 1].alive]
 
-    # ---------- 白天（Task 2 最小实现，Task 3 替换为完整版） ----------
+    # ---------- 白天 ----------
+    def submit_speech(self, user_id: int, content: str, now: float) -> None:
+        p = self._by_uid.get(user_id)
+        if p is None:
+            raise EngineError("NOT_IN_GAME", "你不在此对局中")
+        if self.phase not in (Phase.DAY_SPEECH, Phase.PK_SPEECH):
+            raise EngineError("WRONG_PHASE", "当前不是发言阶段")
+        if not p.alive:
+            raise EngineError("NOT_ALIVE", "你已出局")
+        if p.escaped:
+            raise EngineError("HOSTED", "你已断线托管")
+        current_seat = self._speech_queue[self._speech_idx]
+        if p.seat != current_seat:
+            raise EngineError("NOT_YOUR_TURN", "还没轮到你发言")
+        content = (content or "").strip()
+        if not content:
+            raise EngineError("EMPTY_SPEECH", "发言内容不能为空")
+        if len(content) > 500:
+            raise EngineError("SPEECH_TOO_LONG", "发言最长 500 字")
+        self._speeches.append({"seat": p.seat, "nickname": p.nickname,
+                               "content": content, "day": self.day,
+                               "pk": self.phase == Phase.PK_SPEECH})
+        self._advance_speech(now)
+
     def _advance_speech(self, now: float) -> None:
         self._speech_idx += 1
         if self._speech_idx >= len(self._speech_queue):
-            self._to_vote(now)
+            if self.phase == Phase.PK_SPEECH:
+                self._votes = {}
+                self._enter_phase(Phase.DAY_VOTE_PK, now)
+            else:
+                self._to_vote(now)
         else:
-            self._enter_phase(Phase.DAY_SPEECH, now)
+            self._enter_phase(self.phase, now)  # 重置该发言者 deadline
 
     def _to_vote(self, now: float) -> None:
         if self._speech_queue:
@@ -478,19 +503,123 @@ class WerewolfEngine:
             self._resolve_vote(now)
 
     def _resolve_vote(self, now: float) -> None:
-        # Task 3 完整实现平票 PK / 放逐 / 遗言；本任务最小：放逐直接进下一夜
         self._last_votes = self._vote_detail()
         tally = self._tally(self._votes)
-        if tally:
-            exiled = tally[0][0]
-            p = self.players[exiled - 1]
-            p.alive = False
-            p.death_cause = "exile"
-            self._emit(f"{exiled} 号被投票放逐出局")
-            self._last_exiled_seat = exiled
+        if not tally:
+            self._emit("投票结束：全员弃票，无人出局")
+            self._next_night(now)
+            return
+        if len(tally) > 1:
+            self._pk_seats = [s for s, _ in tally]
+            names = "、".join(f"{s} 号" for s in self._pk_seats)
+            self._emit(f"平票！{names} 进入 PK")
+            self._speech_queue = list(self._pk_seats)
+            self._speech_idx = 0
+            self._enter_phase(Phase.PK_SPEECH, now)
+            return
+        self._do_exile(tally[0][0], now)
+
+    def _act_vote_pk(self, p: EnginePlayer, target: int | None, now: float) -> None:
+        self._require_phase(p, Phase.DAY_VOTE_PK)
+        if not p.can_vote:
+            raise EngineError("NO_VOTE_RIGHT", "你已失去投票权")
+        if p.seat in self._pk_seats:
+            raise EngineError("NO_VOTE_RIGHT", "PK 玩家本轮不投票")
+        if p.user_id in self._votes:
+            raise EngineError("ALREADY_ACTED", "已投票")
+        if target is not None and target not in self._pk_seats:
+            raise EngineError("INVALID_VOTE_TARGET", "只能投 PK 玩家或弃票")
+        self._votes[p.user_id] = target
+        eligible = [q for q in self.players if q.alive and q.can_vote
+                    and q.seat not in self._pk_seats and not q.escaped]
+        if all(q.user_id in self._votes for q in eligible):
+            self._resolve_pk_vote(now)
+
+    def _resolve_pk_vote(self, now: float) -> None:
+        self._last_votes = self._vote_detail()
+        tally = self._tally(self._votes)
+        if len(tally) == 1:
+            self._do_exile(tally[0][0], now)
         else:
-            self._emit("全员弃票，无人出局")
-        self._next_night(now)
+            self._emit("PK 再次平票，本轮无人出局")
+            self._pk_seats = []
+            self._next_night(now)
+
+    def _do_exile(self, seat: int, now: float) -> None:
+        p = self.players[seat - 1]
+        self._pk_seats = []
+        self._last_exiled_seat = seat
+        if p.role == Role.IDIOT and not p.idiot_revealed:
+            p.idiot_revealed = True
+            p.can_vote = False
+            self._emit(f"{seat} 号是白痴！翻牌亮明身份免于出局，失去投票权")
+            self._next_night(now)
+            return
+        p.alive = False
+        p.death_cause = "exile"
+        self._emit(f"{seat} 号被投票放逐出局")
+        # 放逐的猎人可开枪（被放逐非毒死，满足开枪条件）
+        if p.role == Role.HUNTER:
+            self._pending_hunter = seat
+            self._pending_after_hunter = ("last_words", seat)
+            self._enter_phase(Phase.HUNTER_SHOT, now)
+            return
+        self._pending_last_words = [seat]
+        self._last_words_then = "night"
+        self._enter_phase(Phase.LAST_WORDS, now)
+
+    # ---------- 遗言 ----------
+    def submit_last_words(self, user_id: int, content: str, now: float) -> None:
+        p = self._by_uid.get(user_id)
+        if self.phase != Phase.LAST_WORDS:
+            raise EngineError("WRONG_PHASE", "当前不是遗言阶段")
+        if p is None or p.seat != self._pending_last_words[0]:
+            raise EngineError("NOT_YOUR_TURN", "还没轮到你留遗言")
+        content = (content or "").strip()
+        if content:
+            if len(content) > 500:
+                raise EngineError("SPEECH_TOO_LONG", "遗言最长 500 字")
+            self._speeches.append({"seat": p.seat, "nickname": p.nickname,
+                                   "content": content, "day": self.day,
+                                   "last_words": True})
+        self._advance_last_words(now)
+
+    def _advance_last_words(self, now: float) -> None:
+        if self._pending_last_words:
+            self._pending_last_words.pop(0)
+        if self._pending_last_words:
+            self._enter_phase(Phase.LAST_WORDS, now)
+            return
+        if self._last_words_then == "day":
+            self._begin_day(now)   # 首夜遗言后进入白天发言
+        else:
+            self._next_night(now)  # 放逐遗言后进入下一夜
+
+    # ---------- 跳过（女巫用药/猎人开枪/发言/遗言） ----------
+    def skip(self, user_id: int, now: float) -> None:
+        p = self._by_uid.get(user_id)
+        if p is None:
+            raise EngineError("NOT_IN_GAME", "你不在此对局中")
+        if self.phase == Phase.NIGHT_WITCH and p.role == Role.WITCH \
+                and p.user_id not in self._submitted:
+            self._submitted.add(p.user_id)
+            self._advance_if_phase_done(now)
+        elif self.phase == Phase.HUNTER_SHOT and self._pending_hunter == p.seat:
+            self._pending_hunter = None
+            self._continue_after_hunter(now)
+        elif self.phase in (Phase.DAY_SPEECH, Phase.PK_SPEECH) and p.alive \
+                and self._speech_queue[self._speech_idx] == p.seat:
+            self._advance_speech(now)
+        elif self.phase == Phase.LAST_WORDS and self._pending_last_words \
+                and p.seat == self._pending_last_words[0]:
+            self._advance_last_words(now)
+        else:
+            raise EngineError("WRONG_PHASE", "当前没有可跳过的行动")
+
+    def set_escaped(self, user_id: int, escaped: bool) -> None:
+        p = self._by_uid.get(user_id)
+        if p:
+            p.escaped = escaped
 
     def _vote_detail(self) -> list[dict]:
         return [{"voter": self._by_uid[uid].seat, "target": target}
@@ -538,8 +667,10 @@ class WerewolfEngine:
             self._after_dawn(now)
         elif ph == Phase.DAY_SPEECH or ph == Phase.PK_SPEECH:
             self._advance_speech(now)
-        elif ph == Phase.DAY_VOTE or ph == Phase.DAY_VOTE_PK:
+        elif ph == Phase.DAY_VOTE:
             self._resolve_vote(now)
+        elif ph == Phase.DAY_VOTE_PK:
+            self._resolve_pk_vote(now)
         elif ph == Phase.HUNTER_SHOT:
             self._pending_hunter = None
             self._continue_after_hunter(now)
@@ -551,6 +682,7 @@ class WerewolfEngine:
         self._pending_after_hunter = None
         if cont and cont[0] == "last_words":
             self._pending_last_words = [cont[1]]
+            self._last_words_then = "night"
             self._enter_phase(Phase.LAST_WORDS, now)
             return
         if self._check_win(now):
@@ -559,11 +691,3 @@ class WerewolfEngine:
             self._after_dawn(now)
         else:
             self._next_night(now)
-
-    def _advance_last_words(self, now: float) -> None:
-        if self._pending_last_words:
-            self._pending_last_words.pop(0)
-        if self._pending_last_words:
-            self._enter_phase(Phase.LAST_WORDS, now)
-            return
-        self._next_night(now)
