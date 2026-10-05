@@ -133,6 +133,12 @@ class WerewolfEngine:
         self._private_outbox = [(uid, p) for uid, p in self._private_outbox if uid != user_id]
         return mine
 
+    def drain_all_private(self) -> list[tuple[int, dict]]:
+        """取走全部待发私有消息（按用户分离由 room._pump 完成）"""
+        out = self._private_outbox
+        self._private_outbox = []
+        return out
+
     def events_since(self, event_id: int) -> list[dict]:
         return [e for e in self._events if e["id"] > event_id]
 
