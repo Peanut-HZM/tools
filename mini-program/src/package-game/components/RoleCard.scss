@@ -1,0 +1,17 @@
+.role-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &__img {
+    width: 180rpx;
+    height: 240rpx;
+    border-radius: 16rpx;
+    box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.5);
+  }
+  &__hint {
+    margin-top: 8rpx;
+    font-size: 20rpx;
+    color: var(--text-secondary);
+  }
+}

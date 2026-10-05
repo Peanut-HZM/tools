@@ -1,0 +1,257 @@
+@import '../../../../styles/tokens.scss';
+@import '../../../../styles/glass.scss';
+
+.wr {
+  padding: 24rpx;
+  padding-bottom: 240rpx;
+
+  &--loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    color: var(--text-secondary);
+  }
+}
+.wr-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 28rpx;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  background: rgba(139, 155, 255, 0.12);
+
+  &--night { background: rgba(20, 20, 45, 0.8); }
+  &__phase {
+    color: var(--text-primary);
+    font-size: 28rpx;
+    font-weight: 600;
+  }
+  &__timer {
+    color: #ffd166;
+    font-size: 32rpx;
+    font-weight: 700;
+  }
+}
+.wr-myrole {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20rpx;
+
+  &__name {
+    margin-top: 8rpx;
+    color: var(--text-primary);
+    font-size: 26rpx;
+    font-weight: 600;
+  }
+  &__mates {
+    font-size: 22rpx;
+    color: #ff6b6b;
+    margin-top: 4rpx;
+  }
+  &__checks {
+    font-size: 22rpx;
+    color: #4ade80;
+    margin-top: 4rpx;
+  }
+}
+.wr-seats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+.wr-card {
+  padding: 40rpx;
+  text-align: center;
+
+  .wr-room-no {
+    font-size: 48rpx;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+    letter-spacing: 8rpx;
+  }
+  .wr-board {
+    color: var(--text-secondary);
+    font-size: 24rpx;
+    display: block;
+    margin: 12rpx 0 24rpx;
+  }
+  .wr-members {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .wr-wait-tip {
+    display: block;
+    margin-top: 24rpx;
+    color: var(--text-secondary);
+    font-size: 24rpx;
+  }
+  .wr-start-btn { margin-top: 28rpx; }
+  .wr-leave {
+    margin-top: 20rpx;
+    color: var(--text-secondary);
+    font-size: 24rpx;
+    text-decoration: underline;
+  }
+}
+.wr-action {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 40rpx;
+  background: rgba(20, 25, 50, 0.95);
+  border-radius: 20rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+
+  &__tip {
+    color: var(--text-primary);
+    font-size: 26rpx;
+  }
+  &__btns {
+    display: flex;
+    gap: 16rpx;
+  }
+  &__btn {
+    padding: 16rpx 44rpx;
+    border-radius: 16rpx;
+
+    &--ghost {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      text-align: center;
+    }
+  }
+}
+.wr-speech {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 40rpx;
+  background: rgba(20, 25, 50, 0.95);
+  border-radius: 20rpx;
+  padding: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  z-index: 20;
+
+  &__input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 12rpx;
+    padding: 16rpx 20rpx;
+    color: var(--text-primary);
+  }
+  &__send {
+    padding: 16rpx 32rpx;
+    border-radius: 12rpx;
+  }
+  &__skip {
+    color: var(--text-secondary);
+    font-size: 24rpx;
+  }
+}
+.wr-speeches {
+  max-height: 320rpx;
+  margin-bottom: 16rpx;
+
+  .wr-speech-item {
+    padding: 12rpx 16rpx;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12rpx;
+    margin-bottom: 8rpx;
+
+    &__who {
+      display: block;
+      font-size: 22rpx;
+      color: #8B9BFF;
+    }
+    &__text {
+      font-size: 26rpx;
+      color: var(--text-primary);
+    }
+  }
+}
+.wr-log {
+  max-height: 260rpx;
+
+  .wr-log__item {
+    display: block;
+    font-size: 22rpx;
+    color: var(--text-secondary);
+    padding: 6rpx 0;
+  }
+}
+.wr-result {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(5, 8, 20, 0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 120rpx;
+
+  &__winner {
+    font-size: 48rpx;
+    font-weight: 800;
+    color: #4ade80;
+    margin-bottom: 40rpx;
+
+    &--wolf { color: #ff6b6b; }
+  }
+  &__cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16rpx;
+    padding: 0 24rpx;
+  }
+  &__card {
+    width: 150rpx;
+    text-align: center;
+  }
+  &__img {
+    width: 140rpx;
+    height: 186rpx;
+    border-radius: 12rpx;
+  }
+  &__seat {
+    display: block;
+    font-size: 20rpx;
+    color: var(--text-secondary);
+    margin-top: 6rpx;
+  }
+  &__role {
+    display: block;
+    font-size: 22rpx;
+    color: var(--text-primary);
+  }
+  &__btn {
+    margin-top: 48rpx;
+    padding: 20rpx 80rpx;
+  }
+  &__waiting {
+    margin-top: 48rpx;
+    color: var(--text-secondary);
+    font-size: 24rpx;
+  }
+  &__back {
+    margin-top: 24rpx;
+    color: var(--text-secondary);
+    font-size: 26rpx;
+    text-decoration: underline;
+  }
+}

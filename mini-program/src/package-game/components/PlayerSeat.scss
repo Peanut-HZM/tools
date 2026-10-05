@@ -1,0 +1,58 @@
+.seat {
+  position: relative;
+  width: 152rpx;
+  padding: 16rpx 8rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+  margin: 8rpx;
+  box-sizing: border-box;
+
+  &__num {
+    position: absolute;
+    top: 6rpx;
+    left: 10rpx;
+    font-size: 20rpx;
+    color: var(--text-secondary);
+  }
+  &__avatar {
+    width: 80rpx;
+    height: 80rpx;
+    margin: 8rpx auto;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a3f6b, #8B9BFF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 32rpx;
+    font-weight: 600;
+  }
+  &__name {
+    font-size: 22rpx;
+    color: var(--text-primary);
+    display: block;
+    max-width: 136rpx;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__badges {
+    min-height: 28rpx;
+  }
+  &__badge {
+    font-size: 18rpx;
+    color: var(--text-secondary);
+    margin-right: 6rpx;
+
+    &--dead { color: #ff6b6b; }
+    &--idiot { color: #ffd166; }
+  }
+  &--selectable { border: 1rpx solid rgba(139, 155, 255, 0.4); }
+  &--selected {
+    border: 2rpx solid #8B9BFF;
+    background: rgba(139, 155, 255, 0.15);
+  }
+  &--speaking { border: 2rpx solid #4ade80; }
+  &--dead { opacity: 0.45; }
+}
