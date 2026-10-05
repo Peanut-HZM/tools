@@ -27,6 +27,8 @@ const TOOL_PATH_MAP: Record<string, string | null> = {
   'token-usage': '/package-stats/pages/token-usage/index',
   // 生活
   'food-picker': '/package-life/pages/food-picker/index',
+  // 游戏
+  'game-center': '/package-game/pages/game-center/index',
   // 隐藏工具（保持 null）
   'database-tool': null,
   'redis-tool': null,

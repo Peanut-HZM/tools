@@ -31,7 +31,9 @@
     "dev:rn": "npm run build:rn -- --watch",
     "dev:qq": "npm run build:qq -- --watch",
     "dev:jd": "npm run build:jd -- --watch",
-    "dev:quickapp": "npm run build:quickapp -- --watch"
+    "dev:quickapp": "npm run build:quickapp -- --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "browserslist": [
     "last 3 versions",
@@ -85,6 +87,8 @@
     "react-refresh": "0.14.2",
     "stylelint": "^14.4.0",
     "tsconfig-paths-webpack-plugin": "4.1.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^2.1.9",
+    "webpack": "^5.91.0"
   }
 }

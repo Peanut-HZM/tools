@@ -51,6 +51,14 @@ export default {
         'pages/food-picker/index',
       ],
     },
+    {
+      root: 'package-game',
+      pages: [
+        'pages/game-center/index',
+        'pages/werewolf/index',
+        'pages/werewolf/room/index',
+      ],
+    },
   ],
   preloadRule: {},
   window: {
