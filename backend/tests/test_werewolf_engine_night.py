@@ -10,6 +10,14 @@ from tests.werewolf_helpers import DriveHelper, make_engine, seats_with_role
 ROLES = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.VILLAGER: 2}
 
 
+def wolves_confirm(eng, t=1000.0):
+    """狼人阶段：让其余存活狼确认当前刀口（全狼提交制）"""
+    if eng.phase == Phase.NIGHT_WEREWOLF:
+        for w in [p for p in eng.players if p.role == Role.WEREWOLF and p.alive]:
+            if w.user_id not in eng._submitted and eng.night.wolf is not None:
+                eng.submit_action(w.user_id, "werewolf_kill", eng.night.wolf, t)
+
+
 def pass_seer(eng, t=1041.0):
     """用超时跳过预言家阶段（测试不关心查验时）"""
     if eng.phase == Phase.NIGHT_SEER:
@@ -43,6 +51,7 @@ def test_guard_cannot_protect_same_target_two_nights():
     # 第一夜：守 1，狼刀 3，女巫救 3（避免死员干扰，3 为村民或预言家都能被救）
     eng.submit_action(guard_uid, "guard_protect", 1, 1000.0)
     eng.submit_action(wolf_uid, "werewolf_kill", 3, 1000.0)
+    wolves_confirm(eng)
     pass_seer(eng)
     eng.submit_action(witch_uid, "witch_save", 3, 1042.0)
     # 推进到第二夜（白天全部超时托管）
@@ -56,6 +65,7 @@ def test_wolf_kill_resolved_at_dawn():
     eng = make_engine(ROLES)
     wolf_uid = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1].user_id
     eng.submit_action(wolf_uid, "werewolf_kill", 2, 1000.0)
+    wolves_confirm(eng)
     witch_uid = eng.players[seats_with_role(eng, Role.WITCH)[0] - 1].user_id
     eng.drain_private(witch_uid)
     # 女巫不救，毒 6 号（先用超时跳过预言家阶段）
@@ -72,6 +82,7 @@ def test_witch_sees_victim_only_with_save_available():
     witch = eng.players[seats_with_role(eng, Role.WITCH)[0] - 1]
     wolf_uid = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1].user_id
     eng.submit_action(wolf_uid, "werewolf_kill", 2, 1000.0)
+    wolves_confirm(eng)
     pass_seer(eng)  # 推进到女巫阶段才会私发刀口
     victim_msgs = [m for m in eng.drain_private(witch.user_id) if m["kind"] == "witch_victim"]
     assert victim_msgs and victim_msgs[0]["target"] == 2
@@ -88,6 +99,7 @@ def test_witch_one_potion_per_night():
     witch = eng.players[seats_with_role(eng, Role.WITCH)[0] - 1]
     wolf_uid = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1].user_id
     eng.submit_action(wolf_uid, "werewolf_kill", 2, 1000.0)
+    wolves_confirm(eng)
     pass_seer(eng)
     eng.submit_action(witch.user_id, "witch_save", 2, 1042.0)
     with pytest.raises(EngineError):
@@ -100,6 +112,7 @@ def test_witch_self_rescue_settings():
         wolf = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1]
         witch = eng.players[seats_with_role(eng, Role.WITCH)[0] - 1]
         eng.submit_action(wolf.user_id, "werewolf_kill", witch.seat, 1000.0)
+        wolves_confirm(eng)
         pass_seer(eng)
         if allowed:
             eng.submit_action(witch.user_id, "witch_save", witch.seat, 1042.0)
@@ -117,6 +130,7 @@ def test_milk_through_death_when_guarded_and_saved():
     wolf = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1]
     eng.submit_action(guard.user_id, "guard_protect", 6, 1000.0)
     eng.submit_action(wolf.user_id, "werewolf_kill", 6, 1000.0)
+    wolves_confirm(eng)
     pass_seer(eng)
     eng.submit_action(witch.user_id, "witch_save", 6, 1042.0)
     eng.check_timeouts(1999.0)
@@ -130,6 +144,7 @@ def test_guard_saves_wolf_kill():
     wolf = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1]
     eng.submit_action(guard.user_id, "guard_protect", 6, 1000.0)
     eng.submit_action(wolf.user_id, "werewolf_kill", 6, 1000.0)
+    wolves_confirm(eng)
     pass_seer(eng)
     eng.check_timeouts(2082.0)  # 女巫超时不用药
     assert eng.players[5].alive

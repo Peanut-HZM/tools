@@ -112,6 +112,7 @@ class WerewolfEngine:
         self._last_exiled_seat: int | None = None
         self._votes: dict[int, int | None] = {}
         self._pk_seats: list[int] = []
+        self._pk_seats_orig: list[int] = []
         # 流程待办
         self._pending_last_words: list[int] = []   # 待遗言座位队列
         self._pending_hunter: int | None = None  # 待开枪座位
@@ -349,7 +350,7 @@ class WerewolfEngine:
         if p.death_cause not in ("wolf", "exile"):
             raise EngineError("CANNOT_SHOOT", "当前死因无法开枪")
         if target is not None:
-            if not self._valid_target(target):
+            if target == p.seat or not self._valid_target(target):
                 raise EngineError("INVALID_TARGET", "开枪目标无效")
             victim = self.players[target - 1]
             victim.alive = False
@@ -362,7 +363,8 @@ class WerewolfEngine:
         if self.phase == Phase.NIGHT_GUARD:
             return all(g.user_id in self._submitted for g in self._alive_with_role(Role.GUARD))
         if self.phase == Phase.NIGHT_WEREWOLF:
-            return any(w.user_id in self._submitted for w in self._alive_with_role(Role.WEREWOLF))
+            return all(w.user_id in self._submitted
+                       for w in self._alive_with_role(Role.WEREWOLF))
         if self.phase == Phase.NIGHT_SEER:
             return all(s.user_id in self._submitted for s in self._alive_with_role(Role.SEER))
         if self.phase == Phase.NIGHT_WITCH:
@@ -443,11 +445,7 @@ class WerewolfEngine:
         deaths = sorted(self._dawn_deaths or {})
         if deaths:
             return deaths[0] % len(self.players) + 1  # 首个死者下一位（环形）
-        if self._last_exiled_seat is not None:
-            start = self._last_exiled_seat % len(self.players) + 1
-            self._last_exiled_seat = None
-            return start
-        return self._next_speech_start
+        return self._next_speech_start  # 无死者：上一发言轮末尾的下一座（spec §3.3）
 
     def _circular_alive_from(self, start: int) -> list[int]:
         n = len(self.players)
@@ -532,6 +530,7 @@ class WerewolfEngine:
             return
         if len(tally) > 1:
             self._pk_seats = [s for s, _ in tally]
+            self._pk_seats_orig = list(self._pk_seats)
             names = "、".join(f"{s} 号" for s in self._pk_seats)
             self._emit(f"平票！{names} 进入 PK")
             self._speech_queue = list(self._pk_seats)
@@ -564,12 +563,14 @@ class WerewolfEngine:
         else:
             self._emit("PK 再次平票，本轮无人出局")
             self._pk_seats = []
+            if self._pk_seats_orig:
+                self._next_speech_start = (self._pk_seats_orig[-1] % len(self.players)) + 1
             self._next_night(now)
 
     def _do_exile(self, seat: int, now: float) -> None:
         p = self.players[seat - 1]
         self._pk_seats = []
-        self._last_exiled_seat = seat
+        self._last_exiled_seat = None  # 仅作终局统计用途，不再参与发言轮转
         if p.role == Role.IDIOT and not p.idiot_revealed:
             p.idiot_revealed = True
             p.can_vote = False
@@ -579,6 +580,8 @@ class WerewolfEngine:
         p.alive = False
         p.death_cause = "exile"
         self._emit(f"{seat} 号被投票放逐出局")
+        if self._check_win(now):
+            return
         # 放逐的猎人可开枪（被放逐非毒死，满足开枪条件）
         if p.role == Role.HUNTER:
             self._pending_hunter = seat
@@ -743,15 +746,34 @@ class WerewolfEngine:
             if self.phase == PHASE_OF_ROLE.get(me.role) and me.alive and not me.escaped \
                     and me.user_id not in self._submitted:
                 you["acting"] = True
-                you["can"] = {
-                    Role.GUARD: ["guard_protect"],
-                    Role.WEREWOLF: ["werewolf_kill"],
-                    Role.SEER: ["seer_check"],
-                    Role.WITCH: ["witch_save", "witch_poison", "skip"],
-                }[me.role]
+                if me.role == Role.WITCH:
+                    can = []
+                    witch_state = you.get("witch") or {}
+                    if witch_state.get("save") and self.night.wolf is not None:
+                        can.append("witch_save")
+                    if witch_state.get("poison"):
+                        can.append("witch_poison")
+                    can.append("skip")
+                    you["can"] = can
+                else:
+                    you["can"] = {
+                        Role.GUARD: ["guard_protect"],
+                        Role.WEREWOLF: ["werewolf_kill"],
+                        Role.SEER: ["seer_check"],
+                    }[me.role]
             if self.phase == Phase.HUNTER_SHOT and self._pending_hunter == me.seat:
                 you["acting"] = True
                 you["can"] = ["hunter_shot", "skip"]
+            # 投票阶段：存活未托管且有投票权者下发投票行动
+            if self.phase in (Phase.DAY_VOTE, Phase.DAY_VOTE_PK) and me.alive \
+                    and not me.escaped and me.can_vote:
+                already = me.user_id in self._votes
+                is_pk_voter = (self.phase == Phase.DAY_VOTE_PK
+                               and me.seat not in self._pk_seats)
+                if not already and (self.phase == Phase.DAY_VOTE or is_pk_voter):
+                    you["acting"] = True
+                    you["can"] = ["vote_pk" if self.phase == Phase.DAY_VOTE_PK else "vote",
+                                  "skip"]
         if self.phase in (Phase.DAY_SPEECH, Phase.PK_SPEECH) and self._speech_queue:
             you["speaking"] = (me is not None and me.alive
                                and self._speech_queue[self._speech_idx] == me.seat)

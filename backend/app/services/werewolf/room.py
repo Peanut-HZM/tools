@@ -34,7 +34,7 @@ class GameRoom:
         self.status = "WAITING"
         self.engine: WerewolfEngine | None = None
         self._event_cursor = 0
-        self._last_state_key: Optional[tuple] = None
+        self._last_state_key: tuple | None = None
         self._sockets: dict[int, object] = {}  # user_id -> WebSocket（由路由层注册）
         self.created_at = time.time()
         self.last_activity = time.time()
@@ -149,14 +149,23 @@ class GameRoom:
     def mark_connected(self, user_id: int, ws) -> None:
         m = self.members.get(user_id)
         if m:
+            old = self._sockets.get(user_id)
+            if old is not None and old is not ws:
+                # 挤线：关闭旧连接，新连接接管（spec §5.6）
+                try:
+                    old.close()
+                except Exception as e:  # noqa: BLE001  旧连接可能已死
+                    logger.debug("[werewolf] 挤线关闭旧连接失败: %s", e)
             m.connected = True
             m.disconnected_at = None
             self._sockets[user_id] = ws
             self._touch()
 
-    def mark_disconnected(self, user_id: int, now: float) -> None:
+    def mark_disconnected(self, user_id: int, now: float, ws=None) -> None:
+        """ws 传入时做连接比对：仅当断开的是当前注册连接才生效（旧连接迟到的
+        断开事件不得清掉新连接，spec §8 挤线语义）"""
         m = self.members.get(user_id)
-        if m:
+        if m and (ws is None or self._sockets.get(user_id) is ws):
             m.connected = False
             m.disconnected_at = now
             self._sockets.pop(user_id, None)
@@ -247,7 +256,8 @@ class GameRoom:
             raise ValueError("对局尚未结束")
         self.status = "PLAYING"
         self.record_saved = False
-        self._event_cursor = self.engine._event_seq if self.engine else 0
+        self._event_cursor = 0        # 新引擎事件 id 从 0 重新计数
+        self._last_state_key = None
         players = [(uid, m.nickname or f"玩家{uid}") for uid, m in self.members.items()]
         roles = {Role(k): v for k, v in self.board["roles"].items()}
         self.engine = WerewolfEngine(players, roles, self.settings, now=now)

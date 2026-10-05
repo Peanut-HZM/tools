@@ -51,6 +51,7 @@ def test_join_leave_flow(client):
     view = client.get(f"/api/games/werewolf/rooms/{room_id}").json()
     assert len(view["members"]) == 2
     assert client.post(f"/api/games/werewolf/rooms/{room_id}/leave").status_code == 200
+    app.dependency_overrides[get_current_user_id] = lambda: "1"  # 房主视角查询
     view = client.get(f"/api/games/werewolf/rooms/{room_id}").json()
     assert len(view["members"]) == 1
 
@@ -80,6 +81,14 @@ def test_start_insufficient_players(client):
     app.dependency_overrides[get_current_user_id] = lambda: "1"
     res = client.post(f"/api/games/werewolf/rooms/{room_id}/start")
     assert res.status_code == 400
+
+
+def test_room_snapshot_requires_membership(client):
+    """非成员不能查看房间快照（M3：防 6 位房号枚举旁观）"""
+    room_id = client.post("/api/games/werewolf/rooms", json={"board_id": "6p"}).json()["room_id"]
+    app.dependency_overrides[get_current_user_id] = lambda: "99"
+    res = client.get(f"/api/games/werewolf/rooms/{room_id}")
+    assert res.status_code == 403
 
 
 def test_config_update_by_host(client):

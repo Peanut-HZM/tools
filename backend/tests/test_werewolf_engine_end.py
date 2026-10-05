@@ -136,7 +136,87 @@ def test_hunter_shot_timeout_skips():
     assert eng.players[hunter_seat - 1].alive is False
 
 
+def test_vote_phase_snapshot_grants_acting():
+    """投票阶段快照必须给存活未托管且有投票权者下发 acting/can（C1）"""
+    from tests.test_werewolf_engine_day import to_day_vote
+    eng, _d = to_day_vote()
+    voter = next(p for p in eng.players if p.alive and p.seat != 2)
+    snap = eng.snapshot(voter.user_id)
+    assert snap["you"]["acting"] is True
+    assert "vote" in snap["you"]["can"]
+
+
+def test_pk_vote_snapshot_grants_vote_pk_and_excludes_pk_seats():
+    from tests.test_werewolf_engine_day import to_day_vote
+    eng, d = to_day_vote(seed=7)
+    for p in eng.players:
+        if not p.alive or p.seat == 3:
+            continue
+        if p.seat == 4:
+            eng.submit_action(p.user_id, "vote", 1, d.t)
+        elif p.seat == 5:
+            eng.submit_action(p.user_id, "vote", 2, d.t)
+        else:
+            eng.submit_action(p.user_id, "vote", None, d.t)
+    assert eng.phase == Phase.PK_SPEECH
+    d.run_to(Phase.DAY_VOTE_PK)
+    voter = next(p for p in eng.players if p.alive and p.seat not in (1, 2))
+    snap = eng.snapshot(voter.user_id)
+    assert snap["you"]["acting"] is True
+    assert "vote_pk" in snap["you"]["can"]
+    pker = next(p for p in eng.players if p.seat == 1)
+    snap2 = eng.snapshot(pker.user_id)
+    assert snap2["you"]["acting"] is False
+
+
+def test_witch_snapshot_filters_potions_by_remaining():
+    """女巫快照 can 按药剂余量过滤（M2）"""
+    roles = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.HUNTER: 1, Role.VILLAGER: 1}
+    eng = make_engine(roles)
+    witch = eng.players[seats_with_role(eng, Role.WITCH)[0] - 1]
+    wolf = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1]
+    d = DriveHelper(eng)
+    d.run_to(Phase.NIGHT_WEREWOLF)
+    eng.submit_action(wolf.user_id, "werewolf_kill", 6, d.t)
+    d.run_to(Phase.NIGHT_WITCH)
+    snap = eng.snapshot(witch.user_id)
+    assert "witch_save" in snap["you"]["can"]
+    assert "witch_poison" in snap["you"]["can"]
+    # 用掉解药后下一夜：can 不再含 witch_save
+    eng.submit_action(witch.user_id, "witch_save", 6, d.t)
+    d.to_next_night()
+    d.run_to(Phase.NIGHT_WEREWOLF)
+    wolf2 = next(p for p in eng.players if p.role == Role.WEREWOLF and p.alive)
+    eng.submit_action(wolf2.user_id, "werewolf_kill", 5, d.t)
+    d.run_to(Phase.NIGHT_WITCH)
+    snap2 = eng.snapshot(witch.user_id)
+    assert "witch_save" not in snap2["you"]["can"]
+    assert "witch_poison" in snap2["you"]["can"]
+
+
+def test_exile_triggers_immediate_win_check():
+    """放逐最后一狼后立即终局，不进入遗言阶段（I4）"""
+    roles = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.VILLAGER: 2}
+    eng = make_engine(roles)
+    d = DriveHelper(eng)
+    wolves = seats_with_role(eng, Role.WEREWOLF)
+    # 第一夜：狼 A 刀狼 B（自刀）→ B 死
+    eng.submit_action(eng.players[wolves[0] - 1].user_id, "werewolf_kill", wolves[1], 1000.0)
+    d.run_to(Phase.DAY_VOTE)
+    # 白天放逐最后一只狼 A → 好人立即获胜，不进遗言
+    for p in eng.players:
+        if not p.alive:
+            continue
+        if p.seat == wolves[0]:
+            eng.submit_action(p.user_id, "vote", None, d.t)
+        else:
+            eng.submit_action(p.user_id, "vote", wolves[0], d.t)
+    assert eng.finished(), "放逐最后一狼后应立即终局"
+    assert eng.phase == Phase.RESULT and eng.winner() == "VILLAGER"
+
+
 def test_hunter_can_shoot_when_exiled():
+    """放逐猎人且放逐未致终局 → 猎人可开枪"""
     roles = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.HUNTER: 1, Role.VILLAGER: 1}
     eng = make_engine(roles)
     hunter_seat = seats_with_role(eng, Role.HUNTER)[0]
@@ -144,7 +224,8 @@ def test_hunter_can_shoot_when_exiled():
     wolf = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1]
     d = DriveHelper(eng)
     d.run_to(Phase.NIGHT_WEREWOLF)
-    eng.submit_action(wolf.user_id, "werewolf_kill", 3, d.t)
+    wolf_self = seats_with_role(eng, Role.WEREWOLF)[1]
+    eng.submit_action(wolf.user_id, "werewolf_kill", wolf_self, d.t)  # 狼自刀，保持好人占优
     d.run_to(Phase.DAY_VOTE)
     # 全员投猎人（猎人本人弃票）
     for p in eng.players:
@@ -154,7 +235,7 @@ def test_hunter_can_shoot_when_exiled():
             eng.submit_action(p.user_id, "vote", None, d.t)
         else:
             eng.submit_action(p.user_id, "vote", hunter_seat, d.t)
-    assert eng.phase == Phase.HUNTER_SHOT  # 被放逐可开枪
+    assert eng.phase == Phase.HUNTER_SHOT  # 被放逐可开枪（好人 3 > 狼 1，未终局）
     target = next(p for p in eng.players if p.alive and p.seat != hunter_seat)
     eng.submit_action(hunter_uid, "hunter_shot", target.seat, d.t)
     assert not eng.players[target.seat - 1].alive

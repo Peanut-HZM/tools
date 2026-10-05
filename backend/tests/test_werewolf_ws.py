@@ -84,7 +84,12 @@ def test_ws_wolf_kill_flow(client, monkeypatch):
     with client.websocket_connect(
             f"/api/games/werewolf/rooms/{room_id}/ws?token=x") as ws:
         ws.receive_json()  # hello
-        # 只有在狼人阶段才能成功；否则收到 error（两种都算链路通畅）
+        # 只有在狼人阶段才能成功；否则收到 error（两种都算链路通畅）。
+        # 先排空 hello 之后到达的 state 推送，再取行动响应
         ws.send_json({"type": "act", "action": "werewolf_kill", "target": 6})
         msg = ws.receive_json()
+        for _ in range(6):
+            if msg["type"] in ("error", "private", "event"):
+                break
+            msg = ws.receive_json()
         assert msg["type"] in ("error", "private", "event")

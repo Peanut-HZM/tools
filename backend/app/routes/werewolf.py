@@ -277,6 +277,8 @@ async def dismiss_room(room_id: str, user_id: str = Depends(get_current_user_id)
 @router.get("/rooms/{room_id}")
 async def room_snapshot(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
+    if int(user_id) not in room.members:
+        raise HTTPException(status_code=403, detail="你不是该房间成员")
     return room.full_view(int(user_id))
 
 
@@ -311,7 +313,12 @@ async def room_ws(websocket: WebSocket) -> None:
     try:
         await _safe_send(websocket, {"type": "hello", "state": room.full_view(user_id)})
         while True:
-            raw = await websocket.receive_text()
+            try:
+                raw = await asyncio.wait_for(websocket.receive_text(), timeout=60)
+            except asyncio.TimeoutError:
+                # 60s 未收到任何消息（含心跳 ping）视为连接死亡（spec §5.6）
+                logger.info("[werewolf] WS 心跳超时 room=%s user=%s", room_id, user_id)
+                break
             try:
                 data = json.loads(raw)
             except json.JSONDecodeError:

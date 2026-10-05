@@ -127,6 +127,37 @@ def test_second_tie_nobody_exiled():
     assert eng.day == 2
 
 
+def test_speech_start_after_peaceful_day_follows_rotation():
+    """无死者日发言起点=上一发言轮末尾的下一座（I5：不被跨日残留的放逐座位覆盖）"""
+    eng = make_engine(ROLES6, seed=42)
+    d = DriveHelper(eng)
+    wolf = eng.players[seats_with_role(eng, Role.WEREWOLF)[0] - 1]
+    witch = eng.players[seats_with_role(eng, Role.WITCH)[0] - 1]
+    # 第一夜：狼刀 3，女巫不救 → 3 死
+    d.run_to(Phase.NIGHT_WEREWOLF)
+    eng.submit_action(wolf.user_id, "werewolf_kill", 3, d.t)
+    d.run_to(Phase.DAY_VOTE)
+    # day1 发言队列 [4,5,6,1,2]；投票放逐 5 号（5 本人弃票）
+    for p in eng.players:
+        if not p.alive:
+            continue
+        if p.seat == 5:
+            eng.submit_action(p.user_id, "vote", None, d.t)
+        else:
+            eng.submit_action(p.user_id, "vote", 5, d.t)
+    assert eng.players[4].alive is False
+    # 第二夜：狼刀 2、女巫救 → 平安夜（无死者）
+    d.run_to(Phase.NIGHT_WEREWOLF)
+    wolf2 = next(p for p in eng.players if p.role == Role.WEREWOLF and p.alive)
+    eng.submit_action(wolf2.user_id, "werewolf_kill", 2, d.t)
+    d.run_to(Phase.NIGHT_WITCH)
+    eng.submit_action(witch.user_id, "witch_save", 2, d.t)
+    # day2 无死者：spec §3.3 → 从上一发言轮末尾（2 号）的下一位 3 号起；
+    # 3 号夜1 已死被跳过 → 队列首座位为 4
+    d.run_to(Phase.DAY_SPEECH)
+    assert eng._speech_queue[0] == 4
+
+
 def test_idiot_flips_on_exile_survives_loses_vote():
     roles = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.IDIOT: 1, Role.VILLAGER: 1}
     eng = make_engine(roles)

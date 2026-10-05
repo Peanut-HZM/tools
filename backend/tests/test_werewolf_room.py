@@ -2,7 +2,6 @@
 import pytest
 
 from app.services.werewolf.boards import PRESET_BOARDS, GameSettings
-from app.services.werewolf.engine import EngineError
 from app.services.werewolf.manager import RoomManager
 
 
@@ -92,9 +91,12 @@ def test_room_message_routes_to_engine(mgr):
     room.on_message(wolf.user_id, {"type": "act", "action": "werewolf_kill",
                                    "target": target})
     assert room.engine.night.wolf == target
-    with pytest.raises(EngineError):
-        room.on_message(wolf.user_id, {"type": "act", "action": "werewolf_kill",
-                                       "target": target})  # 重复行动被引擎拒绝
+    # 狼人阶段内重复提交是合法改刀（最后一次为准）
+    target2 = next(p.seat for p in room.engine.players
+                   if p.alive and p.seat != wolf.seat and p.seat != target)
+    room.on_message(wolf.user_id, {"type": "act", "action": "werewolf_kill",
+                                   "target": target2})
+    assert room.engine.night.wolf == target2
 
 
 def test_start_pushes_state_snapshot_to_members(mgr):
@@ -148,6 +150,39 @@ def test_kick_host_only_waiting_only(mgr):
         room.kick(4, by_user_id=2)  # 非房主
     with pytest.raises(ValueError):
         room.kick(1, by_user_id=1)  # 不能踢自己
+
+
+def test_reconnect_keeps_new_socket_and_stale_close_is_ignored(mgr):
+    """挤线/重连：旧连接断开不得清掉新连接的注册（I1）"""
+    room = make_full_room(mgr)
+    room.start(1, now=1000.0)
+    old_ws, new_ws = object(), object()
+    room.mark_connected(2, old_ws)
+    room.mark_connected(2, new_ws)  # 新连接接管
+    # 旧连接迟到的断开事件（带 ws 比对）不得清掉新连接
+    room.mark_disconnected(2, now=1000.0, ws=old_ws)
+    assert room._sockets.get(2) is new_ws
+    assert room.members[2].connected is True
+
+
+def test_replay_resets_event_cursor(mgr):
+    """再来一局后事件游标必须归零，否则新对局事件全被过滤（I3）"""
+    room = make_full_room(mgr)
+    room.start(1, now=1000.0)
+    t = 1000.0
+    for _ in range(2000):
+        if room.engine.finished():
+            break
+        t += 50
+        room.tick(t)
+    room.reset_for_replay(by_user_id=1, now=t)
+    assert room._event_cursor == 0
+    assert room._last_state_key is None
+    # 新对局事件能进泵（用同步回调验证）
+    seen = []
+    room.on_broadcast = lambda payload: seen.append(payload)
+    room.tick(t + 1)
+    assert any(p.get("type") == "event" for p in seen), "新对局事件被游标过滤"
 
 
 def test_full_view_contains_snapshot_and_connected(mgr):
