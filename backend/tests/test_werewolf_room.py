@@ -2,6 +2,7 @@
 import pytest
 
 from app.services.werewolf.boards import PRESET_BOARDS, GameSettings
+from app.services.werewolf.engine import EngineError
 from app.services.werewolf.manager import RoomManager
 
 
@@ -84,12 +85,14 @@ def test_room_message_routes_to_engine(mgr):
     room = make_full_room(mgr)
     room.start(1, now=1000.0)
     # 找到存活狼发刀
-    wolf = [p for p in room.engine.players if p.role.value == "WEREWOLF" and p.alive][0]
-    target = [p.seat for p in room.engine.players if p.alive and p.seat != wolf.seat][0]
+    wolf = next(p for p in room.engine.players
+                if p.role.value == "WEREWOLF" and p.alive)
+    target = next(p.seat for p in room.engine.players
+                  if p.alive and p.seat != wolf.seat)
     room.on_message(wolf.user_id, {"type": "act", "action": "werewolf_kill",
                                    "target": target})
     assert room.engine.night.wolf == target
-    with pytest.raises(Exception):
+    with pytest.raises(EngineError):
         room.on_message(wolf.user_id, {"type": "act", "action": "werewolf_kill",
                                        "target": target})  # 重复行动被引擎拒绝
 

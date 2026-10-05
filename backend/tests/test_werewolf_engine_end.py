@@ -7,30 +7,6 @@ from tests.werewolf_helpers import DriveHelper, make_engine, seats_with_role
 ROLES6 = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.VILLAGER: 2}
 
 
-def drive_wolf_knife_nights(eng, targets_per_night, vote_abstain=True):
-    """每晚让存活狼刀指定目标，白天全员弃票，直到对局结束"""
-    d = DriveHelper(eng)
-    t = 1000.0
-    for night_targets in targets_per_night:
-        if eng.finished():
-            return d
-        d.run_to(Phase.NIGHT_WEREWOLF)
-        alive_wolf = [p for p in eng.players if p.role == Role.WEREWOLF and p.alive][0]
-        target = next((s for s in night_targets if eng.players[s - 1].alive), None)
-        if target:
-            eng.submit_action(alive_wolf.user_id, "werewolf_kill", target, d.t)
-        # 白天阶段全部超时（发言/投票弃票）
-        while not eng.finished() and eng.day == d.day_marker if hasattr(d, 'day_marker') else False:
-            break
-        day = eng.day
-        while not eng.finished() and eng.day == day:
-            d._tick()
-    # 收尾：继续超时推进直到终局
-    while not eng.finished():
-        d._tick()
-    return d
-
-
 def test_villager_win_when_all_wolves_dead():
     # 狼人自刀两晚：第一晚狼 A 刀狼 B？自刀需存活狼提交，第二晚另一头狼死
     roles = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.VILLAGER: 2}
@@ -55,15 +31,14 @@ def test_villager_win_when_all_wolves_dead():
 def test_werewolf_win_by_slaughter_edge_all_gods_dead():
     roles = {Role.WEREWOLF: 2, Role.SEER: 1, Role.WITCH: 1, Role.VILLAGER: 2}
     eng = make_engine(roles)
-    wolves = seats_with_role(eng, Role.WEREWOLF)
     gods = seats_with_role(eng, Role.SEER) + seats_with_role(eng, Role.WITCH)
     d = DriveHelper(eng)
     # 两晚分别刀死两名神职 → 屠神 → 狼胜
-    for i, target in enumerate(gods):
+    for target in gods:
         if eng.finished():
             break
         d.run_to(Phase.NIGHT_WEREWOLF)
-        alive_wolf = [p for p in eng.players if p.role == Role.WEREWOLF and p.alive][0]
+        alive_wolf = next(p for p in eng.players if p.role == Role.WEREWOLF and p.alive)
         eng.submit_action(alive_wolf.user_id, "werewolf_kill", target, d.t)
         day = eng.day
         while not eng.finished() and eng.day == day:
@@ -85,10 +60,10 @@ def test_snapshot_hides_other_roles_during_game():
 
 def test_snapshot_wolf_sees_mates_and_witch_state():
     eng = make_engine(ROLES6)
-    wolf = [p for p in eng.players if p.role == Role.WEREWOLF][0]
+    wolf = next(p for p in eng.players if p.role == Role.WEREWOLF)
     snap = eng.snapshot(wolf.user_id)
     assert len(snap["you"]["mates"]) == 1  # 队友座位
-    witch = [p for p in eng.players if p.role == Role.WITCH][0]
+    witch = next(p for p in eng.players if p.role == Role.WITCH)
     wsnap = eng.snapshot(witch.user_id)
     assert wsnap["you"]["witch"] == {"save": True, "poison": True}
 
@@ -102,7 +77,7 @@ def test_snapshot_result_reveals_all():
         if eng.finished():
             break
         d.run_to(Phase.NIGHT_WEREWOLF)
-        alive_wolf = [p for p in eng.players if p.role == Role.WEREWOLF and p.alive][0]
+        alive_wolf = next(p for p in eng.players if p.role == Role.WEREWOLF and p.alive)
         eng.submit_action(alive_wolf.user_id, "werewolf_kill", target, d.t)
         day = eng.day
         while not eng.finished() and eng.day == day:
@@ -180,6 +155,6 @@ def test_hunter_can_shoot_when_exiled():
         else:
             eng.submit_action(p.user_id, "vote", hunter_seat, d.t)
     assert eng.phase == Phase.HUNTER_SHOT  # 被放逐可开枪
-    target = [p for p in eng.players if p.alive and p.seat != hunter_seat][0]
+    target = next(p for p in eng.players if p.alive and p.seat != hunter_seat)
     eng.submit_action(hunter_uid, "hunter_shot", target.seat, d.t)
     assert not eng.players[target.seat - 1].alive

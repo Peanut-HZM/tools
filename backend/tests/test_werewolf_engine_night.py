@@ -78,7 +78,7 @@ def test_witch_sees_victim_only_with_save_available():
     eng.submit_action(witch.user_id, "witch_save", 2, 1042.0)
     # 推进到第二夜：解药已用，不再告知刀口
     DriveHelper(eng).to_next_night()
-    wolf2 = [p for p in eng.players if p.role == Role.WEREWOLF and p.alive][0]
+    wolf2 = next(p for p in eng.players if p.role == Role.WEREWOLF and p.alive)
     eng.submit_action(wolf2.user_id, "werewolf_kill", 3, 3000.0)
     assert not [m for m in eng.drain_private(witch.user_id) if m["kind"] == "witch_victim"]
 

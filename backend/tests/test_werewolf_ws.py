@@ -77,7 +77,8 @@ def test_ws_wolf_kill_flow(client, monkeypatch):
     monkeypatch.setattr("app.routes.werewolf._verify_ws_token", lambda token: "1")
     room_id = _create_full_room(client, monkeypatch)
     room = manager_module.manager.get(room_id)
-    wolf = [p for p in room.engine.players if p.role.value == "WEREWOLF" and p.alive][0]
+    wolf = next(p for p in room.engine.players
+                if p.role.value == "WEREWOLF" and p.alive)
     # 给狼的座位连上 WS
     app.dependency_overrides[get_current_user_id] = lambda: str(wolf.user_id)
     with client.websocket_connect(

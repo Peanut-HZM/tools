@@ -1,7 +1,7 @@
 """白天流程：发言轮转/投票/平票PK/放逐遗言/白痴翻牌"""
 import pytest
 
-from app.services.werewolf.engine import Phase
+from app.services.werewolf.engine import EngineError, Phase
 from app.services.werewolf.roles import Role
 from tests.werewolf_helpers import DriveHelper, make_engine, seats_with_role
 
@@ -41,7 +41,7 @@ def test_speech_order_and_submit_advances():
 def test_non_speaker_cannot_speak():
     eng = kill3_and_to_day_speech()
     other = eng.players[eng._speech_queue[1] - 1]
-    with pytest.raises(Exception):
+    with pytest.raises(EngineError):
         eng.submit_speech(other.user_id, "抢话", 1500.0)
 
 
@@ -62,8 +62,8 @@ def test_vote_exiles_and_last_words():
 
 def test_vote_cannot_target_self():
     eng, d = to_day_vote()
-    voter = [p for p in eng.players if p.alive and p.seat != 2][0]
-    with pytest.raises(Exception):
+    voter = next(p for p in eng.players if p.alive and p.seat != 2)
+    with pytest.raises(EngineError):
         eng.submit_action(voter.user_id, "vote", voter.seat, d.t)
 
 
@@ -101,8 +101,8 @@ def test_pk_vote_only_pk_seats_valid_target():
         else:
             eng.submit_action(p.user_id, "vote", None, d.t)
     d.run_to(Phase.DAY_VOTE_PK)
-    pker = [p for p in eng.players if p.seat == 1][0]
-    with pytest.raises(Exception):
+    pker = next(p for p in eng.players if p.seat == 1)
+    with pytest.raises(EngineError):
         eng.submit_action(pker.user_id, "vote_pk", 1, d.t)  # PK 者无投票权
 
 
@@ -186,7 +186,7 @@ def test_speech_starts_after_exiled_next_day():
     d.run_to(Phase.NIGHT_GUARD)
     eng.submit_action(guard.user_id, "guard_protect", 1, d.t)
     d.run_to(Phase.NIGHT_WEREWOLF)
-    wolf2 = [p for p in eng.players if p.role == Role.WEREWOLF and p.alive][0]
+    wolf2 = next(p for p in eng.players if p.role == Role.WEREWOLF and p.alive)
     eng.submit_action(wolf2.user_id, "werewolf_kill", 1, d.t)
     # 第二天发言从被放逐者（2 号）下一位开始；3 号夜死被跳过 → 4 号
     d.run_to(Phase.DAY_SPEECH)

@@ -332,8 +332,8 @@ async def room_ws(websocket: WebSocket) -> None:
                                              "message": e.message})
     except (WebSocketDisconnect, RuntimeError):
         logger.info("[werewolf] WS 断开 room=%s user=%s", room_id, user_id)
-    except Exception as e:
-        logger.exception("[werewolf] WS 异常断开 room=%s user=%s err=%s", room_id, user_id, repr(e))
+    except Exception:
+        logger.exception("[werewolf] WS 异常断开 room=%s user=%s", room_id, user_id)
     finally:
         room.mark_disconnected(user_id, time.time())
         m = room.members.get(user_id)
