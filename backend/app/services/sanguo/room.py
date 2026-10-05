@@ -246,7 +246,8 @@ class SanguoRoom:
                 "alive_at_end": p.alive,
                 "is_winner": self._is_winner(p, winner),
             })
-        duration = int(time.time() - (self.started_at or self.created_at))
+        duration = max(0, min(int(time.time() - (self.started_at or self.created_at)),
+                              24 * 3600))
         return {
             "room_id": self.room_id,
             "board_name": f"{len(eng.players)}人身份局",
