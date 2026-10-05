@@ -32,7 +32,8 @@ import Taro from '@tarojs/taro'
 describe('werewolfWs 平台桥接', () => {
   beforeEach(() => {
     fakeTask = new FakeTask()
-    vi.mocked(Taro.connectSocket).mockClear()
+    vi.mocked(Taro.connectSocket).mockReset()
+    vi.mocked(Taro.connectSocket).mockImplementation(() => Promise.resolve(fakeTask))
     werewolfWs.close()
   })
 
@@ -58,6 +59,44 @@ describe('werewolfWs 平台桥接', () => {
     expect(fakeTask.send).toHaveBeenCalledWith({ data: '{"type":"ping"}' })
     werewolfWs.close()
     expect(fakeTask.close).toHaveBeenCalled()
+  })
+
+  it('房间不存在(4404)时终止重连并回调 onClose', async () => {
+    vi.useFakeTimers()
+    const onMessage = vi.fn()
+    const onClose = vi.fn()
+    const pending = werewolfWs.connect('123456', { onMessage, onClose })
+    await Promise.resolve()
+    fakeTask.onOpen.mock.calls[0][0]()
+    await pending
+    // 服务端 4404 关闭（房间不存在）
+    fakeTask.onClose.mock.calls[0][0]({ code: 4404 })
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(onClose).toHaveBeenCalled()
+    // 只连接过一次，无重连
+    expect(vi.mocked(Taro.connectSocket)).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  it('正常断开自动重连且重试次数受上限约束', async () => {
+    vi.useFakeTimers()
+    const onMessage = vi.fn()
+    let taskInstance = fakeTask
+    vi.mocked(Taro.connectSocket).mockImplementation(() => {
+      taskInstance = new FakeTask()
+      return Promise.resolve(taskInstance)
+    })
+    const pending = werewolfWs.connect('123456', { onMessage })
+    await Promise.resolve()
+    taskInstance.onOpen.mock.calls[0][0]()
+    await pending
+    // 连续 4 次非正常断开：第 4 次后不再重连
+    for (let i = 0; i < 4; i++) {
+      taskInstance.onClose.mock.calls[0][0]({ code: 1006 })
+      await vi.advanceTimersByTimeAsync(16000)
+    }
+    expect(vi.mocked(Taro.connectSocket).mock.calls.length).toBeLessThanOrEqual(4)
+    vi.useRealTimers()
   })
 
   it('connect 使用正确的 ws URL 与 token', async () => {

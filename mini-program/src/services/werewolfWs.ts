@@ -53,12 +53,19 @@ function stopHeartbeat() {
   }
 }
 
-function scheduleReconnect() {
+function scheduleReconnect(closeCode?: number) {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer)
     reconnectTimer = null
   }
   if (manuallyClosed || !currentRoomId || !currentHandlers) return
+  // 4401 认证失效 / 4404 房间不存在：重连无意义，立即终止并通知上层（spec §8）
+  if (closeCode === 4401 || closeCode === 4404) {
+    currentHandlers.onClose?.()
+    currentRoomId = null
+    return
+  }
+  // 重试计数跨重连累计（上限 3 次），仅在主动 connect 入口重置
   if (retryCount >= 3) {
     currentHandlers.onClose?.()
     currentRoomId = null
@@ -69,7 +76,7 @@ function scheduleReconnect() {
   const roomId = currentRoomId
   const handlers = currentHandlers
   reconnectTimer = setTimeout(() => {
-    connect(roomId, handlers).catch(() => {})
+    connectInternal(roomId, handlers).catch(() => {})
   }, delay)
 }
 
@@ -90,16 +97,21 @@ function bindTask(socketTask: SocketTaskLike, handlers: Handlers,
   socketTask.onError(() => {
     reject(new Error('ws error'))
   })
-  socketTask.onClose(() => {
+  socketTask.onClose((res?: { code?: number }) => {
     stopHeartbeat()
-    scheduleReconnect()
+    scheduleReconnect(res?.code)
   })
 }
 
+/** 主动入口：重置重试计数；重连路径走 connectInternal 保留计数 */
 export function connect(roomId: string, handlers: Handlers): Promise<void> {
+  retryCount = 0
+  return connectInternal(roomId, handlers)
+}
+
+function connectInternal(roomId: string, handlers: Handlers): Promise<void> {
   currentHandlers = handlers
   currentRoomId = roomId
-  retryCount = 0
   manuallyClosed = false
   return new Promise((resolve, reject) => {
     let result: any

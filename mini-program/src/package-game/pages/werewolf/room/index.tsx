@@ -93,7 +93,10 @@ export default function WerewolfRoom() {
   const canAct = !!(you?.acting && Array.isArray(you?.can) && you.can.length > 0)
   const canList: string[] = canAct ? you.can : []
   const hasTargetAction = canAct && canList.some(
-    (a: string) => a !== 'skip' && a !== 'witch_save' && a !== 'witch_poison')
+    (a: string) => a !== 'skip' && a !== 'witch_save')
+  // 女巫解药：目标固定为刀口，无需选座位，一键使用
+  const canSaveWitch = canAct && canList.includes('witch_save')
+    && !!you.witch?.victim && !!you.witch?.save
   const selectableSeats = useMemo(() => {
     if (!canAct || !hasTargetAction) return []
     const action = canList[0]
@@ -227,13 +230,23 @@ export default function WerewolfRoom() {
       {canAct && !isResult && (
         <View className='wr-action'>
           <Text className='wr-action__tip'>
-            {you.can.includes('witch_save') && you.witch?.victim
-              ? `今晚 ${you.witch.victim} 号被刀，是否用药？`
-              : hasTargetAction ? '选择一名玩家' : '是否使用技能？'}
+            {phase === 'DAY_VOTE' || phase === 'DAY_VOTE_PK'
+              ? '请投票放逐一名玩家'
+              : canSaveWitch && !hasTargetAction
+                ? `今晚 ${you.witch.victim} 号被刀，是否使用解药？`
+                : hasTargetAction ? '选择一名玩家' : '是否使用技能？'}
           </Text>
           <View className='wr-action__btns'>
             {you.can.includes('skip') && (
               <View className='wr-action__btn wr-action__btn--ghost' onClick={() => sendSkip()}>放弃</View>
+            )}
+            {canSaveWitch && (
+              <View className='btn-primary wr-action__btn' onClick={() => {
+                Taro.showModal({
+                  title: '确认操作', content: `确定对 ${you.witch.victim} 号使用解药吗？`,
+                  success: (res) => { if (res.confirm) sendAct('witch_save', you.witch.victim) },
+                })
+              }}>使用解药</View>
             )}
             {hasTargetAction && (
               <View className='btn-primary wr-action__btn' onClick={confirmAction}>确认</View>

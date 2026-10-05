@@ -6,10 +6,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 // --- mock 平台与网络层（Room 组件的边界） ---
 const useDidShowCb = { fn: () => {} }
+const { showModalSpy } = vi.hoisted(() => ({ showModalSpy: vi.fn() }))
 vi.mock('@tarojs/taro', () => ({
   default: {
     showToast: vi.fn(),
-    showModal: vi.fn(),
+    showModal: showModalSpy,
     navigateBack: vi.fn(),
     getStorageSync: vi.fn(() => ''),
   },
@@ -37,8 +38,8 @@ import React from 'react'
 // @tarojs/components 为 ES class 组件，esbuild 的 JSX 转换与之不兼容；
 // 渲染测试只关心页面逻辑，mock 为透传 div 的函数组件。
 vi.mock('@tarojs/components', () => ({
-  View: (p: any) => React.createElement('div', null, p.children),
-  Text: (p: any) => React.createElement('span', null, p.children),
+  View: (p: any) => React.createElement('div', { onClick: p.onClick }, p.children),
+  Text: (p: any) => React.createElement('span', { onClick: p.onClick }, p.children),
   Input: () => React.createElement('input'),
   ScrollView: (p: any) => React.createElement('div', null, p.children),
   Image: () => React.createElement('img'),
@@ -89,6 +90,51 @@ describe('对局页渲染（hooks 顺序回归）', () => {
     act(() => { useWerewolfStore.setState({ view: WAITING_VIEW as any }) })
     expect(screen.getByText('房号 123456')).toBeTruthy()
     expect(container.innerHTML).not.toBe('')
+  })
+
+  it('投票阶段渲染确认按钮，可选中投票目标（C1）', () => {
+    render(<WerewolfRoom />)
+    const view = {
+      ...PLAYING_VIEW,
+      snapshot: {
+        ...PLAYING_VIEW.snapshot,
+        phase: 'DAY_VOTE',
+        players: [
+          { seat: 1, nickname: '甲', alive: true, escaped: false },
+          { seat: 2, nickname: '乙', alive: true, escaped: false },
+        ],
+        you: { seat: 1, role: 'VILLAGER', can_vote: true, mates: null,
+               acting: true, can: ['vote', 'skip'] },
+      },
+    }
+    act(() => { useWerewolfStore.setState({ view: view as any }) })
+    // 座位可选 + 确认按钮出现
+    expect(screen.getAllByText('确认').length).toBeGreaterThan(0)
+    // 选中座位 → 点确认 → 确认弹窗发起（确认制）
+    const seat2 = screen.getAllByText('乙')[0]
+    act(() => { seat2.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    const confirmBtn = [...document.querySelectorAll('div')].find(
+      (d) => d.children.length === 0 && d.textContent === '确认')
+    act(() => { confirmBtn!.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    expect(showModalSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ content: '确定选择 2 号吗？提交后不可撤销' }))
+  })
+
+  it('女巫有解药时渲染用药按钮（C2）', () => {
+    render(<WerewolfRoom />)
+    const view = {
+      ...PLAYING_VIEW,
+      snapshot: {
+        ...PLAYING_VIEW.snapshot,
+        phase: 'NIGHT_WITCH',
+        you: { seat: 1, role: 'WITCH', can_vote: true, mates: null, acting: true,
+               can: ['witch_save', 'witch_poison', 'skip'],
+               witch: { save: true, poison: true, victim: 2 } },
+      },
+    }
+    act(() => { useWerewolfStore.setState({ view: view as any }) })
+    expect(screen.getAllByText('使用解药').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('放弃').length).toBeGreaterThan(0)
   })
 
   it('view 从空到对局快照不白屏，渲染座位与身份', () => {
