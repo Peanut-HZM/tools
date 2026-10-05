@@ -256,6 +256,19 @@ TOOLS_DATA = [
         category="实用工具",
         show_pc=False,  # 数据存小程序本地存储，仅移动端提供
     ),
+    Tool(
+        id="game-center",
+        icon="fa-gamepad",
+        iconColor="bg-indigo-500",
+        title="游戏中心",
+        description="和小伙伴一起玩狼人杀等多人游戏，开房间实时联机对战",
+        rating=5.0,
+        usageCount="New",
+        category="实用工具",
+        sort_order=6,
+        show_pc=False,  # 多人游戏仅小程序端提供
+        require_login=True,  # 联机对战需要账号
+    ),
 ]
 
 

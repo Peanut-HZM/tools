@@ -42,6 +42,7 @@ class GameRoom:
         # 连接层回调（路由模块注入，同步函数；发送通过 asyncio.create_task 落地）
         self.on_broadcast: Callable[[dict], None] = self._noop
         self.on_send: Callable[[int, dict], None] = self._noop
+        self.on_finished: Callable[[], None] = self._noop  # 对局结束钩子（结算落库）
 
     def _noop(self, *args, **kwargs):  # pragma: no cover - 默认空实现
         pass
@@ -124,6 +125,9 @@ class GameRoom:
             raise ValueError("对局已开始")
         if self.member_count() < 2:
             raise ValueError("至少 2 名玩家才能开始")
+        if self.member_count() != self.capacity():
+            raise ValueError(f"人数未满：{self.member_count()}/{self.capacity()}，"
+                             "板子角色数量要求满员开局")
         players = [(uid, m.nickname or f"玩家{uid}") for uid, m in self.members.items()]
         roles = {Role(k): v for k, v in self.board["roles"].items()}
         self.engine = WerewolfEngine(players, roles, self.settings, now=now)
@@ -183,6 +187,7 @@ class GameRoom:
         if self.engine and self.engine.finished() and self.status == "PLAYING":
             self.status = "RESULT"
             self.last_activity = time.time()
+            self.on_finished()
 
     # ---------- 视图 ----------
     def member_view(self) -> dict:

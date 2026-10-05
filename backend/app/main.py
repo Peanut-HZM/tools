@@ -1,48 +1,47 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from app.routes import (
-    tools,
-    image_downloader,
-    video_downloader,
-    ytdlp_routes,
-    calendar,
-    key_generator,
-    converter,
-    oss,
-    admin,
-    deploy,
-)
-from app.routes import (
-    ocr_routes,
-    asr_routes,
-    database_tool,
-    redis_tool,
-    ssh_tool,
-    k8s_tool,
-    json_tool,
-    resource_management,
-    token_usage,
-)
-from app.routes import auth, contact_message
-from app.routes import monitor as monitor_router
-from app.routes import markdown_editor
-from app.routes import cross_share
-from app.routes import course_platform
-from app.routes import http_client
-from app.routes import course_platform_admin
-from app.routes import tech_contents
-from app.routes import cursor_history
-from app.api.routes import llm_config, conversations, prd, messages, health
-from app.services.download_manager import get_manager
 import asyncio
 import logging
-import os
-from pathlib import Path
+from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.routes import conversations, health, llm_config, messages, prd
 from app.config.config import settings
 from app.models.base import Base, engine
+from app.routes import (
+    admin,
+    asr_routes,
+    auth,
+    calendar,
+    contact_message,
+    converter,
+    course_platform,
+    course_platform_admin,
+    cross_share,
+    cursor_history,
+    database_tool,
+    deploy,
+    http_client,
+    image_downloader,
+    json_tool,
+    k8s_tool,
+    key_generator,
+    markdown_editor,
+    ocr_routes,
+    oss,
+    redis_tool,
+    resource_management,
+    ssh_tool,
+    tech_contents,
+    token_usage,
+    tools,
+    video_downloader,
+    ytdlp_routes,
+)
+from app.routes import monitor as monitor_router
+from app.services.download_manager import get_manager
 from app.services.token_usage_background_sync import (
     start_background_sync_task,
     stop_background_sync_task,
@@ -103,7 +102,10 @@ async def lifespan(app: FastAPI):
 
     # 自动创建数据库表（Token Usage 相关模型）
     try:
-        from app.models.token_usage_models import TokenUsageRecord, TokenUsageSyncLog  # noqa: F401
+        from app.models.token_usage_models import (  # noqa: F401
+            TokenUsageRecord,
+            TokenUsageSyncLog,
+        )
         Base.metadata.create_all(bind=engine)
         logger.info("Token Usage 数据库表创建成功")
     except Exception as e:
@@ -112,9 +114,9 @@ async def lifespan(app: FastAPI):
     # 初始化监控模块（建表 + 启动采集引擎）
     monitor_cleanup_task = None
     try:
-        from app.services.monitor.server_service import MonitorServerService
-        from app.services.monitor import metric_repo, alert_engine
+        from app.services.monitor import alert_engine, metric_repo
         from app.services.monitor.collector import monitor_collector
+        from app.services.monitor.server_service import MonitorServerService
         MonitorServerService.ensure_tables()
         metric_repo.ensure_tables()
         alert_engine.ensure_tables()
@@ -138,6 +140,14 @@ async def lifespan(app: FastAPI):
     # 启动后台清理任务
     manager = get_manager()
     cleanup_task = asyncio.create_task(manager.start_cleanup_task())
+
+    # 狼人杀房间心跳循环（超时托管/闲置回收）
+    try:
+        from app.routes.werewolf import manager as werewolf_manager
+        werewolf_manager.start()
+        logger.info("狼人杀房间心跳循环已启动")
+    except Exception as e:
+        logger.warning(f"狼人杀房间心跳循环启动失败: {e}")
 
     # 启动数据库工具连接池空闲清理任务（每 5 分钟清理 15 分钟未使用的引擎）
     try:
@@ -185,8 +195,8 @@ async def lifespan(app: FastAPI):
     # Harness 初始化（Phase 1: 验证内置工具可注册）
     try:
         from app.services.harness.tool_registry import ToolRegistry  # noqa: F401
-        from app.services.harness.tools.web_search import WebSearchTool  # noqa: F401
         from app.services.harness.tools.db_query import DbQueryTool  # noqa: F401
+        from app.services.harness.tools.web_search import WebSearchTool  # noqa: F401
 
         # 延迟初始化（需要请求级 DB session）
         # Phase 1: 只验证模块可导入，不创建实例
@@ -217,7 +227,9 @@ async def lifespan(app: FastAPI):
     # 记忆向量回填（Phase 3 Plan-1B / Task 6）：best-effort，非阻塞启动
     try:
         from app.models.base import SessionLocal
-        from app.services.harness.memory_backfill import count_pending_rows, run_startup_backfill
+        from app.services.harness.memory_backfill import (
+            count_pending_rows,
+        )
 
         _backfill_db = SessionLocal()
         try:
@@ -282,6 +294,12 @@ async def lifespan(app: FastAPI):
         logger.warning(f"监控采集引擎停止异常: {e}")
 
     # 停止监控指标清理任务（初始化失败时为 None，跳过取消）
+    try:
+        from app.routes.werewolf import manager as werewolf_manager
+        werewolf_manager.shutdown()
+    except Exception as e:
+        logger.warning(f"狼人杀房间心跳循环停止失败: {e}")
+
     if monitor_cleanup_task is not None:
         monitor_cleanup_task.cancel()
         try:
@@ -327,9 +345,9 @@ async def _run_memory_backfill(db):
 
 def _check_security_settings():
     """检查安全密钥配置是否合规"""
+    from app.config.asr_config import asr_settings
     from app.config.config import settings
     from app.config.ocr_config import ocr_settings
-    from app.config.asr_config import asr_settings
 
     # 已知的硬编码默认值（需要替换）
     DEFAULT_KEYS = [
@@ -372,9 +390,9 @@ async def sync_mcp_servers():
     拉取工具列表并注册到全局 ``ToolRegistry``。
     单个 server 失败仅记录日志，不阻塞其他 server 与应用启动。
     """
+    from app.models.base import SessionLocal
     from app.models.mcp_server import McpServer
     from app.services.harness.mcp_server_manager import get_mcp_server_manager
-    from app.models.base import SessionLocal
 
     db = SessionLocal()
     try:
@@ -453,11 +471,13 @@ app.include_router(oss.router)
 app.include_router(admin.router)
 
 # Admin LLM quota router (LLM 用户配额管理)
-from app.routes import admin_llm_quota  # noqa: E402
+from app.routes import admin_llm_quota
+
 app.include_router(admin_llm_quota.router)
 
 # User LLM quota router (用户查看自身配额)
-from app.routes import user_quota  # noqa: E402
+from app.routes import user_quota
+
 app.include_router(user_quota.router)
 
 # Deploy info router
@@ -510,7 +530,7 @@ app.include_router(messages.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
 
 # Chat stream router (SSE)
-from app.api.routes import chat_stream, admin_conversations
+from app.api.routes import admin_conversations, chat_stream
 
 app.include_router(chat_stream.router, prefix="/api/v1")
 
@@ -528,7 +548,7 @@ from app.api.routes import admin_tools
 app.include_router(admin_tools.router)
 
 # Harness admin/traces router (Task 15)
-from app.api.routes import admin_traces  # noqa: E402
+from app.api.routes import admin_traces
 
 app.include_router(admin_traces.router)
 
@@ -538,7 +558,7 @@ from app.api.routes import agents as agents_router
 app.include_router(agents_router.router, prefix="/api/v1")
 
 # LLM 供应商 / 模型管理 router（Task 1.5.4）
-from app.api.routes import admin_llm_providers, admin_llm_models
+from app.api.routes import admin_llm_models, admin_llm_providers
 
 app.include_router(admin_llm_providers.router, prefix="/api/v1")
 app.include_router(admin_llm_models.router, prefix="/api/v1")
@@ -563,7 +583,10 @@ app.include_router(openclaw_router.router, prefix="/api")
 
 # OpenClaw WebSocket router (mini-program)
 from app.routes import openclaw_ws as openclaw_ws_router
+from app.routes import werewolf as werewolf_router
+
 app.include_router(openclaw_ws_router.router, prefix="/api")
+app.include_router(werewolf_router.router)
 
 # OpenClaw Admin router
 from app.routes import openclaw_admin as openclaw_admin_router
@@ -571,10 +594,14 @@ from app.routes import openclaw_admin as openclaw_admin_router
 app.include_router(openclaw_admin_router.router)
 
 # Harness memories management router (Phase 3 Plan-1B / Task 6)
-from app.api.routes.harness_memories import router as harness_memories_router  # noqa: E402
-from app.api.routes.harness_skills import router as harness_skills_router  # noqa: E402
-from app.api.routes.marketplace import router as marketplace_router  # noqa: E402
-from app.api.routes.tools_image_generation import router as tools_image_generation_router  # noqa: E402
+from app.api.routes.harness_memories import (
+    router as harness_memories_router,
+)
+from app.api.routes.harness_skills import router as harness_skills_router
+from app.api.routes.marketplace import router as marketplace_router
+from app.api.routes.tools_image_generation import (
+    router as tools_image_generation_router,
+)
 
 app.include_router(harness_memories_router)
 app.include_router(harness_skills_router)
@@ -582,12 +609,14 @@ app.include_router(marketplace_router)
 app.include_router(tools_image_generation_router)
 
 # Harness traces query router (Phase 3 Plan 1C / Task 3)
-from app.api.routes import harness_traces  # noqa: E402
+from app.api.routes import harness_traces
 
 app.include_router(harness_traces.router)
 
 # Harness checkpoint 时间旅行 router (Phase 3 Plan 1D / Task 4)
-from app.api.routes.harness_checkpoints import router as harness_checkpoints_router  # noqa: E402
+from app.api.routes.harness_checkpoints import (
+    router as harness_checkpoints_router,
+)
 
 app.include_router(harness_checkpoints_router)
 
