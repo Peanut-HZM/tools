@@ -116,6 +116,7 @@ class WerewolfEngine:
         self._pending_last_words: list[int] = []   # 待遗言座位队列
         self._pending_hunter: int | None = None  # 待开枪座位
         self._pending_after_hunter: tuple | None = None  # 开枪后的续接流程
+        self._hunter_handled: set[int] = set()           # 已触发过开枪的猎人座位
         self._dawn_deaths: dict[int, str] = {}
         self._last_words_then = "night"   # 遗言结束后的去向：day=首夜→白天 / night=放逐→下一夜
 
@@ -336,8 +337,20 @@ class WerewolfEngine:
         self._advance_if_phase_done(now)
 
     def _act_hunter(self, p: EnginePlayer, target: int | None, now: float) -> None:
-        # Task 4 实现完整开枪逻辑；当前阶段判定已拦截所有合法路径
-        raise EngineError("NOT_YOUR_TURN", "当前不是开枪阶段")
+        if self.phase != Phase.HUNTER_SHOT or self._pending_hunter != p.seat:
+            raise EngineError("NOT_YOUR_TURN", "当前不是你的开枪阶段")
+        # 猎人已出局（被刀/被放逐）才有开枪权，故不检查 alive
+        if p.death_cause not in ("wolf", "exile"):
+            raise EngineError("CANNOT_SHOOT", "当前死因无法开枪")
+        if target is not None:
+            if not self._valid_target(target):
+                raise EngineError("INVALID_TARGET", "开枪目标无效")
+            victim = self.players[target - 1]
+            victim.alive = False
+            victim.death_cause = "shot"
+            self._emit(f"猎人开枪带走了 {target} 号")
+        self._pending_hunter = None
+        self._continue_after_hunter(now)
 
     def _phase_complete(self) -> bool:
         if self.phase == Phase.NIGHT_GUARD:
@@ -391,10 +404,12 @@ class WerewolfEngine:
 
     def _after_dawn(self, now: float) -> None:
         deaths = self._dawn_deaths
-        # 夜死的猎人（被刀死才可枪；被毒/奶穿不可）先开枪
+        # 夜死的猎人（被刀死才可枪；被毒/奶穿不可）先开枪（仅触发一次）
         for seat, cause in sorted(deaths.items()):
             p = self.players[seat - 1]
-            if p.role == Role.HUNTER and cause == "wolf":
+            if p.role == Role.HUNTER and cause == "wolf" \
+                    and seat not in self._hunter_handled:
+                self._hunter_handled.add(seat)
                 self._pending_hunter = seat
                 self._pending_after_hunter = ("after_dawn", seat)
                 self._enter_phase(Phase.HUNTER_SHOT, now)
@@ -691,3 +706,77 @@ class WerewolfEngine:
             self._after_dawn(now)
         else:
             self._next_night(now)
+
+    # ---------- 个人视角快照（spec §5.4 契约） ----------
+    def snapshot(self, user_id: int) -> dict:
+        me = self._by_uid.get(user_id)
+        players_view = []
+        for p in self.players:
+            item = {"seat": p.seat, "nickname": p.nickname, "alive": p.alive,
+                    "escaped": p.escaped}
+            if p.idiot_revealed:
+                item["idiot_revealed"] = True
+            players_view.append(item)
+        you: dict = {"seat": me.seat if me else None, "role": None, "can_vote": True,
+                     "mates": None, "acting": False, "can": [], "speaking": False}
+        if me and me.role:
+            you["role"] = me.role.value
+            you["can_vote"] = me.can_vote
+            if me.role == Role.WEREWOLF:
+                you["mates"] = [q.seat for q in self.players
+                                if q.role == Role.WEREWOLF and q.seat != me.seat]
+            if me.role == Role.SEER:
+                you["checks"] = list(me.seer_checks)
+            if me.role == Role.WITCH:
+                you["witch"] = {"save": not me.witch_save_used,
+                                "poison": not me.witch_poison_used}
+                if self.phase == Phase.NIGHT_WITCH and not me.witch_save_used \
+                        and self.night.wolf:
+                    you["witch"]["victim"] = self.night.wolf
+            # 阶段行动提示
+            if self.phase == PHASE_OF_ROLE.get(me.role) and me.alive and not me.escaped \
+                    and me.user_id not in self._submitted:
+                you["acting"] = True
+                you["can"] = {
+                    Role.GUARD: ["guard_protect"],
+                    Role.WEREWOLF: ["werewolf_kill"],
+                    Role.SEER: ["seer_check"],
+                    Role.WITCH: ["witch_save", "witch_poison", "skip"],
+                }[me.role]
+            if self.phase == Phase.HUNTER_SHOT and self._pending_hunter == me.seat:
+                you["acting"] = True
+                you["can"] = ["hunter_shot", "skip"]
+        if self.phase in (Phase.DAY_SPEECH, Phase.PK_SPEECH) and self._speech_queue:
+            you["speaking"] = (me is not None and me.alive
+                               and self._speech_queue[self._speech_idx] == me.seat)
+        snap = {
+            "phase": self.phase.value,
+            "day": self.day,
+            "deadline": self.deadline,
+            "players": players_view,
+            "you": you,
+            "log": self._events[-100:],
+            "speeches": self._speeches[-100:],
+            "votes": self._last_votes,
+            "speaking_seat": (self._speech_queue[self._speech_idx]
+                              if self.phase in (Phase.DAY_SPEECH, Phase.PK_SPEECH)
+                              and self._speech_queue else None),
+            "pk_seats": self._pk_seats,
+            "last_words_seat": (self._pending_last_words[0]
+                                if self.phase == Phase.LAST_WORDS
+                                and self._pending_last_words else None),
+        }
+        if self.phase == Phase.RESULT:
+            snap["winner"] = self._winner
+            snap["reveal"] = self.reveal()
+        return snap
+
+    def reveal(self) -> list[dict]:
+        return [{"seat": p.seat, "role": p.role.value if p.role else None, "alive": p.alive}
+                for p in self.players]
+
+    def winner(self) -> str | None:
+        return self._winner
+
+    def finished(self) -> bool:
+        return self.phase == Phase.RESULT
