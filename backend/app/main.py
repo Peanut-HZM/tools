@@ -145,7 +145,9 @@ async def lifespan(app: FastAPI):
     try:
         from app.routes.werewolf import manager as werewolf_manager
         werewolf_manager.start()
-        logger.info("狼人杀房间心跳循环已启动")
+        from app.routes.sanguo import manager as sanguo_manager
+        sanguo_manager.start()
+        logger.info("狼人杀/三国杀房间心跳循环已启动")
     except Exception as e:
         logger.warning(f"狼人杀房间心跳循环启动失败: {e}")
 
@@ -297,6 +299,8 @@ async def lifespan(app: FastAPI):
     try:
         from app.routes.werewolf import manager as werewolf_manager
         werewolf_manager.shutdown()
+        from app.routes.sanguo import manager as sanguo_manager
+        sanguo_manager.shutdown()
     except Exception as e:
         logger.warning(f"狼人杀房间心跳循环停止失败: {e}")
 
@@ -584,9 +588,11 @@ app.include_router(openclaw_router.router, prefix="/api")
 # OpenClaw WebSocket router (mini-program)
 from app.routes import openclaw_ws as openclaw_ws_router
 from app.routes import werewolf as werewolf_router
+from app.routes import sanguo as sanguo_router
 
 app.include_router(openclaw_ws_router.router, prefix="/api")
 app.include_router(werewolf_router.router, prefix="/api")
+app.include_router(sanguo_router.router)
 # WS 路由直接挂载：经 include_router 注册的 websocket 路由在本 Starlette 版本
 # 的 _IncludedRouter 分发下会被 1008 拒绝，故用纯 Starlette 路由挂载
 from starlette.routing import WebSocketRoute as _WerewolfWSRoute

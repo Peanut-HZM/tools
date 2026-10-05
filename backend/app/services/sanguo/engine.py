@@ -127,7 +127,7 @@ class SangouEngine:
         self.phase = SPhase.READY
         self.deadline: float | None = None
         self.pending: Pending | None = None
-        self.winner: str | None = None
+        self._winner_role: str | None = None
         self.turn_count = 0
         self.events: list[dict] = []
         self._event_seq = 0
@@ -174,6 +174,9 @@ class SangouEngine:
 
     def events_since(self, event_id: int) -> list[dict]:
         return [e for e in self.events if e["id"] > event_id]
+
+    def winner(self) -> str | None:
+        return self._winner_role
 
     def finished(self) -> bool:
         return self.gstate == GState.GAME_OVER
@@ -242,6 +245,7 @@ class SangouEngine:
     # ---------- 回合流转 ----------
     def _begin_turn(self, seat: int, now: float) -> None:
         self.current_seat = seat
+        self.turn_count += 1
         p = self.player_by_seat(seat)
         p.used_sha = False
         p.rende_given = 0
@@ -877,6 +881,7 @@ class SangouEngine:
             asker = self.player_by_seat(seat)
             if asker.alive and not asker.escaped \
                     and any(self._can_answer(asker, "dying_peach", c) for c in asker.hand):
+                ctx["idx"] += 1  # 每位救助者每轮濒死仅询问一次（含响应失败）
                 self._push_pending("dying_peach", seat, need=1, card_name="桃",
                                    damage=0, ctx={"dying": target.seat,
                                                   "killer_seat": ctx.get("killer_seat")})
@@ -922,15 +927,15 @@ class SangouEngine:
         spies_alive = [p for p in alive if p.role == ROLE_SPY]
         if not lord_alive:
             if not rebels_alive and len(alive) == 1 and spies_alive:
-                self.winner = ROLE_SPY
+                self._winner_role = ROLE_SPY
             else:
-                self.winner = ROLE_REBEL
+                self._winner_role = ROLE_REBEL
         elif not rebels_alive and not spies_alive:
-            self.winner = ROLE_LORD
-        if self.winner:
+            self._winner_role = ROLE_LORD
+        if self._winner_role:
             self.gstate = GState.GAME_OVER
             self.pending = None
-            label = {"LORD": "主公忠臣", "REBEL": "反贼", "SPY": "内奸"}[self.winner]
+            label = {"LORD": "主公忠臣", "REBEL": "反贼", "SPY": "内奸"}[self._winner_role]
             self._emit(f"游戏结束：{label}获胜")
 
     # ---------- 视角 ----------
@@ -970,7 +975,7 @@ class SangouEngine:
                 "judge": [c.name for c in me.judge_area],
                 "can": self._action_hints(me),
             },
-            "winner": self.winner,
+            "winner": self._winner_role,
             "deck_count": len(self.deck),
             "log": self.events[-60:],
         }
