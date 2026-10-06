@@ -4,8 +4,12 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import {
   gameApi, RecordListItem, RecordDetail, TimelineItem,
 } from '../../../../services/gameCenter'
-import { ROLE_LABELS } from '..'
 import './index.scss'
+
+const ROLE_LABELS: Record<string, string> = {
+  WEREWOLF: '狼人', VILLAGER: '村民', SEER: '预言家', WITCH: '女巫',
+  HUNTER: '猎人', GUARD: '守卫', IDIOT: '白痴',
+}
 
 function fmtDuration(sec: number): string {
   const m = Math.floor(sec / 60)
@@ -34,7 +38,8 @@ function renderTimelineItem(item: TimelineItem, idx: number) {
   }
   // vote
   const counts: Record<number, number> = {}
-  ;(item.detail || []).forEach((d) => {
+  const detailList = item.detail || []
+  detailList.forEach((d) => {
     if (d.target != null) counts[d.target] = (counts[d.target] || 0) + 1
   })
   const tally = Object.entries(counts).map(([seat, n]) => `${seat}号${n}票`).join('，')

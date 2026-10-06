@@ -15,17 +15,19 @@ const SUIT_COLOR: Record<string, string> = {
 
 function renderItem(item: SanguoTimelineItem, idx: number) {
   if (item.kind === 'judge') {
+    const suit = item.suit || ''
+    const point = item.point ?? ''
+    const targetName = item['for'] || ''
     return (
       <View key={idx} className='tl-judge'>
-        <Text className='tl-judge__text'>
-          判定【{item.for}】：{item.suit}{item.point}
-        </Text>
+        <Text className='tl-judge__text'>判定【{targetName}】：{suit}{point}</Text>
       </View>
     )
   }
+  const text = item.text || ''
   return (
     <View key={idx} className='tl-event'>
-      <Text className='tl-event__text'>{item.text}</Text>
+      <Text className='tl-event__text'>{text}</Text>
     </View>
   )
 }
@@ -52,7 +54,7 @@ export default function SanguoRecords() {
             {WINNER_LABEL[r.winner] || r.winner}
           </Text>
           <Text className='sgrec-detail__meta'>
-            {r.player_count} 人身份局 · {r.turn_count} 回合 · {Math.round(r.duration_seconds / 60)} 分钟
+            {r.player_count} 人身份局 · {r.turn_count} 回合
           </Text>
           <View className='sgrec-detail__tl-title'><Text>对局过程</Text></View>
           <ScrollView className='sgrec-detail__tl' scrollY>
