@@ -10,6 +10,7 @@ export interface FileNode {
   type: 'file' | 'directory';
   size?: number;
   modified?: string;
+  created?: string;
   children?: FileNode[];
   extension?: string;        // 文件扩展名 (如 ".md")
   file_type?: string;         // 文件类型分类 (如 "markdown", "html")

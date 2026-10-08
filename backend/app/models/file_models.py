@@ -13,6 +13,7 @@ class FileNode(BaseModel):
     type: str = Field(..., pattern="^(file|directory)$")
     size: Optional[int] = None
     modified: Optional[datetime] = None
+    created: Optional[datetime] = None
     children: Optional[List['FileNode']] = None
     # 文件类型元数据（可选，由后端在构建文件树时填充）
     extension: Optional[str] = None       # 文件扩展名，如 ".md"

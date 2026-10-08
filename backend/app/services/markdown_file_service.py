@@ -221,6 +221,7 @@ class MarkdownFileService:
                 type="file",
                 size=stat.st_size,
                 modified=datetime.fromtimestamp(stat.st_mtime),
+                created=datetime.fromtimestamp(stat.st_ctime),
                 extension=get_extension(entry.name),
                 file_type=get_file_type(entry.name),
                 previewable=is_previewable(entry.name),

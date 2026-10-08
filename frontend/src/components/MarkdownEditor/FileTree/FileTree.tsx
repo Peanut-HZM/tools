@@ -5,6 +5,11 @@ import { useState, useCallback, useMemo } from 'react';
 import type { FileNode } from '../../../types/markdownEditor';
 import { getFilePaths } from '../../../api/markdownEditorApi';
 
+/** 排序字段：名称 / 创建时间 / 更新时间 */
+export type FileSortField = 'name' | 'created' | 'modified';
+/** 排序方向 */
+export type FileSortOrder = 'asc' | 'desc';
+
 /** 文件类型图标与颜色映射 */
 const FILE_ICONS: Record<string, { icon: string; color: string }> = {
   markdown: { icon: '📝', color: '#3b82f6' },
@@ -101,6 +106,60 @@ function filterTree(
   }
 
   return null;
+}
+
+/**
+ * 获取排序键值（按指定字段）
+ * 缺失字段返回空字符串以保证比较稳定
+ */
+function getSortKey(node: FileNode, field: FileSortField): string {
+  if (field === 'name') {
+    return node.name.toLowerCase();
+  }
+  if (field === 'created') {
+    return node.created ?? '';
+  }
+  return node.modified ?? '';
+}
+
+/**
+ * 递归对文件树节点的 children 进行排序（不可变）
+ * - 目录始终排在文件之前
+ * - 同一层级按指定字段和方向排序
+ * - 字段值缺失的项排到末尾
+ */
+function sortTreeChildren(
+  node: FileNode,
+  field: FileSortField,
+  order: FileSortOrder
+): FileNode {
+  if (!node.children || node.children.length === 0) {
+    return node;
+  }
+
+  // 先递归排子树
+  const sortedChildren = node.children.map(child =>
+    sortTreeChildren(child, field, order)
+  );
+
+  // 目录优先，组内按所选字段排序
+  const dirs = sortedChildren.filter(c => c.type === 'directory');
+  const files = sortedChildren.filter(c => c.type === 'file');
+
+  const compare = (a: FileNode, b: FileNode) => {
+    const ka = getSortKey(a, field);
+    const kb = getSortKey(b, field);
+    // 缺失字段排到末尾
+    if (!ka && kb) return 1;
+    if (ka && !kb) return -1;
+    const cmp = ka < kb ? -1 : ka > kb ? 1 : 0;
+    return order === 'asc' ? cmp : -cmp;
+  };
+
+  dirs.sort(compare);
+  files.sort(compare);
+
+  return { ...node, children: [...dirs, ...files] };
 }
 
 function TreeNode({
@@ -219,6 +278,12 @@ export default function FileTree({
   const [fileSearchQuery, setFileSearchQuery] = useState('');
   /** 空白区域右键菜单位置 */
   const [blankMenu, setBlankMenu] = useState<{ x: number; y: number } | null>(null);
+  /** 排序字段，默认按修改时间倒序（最新在前） */
+  const [sortField, setSortField] = useState<FileSortField>('modified');
+  /** 排序方向 */
+  const [sortOrder, setSortOrder] = useState<FileSortOrder>('desc');
+  /** 排序下拉菜单是否展开 */
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
     // 打开节点菜单时关闭空白区域菜单，避免两个菜单同屏渲染
@@ -347,8 +412,10 @@ export default function FileTree({
     if (!tree) return { filteredTree: null, autoExpandPaths: new Set<string>() };
     const expandPaths = new Set<string>();
     const filtered = filterTree(tree, fileSearchQuery, expandPaths);
-    return { filteredTree: filtered, autoExpandPaths: expandPaths };
-  }, [tree, fileSearchQuery]);
+    // 过滤后再按当前排序规则对 children 排序（不破坏原有树结构）
+    const sorted = filtered ? sortTreeChildren(filtered, sortField, sortOrder) : null;
+    return { filteredTree: sorted, autoExpandPaths: expandPaths };
+  }, [tree, fileSearchQuery, sortField, sortOrder]);
 
   // 搜索时合并用户手动展开和自动展开的路径
   const effectiveExpandedNodes = useMemo(() => {
@@ -371,6 +438,29 @@ export default function FileTree({
     }
   }, []);
 
+  /** 应用排序：若与当前相同则翻转方向，否则切换为该字段（默认 desc） */
+  const applySort = useCallback((field: FileSortField) => {
+    setShowSortMenu(false);
+    setSortField(prev => {
+      if (prev === field) {
+        setSortOrder(o => (o === 'asc' ? 'desc' : 'asc'));
+        return prev;
+      }
+      // 切换到新字段时，默认 desc（最新/最末在前），名称默认 asc
+      setSortOrder(field === 'name' ? 'asc' : 'desc');
+      return field;
+    });
+  }, []);
+
+  /** 切换当前字段的排序方向 */
+  const toggleSortOrder = useCallback(() => {
+    setSortOrder(o => (o === 'asc' ? 'desc' : 'asc'));
+  }, []);
+
+  /** 排序字段的中文显示 */
+  const sortFieldLabel = sortField === 'name' ? '名称' : sortField === 'created' ? '创建时间' : '修改时间';
+  const sortOrderLabel = sortOrder === 'asc' ? '升序' : '降序';
+
   if (!tree) {
     return (
       <div className="p-4 text-ink-muted text-sm">
@@ -380,7 +470,7 @@ export default function FileTree({
   }
 
   return (
-    <div className="h-full overflow-auto flex flex-col" onClick={() => { closeContextMenu(); setBlankMenu(null); }}>
+    <div className="h-full overflow-auto flex flex-col" onClick={() => { closeContextMenu(); setBlankMenu(null); setShowSortMenu(false); }}>
       {/* 搜索框 */}
       <div className="file-tree-search px-3 py-2 border-b border-border shrink-0">
         <div className="flex items-center gap-1">
@@ -401,6 +491,56 @@ export default function FileTree({
               >
                 ✕
               </button>
+            )}
+          </div>
+          {/* 排序按钮：显示当前排序字段/方向，点击展开下拉 */}
+          <div className="relative shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSortMenu(v => !v);
+              }}
+              className="px-1.5 py-1 text-xs text-ink-muted hover:text-ink cursor-pointer rounded hover:bg-surface-2 transition-colors flex items-center gap-0.5"
+              title={`排序：${sortFieldLabel}（${sortOrderLabel}）`}
+            >
+              <span>⇅</span>
+              <span className="text-[10px]">{sortFieldLabel[0]}</span>
+            </button>
+            {showSortMenu && (
+              <div
+                className="absolute right-0 top-full mt-1 bg-surface-1 border border-border rounded-lg shadow-md py-1 z-50 min-w-[160px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-3 py-1 text-[10px] text-ink-faint uppercase tracking-wide">
+                  排序字段
+                </div>
+                {([
+                  { field: 'name' as const, label: '按名称' },
+                  { field: 'created' as const, label: '按创建时间' },
+                  { field: 'modified' as const, label: '按修改时间' },
+                ]).map(opt => (
+                  <button
+                    key={opt.field}
+                    className={`w-full px-3 py-1.5 text-left text-sm cursor-pointer flex items-center justify-between ${
+                      sortField === opt.field ? 'text-ink bg-surface-2' : 'text-ink-muted hover:bg-surface-2'
+                    }`}
+                    onClick={() => applySort(opt.field)}
+                  >
+                    <span>{opt.label}</span>
+                    {sortField === opt.field && (
+                      <span className="text-accent text-xs">✓</span>
+                    )}
+                  </button>
+                ))}
+                <div className="border-t border-border my-1" />
+                <button
+                  className="w-full px-3 py-1.5 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer flex items-center justify-between"
+                  onClick={toggleSortOrder}
+                >
+                  <span>排序方向</span>
+                  <span className="text-xs">{sortOrder === 'asc' ? '↑ 升序' : '↓ 降序'}</span>
+                </button>
+              </div>
             )}
           </div>
           <button
