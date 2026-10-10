@@ -29,6 +29,12 @@ describe('getFileCategory', () => {
   it('识别文本文件', () => {
     expect(getFileCategory('README.md')).toBe('text');
     expect(getFileCategory('notes.txt')).toBe('text');
+    expect(getFileCategory('dev-services.log')).toBe('text');
+  });
+
+  it('识别 kubeconfig 为代码文件（YAML）', () => {
+    expect(getFileCategory('desk-dev-ns-admin.kubeconfig')).toBe('code');
+    expect(getFileLanguage('desk-dev-ns-admin.kubeconfig')).toBe('yaml');
   });
 
   it('未知类型返回 unknown', () => {

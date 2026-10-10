@@ -161,3 +161,82 @@ def test_read_file_raw_binary_allows_over_10mb(tmp_path):
     assert result.data is not None
     assert result.text is None
     assert result.size == 15 * 1024 * 1024
+
+
+def test_read_file_raw_log(tmp_path):
+    """测试读取 .log 文件：应作为文本返回，而非 base64 二进制"""
+    log_content = "2026-10-10 10:00:00 INFO 服务启动完成\n2026-10-10 10:00:01 ERROR 连接超时\n"
+    log_file = tmp_path / "dev-services.log"
+    log_file.write_text(log_content, encoding="utf-8")
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+    result = service.read_file_raw("dev-services.log")
+
+    assert result.content_type == 'text/plain'
+    assert result.text == log_content
+    assert result.data is None
+
+
+def test_read_file_raw_kubeconfig(tmp_path):
+    """测试读取 .kubeconfig 文件：应作为 YAML 文本返回，而非 base64 二进制"""
+    kubeconfig_content = (
+        "apiVersion: v1\n"
+        "kind: Config\n"
+        "clusters:\n"
+        "  - name: dev-cluster\n"
+        "    cluster:\n"
+        "      server: https://127.0.0.1:6443\n"
+    )
+    kubeconfig_file = tmp_path / "desk-dev-ns-admin.kubeconfig"
+    kubeconfig_file.write_text(kubeconfig_content, encoding="utf-8")
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+    result = service.read_file_raw("desk-dev-ns-admin.kubeconfig")
+
+    assert result.content_type == 'text/yaml'
+    assert result.text == kubeconfig_content
+    assert result.data is None
+
+
+def test_read_file_raw_unknown_extension_text_sniffed(tmp_path):
+    """测试未知扩展名的文本文件：内容嗅探应识别为文本（text/plain）"""
+    content = "plain text content without known extension\n第二行中文\n"
+    unknown_file = tmp_path / "data.unknownext"
+    unknown_file.write_text(content, encoding="utf-8")
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+    result = service.read_file_raw("data.unknownext")
+
+    assert result.content_type == 'text/plain'
+    assert result.text == content
+    assert result.data is None
+
+
+def test_read_file_raw_unknown_extension_binary_stays_binary(tmp_path):
+    """测试未知扩展名的二进制文件：内容嗅探后仍按二进制 base64 返回"""
+    binary_data = b"\x00\x01\x02\xff\xfe binary with nul byte"
+    unknown_file = tmp_path / "data.unknownext"
+    unknown_file.write_bytes(binary_data)
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+    result = service.read_file_raw("data.unknownext")
+
+    assert result.content_type == 'application/octet-stream'
+    assert result.data is not None
+    assert result.text is None
+    assert base64.b64decode(result.data) == binary_data
+
+
+def test_read_file_raw_sniff_handles_multibyte_boundary(tmp_path):
+    """测试嗅探采样边界截断 UTF-8 多字节字符时不误判为二进制"""
+    # 中文多字节字符重复填充，确保 8KB 采样边界落在多字节字符中间
+    content = "日志内容多字节字符测试" * 2000  # 远超 8192 字节
+    log_file = tmp_path / "chinese.log"
+    log_file.write_text(content, encoding="utf-8")
+
+    service = MarkdownFileService("test_user", custom_root=str(tmp_path))
+    result = service.read_file_raw("chinese.log")
+
+    assert result.content_type == 'text/plain'
+    assert result.text == content
+    assert result.data is None

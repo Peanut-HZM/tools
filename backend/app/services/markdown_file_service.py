@@ -257,9 +257,16 @@ class MarkdownFileService:
         # 确定 MIME type
         content_type = self._get_content_type(ext)
 
+        # 未知扩展名（application/octet-stream）：按文件内容嗅探是否为文本，
+        # 避免 .log/.kubeconfig 等未映射扩展名的文本文件被当作二进制返回 base64
+        is_text = self._is_text_content_type(content_type)
+        if not is_text and content_type == 'application/octet-stream':
+            if self._sniff_is_text(file_path):
+                is_text = True
+                content_type = 'text/plain'
+
         # 文件大小限制：文本文件 10MB，二进制文件 50MB
         # 使用与读取分支相同的谓词，避免对 .js 等文件走二进制限制却以文本解码的不一致
-        is_text = self._is_text_content_type(content_type)
         max_size = 10 * 1024 * 1024 if is_text else 50 * 1024 * 1024
         if stat.st_size > max_size:
             raise ValueError(
@@ -323,6 +330,8 @@ class MarkdownFileService:
             '.toml': 'text/plain',
             '.ini': 'text/plain',
             '.conf': 'text/plain',
+            '.log': 'text/plain',
+            '.kubeconfig': 'text/yaml',
             # 代码类型
             '.js': 'text/javascript',
             '.ts': 'text/typescript',
@@ -397,6 +406,40 @@ class MarkdownFileService:
             'application/x-httpd-php',
         }
         return content_type in text_application_types
+
+    @staticmethod
+    def _sniff_is_text(file_path: Path, sample_size: int = 8192) -> bool:
+        """嗅探文件头部内容判断是否为文本文件
+
+        规则：空文件视为文本；采样中包含空字节（NUL）或无法以 UTF-8 严格
+        解码（允许采样边界截断多字节字符）视为二进制。
+
+        Args:
+            file_path: 文件路径
+            sample_size: 采样字节数
+
+        Returns:
+            是否为文本内容
+        """
+        try:
+            with open(file_path, 'rb') as f:
+                sample = f.read(sample_size)
+        except OSError:
+            return False
+        if not sample:
+            return True
+        if b'\x00' in sample:
+            return False
+        try:
+            sample.decode('utf-8')
+            return True
+        except UnicodeDecodeError:
+            # 采样边界可能截断 UTF-8 多字节字符，去掉末尾最多 3 字节后重试
+            try:
+                sample[:-3].decode('utf-8')
+                return True
+            except (UnicodeDecodeError, ValueError):
+                return False
 
     def save_file(self, path: str, content: str) -> SaveResult:
         """

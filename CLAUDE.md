@@ -469,6 +469,20 @@ JavaScript 的 `Number` 类型最大安全整数是 `2^53 - 1`（约 9 × 10^15�
 
 ---
 
+## 文件类型展示支持规范（强制）
+
+新增/支持一种文件类型在文件编辑器中正确展示时，必须**同时检查前后端两处映射**，缺一即出现乱码或占位符：
+
+1. **后端 MIME 映射**（`backend/app/services/markdown_file_service.py` 的 `_get_content_type`）：
+   - 未映射的扩展名会落到 `application/octet-stream` 被当作二进制 base64 编码返回，文本文件在编辑器中显示为乱码
+   - 文本类扩展名必须映射到 `text/*`（如 `.log` → `text/plain`、`.kubeconfig` → `text/yaml`）
+   - 兜底：`read_file_raw` 对 `application/octet-stream` 会做内容嗅探（`_sniff_is_text`，无 NUL 字节且 UTF-8 可解码即视为文本），但显式映射仍是首选
+2. **前端类别映射**（`frontend/src/utils/fileType.ts` 的 `FILE_EXTENSIONS` / `LANGUAGE_MAP`）：
+   - 未映射的扩展名类别为 `unknown`，编辑模式会显示"不支持的文件类型"占位符
+   - 按语义归入 `code`（配 `LANGUAGE_MAP` 语法高亮）或 `text` 类别
+
+---
+
 ## 项目概览
 
 工具集合平台（tools），基于 Python FastAPI + React 18 的单体应用架构。
