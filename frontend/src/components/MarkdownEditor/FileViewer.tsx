@@ -114,10 +114,13 @@ const FileViewer: React.FC<FileViewerProps> = ({
 
     case 'excel':
       // Excel 文件使用 ExcelViewer（SheetJS）渲染表格
+      // 编辑模式下 .xlsx 可编辑（readOnly 控制），预览/OSS/.xls/.csv 保持只读
       return (
         <ExcelViewer
           content={fileContent}
           fileName={filePath.split('/').pop()}
+          filePath={filePath}
+          readOnly={_readOnly}
         />
       );
 

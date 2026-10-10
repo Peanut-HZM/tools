@@ -12,6 +12,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import MarkdownEditor from '../MarkdownEditor';
+import { ExcelEditorProvider } from '../../../stores/excelEditorStore';
+import * as markdownEditorApi from '../../../api/markdownEditorApi';
 
 /* ------------------------------------------------------------------ */
 /* Mock @monaco-editor/react（CodeEditor 内部依赖）                    */
@@ -49,6 +51,8 @@ vi.mock('../ExcelViewer', () => ({
   default: (props: Record<string, unknown>) => (
     <div data-testid="excel-viewer-mock" data-filename={props.fileName as string} />
   ),
+  isEditableExcel: (filePath?: string, readOnly?: boolean) =>
+    !!filePath && filePath.toLowerCase().endsWith('.xlsx') && !readOnly,
 }));
 
 vi.mock('../WordViewer', () => ({
@@ -159,9 +163,23 @@ function createConfigStoreMock(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/** 构造 excelEditorStore 默认 mock（可通过 overrides 控制 pending 操作） */
+function createExcelEditorStoreMock(overrides: Record<string, unknown> = {}) {
+  return {
+    filePath: null,
+    operations: [] as unknown[],
+    hasPendingOperations: false,
+    beginEdit: vi.fn(),
+    pushOperation: vi.fn(),
+    clearOperations: vi.fn(),
+    ...overrides,
+  };
+}
+
 let fileStoreMock: ReturnType<typeof createFileStoreMock>;
 let editorStoreMock: ReturnType<typeof createEditorStoreMock>;
 let configStoreMock: ReturnType<typeof createConfigStoreMock>;
+let excelEditorStoreMock: ReturnType<typeof createExcelEditorStoreMock>;
 
 vi.mock('../../../stores/fileStore', () => ({
   useFileStore: () => fileStoreMock,
@@ -173,6 +191,12 @@ vi.mock('../../../stores/editorStore', () => ({
 
 vi.mock('../../../stores/configStore', () => ({
   useConfigStore: () => configStoreMock,
+}));
+
+vi.mock('../../../stores/excelEditorStore', () => ({
+  useExcelEditorStore: () =>
+    excelEditorStoreMock ?? (excelEditorStoreMock = createExcelEditorStoreMock()),
+  ExcelEditorProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 /* ------------------------------------------------------------------ */
@@ -223,6 +247,7 @@ vi.mock('../../../api/markdownEditorApi', () => ({
   saveMarkdownToOss: vi.fn(),
   uploadMarkdownFile: vi.fn(),
   readMarkdownFromOss: vi.fn(),
+  saveExcelEdits: vi.fn(),
 }));
 
 /* ------------------------------------------------------------------ */
@@ -239,7 +264,11 @@ function renderAndSwitchToPreview(filePath: string, fileContent: string) {
   });
   editorStoreMock = createEditorStoreMock({ content: fileContent });
 
-  const { container } = render(<MarkdownEditor />);
+  const { container } = render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
 
   // 点击"预览"按钮切换到预览模式
   // 使用 role 查询更可靠：按钮文本是 "Preview"，在 neon-button-group 中
@@ -344,7 +373,11 @@ describe('MarkdownEditor 预览模式路由', () => {
 
     it('未打开文件时（空路径）不显示 TOC 面板', () => {
       // 使用默认空 currentFilePath
-      render(<MarkdownEditor />);
+      render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
 
       const tocSidebar = document.querySelector('.toc-sidebar');
       expect(tocSidebar).toBeNull();
@@ -368,7 +401,11 @@ describe('MarkdownEditor 搜索与刷新', () => {
   });
 
   it('点击搜索按钮打开搜索面板，且编辑模式自动切到预览', () => {
-    render(<MarkdownEditor />);
+    render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
 
     // 编辑模式：editor-area 存在，view-mode 容器不存在
     expect(document.querySelector('.editor-area')).not.toBeNull();
@@ -384,7 +421,11 @@ describe('MarkdownEditor 搜索与刷新', () => {
   });
 
   it('工具栏刷新按钮以空路径调用 refreshTree', async () => {
-    render(<MarkdownEditor />);
+    render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
 
     fireEvent.click(screen.getByTitle('刷新整棵文件树'));
 
@@ -396,12 +437,112 @@ describe('MarkdownEditor 搜索与刷新', () => {
       currentFilePath: 'readme.md',
       refreshTree: vi.fn().mockRejectedValue(new Error('network down')),
     });
-    render(<MarkdownEditor />);
+    render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
 
     fireEvent.click(screen.getByTitle('刷新整棵文件树'));
 
     await waitFor(() =>
       expect(mockShowToast).toHaveBeenCalledWith('刷新失败：network down', 'error')
     );
+  });
+});
+
+describe('MarkdownEditor Excel 编辑保存', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  function setupExcelPending() {
+    fileStoreMock = createFileStoreMock({
+      currentFile: { name: 'a.xlsx', content: 'B64DATA==', path: 'a.xlsx' },
+      currentFilePath: 'a.xlsx',
+      openFile: vi.fn().mockResolvedValue(undefined),
+    });
+    editorStoreMock = createEditorStoreMock({ content: 'B64DATA==' });
+    configStoreMock = createConfigStoreMock();
+    excelEditorStoreMock = createExcelEditorStoreMock({
+      hasPendingOperations: true,
+      operations: [
+        { op: 'set_cell', sheet: 'S1', row: 2, col: 1, value: 'x', kind: 'str' },
+      ],
+    });
+  }
+
+  it('有 Excel 操作时保存走 saveExcelEdits、清空操作并重载文件', async () => {
+    setupExcelPending();
+    vi.mocked(markdownEditorApi.saveExcelEdits).mockResolvedValue({
+      success: true,
+      message: 'ok',
+    });
+
+    render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(markdownEditorApi.saveExcelEdits).toHaveBeenCalledWith('a.xlsx', [
+        expect.objectContaining({ op: 'set_cell' }),
+      ])
+    );
+    expect(excelEditorStoreMock.clearOperations).toHaveBeenCalled();
+    expect(fileStoreMock.openFile).toHaveBeenCalledWith('a.xlsx');
+    expect(editorStoreMock.markAsSaved).toHaveBeenCalled();
+    // 不应走文本保存链路
+    expect(fileStoreMock.saveCurrentFile).not.toHaveBeenCalled();
+  });
+
+  it('保存失败时设置 saveError 且不清空操作', async () => {
+    setupExcelPending();
+    vi.mocked(markdownEditorApi.saveExcelEdits).mockRejectedValue(new Error('disk full'));
+
+    render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(editorStoreMock.setSaveError).toHaveBeenCalledWith('disk full')
+    );
+    expect(excelEditorStoreMock.clearOperations).not.toHaveBeenCalled();
+    expect(editorStoreMock.markAsSaved).not.toHaveBeenCalled();
+  });
+
+  it('无 Excel 操作时保存走原有 saveCurrentFile 链路', async () => {
+    fileStoreMock = createFileStoreMock({
+      currentFile: { name: 'a.md', content: '# hi', path: 'a.md' },
+      currentFilePath: 'a.md',
+      saveCurrentFile: vi.fn().mockResolvedValue(undefined),
+    });
+    editorStoreMock = createEditorStoreMock({ content: '# hi', isDirty: true });
+    configStoreMock = createConfigStoreMock();
+    excelEditorStoreMock = createExcelEditorStoreMock();
+
+    render(
+      <ExcelEditorProvider>
+        <MarkdownEditor />
+      </ExcelEditorProvider>
+    );
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() =>
+      expect(fileStoreMock.saveCurrentFile).toHaveBeenCalledWith('# hi')
+    );
+    expect(markdownEditorApi.saveExcelEdits).not.toHaveBeenCalled();
   });
 });

@@ -40,6 +40,37 @@ export interface SaveResult {
   error?: string;
 }
 
+// ==================== Excel 编辑 ====================
+
+/**
+ * 单条 Excel 编辑操作（后端按顺序应用到原 .xlsx 文件）
+ * 行列均为 1-based；insert 语义为"插入到第 index 行/列之前"
+ */
+export interface ExcelOperation {
+  op: 'set_cell' | 'insert_row' | 'delete_row' | 'insert_col' | 'delete_col'
+    | 'add_sheet' | 'rename_sheet' | 'remove_sheet';
+  /** 目标工作表名（set_cell/行列操作/remove_sheet 必填） */
+  sheet?: string;
+  /** 1-based 行号（set_cell） */
+  row?: number;
+  /** 1-based 列号（set_cell） */
+  col?: number;
+  /** 1-based 起始行列（insert_row/delete_row/insert_col/delete_col） */
+  index?: number;
+  /** 操作数量，默认 1 */
+  count?: number;
+  /** 单元格新值（set_cell，字符串形式传输） */
+  value?: string;
+  /** 值类型（set_cell）：auto 由后端推断，str 显式文本（保留前导零） */
+  kind?: 'auto' | 'str' | 'number' | 'bool' | 'formula';
+  /** 新工作表名（add_sheet） */
+  title?: string;
+  /** 原工作表名（rename_sheet） */
+  from_sheet?: string;
+  /** 新工作表名（rename_sheet） */
+  to_title?: string;
+}
+
 export interface CreateResult {
   success: boolean;
   path: string;

@@ -23,6 +23,7 @@ from app.models.file_models import (
     RootPathResponse,
     BrowseResponse,
     FileItem,
+    ExcelSaveRequest,
 )
 from app.models.config_models import EditorConfig
 from app.models.search_models import FileSearchResult, ContentSearchResult
@@ -285,6 +286,25 @@ async def save_file(request: SaveRequest, user_id: str = Depends(get_current_use
     try:
         service = get_file_service(user_id)
         result = service.save_file(request.path, request.content)
+        if not result.success:
+            if "not found" in result.message.lower():
+                raise HTTPException(status_code=404, detail=result.message)
+            raise HTTPException(status_code=400, detail=result.message)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.post("/files/save-excel", response_model=SaveResult)
+async def save_excel_edit(request: ExcelSaveRequest, user_id: str = Depends(get_current_user_id)):
+    """对已存在的 .xlsx 文件应用编辑操作并保存（保留图片/样式等原文件内容）。"""
+    try:
+        service = get_file_service(user_id)
+        result = service.save_excel_edit(request.path, request.operations)
         if not result.success:
             if "not found" in result.message.lower():
                 raise HTTPException(status_code=404, detail=result.message)

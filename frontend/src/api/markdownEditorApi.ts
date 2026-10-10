@@ -18,6 +18,7 @@ import type {
   FileManagerBrowseResponse,
   FileManagerItem,
   FileOperationResult,
+  ExcelOperation,
 } from '../types/markdownEditor';
 
 import { MARKDOWN_EDITOR_API_BASE_URL } from '../config/api';
@@ -116,6 +117,22 @@ export async function saveFile(path: string, content: string): Promise<SaveResul
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ path, content })
+  });
+  return handleResponse<SaveResult>(response);
+}
+
+/**
+ * 对已存在的 .xlsx 文件应用编辑操作并保存
+ * 后端基于原文件（openpyxl）改值，保留内嵌图片/样式等内容
+ */
+export async function saveExcelEdits(path: string, operations: ExcelOperation[]): Promise<SaveResult> {
+  const response = await authedFetch(`${API_BASE_URL}/files/save-excel`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ path, operations })
   });
   return handleResponse<SaveResult>(response);
 }

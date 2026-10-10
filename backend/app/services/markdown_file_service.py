@@ -463,6 +463,185 @@ class MarkdownFileService:
             message="File saved successfully",
             modified=datetime.utcnow()
         )
+
+    # Excel 编辑操作协议中允许的 op 类型
+    _EXCEL_ALLOWED_EXTENSIONS = {'.xlsx'}
+
+    def save_excel_edit(self, path: str, operations: list) -> SaveResult:
+        """
+        对已存在的 .xlsx 文件按顺序应用编辑操作并保存（openpyxl 原文件改值）。
+
+        选择 openpyxl 而非前端重生成整个文件的原因：openpyxl 基于原文件
+        编辑，可保留内嵌图片、单元格样式、合并单元格等前端库无法完整回写的
+        内容（真实业务表格中普遍存在截图附件，前端重写会全部丢失）。
+
+        Args:
+            path: 相对路径（仅支持 .xlsx）
+            operations: ExcelOperation 模型列表，按时间顺序应用
+
+        Returns:
+            SaveResult indicating success/failure
+        """
+        file_path = self._validate_and_resolve(path)
+
+        if not file_path.exists():
+            return SaveResult(success=False, message=f"File not found: {path}")
+        if not file_path.is_file():
+            return SaveResult(success=False, message="Path is not a file")
+        if file_path.suffix.lower() not in self._EXCEL_ALLOWED_EXTENSIONS:
+            return SaveResult(
+                success=False,
+                message=f"仅支持编辑 .xlsx 文件，当前文件类型：{file_path.suffix or '未知'}"
+            )
+        if not operations:
+            return SaveResult(success=False, message="没有需要应用的编辑操作")
+
+        # 延迟导入：openpyxl 仅在 Excel 编辑链路使用
+        import logging
+        from openpyxl import load_workbook
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            # keep_vba=False：.xlsx 不含宏；data_only=False：保留公式本身
+            workbook = load_workbook(file_path)
+
+            for op in operations:
+                self._apply_excel_operation(workbook, op)
+
+            if not workbook.sheetnames:
+                return SaveResult(success=False, message="至少需要保留一个工作表")
+
+            # 先写临时文件再原子替换，避免写入中途失败损坏原文件
+            tmp_path = file_path.with_suffix(file_path.suffix + '.tmp')
+            workbook.save(tmp_path)
+            os.replace(tmp_path, file_path)
+
+            logger.info(
+                "Excel 编辑保存成功: user=%s path=%s operations=%d",
+                self.user_id, path, len(operations)
+            )
+            return SaveResult(
+                success=True,
+                message="Excel saved successfully",
+                modified=datetime.utcnow()
+            )
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.error(
+                "Excel 编辑保存失败: user=%s path=%s error=%s",
+                self.user_id, path, e
+            )
+            return SaveResult(success=False, message=f"Excel 保存失败: {e}")
+
+    def _apply_excel_operation(self, workbook, op) -> None:
+        """
+        将单条编辑操作应用到 workbook（openpyxl Workbook 对象）
+
+        Args:
+            workbook: openpyxl Workbook
+            op: ExcelOperation 模型
+
+        Raises:
+            ValueError: op 字段缺失、sheet 不存在或参数非法
+        """
+        if op.op == 'set_cell':
+            self._require(op.sheet, "sheet")
+            self._require(op.row, "row")
+            self._require(op.col, "col")
+            worksheet = self._get_sheet(workbook, op.sheet)
+            kind = op.kind or 'auto'
+            value = op.value or ''
+            worksheet.cell(row=op.row, column=op.col).value = \
+                self._parse_cell_value(value, kind)
+        elif op.op in ('insert_row', 'delete_row', 'insert_col', 'delete_col'):
+            self._require(op.sheet, "sheet")
+            self._require(op.index, "index")
+            worksheet = self._get_sheet(workbook, op.sheet)
+            count = op.count if op.count is not None else 1
+            if op.op == 'insert_row':
+                worksheet.insert_rows(op.index, amount=count)
+            elif op.op == 'delete_row':
+                worksheet.delete_rows(op.index, amount=count)
+            elif op.op == 'insert_col':
+                worksheet.insert_cols(op.index, amount=count)
+            else:
+                worksheet.delete_cols(op.index, amount=count)
+        elif op.op == 'add_sheet':
+            self._require(op.title, "title")
+            if op.title in workbook.sheetnames:
+                raise ValueError(f"工作表已存在: {op.title}")
+            workbook.create_sheet(title=op.title)
+        elif op.op == 'rename_sheet':
+            self._require(op.from_sheet, "from_sheet")
+            self._require(op.to_title, "to_title")
+            worksheet = self._get_sheet(workbook, op.from_sheet)
+            if op.to_title in workbook.sheetnames and op.to_title != op.from_sheet:
+                raise ValueError(f"目标工作表名已存在: {op.to_title}")
+            worksheet.title = op.to_title
+        elif op.op == 'remove_sheet':
+            self._require(op.sheet, "sheet")
+            worksheet = self._get_sheet(workbook, op.sheet)
+            if len(workbook.sheetnames) <= 1:
+                raise ValueError("至少需要保留一个工作表")
+            workbook.remove(worksheet)
+        else:
+            raise ValueError(f"不支持的编辑操作: {op.op}")
+
+    @staticmethod
+    def _require(value, field: str) -> None:
+        """校验操作必填字段，缺失时抛出 ValueError"""
+        if value is None:
+            raise ValueError(f"操作缺少必填字段: {field}")
+
+    @staticmethod
+    def _get_sheet(workbook, name: Optional[str]):
+        """按名称取 worksheet，不存在时抛出 ValueError"""
+        if not name:
+            raise ValueError("操作缺少必填字段: sheet")
+        if name not in workbook.sheetnames:
+            raise ValueError(f"工作表不存在: {name}")
+        return workbook[name]
+
+    @staticmethod
+    def _parse_cell_value(value: str, kind: str):
+        """按 kind 将前端传来的字符串值转换为 openpyxl 单元格值
+
+        - auto:   数字字符串 → number，TRUE/FALSE → bool，=开头 → 公式，否则 str
+        - str:    保持字符串（用于显式声明文本，如前导零编号 "0012"）
+        - number: 转数字，失败报错
+        - bool:   TRUE/FALSE（不区分大小写），其余报错
+        - formula: 公式（openpyxl 以 = 开头的字符串即公式）
+        """
+        if kind == 'str':
+            return value
+        if kind == 'formula':
+            return value if value.startswith('=') else f"={value}"
+        if kind == 'number':
+            return float(value) if ('.' in value or 'e' in value.lower()) else int(value)
+        if kind == 'bool':
+            lowered = value.strip().lower()
+            if lowered == 'true':
+                return True
+            if lowered == 'false':
+                return False
+            raise ValueError(f"无法将 {value!r} 解析为布尔值")
+        # auto
+        stripped = value.strip()
+        if stripped == '':
+            return ''
+        lowered = stripped.lower()
+        if lowered in ('true', 'false'):
+            return lowered == 'true'
+        if stripped.startswith('='):
+            return stripped
+        try:
+            if stripped.isdigit() or (stripped.startswith('-') and stripped[1:].isdigit()):
+                return int(stripped)
+            return float(stripped)
+        except ValueError:
+            return value
     
     def create_file(self, path: str, content: str = "") -> CreateResult:
         """

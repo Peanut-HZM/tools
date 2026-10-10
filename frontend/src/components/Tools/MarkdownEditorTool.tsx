@@ -4,6 +4,7 @@
 import { AuthGuard } from '../Auth';
 import { FileProvider } from '../../stores/fileStore';
 import { EditorProvider } from '../../stores/editorStore';
+import { ExcelEditorProvider } from '../../stores/excelEditorStore';
 import { ConfigProvider } from '../../stores/configStore';
 import { MarkdownEditor } from '../MarkdownEditor';
 
@@ -12,9 +13,11 @@ export default function MarkdownEditorTool() {
     <AuthGuard>
       <FileProvider>
         <EditorProvider>
-          <ConfigProvider>
-            <MarkdownEditor />
-          </ConfigProvider>
+          <ExcelEditorProvider>
+            <ConfigProvider>
+              <MarkdownEditor />
+            </ConfigProvider>
+          </ExcelEditorProvider>
         </EditorProvider>
       </FileProvider>
     </AuthGuard>

@@ -41,6 +41,36 @@ class SaveRequest(BaseModel):
     content: str
 
 
+class ExcelOperation(BaseModel):
+    """单条 Excel 编辑操作（按顺序应用）
+
+    字段随 op 类型不同而不同，必填字段在服务层校验并返回 400：
+      - set_cell:     sheet, row, col, value, kind(auto|str|number|bool|formula)
+      - insert_row / delete_row / insert_col / delete_col: sheet, index, count
+      - add_sheet:    title
+      - rename_sheet: from_sheet, to_title
+      - remove_sheet: sheet
+    行列均为 1-based；insert 语义为"插入到第 index 行/列之前"。
+    """
+    op: str = Field(..., pattern="^(set_cell|insert_row|delete_row|insert_col|delete_col|add_sheet|rename_sheet|remove_sheet)$")
+    sheet: Optional[str] = None
+    row: Optional[int] = Field(default=None, ge=1)
+    col: Optional[int] = Field(default=None, ge=1)
+    index: Optional[int] = Field(default=None, ge=1)
+    count: Optional[int] = Field(default=None, ge=1)
+    value: Optional[str] = None
+    kind: Optional[str] = Field(default=None, pattern="^(auto|str|number|bool|formula)$")
+    title: Optional[str] = None
+    from_sheet: Optional[str] = None
+    to_title: Optional[str] = None
+
+
+class ExcelSaveRequest(BaseModel):
+    """Request to apply edit operations to an existing .xlsx file"""
+    path: str
+    operations: List[ExcelOperation]
+
+
 class SaveResult(BaseModel):
     """Result of save operation"""
     success: bool

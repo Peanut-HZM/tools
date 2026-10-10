@@ -10,7 +10,7 @@ import HtmlPreview from './Preview/HtmlPreview';
 import CodeEditor from './CodeEditor';
 import ImageViewer from './ImageViewer';
 import PdfViewer from './PdfViewer';
-import ExcelViewer from './ExcelViewer';
+import ExcelViewer, { isEditableExcel } from './ExcelViewer';
 import WordViewer from './WordViewer';
 import { getFileCategory } from '../../utils/fileType';
 import SearchPanel from './SearchPanel/SearchPanel';
@@ -19,9 +19,10 @@ import StatusBar from './StatusBar/StatusBar';
 import FileUpload from './FileUpload/FileUpload';
 import { useFileStore } from '../../stores/fileStore';
 import { useEditorStore } from '../../stores/editorStore';
+import { useExcelEditorStore } from '../../stores/excelEditorStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useI18n } from '../../i18n';
-import { saveMarkdownToOss, uploadMarkdownFile, readMarkdownFromOss } from '../../api/markdownEditorApi';
+import { saveMarkdownToOss, uploadMarkdownFile, readMarkdownFromOss, saveExcelEdits } from '../../api/markdownEditorApi';
 import type { EditorConfig } from '../../types/markdownEditor';
 import { useToast } from '../../hooks/useToast';
 import Toast from './Toast/Toast';
@@ -104,6 +105,13 @@ export default function MarkdownEditor() {
     updateConfig,
     setTheme
   } = useConfigStore();
+
+  // Excel 编辑操作日志（.xlsx 编辑保存走后端 openpyxl 原文件改值，不走 content 覆写）
+  const {
+    operations: excelOperations,
+    hasPendingOperations: excelDirty,
+    clearOperations: clearExcelOperations,
+  } = useExcelEditorStore();
 
   const { language, setLanguage, t } = useI18n();
   const { toast, showToast } = useToast() as any;
@@ -343,6 +351,23 @@ export default function MarkdownEditor() {
 
   // Handle save
   const handleSave = useCallback(async () => {
+    // Excel 编辑保存：.xlsx 有未提交的操作日志时走专用接口（后端原文件改值，
+    // 保留图片/样式），保存成功后重新加载文件内容
+    if (excelDirty && currentFilePath && isEditableExcel(currentFilePath) && !ossFilePath) {
+      setSaving(true);
+      try {
+        await saveExcelEdits(currentFilePath, excelOperations);
+        clearExcelOperations();
+        await openFile(currentFilePath);
+        markAsSaved();
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : 'Excel 保存失败');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (!isDirty) return;
 
     setSaving(true);
@@ -361,7 +386,10 @@ export default function MarkdownEditor() {
     } finally {
       setSaving(false);
     }
-  }, [currentFilePath, ossFilePath, isDirty, content, saveCurrentFile, markAsSaved, setSaving, setSaveError]);
+  }, [currentFilePath, ossFilePath, isDirty, content, excelDirty, excelOperations, openFile, saveCurrentFile, markAsSaved, setSaving, setSaveError, clearExcelOperations]);
+
+  // 文本内容或 Excel 操作日志任一有未保存变更
+  const hasUnsavedChanges = isDirty || excelDirty;
 
   // Auto-save functionality
   useEffect(() => {
@@ -369,7 +397,7 @@ export default function MarkdownEditor() {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    if (isDirty && (currentFilePath || ossFilePath) && config.autoSaveInterval > 0) {
+    if (hasUnsavedChanges && (currentFilePath || ossFilePath) && config.autoSaveInterval > 0) {
       autoSaveTimerRef.current = setTimeout(() => {
         handleSave();
       }, config.autoSaveInterval * 1000);
@@ -380,10 +408,10 @@ export default function MarkdownEditor() {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [isDirty, content, currentFilePath, ossFilePath, config.autoSaveInterval, handleSave]);
+  }, [hasUnsavedChanges, content, currentFilePath, ossFilePath, config.autoSaveInterval, handleSave]);
 
   const handleOssFileSelect = useCallback(async (filePath: string, content: string) => {
-    if (isDirty) {
+    if (hasUnsavedChanges) {
       const shouldSave = window.confirm('当前文件未保存，是否保存？');
       if (shouldSave) {
         await handleSave();
@@ -392,11 +420,11 @@ export default function MarkdownEditor() {
     setContent(content, true);
     setOssFilePath(filePath);
     showToast('已打开云端文件', 'success');
-  }, [isDirty, handleSave, setContent, showToast]);
+  }, [hasUnsavedChanges, handleSave, setContent, showToast]);
 
   // Handle file select
   const handleFileSelect = useCallback(async (path: string) => {
-    if (isDirty) {
+    if (hasUnsavedChanges) {
       const shouldSave = window.confirm('当前文件未保存，是否保存？');
       if (shouldSave) {
         await handleSave();
@@ -405,7 +433,7 @@ export default function MarkdownEditor() {
     setOssFilePath(null);
     await openFile(path);
     setViewMode('preview'); // 默认进入预览模式
-  }, [isDirty, handleSave, openFile]);
+  }, [hasUnsavedChanges, handleSave, openFile]);
 
   /** 打开内容搜索：高亮只能由 Preview 渲染，编辑模式下自动切到预览模式 */
   const openSearch = useCallback(() => {
@@ -653,7 +681,7 @@ export default function MarkdownEditor() {
           )}
 
           {viewMode === 'edit' && (
-            <button className="neon-button" onClick={handleSave} disabled={!isDirty || (!currentFile && !ossFilePath)}>
+            <button className="neon-button" onClick={handleSave} disabled={!hasUnsavedChanges || (!currentFile && !ossFilePath)}>
               <Icons.DocumentChecked />
               {t.common.save}
             </button>
@@ -857,7 +885,8 @@ export default function MarkdownEditor() {
                         case 'pdf':
                           return <PdfViewer content={content} fileName={fileName} />;
                         case 'excel':
-                          return <ExcelViewer content={content} fileName={fileName} />;
+                          // 预览模式强制只读
+                          return <ExcelViewer content={content} fileName={fileName} filePath={currentFilePath || ''} readOnly={true} />;
                         case 'word':
                           return <WordViewer content={content} fileName={fileName} />;
                         case 'image':
@@ -986,14 +1015,21 @@ export default function MarkdownEditor() {
          <span className={`status-item mode-indicator ${viewMode === 'edit' ? 'edit-mode' : ''}`}>
            {viewMode === 'edit' ? t.editor.edit.toUpperCase() : t.editor.preview.toUpperCase()}
          </span>
-         {viewMode === 'edit' && (
-           <>
-             <span className="status-item">{t.search.line} {cursorLine}, Col {cursorColumn}</span>
-             <span className={`status-item status-${saveStatus}`}>
-               {saveStatus === 'saved' ? t.common.success : saveStatus === 'unsaved' ? t.editor.unsavedChanges : saveStatus === 'saving' ? t.common.loading : ''}
-             </span>
-           </>
-         )}
+        {viewMode === 'edit' && (
+          <>
+            <span className="status-item">{t.search.line} {cursorLine}, Col {cursorColumn}</span>
+            <span className={`status-item status-${excelDirty && saveStatus === 'saved' ? 'unsaved' : saveStatus}`}>
+              {(() => {
+                // Excel 操作日志未提交时也视为未保存
+                const displayStatus = excelDirty && saveStatus === 'saved' ? 'unsaved' : saveStatus;
+                return displayStatus === 'saved' ? t.common.success
+                  : displayStatus === 'unsaved' ? t.editor.unsavedChanges
+                  : displayStatus === 'saving' ? t.common.loading
+                  : '';
+              })()}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Dialogs */}

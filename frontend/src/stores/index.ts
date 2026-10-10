@@ -4,4 +4,5 @@
 export { AuthProvider, useAuth } from './authStore';
 export { FileProvider, useFileStore } from './fileStore';
 export { EditorProvider, useEditorStore } from './editorStore';
+export { ExcelEditorProvider, useExcelEditorStore } from './excelEditorStore';
 export { ConfigProvider, useConfigStore } from './configStore';
