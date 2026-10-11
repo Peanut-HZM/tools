@@ -47,10 +47,11 @@ export default function OCRPage() {
     setResult('')
     try {
       // 读取图片为 base64
-      const base64Res = await Taro.getFileSystemManager().readFile({
+      // Taro 类型声明 readFile 返回 void，但运行时不传回调会 promise 化并返回 { data }
+      const base64Res = await (Taro.getFileSystemManager().readFile({
         filePath: imagePath,
         encoding: 'base64'
-      })
+      }) as unknown as Promise<{ data: string }>)
       const base64Image = `data:image/jpeg;base64,${base64Res.data}`
 
       // 发送 JSON 请求

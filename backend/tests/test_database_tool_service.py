@@ -57,7 +57,8 @@ def test_get_all_configs_without_password(monkeypatch):
         "updated_at": datetime(2024, 1, 2)
     }]
 
-    monkeypatch.setattr(database_tool_service, "get_db_connection", lambda: FakeConn(rows))
+    monkeypatch.setattr(database_tool_service, "get_pooled_db_connection", lambda: FakeConn(rows))
+    monkeypatch.setattr(database_tool_service, "release_db_connection", lambda conn: None)
     monkeypatch.setattr(database_tool_service.EncryptionUtils, "decrypt", lambda value: "plain")
 
     configs = database_tool_service.DatabaseToolService.get_all_configs("u1")
@@ -90,7 +91,8 @@ def test_get_all_configs_with_password(monkeypatch):
         "updated_at": datetime(2024, 1, 2)
     }]
 
-    monkeypatch.setattr(database_tool_service, "get_db_connection", lambda: FakeConn(rows))
+    monkeypatch.setattr(database_tool_service, "get_pooled_db_connection", lambda: FakeConn(rows))
+    monkeypatch.setattr(database_tool_service, "release_db_connection", lambda conn: None)
     monkeypatch.setattr(database_tool_service.EncryptionUtils, "decrypt", lambda value: "plain")
 
     configs = database_tool_service.DatabaseToolService.get_all_configs("u1", include_password=True)

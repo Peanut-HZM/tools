@@ -108,7 +108,7 @@ export default function ChangePasswordPage() {
             <Text className='form-label'>旧密码</Text>
             <Input
               className='form-input'
-              type='password'
+              password
               value={oldPassword}
               onInput={(e) => setOldPassword(e.detail.value)}
               placeholder='请输入旧密码'
@@ -120,7 +120,7 @@ export default function ChangePasswordPage() {
             <Text className='form-label'>新密码</Text>
             <Input
               className='form-input'
-              type='password'
+              password
               value={newPassword}
               onInput={(e) => setNewPassword(e.detail.value)}
               placeholder='请输入新密码（至少 8 位）'
@@ -147,7 +147,7 @@ export default function ChangePasswordPage() {
             <Text className='form-label'>确认新密码</Text>
             <Input
               className={`form-input ${confirmPassword && confirmPassword !== newPassword ? 'error' : ''}`}
-              type='password'
+              password
               value={confirmPassword}
               onInput={(e) => setConfirmPassword(e.detail.value)}
               placeholder='请再次输入新密码'

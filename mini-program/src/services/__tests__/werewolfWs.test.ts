@@ -1,7 +1,7 @@
 /** werewolfWs 平台桥接测试：mock @tarojs/taro，验证 task 实例回调绑定与消息分发 */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-const setStorageSync = vi.fn(() => 'test-token')
+const setStorageSync = vi.fn((..._args: any[]) => 'test-token')
 
 class FakeTask {
   onOpen = vi.fn()
@@ -17,8 +17,8 @@ let fakeTask: FakeTask
 vi.mock('@tarojs/taro', () => ({
   default: {
     // H5 行为：connectSocket 返回 Promise<SocketTask>
-    connectSocket: vi.fn(() => Promise.resolve(fakeTask)),
-    getStorageSync: (...a: any[]) => setStorageSync(...a),
+    connectSocket: vi.fn(() => Promise.resolve(fakeTask as unknown as import('@tarojs/taro').SocketTask)),
+    getStorageSync: (...a: any[]) => setStorageSync(...(a as [string, any])),
   },
 }))
 
@@ -33,7 +33,7 @@ describe('werewolfWs 平台桥接', () => {
   beforeEach(() => {
     fakeTask = new FakeTask()
     vi.mocked(Taro.connectSocket).mockReset()
-    vi.mocked(Taro.connectSocket).mockImplementation(() => Promise.resolve(fakeTask))
+    vi.mocked(Taro.connectSocket).mockImplementation(() => Promise.resolve(fakeTask as unknown as import('@tarojs/taro').SocketTask))
     werewolfWs.close()
   })
 
@@ -84,7 +84,7 @@ describe('werewolfWs 平台桥接', () => {
     let taskInstance = fakeTask
     vi.mocked(Taro.connectSocket).mockImplementation(() => {
       taskInstance = new FakeTask()
-      return Promise.resolve(taskInstance)
+      return Promise.resolve(taskInstance as unknown as import('@tarojs/taro').SocketTask)
     })
     const pending = werewolfWs.connect('123456', { onMessage })
     await Promise.resolve()

@@ -147,11 +147,12 @@ async def get_course_detail(
         if not course:
             raise HTTPException(status_code=404, detail="课程不存在")
 
-        # 累加浏览次数
+        # 累加浏览次数（首次访问时补建统计记录并回填 relationship，否则 view_count 自增会 500）
         if not course.statistics:
             stats = CourseStatistics(course_id=course.id)
             db.add(stats)
             db.flush()
+            course.statistics = stats
         course.statistics.view_count += 1
         db.flush()
 
@@ -287,9 +288,11 @@ async def enroll_course(
         enrollment = CourseEnrollment(user_id=user_id, course_id=id)
         db.add(enrollment)
 
-        # 更新统计
+        # 更新统计（显式传 0 初始值，避免 default 未 flush 时属性为 None）
         if not course.statistics:
-            course.statistics = CourseStatistics(course_id=id)
+            course.statistics = CourseStatistics(
+                course_id=id, view_count=0, enroll_count=0, like_count=0,
+                bookmark_count=0, review_count=0, avg_rating=0, completed_count=0)
         course.statistics.enroll_count += 1
 
         db.commit()
@@ -401,7 +404,9 @@ async def like_course(
 
         # 更新统计
         if not course.statistics:
-            course.statistics = CourseStatistics(course_id=id)
+            course.statistics = CourseStatistics(
+                course_id=id, view_count=0, enroll_count=0, like_count=0,
+                bookmark_count=0, review_count=0, avg_rating=0, completed_count=0)
         course.statistics.like_count += 1
 
         db.commit()
@@ -460,7 +465,9 @@ async def bookmark_course(
 
         # 更新统计
         if not course.statistics:
-            course.statistics = CourseStatistics(course_id=id)
+            course.statistics = CourseStatistics(
+                course_id=id, view_count=0, enroll_count=0, like_count=0,
+                bookmark_count=0, review_count=0, avg_rating=0, completed_count=0)
         course.statistics.bookmark_count += 1
 
         db.commit()

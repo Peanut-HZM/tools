@@ -143,7 +143,7 @@ export default function VideoDownloaderPage() {
                 className="download-btn btn-primary"
                 hoverClass="btn-primary-hover"
                 onClick={() => handleDownload(video.url)}
-                disabled={pageState === 'downloading' || pageState === 'task-running'}
+                disabled={['downloading', 'task-running'].includes(pageState)}
               >
                 下载
               </Button>

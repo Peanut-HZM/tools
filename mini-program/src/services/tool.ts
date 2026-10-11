@@ -1,5 +1,5 @@
 import { request } from './request';
-import type { Tool, ToolCategory, ApiResponse } from '../types';
+import type { Tool, ToolCategory } from '../types';
 
 /**
  * 工具相关 API

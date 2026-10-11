@@ -491,9 +491,10 @@ class CourseReviewBase(BaseModel):
         return v
 
 
-class CourseReviewCreate(CourseReviewBase):
-    """创建课程评价请求"""
-    pass
+class CourseReviewCreate(BaseModel):
+    """创建课程评价请求（user_id/course_id 由路径参数与登录态提供，不从客户端 body 传入）"""
+    rating: int = Field(..., description="评分 (1-5)", ge=1, le=5)
+    comment: Optional[str] = Field(None, description="评论内容")
 
 
 class CourseReviewUpdate(BaseModel):

@@ -113,7 +113,7 @@ describe('对局页渲染（hooks 顺序回归）', () => {
     // 选中座位 → 点确认 → 确认弹窗发起（确认制）
     const seat2 = screen.getAllByText('乙')[0]
     act(() => { seat2.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    const confirmBtn = [...document.querySelectorAll('div')].find(
+    const confirmBtn = Array.from(document.querySelectorAll('div')).find(
       (d) => d.children.length === 0 && d.textContent === '确认')
     act(() => { confirmBtn!.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     expect(showModalSpy).toHaveBeenCalledWith(

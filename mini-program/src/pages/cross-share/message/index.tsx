@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, ScrollView, Button } from '@tarojs/components'
+import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { messageApi, deviceApi } from '../../../services/crossShare'
 import type { Message } from '../../../types/crossShare'
 import { formatDateTime, detectContentType, isUrl } from '../../../utils'
@@ -18,7 +18,6 @@ import './index.scss'
  * - 发送按钮套全局 .btn-primary 品牌渐变；收发/折叠/复制逻辑不变。
  */
 
-const COLLAPSE_HEIGHT = 400 // 折叠高度阈值（rpx）
 const JSON_COLLAPSE_LINES = 10 // JSON 折叠行数阈值
 
 export default function CrossShareMessage() {
@@ -28,7 +27,7 @@ export default function CrossShareMessage() {
   const [loading, setLoading] = useState(true)
   const [inputValue, setInputValue] = useState('')
   const [sending, setSending] = useState(false)
-  const [deviceId, setDeviceId] = useState<string | null>(null)
+  const [, setDeviceId] = useState<string | null>(null)
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set())
   const [collapsibleMessages, setCollapsibleMessages] = useState<Set<string>>(new Set())
   const [showScrollButton, setShowScrollButton] = useState(false)
@@ -213,7 +212,7 @@ export default function CrossShareMessage() {
             </Text>
           )}
         </View>
-        <Text className='json-text' userSelect="text">{displayLines}</Text>
+        <Text className='json-text' userSelect>{displayLines}</Text>
         {!isJsonExpanded && lineCount > JSON_COLLAPSE_LINES && (
           <View className='json-expand-btn' onClick={() => toggleJsonExpand(messageId)}>
             <Text className='expand-text'>点击展开查看完整内容 ({lineCount} 行)</Text>
@@ -231,7 +230,7 @@ export default function CrossShareMessage() {
 
     return (
       <View className='code-block'>
-        <Text className='code-text' userSelect="text">{code}</Text>
+        <Text className='code-text' userSelect>{code}</Text>
       </View>
     )
   }
@@ -342,9 +341,10 @@ export default function CrossShareMessage() {
           scrollY
           scrollWithAnimation
           onScroll={(e) => {
-            // 检测是否在底部
-            const { scrollTop, scrollHeight, clientHeight } = e.detail
-            const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
+            // 检测是否在底部（小程序 onScroll detail 无 clientHeight，用窗口高度近似视口高度）
+            const { scrollTop, scrollHeight } = e.detail
+            const viewport = Taro.getSystemInfoSync().windowHeight
+            const isAtBottom = scrollHeight - scrollTop - viewport < 100
             setShowScrollButton(!isAtBottom)
           }}
         >
@@ -389,7 +389,7 @@ export default function CrossShareMessage() {
       {/* 输入框 */}
       <View className='input-area'>
         <View className='input-wrapper'>
-          <input
+          <Input
             className='message-input'
             value={inputValue}
             onInput={(e) => setInputValue(e.detail.value)}

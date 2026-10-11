@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import Taro, { useDidShow, useDidHide } from '@tarojs/taro'
-import { View, Text, ScrollView, Textarea } from '@tarojs/components'
+import { View, Text, ScrollView, Textarea, Image } from '@tarojs/components'
 import { chatWebSocket, resetSession, getStatus, loadHistory } from '../../services/openclaw'
 import Markdown from '../../components/Markdown'
 import { useAuthGuard } from '../../hooks'
@@ -297,7 +297,7 @@ export default function OpenClawPage() {
               <View key={msg.id} className={`message-row ${msg.role === 'user' ? 'message-row-user' : 'message-row-assistant'}`}>
                 {/* 头像 */}
                 <View className={`message-avatar ${msg.role === 'user' ? 'avatar-user' : 'avatar-assistant'}`}>
-                  <image
+                  <Image
                     className='avatar-image'
                     src={msg.role === 'user' ? DEFAULT_USER_AVATAR : DEFAULT_AI_AVATAR}
                     mode='aspectFit'
@@ -333,7 +333,6 @@ export default function OpenClawPage() {
             placeholder='输入消息...'
             maxlength={4000}
             autoHeight
-            maxHeight={200}
             disabled={isStreaming || !connected}
             confirmType='send'
             onConfirm={handleSend}

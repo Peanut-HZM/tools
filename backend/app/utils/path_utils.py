@@ -201,6 +201,14 @@ SENSITIVE_PATHS = [
 ]
 
 
+def _to_posix(path_str: str) -> str:
+    """统一为 POSIX 风格并去掉 Windows 盘符（D:\etc\shadow → /etc/shadow）"""
+    normalized = path_str.replace(chr(92), '/')
+    if len(normalized) >= 2 and normalized[1] == ':':
+        normalized = normalized[2:]
+    return normalized
+
+
 def is_sensitive_path(path: str) -> bool:
     """检查路径是否为系统敏感路径
 
@@ -210,20 +218,22 @@ def is_sensitive_path(path: str) -> bool:
     Returns:
         是否为敏感路径
     """
+    # Windows 上 Path.resolve() 会给 /etc/shadow 加当前盘符（D:\etc\shadow），
+    # 直接前缀匹配会全部失配，导致敏感路径检测在 Windows 上完全失效。
+    # 因此同时用"原始输入的 POSIX 归一化"与"resolve 后路径的 POSIX 归一化"匹配。
     resolved = Path(path).resolve()
-    path_str = str(resolved)
+    path_str = _to_posix(str(resolved))
+    normalized_input = _to_posix(path)
 
     for sensitive in SENSITIVE_PATHS:
-        # 同时匹配原始路径和解析后的路径（处理 macOS /etc -> /private/etc 等符号链接）
-        sensitive_resolved = str(Path(sensitive.rstrip('/')).resolve())
         # 对于目录前缀匹配，确保带尾部斜杠
         if sensitive.endswith('/'):
-            prefix_original = sensitive
-            prefix_resolved = sensitive_resolved + '/'
-            if path_str.startswith(prefix_original) or path_str.startswith(prefix_resolved):
+            if normalized_input.startswith(sensitive) or path_str.startswith(sensitive):
                 return True
         else:
-            if path_str == sensitive or path_str.startswith(sensitive + '/') or path_str == sensitive_resolved or path_str.startswith(sensitive_resolved + '/'):
+            if normalized_input == sensitive or normalized_input.startswith(sensitive + '/'):
+                return True
+            if path_str == sensitive or path_str.startswith(sensitive + '/'):
                 return True
     return False
 

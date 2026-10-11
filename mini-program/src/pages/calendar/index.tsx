@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { request } from '../../services/request'
 import Icon from '../../components/Icon'

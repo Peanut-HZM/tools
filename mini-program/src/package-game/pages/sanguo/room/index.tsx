@@ -18,16 +18,13 @@ const PENDING_TIPS: Record<string, string> = {
 const SUIT_COLOR: Record<string, string> = {
   '♠': '#8fa3ff', '♥': '#ff6b6b', '♣': '#7dd87d', '♦': '#ffb347',
 }
-const KINGDOM_COLOR: Record<string, string> = {
-  蜀: '#c0392b', 魏: '#2980b9', 群: '#b7950b',
-}
 
 export default function SanguoRoom() {
   const router = useRouter()
   const roomId = router.params.room_id || ''
   const {
     view, lastError, connect, disconnect,
-    playCard, respond, skill, nextPhase, discard, clearError,
+    playCard, respond, nextPhase, discard, clearError,
   } = useSanguoStore()
   const me = useAuthStore((s) => s.user)
   const [selectedCard, setSelectedCard] = useState<number | null>(null)
@@ -135,8 +132,6 @@ export default function SanguoRoom() {
     respond([selectedCard])
     setSelectedCard(null)
   }
-
-  const curPlayer = (snap?.players || []).find((p: any) => p.seat === mySeat)
 
   return (
     <View className='sg'>

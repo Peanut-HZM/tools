@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Taro, { useRouter } from '@tarojs/taro';
+import { useRouter } from '@tarojs/taro';
 import { View, Text, Image, ScrollView } from '@tarojs/components';
 import { techContentsApi } from '../../../../services/techContents';
 import type { TechContentDetail } from '../../../../services/techContents';

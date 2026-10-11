@@ -213,7 +213,7 @@ export default function Login() {
               <View className='input-prefix'><LockIcon /></View>
               <Input
                 className='form-input'
-                type='password'
+                password
                 placeholder='请输入密码'
                 value={password}
                 onInput={(e) => setPassword(e.detail.value)}

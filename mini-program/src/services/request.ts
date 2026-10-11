@@ -10,7 +10,7 @@ import Taro from '@tarojs/taro';
 // 微信运行时 typeof 判断恒为 false，会把已注入的地址也短路掉（386bc827 的回归教训）。
 function readTaroAppApiUrl(): string {
   try {
-    // @ts-expect-error process 在微信运行时可能未定义，ReferenceError 由 catch 兜底
+    // 运行时 process 在微信端可能未定义，ReferenceError 由 catch 兜底
     return process.env.TARO_APP_API_URL || '';
   } catch {
     return '';

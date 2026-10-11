@@ -198,11 +198,14 @@ export function chatWebSocket(
 
   console.log('[chatWebSocket] 开始连接:', wsUrl)
 
-  // 先注销旧监听器，防止重复注册
-  try { Taro.offSocketOpen() } catch (_) {}
-  try { Taro.offSocketMessage() } catch (_) {}
-  try { Taro.offSocketError() } catch (_) {}
-  try { Taro.offSocketClose() } catch (_) {}
+  // 先注销旧监听器，防止重复注册。
+  // Taro 4 未暴露 offSocket* API（类型与运行时均无），直连微信原生 wx.offSocket*；
+  // 非微信端（H5 等）无 wx 对象则跳过，行为与旧 try/catch 兜底一致但真正生效。
+  const nativeWx = typeof wx !== 'undefined' ? wx : undefined
+  try { nativeWx?.offSocketOpen?.() } catch (_) {}
+  try { nativeWx?.offSocketMessage?.() } catch (_) {}
+  try { nativeWx?.offSocketError?.() } catch (_) {}
+  try { nativeWx?.offSocketClose?.() } catch (_) {}
 
   // 监听打开事件
   Taro.onSocketOpen(() => {

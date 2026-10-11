@@ -3,16 +3,28 @@
 """
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import sessionmaker
 from app.main import app
-from app.db.session import get_db
-from tests.conftest import override_db, TestingSessionLocal
+from app.database import get_db
+from app.models.base import Base
 from app.models.user import User
-from app.models.course_platform import Course, Category, Enrollment
+from app.models.course_platform import Course, CourseCategory as Category, CourseEnrollment as Enrollment
 from datetime import datetime
 import jwt
 from app.config.config import settings
 
 client = TestClient(app)
+
+# 测试专用 SQLite 内存库（JSONB/INET 的 SQLite 降级编译器由 conftest 注册）
+TEST_DB_URL = "sqlite:///:memory:"
+test_engine = create_engine(
+    TEST_DB_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,  # 内存库共享单连接，保证 API 请求与 fixture 看到同一份数据
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
 @pytest.fixture
@@ -33,7 +45,7 @@ def test_token(test_user):
         "username": test_user["username"],
         "exp": datetime.utcnow().replace(year=2099)
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 @pytest.fixture
@@ -60,28 +72,43 @@ def test_course():
         "slug": "test-course",
         "description": "这是一个测试课程",
         "cover_image": "https://example.com/cover.jpg",
-        "is_published": True
+        "status": "published"
     }
 
 
 @pytest.fixture(scope="function")
 def db():
-    """创建测试数据库会话"""
-    db = TestingSessionLocal()
+    """创建测试数据库会话：SQLite 内存库全量建表，API 依赖注入同一会话工厂"""
+    Base.metadata.create_all(bind=test_engine)
+
+    def _override_get_db():
+        session = TestingSessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
     try:
-        yield db
+        app.dependency_overrides[get_db] = _override_get_db
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
     finally:
-        db.close()
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture(scope="function")
 def setup_test_data(db, test_user, test_category, test_course):
     """设置测试数据"""
-    # 创建用户
+    # 创建用户（password_hash 为 NOT NULL 必填字段）
     user = User(
         id=test_user["id"],
         username=test_user["username"],
-        email=test_user["email"]
+        email=test_user["email"],
+        password_hash="test-hash-not-used"
     )
     db.add(user)
 
@@ -329,7 +356,7 @@ class TestAdminCourseAPI:
             "slug": "new-course",
             "description": "新课程描述",
             "category_id": 1,
-            "is_published": False
+            "status": "draft"
         }
         response = client.post(
             "/api/admin/courses",
@@ -379,7 +406,7 @@ class TestAdminCourseAPI:
         assert response.status_code == 200
         # 验证发布状态
         detail_response = client.get("/api/courses/test-course")
-        assert detail_response.json()["is_published"] is True
+        assert detail_response.json()["status"] == "published"
 
     def test_admin_unpublish_course(self, setup_test_data, auth_headers):
         """测试管理员取消发布课程"""
@@ -391,7 +418,7 @@ class TestAdminCourseAPI:
         assert response.status_code == 200
         # 验证发布状态
         detail_response = client.get("/api/courses/test-course")
-        assert detail_response.json()["is_published"] is False
+        assert detail_response.json()["status"] == "draft"
 
 
 if __name__ == "__main__":

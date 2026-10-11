@@ -33,10 +33,10 @@ class TestSQLExecutorBindParameterEscaping:
         result = SQLExecutor.execute("cfg1", {}, "UPDATE t SET x = '{\"version\":1}'")
 
         assert result.success is True
-        executed_stmt = mock_conn.execute.call_args[0][0]
-        # 冒号保持字面量送达数据库，且未产生绑定参数占位符
-        assert ":1" in executed_stmt.text
-        assert "%(" not in executed_stmt.text
+        # 无 params 时走 exec_driver_sql，SQL 原样送达数据库
+        executed_sql = mock_conn.exec_driver_sql.call_args[0][0]
+        assert ":1" in executed_sql
+        assert "%(" not in executed_sql
 
     @patch("app.utils.sql_executor.DBConnectionManager.get_engine")
     @patch("app.utils.sql_executor.sqlparse.split")
@@ -58,10 +58,10 @@ class TestSQLExecutorBindParameterEscaping:
 
         SQLExecutor.execute("cfg1", {}, "SELECT * FROM t WHERE id = :user_id")
 
-        executed_stmt = mock_conn.execute.call_args[0][0]
-        # 未提供 params 时冒号保持字面量，且未产生绑定参数占位符
-        assert ":user_id" in executed_stmt.text
-        assert "%(" not in executed_stmt.text
+        executed_sql = mock_conn.exec_driver_sql.call_args[0][0]
+        # 未提供 params 时冒号保持字面量
+        assert ":user_id" in executed_sql
+        assert "%(" not in executed_sql
 
     @patch("app.utils.sql_executor.DBConnectionManager.get_engine")
     @patch("app.utils.sql_executor.sqlparse.split")
@@ -81,9 +81,8 @@ class TestSQLExecutorBindParameterEscaping:
 
         SQLExecutor.execute("cfg1", {}, "SELECT 1::integer")
 
-        executed_stmt = mock_conn.execute.call_args[0][0]
-        compiled = str(executed_stmt)
-        assert "::integer" in compiled
+        executed_sql = mock_conn.exec_driver_sql.call_args[0][0]
+        assert "::integer" in executed_sql
 
     @patch("app.utils.sql_executor.DBConnectionManager.get_engine")
     @patch("app.utils.sql_executor.sqlparse.split")
@@ -250,9 +249,10 @@ class TestSQLExecutorDelimiterScript:
         result = SQLExecutor.execute("cfg1", {}, INCIDENT_SCRIPT)
 
         assert result.success is True
-        executed = mock_conn.execute.call_args[0][0]
-        assert executed.text.lstrip().startswith("CREATE PROCEDURE")
-        assert "DELIMITER" not in executed.text
+        # 无 params 时走 exec_driver_sql，DELIMITER 指令已被切分脚本剔除
+        executed = mock_conn.exec_driver_sql.call_args[0][0]
+        assert executed.lstrip().startswith("CREATE PROCEDURE")
+        assert "DELIMITER" not in executed
 
     @patch("app.utils.sql_executor.DBConnectionManager.get_engine")
     def test_executor_returns_chinese_error_for_malformed_delimiter(

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, ScrollView, Image } from '@tarojs/components'
+import { View, Text, ScrollView } from '@tarojs/components'
 import { toolApi } from '../../services/tool'
-import type { Tool, ToolCategory } from '../../types'
+import type { Tool } from '../../types'
 import ToolCard from '../../components/ToolCard'
 import SearchBar from '../../components/SearchBar'
 import Loading from '../../components/Loading'
@@ -67,10 +67,11 @@ export default function Index() {
       return
     }
 
-    if (tool.path) {
-      Taro.navigateTo({ url: tool.path }).catch(() => {
+    const path = tool.path
+    if (path) {
+      Taro.navigateTo({ url: path }).catch(() => {
         // 页面栈满时降级为 redirectTo
-        Taro.redirectTo({ url: tool.path })
+        Taro.redirectTo({ url: path })
       })
     }
   }

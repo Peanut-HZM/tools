@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView } from '@tarojs/components'
 import { fileApi } from '../../../services/crossShare'
+import type { CrossFile } from '../../../types/crossShare'
 import { useAuthGuard } from '../../../hooks'
 import { parseDateSafe } from '../../../utils'
 import Icon from '../../../components/Icon'
@@ -16,18 +17,9 @@ import './index.scss'
  *   容器相应改为 View）；上传/下载/删除逻辑不变。
  */
 
-interface FileInfo {
-  id: string
-  name: string
-  size: number
-  mime_type: string
-  uploaded_at: string
-  download_count: number
-}
-
 export default function FileTransferPage() {
   useAuthGuard()
-  const [files, setFiles] = useState<FileInfo[]>([])
+  const [files, setFiles] = useState<CrossFile[]>([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [stats, setStats] = useState<{ used: number; total: number; file_count: number } | null>(null)
@@ -43,7 +35,7 @@ export default function FileTransferPage() {
         fileApi.getFiles(),
         fileApi.getStorageStats()
       ])
-      setFiles(filesRes?.files || [])
+      setFiles(filesRes || [])
       setStats(statsRes as any)
     } catch (err: any) {
       Taro.showToast({ title: err.message || '加载失败', icon: 'none' })
@@ -94,7 +86,7 @@ export default function FileTransferPage() {
   }
 
   // 下载/分享文件
-  const handleDownload = async (file: FileInfo) => {
+  const handleDownload = async (file: CrossFile) => {
     try {
       Taro.showLoading({ title: '获取下载链接...' })
       const res = await fileApi.getDownloadUrl(file.id)
@@ -114,12 +106,11 @@ export default function FileTransferPage() {
 
   // 获取文件类型图标：原 emoji 映射为 SVG Icon（颜色烘入 stroke，中性 ink 系；
   // Icon 表无回形针/表格/文件夹，按语义就近映射 file/edit/database）
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType?.startsWith('image/')) return <Icon name='image' size={22} color='#6E7A8F' />
-    if (mimeType === 'application/pdf') return <Icon name='file' size={22} color='#6E7A8F' />
-    if (mimeType?.includes('word') || mimeType?.includes('document')) return <Icon name='edit' size={22} color='#6E7A8F' />
-    if (mimeType?.includes('excel') || mimeType?.includes('spreadsheet')) return <Icon name='database' size={22} color='#6E7A8F' />
-    if (mimeType?.includes('text')) return <Icon name='file' size={22} color='#6E7A8F' />
+  const getFileIcon = (fileType: string) => {
+    if (fileType === 'image') return <Icon name='image' size={22} color='#6E7A8F' />
+    if (fileType === 'document') return <Icon name='edit' size={22} color='#6E7A8F' />
+    if (fileType === 'archive') return <Icon name='database' size={22} color='#6E7A8F' />
+    if (fileType === 'text') return <Icon name='file' size={22} color='#6E7A8F' />
     return <Icon name='file' size={22} color='#6E7A8F' />
   }
 
@@ -167,10 +158,10 @@ export default function FileTransferPage() {
             <View key={file.id} className='file-item glass-card'>
               <View className='file-info' onClick={() => handleDownload(file)}>
                 {/* Icon（Image）不可嵌于 Text，容器改用 View */}
-                <View className='file-icon'>{getFileIcon(file.mime_type)}</View>
+                <View className='file-icon'>{getFileIcon(file.file_type)}</View>
                 <View className='file-detail'>
-                  <Text className='file-name'>{file.name}</Text>
-                  <Text className='file-meta'>{formatFileSize(file.size)} · {formatTime(file.uploaded_at)}</Text>
+                  <Text className='file-name'>{file.file_name}</Text>
+                  <Text className='file-meta'>{formatFileSize(file.file_size)} · {formatTime(file.created_at)}</Text>
                 </View>
               </View>
               <View className='file-actions'>

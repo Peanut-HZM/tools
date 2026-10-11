@@ -38,8 +38,8 @@ export interface Tool {
   show_pc?: boolean;
   show_mobile?: boolean;
   require_login?: boolean;
-  // 小程序端补充字段
-  path?: string;
+  // 小程序端补充字段（后端 path 可空，为空时按 TOOL_PATH_MAP 兜底）
+  path?: string | null;
 }
 
 // 工具分类
@@ -59,7 +59,7 @@ export interface CategoryInfo {
 }
 
 // 通用 API 响应
-export interface ApiResponse<T = any> {
+export interface ApiResponse {
   detail?: string;
   [key: string]: any;
 }

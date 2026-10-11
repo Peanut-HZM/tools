@@ -1,4 +1,3 @@
-import { View } from '@tarojs/components'
 import './app.scss'
 
 function App({ children }) {

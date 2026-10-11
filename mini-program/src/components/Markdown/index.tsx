@@ -22,7 +22,7 @@ export default function Markdown({ content }: MarkdownProps) {
   }
 
   try {
-    const html = marked(content)
+    const html = marked.parse(content, { async: false, breaks: true, gfm: true })
 
     return (
       <View className='markdown-renderer'>

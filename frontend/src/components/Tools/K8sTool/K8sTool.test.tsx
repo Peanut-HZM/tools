@@ -36,9 +36,9 @@ vi.mock('./ResourceTabs', () => ({
   ResourceTabs: () => <div data-testid="resource-tabs" />,
 }));
 
-// 关键：验证使用的是 BottomPanel 而非 PodDetail
-vi.mock('./BottomPanel/BottomPanel', () => ({
-  BottomPanel: () => <div data-testid="bottom-panel" />,
+// 关键：验证使用的是 RightDrawer（详情抽屉）而非直接渲染 PodDetail
+vi.mock('./RightDrawer', () => ({
+  RightDrawer: () => <div data-testid="right-drawer" />,
 }));
 
 // ---- Mock hooks ----
@@ -122,11 +122,11 @@ describe('K8sTool', () => {
     expect(screen.queryByTestId('resource-tabs')).toBeNull();
   });
 
-  it('渲染 BottomPanel 而非 PodDetail', () => {
+  it('渲染 RightDrawer 而非直接渲染 PodDetail', () => {
     render(<K8sTool />);
 
-    // BottomPanel 应该被渲染
-    expect(screen.getByTestId('bottom-panel')).toBeTruthy();
+    // RightDrawer（详情抽屉）应该被渲染
+    expect(screen.getByTestId('right-drawer')).toBeTruthy();
   });
 
   it('不从 store 中读取 selectedResource', () => {
@@ -148,20 +148,20 @@ describe('K8sTool', () => {
     expect(screen.getByTestId('resource-tabs')).toBeTruthy();
     // 空状态不应渲染
     expect(screen.queryByTestId('empty-state')).toBeNull();
-    // BottomPanel 始终渲染
-    expect(screen.getByTestId('bottom-panel')).toBeTruthy();
+    // RightDrawer 始终渲染（是否显示内容由它自己根据 store 决定）
+    expect(screen.getByTestId('right-drawer')).toBeTruthy();
   });
 
-  it('无论是否有标签打开，BottomPanel 始终存在于 DOM 中', () => {
-    // BottomPanel 自身会根据 store 状态决定是否显示内容
+  it('无论抽屉开关状态，RightDrawer 始终存在于 DOM 中', () => {
+    // RightDrawer 自身会根据 store 状态决定是否显示内容
     // K8sTool 只负责渲染它，不传递任何 props
     mockStoreState.activeConnectionId = 'conn-1';
 
     const { container } = render(<K8sTool />);
 
-    const bottomPanel = screen.getByTestId('bottom-panel');
-    expect(bottomPanel).toBeTruthy();
-    // BottomPanel 不应接收任何 props（由它自己从 store 读取状态）
-    expect(bottomPanel.children.length).toBe(0);
+    const rightDrawer = screen.getByTestId('right-drawer');
+    expect(rightDrawer).toBeTruthy();
+    // RightDrawer 不应接收任何 props（由它自己从 store 读取状态）
+    expect(rightDrawer.children.length).toBe(0);
   });
 });

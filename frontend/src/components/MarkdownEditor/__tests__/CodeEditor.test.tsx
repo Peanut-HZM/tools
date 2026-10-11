@@ -39,9 +39,11 @@ function MockEditor(props: Record<string, unknown>) {
 }
 
 // Mock @monaco-editor/react（必须在 import 之前声明，vi.mock 会自动提升）
+// CodeEditor 内部通过 useMonaco() 获取实例做变量高亮，mock 需提供该导出
 vi.mock('@monaco-editor/react', () => ({
   __esModule: true,
   default: MockEditor,
+  useMonaco: () => null,
 }));
 
 describe('CodeEditor', () => {

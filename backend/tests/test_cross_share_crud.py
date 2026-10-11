@@ -61,6 +61,20 @@ def device_id(client, auth_headers):
     return None
 
 
+def upload_test_file(client, headers, filename="test.txt", content=b"hello cross share"):
+    """通过 multipart 真实上传一个小文件，返回 file_id。
+
+    /files/upload 是 multipart 接口（UploadFile），不接受 JSON body。
+    """
+    upload_response = client.post(
+        "/api/cross-share/files/upload",
+        files={"file": (filename, content, "text/plain")},
+        headers=headers,
+    )
+    assert upload_response.status_code == 200, upload_response.text
+    return upload_response.json()["file_id"]
+
+
 class TestCrossShareMessageCRUD:
     """Integration tests for CrossShare message CRUD operations"""
 
@@ -215,21 +229,17 @@ class TestCrossShareFileCRUD:
         assert isinstance(data["files"], list)
 
     def test_get_upload_token(self, client, auth_headers):
-        """Test getting upload token"""
+        """Test uploading a file (multipart) returns file metadata and download url"""
         response = client.post(
             "/api/cross-share/files/upload",
-            json={
-                "file_name": "test.txt",
-                "file_size": 1024,
-                "file_type": "text/plain"
-            },
+            files={"file": ("test.txt", b"hello", "text/plain")},
             headers=auth_headers
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert "token" in data
-        assert "upload_url" in data
+        assert "file_id" in data
+        assert "download_url" in data
         assert "file_id" in data
 
     def test_get_file_stats(self, client, auth_headers):
@@ -249,16 +259,7 @@ class TestCrossShareFileCRUD:
     def test_update_file_name(self, client, auth_headers):
         """Test renaming a file"""
         # Create file record first
-        upload_response = client.post(
-            "/api/cross-share/files/upload",
-            json={
-                "file_name": "original.txt",
-                "file_size": 1024,
-                "file_type": "text/plain"
-            },
-            headers=auth_headers
-        )
-        file_id = upload_response.json().get("file_id")
+        file_id = upload_test_file(client, auth_headers)
 
         # Update file name
         update_response = client.put(
@@ -274,16 +275,7 @@ class TestCrossShareFileCRUD:
     def test_delete_file(self, client, auth_headers):
         """Test deleting a file"""
         # Create file record first
-        upload_response = client.post(
-            "/api/cross-share/files/upload",
-            json={
-                "file_name": "to_delete.txt",
-                "file_size": 1024,
-                "file_type": "text/plain"
-            },
-            headers=auth_headers
-        )
-        file_id = upload_response.json().get("file_id")
+        file_id = upload_test_file(client, auth_headers)
 
         # Delete file
         delete_response = client.delete(
@@ -302,16 +294,7 @@ class TestCrossShareFileCRUD:
     def test_get_file_unauthorized(self, client, auth_headers):
         """Test that user cannot access another user's file"""
         # Create file with first user
-        upload_response = client.post(
-            "/api/cross-share/files/upload",
-            json={
-                "file_name": "private.txt",
-                "file_size": 1024,
-                "file_type": "text/plain"
-            },
-            headers=auth_headers
-        )
-        file_id = upload_response.json().get("file_id")
+        file_id = upload_test_file(client, auth_headers)
 
         # Create another user
         unique_username = f"otheruser_{uuid.uuid4().hex[:8]}"
@@ -333,16 +316,7 @@ class TestCrossShareFileCRUD:
     def test_update_file_unauthorized(self, client, auth_headers):
         """Test that user cannot update another user's file"""
         # Create file with first user
-        upload_response = client.post(
-            "/api/cross-share/files/upload",
-            json={
-                "file_name": "original.txt",
-                "file_size": 1024,
-                "file_type": "text/plain"
-            },
-            headers=auth_headers
-        )
-        file_id = upload_response.json().get("file_id")
+        file_id = upload_test_file(client, auth_headers)
 
         # Create another user
         unique_username = f"otheruser_{uuid.uuid4().hex[:8]}"
@@ -365,16 +339,7 @@ class TestCrossShareFileCRUD:
     def test_delete_file_unauthorized(self, client, auth_headers):
         """Test that user cannot delete another user's file"""
         # Create file with first user
-        upload_response = client.post(
-            "/api/cross-share/files/upload",
-            json={
-                "file_name": "private.txt",
-                "file_size": 1024,
-                "file_type": "text/plain"
-            },
-            headers=auth_headers
-        )
-        file_id = upload_response.json().get("file_id")
+        file_id = upload_test_file(client, auth_headers)
 
         # Create another user
         unique_username = f"otheruser_{uuid.uuid4().hex[:8]}"

@@ -21,23 +21,25 @@ def client():
 @pytest.fixture
 def auth_headers(client):
     """Get authentication headers by registering and logging in"""
-    # Register a test user
+    import uuid
+    # 每次用唯一用户名注册（固定用户名会与库中历史账号密码冲突，级联 401）
+    unique_username = f"zztest_api_{uuid.uuid4().hex[:8]}"
     register_response = client.post("/api/auth/register", json={
-        "username": "testuser",
-        "email": "test@example.com",
+        "username": unique_username,
+        "email": f"{unique_username}@example.com",
         "password": "testpassword123"
     })
-    
+
     if register_response.status_code == 200:
         token = register_response.json().get("token")
     else:
         # User might already exist, try login
         login_response = client.post("/api/auth/login", json={
-            "username": "testuser",
+            "username": unique_username,
             "password": "testpassword123"
         })
         token = login_response.json().get("token")
-    
+
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -155,15 +157,15 @@ class TestFileAPI:
         
         assert create_response.status_code == 200
         
-        # Read file
+        # Read file（实际路由为 /files/read-raw，文本内容在 text 字段）
         read_response = client.get(
-            f"/api/markdown-editor/files/read?path={filename}",
+            f"/api/markdown-editor/files/read-raw?path={filename}",
             headers=auth_headers
         )
         
         assert read_response.status_code == 200
         data = read_response.json()
-        assert data["content"] == content
+        assert data["text"] == content
 
     def test_save_file(self, client, auth_headers):
         """Test saving file content"""
@@ -189,10 +191,10 @@ class TestFileAPI:
         
         # Verify content was updated
         read_response = client.get(
-            f"/api/markdown-editor/files/read?path={filename}",
+            f"/api/markdown-editor/files/read-raw?path={filename}",
             headers=auth_headers
         )
-        assert read_response.json()["content"] == new_content
+        assert read_response.json()["text"] == new_content
 
     def test_delete_file(self, client, auth_headers):
         """Test deleting a file"""

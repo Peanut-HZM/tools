@@ -1,4 +1,4 @@
-import { request, uploadFile, downloadFile } from './request';
+import { request, uploadFile } from './request';
 import type { Device, Message, CrossFile, StorageStats } from '../types/crossShare';
 
 const BASE = '/cross-share';
@@ -106,7 +106,7 @@ export const fileApi = {
   },
 
   /** 上传文件 */
-  uploadFile: async (filePath: string, onProgress?: (p: number) => void): Promise<any> => {
+  uploadFile: async (filePath: string, _onProgress?: (p: number) => void): Promise<any> => {
     return uploadFile(`${BASE}/files/upload`, filePath, 'file');
   },
 

@@ -33,8 +33,8 @@ export const PodList: React.FC = () => {
     openRightDrawer,
   } = useK8sStore();
   const { addToast } = useToast();
-  // 从 store 读取当前集群的搜索条件
-  const searchText = podSearchTexts[activeConnectionId || ''] || '';
+  // 从 store 读取当前集群的搜索条件（防御旧持久化快照缺字段的情况）
+  const searchText = podSearchTexts?.[activeConnectionId || ''] || '';
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 

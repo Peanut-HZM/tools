@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Taro from '@tarojs/taro';
 import { View, Button, Text, ScrollView } from '@tarojs/components';
 import { converterApi } from '../../../services/converter';
 import type { ConvertResponse } from '../../../services/converter';

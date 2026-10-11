@@ -55,7 +55,7 @@ export default function ASRPage() {
         await handleRecognize(res.tempFilePath)
       })
 
-      recorderRef.current.onError((err) => {
+      recorderRef.current.onError(() => {
         clearInterval(timerRef.current)
         setIsRecording(false)
         Taro.showToast({ title: '录音失败', icon: 'none' })

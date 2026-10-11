@@ -16,7 +16,8 @@ def test_validate_any_path_valid():
     """测试有效路径验证"""
     is_valid, result = validate_any_path('/home/user/docs')
     assert is_valid is True
-    assert '/home/user/docs' in result
+    # Windows 上 resolve 会带当前盘符（如 D:\home\user\docs），统一为 POSIX 后缀比较
+    assert result.replace(chr(92), '/').endswith('/home/user/docs')
 
 
 def test_validate_any_path_traversal():

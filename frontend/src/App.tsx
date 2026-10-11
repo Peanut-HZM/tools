@@ -61,7 +61,6 @@ const RedisTool = lazy(() => import('./components/Tools/RedisTool/RedisTool'));
 const SSHTool = lazy(() => import('./components/Tools/SSHTool/SSHTool'));
 const ProductManagerAgent = lazy(() => import('./components/Tools/ProductManagerAgent'));
 const LearningSharePlatform = lazy(() => import('./components/Tools/LearningSharePlatform'));
-const OpenSpecCourse = lazy(() => import('./components/Tools/OpenSpecCourse'));
 const CursorHistory = lazy(() => import('./components/Tools/CursorHistory/CursorHistory'));
 const HttpApiClient = lazy(() => import('./components/Tools/HttpApiClient/HttpApiClient'));
 const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
@@ -351,7 +350,6 @@ function App() {
                     <Route path="product-manager" element={<ProductManagerAgent />} />
                     <Route path="product-manager/:conversationId" element={<ProductManagerAgent />} />
                     <Route path="learning-share" element={<LearningSharePlatform />} />
-                    <Route path="openspec-course" element={<OpenSpecCourse />} />
                     <Route path="cross-share" element={<CrossShareMain />} />
                     <Route path="cursor-history" element={<CursorHistory />} />
                     <Route path="http-api-client" element={<HttpApiClient />} />

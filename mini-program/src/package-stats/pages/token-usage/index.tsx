@@ -185,7 +185,7 @@ export default function TokenUsagePage() {
               range={['全部设备', ...devices.map(d => d.name)]}
               value={selectedDevice === '' ? 0 : devices.findIndex(d => d.id === selectedDevice) + 1}
               onChange={(e) => {
-                const idx = e.detail.value;
+                const idx = Number(e.detail.value);
                 setSelectedDevice(idx === 0 ? '' : devices[idx - 1].id);
               }}
             >

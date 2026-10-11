@@ -2,9 +2,9 @@
  * PodList 组件单元测试
  *
  * 测试重点：
- * - 点击 Pod 行调用 openResourceTab，传入正确的 id 格式 `pod-${namespace}-${name}`
- * - openResourceTab 接收到 type='pod' 以及 namespace、name 字段
- * - 多次点击同一个 Pod 仍能持续调用 openResourceTab（去重由 store 内部处理）
+ * - 点击 Pod 行调用 openRightDrawer，传入正确的 id 格式 `pod-${namespace}-${name}`
+ * - openRightDrawer 接收到 type='pod' 以及 namespace、name 字段
+ * - 多次点击同一个 Pod 仍能持续调用 openRightDrawer（去重由 store 内部处理）
  */
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
@@ -16,22 +16,34 @@ import { ToastProvider } from '../../../../contexts/ToastContext';
 
 // ---------- Mock 子模块 ----------
 
-/** 模拟 useK8sStore 行为（每个测试可覆盖） */
-const mockOpenResourceTab = vi.fn();
+/**
+ * 模拟 useK8sStore（真实 zustand store，保证响应式）。
+ * 原因：PodList 的搜索条件存于 store，若用纯对象 mock，
+ * setCurrentPage(1) 在已处于第 1 页时被 React bail out，
+ * 组件不会重渲染，搜索过滤在测试中永远不生效。
+ */
+const { mockOpenRightDrawer, getMockStore, holder } = vi.hoisted(() => {
+  const mockOpenRightDrawer = vi.fn();
+  const holder: { current?: any } = {};
+  return { mockOpenRightDrawer, getMockStore: () => holder.current, holder };
+});
 
-const mockStoreState = {
-  activeConnectionId: 'conn-1' as string | null,
-  selectedNamespaces: ['default'] as string[],
-  namespaces: ['default', 'production'] as string[],
-  openedTabs: [] as Array<{ id: string; type: string; namespace: string; name: string }>,
-};
-
-vi.mock('../../../../stores/k8sStore', () => ({
-  useK8sStore: () => ({
-    ...mockStoreState,
-    openResourceTab: (...args: unknown[]) => mockOpenResourceTab(...args),
-  }),
-}));
+vi.mock('../../../../stores/k8sStore', async () => {
+  const { create } = await import('zustand');
+  const useMockK8sStore: any = create((set: any) => ({
+    activeConnectionId: 'conn-1' as string | null,
+    selectedNamespaces: ['default'] as string[],
+    namespaces: ['default', 'production'] as string[],
+    podSearchTexts: {} as Record<string, string>,
+    openRightDrawer: (...args: unknown[]) => mockOpenRightDrawer(...args),
+    // 搜索条件存于 store 的 podSearchTexts（按连接 ID 分桶），与真实 store 行为一致
+    setPodSearchText: (connectionId: string, text: string) =>
+      set((s: any) => ({ podSearchTexts: { ...s.podSearchTexts, [connectionId]: text } })),
+  }));
+  // 暴露给测试用例做状态重置
+  holder.current = useMockK8sStore;
+  return { useK8sStore: () => useMockK8sStore() };
+});
 
 /** 模拟 useI18n */
 vi.mock('../../../../i18n', () => ({
@@ -109,13 +121,17 @@ const renderWithProviders = (ui: React.ReactElement) => {
 };
 
 beforeEach(() => {
-  mockOpenResourceTab.mockClear();
+  mockOpenRightDrawer.mockClear();
   mockPods = [];
   mockIsLoading = false;
   mockError = null;
-  mockStoreState.activeConnectionId = 'conn-1';
-  mockStoreState.selectedNamespaces = ['default'];
-  mockStoreState.namespaces = ['default', 'production'];
+  // 重置 mock store 状态（真实 zustand，测试间隔离）
+  getMockStore()?.setState({
+    activeConnectionId: 'conn-1',
+    selectedNamespaces: ['default'],
+    namespaces: ['default', 'production'],
+    podSearchTexts: {},
+  });
 });
 
 afterEach(() => {
@@ -125,8 +141,8 @@ afterEach(() => {
 
 // ---------- 测试用例 ----------
 
-describe('PodList - 点击行打开标签页', () => {
-  it('点击 Pod 行调用 openResourceTab，id 格式为 `pod-${namespace}-${name}`', () => {
+describe('PodList - 点击行打开详情抽屉', () => {
+  it('点击 Pod 行调用 openRightDrawer，id 格式为 `pod-${namespace}-${name}`', () => {
     mockPods = [
       {
         name: 'nginx-abc',
@@ -149,8 +165,8 @@ describe('PodList - 点击行打开标签页', () => {
 
     fireEvent.click(row!);
 
-    expect(mockOpenResourceTab).toHaveBeenCalledTimes(1);
-    expect(mockOpenResourceTab).toHaveBeenCalledWith({
+    expect(mockOpenRightDrawer).toHaveBeenCalledTimes(1);
+    expect(mockOpenRightDrawer).toHaveBeenCalledWith({
       id: 'pod-production-nginx-abc',
       type: 'pod',
       namespace: 'production',
@@ -158,7 +174,7 @@ describe('PodList - 点击行打开标签页', () => {
     });
   });
 
-  it('openResourceTab 接收 type、namespace、name 字段', () => {
+  it('openRightDrawer 接收 type、namespace、name 字段', () => {
     mockPods = [
       {
         name: 'redis-1',
@@ -178,7 +194,7 @@ describe('PodList - 点击行打开标签页', () => {
     fireEvent.click(row!);
 
     // 验证所有字段都被正确传递
-    const call = mockOpenResourceTab.mock.calls[0]?.[0] as {
+    const call = mockOpenRightDrawer.mock.calls[0]?.[0] as {
       type: string;
       namespace: string;
       name: string;
@@ -190,7 +206,7 @@ describe('PodList - 点击行打开标签页', () => {
     expect(call.id).toBe('pod-cache-redis-1');
   });
 
-  it('多次点击同一个 Pod 行，每次都调用 openResourceTab', () => {
+  it('多次点击同一个 Pod 行，每次都调用 openRightDrawer', () => {
     mockPods = [
       {
         name: 'api-server',
@@ -213,21 +229,21 @@ describe('PodList - 点击行打开标签页', () => {
     fireEvent.click(row!);
     fireEvent.click(row!);
 
-    expect(mockOpenResourceTab).toHaveBeenCalledTimes(3);
+    expect(mockOpenRightDrawer).toHaveBeenCalledTimes(3);
     // 每次都传入相同的参数（去重逻辑由 store 内部处理）
-    expect(mockOpenResourceTab).toHaveBeenNthCalledWith(1, {
+    expect(mockOpenRightDrawer).toHaveBeenNthCalledWith(1, {
       id: 'pod-backend-api-server',
       type: 'pod',
       namespace: 'backend',
       name: 'api-server',
     });
-    expect(mockOpenResourceTab).toHaveBeenNthCalledWith(2, {
+    expect(mockOpenRightDrawer).toHaveBeenNthCalledWith(2, {
       id: 'pod-backend-api-server',
       type: 'pod',
       namespace: 'backend',
       name: 'api-server',
     });
-    expect(mockOpenResourceTab).toHaveBeenNthCalledWith(3, {
+    expect(mockOpenRightDrawer).toHaveBeenNthCalledWith(3, {
       id: 'pod-backend-api-server',
       type: 'pod',
       namespace: 'backend',
@@ -269,14 +285,14 @@ describe('PodList - 点击行打开标签页', () => {
     const rowB = podBName.closest('tr');
     fireEvent.click(rowB!);
 
-    expect(mockOpenResourceTab).toHaveBeenCalledTimes(2);
-    expect(mockOpenResourceTab).toHaveBeenNthCalledWith(1, {
+    expect(mockOpenRightDrawer).toHaveBeenCalledTimes(2);
+    expect(mockOpenRightDrawer).toHaveBeenNthCalledWith(1, {
       id: 'pod-ns-a-pod-a',
       type: 'pod',
       namespace: 'ns-a',
       name: 'pod-a',
     });
-    expect(mockOpenResourceTab).toHaveBeenNthCalledWith(2, {
+    expect(mockOpenRightDrawer).toHaveBeenNthCalledWith(2, {
       id: 'pod-ns-b-pod-b',
       type: 'pod',
       namespace: 'ns-b',
@@ -322,8 +338,8 @@ describe('PodList - 点击行打开标签页', () => {
     const row = dbName.closest('tr');
     fireEvent.click(row!);
 
-    expect(mockOpenResourceTab).toHaveBeenCalledTimes(1);
-    expect(mockOpenResourceTab).toHaveBeenCalledWith({
+    expect(mockOpenRightDrawer).toHaveBeenCalledTimes(1);
+    expect(mockOpenRightDrawer).toHaveBeenCalledWith({
       id: 'pod-default-db-1',
       type: 'pod',
       namespace: 'default',

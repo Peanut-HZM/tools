@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 为 PostgreSQL 专属类型注册 SQLite 编译器，使全量建表 fixture（Base.metadata.create_all）
 # 能在 SQLite 测试库上运行。仅影响 SQLite 测试库 DDL 编译，不触碰生产 PostgreSQL 模型。
-from sqlalchemy import JSON
+from sqlalchemy import JSON, BigInteger
 from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.ext.compiler import compiles
 
@@ -31,6 +31,15 @@ def _compile_jsonb_for_sqlite(element, compiler, **kw):
     app.models 包的测试在 SQLite 全量建表时都会编译失败，此处统一降级。
     """
     return "JSON"
+
+
+@compiles(BigInteger, "sqlite")
+def _compile_bigint_for_sqlite(element, compiler, **kw):
+    """SQLite 中只有 INTEGER PRIMARY KEY 才能作为 rowid 别名自增，
+    BigInteger 主键建表后插入不带 id 的行会报 NOT NULL（token_usage_records 等）。
+    SQLite 的 INTEGER 与 BIGINT 同为 64 位存储，降级无精度损失，仅测试库 DDL 生效。
+    """
+    return "INTEGER"
 
 
 @pytest.fixture(scope="session", autouse=True)

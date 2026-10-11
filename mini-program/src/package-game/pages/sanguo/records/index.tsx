@@ -9,9 +9,6 @@ import './index.scss'
 const WINNER_LABEL: Record<string, string> = {
   LORD: '主公忠臣胜', REBEL: '反贼胜', SPY: '内奸胜',
 }
-const SUIT_COLOR: Record<string, string> = {
-  '♠': '#8fa3ff', '♥': '#ff6b6b', '♣': '#7dd87d', '♦': '#ffb347',
-}
 
 function renderItem(item: SanguoTimelineItem, idx: number) {
   if (item.kind === 'judge') {
