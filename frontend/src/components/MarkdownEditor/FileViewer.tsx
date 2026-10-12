@@ -8,6 +8,7 @@
  * - PDF → PdfViewer（react-pdf，支持翻页）
  * - Excel → ExcelViewer（SheetJS，渲染表格）
  * - Word → WordViewer（mammoth，转换为 HTML）
+ * - PowerPoint → PptxViewer（后端 python-pptx 转 HTML，iframe 渲染）
  * - 图片 → ImageViewer（base64 渲染 + 缩放）
  * - 未知类型 → PlaceholderViewer
  *
@@ -20,6 +21,7 @@ import CodeEditor from './CodeEditor';
 import PdfViewer from './PdfViewer';
 import ExcelViewer from './ExcelViewer';
 import WordViewer from './WordViewer';
+import PptxViewer from './PptxViewer';
 import ImageViewer from './ImageViewer';
 import HtmlPreview from './Preview/HtmlPreview';
 import type { EditorConfig } from '../../types/markdownEditor';
@@ -129,6 +131,15 @@ const FileViewer: React.FC<FileViewerProps> = ({
       return (
         <WordViewer
           content={fileContent}
+          fileName={filePath.split('/').pop()}
+        />
+      );
+
+    case 'ppt':
+      // PowerPoint 文件使用 PptxViewer（后端转换为 HTML，iframe 渲染）
+      return (
+        <PptxViewer
+          filePath={filePath}
           fileName={filePath.split('/').pop()}
         />
       );

@@ -44,6 +44,7 @@ markitdown>=0.1.4
 mammoth
 pandas
 openpyxl
+python-pptx>=1.0.0
 
 # GLM Coding Rusher
 playwright>=1.40.0

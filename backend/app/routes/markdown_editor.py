@@ -280,6 +280,46 @@ async def serve_file(
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
+class PptxPreviewResponse(BaseModel):
+    """PPTX 预览响应"""
+    success: bool
+    data: dict
+
+
+@router.get("/files/pptx-preview", response_model=PptxPreviewResponse)
+async def get_pptx_preview(
+    path: str = Query(..., description="Relative path to the .pptx file"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """将 .pptx 文件转换为自包含 HTML 供前端预览
+
+    使用 python-pptx 解析幻灯片（文本/图片/表格/组合形状），
+    输出不依赖外部资源的 HTML 字符串，由前端 sandbox iframe 渲染。
+    """
+    from app.services.pptx_preview_service import generate_pptx_html
+
+    try:
+        service = get_file_service(user_id)
+        resolved_path = service._validate_and_resolve(path)
+
+        if not resolved_path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {path}")
+        if not resolved_path.is_file():
+            raise HTTPException(status_code=400, detail=f"Path is not a file: {path}")
+
+        html, slide_count = generate_pptx_html(resolved_path)
+        return PptxPreviewResponse(
+            success=True,
+            data={"html": html, "slide_count": slide_count},
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
 @router.post("/files/save", response_model=SaveResult)
 async def save_file(request: SaveRequest, user_id: str = Depends(get_current_user_id)):
     """Save content to an existing file."""

@@ -12,6 +12,7 @@ import ImageViewer from './ImageViewer';
 import PdfViewer from './PdfViewer';
 import ExcelViewer, { isEditableExcel } from './ExcelViewer';
 import WordViewer from './WordViewer';
+import PptxViewer from './PptxViewer';
 import { getFileCategory } from '../../utils/fileType';
 import SearchPanel from './SearchPanel/SearchPanel';
 import SettingsDialog from './SettingsDialog/SettingsDialog';
@@ -889,6 +890,8 @@ export default function MarkdownEditor() {
                           return <ExcelViewer content={content} fileName={fileName} filePath={currentFilePath || ''} readOnly={true} />;
                         case 'word':
                           return <WordViewer content={content} fileName={fileName} />;
+                        case 'ppt':
+                          return <PptxViewer filePath={currentFilePath || ''} fileName={fileName} />;
                         case 'image':
                           return <ImageViewer content={content} fileName={fileName} />;
                         case 'code':

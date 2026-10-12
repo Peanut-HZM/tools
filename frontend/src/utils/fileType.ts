@@ -6,7 +6,7 @@
  */
 
 /** 文件分类 */
-export type FileCategory = 'code' | 'pdf' | 'excel' | 'word' | 'image' | 'text' | 'unknown';
+export type FileCategory = 'code' | 'pdf' | 'excel' | 'word' | 'ppt' | 'image' | 'text' | 'unknown';
 
 /**
  * 各分类对应的扩展名映射
@@ -25,6 +25,7 @@ const FILE_EXTENSIONS: Record<Exclude<FileCategory, 'unknown'>, string[]> = {
   pdf: ['pdf'],
   excel: ['xlsx', 'xls', 'csv', 'tsv'],
   word: ['doc', 'docx', 'odt', 'rtf'],
+  ppt: ['pptx', 'ppt'],
   image: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'avif'],
   text: ['md', 'markdown', 'txt', 'log', 'rst', 'adoc'],
 };

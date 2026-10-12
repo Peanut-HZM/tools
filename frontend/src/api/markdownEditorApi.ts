@@ -549,3 +549,22 @@ export async function getFileManagerInfo(path: string): Promise<FileManagerItem>
   });
   return handleResponse<FileManagerItem>(response);
 }
+
+/** PPTX 预览数据 */
+export interface PptxPreviewData {
+  html: string;
+  slide_count: number;
+}
+
+/**
+ * 将 .pptx 文件转换为自包含 HTML 供预览
+ */
+export async function getPptxPreview(path: string): Promise<PptxPreviewData> {
+  const params = new URLSearchParams({ path });
+  const response = await authedFetch(`${API_BASE_URL}/files/pptx-preview?${params}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  const result = await handleResponse<{ success: boolean; data: PptxPreviewData }>(response);
+  return result.data;
+}

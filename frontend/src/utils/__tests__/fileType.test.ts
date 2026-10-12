@@ -21,6 +21,11 @@ describe('getFileCategory', () => {
     expect(getFileCategory('report.docx')).toBe('word');
   });
 
+  it('识别 PowerPoint 文件', () => {
+    expect(getFileCategory('slides.pptx')).toBe('ppt');
+    expect(getFileCategory('legacy.ppt')).toBe('ppt');
+  });
+
   it('识别图片文件', () => {
     expect(getFileCategory('photo.jpg')).toBe('image');
     expect(getFileCategory('icon.png')).toBe('image');
