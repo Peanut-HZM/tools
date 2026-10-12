@@ -1,7 +1,14 @@
 """
-PPTX 预览服务 - 将 PowerPoint 文件转换为自包含 HTML
+PPTX/PPT 预览服务 - PowerPoint 文件预览
 
-使用 python-pptx 解析 .pptx 文件，将每页幻灯片渲染为 HTML：
+两条渲染路径：
+1. 高保真路径：LibreOffice headless 将 .pptx/.ppt 转换为 PDF
+   （真渲染引擎，保留主题/母版/形状/SmartArt 视觉效果，两种格式都支持），
+   转换结果按 路径+mtime 缓存，PDF 由前端 iframe 原生渲染
+2. 降级路径：python-pptx 解析 .pptx 生成自包含 HTML
+   （无 LibreOffice 环境下的兜底，.ppt 旧格式不支持）
+
+HTML 路径渲染内容：
 - 文本框：保留位置、字号、加粗/斜体、颜色、对齐方式
 - 图片：base64 内嵌为 data URI
 - 表格：保留行列结构与文本
@@ -11,7 +18,12 @@ PPTX 预览服务 - 将 PowerPoint 文件转换为自包含 HTML
 生成的 HTML 不依赖任何外部资源，可在 sandbox iframe 中安全渲染。
 """
 import base64
+import hashlib
 import html as html_mod
+import shutil
+import subprocess
+import tempfile
+import time
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -23,6 +35,103 @@ EMU_PER_PX = 9525
 
 # 幻灯片渲染固定宽度（px），高度按原始宽高比等比缩放
 SLIDE_WIDTH_PX = 960
+
+# LibreOffice 可执行文件候选路径（macOS / Linux / PATH）
+_SOFFICE_CANDIDATES = [
+    "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+    "/usr/bin/soffice",
+    "/usr/local/bin/soffice",
+    "/opt/homebrew/bin/soffice",
+    "/usr/bin/libreoffice",
+]
+
+# 转换缓存目录（backend/data/slide_preview_cache）
+_CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "slide_preview_cache"
+
+# 缓存有效期：24 小时（懒清理）
+_CACHE_TTL_SECONDS = 24 * 3600
+
+# LibreOffice 转换超时时间（秒）
+_CONVERT_TIMEOUT = 120
+
+
+def find_soffice() -> Optional[str]:
+    """查找 LibreOffice soffice 可执行文件，未安装返回 None"""
+    for candidate in _SOFFICE_CANDIDATES:
+        p = Path(candidate)
+        if p.is_file():
+            return str(p)
+    return shutil.which("soffice") or shutil.which("libreoffice")
+
+
+def _cleanup_expired_cache(cache_dir: Path) -> None:
+    """懒清理过期缓存文件（超过 24 小时）"""
+    try:
+        now = time.time()
+        for f in cache_dir.glob("*.pdf"):
+            if now - f.stat().st_mtime > _CACHE_TTL_SECONDS:
+                f.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def convert_slide_to_pdf(file_path: Path, soffice_path: Optional[str] = None) -> Path:
+    """将 .pptx/.ppt 转换为 PDF（带缓存）
+
+    缓存键 = md5(绝对路径 + mtime + 大小)，文件修改后自动重新转换。
+
+    Args:
+        file_path: 演示文稿路径
+        soffice_path: soffice 可执行文件路径（缺省时自动查找）
+
+    Returns:
+        转换后的 PDF 缓存文件路径
+
+    Raises:
+        ValueError: LibreOffice 不可用或转换失败
+    """
+    soffice = soffice_path or find_soffice()
+    if not soffice or not Path(soffice).is_file():
+        raise ValueError("LibreOffice 未安装，无法转换为 PDF")
+
+    stat = file_path.stat()
+    key_src = f"{file_path.resolve()}:{stat.st_mtime_ns}:{stat.st_size}"
+    key = hashlib.md5(key_src.encode("utf-8")).hexdigest()
+
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    _cleanup_expired_cache(_CACHE_DIR)
+
+    cached = _CACHE_DIR / f"{key}.pdf"
+    if cached.exists():
+        return cached
+
+    # 使用独立用户配置目录，避免与运行中的 LibreOffice GUI 实例冲突
+    profile_dir = _CACHE_DIR / "lo-profile"
+    profile_dir.mkdir(exist_ok=True)
+    tmp_out = Path(tempfile.mkdtemp(prefix="lo-convert-"))
+    try:
+        result = subprocess.run(
+            [
+                soffice,
+                f"-env:UserInstallation=file://{profile_dir}",
+                "--headless",
+                "--convert-to", "pdf",
+                "--outdir", str(tmp_out),
+                str(file_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=_CONVERT_TIMEOUT,
+        )
+        produced = tmp_out / f"{file_path.stem}.pdf"
+        if result.returncode != 0 or not produced.exists():
+            raise ValueError(
+                f"LibreOffice 转换失败（exit={result.returncode}）: {result.stderr or result.stdout}"
+            )
+        shutil.move(str(produced), cached)
+        return cached
+    finally:
+        shutil.rmtree(tmp_out, ignore_errors=True)
 
 
 def _emu_to_px(emu: Optional[int]) -> float:

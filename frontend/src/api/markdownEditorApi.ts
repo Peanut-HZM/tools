@@ -550,14 +550,15 @@ export async function getFileManagerInfo(path: string): Promise<FileManagerItem>
   return handleResponse<FileManagerItem>(response);
 }
 
-/** PPTX 预览数据 */
-export interface PptxPreviewData {
-  html: string;
-  slide_count: number;
-}
+/** PPTX 预览数据（PDF 高保真路径 / HTML 降级路径） */
+export type PptxPreviewData =
+  | { type: 'pdf' }
+  | { type: 'html'; html: string; slide_count: number };
 
 /**
- * 将 .pptx 文件转换为自包含 HTML 供预览
+ * PowerPoint 文件预览：自动选择渲染路径
+ * LibreOffice 可用时返回 {type: 'pdf'}（配合 getSlidePdfUrl 渲染）；
+ * 不可用时返回 {type: 'html'}（python-pptx 降级渲染）
  */
 export async function getPptxPreview(path: string): Promise<PptxPreviewData> {
   const params = new URLSearchParams({ path });
@@ -567,4 +568,14 @@ export async function getPptxPreview(path: string): Promise<PptxPreviewData> {
   });
   const result = await handleResponse<{ success: boolean; data: PptxPreviewData }>(response);
   return result.data;
+}
+
+/**
+ * 构建演示文稿 PDF 渲染 URL（带 token，供 iframe src 使用）
+ * iframe 无法携带 Authorization header，故使用 token query 参数（与 /files/serve 同模式）
+ */
+export function getSlidePdfUrl(path: string): string {
+  const token = localStorage.getItem('auth_token') || '';
+  const params = new URLSearchParams({ path, token });
+  return `${API_BASE_URL}/files/slide-pdf?${params}`;
 }

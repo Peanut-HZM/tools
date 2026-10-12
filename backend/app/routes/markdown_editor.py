@@ -291,12 +291,13 @@ async def get_pptx_preview(
     path: str = Query(..., description="Relative path to the .pptx file"),
     user_id: str = Depends(get_current_user_id),
 ):
-    """将 .pptx 文件转换为自包含 HTML 供前端预览
+    """PowerPoint 文件预览（自动选择渲染路径）
 
-    使用 python-pptx 解析幻灯片（文本/图片/表格/组合形状），
-    输出不依赖外部资源的 HTML 字符串，由前端 sandbox iframe 渲染。
+    LibreOffice 可用时返回 {type: 'pdf'}（前端走 slide-pdf 接口渲染 PDF，
+    高保真，支持 .ppt/.pptx）；不可用时返回 {type: 'html'}（python-pptx
+    降级渲染，仅支持 .pptx）。
     """
-    from app.services.pptx_preview_service import generate_pptx_html
+    from app.services import pptx_preview_service
 
     try:
         service = get_file_service(user_id)
@@ -307,10 +308,75 @@ async def get_pptx_preview(
         if not resolved_path.is_file():
             raise HTTPException(status_code=400, detail=f"Path is not a file: {path}")
 
-        html, slide_count = generate_pptx_html(resolved_path)
+        if pptx_preview_service.find_soffice():
+            return PptxPreviewResponse(success=True, data={"type": "pdf"})
+
+        html, slide_count = pptx_preview_service.generate_pptx_html(resolved_path)
         return PptxPreviewResponse(
             success=True,
-            data={"html": html, "slide_count": slide_count},
+            data={"type": "html", "html": html, "slide_count": slide_count},
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@router.get("/files/slide-pdf")
+async def get_slide_pdf(
+    path: str = Query(..., description="Relative path to the .pptx/.ppt file"),
+    token: Optional[str] = Query(default=None, description="JWT token (for iframe src access)"),
+    authorization: Optional[str] = Header(default=None),
+):
+    """将演示文稿转换为 PDF 并返回（供前端 iframe 原生渲染）
+
+    认证方式与 /files/serve 一致：Authorization header 或 token query 参数
+    （iframe src 无法携带 header，故前端使用 token 方式）。
+    转换结果按 路径+mtime 缓存，避免重复转换。
+    """
+    from app.services import pptx_preview_service
+    from app.services.auth_service import get_auth_service
+    from app.models.auth_models import TokenData
+
+    try:
+        # Authenticate: accept token from header or query param
+        token_value = None
+        if authorization:
+            if authorization.startswith('Bearer '):
+                token_value = authorization[7:]
+            else:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid authorization header format. Expected 'Bearer <token>'",
+                )
+        elif token:
+            token_value = token
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Authorization header missing. Use ?token=<jwt_token> query parameter for iframe access.",
+            )
+
+        auth_service = get_auth_service()
+        token_data: TokenData = auth_service.verify_token_data(token_value)
+        user_id = token_data.user_id
+
+        service = get_file_service(user_id)
+        resolved_path = service._validate_and_resolve(path)
+
+        if not resolved_path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {path}")
+        if not resolved_path.is_file():
+            raise HTTPException(status_code=400, detail=f"Path is not a file: {path}")
+
+        pdf_path = pptx_preview_service.convert_slide_to_pdf(resolved_path)
+
+        return FileResponse(
+            path=str(pdf_path),
+            media_type="application/pdf",
+            headers={'Content-Disposition': 'inline'},
         )
     except HTTPException:
         raise

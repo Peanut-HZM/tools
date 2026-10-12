@@ -1,14 +1,14 @@
 /**
  * PptxViewer - PowerPoint 文件查看器
  *
- * 通过后端 /files/pptx-preview 接口将 .pptx 转换为自包含 HTML，
- * 在 sandbox iframe（blob URL）中渲染。支持文本/图片/表格/组合形状，
- * 按幻灯片分页展示。
- *
- * 旧版 .ppt 二进制格式无法解析，接口返回错误时展示提示。
+ * 两条渲染路径（由后端 /files/pptx-preview 自动选择）：
+ * 1. PDF 高保真路径（LibreOffice 可用）：iframe 原生渲染 slide-pdf 接口返回的 PDF，
+ *    保留主题/母版/形状/SmartArt 视觉效果，支持 .ppt 和 .pptx
+ * 2. HTML 降级路径（无 LibreOffice）：python-pptx 生成的自包含 HTML，
+ *    sandbox iframe 渲染，仅支持 .pptx，视觉效果有损失
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { getPptxPreview } from '../../api/markdownEditorApi';
+import { getPptxPreview, getSlidePdfUrl } from '../../api/markdownEditorApi';
 
 /** PptxViewer 组件接口 */
 interface PptxViewerProps {
@@ -18,10 +18,12 @@ interface PptxViewerProps {
   fileName?: string;
 }
 
+type PreviewMode = 'loading' | 'pdf' | 'html' | 'error';
+
 const PptxViewer: React.FC<PptxViewerProps> = ({ filePath, fileName }) => {
+  const [mode, setMode] = useState<PreviewMode>('loading');
   const [html, setHtml] = useState('');
   const [slideCount, setSlideCount] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -30,25 +32,29 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ filePath, fileName }) => {
     let blobUrl: string | null = null;
 
     const loadPreview = async () => {
-      setLoading(true);
+      setMode('loading');
       setError(null);
       try {
         const data = await getPptxPreview(filePath);
         if (cancelled) return;
-        blobUrl = URL.createObjectURL(new Blob([data.html], { type: 'text/html' }));
-        if (iframeRef.current) {
-          iframeRef.current.src = blobUrl;
+
+        if (data.type === 'pdf') {
+          // 高保真路径：iframe 原生渲染 PDF（URL 携带 token）
+          setMode('pdf');
+        } else {
+          // 降级路径：自包含 HTML 用 blob URL + sandbox 渲染
+          blobUrl = URL.createObjectURL(new Blob([data.html], { type: 'text/html' }));
+          if (iframeRef.current) {
+            iframeRef.current.src = blobUrl;
+          }
+          setHtml(data.html);
+          setSlideCount(data.slide_count);
+          setMode('html');
         }
-        setHtml(data.html);
-        setSlideCount(data.slide_count);
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : '未知错误');
-        setHtml('');
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        setMode('error');
       }
     };
 
@@ -62,23 +68,36 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ filePath, fileName }) => {
     };
   }, [filePath]);
 
+  const displayName = fileName || 'PowerPoint 演示文稿';
+
   return (
     <div className="h-full flex flex-col">
-      {/* 顶部工具栏：文件名 + 幻灯片页数 */}
+      {/* 顶部工具栏：文件名 + 幻灯片页数（HTML 路径时） */}
       <div className="flex items-center px-4 py-2 border-b border-border bg-surface-1">
         <div className="text-sm text-ink-muted">
-          {fileName || 'PowerPoint 演示文稿'}
-          {slideCount > 0 && <span className="ml-2">（共 {slideCount} 页）</span>}
+          {displayName}
+          {mode === 'html' && slideCount > 0 && (
+            <span className="ml-2">（共 {slideCount} 页）</span>
+          )}
         </div>
       </div>
 
-      {/* PPTX 内容区域 */}
-      <div className="flex-1 overflow-hidden bg-surface-3">
-        {error ? (
+      {/* 内容区域 */}
+      <div className="flex-1 overflow-hidden bg-surface-3 relative">
+        {mode === 'error' ? (
           <div className="text-center text-danger py-8 px-4">
             {error}
           </div>
+        ) : mode === 'pdf' ? (
+          /* PDF 路径：浏览器原生 PDF 查看器（无 sandbox，PDF 插件需要完整权限） */
+          <iframe
+            src={getSlidePdfUrl(filePath)}
+            className="w-full h-full border-0"
+            title="PPTX 预览"
+            style={{ minHeight: '100%' }}
+          />
         ) : (
+          /* HTML 路径：sandbox iframe 渲染 blob URL */
           <iframe
             ref={iframeRef}
             sandbox="allow-scripts"
@@ -87,7 +106,7 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ filePath, fileName }) => {
             style={{ minHeight: '100%' }}
           />
         )}
-        {loading && !error && (
+        {mode === 'loading' && (
           <div className="absolute inset-0 flex items-center justify-center text-ink-muted">
             加载 PPTX 中...
           </div>

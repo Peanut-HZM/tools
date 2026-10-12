@@ -124,3 +124,45 @@ class TestGeneratePptxHtml:
 
         with pytest.raises(ValueError, match="无法解析"):
             generate_pptx_html(path)
+
+
+class TestConvertSlideToPdf:
+    """LibreOffice PDF 转换（soffice 缺失时跳过）"""
+
+    @pytest.mark.skipif(
+        __import__("app.services.pptx_preview_service", fromlist=["find_soffice"]).find_soffice() is None,
+        reason="LibreOffice 未安装",
+    )
+    def test_convert_pptx_to_pdf(self, tmp_path):
+        """生成的 pptx 可转换为 PDF 且输出有效"""
+        from app.services.pptx_preview_service import convert_slide_to_pdf, find_soffice
+
+        pptx_path = _build_test_pptx(tmp_path, with_picture=False, with_table=False)
+        pdf_path = convert_slide_to_pdf(pptx_path, soffice_path=find_soffice())
+
+        assert pdf_path.exists()
+        assert pdf_path.stat().st_size > 0
+        # PDF 文件头校验
+        with open(pdf_path, "rb") as f:
+            assert f.read(5) == b"%PDF-"
+
+    @pytest.mark.skipif(
+        __import__("app.services.pptx_preview_service", fromlist=["find_soffice"]).find_soffice() is None,
+        reason="LibreOffice 未安装",
+    )
+    def test_convert_cache_hit(self, tmp_path):
+        """相同文件二次转换命中缓存（mtime 未变返回同一文件）"""
+        from app.services.pptx_preview_service import convert_slide_to_pdf, find_soffice
+
+        pptx_path = _build_test_pptx(tmp_path, with_picture=False, with_table=False)
+        first = convert_slide_to_pdf(pptx_path, soffice_path=find_soffice())
+        second = convert_slide_to_pdf(pptx_path, soffice_path=find_soffice())
+        assert first == second
+
+    def test_convert_raises_without_soffice(self, tmp_path):
+        """soffice 不可用时抛出 ValueError"""
+        from app.services.pptx_preview_service import convert_slide_to_pdf
+
+        pptx_path = _build_test_pptx(tmp_path, with_picture=False, with_table=False)
+        with pytest.raises(ValueError, match="未安装"):
+            convert_slide_to_pdf(pptx_path, soffice_path="/nonexistent/soffice")
