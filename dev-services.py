@@ -1664,16 +1664,19 @@ def start_service(svc: Service) -> bool:
     if svc.project_type == "python":
         cleanup_orphan_python_children(svc.project_dir)
 
-    # 检查端口占用
-    in_use, pids = check_port(svc.port)
-    if in_use:
-        alive_pids = [pid for pid in pids if _pid_alive(pid)]
-        if alive_pids:
-            log(f"端口 {svc.port} 已被占用 (PID: {', '.join(map(str, alive_pids))})，先停止...", "WARN")
-            kill_service(svc)
-            time.sleep(3)
-        else:
-            log(f"端口 {svc.port} 有残留连接 (PID 已不存在)，直接启动...", "WARN")
+    # 检查端口占用（跳过 port=0，如 Spring Boot Gradle 由 Apollo 配置决定端口）
+    if svc.port == 0:
+        log("端口由 Apollo 配置决定，跳过端口占用检查", "DEBUG")
+    else:
+        in_use, pids = check_port(svc.port)
+        if in_use:
+            alive_pids = [pid for pid in pids if _pid_alive(pid)]
+            if alive_pids:
+                log(f"端口 {svc.port} 已被占用 (PID: {', '.join(map(str, alive_pids))})，先停止...", "WARN")
+                kill_service(svc)
+                time.sleep(3)
+            else:
+                log(f"端口 {svc.port} 有残留连接 (PID 已不存在)，直接启动...", "WARN")
 
     # 【新增】安装缺失依赖（失败不阻断启动）
     install_dependencies(svc)
