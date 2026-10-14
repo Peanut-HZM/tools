@@ -389,3 +389,27 @@ async def test_save_service_mapping_rejects_bad_namespace(bundle_ctx):
         with pytest.raises(ValueError, match="namespace_filter"):
             await K8sMcpToolsService.save_service_mapping(
                 "u1", "p", "c1", "kube-system", None, None, "e", "traversal")
+
+
+@pytest.mark.anyio
+async def test_list_pods_namespaced_with_pydantic_items(bundle_ctx):
+    """回归：K8sResourceService.list_pods 真实返回 K8sPodSummary 模型列表，
+    MCP 层必须 model_dump 后再过滤（此前直接 .get 会 AttributeError）"""
+    config = _config('["desk-dev"]')
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=bundle_ctx)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    from app.models.k8s_tool_models import K8sPodSummary
+    real_items = [_summary("gmdos-admin-svc-abc", restarts=2),
+                  _summary("wework-flow-xyz")]
+    with patch("app.services.k8s_mcp_tools_service.K8sToolService.get_config_by_id",
+               return_value=config), \
+         patch("app.services.k8s_mcp_tools_service.build_client", return_value=cm), \
+         patch("app.services.k8s_mcp_tools_service.K8sResourceService.list_pods",
+               AsyncMock(return_value={"items": real_items, "total": 2})):
+        out = await K8sMcpToolsService.list_pods(
+            "u1", "c1", namespace="desk-dev", keyword="gmdos-admin",
+            status=None, limit=None)
+    assert out["total"] == 1
+    assert out["items"][0]["name"] == "gmdos-admin-svc-abc"
+    assert out["items"][0]["restarts"] == 2

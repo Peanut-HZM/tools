@@ -186,7 +186,8 @@ class K8sMcpToolsService:
             if namespace:
                 K8sMcpToolsService._check_namespace_allowed(config, namespace)
                 data = await K8sResourceService.list_pods(bundle, namespace)
-                items = data["items"]
+                # K8sResourceService.list_pods 返回 K8sPodSummary 模型列表，转 dict 供过滤/序列化
+                items = [p.model_dump() for p in data["items"]]
             else:
                 raw = config.get("namespace_filter") or "[]"
                 try:
