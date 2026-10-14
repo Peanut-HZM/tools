@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 
 from app.services.k8s_mcp_tools_service import (
     K8sMcpToolsService, LOG_TAIL_MAX, DEFAULT_TAIL, MAX_GREP_MATCH_LINES,
+    LOG_FILE_MAX_BYTES,
 )
 
 
@@ -293,10 +294,10 @@ def test_build_log_filename_sanitizes_cluster_and_ns():
 
 def test_write_log_file_truncates(tmp_path, monkeypatch):
     monkeypatch.setattr(K8sMcpToolsService, "LOGS_DIR", tmp_path)
-    big = "x" * (K8sMcpToolsService.LOG_FILE_MAX_BYTES + 100)
+    big = "x" * (LOG_FILE_MAX_BYTES + 100)
     out = K8sMcpToolsService.write_log_file(big, "a.log")
     data = (tmp_path / "a.log").read_bytes()
-    assert len(data) <= K8sMcpToolsService.LOG_FILE_MAX_BYTES
+    assert len(data) <= LOG_FILE_MAX_BYTES
     assert out["truncated"] is True and out["size_bytes"] == len(data)
 
 
