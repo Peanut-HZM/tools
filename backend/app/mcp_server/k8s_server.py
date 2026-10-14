@@ -147,6 +147,8 @@ _streamable_app = None
 def get_mcp_starlette_app():
     global _streamable_app
     if _streamable_app is None:
+        # streamable_http_path="/k8s" 配合主应用 mount("/mcp", ...) 拼出端点 /mcp/k8s
+        # （直接 mount("/mcp/k8s") 时精确路径会被主应用 307 到带尾斜杠的地址）
         _streamable_app = server.streamable_http_app(
-            stateless_http=True, host="127.0.0.1")
+            stateless_http=True, host="127.0.0.1", streamable_http_path="/k8s")
     return _streamable_app

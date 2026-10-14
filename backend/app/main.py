@@ -522,9 +522,10 @@ from app.routes import user_api_token
 app.include_router(user_api_token.router, prefix="/api")
 
 # K8s 排障 MCP Server（只读，PAT 认证）—— streamable Starlette 全进程单例
+# mount("/mcp") + 内部路径 /k8s 拼出端点 /mcp/k8s（避免精确路径 307 重定向）
 from app.mcp_server.auth import PATAuthASGIMiddleware
 from app.mcp_server.k8s_server import get_mcp_starlette_app
-app.mount("/mcp/k8s", PATAuthASGIMiddleware(get_mcp_starlette_app()))
+app.mount("/mcp", PATAuthASGIMiddleware(get_mcp_starlette_app()))
 
 # JSON Tool router
 app.include_router(json_tool.router, prefix="/api")
