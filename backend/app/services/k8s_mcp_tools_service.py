@@ -72,6 +72,10 @@ def _event_to_dict(e) -> dict:
 class K8sMcpToolsService:
     """MCP 只读工具业务层（@staticmethod）"""
 
+    # 类属性镜像：write_log_file 统一走 K8sMcpToolsService.LOGS_DIR，
+    # 使测试可 monkeypatch 类属性替换落盘目录
+    LOGS_DIR = LOGS_DIR
+
     # ============ 配置与安全校验 ============
 
     @staticmethod
@@ -257,3 +261,106 @@ class K8sMcpToolsService:
         logger.info("MCP get_pod_logs 用户=%s 集群=%s %s/%s previous=%s tail=%s grep=%s",
                     user_id, cluster_id, namespace, pod, previous, tail, bool(grep))
         return result
+
+    # ============ 日志落盘 ============
+
+    @staticmethod
+    def build_log_filename(cluster_name: str, namespace: str, pod: str,
+                           container: Optional[str], previous: bool) -> str:
+        """生成安全文件名：pod/container 严格白名单，cluster/namespace 清洗"""
+        K8sMcpToolsService._validate_pod_name(pod)
+        if container:
+            K8sMcpToolsService._validate_pod_name(container)
+        cluster_seg = _SEGMENT_SANITIZE_RE.sub("-", cluster_name).strip("-.") or "cluster"
+        ns_seg = _SEGMENT_SANITIZE_RE.sub("-", namespace).strip("-.") or "ns"
+        parts = [cluster_seg, ns_seg, pod, container or "all"]
+        if previous:
+            parts.append("previous")
+        return "-".join(parts) + ".log"
+
+    @staticmethod
+    def write_log_file(text: str, filename: str) -> dict:
+        """写日志到 logs/k8s-mcp/；超 50MB 按字节截断（多字节安全）。
+
+        通过 K8sMcpToolsService.LOGS_DIR 类属性访问目录（而非模块全局名），
+        使测试可以 monkeypatch 类属性替换落盘目录。
+        """
+        raw = text.encode("utf-8")
+        truncated = len(raw) > LOG_FILE_MAX_BYTES
+        if truncated:
+            raw = raw[:LOG_FILE_MAX_BYTES]
+            text = raw.decode("utf-8", errors="ignore")
+        logs_dir = K8sMcpToolsService.LOGS_DIR
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        path = logs_dir / filename          # filename 各段已经白名单/清洗
+        path.write_text(text, encoding="utf-8")
+        size = path.stat().st_size
+        logger.info("MCP 日志落盘 %s（%d 字节，截断=%s）", path, size, truncated)
+        return {"path": str(path), "size_bytes": size, "lines": len(text.splitlines()),
+                "truncated": truncated,
+                "note": f"超过 {LOG_FILE_MAX_BYTES // (1024 * 1024)}MB 已截断" if truncated else ""}
+
+    @staticmethod
+    async def download_pod_logs(user_id: str, cluster_id: str, namespace: str, pod: str,
+                                container: Optional[str] = None,
+                                previous: bool = False) -> dict:
+        """完整日志落盘本地文件（不进对话上下文），返回路径与统计"""
+        config = K8sMcpToolsService._load_config(user_id, cluster_id)
+        K8sMcpToolsService._check_namespace_allowed(config, namespace)
+        filename = K8sMcpToolsService.build_log_filename(
+            config.get("name", "cluster"), namespace, pod, container, previous)
+        async with K8sMcpToolsService._async_config_bundle(user_id, cluster_id) as (_c, bundle):
+            text = await K8sResourceService.get_pod_logs(
+                bundle, pod, namespace, container, None, previous)
+        result = K8sMcpToolsService.write_log_file(text, filename)
+        result.update({"pod": pod, "namespace": namespace, "container": container,
+                       "previous": previous})
+        return result
+
+    # ============ 集群概览 ============
+
+    @staticmethod
+    def _is_abnormal(pod: dict) -> bool:
+        return pod.get("phase") != "Running" or pod.get("restarts", 0) > 0
+
+    @staticmethod
+    async def get_cluster_overview(user_id: str, cluster_id: str,
+                                   namespace: Optional[str] = None) -> dict:
+        """一次调用返回异常 Pod + 最近 30 分钟 Warning 事件（减少 Agent 多轮调用）"""
+        pods_data = await K8sMcpToolsService.list_pods(
+            user_id, cluster_id, namespace=namespace, keyword=None, status=None, limit=200)
+        abnormal = [p for p in pods_data["items"] if K8sMcpToolsService._is_abnormal(p)]
+        events_data = await K8sMcpToolsService.get_pod_events(user_id, cluster_id, namespace, None)
+        cutoff = datetime.now().timestamp() - _WARNING_EVENT_WINDOW_SECONDS
+        recent = [e for e in events_data["events"]
+                  if e.get("last_seen") is None or _to_timestamp(e.get("last_seen")) >= cutoff]
+        return {"abnormal_pods": abnormal, "abnormal_total": len(abnormal),
+                "warning_events": recent, "warning_total": len(recent)}
+
+    # ============ 服务定位映射桥接 ============
+
+    @staticmethod
+    def _validate_mapping_target(user_id: str, cluster_id: str, namespace: str) -> None:
+        """保存映射前校验目标合法：cluster 属于该用户且 namespace 在白名单内"""
+        config = K8sMcpToolsService._load_config(user_id, cluster_id)
+        K8sMcpToolsService._check_namespace_allowed(config, namespace)
+
+    @staticmethod
+    async def lookup_service_mapping(user_id: str, project_key: str) -> dict:
+        mapping = K8sServiceMappingService.lookup_mapping(user_id, project_key)
+        if not mapping:
+            return {"found": False, "project_key": project_key,
+                    "note": "无该项目的定位记忆，请走发现流程（Jenkinsfile/配置文件推断或全量遍历）"}
+        return {"found": True, **mapping}
+
+    @staticmethod
+    async def save_service_mapping(user_id: str, project_key: str, cluster_id: str,
+                                   namespace: str, deployment: Optional[str] = None,
+                                   container: Optional[str] = None,
+                                   evidence: str = "", source: str = "user_confirmed") -> dict:
+        K8sMcpToolsService._validate_mapping_target(user_id, cluster_id, namespace)
+        row = K8sServiceMappingService.save_mapping(
+            user_id, project_key, cluster_id, namespace, deployment, container,
+            evidence, source)
+        logger.info("MCP 保存服务定位映射 用户=%s 项目=%s", user_id, project_key)
+        return {"saved": True, **row}

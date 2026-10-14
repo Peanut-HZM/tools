@@ -272,3 +272,119 @@ async def test_get_pod_logs_text_with_grep_and_previous(bundle_ctx):
     assert out["returned_lines"] == 2   # grep 过滤后
     assert out["text"] == "ERROR boom\nERROR again"
     assert out["grep"]["matched"] == 2 and out["grep"]["total_lines"] == 3
+
+
+# ---------- Task 5: 落盘 / overview / 映射 ----------
+
+def test_build_log_filename_rejects_path_traversal():
+    with pytest.raises(ValueError):
+        K8sMcpToolsService.build_log_filename("c", "ns", "../../etc/passwd", None, False)
+    with pytest.raises(ValueError):
+        K8sMcpToolsService.build_log_filename("c", "ns", "Pod_BadName", None, False)
+    with pytest.raises(ValueError):
+        K8sMcpToolsService.build_log_filename("c", "ns", "ok-pod", "bad container", False)
+
+
+def test_build_log_filename_sanitizes_cluster_and_ns():
+    name = K8sMcpToolsService.build_log_filename(
+        "gmdos dev(自签名)", "desk-dev", "gmdos-admin-svc-abc", "app", True)
+    assert name == "gmdos-dev-desk-dev-gmdos-admin-svc-abc-app-previous.log"
+
+
+def test_write_log_file_truncates(tmp_path, monkeypatch):
+    monkeypatch.setattr(K8sMcpToolsService, "LOGS_DIR", tmp_path)
+    big = "x" * (K8sMcpToolsService.LOG_FILE_MAX_BYTES + 100)
+    out = K8sMcpToolsService.write_log_file(big, "a.log")
+    data = (tmp_path / "a.log").read_bytes()
+    assert len(data) <= K8sMcpToolsService.LOG_FILE_MAX_BYTES
+    assert out["truncated"] is True and out["size_bytes"] == len(data)
+
+
+def test_write_log_file_normal(tmp_path, monkeypatch):
+    monkeypatch.setattr(K8sMcpToolsService, "LOGS_DIR", tmp_path)
+    out = K8sMcpToolsService.write_log_file("line1\nline2\n", "b.log")
+    assert out["truncated"] is False and out["lines"] == 2
+    assert str(out["path"]).endswith("b.log")
+
+
+@pytest.mark.anyio
+async def test_download_pod_logs_end_to_end(bundle_ctx, tmp_path, monkeypatch):
+    monkeypatch.setattr(K8sMcpToolsService, "LOGS_DIR", tmp_path)
+    with patch("app.services.k8s_mcp_tools_service.K8sResourceService.get_pod_logs",
+               AsyncMock(return_value="ERROR a\nINFO b\n")):
+        out = await K8sMcpToolsService.download_pod_logs(
+            "u1", "c1", "desk-dev", "gmdos-admin-svc-abc", container=None, previous=False)
+    assert out["lines"] == 2 and out["truncated"] is False
+    assert "gmdos-dev-desk-dev-gmdos-admin-svc-abc-all.log" in str(out["path"])
+
+
+@pytest.mark.anyio
+async def test_cluster_overview_aggregates(bundle_ctx):
+    abnormal = _pod("crash-pod-abc", status="CrashLoopBackOff", restarts=7)
+    normal = _pod("ok-pod-abc")
+    with patch("app.services.k8s_mcp_tools_service.K8sMcpToolsService.list_pods",
+               AsyncMock(return_value={"items": [abnormal, normal], "total": 2})), \
+         patch("app.services.k8s_mcp_tools_service.K8sMcpToolsService.get_pod_events",
+               AsyncMock(return_value={"events": [], "total": 0})):
+        out = await K8sMcpToolsService.get_cluster_overview("u1", "c1", "desk-dev")
+    assert [p["name"] for p in out["abnormal_pods"]] == ["crash-pod-abc"]
+    assert out["warning_events"] == []
+
+
+@pytest.mark.anyio
+async def test_cluster_overview_filters_old_events(bundle_ctx):
+    from datetime import datetime, timedelta
+    recent_ev = {"type": "Warning", "reason": "BackOff", "message": "x",
+                 "object_kind": "Pod", "object_name": "p-a", "object_namespace": "ns",
+                 "count": 1, "first_seen": None,
+                 "last_seen": datetime.now() - timedelta(minutes=5)}
+    old_ev = {**recent_ev, "object_name": "p-b",
+              "last_seen": datetime.now() - timedelta(hours=3)}
+    with patch("app.services.k8s_mcp_tools_service.K8sMcpToolsService.list_pods",
+               AsyncMock(return_value={"items": [], "total": 0})), \
+         patch("app.services.k8s_mcp_tools_service.K8sMcpToolsService.get_pod_events",
+               AsyncMock(return_value={"events": [recent_ev, old_ev], "total": 2})):
+        out = await K8sMcpToolsService.get_cluster_overview("u1", "c1", "desk-dev")
+    assert [e["object_name"] for e in out["warning_events"]] == ["p-a"]
+
+
+@pytest.mark.anyio
+async def test_mapping_bridge_calls_service():
+    saved = {"project_key": "p", "cluster_id": "c1", "cluster_name": "gmdos-dev"}
+    with patch("app.services.k8s_mcp_tools_service.K8sServiceMappingService.lookup_mapping",
+               return_value=saved) as m:
+        out = await K8sMcpToolsService.lookup_service_mapping("u1", "p")
+    m.assert_called_once_with("u1", "p")
+    assert out["found"] is True and out["cluster_name"] == "gmdos-dev"
+
+
+@pytest.mark.anyio
+async def test_lookup_mapping_miss_returns_found_false():
+    with patch("app.services.k8s_mcp_tools_service.K8sServiceMappingService.lookup_mapping",
+               return_value=None):
+        out = await K8sMcpToolsService.lookup_service_mapping("u1", "nope")
+    assert out["found"] is False
+
+
+@pytest.mark.anyio
+async def test_save_service_mapping_validates_target(bundle_ctx):
+    with patch("app.services.k8s_mcp_tools_service.K8sServiceMappingService.save_mapping",
+               return_value={"project_key": "p"}) as m:
+        out = await K8sMcpToolsService.save_service_mapping(
+            "u1", "p", "c1", "desk-dev", "dep", None, "evidence", "jenkinsfile")
+    m.assert_called_once()
+    assert out["saved"] is True
+
+
+@pytest.mark.anyio
+async def test_save_service_mapping_rejects_bad_namespace(bundle_ctx):
+    config = _config('["desk-dev"]')
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=bundle_ctx)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    with patch("app.services.k8s_mcp_tools_service.K8sToolService.get_config_by_id",
+               return_value=config), \
+         patch("app.services.k8s_mcp_tools_service.build_client", return_value=cm):
+        with pytest.raises(ValueError, match="namespace_filter"):
+            await K8sMcpToolsService.save_service_mapping(
+                "u1", "p", "c1", "kube-system", None, None, "e", "traversal")
