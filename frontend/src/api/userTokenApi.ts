@@ -4,6 +4,7 @@
  */
 import { API_BASE_URL } from '../config/api';
 import { authedFetch } from './http';
+import { getAuthHeaders } from './authApi';
 
 const TOKENS_API_URL = `${API_BASE_URL}/user-tokens`;
 
@@ -36,17 +37,21 @@ async function parse<T>(resp: Response): Promise<T> {
 }
 
 export const userTokenApi = {
-  list: (): Promise<UserToken[]> => authedFetch(TOKENS_API_URL).then(parse<UserToken[]>),
+  list: (): Promise<UserToken[]> =>
+    authedFetch(TOKENS_API_URL, { headers: getAuthHeaders() }).then(parse<UserToken[]>),
 
   create: ({ name, expiresDays }: CreateUserTokenInput): Promise<UserTokenCreated> =>
     authedFetch(TOKENS_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ name, expires_days: expiresDays ?? null }),
     }).then(parse<UserTokenCreated>),
 
   revoke: async (id: string): Promise<void> => {
-    const resp = await authedFetch(`${TOKENS_API_URL}/${id}`, { method: 'DELETE' });
+    const resp = await authedFetch(`${TOKENS_API_URL}/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
     if (!resp.ok) throw new Error(`撤销失败 (${resp.status})`);
   },
 };
