@@ -268,6 +268,7 @@ class K8sResourceService:
         container: Optional[str] = None,
         tail_lines: Optional[int] = None,
         previous: bool = False,
+        since_seconds: Optional[int] = None,
     ) -> str:
         """获取 pod 完整日志（非 follow，一次性读取）
 
@@ -278,6 +279,7 @@ class K8sResourceService:
             container: 容器名（多容器 pod 时使用）
             tail_lines: 返回末尾行数（None 表示返回全部日志）
             previous: 是否读取上一个已终止容器的日志
+            since_seconds: 只返回最近 N 秒内的日志（None 表示不限）
 
         Returns:
             日志文本（utf-8 解码）
@@ -296,6 +298,8 @@ class K8sResourceService:
                 kwargs["container"] = container
             if tail_lines is not None:
                 kwargs["tail_lines"] = tail_lines
+            if since_seconds is not None:
+                kwargs["since_seconds"] = since_seconds
 
             response = await bundle.core_v1.read_namespaced_pod_log(**kwargs)
             # kubernetes_asyncio 在 follow=False 时直接返回 str，而不是流式响应对象
