@@ -19,9 +19,11 @@ from app.models.user_api_token_models import UserTokenCreatedResponse, UserToken
 
 @pytest.fixture
 def client():
+    # 裸 TestClient（不进 with）：不触发主 app lifespan——session_manager
+    # 全进程只允许启动一次，会被其他文件的 lifespan 型用例抢先/冲突；
+    # 本文件的用例已 patch service 层，无需 lifespan 初始化
     app.dependency_overrides[get_current_user_id] = lambda: "u1"
-    with TestClient(app) as c:
-        yield c
+    yield TestClient(app)
     app.dependency_overrides.pop(get_current_user_id, None)
 
 

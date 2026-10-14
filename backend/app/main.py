@@ -265,7 +265,21 @@ async def lifespan(app: FastAPI):
     from app.services.ccusage_scheduler import init_scheduler, shutdown_scheduler
     init_scheduler()
 
-    yield
+    # MCP streamable HTTP 会话管理器随主应用生命周期启停。
+    # StreamableHTTPSessionManager.run() 全进程只允许一次且 stop 不复位标记：
+    # 生产 uvicorn 单次 lifespan 无影响；测试进程多个 with TestClient(app)
+    # 会反复进出 lifespan，二次启动抛 RuntimeError 时跳过（复用已停实例，不阻塞用例）
+    from app.mcp_server.k8s_server import get_mcp_starlette_app
+    _mcp_app = get_mcp_starlette_app()
+    try:
+        async with _mcp_app.router.lifespan_context(_mcp_app):
+            yield
+    except RuntimeError as e:
+        if "only be called once" in str(e):
+            logger.warning("MCP session_manager 重复启动（测试重复 lifespan），跳过")
+            yield
+        else:
+            raise
 
     # 关闭 ccusage 调度器
     try:
@@ -506,6 +520,11 @@ app.include_router(k8s_tool.router, prefix="/api")
 # User API Token router（个人 PAT，供 MCP endpoint 认证）
 from app.routes import user_api_token
 app.include_router(user_api_token.router, prefix="/api")
+
+# K8s 排障 MCP Server（只读，PAT 认证）—— streamable Starlette 全进程单例
+from app.mcp_server.auth import PATAuthASGIMiddleware
+from app.mcp_server.k8s_server import get_mcp_starlette_app
+app.mount("/mcp/k8s", PATAuthASGIMiddleware(get_mcp_starlette_app()))
 
 # JSON Tool router
 app.include_router(json_tool.router, prefix="/api")
