@@ -6,6 +6,7 @@ import AccountSidebar from './AccountSidebar';
 import BasicInfoSection from './sections/BasicInfoSection';
 import SecuritySettingsSection from './sections/SecuritySettingsSection';
 import PreferencesSection from './sections/PreferencesSection';
+import ApiTokensSection from './sections/ApiTokensSection';
 import { AccountSection } from './types';
 
 export default function AccountLayout() {
@@ -66,6 +67,9 @@ export default function AccountLayout() {
               )}
               {activeSection === 'preferences' && (
                 <PreferencesSection />
+              )}
+              {activeSection === 'apiTokens' && (
+                <ApiTokensSection />
               )}
             </div>
           </main>

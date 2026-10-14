@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Shield, Settings } from 'lucide-react';
+import { User, Shield, Settings, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { AccountSection, NavItem } from './types';
@@ -27,6 +27,12 @@ const navItems: Array<NavItem> = [
     label: '偏好设置',
     description: '自定义使用偏好',
     icon: <Settings className="w-5 h-5" />,
+  },
+  {
+    id: 'apiTokens',
+    label: 'API Token',
+    description: 'MCP 访问凭证',
+    icon: <KeyRound className="w-5 h-5" />,
   },
 ];
 
