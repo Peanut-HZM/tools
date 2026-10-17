@@ -821,10 +821,12 @@ export default function TokenUsage() {
         <div className="h-80">
           {(groupBy === 'none' ? chartData : groupedData).length ? (
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={groupBy === 'none' ? chartData : groupedData}>
+              {/* 顶部留白：给柱顶数值标签留出空间，避免被裁剪 */}
+              <ComposedChart data={groupBy === 'none' ? chartData : groupedData} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border-default))" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} tickFormatter={formatToken} />
+                {/* Y 轴上限加 15% 余量：避免最高柱子的数值标签与顶部刻度线重叠 */}
+                <YAxis yAxisId="left" domain={[0, (dataMax: number) => dataMax * 1.15]} tick={{ fontSize: 11, fill: 'rgb(var(--ink-muted))' }} tickFormatter={formatToken} />
                 <Tooltip contentStyle={{ backgroundColor: 'rgb(var(--bg-surface-2))', border: '1px solid rgb(var(--border-default))', color: 'rgb(var(--ink-default))' }} />
                 <Legend />
                 {groupBy === 'none' ? (
