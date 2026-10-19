@@ -3,6 +3,7 @@
  */
 import { useCallback } from 'react';
 import { Slider } from '@/components/ui/Slider';
+import { useTheme } from '../../../lib/theme';
 import type { EditorConfig } from '../../../types/markdownEditor';
 
 interface SettingsDialogProps {
@@ -20,6 +21,8 @@ export default function SettingsDialog({
   onConfigChange,
   onSave
 }: SettingsDialogProps) {
+  // 主题跟随系统全局主题（data-theme），切换按钮直接改全局主题
+  const { setTheme: setGlobalTheme } = useTheme();
   const handleSave = useCallback(() => {
     onSave();
     onClose();
@@ -50,7 +53,7 @@ export default function SettingsDialog({
             </label>
             <div className="flex gap-2">
               <button
-                onClick={() => onConfigChange({ theme: 'light' })}
+                onClick={() => setGlobalTheme('light')}
                 className={`flex-1 py-2 rounded text-sm cursor-pointer ${
                   config.theme === 'light'
                     ? 'bg-accent text-ink-inverse'
@@ -60,7 +63,7 @@ export default function SettingsDialog({
                 亮色
               </button>
               <button
-                onClick={() => onConfigChange({ theme: 'dark' })}
+                onClick={() => setGlobalTheme('dark')}
                 className={`flex-1 py-2 rounded text-sm cursor-pointer ${
                   config.theme === 'dark'
                     ? 'bg-accent text-ink-inverse'

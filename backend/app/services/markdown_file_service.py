@@ -329,6 +329,7 @@ class MarkdownFileService:
             '.yml': 'text/yaml',
             '.toml': 'text/plain',
             '.ini': 'text/plain',
+            '.properties': 'text/plain',
             '.conf': 'text/plain',
             '.log': 'text/plain',
             '.kubeconfig': 'text/yaml',

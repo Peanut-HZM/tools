@@ -5,8 +5,13 @@ import { createContext, useContext, useState, useCallback, ReactNode, useEffect 
 import * as markdownEditorApi from '../api/markdownEditorApi';
 import type { EditorConfig } from '../types/markdownEditor';
 
+/** 读取全局主题（<html data-theme>，由 lib/theme.tsx ThemeProvider 维护） */
+function getGlobalTheme(): 'light' | 'dark' {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
+
 const defaultConfig: EditorConfig = {
-  theme: 'dark',
+  theme: getGlobalTheme(),
   fontSize: 14,
   autoSaveInterval: 30,
   previewTheme: 'github',
@@ -55,7 +60,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const loadedConfig = await markdownEditorApi.getConfig();
-      setConfig({ ...defaultConfig, ...loadedConfig });
+      // theme 始终跟随全局主题（data-theme），不使用后端持久化的旧值，
+      // 避免编辑器主题与系统主题不一致
+      setConfig({ ...defaultConfig, ...loadedConfig, theme: getGlobalTheme() });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load config');
       // Use default config on error
@@ -63,6 +70,16 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // 全局主题（<html data-theme>）变化时同步镜像到编辑器配置，
+  // 保证编辑器/预览与系统主题保持一致
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setConfig(prev => (prev.theme === getGlobalTheme() ? prev : { ...prev, theme: getGlobalTheme() }));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
   }, []);
 
   const saveConfig = useCallback(async () => {

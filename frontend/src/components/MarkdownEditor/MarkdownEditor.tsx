@@ -26,6 +26,7 @@ import { useI18n } from '../../i18n';
 import { saveMarkdownToOss, uploadMarkdownFile, readMarkdownFromOss, saveExcelEdits } from '../../api/markdownEditorApi';
 import type { EditorConfig } from '../../types/markdownEditor';
 import { useToast } from '../../hooks/useToast';
+import { useTheme } from '../../lib/theme';
 import Toast from './Toast/Toast';
 import FolderBrowserDialog from './FolderBrowserDialog/FolderBrowserDialog';
 
@@ -103,8 +104,7 @@ export default function MarkdownEditor() {
     config,
     loadConfig,
     saveConfig,
-    updateConfig,
-    setTheme
+    updateConfig
   } = useConfigStore();
 
   // Excel 编辑操作日志（.xlsx 编辑保存走后端 openpyxl 原文件改值，不走 content 覆写）
@@ -115,6 +115,7 @@ export default function MarkdownEditor() {
   } = useExcelEditorStore();
 
   const { language, setLanguage, t } = useI18n();
+  const { resolved: resolvedTheme, setTheme: setGlobalTheme } = useTheme();
   const { toast, showToast } = useToast() as any;
   const [isDragging, setIsDragging] = useState(false);
 
@@ -568,9 +569,9 @@ export default function MarkdownEditor() {
   };
 
   const toggleTheme = () => {
-    const newTheme = config.theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    saveConfig();
+    // 主题跟随系统全局主题（data-theme），此处切换即切换全局主题，
+    // configStore 通过 MutationObserver 镜像同步，编辑器与预览随之更新
+    setGlobalTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
   const scrollToSection = (id: string) => {

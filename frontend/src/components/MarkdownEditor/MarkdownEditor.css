@@ -41,8 +41,10 @@
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Light theme */
-.markdown-editor-container:not(.dark-theme) {
+/* Light theme — 跟随系统全局主题（<html data-theme>，由 lib/theme.tsx 维护）。
+   历史上此规则挂在 .markdown-editor-container:not(.dark-theme) 上，但该 class
+   已在组件重构后不再渲染，导致亮色变量永不生效、工具锁死暗色。 */
+html[data-theme="light"] {
   --bg-dark: #f8f9fc;
   --bg-darker: #eef0f5;
   --bg-card: #ffffff;
