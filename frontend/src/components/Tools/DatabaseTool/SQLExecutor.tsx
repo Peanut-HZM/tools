@@ -202,6 +202,14 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
         // DDL 语句执行成功后，清除表结构缓存并触发表列表刷新
         if (res.sql_type === 'DML/DDL' && isDDLStatement(sql)) {
           const targetDb = currentDatabase || currentConfig?.database_name;
+          // 库/模式级 DDL（CREATE/DROP DATABASE|SCHEMA）或无法定位目标库时：失效库列表缓存，
+          // 确保新建的数据库立即出现在连接树中
+          const isDbLevelDdl = /\b(CREATE|DROP|ALTER)\s+(DATABASE|SCHEMA)\b/i.test(sql);
+          if (isDbLevelDdl || !targetDb) {
+            const listCacheKey = api.databasesListCacheKey(configId);
+            await DBCache.invalidatePrefix(listCacheKey);
+            window.dispatchEvent(new CustomEvent('db-list-updated', { detail: { configId } }));
+          }
           if (targetDb) {
             const cacheKey = `structure:${configId}:${targetDb}${schema ? ':' + schema : ''}`;
             await DBCache.invalidate(cacheKey);

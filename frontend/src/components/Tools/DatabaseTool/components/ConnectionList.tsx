@@ -316,6 +316,18 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
     }
   }, [config.id]);
 
+  // 监听库列表变更事件（SQL 执行器执行 CREATE/DROP DATABASE 后触发），立即刷新库树
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.configId === config.id) {
+        fetchDatabases(true);
+      }
+    };
+    window.addEventListener('db-list-updated', handler);
+    return () => window.removeEventListener('db-list-updated', handler);
+  }, [config.id]);
+
   useEffect(() => {
       let active = true;
       const search = async () => {
@@ -366,10 +378,10 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
       };
   }, [searchTerm, config.id]);
 
-  const fetchDatabases = async () => {
+  const fetchDatabases = async (skipCache = false) => {
     setLoading(true);
     try {
-      const dbs = await api.getDatabasesList(config.id);
+      const dbs = await api.getDatabasesList(config.id, skipCache);
       setDatabases(dbs);
       setLoaded(true);
       return dbs;
@@ -445,7 +457,8 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
         label: t.database.contextMenu.refreshConnection,
         icon: <RefreshCw className="w-4 h-4" />,
         action: async () => {
-            await fetchDatabases();
+            // 手动刷新语义：绕过前端缓存，强制从服务端拉取最新库列表
+            await fetchDatabases(true);
             await onRefreshConfigs();
         }
       },
@@ -497,7 +510,8 @@ const ConnectionNode: React.FC<ConnectionNodeProps> = ({
 
   const handleCreateDatabase = async (name: string, charset: string) => {
       await api.createDatabaseInstance(config.id, name, charset);
-      await fetchDatabases();
+      // 建库成功后强制刷新库列表，确保新库立即出现
+      await fetchDatabases(true);
   };
 
   // 先应用本地 filter（DatabaseFilterDialog）

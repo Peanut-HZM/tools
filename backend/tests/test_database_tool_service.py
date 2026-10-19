@@ -224,3 +224,166 @@ def test_pg_get_all_schemas_parallel_and_isolates_errors(monkeypatch):
     assert result["db_a"] == ["public", "db_a"]
     assert result["db_b"] == ["public", "db_b"]
     assert "db_bad" not in result  # 失败库被跳过
+
+
+def test_execute_sql_ddl_invalidates_structure_cache(monkeypatch):
+    """DDL 执行成功后必须失效该连接的服务端结构缓存，界面才能立即看到表结构变更。"""
+    from app.models.database_tool_models import SQLExecutionRequest, SQLExecutionResult
+    from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE, _LIST_CACHE
+
+    invalidated_structure = []
+    invalidated_list = []
+    monkeypatch.setattr(_STRUCTURE_CACHE, "invalidate_prefix", lambda prefix: invalidated_structure.append(prefix))
+    monkeypatch.setattr(_LIST_CACHE, "invalidate_prefix", lambda prefix: invalidated_list.append(prefix))
+
+    monkeypatch.setattr(
+        DatabaseToolService, "_get_config_with_password",
+        staticmethod(lambda uid, cid: {"db_type": "mysql", "host": "h", "port": 3306, "database_name": "db", "username": "u", "password_encrypted": "enc", "charset": "utf8mb4", "max_pool_size": 5}),
+    )
+    monkeypatch.setattr(
+        DatabaseToolService, "_decrypt_password",
+        staticmethod(lambda enc, cid: ("pw", None)),
+    )
+    from app.utils.sql_executor import SQLExecutor
+    monkeypatch.setattr(
+        SQLExecutor, "execute",
+        staticmethod(lambda cid, cfg, sql, params: SQLExecutionResult(success=True, sql_type="DML/DDL", affected_rows=0, execution_time_ms=1)),
+    )
+    monkeypatch.setattr(DatabaseToolService, "_save_history", staticmethod(lambda uid, req, res: None))
+
+    request = SQLExecutionRequest(db_config_id="cfg-1", sql="CREATE TABLE t1 (id INT)", database_name="db")
+    result = DatabaseToolService.execute_sql("u1", request)
+
+    assert result.success is True
+    assert invalidated_structure == ["cfg-1"]  # 普通表级 DDL：只失效结构缓存
+
+
+def test_execute_sql_create_database_invalidates_list_cache(monkeypatch):
+    """CREATE DATABASE 执行成功后除结构缓存外，还必须失效库列表/Schema 列表缓存。"""
+    from app.models.database_tool_models import SQLExecutionRequest, SQLExecutionResult
+    from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE, _LIST_CACHE
+
+    invalidated_structure = []
+    invalidated_list = []
+    monkeypatch.setattr(_STRUCTURE_CACHE, "invalidate_prefix", lambda prefix: invalidated_structure.append(prefix))
+    monkeypatch.setattr(_LIST_CACHE, "invalidate_prefix", lambda prefix: invalidated_list.append(prefix))
+
+    monkeypatch.setattr(
+        DatabaseToolService, "_get_config_with_password",
+        staticmethod(lambda uid, cid: {"db_type": "mysql", "host": "h", "port": 3306, "database_name": "db", "username": "u", "password_encrypted": "enc", "charset": "utf8mb4", "max_pool_size": 5}),
+    )
+    monkeypatch.setattr(
+        DatabaseToolService, "_decrypt_password",
+        staticmethod(lambda enc, cid: ("pw", None)),
+    )
+    from app.utils.sql_executor import SQLExecutor
+    monkeypatch.setattr(
+        SQLExecutor, "execute",
+        staticmethod(lambda cid, cfg, sql, params: SQLExecutionResult(success=True, sql_type="DML/DDL", affected_rows=1, execution_time_ms=1)),
+    )
+    monkeypatch.setattr(DatabaseToolService, "_save_history", staticmethod(lambda uid, req, res: None))
+
+    request = SQLExecutionRequest(db_config_id="cfg-1", sql="CREATE DATABASE new_db", database_name=None)
+    DatabaseToolService.execute_sql("u1", request)
+
+    assert invalidated_structure == ["cfg-1"]
+    assert f"databases:cfg-1" in invalidated_list
+    assert f"schemas:cfg-1" in invalidated_list
+    assert f"all_schemas:cfg-1" in invalidated_list
+
+
+def test_execute_sql_select_does_not_invalidate_caches(monkeypatch):
+    """SELECT 查询不应触发缓存失效。"""
+    from app.models.database_tool_models import SQLExecutionRequest, SQLExecutionResult
+    from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE, _LIST_CACHE
+
+    invalidated_structure = []
+    invalidated_list = []
+    monkeypatch.setattr(_STRUCTURE_CACHE, "invalidate_prefix", lambda prefix: invalidated_structure.append(prefix))
+    monkeypatch.setattr(_LIST_CACHE, "invalidate_prefix", lambda prefix: invalidated_list.append(prefix))
+
+    monkeypatch.setattr(
+        DatabaseToolService, "_get_config_with_password",
+        staticmethod(lambda uid, cid: {"db_type": "mysql", "host": "h", "port": 3306, "database_name": "db", "username": "u", "password_encrypted": "enc", "charset": "utf8mb4", "max_pool_size": 5}),
+    )
+    monkeypatch.setattr(
+        DatabaseToolService, "_decrypt_password",
+        staticmethod(lambda enc, cid: ("pw", None)),
+    )
+    from app.utils.sql_executor import SQLExecutor
+    monkeypatch.setattr(
+        SQLExecutor, "execute",
+        staticmethod(lambda cid, cfg, sql, params: SQLExecutionResult(success=True, sql_type="SELECT", affected_rows=0, execution_time_ms=1, columns=["id"], result_data=[])),
+    )
+    monkeypatch.setattr(DatabaseToolService, "_save_history", staticmethod(lambda uid, req, res: None))
+
+    request = SQLExecutionRequest(db_config_id="cfg-1", sql="SELECT 1", database_name="db")
+    result = DatabaseToolService.execute_sql("u1", request)
+
+    assert result.success is True
+    assert invalidated_structure == []
+    assert invalidated_list == []
+
+
+def test_get_database_structure_skip_cache_bypasses_backend_cache(monkeypatch):
+    """skip_cache=True 时必须绕过后端结构缓存并回源实查，且不回写缓存。"""
+    from types import SimpleNamespace
+    from app.services.database_tool_service import DatabaseToolService, _STRUCTURE_CACHE
+
+    cache_hits = {"get": 0, "set": 0}
+    real_get = _STRUCTURE_CACHE.get
+    real_set = _STRUCTURE_CACHE.set
+
+    def fake_get(key):
+        cache_hits["get"] += 1
+        return {"tables": [{"name": "stale_table", "comment": None}], "views": []}
+
+    def fake_set(key, value):
+        cache_hits["set"] += 1
+
+    monkeypatch.setattr(_STRUCTURE_CACHE, "get", fake_get)
+    monkeypatch.setattr(_STRUCTURE_CACHE, "set", fake_set)
+
+    monkeypatch.setattr(
+        DatabaseToolService, "_get_config_with_password",
+        staticmethod(lambda uid, cid: {"db_type": "mysql", "host": "h", "port": 3306, "database_name": "db", "username": "u", "password_encrypted": "enc", "charset": "utf8mb4"}),
+    )
+    from app.utils.encryption import EncryptionUtils
+    monkeypatch.setattr(EncryptionUtils, "decrypt", staticmethod(lambda enc: "pw"))
+
+    class FakeResult:
+        def __init__(self, rows):
+            self._rows = rows
+        def __iter__(self):
+            return iter(self._rows)
+
+    class FakeConn:
+        def __init__(self):
+            self.call = 0
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            return False
+        def execute(self, sql, params=None):
+            self.call += 1
+            # 第一条为表查询，第二条为视图查询
+            return FakeResult([("fresh_table", None, "table")] if self.call == 1 else [])
+
+    from app.utils.db_connection_manager import DBConnectionManager
+    monkeypatch.setattr(DBConnectionManager, "get_engine", staticmethod(lambda cid, cfg: object.__new__(object)))
+
+    import app.services.database_tool_service as svc_mod
+    # engine.connect() 需要 context manager：包装 SQLAlchemy text 的执行路径
+    from sqlalchemy import create_engine as _unused  # noqa: F401
+
+    class FakeEngine:
+        def connect(self):
+            return FakeConn()
+
+    monkeypatch.setattr(DBConnectionManager, "get_engine", staticmethod(lambda cid, cfg: FakeEngine()))
+
+    # skip_cache=True：缓存中的 stale_table 不应被返回
+    result = DatabaseToolService.get_database_structure("u1", "cfg-1", "mydb", None, skip_cache=True)
+    assert result == {"tables": [{"name": "fresh_table", "comment": None}], "views": []}
+    assert cache_hits["get"] == 0  # skip_cache 不读缓存
+    assert cache_hits["set"] == 0  # skip_cache 不回写缓存

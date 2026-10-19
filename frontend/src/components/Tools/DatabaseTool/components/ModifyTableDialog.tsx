@@ -279,7 +279,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={saving || loading}
+            disabled={saving || loading || columns.length === 0}
             className="flex items-center gap-2"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}

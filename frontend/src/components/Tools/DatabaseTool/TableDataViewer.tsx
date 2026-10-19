@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDatabaseTool } from '../../../contexts/DatabaseToolContext';
 import { SQLExecutionResult, TableSchema } from '../../../types/databaseTool';
 import * as api from '../../../api/databaseToolApi';
@@ -128,6 +128,29 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
 
     return () => { cancelled = true; };
   }, [configId, databaseName, tableName, schemaName]);
+
+  // 监听结构变更事件（SQL 执行器 DDL / 表编辑器保存后触发），
+  // 自动刷新列头与数据，确保表结构变更立即可见
+  const refreshRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    refreshRef.current = () => {
+      fetchSchema().then((s) => {
+        if (s) fetchData(1, pageSize, resolveDefaultSort(s));
+      });
+    };
+  });
+
+  useEffect(() => {
+    const expectedPrefix = `structure:${configId}:${databaseName ?? ''}`;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.cacheKey && String(detail.cacheKey).startsWith(expectedPrefix)) {
+        refreshRef.current();
+      }
+    };
+    window.addEventListener('db-cache-updated', handler);
+    return () => window.removeEventListener('db-cache-updated', handler);
+  }, [configId, databaseName]);
 
   /** 导出数据 */
   const handleExport = useCallback(async (format: 'csv' | 'excel' | 'json' | 'sql') => {

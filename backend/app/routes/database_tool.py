@@ -247,11 +247,14 @@ async def get_database_structure(
     id: str = PathParam(..., description="Configuration ID"),
     database_name: str = Query(..., description="Database Name"),
     schema_name: Optional[str] = Query(None, description="Schema Name (PostgreSQL only)"),
+    skip_cache: bool = Query(False, description="跳过缓存强制刷新"),
     user_id: str = Depends(get_current_user_id),
 ):
     """Get structure (tables, views) for a specific database/schema"""
     try:
-        return DatabaseToolService.get_database_structure(user_id, id, database_name, schema_name)
+        return DatabaseToolService.get_database_structure(
+            user_id, id, database_name, schema_name, skip_cache=skip_cache
+        )
     except Exception as e:
         _raise_connection_error(e)
 

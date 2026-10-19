@@ -1,6 +1,7 @@
 import uuid
 import json
 import logging
+import re
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -319,6 +320,14 @@ class DatabaseToolService:
             else:
                 existing_columns = inspector.get_columns(request.table_name)
             existing_col_map = {col["name"]: col for col in existing_columns}
+
+            # 安全防线：现有列非空但请求未携带任何列时拒绝执行。
+            # 该形态只可能来自前端加载失败/竞态（用户实际想改表却提交了空列清单），
+            # 若放行会把表中所有列全部 DROP，造成数据结构丢失。
+            if existing_col_map and not request.columns:
+                raise ValueError(
+                    "请求未包含任何列定义，已拒绝执行以防止误删全部字段；请刷新后重试"
+                )
 
             statements = []
 
@@ -1082,6 +1091,15 @@ class DatabaseToolService:
             request.db_config_id, config_dict, final_sql, request.params
         )
 
+        # DDL 执行成功后失效该连接的服务端缓存，确保表结构/库列表变更立即可见
+        # （结构缓存 TTL 最长 1 小时，不失效会导致 DDL 后界面长时间显示旧结构/旧表列表）
+        if result.success and result.sql_type == "DML/DDL":
+            _STRUCTURE_CACHE.invalidate_prefix(request.db_config_id)
+            if re.search(r"\b(CREATE|DROP|ALTER)\s+(DATABASE|SCHEMA)\b", final_sql, re.IGNORECASE):
+                _LIST_CACHE.invalidate_prefix(f"databases:{request.db_config_id}")
+                _LIST_CACHE.invalidate_prefix(f"schemas:{request.db_config_id}")
+                _LIST_CACHE.invalidate_prefix(f"all_schemas:{request.db_config_id}")
+
         # Save history
         DatabaseToolService._save_history(user_id, request, result)
 
@@ -1371,7 +1389,8 @@ class DatabaseToolService:
 
     @staticmethod
     def get_database_structure(
-        user_id: str, config_id: str, database_name: str, schema_name: Optional[str] = None
+        user_id: str, config_id: str, database_name: str, schema_name: Optional[str] = None,
+        skip_cache: bool = False
     ) -> Dict[str, List[Dict[str, Any]]]:
         # 如果 database_name 包含 "database:schema" 格式，解析它
         actual_db_name = database_name
@@ -1383,10 +1402,11 @@ class DatabaseToolService:
 
         cache_key = f"{config_id}:{actual_db_name}:{actual_schema_name}"
 
-        # 1. 查后端缓存
-        cached = _STRUCTURE_CACHE.get(cache_key)
-        if cached:
-            return cached
+        # 1. 查后端缓存（skip_cache 时强制实查，用于 DDL 后立即获取最新结构）
+        if not skip_cache:
+            cached = _STRUCTURE_CACHE.get(cache_key)
+            if cached:
+                return cached
 
         config_row = DatabaseToolService._get_config_with_password(config_id, user_id)
         if not config_row:
@@ -1481,7 +1501,8 @@ class DatabaseToolService:
                     views_data.append({"name": name, "comment": None})
 
             result = {"tables": tables_data, "views": views_data}
-            _STRUCTURE_CACHE.set(cache_key, result)
+            if not skip_cache:
+                _STRUCTURE_CACHE.set(cache_key, result)
             return result
         except Exception as e:
             logger.error(f"Failed to get database structure: {e}")

@@ -139,7 +139,7 @@ export async function updateDatabase(id: string, data: UpdateDatabaseRequest): P
   const result = await handleResponse<DatabaseConfig>(response);
   // 配置变更：清除连接列表 + 该配置下所有数据库列表 + 结构缓存
   await DBCache.invalidate('configs');
-  await DBCache.invalidatePrefix(`databases:${id}`);
+  await DBCache.invalidatePrefix(databasesListCacheKey(id));
   await DBCache.invalidatePrefix(`structure:${id}`);
   return result;
 }
@@ -152,7 +152,7 @@ export async function deleteDatabase(id: string): Promise<void> {
   await handleResponse<void>(response);
   // 配置删除：清除连接列表 + 该配置下所有缓存
   await DBCache.invalidate('configs');
-  await DBCache.invalidatePrefix(`databases:${id}`);
+  await DBCache.invalidatePrefix(databasesListCacheKey(id));
   await DBCache.invalidatePrefix(`structure:${id}`);
 }
 
@@ -177,17 +177,19 @@ export async function testConnectionById(id: string): Promise<ConnectionTestResu
 
 export async function getDatabasesList(id: string, skipCache = false): Promise<string[]> {
   // v2：返回格式从 "db:schema" 变为 "db"，提升 cacheKey 版本使旧缓存失效
-  const cacheKey = `databases:v2:${id}`;
+  const cacheKey = databasesListCacheKey(id);
   if (skipCache) {
-    await DBCache.invalidate(cacheKey);
+    await DBCache.invalidatePrefix(cacheKey);
   } else {
     const cached = await DBCache.get<string[]>(cacheKey);
     if (cached) return cached;
   }
 
   // In-flight 去重：同一连接的并发请求共享 Promise，避免重复请求
-  if (pendingDatabasesRequests.has(id)) {
-    return pendingDatabasesRequests.get(id)!;
+  // skipCache 请求不复用带缓存的在途请求（否则手动刷新可能拿到刷新前已在途的旧结果）
+  const pendingKey = `${id}:${skipCache ? 'skip' : 'cached'}`;
+  if (pendingDatabasesRequests.has(pendingKey)) {
+    return pendingDatabasesRequests.get(pendingKey)!;
   }
 
   const requestPromise = (async () => {
@@ -201,11 +203,11 @@ export async function getDatabasesList(id: string, skipCache = false): Promise<s
       await DBCache.set(cacheKey, data, 'databases');
       return data;
     } finally {
-      pendingDatabasesRequests.delete(id);
+      pendingDatabasesRequests.delete(pendingKey);
     }
   })();
 
-  pendingDatabasesRequests.set(id, requestPromise);
+  pendingDatabasesRequests.set(pendingKey, requestPromise);
   return requestPromise;
 }
 
@@ -287,7 +289,7 @@ export async function createDatabaseInstance(id: string, name: string, charset?:
     body: JSON.stringify({ name, charset })
   });
   const result = await handleResponse<boolean>(response);
-  await DBCache.invalidate(`databases:${id}`);
+  await DBCache.invalidatePrefix(databasesListCacheKey(id));
   return result;
 }
 
@@ -297,7 +299,7 @@ export async function dropDatabaseInstance(id: string, name: string): Promise<bo
     headers: getAuthHeaders()
   });
   const result = await handleResponse<boolean>(response);
-  await DBCache.invalidate(`databases:${id}`);
+  await DBCache.invalidatePrefix(databasesListCacheKey(id));
   await DBCache.invalidatePrefix(`structure:${id}:${name}`);
   return result;
 }
@@ -309,7 +311,7 @@ export async function dropTableInstance(id: string, table: string, databaseName:
     headers: getAuthHeaders()
   });
   const result = await handleResponse<boolean>(response);
-  await DBCache.invalidate(`structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`);
+  await DBCache.invalidate(structureCacheKey(id, databaseName, schemaName));
   return result;
 }
 
@@ -320,7 +322,7 @@ export async function truncateTableInstance(id: string, table: string, databaseN
     body: JSON.stringify({ database_name: databaseName, schema_name: schemaName })
   });
   const result = await handleResponse<boolean>(response);
-  await DBCache.invalidate(`structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`);
+  await DBCache.invalidate(structureCacheKey(id, databaseName, schemaName));
   return result;
 }
 
@@ -335,7 +337,7 @@ const pendingBackgroundRevalidations = new Set<string>();
 
 export async function getDatabaseStructure(id: string, databaseName: string, schemaName?: string, skipCache = false): Promise<DatabaseStructure> {
   const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
-  const cacheKey = `structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`;
+  const cacheKey = structureCacheKey(id, databaseName, schemaName);
 
   // 1. skipCache 时清除缓存
   if (skipCache) {
@@ -359,7 +361,8 @@ export async function getDatabaseStructure(id: string, databaseName: string, sch
 
   const requestPromise = (async () => {
     try {
-      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
+      const skipParam = skipCache ? '&skip_cache=true' : '';
+      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}${skipParam}`, {
         headers: getAuthHeaders(),
         timeout: 20000
       });
@@ -383,7 +386,7 @@ function revalidateStructureInBackground(cacheKey: string, id: string, databaseN
   (async () => {
     try {
       const schemaParam = schemaName ? `&schema_name=${encodeURIComponent(schemaName)}` : '';
-      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}`, {
+      const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/structure?database_name=${encodeURIComponent(databaseName)}${schemaParam}&skip_cache=true`, {
         headers: getAuthHeaders(),
         timeout: 20000
       });
@@ -408,6 +411,13 @@ export async function getTableDDL(id: string, table: string, databaseName: strin
   return handleResponse<string>(response);
 }
 
+/** 连接的库列表缓存 key 唯一定义点：读写与失效必须引用同一构造，防止 key 漂移 */
+export const databasesListCacheKey = (id: string): string => `databases:v2:${id}`;
+
+/** 表结构缓存 key 唯一定义点：读写与失效必须引用同一构造（PG 带 schema 时含 schema 后缀） */
+export const structureCacheKey = (id: string, databaseName: string, schemaName?: string): string =>
+  `structure:${id}:${databaseName}${schemaName ? ':' + schemaName : ''}`;
+
 export async function modifyTableStructure(id: string, request: TableModificationRequest): Promise<boolean> {
   const response = await fetchWithTimeout(`${BASE_URL}/databases/${id}/tables/modify`, {
     method: 'POST',
@@ -415,8 +425,11 @@ export async function modifyTableStructure(id: string, request: TableModificatio
     body: JSON.stringify(request)
   });
   const result = await handleResponse<boolean>(response);
-  // 结构变更：清除该数据库的结构缓存
-  await DBCache.invalidate(`structure:${id}:${request.database_name}`);
+  // 结构变更（增/删/改字段）：清除该库的结构缓存。PG 下缓存 key 带 schema 后缀，必须按精确 key 失效
+  const cacheKey = structureCacheKey(id, request.database_name, request.schema_name);
+  await DBCache.invalidate(cacheKey);
+  // 通知已挂载的结构视图立即重新拉取最新结构
+  window.dispatchEvent(new CustomEvent('db-cache-updated', { detail: { cacheKey } }));
   return result;
 }
 
