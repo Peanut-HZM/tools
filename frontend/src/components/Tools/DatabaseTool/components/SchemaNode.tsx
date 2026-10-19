@@ -390,10 +390,11 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
                   <div key={item.name}>
                     <div
                       className="flex items-center space-x-2 py-0.5 px-2 hover:bg-surface-2/50 rounded cursor-pointer text-ink-muted group/item relative"
+                      onClick={() => handleTableClick(item.name)}
                       onContextMenu={(e) => handleTableContextMenu(e, item)}
                       title={item.comment || undefined}
                     >
-                      {/* Detail expand toggle */}
+                      {/* Detail expand toggle：仅点击此 icon 展开表结构，不触发打开表 */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -412,13 +413,7 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
 
                       <Table className="w-2.5 h-2.5 text-ink-faint" />
                       <div className="flex-1 min-w-0">
-                        <span
-                          className="truncate text-xs cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTableClick(item.name);
-                          }}
-                        >
+                        <span className="truncate text-xs">
                           {searchTerm ? (
                             <>
                               {item.name.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>

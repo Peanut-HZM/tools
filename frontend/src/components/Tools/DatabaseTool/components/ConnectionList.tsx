@@ -1377,10 +1377,11 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, Icon, color, items, ItemI
             <div key={item.name}>
               <div
                 className="flex items-center space-x-2 py-0.5 px-2 hover:bg-surface-2/50 rounded cursor-pointer text-ink-muted group/item relative"
+                onClick={() => onItemClick(item.name)}
                 onContextMenu={(e) => handleItemContextMenu(e, item)}
                 title={item.comment || undefined}
               >
-                {/* Detail expand toggle */}
+                {/* Detail expand toggle：仅点击此 icon 展开表结构，不触发打开表 */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1398,13 +1399,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({ name, Icon, color, items, ItemI
 
                 <ItemIcon className="w-2.5 h-2.5 text-ink-faint" />
                 <div className="flex-1 min-w-0">
-                  <span
-                    className="truncate text-xs cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onItemClick(item.name);
-                    }}
-                  >
+                  <span className="truncate text-xs">
                     {searchTerm ? (
                         <>
                            {item.name.split(new RegExp(`(${searchTerm})`, 'gi')).map((part, i) =>

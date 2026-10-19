@@ -312,6 +312,24 @@ def is_executable_statement(stmt: str) -> bool:
     return any(kw in upper_no_comments for kw in SQL_KEYWORDS)
 
 
+class _DbApiCursorAdapter:
+    """DBAPI cursor 的最小结果适配（提供 SQLAlchemy Result 风格的
+    returns_rows / keys() / fetchall()，供 execute 的统一结果处理使用）"""
+
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    @property
+    def returns_rows(self) -> bool:
+        return self._cursor.description is not None
+
+    def keys(self):
+        return [d[0] for d in (self._cursor.description or [])]
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+
 class SQLExecutor:
     @staticmethod
     def execute(
@@ -364,14 +382,23 @@ class SQLExecutor:
                     # ------------------------------------------------------------------
                     # 执行策略
                     # ------------------------------------------------------------------
-                    # 无 params：使用 exec_driver_sql 直接执行，绕过 SQLAlchemy 的 text()
-                    # 解析。text() 会把 :10 当作绑定参数，导致 JSON 字符串中的 :数字 报错。
-                    # exec_driver_sql 直接调用底层 DBAPI，SQL 原样发送，与 mysql CLI 行为一致。
+                    # 无 params：直接使用底层 DBAPI cursor 原样发送语句，不做任何
+                    # 绑定参数解析：
+                    #   - conn.exec_driver_sql() 会以空参数组调用 DBAPI，触发
+                    #     pyformat 驱动的 `sql % ()` 格式化，LIKE '%x%' 的 % 被当作
+                    #     占位符 → "not enough arguments for format string"
+                    #   - text() 会把文本中的 :name/:10 解析为绑定参数，
+                    #     JSON 等字面文本中的冒号会被误伤
+                    # DBAPI cursor 无参数执行在 MySQL(PyMySQL)/PostgreSQL(psycopg2)/
+                    # Oracle(oracledb)/MSSQL(pyodbc) 驱动上均为语句原样发送，
+                    # 上述两类问题都不存在。
                     #
                     # 有 params：使用 text() + execute，让 SQLAlchemy 处理参数绑定。
                     # ------------------------------------------------------------------
                     if not params:
-                        result = conn.exec_driver_sql(stmt_str)
+                        dbapi_cursor = conn.connection.cursor()
+                        dbapi_cursor.execute(stmt_str)
+                        result = _DbApiCursorAdapter(dbapi_cursor)
                     else:
                         stmt = text(stmt_str)
                         result = conn.execute(stmt, params)
@@ -379,14 +406,23 @@ class SQLExecutor:
                     last_result = result
 
                 # Commit transaction
-                conn.commit()
+                # 无 params 分支直接使用底层 DBAPI 连接执行，SQLAlchemy 层可能
+                # 并未开启事务（此时 conn.commit() 是 no-op），必须改用底层连接
+                # 提交；否则 PostgreSQL 等事务型数据库的 DDL/DML 会在连接归还
+                # 池时被 ROLLBACK 回滚（MySQL DDL 隐式提交，问题被掩盖）
+                if not params:
+                    conn.connection.commit()
+                else:
+                    conn.commit()
 
                 execution_time = (time.time() - start_time) * 1000
 
                 if last_result and last_result.returns_rows:
                     # Fetch results from the last query
                     columns = list(last_result.keys())
-                    rows = [dict(row._mapping) for row in last_result.fetchall()]
+                    raw_rows = last_result.fetchall()
+                    # DBAPI cursor 返回 tuple 行（SQLAlchemy 返回 Row），统一按列名组装
+                    rows = [dict(zip(columns, row)) for row in raw_rows]
 
                     # Handle serialization
                     serialized_rows = []

@@ -33,8 +33,8 @@ class TestSQLExecutorBindParameterEscaping:
         result = SQLExecutor.execute("cfg1", {}, "UPDATE t SET x = '{\"version\":1}'")
 
         assert result.success is True
-        # 无 params 时走 exec_driver_sql，SQL 原样送达数据库
-        executed_sql = mock_conn.exec_driver_sql.call_args[0][0]
+        # 无 params 时走底层 DBAPI cursor，SQL 原样送达数据库
+        executed_sql = mock_conn.connection.cursor.return_value.execute.call_args[0][0]
         assert ":1" in executed_sql
         assert "%(" not in executed_sql
 
@@ -58,7 +58,7 @@ class TestSQLExecutorBindParameterEscaping:
 
         SQLExecutor.execute("cfg1", {}, "SELECT * FROM t WHERE id = :user_id")
 
-        executed_sql = mock_conn.exec_driver_sql.call_args[0][0]
+        executed_sql = mock_conn.connection.cursor.return_value.execute.call_args[0][0]
         # 未提供 params 时冒号保持字面量
         assert ":user_id" in executed_sql
         assert "%(" not in executed_sql
@@ -81,7 +81,7 @@ class TestSQLExecutorBindParameterEscaping:
 
         SQLExecutor.execute("cfg1", {}, "SELECT 1::integer")
 
-        executed_sql = mock_conn.exec_driver_sql.call_args[0][0]
+        executed_sql = mock_conn.connection.cursor.return_value.execute.call_args[0][0]
         assert "::integer" in executed_sql
 
     @patch("app.utils.sql_executor.DBConnectionManager.get_engine")
@@ -249,8 +249,8 @@ class TestSQLExecutorDelimiterScript:
         result = SQLExecutor.execute("cfg1", {}, INCIDENT_SCRIPT)
 
         assert result.success is True
-        # 无 params 时走 exec_driver_sql，DELIMITER 指令已被切分脚本剔除
-        executed = mock_conn.exec_driver_sql.call_args[0][0]
+        # 无 params 时走底层 DBAPI cursor，DELIMITER 指令已被切分脚本剔除
+        executed = mock_conn.connection.cursor.return_value.execute.call_args[0][0]
         assert executed.lstrip().startswith("CREATE PROCEDURE")
         assert "DELIMITER" not in executed
 
