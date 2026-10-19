@@ -3,6 +3,7 @@ import { Minimize2, Maximize2, Loader2 } from 'lucide-react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { TableItem } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
+import { useTheme } from '../../../../lib/theme';
 import { Button } from '@/components/ui/Button';
 
 interface SQLEditorProps {
@@ -24,6 +25,7 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
   onToggleFullscreen
 }) => {
   const { t } = useI18n();
+  const { resolved: resolvedTheme } = useTheme();
   const monaco = useMonaco();
   const editorRef = useRef<any>(null);
 
@@ -109,7 +111,8 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
         <Editor
           height="100%"
           defaultLanguage="sql"
-          theme="vs-dark"
+          // Monaco 主题跟随系统全局主题（亮色 vs / 暗色 vs-dark）
+          theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
           value={value}
           onChange={(val) => onChange(val || '')}
           onMount={handleEditorDidMount}
@@ -130,16 +133,17 @@ const SQLEditor: React.FC<SQLEditorProps> = ({
             </div>
           }
         />
-      </div>
-      <div className="bg-canvas px-4 py-2 border-t border-border flex justify-end">
-        <Button
-          onClick={onExecute}
-          disabled={loading || !value.trim()}
-          className="flex items-center gap-2"
-        >
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {loading ? t.database.executor.executing : t.database.executor.run}
-        </Button>
+        {/* 执行按钮悬浮在编辑器右下角：编辑器高度被拖动调整时始终可见可用 */}
+        <div className="absolute bottom-3 right-3 z-10">
+          <Button
+            onClick={onExecute}
+            disabled={loading || !value.trim()}
+            className="flex items-center gap-2 shadow-md"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? t.database.executor.executing : t.database.executor.run}
+          </Button>
+        </div>
       </div>
     </div>
   );

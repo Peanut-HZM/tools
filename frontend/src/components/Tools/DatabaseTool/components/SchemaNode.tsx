@@ -357,7 +357,12 @@ const SchemaNode: React.FC<SchemaNodeProps> = ({
     <div className="text-sm select-none">
       <div
         className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
-          isActive ? 'bg-accent/20 text-accent-info' : 'text-ink-muted hover:bg-surface-2/50'
+          isExpanded
+            ? // 展开的 schema 固定显示，滚动表列表时 schema 名始终可见
+              `sticky top-[42px] z-20 bg-canvas ${isActive ? 'text-accent-info' : 'text-ink-muted'}`
+            : isActive
+              ? 'bg-accent/20 text-accent-info'
+              : 'text-ink-muted hover:bg-surface-2/50'
         }`}
         onClick={handleToggle}
         onContextMenu={handleContextMenu}

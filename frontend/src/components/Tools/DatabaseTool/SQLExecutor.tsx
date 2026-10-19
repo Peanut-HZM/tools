@@ -440,8 +440,8 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
               }
               style={
                 !isFullscreen && editorHeight !== null
-                  ? { height: `${editorHeight}px` }
-                  : undefined
+                  ? { height: `${editorHeight}px`, maxHeight: 'calc(100% - 28px)' }
+                  : { maxHeight: isFullscreen ? undefined : 'calc(100% - 28px)' }
               }
             >
               <SQLEditor

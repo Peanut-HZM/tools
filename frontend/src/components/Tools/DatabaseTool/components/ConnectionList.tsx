@@ -177,13 +177,16 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
           </div>
         )}
 
-        {filteredConfigs.map(config => (
+        {filteredConfigs.map(config => {
+          // 搜索仅在当前选中的连接内生效，不扩大到其他连接
+          const configSelected = activeConfigId === config.id || currentConfig?.id === config.id;
+          return (
           <ConnectionNode
             key={config.id}
             config={config}
             isExpanded={!!expandedNodes[config.id]}
             onToggleExpand={() => toggleExpand(config.id)}
-            isSelected={activeConfigId === config.id || currentConfig?.id === config.id}
+            isSelected={configSelected}
             onSelect={() => onConnectionSelect ? onConnectionSelect(config.id) : selectConfigById(config.id)}
             onEdit={() => onEditConfig(config.id)}
             onSelectTable={onSelectTable}
@@ -193,12 +196,13 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             onOpenSqlConsole={onOpenSqlConsole}
             onOpenBackup={handleOpenBackup}
             onOpenBackupHistory={handleOpenBackupHistory}
-            searchTerm={searchTerm}
+            searchTerm={configSelected ? searchTerm : ''}
             displayPreferences={displayPreferences}
             activeDatabaseName={activeDatabaseName}
             activeSchemaName={activeSchemaName}
           />
-        ))}
+          );
+        })}
 
         {configs.length === 0 && !isLoading && (
           <div className="text-center text-ink-faint py-8 text-sm flex flex-col items-center gap-2">
@@ -553,7 +557,12 @@ const handleSelectAndExpand = async () => {
     <div className="select-none">
       <div
         className={`p-2 rounded-md cursor-pointer group flex items-center justify-between transition-colors ${
-          isSelected ? 'bg-accent/20 text-accent-info border border-accent-info/50' : 'text-ink-muted hover:bg-surface-2/50 border border-transparent'
+          isSelected && isExpanded
+            ? // 展开的选中连接固定在树滚动区顶部，滚动表列表时连接信息始终可见
+              'sticky top-0 z-30 bg-canvas text-accent-info border border-accent-info/50 shadow-sm'
+            : isSelected
+              ? 'bg-accent/20 text-accent-info border border-accent-info/50'
+              : 'text-ink-muted hover:bg-surface-2/50 border border-transparent'
         }`}
         onClick={handleSelectAndExpand}
         onContextMenu={handleContextMenu}
@@ -632,7 +641,8 @@ const handleSelectAndExpand = async () => {
                     onOpenSqlConsole={onOpenSqlConsole}
                     onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
                     onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
-                    searchTerm={searchTerm}
+                    // 搜索仅在当前激活的库内生效，不扩大范围
+                    searchTerm={activeDatabaseName === config.database_name ? searchTerm : ''}
                     activeSchemaName={activeSchemaName}
                   />
                 ))
@@ -649,7 +659,8 @@ const handleSelectAndExpand = async () => {
                     onOpenSqlConsole={onOpenSqlConsole}
                     onOpenBackup={(d, tables) => onOpenBackup(config.id, d, tables)}
                     onOpenBackupHistory={(d) => onOpenBackupHistory(config.id, d)}
-                    searchTerm={searchTerm}
+                    // 搜索仅在当前展开（激活）的库内生效，不扩大范围
+                    searchTerm={activeDatabaseName === dbName ? searchTerm : ''}
                     activeDatabaseName={activeDatabaseName}
                     activeSchemaName={activeSchemaName}
                   />
@@ -671,7 +682,8 @@ const handleSelectAndExpand = async () => {
                     onOpenSqlConsole={onOpenSqlConsole}
                     onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
                     onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
-                    searchTerm={searchTerm}
+                    // 搜索仅在当前激活的库内生效，不扩大范围
+                    searchTerm={activeDatabaseName === config.database_name ? searchTerm : ''}
                     activeDatabaseName={activeDatabaseName}
                 />
               ) : (
@@ -687,7 +699,8 @@ const handleSelectAndExpand = async () => {
                         onOpenSqlConsole={onOpenSqlConsole}
                         onOpenBackup={(dbName, tables) => onOpenBackup(config.id, dbName, tables)}
                         onOpenBackupHistory={(dbName) => onOpenBackupHistory(config.id, dbName)}
-                        searchTerm={searchTerm}
+                        // 搜索仅在当前展开（激活）的库内生效，不扩大范围
+                        searchTerm={activeDatabaseName === db ? searchTerm : ''}
                         activeDatabaseName={activeDatabaseName}
                     />
                   ))}
@@ -1002,7 +1015,12 @@ const items: MenuItem[] = [
     <div className="text-sm">
       <div
         className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
-          activeDatabaseName === dbName ? 'bg-accent/20 text-accent-info' : 'text-ink-muted hover:bg-surface-2/50'
+          isExpanded
+            ? // 展开的库固定在连接行下方，滚动表列表时库名始终可见
+              `sticky top-[42px] z-20 bg-canvas ${activeDatabaseName === dbName ? 'text-accent-info' : 'text-ink-muted'}`
+            : activeDatabaseName === dbName
+              ? 'bg-accent/20 text-accent-info'
+              : 'text-ink-muted hover:bg-surface-2/50'
         }`}
         onClick={handleToggle}
         onContextMenu={handleContextMenu}
@@ -1528,7 +1546,12 @@ const PostgresDatabaseNode: React.FC<PostgresDatabaseNodeProps> = ({
     <div className="text-sm select-none">
       <div
         className={`flex items-center space-x-2 py-1 px-2 rounded cursor-pointer ${
-          isActive ? 'bg-accent/20 text-accent-info' : 'text-ink-muted hover:bg-surface-2/50'
+          isExpanded
+            ? // 展开的库固定在连接行下方，滚动 schema 列表时库名始终可见
+              `sticky top-[42px] z-20 bg-canvas ${isActive ? 'text-accent-info' : 'text-ink-muted'}`
+            : isActive
+              ? 'bg-accent/20 text-accent-info'
+              : 'text-ink-muted hover:bg-surface-2/50'
         }`}
         onClick={handleToggle}
       >
