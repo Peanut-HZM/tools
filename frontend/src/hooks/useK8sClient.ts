@@ -3,11 +3,12 @@
  *
  * 封装各资源的查询 hooks，自动管理缓存、轮询刷新和命名空间多选合并
  */
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as api from '../api/k8sToolApi';
 import { useK8sStore } from '../stores/k8sStore';
 import { useAuth } from '../stores/authStore';
-import type { K8sPodSummary } from '../components/Tools/K8sTool/types';
+import type { K8sPodMetrics, K8sPodSummary } from '../components/Tools/K8sTool/types';
 
 /**
  * 获取当前用户所有 K8s 连接配置列表
@@ -36,17 +37,28 @@ export const useK8sConnections = () => {
  */
 export const useK8sNamespaces = (configId: string | null) => {
   const { setNamespaces } = useK8sStore();
-  return useQuery({
+  const { isAuthenticated } = useAuth();
+  const query = useQuery({
     queryKey: ['k8s', configId, 'namespaces'],
     queryFn: async () => {
       if (!configId) return [];
-      const data = await api.listNamespaces(configId);
-      const names = data.map((n) => n.name);
-      setNamespaces(names);
-      return data;
+      return api.listNamespaces(configId);
     },
-    enabled: !!configId,
+    enabled: isAuthenticated && !!configId,
+    // 失败（无数据）时 5 秒快速重试自愈（后端热重载 / K8s API 瞬时抖动），
+    // 成功后 60 秒低频刷新。namespaces 无自愈会导致 URL 工作区恢复误报错误。
+    refetchInterval: (query) => (query.state.data ? 60_000 : 5_000),
   });
+
+  useEffect(() => {
+    if (!configId || !query.data) return;
+
+    // 仅允许当前激活集群的响应更新工作区，避免旧请求完成后覆盖新集群命名空间。
+    if (useK8sStore.getState().activeConnectionId !== configId) return;
+    setNamespaces(query.data.map((namespace) => namespace.name));
+  }, [configId, query.data, setNamespaces]);
+
+  return query;
 };
 
 /**
@@ -132,12 +144,14 @@ export const usePodMetrics = (
   podName: string,
   namespace: string,
 ) => {
-  return useQuery({
+  return useQuery<K8sPodMetrics | null>({
     queryKey: ['k8s', configId, 'metrics', podName, namespace],
-    queryFn: () =>
-      configId ? api.getPodMetrics(configId, podName, namespace) : null,
-    enabled: !!configId && !!podName && !!namespace,
-    refetchInterval: 15_000,
+    // 后端尚未提供 Pod metrics REST 端点。禁用查询，避免向不存在的接口发请求，
+    // 由指标面板明确呈现不可用状态，不用静态数据替代真实指标。
+    queryFn: async () => {
+      throw new Error('后端尚未提供 Pod 指标接口');
+    },
+    enabled: false,
     retry: false,
   });
 };
