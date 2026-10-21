@@ -12,7 +12,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       // 玻璃胶囊组：全圆角 + 玻璃底 + 玻璃描边
-      "inline-flex h-10 items-center justify-center rounded-full p-1 bg-glass-bg border border-glass-border text-ink-muted",
+      "inline-flex h-10 max-w-full items-center justify-start overflow-x-auto no-scrollbar rounded-full p-1 bg-glass-bg border border-glass-border text-ink-muted",
       className
     )}
     {...props}
@@ -28,7 +28,7 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // 激活态用品牌渐变胶囊 + 发光阴影；非激活态玻璃底 + 灰字
-      "inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-ink-muted hover:text-ink hover:bg-glass-bg data-[state=active]:text-white data-[state=active]:bg-[image:var(--gradient-brand)] data-[state=active]:shadow-[shadow:var(--shadow-glow-accent)]",
+      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-ink-muted hover:text-ink hover:bg-glass-bg data-[state=active]:text-white data-[state=active]:bg-[image:var(--gradient-brand)] data-[state=active]:shadow-[shadow:var(--shadow-glow-accent)]",
       className
     )}
     {...props}

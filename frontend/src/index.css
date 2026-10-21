@@ -97,6 +97,18 @@ body {
   scrollbar-color: var(--hairline) transparent;
 }
 
+/* 隐藏滚动条但保留滚动能力：用于窄屏横向滚动容器（页签条、标签栏等）
+   保留滚动条会占掉容器高度，导致内容被挤压 */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 /* ============================================================
  * Monaco Editor 变量高亮 (保留, 改用 token)
  * ============================================================ */

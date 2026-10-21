@@ -206,7 +206,16 @@ export interface AlertRulePayload {
   enabled?: boolean;
 }
 
-export const getAlerts = () => request<AlertRule[]>(`${MONITOR_API_URL}/alerts`);
+// 契约校验：形状不符就抛错。
+// 组件把返回值直接放进 state 后会在渲染期读 .length，若此处不校验，
+// 一次接口异常就会让整个页面白屏崩溃且无任何提示；抛错后由调用方 catch 显示错误。
+export const getAlerts = async (): Promise<AlertRule[]> => {
+  const data = await request<AlertRule[]>(`${MONITOR_API_URL}/alerts`);
+  if (!Array.isArray(data)) {
+    throw new Error('告警规则数据格式异常');
+  }
+  return data;
+};
 export const createAlert = (data: AlertRulePayload) =>
   request<AlertRule>(`${MONITOR_API_URL}/alerts`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
@@ -217,9 +226,14 @@ export const updateAlert = (id: string, data: Partial<AlertRulePayload>) =>
   });
 export const deleteAlert = (id: string) =>
   request<{ success: boolean }>(`${MONITOR_API_URL}/alerts/${id}`, { method: 'DELETE' });
-export const getAlertLogs = (page = 1, pageSize = 20) =>
-  request<{ logs: AlertLog[]; total: number; unread_count: number; page: number; page_size: number }>(
+export const getAlertLogs = async (page = 1, pageSize = 20) => {
+  const data = await request<{ logs: AlertLog[]; total: number; unread_count: number; page: number; page_size: number }>(
     `${MONITOR_API_URL}/alerts/logs${buildQuery({ page, page_size: pageSize })}`);
+  if (!data || !Array.isArray(data.logs)) {
+    throw new Error('告警记录数据格式异常');
+  }
+  return data;
+};
 export const markAlertLogsRead = () =>
   request<{ success: boolean }>(`${MONITOR_API_URL}/alerts/logs/read`, { method: 'PUT' });
 
