@@ -640,11 +640,14 @@ export default function MarkdownEditor() {
       )}
 
       {/* Top Bar */}
-      <div className="h-12 bg-surface-1 border-b border-border flex items-center justify-between px-4 shrink-0 z-20">
-        <div className="header-left">
+      {/* 窄屏：右侧按钮组数量多（打开/新建/预览/编辑/保存/导入/搜索/主题/设置…），
+          宽度远超视口。header-right 加上 min-w-0 + 横向滚动后，
+          末位按钮（如"设置"）不再整体落在视口外而触摸不可达。 */}
+      <div className="h-12 bg-surface-1 border-b border-border flex items-center justify-between gap-2 px-4 shrink-0 z-20">
+        <div className="header-left shrink-0">
           <h1>{t.editor.title}</h1>
         </div>
-        <div className="header-right">
+        <div className="header-right min-w-0 overflow-x-auto no-scrollbar">
           <div className="neon-button-group">
             <button className="neon-button" onClick={() => setShowFolderSelect(true)}>
               <Icons.FolderOpened />

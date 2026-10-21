@@ -90,7 +90,7 @@ export default function JsonFormatter() {
     <div className="flex-1 text-ink flex flex-col overflow-hidden">
       {/* 顶部工具栏（玻璃面板范式：贴边去左右/顶部描边，底部描边由玻璃边框承担）；窄屏下允许换行 */}
       <div className="glass-panel border-x-0 border-t-0 rounded-none px-4 py-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
@@ -111,8 +111,8 @@ export default function JsonFormatter() {
           </div>
         </div>
 
-        {/* 操作按钮 */}
-        <div className="flex items-center gap-2">
+        {/* 操作按钮：窄屏下允许换行，避免末尾按钮被裁切到视口外 */}
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <Select
             value={String(indentSize)}
             onValueChange={(v) => setIndentSize(Number(v))}
