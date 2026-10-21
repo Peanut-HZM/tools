@@ -374,9 +374,10 @@ const ProductManagerAgent: React.FC = () => {
             </div>
 
             {/* Content Area - Split view for Chat and side panels */}
-            <div className="flex-1 flex overflow-hidden">
+            {/* 移动端纵向堆叠（聊天在上、侧面板在下），md 起恢复左右分栏 */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               {/* Chat Area */}
-              <div className={`flex-1 ${showPRDPreview || ((showMemoryPanel || showTracesPanel) && selectedAgentId) || (showTimeTravelPanel && conversationId) ? 'w-1/2 border-r border-border' : 'w-full'}`}>
+              <div className={`flex-1 min-w-0 ${showPRDPreview || ((showMemoryPanel || showTracesPanel) && selectedAgentId) || (showTimeTravelPanel && conversationId) ? 'w-full md:w-1/2 md:border-r border-border' : 'w-full'}`}>
                 <ChatInterface
                   messages={messages}
                   sending={loading}
@@ -387,7 +388,7 @@ const ProductManagerAgent: React.FC = () => {
 
               {/* 长期记忆面板 */}
               {showMemoryPanel && selectedAgentId && (
-                <div className="w-1/2 overflow-y-auto">
+                <div className="w-full md:w-1/2 overflow-y-auto">
                   <div className="p-4 border-b border-border">
                     <h3 className="font-semibold text-ink flex items-center gap-2">
                       <Brain className="w-4 h-4" />
@@ -402,7 +403,7 @@ const ProductManagerAgent: React.FC = () => {
 
               {/* 技能面板 */}
               {showSkillsPanel && selectedAgentId && (
-                <div className="w-1/2 overflow-y-auto">
+                <div className="w-full md:w-1/2 overflow-y-auto">
                   <div className="p-4 border-b border-border">
                     <h3 className="font-semibold text-ink flex items-center gap-2">
                       <Zap className="w-4 h-4" />
@@ -417,21 +418,21 @@ const ProductManagerAgent: React.FC = () => {
 
               {/* 执行追踪面板 */}
               {showTracesPanel && selectedAgentId && (
-                <div className="w-1/2 overflow-auto">
+                <div className="w-full md:w-1/2 overflow-auto">
                   <TraceViewer agentId={selectedAgentId} conversationId={conversationId} />
                 </div>
               )}
 
               {/* 时间旅行面板 */}
               {showTimeTravelPanel && conversationId && (
-                <div className="w-1/2 overflow-auto">
+                <div className="w-full md:w-1/2 overflow-auto">
                   <TimelinePanel conversationId={conversationId} />
                 </div>
               )}
 
               {/* PRD Preview Panel */}
               {showPRDPreview && conversationId && (
-                <div className="w-1/2">
+                <div className="w-full md:w-1/2">
                   <PRDPreview
                     conversationId={conversationId}
                     onExport={() => setShowExportDialog(true)}
