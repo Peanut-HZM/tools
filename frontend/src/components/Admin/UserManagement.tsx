@@ -298,7 +298,7 @@ export default function UserManagement() {
 
       {/* Batch operation toolbar */}
       {batchMode && selectedUserIds.size > 0 && (
-        <div className="mb-4 p-4 bg-surface-2/50 border border-border rounded-lg flex items-center justify-between">
+        <div className="mb-4 p-4 bg-surface-2/50 border border-border rounded-lg flex flex-wrap items-center justify-between gap-2">
           <span className="text-ink text-sm">
             已选择 <span className="text-accent font-bold">{selectedUserIds.size}</span> 个用户
           </span>
@@ -332,16 +332,16 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* Search and filter */}
-      <div className="mb-4 flex items-center gap-4">
-        <div className="flex-1 flex items-center gap-2">
+      {/* 搜索和筛选：窄屏下允许换行，避免输入框/按钮/下拉互相挤压 */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 md:gap-4">
+        <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="搜索用户名或邮箱..."
-            className="flex-1 bg-surface-1 border border-border rounded-lg px-4 py-2 text-ink text-sm focus:border-accent outline-none"
+            className="flex-1 min-w-0 bg-surface-1 border border-border rounded-lg px-4 py-2 text-ink text-sm focus:border-accent outline-none"
           />
           <button
             onClick={handleSearch}
@@ -374,7 +374,7 @@ export default function UserManagement() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-ink-muted">
+        <table className="w-full min-w-[720px] text-left text-ink-muted">
           <thead className="bg-surface-2 text-ink uppercase text-xs">
             <tr>
               <th className="px-6 py-3 w-12">
@@ -463,8 +463,8 @@ export default function UserManagement() {
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+      {/* Pagination：窄屏下左右两组允许换行，避免页码按钮被挤出视口 */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <div className="flex items-center gap-2">
           <span className="text-ink-muted text-sm">每页显示:</span>
           <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
@@ -482,7 +482,7 @@ export default function UserManagement() {
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             onClick={() => handlePageChange(1)}
             disabled={page === 1}
@@ -551,7 +551,7 @@ export default function UserManagement() {
       {/* Add User Modal */}
       {isModalOpen && !generatedPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border">
+          <div className="bg-surface-1 p-4 sm:p-6 rounded-lg w-[92vw] max-w-md max-h-[90vh] overflow-y-auto border border-border">
             <h3 className="text-xl font-bold text-ink mb-4">添加新用户</h3>
             <form onSubmit={handleAddUser}>
               <div className="mb-4">
@@ -609,7 +609,7 @@ export default function UserManagement() {
       {/* Password Display Modal */}
       {generatedPassword && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border text-center">
+          <div className="bg-surface-1 p-4 sm:p-6 rounded-lg w-[92vw] max-w-md border border-border text-center">
             <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8" />
             </div>

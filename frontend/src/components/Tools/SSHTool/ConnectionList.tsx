@@ -18,7 +18,8 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
   const { t } = useI18n();
 
   return (
-    <div className="flex flex-col h-full bg-surface-1 border-r border-border w-64">
+    // 移动端:侧栏占满整行并限制高度(自身滚动),避免挤压右侧终端区;md 以上恢复固定 256px 侧栏
+    <div className="flex flex-col h-full bg-surface-1 border-b border-border md:border-b-0 md:border-r w-full md:w-64 max-h-[40vh] md:max-h-none overflow-y-auto">
       <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
           <h2 className="font-semibold text-ink">{t.ssh.connections}</h2>

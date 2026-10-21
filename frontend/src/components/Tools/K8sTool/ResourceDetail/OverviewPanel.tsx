@@ -73,7 +73,7 @@ export const OverviewPanel: React.FC<Props> = ({ pod }) => {
         <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-3">
           {ot.title}
         </h4>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
           {/* 阶段 */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-ink-faint w-20 shrink-0">{ot.phase}</span>

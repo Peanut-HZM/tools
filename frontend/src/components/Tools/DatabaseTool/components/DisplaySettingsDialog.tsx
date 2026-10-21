@@ -236,7 +236,7 @@ export default function DisplaySettingsDialog({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
       <Card
-        className="w-full max-w-lg border border-border flex flex-col max-h-[85vh]"
+        className="w-[92vw] max-w-lg border border-border flex flex-col max-h-[85vh]"
         role="dialog"
         aria-label="显示设置"
       >

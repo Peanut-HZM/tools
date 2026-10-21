@@ -95,19 +95,19 @@ export default function TechContentsPage() {
     <div className="bg-canvas min-h-screen">
       {/* Hero Section：结构化玻璃 hero（贴边玻璃面板替换整宽彩色渐变），与 CoursesPage/Header 同构 */}
       <div className="glass-panel border-x-0 border-t-0 rounded-none">
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-ink mb-4">
+        <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <h1 className="text-3xl sm:text-4xl font-bold text-ink mb-4">
             {/* gradient-text 会置 color: transparent，故只包文字词组，避免图标（currentColor）被透明化 */}
             <span className="gradient-text">技术分析</span>
           </h1>
-          <p className="text-ink-muted text-lg max-w-3xl">
+          <p className="text-ink-muted text-base sm:text-lg max-w-3xl">
             深入探讨技术趋势、架构决策和工程实践，分享团队内部的技术经验和项目案例
           </p>
         </div>
       </div>
 
       {/* 筛选栏：玻璃胶囊容器 + 单个胶囊 Tab（同 Hero/CategoryTabs 模式） */}
-      <div className="container mx-auto px-6 py-6">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="glass-card rounded-full p-1 inline-flex overflow-x-auto flex-nowrap max-w-full">
           {contentTypes.map((type) => (
             <button
@@ -131,7 +131,7 @@ export default function TechContentsPage() {
       </div>
 
       {/* 内容列表 */}
-      <div className="container mx-auto px-6 pb-12">
+      <div className="container mx-auto px-4 sm:px-6 pb-12">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-ink-muted">加载中...</div>

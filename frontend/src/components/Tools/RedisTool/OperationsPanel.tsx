@@ -91,13 +91,14 @@ export const OperationsPanel: React.FC<Props> = ({ configId }) => {
       )}
 
       <Card className="overflow-hidden">
-        <CardHeader className="px-4 py-3 border-b border-border flex flex-row justify-between items-center">
+        {/* 移动端标题与搜索框纵向堆叠,sm 以上恢复同一行 */}
+        <CardHeader className="px-4 py-3 border-b border-border flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-sm font-medium text-ink-muted">配置参数</CardTitle>
           <Input
             value={filter}
             onChange={e => setFilter(e.target.value)}
             placeholder="搜索配置项..."
-            className="w-48 h-8 text-xs"
+            className="w-full sm:w-48 h-8 text-xs"
           />
         </CardHeader>
         <CardContent className="max-h-96 overflow-y-auto p-0">

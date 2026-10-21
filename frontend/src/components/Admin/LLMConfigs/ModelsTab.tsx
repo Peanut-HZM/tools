@@ -174,8 +174,8 @@ export default function ModelsTab() {
           </Button>
         </Card>
       ) : (
-        <Card className="bg-surface-2 overflow-hidden p-0">
-          <table className="w-full">
+        <Card className="bg-surface-2 overflow-x-auto p-0">
+          <table className="w-full min-w-[880px]">
             <thead className="bg-surface-1">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">名称</th>

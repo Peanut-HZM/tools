@@ -435,7 +435,7 @@ export default function ImportExportModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-ink-muted mb-1 block">请求名称</label>
                   <Input

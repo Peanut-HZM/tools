@@ -134,9 +134,9 @@ export default function EnvironmentManagerModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-lg w-full max-w-3xl max-h-[80vh] flex flex-col border border-border">
+      <div className="bg-surface-1 rounded-lg w-[92vw] max-w-3xl max-h-[80vh] flex flex-col border border-border">
         {/* 标题栏 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Globe2 className="w-5 h-5 text-accent-secondary" />
             <h2 className="text-lg font-semibold">环境管理</h2>
@@ -146,9 +146,10 @@ export default function EnvironmentManagerModal({
           </Button>
         </div>
 
-        <div className="flex-1 flex overflow-hidden">
+        {/* 主体：移动端纵向堆叠（环境列表在上、详情在下），md 以上恢复左右分栏 */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* 左侧：环境列表 */}
-          <div className="w-56 border-r border-border flex flex-col overflow-hidden">
+          <div className="w-full md:w-56 max-h-40 md:max-h-none border-b md:border-b-0 md:border-r border-border flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {environments.map(env => (
                 <div

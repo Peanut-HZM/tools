@@ -682,7 +682,7 @@ export default function FileTree({
       {/* New File Input Modal */}
       {showNewFileInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-lg p-4 w-80">
+          <div className="bg-surface-1 rounded-lg p-4 w-[92vw] max-w-80">
             <h3 className="text-ink font-medium mb-3">新建文件</h3>
             <input
               type="text"
@@ -717,7 +717,7 @@ export default function FileTree({
       {/* New Directory Input Modal */}
       {showNewDirInput && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-lg p-4 w-80">
+          <div className="bg-surface-1 rounded-lg p-4 w-[92vw] max-w-80">
             <h3 className="text-ink font-medium mb-3">新建文件夹</h3>
             <input
               type="text"

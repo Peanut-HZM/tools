@@ -289,9 +289,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
         </div>
 
-        {/* Editor Content */}
-        <div className={`flex-1 flex ${showPreviewState ? 'divide-x divide-border/50' : ''}`}>
-          <div className={`flex-1 overflow-y-auto border border-border/50 rounded-b-xl ${showPreviewState ? 'w-1/2' : 'w-full'}`}>
+        {/* Editor Content：移动端纵向堆叠（编辑在上、预览在下），md 起恢复左右分栏 */}
+        <div className={`flex-1 flex flex-col md:flex-row ${showPreviewState ? 'divide-y md:divide-y-0 md:divide-x divide-border/50' : ''}`}>
+          <div className={`flex-1 overflow-y-auto border border-border/50 rounded-b-xl ${showPreviewState ? 'w-full md:w-1/2' : 'w-full'}`}>
             <EditorContent
               editor={editor}
               className="prose prose-invert prose-lg max-w-none p-4 h-full editor-content"
@@ -300,7 +300,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
           {/* Preview Panel */}
           {showPreviewState && (
-            <div className="w-1/2 overflow-y-auto border border-border/50 rounded-b-xl bg-canvas/50 p-4">
+            <div className="w-full md:w-1/2 overflow-y-auto border border-border/50 rounded-b-xl bg-canvas/50 p-4">
               <h3 className="text-sm font-semibold text-ink-faint mb-3 flex items-center">
                 <Eye className="w-4 h-4 text-accent mr-2" />
                 预览

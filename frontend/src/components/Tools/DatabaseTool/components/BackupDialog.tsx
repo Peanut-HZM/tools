@@ -238,7 +238,7 @@ const BackupDialog: React.FC<BackupDialogProps> = ({
                   <SlidersHorizontal className="w-3 h-3 text-ink-faint" />
                   {t.database.dialog.backup.backupMode}
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
                     { value: 'structure_and_data' as BackupMode, label: t.database.dialog.backup.modeStructureData, Icon: Boxes, desc: t.database.dialog.backup.modeDescFull, color: 'blue' },
                     { value: 'structure_only' as BackupMode, label: t.database.dialog.backup.modeStructureOnly, Icon: Workflow, desc: t.database.dialog.backup.modeDescDDL, color: 'amber' },

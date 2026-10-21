@@ -90,26 +90,27 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-8">
-      <Card className="rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-lg border-border/50 animate-in fade-in zoom-in duration-200">
+    /* 移动端全屏铺满（去掉外层 padding），sm 起恢复居中留白 */
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 sm:p-8">
+      <Card className="rounded-2xl w-full max-w-6xl max-h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col shadow-lg border-border/50 animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface-1/50">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center">
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-border/50 bg-surface-1/50">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-lg flex items-center justify-center shrink-0">
               {chapterId ? <Pencil className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-ink">
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold text-ink truncate">
                 {chapterId ? '编辑章节' : '新增章节'}
               </h2>
               <p className="text-ink-muted text-xs">填写章节信息</p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
             <button
               type="button"
               onClick={() => setShowPreview(!showPreview)}
-              className={`px-4 py-2 rounded-lg transition-all font-medium ${
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-all font-medium whitespace-nowrap ${
                 showPreview
                   ? 'bg-accent/20 text-accent border border-accent/30'
                   : 'bg-surface-2 text-ink-muted hover:bg-surface-3'
@@ -121,19 +122,20 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
             <button
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-2 hover:bg-danger/20 text-ink-muted hover:text-danger transition-all"
+              aria-label="关闭"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex">
+        {/* Form：移动端纵向堆叠（表单在上、预览在下），lg 起恢复左右分栏 */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col lg:flex-row min-h-0">
           {/* Left: Form Fields */}
-          <div className={`flex-1 overflow-y-auto p-6 ${showPreview ? 'w-1/2 border-r border-border/50' : 'w-full'}`}>
+          <div className={`flex-1 overflow-y-auto p-4 sm:p-6 ${showPreview ? 'w-full lg:w-1/2 lg:border-r border-border/50' : 'w-full'}`}>
             <div className="space-y-5">
               {/* 标题和标识符 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
                     <Tag className="w-4 h-4 mr-2 text-accent" />
@@ -167,7 +169,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               </div>
 
               {/* 类型和顺序 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-ink-muted mb-2">
                     <Shapes className="w-4 h-4 mr-2 text-accent" />
@@ -267,25 +269,25 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
             </div>
           </div>
 
-          {/* Right: Preview */}
+          {/* Right: Preview：移动端在表单下方堆叠，lg 起占右半栏 */}
           {showPreview && (
-            <div className="w-1/2 border-l border-border/50 overflow-y-auto p-6 bg-canvas/50">
-              <div className="flex items-center justify-between mb-4">
+            <div className="w-full lg:w-1/2 border-t lg:border-t-0 lg:border-l border-border/50 overflow-y-auto p-4 sm:p-6 bg-canvas/50">
+              <div className="flex items-center justify-between mb-4 gap-2">
                 <h3 className="text-lg font-semibold text-ink flex items-center">
                   <Eye className="w-4 h-4 text-accent mr-2" />
                   预览
                 </h3>
                 <span className="text-xs text-ink-faint">Markdown 渲染效果</span>
               </div>
-              <div className="prose prose-invert prose-lg max-w-none bg-surface-1/50 rounded-xl p-6 border border-border/50">
+              <div className="prose prose-invert prose-lg max-w-none bg-surface-1/50 rounded-xl p-4 sm:p-6 border border-border/50">
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(formData.content || '') }} />
               </div>
             </div>
           )}
         </form>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-surface-1/50">
+        {/* Footer：移动端纵向堆叠，sm 起恢复左右分布 */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-t border-border/50 bg-surface-1/50">
           <p className="text-ink-faint text-sm">
             <Info className="w-4 h-4 mr-2" />
             带 * 的字段为必填项
@@ -295,7 +297,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               type="button"
               onClick={onClose}
               variant="secondary"
-              className="px-6 py-2.5 rounded-xl transition-all font-medium"
+              className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 rounded-xl transition-all font-medium"
             >
               取消
             </Button>
@@ -304,7 +306,7 @@ const ChapterForm: React.FC<ChapterFormProps> = ({ chapterId, onClose }) => {
               onClick={handleSubmit}
               disabled={loading}
               variant="default"
-              className="px-6 py-2.5 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover disabled:from-surface-3 disabled:to-surface-3 rounded-xl transition-all font-medium shadow-lg shadow-accent/20 hover:shadow-accent/30 disabled:shadow-none flex items-center"
+              className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover disabled:from-surface-3 disabled:to-surface-3 rounded-xl transition-all font-medium shadow-lg shadow-accent/20 hover:shadow-accent/30 disabled:shadow-none flex items-center justify-center whitespace-nowrap"
             >
               {loading ? (
                 <>

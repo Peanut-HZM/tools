@@ -110,7 +110,7 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col">
+      <Card className="w-[92vw] max-w-3xl max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink flex items-center gap-2">
@@ -136,8 +136,8 @@ const BackupHistoryDialog: React.FC<BackupHistoryDialogProps> = ({
               <p className="text-sm">{th.noBackups}</p>
             </div>
           ) : (
-            <div className="border border-border/50 rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-border">
+            <div className="border border-border/50 rounded-lg overflow-x-auto">
+              <table className="min-w-[560px] w-full divide-y divide-border">
                 <thead>
                   <tr className="bg-canvas/70">
                     <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-ink-faint uppercase tracking-wider">{th.columnFile}</th>

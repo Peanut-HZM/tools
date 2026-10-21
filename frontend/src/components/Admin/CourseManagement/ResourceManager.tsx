@@ -1,8 +1,8 @@
 /**
  * 资源管理组件
  */
-import React, { useState } from 'react';
-import { BookOpen, Folder, FolderOpen, Plus, Pencil, Trash2, ArrowLeft, ReactNode, Code, Scale, Video, FileText, File } from 'lucide-react';
+import React, { useState, type ReactNode } from 'react';
+import { BookOpen, Folder, FolderOpen, Plus, Pencil, Trash2, ArrowLeft, Code, Scale, Video, FileText, File } from 'lucide-react';
 import { useResourceStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import ResourceForm from './ResourceForm';
@@ -90,9 +90,10 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
   };
 
   return (
-    <div className="h-full flex">
+    /* 移动端纵向堆叠（章节选择在上、资源内容在下），lg 起恢复左右分栏 */
+    <div className="h-full flex flex-col lg:flex-row">
       {/* Chapter List */}
-      <div className="w-80 border-r border-border/50 pr-4">
+      <div className="w-full lg:w-80 lg:flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/50 pb-4 lg:pb-0 lg:pr-4">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-ink flex items-center">
             <BookOpen className="w-4 h-4 mr-2 text-accent" />
@@ -100,7 +101,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
           </h3>
           <p className="text-ink-faint text-sm mt-1">点击章节加载对应资源</p>
         </div>
-        <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
+        <div className="space-y-2 overflow-y-auto max-h-64 lg:max-h-[calc(100vh-300px)]">
           {chapters.map((chapter) => {
             const resourceCount = resources[chapter.id]?.length || 0;
             return (
@@ -130,7 +131,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
       </div>
 
       {/* Resource Content */}
-      <div className="flex-1 pl-4">
+      <div className="flex-1 min-w-0 pt-4 lg:pt-0 lg:pl-4">
         {selectedChapterId ? (
           <>
             <div className="flex items-center justify-between mb-6">

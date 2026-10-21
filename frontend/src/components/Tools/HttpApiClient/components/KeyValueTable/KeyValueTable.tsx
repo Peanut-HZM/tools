@@ -163,7 +163,7 @@ export default function KeyValueTable({
         {variableSuggestions.map(s => <option key={s} value={s} />)}
       </datalist>
 
-      <div ref={tableRef} className="overflow-y-auto max-h-72 rounded-lg border border-border">
+      <div ref={tableRef} className="overflow-x-auto overflow-y-auto max-h-72 rounded-lg border border-border">
         {items.length === 0 ? (
           <div className="text-ink-faint text-xs text-center py-6">{emptyHint}</div>
         ) : (

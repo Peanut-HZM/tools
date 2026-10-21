@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   Plug,
   FileInput,
   History,
@@ -69,7 +67,6 @@ import {
 } from "@/components/ui/Select";
 
 export default function HttpApiClient() {
-  const navigate = useNavigate();
   const toast = useToast();
   const { isAuthenticated, authVersion } = useAuth();
   const {
@@ -546,19 +543,10 @@ export default function HttpApiClient() {
   }
 
   return (
-    <div className="flex-1 text-ink flex flex-col overflow-hidden">
-      {/* 顶部工具栏 */}
-      <div className="bg-surface-1 border-b border-border px-4 py-2 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">返回</span>
-          </Button>
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden text-ink">
+      {/* 顶部工具栏：窄屏下标题与操作区分行堆叠，操作区横向滚动，避免按钮溢出视口 */}
+      <div className="bg-surface-1 border-b border-border px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-shrink-0">
+        <div className="flex items-center gap-4 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent-secondary rounded flex items-center justify-center">
               <Plug className="w-4 h-4 text-ink-inverse" />
@@ -567,7 +555,7 @@ export default function HttpApiClient() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
           {/* 环境选择器（下拉切换 + 管理入口） */}
           <EnvironmentSelector
             environments={environments}
@@ -627,9 +615,9 @@ export default function HttpApiClient() {
 
       {/* 主体内容 - 三栏布局 */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 左侧：集合导航 */}
+        {/* 左侧：集合导航（窄屏下限制最大宽度，保证右侧编辑器仍有可用空间） */}
         <div
-          className="bg-surface-1 border-r border-border flex flex-col overflow-hidden flex-shrink-0"
+          className="bg-surface-1 border-r border-border flex flex-col overflow-hidden flex-shrink-0 max-w-[45vw] md:max-w-none"
           style={{ width: sidebarWidth }}
         >
           <div className="p-3 border-b border-border flex items-center justify-between">
@@ -787,7 +775,7 @@ export default function HttpApiClient() {
       {/* 快捷 cURL 调试弹窗 */}
       {showQuickCurl && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-lg w-full max-w-2xl p-6 border border-border">
+          <div className="bg-surface-1 rounded-lg w-[92vw] max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 border border-border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">cURL 快速调试</h3>
               <Button variant="ghost" size="icon" onClick={() => setShowQuickCurl(false)}>
@@ -819,14 +807,14 @@ export default function HttpApiClient() {
       {/* 历史面板弹窗 */}
       {showHistoryPanel && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-lg w-full max-w-2xl max-h-[70vh] flex flex-col border border-border">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="bg-surface-1 rounded-lg w-[92vw] max-w-2xl max-h-[70vh] flex flex-col border border-border">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
               <h2 className="text-lg font-semibold">请求历史</h2>
               <Button variant="ghost" size="icon" onClick={() => setShowHistoryPanel(false)}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               <HistoryPanel
                 history={history}
                 loading={historyLoading}
@@ -858,7 +846,7 @@ export default function HttpApiClient() {
       {/* 集合新建/重命名弹窗 */}
       {collectionModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-lg w-full max-w-md p-6">
+          <div className="bg-surface-1 rounded-lg w-[92vw] max-w-md p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">
               {collectionModal.mode === 'create' ? '新建集合' : '重命名集合'}
             </h3>
@@ -914,7 +902,7 @@ export default function HttpApiClient() {
       {/* 新建请求弹窗 */}
       {showNewRequestForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-surface-1 rounded-lg w-full max-w-md p-6">
+          <div className="bg-surface-1 rounded-lg w-[92vw] max-w-md p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">新建请求</h3>
             <div className="space-y-4">
               <div>

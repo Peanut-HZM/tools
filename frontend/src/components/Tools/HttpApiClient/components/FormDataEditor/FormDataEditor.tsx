@@ -62,7 +62,7 @@ export default function FormDataEditor({ formData, onChange, envVariableNames = 
           暂无 Form-data 条目，点击下方按钮添加（Text 为普通字段，File 为文件上传）
         </div>
       ) : (
-        <div className="rounded-lg border border-border overflow-y-auto max-h-72">
+        <div className="rounded-lg border border-border overflow-x-auto overflow-y-auto max-h-72">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-2/60 text-ink-faint text-xs">

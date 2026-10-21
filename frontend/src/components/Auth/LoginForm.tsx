@@ -54,7 +54,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="glass-card rounded-2xl p-8 relative">
+      <div className="glass-card rounded-2xl p-4 sm:p-8 relative">
         <h2 className="text-2xl font-bold text-ink mb-6 text-center">{t.auth.loginTitle}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">

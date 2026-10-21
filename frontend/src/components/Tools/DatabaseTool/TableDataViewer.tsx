@@ -324,7 +324,7 @@ const TableDataViewer: React.FC<TableDataViewerProps> = ({ configId, databaseNam
            </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* WHERE Clause Input */}
           <div className="relative">
             <label className="absolute -top-2.5 left-2 bg-surface-1 px-1 text-xs text-ink-muted">

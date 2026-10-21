@@ -89,11 +89,11 @@ const CourseDetailPage: React.FC = () => {
       {/* 课程信息 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10 pb-12">
         {/* 课程基本信息卡片：玻璃卡（描边/模糊/悬浮阴影由 glass-card 统一承担） */}
-        <div className="glass-card rounded-xl p-6 mb-6">
-          <h1 className="text-3xl font-bold text-ink mb-4">{course.title}</h1>
+        <div className="glass-card rounded-xl p-4 sm:p-6 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-ink mb-4 break-words">{course.title}</h1>
 
-          {/* 统计数据 */}
-          <div className="flex items-center space-x-6 mb-6">
+          {/* 统计数据：移动端允许换行，sm 起恢复单行 */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
             <div className="flex items-center">
               <Star className="w-4 h-4 text-accent-warning mr-2" />
               <span className="text-ink font-semibold">
@@ -134,10 +134,11 @@ const CourseDetailPage: React.FC = () => {
 
         {/* Tab 导航：玻璃卡外壳（overflow-hidden 保留圆角裁切） */}
         <div className="glass-card rounded-xl overflow-hidden mb-6">
-          <div className="flex border-b border-border/50">
+          {/* 移动端 Tab 可横向滚动，避免溢出裁切 */}
+          <div className="flex border-b border-border/50 overflow-x-auto">
             <button
               onClick={() => setActiveTab('chapters')}
-              className={`px-6 py-4 font-medium transition-colors ${
+              className={`px-4 sm:px-6 py-4 font-medium transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === 'chapters'
                   ? 'bg-accent/10 text-accent border-b-2 border-accent'
                   : 'text-ink-muted hover:text-ink hover:bg-surface-2/30'
@@ -152,20 +153,20 @@ const CourseDetailPage: React.FC = () => {
           </div>
 
           {/* Tab 内容 */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {activeTab === 'chapters' && (
               <div className="space-y-4">
                 {course.chapters?.map((chapter, index) => (
                   <div
                     key={chapter.id}
-                    className="flex items-center justify-between p-4 bg-surface-2/30 rounded-xl border border-border/30 hover:border-accent/30 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-surface-2/30 rounded-xl border border-border/30 hover:border-accent/30 transition-colors"
                   >
-                    <div className="flex items-center">
-                      <span className="w-8 h-8 bg-accent/20 text-accent rounded-full flex items-center justify-center font-semibold text-sm mr-4">
+                    <div className="flex items-center min-w-0">
+                      <span className="w-8 h-8 bg-accent/20 text-accent rounded-full flex items-center justify-center font-semibold text-sm mr-3 sm:mr-4 shrink-0">
                         {index + 1}
                       </span>
-                      <div>
-                        <h4 className="text-ink font-medium">{chapter.title}</h4>
+                      <div className="min-w-0">
+                        <h4 className="text-ink font-medium truncate" title={chapter.title}>{chapter.title}</h4>
                         <p className="text-ink-muted text-sm">
                           {chapter.duration_minutes} 分钟 · {chapter.chapter_type}
                         </p>
@@ -176,6 +177,7 @@ const CourseDetailPage: React.FC = () => {
                       type="button"
                       size="sm"
                       onClick={() => navigate(`/courses/${slug}/learn?chapterId=${chapter.id}`)}
+                      className="w-full sm:w-auto shrink-0"
                     >
                       开始学习
                     </Button>
@@ -187,8 +189,8 @@ const CourseDetailPage: React.FC = () => {
         </div>
 
         {/* 学员评价 - 底部区域：玻璃卡外壳 */}
-        <div className="glass-card rounded-xl p-6">
-          <h3 className="text-xl font-semibold text-ink mb-6 flex items-center">
+        <div className="glass-card rounded-xl p-4 sm:p-6">
+          <h3 className="text-lg sm:text-xl font-semibold text-ink mb-6 flex items-center">
             <MessagesSquare className="w-4 h-4 text-accent mr-3" />
             学员评价
             <span className="ml-3 px-3 py-1 bg-surface-2 rounded-full text-sm text-ink-muted">

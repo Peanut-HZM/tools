@@ -110,9 +110,11 @@ export default function Processes() {
         </Button>
       </div>
       {error && <div className="text-sm text-danger">{error}</div>}
-      <Card className="overflow-hidden bg-canvas">
+      <Card className="bg-canvas">
         <CardContent className="p-0">
-        <table className="w-full text-xs">
+        {/* 窄屏下表格横向滚动，避免列被压成竖排 */}
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-xs">
           <thead>
             <tr className="text-ink-faint border-b border-border">
               <th className="text-left px-3 py-2 cursor-pointer hover:text-ink-muted" onClick={() => handleSort('pid')}>PID</th>
@@ -149,6 +151,7 @@ export default function Processes() {
             )}
           </tbody>
         </table>
+        </div>
         </CardContent>
       </Card>
       {total > 0 && (

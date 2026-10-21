@@ -40,7 +40,7 @@ export default function DevComponentsPage() {
       {/* 颜色 */}
       <section className="space-y-4">
         <h2 className="text-heading-lg font-medium">颜色 Token</h2>
-        <div className="grid grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           {[
             { name: 'canvas',    cls: 'bg-canvas' },
             { name: 'surface-1', cls: 'bg-surface-1' },
@@ -96,7 +96,7 @@ export default function DevComponentsPage() {
       {/* 圆角 */}
       <section className="space-y-4">
         <h2 className="text-heading-lg font-medium">圆角</h2>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           {(['sm', 'md', 'lg', 'xl', '2xl', 'pill'] as const).map((r) => (
             <div key={r} className={`bg-accent w-20 h-20 ${radiusClasses[r]} flex items-center justify-center text-ink-inverse text-body-sm`}>
               {r}
@@ -108,7 +108,7 @@ export default function DevComponentsPage() {
       {/* 阴影 */}
       <section className="space-y-4">
         <h2 className="text-heading-lg font-medium">阴影</h2>
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-6">
           {(['sm', 'md', 'lg', 'xl', 'glow', 'focus'] as const).map((s) => (
             <div key={s} className={`bg-surface-2 ${shadowClasses[s]} w-24 h-24 rounded-lg flex items-center justify-center text-ink-muted text-body-sm`}>
               {s}
@@ -137,7 +137,7 @@ export default function DevComponentsPage() {
           />
 
           {/* 玻璃组 token 小卡：6 个 glass-card + 2 个 glass-panel（面板底色更强、模糊更大） */}
-          <div className="relative grid grid-cols-4 gap-4">
+          <div className="relative grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { name: '--glass-bg',            panel: false, demo: { background: 'var(--glass-bg)' } },
               { name: '--glass-bg-strong',     panel: false, demo: { background: 'var(--glass-bg-strong)' } },
@@ -168,7 +168,7 @@ export default function DevComponentsPage() {
           </span>
 
           {/* 悬浮抬升：hover 上移 4px + 渐变描边 + 发光阴影（reduced-motion 时不上移） */}
-          <div className="glass-card hover-lift rounded-xl p-6 w-72 space-y-1">
+          <div className="glass-card hover-lift rounded-xl p-6 w-full sm:w-72 space-y-1">
             <p className="text-body-lg font-medium">悬浮抬升卡片</p>
             <p className="text-body-sm text-ink-muted">鼠标移入试试：上移 4px + 发光描边</p>
           </div>

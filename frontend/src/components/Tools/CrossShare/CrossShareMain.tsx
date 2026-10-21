@@ -132,12 +132,13 @@ const CrossShareMain: React.FC = () => {
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Main Content - 自适应布局 */}
-      <div className="flex flex-1 overflow-hidden w-full h-full">
+      {/* 移动端（< md）纵向堆叠：导航条在上、主内容在下；md 以上恢复左右布局 */}
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden w-full h-full">
         {/* Sidebar */}
         <Sidebar activePanel={activePanel} onSelectPanel={setActivePanel} />
 
         {/* Main Panel - 使用 flex 布局，内容区域自适应高度 */}
-        <main className="flex-1 overflow-hidden h-full py-6 px-6">
+        <main className="flex-1 min-w-0 min-h-0 overflow-hidden h-full py-6 px-3 md:px-6">
           {renderPanel()}
         </main>
       </div>

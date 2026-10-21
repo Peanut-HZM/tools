@@ -107,7 +107,7 @@ const LLMConfigManager: React.FC = () => {
             {editingId ? '编辑配置' : '添加配置'}
           </h3>
           <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-ink-muted mb-2">配置名称</label>
               <input
@@ -157,7 +157,7 @@ const LLMConfigManager: React.FC = () => {
                 required
               />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className="block text-ink-muted mb-2">API Key</label>
               <input
                 type="password"
@@ -192,8 +192,8 @@ const LLMConfigManager: React.FC = () => {
       {loading ? (
         <div className="text-ink">加载中...</div>
       ) : (
-        <Card className="overflow-hidden">
-          <table className="w-full">
+        <Card className="overflow-x-auto">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-surface-2">
               <tr>
                 <th className="px-4 py-3 text-left text-ink-muted">名称</th>

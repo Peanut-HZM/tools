@@ -263,8 +263,8 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
         <div className="flex-1 overflow-hidden">
           <TabsContent value="body" className="h-full flex flex-col">
             <div className="flex-1 overflow-y-auto">
-              {/* Body 视图切换 */}
-              <div className="flex items-center gap-1 px-4 py-1.5 border-b border-border/50 bg-surface-1/20 sticky top-0">
+              {/* Body 视图切换：窄屏下允许换行，避免视图按钮与 JSONPath 过滤框挤出视口 */}
+              <div className="flex flex-wrap items-center gap-1 px-4 py-1.5 border-b border-border/50 bg-surface-1/20 sticky top-0">
                 {(['pretty', 'raw', ...(contentType === 'html' || contentType === 'image' ? ['preview' as const] : [])] as const).map(view => (
                   <button
                     key={view}
@@ -287,7 +287,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                       value={jsonPathFilter}
                       onChange={(e) => setJsonPathFilter(e.target.value)}
                       placeholder="JSONPath 过滤，如 $.data.items[0]"
-                      className="h-6 w-56 text-xs font-mono"
+                      className="h-6 w-40 sm:w-56 text-xs font-mono"
                     />
                     {jsonPathFilter && (
                       <button onClick={() => setJsonPathFilter('')} className="text-xs text-ink-faint hover:text-ink">
@@ -351,7 +351,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                     key={key}
                     className="flex items-start gap-4 py-1.5 border-b border-border/50 last:border-0"
                   >
-                    <span className="font-mono text-xs text-accent-secondary min-w-[220px] break-all">{key}</span>
+                    <span className="font-mono text-xs text-accent-secondary w-1/2 min-w-0 sm:w-auto sm:min-w-[220px] break-all">{key}</span>
                     <span className="font-mono text-xs text-ink-muted flex-1 break-all">{value}</span>
                   </div>
                 ))}
@@ -416,7 +416,7 @@ export default function ResponseViewer({ response, request, envVariables = {} }:
                 <div className="bg-canvas border border-border rounded-lg divide-y divide-border/50">
                   {Object.entries(response.request_headers || {}).map(([key, value]) => (
                     <div key={key} className="flex items-start gap-3 px-3 py-1.5">
-                      <span className="font-mono text-xs text-accent-secondary min-w-[200px] break-all">{key}</span>
+                      <span className="font-mono text-xs text-accent-secondary w-1/2 min-w-0 sm:w-auto sm:min-w-[200px] break-all">{key}</span>
                       <span className="font-mono text-xs text-ink-muted flex-1 break-all">{value}</span>
                     </div>
                   ))}

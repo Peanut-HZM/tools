@@ -104,7 +104,8 @@ const CourseManagement: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      {/* 移动端：页头纵向堆叠，避免标题与按钮挤在同一行 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-ink flex items-center">
             <GraduationCap className="w-5 h-5 text-accent mr-3" />
@@ -126,8 +127,8 @@ const CourseManagement: React.FC = () => {
       {/* 筛选和操作栏 */}
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* 状态筛选 */}
-          <div className="flex items-center gap-3">
+          {/* 筛选器：移动端允许换行，搜索框独占整行 */}
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -141,13 +142,13 @@ const CourseManagement: React.FC = () => {
             </Select>
 
             {/* 关键词搜索 */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <input
                 type="text"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="搜索课程或章节内容..."
-                className="px-4 py-2 pl-10 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent w-72"
+                className="px-4 py-2 pl-10 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent w-full sm:w-72"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />

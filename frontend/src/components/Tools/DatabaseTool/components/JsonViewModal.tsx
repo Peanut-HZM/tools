@@ -36,7 +36,7 @@ const JsonViewModal: React.FC<JsonViewModalProps> = ({ isOpen, onClose, data, ti
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
-      <Card className="w-full max-w-3xl border border-border flex flex-col max-h-[85vh]">
+      <Card className="w-[92vw] max-w-3xl border border-border flex flex-col max-h-[85vh]">
         <div className="flex justify-between items-center p-4 border-b border-border bg-surface-1">
           <h3 className="text-lg font-medium text-ink flex items-center gap-2">
              <Code className="w-4 h-4 text-accent-info" />

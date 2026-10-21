@@ -1035,9 +1035,9 @@ export default function CursorHistory() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full sm:w-auto items-center gap-3">
             {/* 全局搜索 */}
-            <div className="relative w-96">
+            <div className="relative w-full sm:w-96">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -1243,7 +1243,8 @@ export default function CursorHistory() {
         </div>
       ) : (
         /* 三栏布局（高度根据路径设置面板动态调整） */
-        <div className="max-w-[1920px] mx-auto flex" style={{ height: showPathSettings ? 'calc(100vh - 170px)' : 'calc(100vh - 73px)' }}>
+        /* 移动端（< md）纵向堆叠：项目栏、会话栏各占一行整宽，消息区占据剩余高度；md 以上恢复横向三栏 */
+        <div className="mx-auto flex min-h-0 w-full max-w-[1920px] flex-1 flex-col md:flex-row">
 
           {/* 统计面板（覆盖模式） */}
           {showStatsPanel && (
@@ -1277,7 +1278,7 @@ export default function CursorHistory() {
 
           {/* 最近访问面板（覆盖模式） */}
           {showRecentPanel && (
-          <div className="w-72 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20">
+          <div className="w-[90vw] max-w-72 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20">
             <div className="p-3 border-b border-border/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <History className="w-3.5 h-3.5" />
@@ -1348,7 +1349,14 @@ export default function CursorHistory() {
 
           {/* 第一栏：项目列表（可折叠） */}
           {showProjectPanel && (
-          <ResizablePanel defaultWidth={280} minWidth={220} maxWidth={450} storageKey="cursor-projects-width">
+          <ResizablePanel
+            defaultWidth={280}
+            minWidth={220}
+            maxWidth={450}
+            storageKey="cursor-projects-width"
+            className="h-40 w-full max-w-full shrink-0 md:h-full md:w-auto"
+            mobileFullWidth
+          >
           <div className="w-full h-full border-r border-border/30 flex flex-col bg-canvas/40">
             <div className="pl-1 pr-2 py-3 border-b border-border/30">
               <div className="relative">
@@ -1492,7 +1500,14 @@ export default function CursorHistory() {
           )}
 
           {/* 第二栏：会话列表 */}
-          <ResizablePanel defaultWidth={300} minWidth={250} maxWidth={500} storageKey="cursor-sessions-width">
+          <ResizablePanel
+            defaultWidth={300}
+            minWidth={250}
+            maxWidth={500}
+            storageKey="cursor-sessions-width"
+            className="h-40 w-full max-w-full shrink-0 md:h-full md:w-auto"
+            mobileFullWidth
+          >
           <div className="w-full h-full border-r border-border/30 flex flex-col bg-canvas/20">
             <div className="p-3 border-b border-border/30">
               {selectedProject ? (
@@ -1631,7 +1646,7 @@ export default function CursorHistory() {
 
 
           {/* 第三栏：消息内容 */}
-          <div className="flex-1 flex flex-col min-w-0 bg-canvas">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-canvas">
             {selectedSession ? (
               <>
                 {/* 会话标题 */}
@@ -1755,7 +1770,7 @@ export default function CursorHistory() {
             {/* 导出格式选择 */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-ink-muted mb-3">导出格式</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {(['markdown', 'json', 'html'] as const).map((format) => (
                   <button
                     key={format}
@@ -1901,7 +1916,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ onClose, onSelectSessio
   };
 
   return (
-    <div className="w-72 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20">
+    <div className="w-[90vw] max-w-72 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20">
       <div className="p-3 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Star className="w-3.5 h-3.5" />
@@ -1993,7 +2008,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-96 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20 overflow-y-auto">
+    <div className="w-[90vw] max-w-96 flex-shrink-0 border-r border-border/30 flex flex-col bg-canvas/40 absolute left-0 top-0 bottom-0 z-20 overflow-y-auto">
       <div className="p-3 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-3.5 h-3.5" />
@@ -2015,7 +2030,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ onClose }) => {
         ) : (
           <>
             {/* 概览卡片 */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-surface-1/60 border border-border/50 rounded-xl p-3">
                 <div className="text-xs text-ink-muted mb-1">总会话</div>
                 <div className="text-2xl font-bold text-ink">{stats.overview.total_sessions}</div>

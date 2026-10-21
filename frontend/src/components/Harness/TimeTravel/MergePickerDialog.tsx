@@ -42,7 +42,7 @@ export function MergePickerDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl mx-4 p-5 max-h-[80vh] overflow-y-auto">
+      <div className="relative bg-white rounded-xl shadow-lg w-[92vw] max-w-2xl p-5 max-h-[80vh] overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4">Pick-from 合并</h2>
         {branches.map((b) => (
           <div key={b.id} className="mb-4">

@@ -159,7 +159,7 @@ export default function OssManagement() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-ink-muted">
+        <table className="w-full min-w-[720px] text-left text-ink-muted">
           <thead className="bg-surface-2 text-ink uppercase text-xs">
             <tr>
               <th className="px-6 py-3">预览</th>
@@ -262,9 +262,9 @@ export default function OssManagement() {
 
           {previewFile && (
             <div className="flex-1 overflow-hidden">
-              {/* 文件信息栏 */}
-              <div className="flex items-center justify-between mb-3 text-sm text-ink-muted bg-surface-2 rounded px-3 py-2">
-                <div className="flex items-center gap-4">
+              {/* 文件信息栏：窄屏下允许换行，避免类型/大小/上传者与下载按钮互相挤压 */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 text-sm text-ink-muted bg-surface-2 rounded px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <span>类型: {previewFile.type || '未知'}</span>
                   <span>大小: {formatSize(previewFile.size)}</span>
                   <span>上传者: {previewFile.uploaded_by}</span>

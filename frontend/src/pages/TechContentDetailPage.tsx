@@ -114,8 +114,8 @@ export default function TechContentDetailPage() {
     <div className="bg-canvas min-h-screen">
       {/* 面包屑导航 */}
       <div className="border-b border-border">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-2 text-sm text-ink-muted">
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-2 text-sm text-ink-muted flex-wrap">
             <Link to="/" className="hover:text-ink transition-colors">
               首页
             </Link>
@@ -131,9 +131,9 @@ export default function TechContentDetailPage() {
 
       {/* 文章头部 */}
       <div className="border-b border-border">
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {/* 标签 */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium border ${
                 contentTypeColors[content.contentType]
@@ -153,7 +153,7 @@ export default function TechContentDetailPage() {
           </div>
 
           {/* 标题 */}
-          <h1 className="text-3xl md:text-4xl font-bold text-ink mb-6">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-ink mb-6 break-words">
             {content.title}
           </h1>
 
@@ -167,15 +167,15 @@ export default function TechContentDetailPage() {
                 <div>
                   <div className="text-ink font-medium">{content.author}</div>
                   <div className="text-ink-muted text-sm">
-                    发布于 {formatDate(content.publishedAt)} · 预计阅读 {content.reading_time} 分钟
+                    发布于 {formatDate(content.publishedAt)} · 预计阅读 {content.readingTime} 分钟
                   </div>
                 </div>
               </>
             )}
           </div>
 
-          {/* 统计信息 */}
-          <div className="flex gap-6 pt-4 text-ink-muted text-sm">
+          {/* 统计信息：移动端允许换行 */}
+          <div className="flex flex-wrap gap-x-6 gap-y-2 pt-4 text-ink-muted text-sm">
             <span className="flex items-center gap-1.5">
               <Eye className="w-4 h-4" />
               {content.views} 阅读
@@ -194,7 +194,7 @@ export default function TechContentDetailPage() {
 
       {/* 封面图 */}
       {content.coverImage && (
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <img
             src={content.coverImage}
             alt={content.title}
@@ -205,13 +205,13 @@ export default function TechContentDetailPage() {
 
       {/* 章节导航 */}
       {content.chapters && content.chapters.length > 0 && (
-        <div className="container mx-auto px-6 py-8">
-          <h2 className="text-xl font-semibold text-ink mb-4">章节导航</h2>
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <h2 className="text-lg sm:text-xl font-semibold text-ink mb-4">章节导航</h2>
           <div className="flex flex-wrap gap-2">
             {content.chapters.map((chapter) => (
               <div
                 key={chapter.id}
-                className="px-4 py-2 bg-surface-1 rounded-lg text-ink-muted text-sm hover:bg-surface-2 cursor-pointer transition-colors"
+                className="px-4 py-2 bg-surface-1 rounded-lg text-ink-muted text-sm hover:bg-surface-2 cursor-pointer transition-colors max-w-full break-words"
               >
                 {chapter.order}. {chapter.title}
               </div>
@@ -221,7 +221,7 @@ export default function TechContentDetailPage() {
       )}
 
       {/* 正文内容 */}
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto">
           {/* prose 双主题：不再写死 prose-invert，标题/段落/链接走语义 token（同 CourseDetailPage 写法） */}
           <article className="prose dark:prose-invert prose-headings:text-ink prose-p:text-ink-muted prose-a:text-accent prose-lg max-w-none">

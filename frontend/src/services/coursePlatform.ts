@@ -12,6 +12,17 @@ export interface Course {
   title: string;
   description: string;
   cover_image?: string | null;
+  // 后台课程接口额外返回的字段（前台 /api/courses 不返回，故均为可选）
+  status?: 'draft' | 'published' | 'archived';
+  category_id?: number | null;
+  content_type?: string | null;
+  price?: number | null;
+  reading_time?: number | null;
+  tags?: string[] | null;
+  author?: string | null;
+  instructor_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
   category?: {
     id: number;
     name: string;
@@ -50,6 +61,10 @@ export interface CourseChapter {
   is_locked: boolean;
   duration_minutes: number;
 }
+
+/** 章节创建/更新请求体：字段与 CourseChapter 一致，id 由服务端生成 */
+export type CourseChapterCreate = Omit<CourseChapter, 'id'>;
+export type CourseChapterUpdate = Partial<Omit<CourseChapter, 'id'>>;
 
 export interface CourseCategory {
   id: number;

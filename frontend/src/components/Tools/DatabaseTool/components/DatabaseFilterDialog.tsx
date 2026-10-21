@@ -87,7 +87,7 @@ const DatabaseFilterDialog: React.FC<DatabaseFilterDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
-      <Card className="w-full max-w-md border border-border flex flex-col max-h-[80vh]">
+      <Card className="w-[92vw] max-w-md border border-border flex flex-col max-h-[80vh]">
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink">
              Filter Databases

@@ -110,7 +110,7 @@ const EvalDialog: React.FC<EvalDialogProps> = ({ agentId, agentName, onClose }) 
 
         {result && (
           <div className="border-t border-border pt-4">
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div className="p-3 bg-surface-2 rounded-lg text-center">
                 <div className="text-2xl font-bold text-ink">
                   {result.passed_cases}/{result.total_cases}

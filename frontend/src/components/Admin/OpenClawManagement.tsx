@@ -182,7 +182,7 @@ export default function OpenClawManagement() {
       {/* 状态卡片 */}
       <div className="bg-surface-1/50 rounded-xl p-6 border border-border/50">
         <h2 className="text-lg font-semibold text-ink mb-4">连接状态</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <p className="text-ink-muted text-sm">状态</p>
             <div className="flex items-center gap-2 mt-1">

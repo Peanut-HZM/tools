@@ -138,7 +138,7 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <Card className="w-11/12 max-w-6xl max-h-[90vh] flex flex-col">
+      <Card className="w-[92vw] max-w-6xl max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h3 className="text-lg font-medium text-ink">
             Modify Table: {tableName}
@@ -166,9 +166,9 @@ const ModifyTableDialog: React.FC<ModifyTableDialogProps> = ({
                    />
                </div>
 
-               {/* Columns List */}
-               <div className="border border-border rounded overflow-hidden">
-                   <table className="min-w-full divide-y divide-border">
+               {/* Columns List：窄屏下表格横向滚动，避免 8 列被压成竖排 */}
+               <div className="border border-border rounded overflow-x-auto">
+                   <table className="min-w-[720px] w-full divide-y divide-border">
                        <thead className="bg-canvas">
                            <tr>
                                <th className="px-3 py-2 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">Name</th>

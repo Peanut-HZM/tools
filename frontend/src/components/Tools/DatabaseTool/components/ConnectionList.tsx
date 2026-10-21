@@ -109,7 +109,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface-1 border-r border-border">
+    <div className="flex flex-col h-full bg-surface-1 border-b border-r-0 md:border-b-0 md:border-r border-border">
       <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
             <h2 className="font-semibold text-ink">{t.database.connections}</h2>
@@ -1083,7 +1083,7 @@ const items: MenuItem[] = [
 
       {dbDdl && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <Card className="w-3/4 max-w-4xl max-h-[90vh] flex flex-col">
+            <Card className="w-[92vw] max-w-4xl max-h-[90vh] flex flex-col">
               <div className="flex justify-between items-center p-4 border-b border-border">
                 <h3 className="text-lg font-medium text-ink">
                   {t.database.dialog.databaseDDL.replace('{name}', dbName)}

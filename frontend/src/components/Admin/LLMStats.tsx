@@ -90,7 +90,7 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
   const getCategoryLabel = (c: string) => (c === 'code' ? '编程' : '对话');
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       {/* 供应商数 */}
       <Card className="bg-surface-2">
         <CardContent className="pt-4">
@@ -127,7 +127,8 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
 
       {/* 按供应商类型统计 */}
       {Object.keys(byProviderType).length > 0 && (
-        <div className="col-span-2 mt-2">
+        /* 基础栅格为 grid-cols-1，col-span 必须从 1 起，否则单列下会生成隐式第二列撑破容器 */
+        <div className="col-span-1 sm:col-span-2 mt-2">
           <h4 className="text-sm font-semibold text-ink-muted mb-3">按供应商类型</h4>
           <div className="space-y-2">
             {Object.entries(byProviderType).map(([type, count]) => (
@@ -152,7 +153,8 @@ const LLMStats: React.FC<LLMStatsProps> = ({ refreshInterval = 30000 }) => {
 
       {/* 按分类统计 */}
       {Object.keys(byCategory).length > 0 && (
-        <div className="col-span-2 mt-2">
+        /* 同上：单列栅格下不可用 col-span-2 */
+        <div className="col-span-1 sm:col-span-2 mt-2">
           <h4 className="text-sm font-semibold text-ink-muted mb-3">按分类</h4>
           <div className="space-y-2">
             {Object.entries(byCategory).map(([cat, count]) => (

@@ -329,14 +329,15 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
 
   return (
     <div className="flex flex-col h-full gap-4 p-4 bg-canvas">
-        <div className="flex items-center space-x-4 bg-surface-1 p-2 rounded-md border border-border">
+        {/* 工具栏：移动端允许换行，sm 起恢复单行 */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 bg-surface-1 p-2 rounded-md border border-border">
         <div className="flex items-center space-x-2">
           <label className="text-sm text-ink-muted">Connection:</label>
           <Select
             value={configId || ''}
             onValueChange={(v) => handleConfigChange(v)}
           >
-            <SelectTrigger className="min-w-[150px]">
+            <SelectTrigger className="min-w-0 sm:min-w-[150px] w-full sm:w-auto">
               <SelectValue placeholder="Select Connection" />
             </SelectTrigger>
             <SelectContent>
@@ -356,7 +357,7 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
                 onValueChange={(v) => handleDatabaseChange(v)}
                 disabled={dbLoading}
               >
-                <SelectTrigger className="min-w-[150px]">
+                <SelectTrigger className="min-w-0 sm:min-w-[150px] w-full sm:w-auto">
                   <SelectValue placeholder={`Default (${currentConfig.database_name || 'None'})`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -424,7 +425,8 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
            <p>{t.database.status.disconnected}</p>
         </div>
       ) : (
-        <div className="flex flex-1 gap-4 overflow-hidden">
+        /* 移动端纵向堆叠（SQL 区在上、历史面板在下），md 起恢复左右分栏 */
+        <div className="flex flex-col md:flex-row flex-1 gap-4 overflow-hidden">
           <div
             ref={leftColumnRef}
             className={`flex flex-col gap-4 transition-all min-w-0 ${isDragging ? 'select-none' : ''} ${showHistoryPanel ? 'flex-1' : 'flex-[1_1_0%]'}`}
@@ -498,7 +500,8 @@ const SQLExecutor: React.FC<SQLExecutorProps> = ({
           </div>
           
           {showHistoryPanel && (
-            <div className="w-80 shrink-0">
+            /* 移动端整行堆叠在编辑器下方，md 起恢复右侧固定栏 */
+            <div className="w-full md:w-80 shrink-0">
               <SQLHistoryPanel
                 isOpen={showHistoryPanel}
                 onClose={() => setShowHistoryPanel(false)}

@@ -52,7 +52,7 @@ export const ClusterSwitcher: React.FC = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border hover:bg-surface-2 transition-colors min-w-[180px] max-w-[260px] outline-none"
+        className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border hover:bg-surface-2 transition-colors min-w-0 sm:min-w-[180px] max-w-[260px] outline-none"
         aria-label={k8sT.topBar.selectCluster}
       >
         {activeConn ? (
@@ -65,7 +65,7 @@ export const ClusterSwitcher: React.FC = () => {
         )}
         <ChevronDown className="w-3 h-3 ml-auto text-ink-muted" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72 max-h-80 overflow-y-auto">
+      <DropdownMenuContent align="start" className="w-[90vw] max-w-72 max-h-80 overflow-y-auto">
         {sortedConns.length === 0 ? (
           <DropdownMenuLabel className="px-3 py-4 text-sm text-ink-faint text-center">
             {k8sT.emptyConnections}

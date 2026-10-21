@@ -1,7 +1,7 @@
 /**
  * 课程导入/导出对话框
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, type ReactNode } from 'react';
 import {
   X,
   Info,
@@ -18,7 +18,6 @@ import {
   Eye,
   ArrowLeft,
   Check,
-  ReactNode,
   Upload,
   CloudUpload,
 } from 'lucide-react';
@@ -209,11 +208,12 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <Card className="rounded-2xl shadow-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+      {/* 移动端全屏铺满，sm 起恢复居中卡片 */}
+      <Card className="rounded-none sm:rounded-2xl shadow-lg max-w-2xl w-full h-full sm:h-auto max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-border shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
               mode === 'export'
                 ? 'bg-success/20 border border-success/30'
                 : mode === 'import'
@@ -228,8 +228,8 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
                 <Eye className="w-5 h-5 text-accent" />
               )}
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-ink">
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-2xl font-bold text-ink truncate">
                 {mode === 'export' && '导出课程数据'}
                 {mode === 'import' && '导入课程数据'}
                 {mode === 'preview' && '导入预览'}
@@ -243,14 +243,15 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all"
+            className="p-2 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all shrink-0"
+            aria-label="关闭"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh] flex-1 min-h-0">
           {mode === 'export' && (
             <div className="space-y-6">
               {/* 导出说明卡片 */}
@@ -279,7 +280,7 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
               {/* 导出格式选项 */}
               <div className="space-y-3">
                 <label className="text-ink-muted text-sm font-medium">导出格式:</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* JSON 格式 */}
                   <button
                     onClick={handleExport}
@@ -436,18 +437,18 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           {mode === 'preview' && previewData && (
             <div className="space-y-5">
               {/* 统计卡片 */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="bg-accent-info/10 rounded-xl border border-accent-info/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">导入章节</div>
-                  <div className="text-ink text-3xl font-bold">{previewData.chapters_to_import || 0}</div>
+                  <div className="text-ink text-2xl sm:text-3xl font-bold">{previewData.chapters_to_import || 0}</div>
                 </div>
                 <div className="bg-gradient-to-br from-warning/10 to-accent-warm/10 rounded-xl border border-warning/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">更新章节</div>
-                  <div className="text-ink text-3xl font-bold">{previewData.chapters_to_update || 0}</div>
+                  <div className="text-ink text-2xl sm:text-3xl font-bold">{previewData.chapters_to_update || 0}</div>
                 </div>
                 <div className="bg-surface-3/10 rounded-xl border border-border/20 p-4">
                   <div className="text-ink-muted text-sm mb-1">跳过章节</div>
-                  <div className="text-ink text-3xl font-bold">{previewData.chapters_to_skip || 0}</div>
+                  <div className="text-ink text-2xl sm:text-3xl font-bold">{previewData.chapters_to_skip || 0}</div>
                 </div>
               </div>
 
@@ -512,20 +513,20 @@ export const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-border bg-surface-1/30">
+        {/* Footer：移动端按钮铺满一行，sm 起恢复靠右 */}
+        <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-border bg-surface-1/30 shrink-0">
           {mode === 'export' && (
             <>
               <button
                 onClick={onClose}
-                className="px-5 py-2.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all"
+                className="px-4 sm:px-5 py-2.5 text-ink-muted hover:text-ink hover:bg-surface-2/50 rounded-lg transition-all whitespace-nowrap"
               >
                 取消
               </button>
               <button
                 onClick={handleExport}
                 disabled={loading}
-                className="px-6 py-2.5 bg-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2"
+                className="px-5 sm:px-6 py-2.5 bg-success text-ink rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-success/20 hover:shadow-success/30 hover:-translate-y-0.5 flex items-center gap-2 whitespace-nowrap"
               >
                 {loading ? (
                   <>

@@ -652,7 +652,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
                    >
                      <div>
                        {col}
-                       {primaryKey?.includes(col) && <Key className="w-2.5 h-2.5 text-warning/70 ml-1" title="Primary Key" />}
+                       {primaryKey?.includes(col) && <Key className="w-2.5 h-2.5 text-warning/70 ml-1" aria-label="Primary Key" />}
                      </div>
                      {comment && (
                        <div className="text-[10px] text-ink-faint font-normal normal-case tracking-normal mt-0.5 truncate">
@@ -739,7 +739,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 border border-border rounded-lg shadow-md max-w-md w-full mx-4">
+          <div className="bg-surface-1 border border-border rounded-lg shadow-md max-w-md w-[92vw]">
             <div className="px-6 py-4 border-b border-border flex items-center gap-3">
               <AlertTriangle className="w-6 h-6 text-accent-warning" />
               <h3 className="text-lg font-semibold text-ink">{t.database.batchDelete.confirmTitle}</h3>

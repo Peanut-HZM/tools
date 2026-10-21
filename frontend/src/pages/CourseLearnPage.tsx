@@ -195,20 +195,23 @@ const CourseLearnPage: React.FC = () => {
     <div className="min-h-screen bg-canvas">
       {/* Header：玻璃面板（去左右/顶部描边使其贴边），底部描边由 glass-panel 的玻璃边框承担 */}
       <header className="glass-panel border-x-0 border-t-0 rounded-none">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          {/* 移动端纵向堆叠（标题在上、进度条在下），sm 起恢复左右分布 */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
               <button
                 onClick={() => navigate(`/courses/${slug}`)}
                 title="返回课程详情"
                 aria-label="返回课程详情"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink/80 transition-colors hover:bg-glass-bg hover:text-ink"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink/80 transition-colors hover:bg-glass-bg hover:text-ink"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
-              <div>
-                <h1 className="text-xl font-bold text-ink">{course.title}</h1>
-                <p className="text-sm text-ink-muted">
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-ink truncate" title={course.title}>
+                  {course.title}
+                </h1>
+                <p className="text-xs sm:text-sm text-ink-muted">
                   进度：{completedCount}/{course.chapters.length} 章节
                 </p>
               </div>
@@ -234,11 +237,11 @@ const CourseLearnPage: React.FC = () => {
 
       {/* Main Content */}
       {/* 移动端纵向堆叠（章节列表在上、内容在下）并整区滚动；lg 起恢复左右分栏且锁定高度 */}
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] lg:overflow-hidden overflow-y-auto">
+      <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-80px)] lg:overflow-hidden overflow-y-auto">
         {/* Left Sidebar - Chapter Navigation */}
         {/* 侧栏为全高面板：用 glass-panel 强底色 + 去上/下/左描边，仅保留右侧玻璃描边与主内容区分隔 */}
-        {/* 移动端占满一行堆叠在内容上方，lg 起固定 80 宽侧栏 */}
-        <aside className="w-full lg:w-80 lg:flex-shrink-0 glass-panel rounded-none border-y-0 border-l-0 overflow-y-auto">
+        {/* 移动端占满一行堆叠在内容上方（限高可滚动，避免章节多时把内容挤到屏幕外），lg 起固定 80 宽侧栏 */}
+        <aside className="w-full lg:w-80 lg:flex-shrink-0 glass-panel rounded-none border-y-0 border-l-0 overflow-y-auto max-h-[45vh] lg:max-h-none">
           <div className="p-4">
             <h2 className="text-lg font-semibold text-ink mb-4">📚 课程章节</h2>
             <div className="space-y-2">
@@ -281,22 +284,23 @@ const CourseLearnPage: React.FC = () => {
 
         {/* Main Content Area：min-w-0 允许 flex 子项收缩，防止宽代码块/表格把行撑出横向溢出 */}
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="container mx-auto px-8 py-8">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             {!enrolled ? (
               /* 未报名状态 - 显示课程详情和报名表单 */
               <div className="max-w-3xl mx-auto">
                 {/* 报名卡：玻璃卡外壳（内含报名 CTA，与页面其余玻璃卡保持一致） */}
-                <div className="glass-card rounded-xl p-8 text-center">
+                <div className="glass-card rounded-xl p-5 sm:p-8 text-center">
                   <div className="mb-6">
                     <GraduationCap className="w-12 h-12 text-accent mx-auto" />
                   </div>
-                  <h2 className="text-2xl font-bold text-ink mb-4">
+                  <h2 className="text-xl sm:text-2xl font-bold text-ink mb-4">
                     报名课程以开始学习
                   </h2>
-                  <p className="text-ink-muted mb-6">
+                  <p className="text-ink-muted mb-6 break-words">
                     {course.description}
                   </p>
-                  <div className="flex items-center justify-center space-x-6 mb-6">
+                  {/* 统计三项：移动端允许换行，sm 起恢复单行均分 */}
+                  <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 mb-6">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-ink">
                         {course.chapters.length}
@@ -320,7 +324,7 @@ const CourseLearnPage: React.FC = () => {
                   <Button
                     type="button"
                     onClick={handleEnroll}
-                    className="h-auto px-8 py-4 rounded-xl font-semibold"
+                    className="h-auto w-full sm:w-auto px-6 sm:px-8 py-4 rounded-xl font-semibold"
                   >
                     <BookOpen className="w-4 h-4 mr-2 inline" />
                     免费报名开始学习
@@ -331,9 +335,9 @@ const CourseLearnPage: React.FC = () => {
               /* 已报名 - 显示章节内容 */
               <div className="max-w-4xl mx-auto">
                 {/* Chapter Header */}
-                <div className="mb-8">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <span className="text-4xl">
+                <div className="mb-6 sm:mb-8">
+                  <div className="flex items-start sm:items-center space-x-3 mb-4">
+                    <span className="text-3xl sm:text-4xl shrink-0">
                       {currentChapter.chapter_type === 'story' && '📖'}
                       {currentChapter.chapter_type === 'code' && '💻'}
                       {currentChapter.chapter_type === 'quiz' && '📝'}

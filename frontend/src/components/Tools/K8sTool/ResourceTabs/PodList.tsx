@@ -149,9 +149,9 @@ export const PodList: React.FC = () => {
         </div>
       </div>
 
-      {/* 表格区域 */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <table className="w-full text-sm relative">
+      {/* 表格区域：移动端窄屏下允许横向滚动，避免 7 列被压成竖排 */}
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
+        <table className="w-full min-w-[640px] text-sm relative">
           <thead className="sticky top-0 bg-surface-1 text-ink-muted border-b border-border z-10">
             <tr>
               <th className="text-left px-3 py-2 font-medium">{k8sT.podList.status}</th>

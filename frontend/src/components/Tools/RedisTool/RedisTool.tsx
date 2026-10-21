@@ -69,7 +69,8 @@ const RedisTool: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-canvas overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full min-h-0 overflow-hidden bg-canvas">
+      {/* 移动端纵向堆叠(侧栏在上、内容在下),md 以上恢复左右分栏 */}
       <ConnectionList
         configs={configs}
         selectedId={selectedConfigId}

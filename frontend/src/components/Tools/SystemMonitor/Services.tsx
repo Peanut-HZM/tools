@@ -74,9 +74,11 @@ export default function Services() {
         </div>
       )}
       {error && <div className="text-sm text-danger">{error}</div>}
-      <Card className="overflow-hidden bg-canvas">
+      <Card className="bg-canvas">
         <CardContent className="p-0">
-        <table className="w-full text-xs">
+        {/* 窄屏下表格横向滚动，避免列被压成竖排 */}
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] text-xs">
           <thead>
             <tr className="text-ink-faint border-b border-border">
               <th className="text-left px-3 py-2">服务名</th>
@@ -117,6 +119,7 @@ export default function Services() {
             )}
           </tbody>
         </table>
+        </div>
         </CardContent>
       </Card>
       <ConfirmDialog

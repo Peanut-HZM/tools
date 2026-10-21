@@ -97,11 +97,12 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
   };
 
   return (
-    <div className="flex h-full bg-canvas">
-      <div className="w-1/3 border-r border-border flex flex-col bg-canvas">
+    <div className="flex flex-col md:flex-row h-full bg-canvas">
+      {/* 移动端整行堆叠并限制高度,列表自身滚动;md 以上恢复 1/3 宽侧栏 */}
+      <div className="w-full md:w-1/3 max-h-[50vh] md:max-h-none border-b border-border md:border-b-0 md:border-r flex flex-col bg-canvas">
         <div className="p-4 border-b border-border space-y-2">
           <div className="flex space-x-2">
-            <div className="relative flex-1">
+            <div className="relative min-w-0 flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-faint" />
                 <Input
                 type="text"
@@ -119,7 +120,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
                 setBatchMode(!batchMode);
                 setSelectedKeys(new Set());
               }}
-              className={batchMode ? 'bg-accent text-ink-inverse border-accent-hover hover:bg-accent-hover hover:text-ink-inverse' : ''}
+              className={`shrink-0 ${batchMode ? 'bg-accent text-ink-inverse border-accent-hover hover:bg-accent-hover hover:text-ink-inverse' : ''}`}
               title={batchMode ? '退出批量' : '批量模式'}
             >
               <CheckSquare className="w-4 h-4" />
@@ -128,6 +129,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
               variant="ghost"
               size="icon"
               onClick={handleRefresh}
+              className="shrink-0"
               title={t.redis.refresh}
             >
               <RefreshCw className="w-4 h-4" />
@@ -135,6 +137,7 @@ export const KeyExplorer: React.FC<Props> = ({ configId }) => {
             <Button
               size="icon"
               onClick={() => setShowAddModal(true)}
+              className="shrink-0"
               title={t.redis.addKey}
             >
               <Plus className="w-4 h-4" />

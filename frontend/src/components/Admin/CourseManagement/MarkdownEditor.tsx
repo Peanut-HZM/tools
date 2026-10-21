@@ -147,10 +147,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         </div>
       </div>
 
-      {/* 编辑器和预览 */}
-      <div className={`flex ${viewMode === 'split' ? 'flex-row' : 'flex-col'}`}>
+      {/* 编辑器和预览：移动端始终纵向堆叠，lg 起 split 模式恢复左右并排 */}
+      <div className={`flex flex-col lg:flex-row ${viewMode === 'split' ? 'lg:flex-row' : 'flex-col'}`}>
         {/* Monaco Editor */}
-        <div className={viewMode === 'split' ? 'w-1/2' : 'w-full'}>
+        <div className={viewMode === 'split' ? 'w-full lg:w-1/2' : 'w-full'}>
           <Editor
             height={height}
             language="markdown"
@@ -171,7 +171,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
         {/* 预览面板 */}
         {viewMode === 'split' && (
-          <div className="w-1/2 border-l border-border/50">
+          <div className="w-full lg:w-1/2 border-t lg:border-t-0 lg:border-l border-border/50">
             <Preview />
           </div>
         )}

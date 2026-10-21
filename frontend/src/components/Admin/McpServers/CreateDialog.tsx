@@ -162,7 +162,7 @@ const CreateDialog: React.FC<Props> = ({ server, onClose, onCreate, onUpdate }) 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-lg p-6 w-full max-w-md border border-border/50 shadow-xl">
+      <div className="bg-surface-1 rounded-lg p-4 sm:p-6 w-[92vw] max-w-md max-h-[90vh] overflow-y-auto border border-border/50 shadow-xl">
         <h2 className="text-xl font-bold mb-4 text-ink">
           {server ? '编辑 MCP Server' : '添加 MCP Server'}
         </h2>

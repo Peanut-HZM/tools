@@ -152,7 +152,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ chapterId, resourceId, onCl
               <label className="block text-sm font-medium text-ink-muted mb-1">
                 资源内容 (Markdown) *
               </label>
-              <div className="border border-border rounded-lg overflow-hidden h-96">
+              <div className="border border-border rounded-lg overflow-hidden h-72 sm:h-96">
                 <Editor
                   height="100%"
                   defaultLanguage="markdown"

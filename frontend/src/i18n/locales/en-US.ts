@@ -80,6 +80,7 @@ export const enUS = {
     registerToLogin: 'Login now',
     loginFailed: 'Login failed',
     registerFailed: 'Registration failed',
+    loginSuccess: 'Login successful',
     invalidCredentials: 'Invalid username or password',
     userExists: 'Username already exists',
     verifying: 'Verifying login status...',

@@ -1063,7 +1063,7 @@ export default function MarkdownEditor() {
       {/* New File Dialog Overlay */}
       {showNewFile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-1 p-6 rounded-lg w-[400px] border border-border shadow-md">
+          <div className="bg-surface-1 p-6 rounded-lg w-[92vw] max-w-[400px] border border-border shadow-md">
             <h2 className="text-xl font-bold mb-4">{t.fileTree.newFile}</h2>
             <div className="mb-4">
               <label className="block text-sm mb-2 text-ink-muted">{t.common.folderName || 'Folder'}</label>

@@ -88,8 +88,8 @@ export default function JsonFormatter() {
 
   return (
     <div className="flex-1 text-ink flex flex-col overflow-hidden">
-      {/* 顶部工具栏 - 紧凑设计（玻璃面板范式：贴边去左右/顶部描边，底部描边由玻璃边框承担） */}
-      <div className="glass-panel border-x-0 border-t-0 rounded-none px-4 py-2 flex items-center justify-between flex-shrink-0">
+      {/* 顶部工具栏（玻璃面板范式：贴边去左右/顶部描边，底部描边由玻璃边框承担）；窄屏下允许换行 */}
+      <div className="glass-panel border-x-0 border-t-0 rounded-none px-4 py-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -169,10 +169,10 @@ export default function JsonFormatter() {
         </div>
       )}
 
-      {/* 主内容区域 - 占满剩余空间 */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* 主内容区域 - 占满剩余空间（移动端纵向堆叠输入/输出，md 以上恢复左右分栏） */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* 输入区域 */}
-        <div className="flex-1 flex flex-col border-r border-border">
+        <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-border">
           <div className="bg-surface-1/50 px-4 py-2 flex items-center justify-between border-b border-border flex-shrink-0">
             <span className="text-sm text-ink-muted">输入 JSON</span>
             <button

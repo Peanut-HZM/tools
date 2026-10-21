@@ -875,8 +875,9 @@ export default function ToolManagement() {
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold text-ink mb-6">编辑工具：{editingTool.title}</h3>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
+                {/* 移动端：表单单列排布，跨列字段在 sm 以下回落为整行 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="col-span-1 sm:col-span-2">
                     <label className="block text-sm font-medium text-ink-muted mb-1">工具名称</label>
                     <input
                       type="text"
@@ -886,7 +887,7 @@ export default function ToolManagement() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-1 sm:col-span-2">
                     <label className="block text-sm font-medium text-ink-muted mb-1">描述</label>
                     <textarea
                       value={toolForm.description || ''}
@@ -921,7 +922,7 @@ export default function ToolManagement() {
                   </div>
 
                   {/* 图标上传区域 */}
-                  <div className="col-span-2">
+                  <div className="col-span-1 sm:col-span-2">
                     <label className="block text-sm font-medium text-ink-muted mb-1">自定义图标</label>
                     <div className="bg-surface-2 border border-border rounded p-4">
                       {iconPreview ? (
@@ -955,8 +956,8 @@ export default function ToolManagement() {
                     </div>
                   </div>
 
-                  {/* Toggle 开关 */}
-                  <div className="col-span-2 grid grid-cols-4 gap-3">
+                  {/* Toggle 开关：移动端 2 列，避免 4 列并排溢出 */}
+                  <div className="col-span-1 sm:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="flex items-center justify-between bg-surface-2 rounded p-3">
                       <span className="text-sm text-ink-muted">PC 端展示</span>
                       <label className="relative inline-flex items-center cursor-pointer">

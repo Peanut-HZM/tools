@@ -5,7 +5,7 @@ export default function LearningSharePlatform() {
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="max-w-4xl mx-auto">
-        <Card className="p-8">
+        <Card className="p-4 sm:p-8">
           <div className="flex items-center mb-6">
             <div className="w-14 h-14 bg-gradient-to-br from-accent to-accent-secondary rounded-xl flex items-center justify-center mr-4">
               <Presentation className="w-6 h-6 text-ink-inverse" />

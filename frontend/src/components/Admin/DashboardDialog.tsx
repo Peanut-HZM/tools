@@ -73,7 +73,7 @@ const DashboardDialog: React.FC<DashboardDialogProps> = ({ agentId, agentName, o
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-surface-1 rounded-lg p-6 w-full max-w-2xl border border-border/50 shadow-xl max-h-[85vh] overflow-y-auto">
+      <div className="bg-surface-1 rounded-lg p-4 sm:p-6 w-[92vw] max-w-2xl border border-border/50 shadow-xl max-h-[85vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-ink">性能仪表盘：{agentName}</h2>
 
         {loading && <div className="text-ink-muted text-sm">加载中...</div>}
@@ -82,7 +82,7 @@ const DashboardDialog: React.FC<DashboardDialogProps> = ({ agentId, agentName, o
         {data && (
           <>
             {/* 统计卡片 */}
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-6">
               <StatCard label="对话数" value={data.basics.conversation_count} />
               <StatCard label="消息数" value={data.basics.message_count} />
               <StatCard label="Trace 数" value={data.basics.trace_count} />

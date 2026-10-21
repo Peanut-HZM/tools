@@ -80,6 +80,7 @@ export const zhCN = {
     registerToLogin: '立即登录',
     loginFailed: '登录失败',
     registerFailed: '注册失败',
+    loginSuccess: '登录成功',
     invalidCredentials: '用户名或密码错误',
     userExists: '用户名已存在',
     verifying: '验证登录状态...',

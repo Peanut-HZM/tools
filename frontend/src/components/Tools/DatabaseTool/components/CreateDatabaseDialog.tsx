@@ -38,7 +38,7 @@ const CreateDatabaseDialog: React.FC<CreateDatabaseDialogProps> = ({ isOpen, onC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <Card className="w-96 p-4">
+      <Card className="w-[92vw] max-w-96 p-4">
         <h3 className="text-lg font-semibold text-ink mb-4">{t.database.dialog.createDatabase.title}</h3>
         
         {error && (

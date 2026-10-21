@@ -74,7 +74,7 @@ const ColumnSelector: React.FC<ColumnSelectorProps> = ({
           <Columns className="w-4 h-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-0 max-h-[400px] flex flex-col">
+      <PopoverContent align="end" className="w-[90vw] max-w-72 p-0 max-h-[400px] flex flex-col">
         {/* 全选控制 */}
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border bg-surface-1/50 rounded-t-lg">
           <input

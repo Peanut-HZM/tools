@@ -448,7 +448,7 @@ export default function TokenUsage() {
       item.created_at || '',
     ]);
     const csv = [headers, ...rows]
-      .map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(','))
+      .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
       .join('\n');
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -513,7 +513,7 @@ export default function TokenUsage() {
   }
 
   return (
-    <div className="min-h-0 overflow-y-auto bg-canvas p-6 text-ink">
+    <div className="h-full min-h-0 overflow-y-auto bg-canvas p-4 sm:p-6 text-ink">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal text-ink">
@@ -525,7 +525,8 @@ export default function TokenUsage() {
           </h1>
         </div>
 
-        <div className="flex flex-nowrap items-center gap-2">
+        {/* 操作区：窄屏下允许换行，避免时间戳 + 多个图标按钮 + 同步按钮被挤出视口 */}
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-ink-muted">
             {formatDateTime(
               summary.data.sync_meta?.latest_record_at ||

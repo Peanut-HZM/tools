@@ -38,7 +38,7 @@ export default function LoginModal() {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-      <div className="bg-surface-1 rounded-xl p-8 shadow-md w-full max-w-md mx-4 border border-border">
+      <div className="bg-surface-1 rounded-xl p-4 sm:p-8 shadow-md w-full max-w-md mx-4 border border-border">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-ink">
             {t.auth.loginTitle}

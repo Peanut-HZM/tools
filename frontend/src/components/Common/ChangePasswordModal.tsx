@@ -98,7 +98,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: Chan
   if (success) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border text-center">
+        <div className="bg-surface-1 p-4 sm:p-6 rounded-lg w-[92vw] max-w-md border border-border text-center">
           <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8" />
           </div>
@@ -115,7 +115,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }: Chan
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface-1 p-6 rounded-lg w-full max-w-md border border-border">
+      <div className="bg-surface-1 p-4 sm:p-6 rounded-lg w-[92vw] max-w-md max-h-[90vh] overflow-y-auto border border-border">
         <h3 className="text-xl font-bold text-ink mb-4">修改密码</h3>
 
         <form onSubmit={handleSubmit}>

@@ -202,7 +202,7 @@ export default function MarkItDownConverter() {
           {t.converter.back}
         </Button>
         <h1 className="text-2xl font-bold text-ink">{t.converter.title}</h1>
-        <div className="w-24"></div> {/* Spacer */}
+        <div className="hidden sm:block w-24"></div> {/* Spacer：窄屏隐藏，避免与标题挤占一行 */}
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">

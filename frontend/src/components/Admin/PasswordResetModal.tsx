@@ -94,7 +94,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
   if (success && mode === 'random' && generatedPassword) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fadeIn">
-        <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
+        <Card className="p-4 sm:p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-success to-success rounded-full flex items-center justify-center shadow-lg shadow-success/30">
@@ -150,7 +150,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
   if (success && mode === 'direct') {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fadeIn">
-        <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
+        <Card className="p-4 sm:p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 text-center animate-scaleIn">
           {/* 成功图标 */}
           <div className="relative mx-auto mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-success to-success rounded-full flex items-center justify-center shadow-lg shadow-success/30">
@@ -176,7 +176,7 @@ export default function PasswordResetModal({ isOpen, onClose, onConfirm, usernam
   // Form state
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fadeIn">
-      <Card className="p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 animate-scaleIn">
+      <Card className="p-4 sm:p-8 rounded-2xl w-full max-w-md shadow-lg shadow-accent/10 animate-scaleIn">
         <h3 className="text-2xl font-bold text-ink mb-6">重置密码 - {username}</h3>
 
         <form onSubmit={handleSubmit}>

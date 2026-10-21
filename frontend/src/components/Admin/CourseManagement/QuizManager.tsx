@@ -1,8 +1,8 @@
 /**
  * 测验管理组件
  */
-import React, { useState } from 'react';
-import { BookOpen, Code as CodeIcon, Video, CheckCircle, Circle, ClipboardCheck, Plus, ClipboardList, Pencil, CircleHelp, ArrowLeft, ReactNode } from 'lucide-react';
+import React, { useState, type ReactNode } from 'react';
+import { BookOpen, Code as CodeIcon, Video, CheckCircle, Circle, ClipboardCheck, Plus, ClipboardList, Pencil, CircleHelp, ArrowLeft } from 'lucide-react';
 import { useQuizStore } from '../../../stores/courseAdminStore';
 import type { CourseChapter as Chapter } from '../../../services/coursePlatform';
 import QuizForm from './QuizForm';
@@ -59,9 +59,10 @@ const QuizManager: React.FC<QuizManagerProps> = ({
   const selectedQuiz = selectedChapterId ? quizzes[selectedChapterId] : null;
 
   return (
-    <div className="h-full flex">
+    /* 移动端纵向堆叠（章节选择在上、测验内容在下），lg 起恢复左右分栏 */
+    <div className="h-full flex flex-col lg:flex-row">
       {/* Chapter List */}
-      <div className="w-80 border-r border-border/50 pr-4">
+      <div className="w-full lg:w-80 lg:flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/50 pb-4 lg:pb-0 lg:pr-4">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-ink flex items-center">
             <BookOpen className="w-4 h-4 mr-2 text-accent" />
@@ -69,7 +70,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
           </h3>
           <p className="text-ink-faint text-sm mt-1">点击章节加载对应测验</p>
         </div>
-        <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
+        <div className="space-y-2 overflow-y-auto max-h-64 lg:max-h-[calc(100vh-300px)]">
           {chapters.map((chapter) => {
             const hasQuiz = quizzes[chapter.id];
             return (
@@ -112,21 +113,21 @@ const QuizManager: React.FC<QuizManagerProps> = ({
       </div>
 
       {/* Quiz Content */}
-      <div className="flex-1 pl-4">
+      <div className="flex-1 min-w-0 pt-4 lg:pt-0 lg:pl-4">
         {selectedChapterId ? (
           <>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-ink flex items-center">
-                  <ClipboardCheck className="w-5 h-5 text-accent mr-3" />
-                  测验：{chapters.find((c) => c.id === selectedChapterId)?.title}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <div className="min-w-0">
+                <h3 className="text-xl sm:text-2xl font-bold text-ink flex items-center">
+                  <ClipboardCheck className="w-5 h-5 text-accent mr-3 shrink-0" />
+                  <span className="truncate">测验：{chapters.find((c) => c.id === selectedChapterId)?.title}</span>
                 </h3>
                 <p className="text-ink-muted text-sm mt-1">管理和编辑章节测验</p>
               </div>
               <Button
                 onClick={handleCreateQuiz}
                 variant="default"
-                className="px-6 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-accent-info/20 hover:shadow-accent-info/30 flex items-center"
+                className="px-5 py-3 bg-gradient-to-r from-accent to-accent-hover rounded-xl transition-all font-medium shadow-lg shadow-accent-info/20 hover:shadow-accent-info/30 flex items-center justify-center whitespace-nowrap shrink-0"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 {selectedQuiz ? '编辑测验' : '创建测验'}
@@ -165,7 +166,7 @@ const QuizManager: React.FC<QuizManagerProps> = ({
                 </div>
 
                 <div className="bg-surface-2/30 rounded-xl p-4 border border-border/50">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-ink-muted text-sm mb-1">及格分数</p>
                       <p className="text-ink font-medium">{selectedQuiz.passing_score}%</p>

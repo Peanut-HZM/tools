@@ -60,7 +60,7 @@ export const MonitorPanel: React.FC<Props> = ({ configId }) => {
       {monitor?.db_keyspace && Object.keys(monitor.db_keyspace).length > 0 && (
         <Card className="p-4">
           <div className="text-sm font-medium text-ink-muted mb-3">数据库 Key 分布</div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {Object.entries(monitor.db_keyspace).map(([db, data]: [string, any]) => (
               <div key={db} className="bg-canvas rounded p-2">
                 <div className="text-xs text-ink-muted">{db}</div>

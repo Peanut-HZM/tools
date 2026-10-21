@@ -123,8 +123,8 @@ const McpServers: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-surface-1 rounded shadow border border-border/50 overflow-hidden">
-        <table className="w-full">
+      <div className="bg-surface-1 rounded shadow border border-border/50 overflow-x-auto">
+        <table className="w-full min-w-[720px]">
           <thead className="bg-surface-2">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">Name</th>

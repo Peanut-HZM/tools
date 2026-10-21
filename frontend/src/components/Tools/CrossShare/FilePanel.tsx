@@ -126,21 +126,21 @@ const FilePanel: React.FC<FilePanelProps> = ({ onStatsUpdate }) => {
     <Card className="w-full h-full flex flex-col shadow-md overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 p-6 border-b border-border">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xl font-bold text-ink">📁 文件管理</h2>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex w-full sm:w-auto items-center gap-2 sm:space-x-3">
             {/* Search */}
             <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索文件..."
-              className="w-64 placeholder-ink-faint focus-visible:border-accent"
+              className="w-full sm:w-64 min-w-0 placeholder-ink-faint focus-visible:border-accent"
             />
 
             {/* Upload Button */}
-            <label className="px-4 py-2 bg-accent hover:bg-accent-hover text-white font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-10">
+            <label className="shrink-0 px-4 py-2 bg-accent hover:bg-accent-hover text-white font-semibold rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium h-10">
               📤 上传文件
               <input
                 type="file"

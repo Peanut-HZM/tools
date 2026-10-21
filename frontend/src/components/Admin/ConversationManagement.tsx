@@ -101,7 +101,8 @@ export default function ConversationManagement() {
       )}
 
       {/* 对话列表 */}
-      <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
+      {/* 移动端：容器改为横向滚动，避免 6 列表格被压成竖排 */}
+      <div className="bg-surface-2 rounded-lg border border-border overflow-x-auto">
         <div className="p-4 border-b border-border flex justify-between items-center">
           <h3 className="text-lg font-semibold text-ink">对话列表</h3>
           <button
@@ -118,7 +119,7 @@ export default function ConversationManagement() {
             <p>暂无对话记录</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-surface-1">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">对话标题</th>

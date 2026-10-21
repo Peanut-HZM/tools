@@ -176,12 +176,15 @@ const DatabaseToolContent: React.FC = () => {
     : activeTab?.data?.schemaName;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-canvas text-ink">
+    <div className="flex h-full min-h-0 flex-col md:flex-row overflow-hidden bg-canvas text-ink">
+      {/* 移动端（< md）纵向堆叠：连接列表整行铺满在上，标签页区占据剩余高度；md 以上恢复左右分栏 */}
       <ResizablePanel
         defaultWidth={280}
         minWidth={200}
         maxWidth={500}
         storageKey="dbTool.leftPanelWidth"
+        className="h-56 w-full max-w-full shrink-0 md:h-full md:w-auto"
+        mobileFullWidth
       >
         <ConnectionList
           onAddConfig={handleAddConfig}
@@ -195,7 +198,7 @@ const DatabaseToolContent: React.FC = () => {
         />
       </ResizablePanel>
       
-      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-canvas">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden bg-canvas">
         {/* Tab Bar */}
         <div className="flex items-center bg-surface-1 border-b border-border overflow-x-auto no-scrollbar">
           {tabs.map(tab => (

@@ -4,7 +4,7 @@
  * 多选下拉，支持 "所有命名空间" 选项
  * 选中的命名空间用于过滤资源查询
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Filter, Search, X, Check, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useK8sStore } from '../../../../stores/k8sStore';
 import { useK8sNamespaces } from '../../../../hooks/useK8sClient';
@@ -18,6 +18,7 @@ export const NamespaceFilter: React.FC = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const initializedConnectionId = useRef<string | null>(null);
 
   // 查询命名空间列表（自动同步到 store）
   const { isError } = useK8sNamespaces(activeConnectionId);
@@ -25,6 +26,8 @@ export const NamespaceFilter: React.FC = () => {
   // 当连接切换时，应用该连接的 namespace_filter 作为默认选择
   useEffect(() => {
     if (!activeConnectionId) return;
+    if (initializedConnectionId.current === activeConnectionId) return;
+    initializedConnectionId.current = activeConnectionId;
 
     const activeConnection = connections.find(c => c.id === activeConnectionId);
     if (activeConnection?.namespace_filter && activeConnection.namespace_filter.length > 0) {
@@ -75,7 +78,7 @@ export const NamespaceFilter: React.FC = () => {
       <PopoverTrigger asChild>
         <button
           aria-label="命名空间过滤"
-          className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border transition-colors min-w-[150px] max-w-[240px]"
+          className="flex items-center gap-2 px-3 py-1.5 bg-surface-1 border border-border rounded-md text-sm text-ink hover:border-border transition-colors min-w-0 sm:min-w-[150px] max-w-[240px]"
         >
           <Filter className="w-3 h-3 text-ink-muted" />
           <span className="truncate">{displayText}</span>
@@ -88,6 +91,7 @@ export const NamespaceFilter: React.FC = () => {
             <div className="flex items-center gap-2 px-2 py-1 bg-canvas border border-border rounded">
               <Search className="w-3 h-3 text-ink-faint" />
               <input
+                aria-label="搜索命名空间"
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
@@ -111,7 +115,16 @@ export const NamespaceFilter: React.FC = () => {
 
           {/* "所有命名空间"选项 */}
           <div
+            role="checkbox"
+            tabIndex={0}
+            aria-checked={isAllSelected}
             onClick={toggleAll}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleAll();
+              }
+            }}
             className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border transition-colors ${
               isAllSelected
                 ? 'bg-accent/20 text-accent-info'
@@ -132,7 +145,16 @@ export const NamespaceFilter: React.FC = () => {
             return (
               <div
                 key={ns}
+                role="checkbox"
+                tabIndex={0}
+                aria-checked={isChecked}
                 onClick={() => toggleNamespace(ns)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleNamespace(ns);
+                  }
+                }}
                 className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
                   isChecked
                     ? 'bg-accent/20 text-accent-info'

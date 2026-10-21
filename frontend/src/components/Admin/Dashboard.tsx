@@ -113,7 +113,7 @@ export default function Dashboard() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full min-w-[640px] text-left">
             <thead>
               <tr className="border-b border-border">
                 <th className="px-6 py-4 text-ink-muted font-medium text-sm uppercase">排名</th>

@@ -94,7 +94,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
               onChange={e => setFormData({ ...formData, alias: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.host}</label>
               <Input
@@ -116,7 +116,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
              <div>
               <label className="block text-sm font-medium text-ink-muted mb-1">{t.redis.username}</label>
               <Input

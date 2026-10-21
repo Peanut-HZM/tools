@@ -220,7 +220,7 @@ const OssUploader: React.FC<OssUploaderProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+        className={`relative border-2 border-dashed rounded-xl p-4 sm:p-8 text-center transition-all cursor-pointer ${
           dragOver
             ? 'border-accent bg-accent/10'
             : disabled

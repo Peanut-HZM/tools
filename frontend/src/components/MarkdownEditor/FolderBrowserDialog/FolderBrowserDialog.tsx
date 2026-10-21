@@ -134,7 +134,7 @@ export default function FolderBrowserDialog({
       onClick={handleOverlayClick}
     >
       <div
-        className="bg-surface-1 rounded-xl shadow-lg w-[700px] h-[520px] flex flex-col"
+        className="bg-surface-1 rounded-xl shadow-lg w-[92vw] h-[70vh] max-w-[700px] max-h-[520px] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ===== 标题栏 ===== */}

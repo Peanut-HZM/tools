@@ -129,38 +129,41 @@ export default function CourseDetail() {
   return (
     <div className="bg-canvas">
       {/* ===== 优化后的 Header 区域 ===== */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-5">
+      {/* 移动端纵向堆叠（标题在上、操作按钮在下），lg 起恢复左右分布 */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4 mb-4">
+        <div className="flex items-start lg:items-center gap-3 lg:gap-5 min-w-0">
           {/* 返回按钮 */}
           <button
             onClick={handleBackToList}
-            className="group p-2.5 rounded-xl bg-surface-1/50 border border-border/50 hover:bg-surface-2/50 hover:border-accent/50 transition-all duration-200"
+            className="group p-2.5 rounded-xl bg-surface-1/50 border border-border/50 hover:bg-surface-2/50 hover:border-accent/50 transition-all duration-200 shrink-0"
             title="返回课程列表"
+            aria-label="返回课程列表"
           >
             <ArrowLeft className="w-5 h-5 text-ink-muted group-hover:text-accent transition-colors" />
           </button>
 
           {/* 课程标题 */}
-          <div className="flex flex-col">
-            <h1 className="text-3xl font-bold text-ink flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center shadow-lg shadow-accent/20">
-                <GraduationCap className="w-5 h-5 text-white" />
+          <div className="flex flex-col min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-ink flex items-start lg:items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center shadow-lg shadow-accent/20 shrink-0">
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              {course.title}
+              <span className="min-w-0 break-words">{course.title}</span>
             </h1>
-            <p className="text-ink-muted text-sm mt-1.5 ml-13 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
+            {/* ml-10/md:ml-[52px] 对齐标题图标（图标宽 + gap），不再依赖未定义的 ml-13 */}
+            <p className="text-ink-muted text-sm mt-1.5 ml-10 sm:ml-[52px] flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>
               课程管理后台
             </p>
           </div>
         </div>
 
-        {/* 操作按钮组 */}
-        <div className="flex items-center gap-3">
+        {/* 操作按钮组：移动端换行铺满，lg 起恢复单行靠右 */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* 导出按钮 */}
           <button
             onClick={handleOpenExportDialog}
-            className="group px-5 py-2.5 bg-gradient-to-r from-success/10 to-success/10 hover:from-success/20 hover:to-success/20 border border-success/30 hover:border-success/50 text-success rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-success/10 hover:shadow-success/20"
+            className="group px-4 sm:px-5 py-2.5 bg-gradient-to-r from-success/10 to-success/10 hover:from-success/20 hover:to-success/20 border border-success/30 hover:border-success/50 text-success rounded-xl transition-all duration-200 font-medium flex items-center gap-2 whitespace-nowrap shadow-lg shadow-success/10 hover:shadow-success/20"
           >
             <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>导出</span>
@@ -169,18 +172,18 @@ export default function CourseDetail() {
           {/* 导入按钮 */}
           <button
             onClick={handleOpenImportDialog}
-            className="group px-5 py-2.5 bg-gradient-to-r from-warning/10 to-accent-warm/10 hover:from-warning/20 hover:to-accent-warm/20 border border-warning/30 hover:border-warning/50 text-warning rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-warning/10 hover:shadow-warning/20"
+            className="group px-4 sm:px-5 py-2.5 bg-gradient-to-r from-warning/10 to-accent-warm/10 hover:from-warning/20 hover:to-accent-warm/20 border border-warning/30 hover:border-warning/50 text-warning rounded-xl transition-all duration-200 font-medium flex items-center gap-2 whitespace-nowrap shadow-lg shadow-warning/10 hover:shadow-warning/20"
           >
             <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>导入</span>
           </button>
 
-          <div className="w-px h-8 bg-surface-2 mx-1"></div>
+          <div className="hidden sm:block w-px h-8 bg-surface-2 mx-1"></div>
 
           {/* 编辑课程按钮 */}
           <button
             onClick={handleEditCourse}
-            className="group px-5 py-2.5 bg-gradient-to-r from-accent-secondary/10 to-accent-secondary/10 hover:from-accent-secondary/20 hover:to-accent-secondary/20 border border-accent-secondary/30 hover:border-accent-secondary text-accent-secondary rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent-secondary/10 hover:shadow-accent-secondary/20"
+            className="group px-4 sm:px-5 py-2.5 bg-gradient-to-r from-accent-secondary/10 to-accent-secondary/10 hover:from-accent-secondary/20 hover:to-accent-secondary/20 border border-accent-secondary/30 hover:border-accent-secondary text-accent-secondary rounded-xl transition-all duration-200 font-medium flex items-center gap-2 whitespace-nowrap shadow-lg shadow-accent-secondary/10 hover:shadow-accent-secondary/20"
           >
             <Pencil className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>编辑课程</span>
@@ -189,7 +192,7 @@ export default function CourseDetail() {
           {/* 新增章节按钮 - 主要操作 */}
           <button
             onClick={handleCreateChapter}
-            className="group px-5 py-2.5 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white rounded-xl transition-all duration-200 font-medium flex items-center gap-2 shadow-lg shadow-accent/30 hover:shadow-accent/50 hover:-translate-y-0.5"
+            className="group px-4 sm:px-5 py-2.5 bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent-hover text-white rounded-xl transition-all duration-200 font-medium flex items-center gap-2 whitespace-nowrap shadow-lg shadow-accent/30 hover:shadow-accent/50 hover:-translate-y-0.5"
           >
             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
             <span>新增章节</span>
@@ -198,16 +201,17 @@ export default function CourseDetail() {
       </div>
 
       {/* ===== 优化后的课程信息卡片 ===== */}
-      <div className="bg-gradient-to-br bg-surface-1/80 to-bg-surface-1/40 rounded-2xl border border-border/50 p-4 mb-4 backdrop-blur-sm">
-        <div className="flex items-start gap-6">
+      <div className="bg-gradient-to-br bg-surface-1/80 to-bg-surface-1/40 rounded-2xl border border-border/50 p-3 sm:p-4 mb-4 backdrop-blur-sm">
+        {/* 移动端封面在上、信息在下堆叠，sm 起恢复左右排布 */}
+        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
           {/* 课程封面 */}
           {course.cover_image && (
-            <div className="relative group flex-shrink-0">
+            <div className="relative group flex-shrink-0 w-full sm:w-48">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-accent to-accent-hover rounded-xl opacity-30 group-hover:opacity-50 transition-opacity blur"></div>
               <img
                 src={course.cover_image}
                 alt={course.title}
-                className="relative w-48 h-32 object-cover rounded-xl shadow-lg"
+                className="relative w-full h-36 sm:h-32 object-cover rounded-xl shadow-lg"
               />
             </div>
           )}
@@ -298,12 +302,13 @@ export default function CourseDetail() {
       </div>
 
       {/* ===== 优化后的 Tabs 标签页 ===== */}
-      <div className="flex items-center gap-2 border-b border-border/50 mb-4">
+      {/* 移动端可横向滚动，避免三个标签挤出视口 */}
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-border/50 mb-4 overflow-x-auto">
         {(['chapters', 'quiz', 'resources'] as TabType[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`group relative px-5 py-3 font-medium transition-all duration-200 rounded-t-lg ${
+            className={`group relative px-3 sm:px-5 py-3 font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap shrink-0 ${
               activeTab === tab
                 ? 'text-accent'
                 : 'text-ink-muted hover:text-ink'
@@ -331,13 +336,14 @@ export default function CourseDetail() {
       </div>
 
       {/* ===== Content 内容区域 ===== */}
-      <div className="bg-surface-1/30 rounded-2xl border border-border/50 p-4 backdrop-blur-sm">
+      <div className="bg-surface-1/30 rounded-2xl border border-border/50 p-2 sm:p-4 backdrop-blur-sm">
         {activeTab === 'chapters' && (
           <ChapterList
             chapters={chapters}
             onEdit={handleEditChapter}
             onSelect={handleSelectChapter}
             selectedChapterId={selectedChapterId}
+            courseSlug={course.slug}
           />
         )}
         {activeTab === 'quiz' && (

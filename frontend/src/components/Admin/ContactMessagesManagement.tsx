@@ -204,7 +204,7 @@ export default function ContactMessagesManagement() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder={t.admin.contactMessages.keywordSearch}
-              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent-info w-64"
+              className="px-3 py-2 bg-surface-2 border border-border rounded-lg text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent-info w-full sm:w-64"
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
             <Button
@@ -249,8 +249,8 @@ export default function ContactMessagesManagement() {
         </div>
       </Card>
 
-      {/* 留言列表 */}
-      <Card className="overflow-hidden">
+      {/* 留言列表：移动端容器横向滚动，表格保持最小宽度 */}
+      <Card className="overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent-info"></div>
@@ -261,7 +261,7 @@ export default function ContactMessagesManagement() {
             <p>{t.admin.contactMessages.noData}</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-canvas border-b border-border">
               <tr>
                 <th className="px-4 py-3 text-left">
@@ -405,7 +405,7 @@ export default function ContactMessagesManagement() {
 
             <div className="p-6 space-y-4">
               {/* 基本信息 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-ink-muted">{t.admin.contactMessages.name}</label>
                   <p className="text-ink">{selectedMessage.name}</p>

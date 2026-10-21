@@ -113,15 +113,15 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ agentId }) => {
 
   return (
     <div className="space-y-4">
-      {/* 搜索栏 */}
-      <div className="flex gap-2">
+      {/* 搜索栏：窄屏下允许换行，输入框加 min-w-0 避免被按钮挤到视口外 */}
+      <div className="flex flex-wrap gap-2">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="搜索记忆（支持自然语言描述或关键词）"
-          className="flex-1 px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
+          className="flex-1 min-w-0 px-3 py-2 bg-surface-1 border border-border rounded-lg text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent"
           aria-label="搜索记忆"
         />
         <button

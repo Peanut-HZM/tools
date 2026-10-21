@@ -133,10 +133,10 @@ export default function KeyGenerator() {
         </div>
       </div>
 
-      {/* 主内容区域 - 左右分栏 */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* 主内容区域 - 左右分栏：移动端纵向堆叠（算法选择在上、结果在下），md 起恢复左右分栏 */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* 左侧 - 算法选择 */}
-        <div className="w-80 bg-surface-1 border-r border-border flex flex-col overflow-hidden flex-shrink-0">
+        <div className="w-full md:w-80 bg-surface-1 border-b md:border-b-0 md:border-r border-border flex flex-col overflow-hidden md:flex-shrink-0 max-h-[45vh] md:max-h-none">
           <div className="p-4 border-b border-border flex-shrink-0">
             <h2 className="font-semibold mb-3">选择算法</h2>
 

@@ -521,8 +521,8 @@ export default function AgentManagement() {
           </button>
         </div>
       ) : (
-        <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
-          <table className="w-full">
+        <div className="bg-surface-2 rounded-lg border border-border overflow-x-auto">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-surface-1">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-ink-muted">Agent名称</th>

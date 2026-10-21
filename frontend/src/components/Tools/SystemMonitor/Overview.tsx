@@ -69,12 +69,14 @@ export default function Overview() {
       <SystemInfoCards info={info} server={server} />
       <ResourceCards metric={metric} />
       {/* 分区表格 */}
-      <Card className="overflow-hidden bg-canvas">
+      <Card className="bg-canvas">
         <CardHeader className="px-4 py-2.5 border-b border-border">
           <CardTitle className="text-sm font-medium text-ink">磁盘分区</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-        <table className="w-full text-xs">
+        {/* 窄屏下表格横向滚动，避免列被压成竖排 */}
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] text-xs">
           <thead>
             <tr className="text-ink-faint border-b border-border">
               <th className="text-left px-4 py-2">设备</th>
@@ -101,6 +103,7 @@ export default function Overview() {
             )}
           </tbody>
         </table>
+        </div>
         </CardContent>
       </Card>
     </div>

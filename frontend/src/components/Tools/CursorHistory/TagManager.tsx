@@ -151,7 +151,7 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
       </div>
 
       {showAddPanel && (
-        <div className="absolute top-full left-0 mt-1 p-3 bg-surface-1 border border-border rounded-lg shadow-lg z-50 w-64">
+        <div className="absolute top-full left-0 mt-1 p-3 bg-surface-1 border border-border rounded-lg shadow-lg z-50 w-[90vw] max-w-64">
           <div className="text-xs text-ink-muted mb-2">选择预设标签或输入自定义标签</div>
 
           <div className="flex flex-wrap gap-1 mb-3">

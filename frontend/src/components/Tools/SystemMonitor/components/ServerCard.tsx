@@ -53,7 +53,7 @@ export function ServerCard({ server, onSelect, onEdit, onDelete, onRetry }: Serv
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-1.5 mt-2 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2 text-xs">
           <div className="text-ink-muted">CPU <span className="text-ink">{metric?.cpu_percent ?? '-'}%</span></div>
           <div className="text-ink-muted">内存 <span className="text-ink">{metric?.mem_percent ?? '-'}%</span></div>
           <div className="text-ink-muted">磁盘 <span className="text-ink">{metric?.disk_percent ?? '-'}%</span></div>

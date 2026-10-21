@@ -246,7 +246,8 @@ export default function ImageDownloader() {
         {/* 图片列表 */}
         {images.length > 0 && (
           <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
+            {/* 标题与主操作：窄屏下允许换行，避免标题与"下载全部原图"按钮互相挤压 */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold">
                 找到 {images.length} 张图片
               </h2>
