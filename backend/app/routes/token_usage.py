@@ -428,7 +428,7 @@ class DeviceMergeRequest(BaseModel):
 
 
 @router.post("/refresh")
-async def refresh_cache(
+def refresh_cache(
     req: RefreshUsageRequest = Body(default_factory=RefreshUsageRequest),
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
@@ -469,7 +469,7 @@ async def refresh_cache(
 
 
 @router.post("/clear-data")
-async def clear_usage_data(
+def clear_usage_data(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
     """一键清理当前用户的 Token 使用数据（数据库记录 + Redis 缓存）"""
@@ -522,7 +522,7 @@ async def clear_usage_data(
 
 
 @router.get("/devices")
-async def get_user_devices(
+def get_user_devices(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
     """获取当前用户的设备列表（含指纹类型和 canonical_id）"""
@@ -952,7 +952,7 @@ def _build_summary_payload(
 
 
 @router.get("/summary", response_model=SummaryResponse)
-async def get_token_usage_summary(
+def get_token_usage_summary(
     source: str = "all",
     type: str = "daily",
     days: int = 30,
@@ -1087,7 +1087,7 @@ def _maybe_trigger_stale_sync(user_id: str, payload: dict) -> None:
 
 
 @router.post("/details", response_model=DetailsResponse)
-async def get_token_usage_details(
+def get_token_usage_details(
     req: DetailsRequest,
     authorization: Optional[str] = Header(None),
 ):
@@ -1482,7 +1482,7 @@ async def refresh_ccusage_endpoint(
 
 
 @router.post("/sync")
-async def sync_token_usage_endpoint(
+def sync_token_usage_endpoint(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
     """手动触发 Token Usage 同步到数据库（后台线程执行，立即返回）"""
@@ -1523,7 +1523,7 @@ async def sync_token_usage_endpoint(
 
 
 @router.post("/devices/alias")
-async def create_device_alias(
+def create_device_alias(
     req: DeviceAliasRequest,
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
@@ -1591,7 +1591,7 @@ async def create_device_alias(
 
 
 @router.post("/devices/merge")
-async def merge_devices(
+def merge_devices(
     req: DeviceMergeRequest,
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
@@ -1665,7 +1665,7 @@ async def merge_devices(
 
 
 @router.delete("/devices/alias/{alias_device_id}")
-async def delete_device_alias(
+def delete_device_alias(
     alias_device_id: str,
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
@@ -1700,7 +1700,7 @@ async def delete_device_alias(
 
 
 @router.put("/devices/{device_id}/rename")
-async def rename_device(
+def rename_device(
     device_id: str,
     name: str = Body(
         ..., embed=True, description="设备显示名称，空字符串表示重置为默认"
@@ -2878,7 +2878,7 @@ def _finish_query_response(
 
 
 @router.post("/query", response_model=DbUsageResponse)
-async def query_token_usage(
+def query_token_usage(
     req: DbQueryRequest,
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):

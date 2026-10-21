@@ -1,5 +1,5 @@
 @router.get("/devices")
-async def get_user_devices(
+def get_user_devices(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
     """获取当前用户的设备列表（含指纹类型和 canonical_id）"""

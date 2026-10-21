@@ -22,7 +22,7 @@ router = APIRouter(prefix="/image-downloader", tags=["图片下载器"])
 
 
 @router.get("/proxy")
-async def proxy_image(url: str):
+def proxy_image(url: str):
     """
     公开代理端点：透传远端图片，不需要认证。
     用于前端预览和下载原图，避免 JWT 认证无法通过 window.open / a[download] 传递。
@@ -59,7 +59,7 @@ async def proxy_image(url: str):
 
 
 @router.post("/extract-images", response_model=ImageExtractResponse)
-async def extract_images(request: ImageExtractRequest):
+def extract_images(request: ImageExtractRequest):
     """
     从指定网页提取所有图片 URL
     """
@@ -74,7 +74,7 @@ async def extract_images(request: ImageExtractRequest):
 
 
 @router.get("/download", response_model=DownloadedImage)
-async def download_image(
+def download_image(
     url: str,
     save_history: bool = Query(True, description="是否保存历史记录"),
     user_id: str = Depends(get_current_user_id)
@@ -94,7 +94,7 @@ async def download_image(
 
 
 @router.post("/batch-download", response_model=Dict[str, Any])
-async def batch_download(
+def batch_download(
     urls: List[str],
     save_history: bool = Query(True, description="是否保存历史记录"),
     user_id: str = Depends(get_current_user_id)
@@ -114,7 +114,7 @@ async def batch_download(
 
 
 @router.get("/history", response_model=ImageHistoryListResponse)
-async def get_history(
+def get_history(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
     user_id: str = Depends(get_current_user_id)
@@ -133,7 +133,7 @@ async def get_history(
 
 
 @router.get("/quota", response_model=ImageQuotaInfo)
-async def get_quota(user_id: str = Depends(get_current_user_id)):
+def get_quota(user_id: str = Depends(get_current_user_id)):
     """获取用户配额信息"""
     try:
         return image_downloader_service._check_quota(user_id)
@@ -142,7 +142,7 @@ async def get_quota(user_id: str = Depends(get_current_user_id)):
 
 
 @router.post("/export")
-async def export_images(
+def export_images(
     history_ids: List[str],
     format: ImageExportFormat = Query(ImageExportFormat.ZIP, description="导出格式"),
     user_id: str = Depends(get_current_user_id)
@@ -210,7 +210,7 @@ async def export_images(
 
 
 @router.delete("/history/{history_id}")
-async def delete_history(
+def delete_history(
     history_id: str,
     user_id: str = Depends(get_current_user_id)
 ):

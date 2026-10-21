@@ -2,12 +2,21 @@
 课程学习平台 API 路由
 
 提供课程列表、详情、分类、报名、互动、评价等功能。
+
+【重要】本文件的路由一律使用**同步 def**（不是 async def）：
+本项目的数据库会话是同步 SQLAlchemy（psycopg2），在 async 路由里直接调用
+db.query() 会**阻塞整个 event loop**——一旦该查询出现行锁等待（见下方统计计数
+自增的原子化说明），后端会整体冻结，连 /openapi.json 都无响应。
+同步 def 路由由 FastAPI 投递到线程池执行，数据库阻塞不会拖垮 event loop。
+路由体内不得引入 await；若确需异步 IO，请另起 async 路由并把同步 DB 调用
+包进 run_in_threadpool。
 """
 import logging
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
 from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import ValidationError
 
 from app.models.base import get_db
@@ -42,7 +51,7 @@ def get_current_user_id() -> str:
     summary="获取课程列表",
     description="获取课程列表，支持分页、筛选、排序",
 )
-async def get_course_list(
+def get_course_list(
     category: Optional[str] = Query(None, description="分类 slug"),
     search: Optional[str] = Query(None, description="搜索关键词"),
     sort: Optional[str] = Query("latest", description="排序方式：latest/hot/rating"),
@@ -137,7 +146,7 @@ async def get_course_list(
     summary="获取课程详情",
     description="获取课程详细信息，包含章节列表和统计数据",
 )
-async def get_course_detail(
+def get_course_detail(
     slug: str,
     db: Session = Depends(get_db),
 ):
@@ -147,14 +156,35 @@ async def get_course_detail(
         if not course:
             raise HTTPException(status_code=404, detail="课程不存在")
 
-        # 累加浏览次数（首次访问时补建统计记录并回填 relationship，否则 view_count 自增会 500）
-        if not course.statistics:
-            stats = CourseStatistics(course_id=course.id)
-            db.add(stats)
-            db.flush()
-            course.statistics = stats
-        course.statistics.view_count += 1
-        db.flush()
+        # 累加浏览次数
+        # 用单条 UPDATE 的 SQL 表达式做原子自增，而不是 ORM 的 "读-改-写"（statistics.view_count += 1）：
+        # 读-改-写在并发请求下会先 SELECT 再 UPDATE，多个事务同时更新同一行会互相等行锁。
+        # 原子 UPDATE 无读-改-写窗口，只持锁一条语句的时间。
+        # 同时必须 commit：get_db 只在 finally 里 close()，不 commit 的话 flush 的自增会随
+        # 连接关闭被回滚，浏览量永远停留在 0（历史遗留：浏览量统计从未真正落库）。
+        #
+        # 统计行尚不存在时补建：course_id 上有唯一约束，多请求并发首次访问会互相撞唯一约束，
+        # 撞上的一方回滚后重试一次自增即可（这正是之前出现 5s 锁等待超时的来源）。
+        updated = db.query(CourseStatistics).filter_by(course_id=course.id).update(
+            {CourseStatistics.view_count: CourseStatistics.view_count + 1},
+            synchronize_session="fetch",
+        )
+        if not updated:
+            try:
+                db.add(CourseStatistics(
+                    course_id=course.id, view_count=1, enroll_count=0, like_count=0,
+                    bookmark_count=0, review_count=0, avg_rating=0, completed_count=0))
+                db.commit()
+            except IntegrityError:
+                # 并发下另一请求已建好统计行：回滚后按已存在处理，直接原子自增
+                db.rollback()
+                db.query(CourseStatistics).filter_by(course_id=course.id).update(
+                    {CourseStatistics.view_count: CourseStatistics.view_count + 1},
+                    synchronize_session="fetch",
+                )
+                db.commit()
+        else:
+            db.commit()
 
         # 获取章节列表
         chapters = db.query(CourseChapter).filter_by(course_id=course.id).order_by(CourseChapter.order).all()
@@ -225,7 +255,7 @@ async def get_course_detail(
     summary="获取课程分类",
     description="获取课程分类树形结构",
 )
-async def get_course_categories(
+def get_course_categories(
     db: Session = Depends(get_db),
 ):
     """获取课程分类树形结构"""
@@ -258,7 +288,7 @@ async def get_course_categories(
     summary="报名课程",
     description="用户报名课程",
 )
-async def enroll_course(
+def enroll_course(
     id: int,
     db: Session = Depends(get_db),
 ):
@@ -293,7 +323,14 @@ async def enroll_course(
             course.statistics = CourseStatistics(
                 course_id=id, view_count=0, enroll_count=0, like_count=0,
                 bookmark_count=0, review_count=0, avg_rating=0, completed_count=0)
-        course.statistics.enroll_count += 1
+            db.add(course.statistics)
+            db.flush()
+        else:
+            # 原子自增（同 view_count）：避免"读-改-写"在并发下互相等行锁
+            db.query(CourseStatistics).filter_by(course_id=id).update(
+                {CourseStatistics.enroll_count: CourseStatistics.enroll_count + 1},
+                synchronize_session="fetch",
+            )
 
         db.commit()
         db.refresh(enrollment)
@@ -320,7 +357,7 @@ async def enroll_course(
     summary="获取我的课程",
     description="获取用户已报名的课程列表",
 )
-async def get_my_courses(
+def get_my_courses(
     db: Session = Depends(get_db),
 ):
     """获取我的课程"""
@@ -372,7 +409,7 @@ async def get_my_courses(
     summary="点赞课程",
     description="用户点赞课程",
 )
-async def like_course(
+def like_course(
     id: int,
     db: Session = Depends(get_db),
 ):
@@ -407,7 +444,14 @@ async def like_course(
             course.statistics = CourseStatistics(
                 course_id=id, view_count=0, enroll_count=0, like_count=0,
                 bookmark_count=0, review_count=0, avg_rating=0, completed_count=0)
-        course.statistics.like_count += 1
+            db.add(course.statistics)
+            db.flush()
+        else:
+            # 原子自增（同 view_count）：避免"读-改-写"在并发下互相等行锁
+            db.query(CourseStatistics).filter_by(course_id=id).update(
+                {CourseStatistics.like_count: CourseStatistics.like_count + 1},
+                synchronize_session="fetch",
+            )
 
         db.commit()
         db.refresh(interaction)
@@ -433,7 +477,7 @@ async def like_course(
     summary="收藏课程",
     description="用户收藏课程",
 )
-async def bookmark_course(
+def bookmark_course(
     id: int,
     db: Session = Depends(get_db),
 ):
@@ -468,7 +512,14 @@ async def bookmark_course(
             course.statistics = CourseStatistics(
                 course_id=id, view_count=0, enroll_count=0, like_count=0,
                 bookmark_count=0, review_count=0, avg_rating=0, completed_count=0)
-        course.statistics.bookmark_count += 1
+            db.add(course.statistics)
+            db.flush()
+        else:
+            # 原子自增（同 view_count）：避免"读-改-写"在并发下互相等行锁
+            db.query(CourseStatistics).filter_by(course_id=id).update(
+                {CourseStatistics.bookmark_count: CourseStatistics.bookmark_count + 1},
+                synchronize_session="fetch",
+            )
 
         db.commit()
         db.refresh(interaction)
@@ -494,7 +545,7 @@ async def bookmark_course(
     summary="获取课程统计",
     description="获取课程统计数据",
 )
-async def get_course_statistics(
+def get_course_statistics(
     id: int,
     db: Session = Depends(get_db),
 ):
@@ -538,7 +589,7 @@ async def get_course_statistics(
     summary="获取课程评价",
     description="获取课程评价列表（分页）",
 )
-async def get_course_reviews(
+def get_course_reviews(
     id: int,
     page: int = Query(1, ge=1, description="页码"),
     limit: int = Query(10, ge=1, le=50, description="每页数量"),
@@ -573,7 +624,7 @@ async def get_course_reviews(
     summary="提交课程评价",
     description="用户提交课程评价",
 )
-async def create_course_review(
+def create_course_review(
     id: int,
     review_data: CourseReviewCreate,
     db: Session = Depends(get_db),

@@ -1,5 +1,5 @@
 @router.get("/summary", response_model=SummaryResponse)
-async def get_token_usage_summary(
+def get_token_usage_summary(
     source: str = "all",
     type: str = "daily",
     days: int = 30,

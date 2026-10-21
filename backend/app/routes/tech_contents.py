@@ -32,7 +32,7 @@ def get_content_type_label(content_type: str) -> str:
 
 
 @router.get("", summary="获取技术分析内容列表")
-async def get_tech_contents(
+def get_tech_contents(
     content_type: Optional[str] = Query(None, description="内容类型筛选：analysis/sharing/case_study"),
     tag: Optional[str] = Query(None, description="标签筛选"),
     page: int = Query(1, ge=1, description="页码"),
@@ -121,7 +121,7 @@ async def get_tech_contents(
 
 
 @router.get("/types", summary="获取内容类型列表")
-async def get_content_types():
+def get_content_types():
     """获取所有可用的内容类型"""
     return {
         "types": [
@@ -133,7 +133,7 @@ async def get_content_types():
 
 
 @router.get("/{slug}", summary="获取技术分析内容详情")
-async def get_tech_content(
+def get_tech_content(
     slug: str,
     db: Session = Depends(get_db),
 ):
@@ -217,7 +217,7 @@ async def get_tech_content(
 
 
 @router.get("/tags/popular", summary="获取热门标签")
-async def get_popular_tags(
+def get_popular_tags(
     limit: int = Query(10, ge=1, le=50, description="返回标签数量"),
     db: Session = Depends(get_db),
 ):

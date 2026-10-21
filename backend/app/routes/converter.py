@@ -36,7 +36,7 @@ async def convert_document(
 
 
 @router.get("/history", response_model=ConverterHistoryListResponse)
-async def get_history(
+def get_history(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
     user_id: str = Depends(get_current_user_id)
@@ -55,7 +55,7 @@ async def get_history(
 
 
 @router.get("/quota", response_model=ConverterQuotaInfo)
-async def get_quota(user_id: str = Depends(get_current_user_id)):
+def get_quota(user_id: str = Depends(get_current_user_id)):
     """获取用户配额信息"""
     try:
         return converter_service._check_quota(user_id)
@@ -82,7 +82,7 @@ async def batch_convert(
 
 
 @router.post("/edit", response_model=EditContentResponse)
-async def edit_content(
+def edit_content(
     request: EditContentRequest,
     user_id: str = Depends(get_current_user_id)
 ):
@@ -103,7 +103,7 @@ async def edit_content(
 
 
 @router.delete("/history/{history_id}")
-async def delete_history(
+def delete_history(
     history_id: str,
     user_id: str = Depends(get_current_user_id)
 ):

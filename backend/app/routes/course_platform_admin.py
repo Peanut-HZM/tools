@@ -50,7 +50,7 @@ def is_admin() -> bool:
     summary="获取课程管理列表",
     description="获取所有课程列表（管理员专用）",
 )
-async def get_admin_courses(
+def get_admin_courses(
     status_filter: Optional[str] = Query(None, alias="status", description="状态筛选：draft/published/archived"),
     search: Optional[str] = Query(None, description="搜索关键词（课程标题/描述/章节内容）"),
     page: int = Query(1, ge=1, description="页码"),
@@ -101,7 +101,7 @@ async def get_admin_courses(
     summary="获取课程详情",
     description="获取指定课程详情（管理员专用）",
 )
-async def get_admin_course(
+def get_admin_course(
     id: int,
     db: Session = Depends(get_db),
 ):
@@ -125,7 +125,7 @@ async def get_admin_course(
     summary="创建课程",
     description="创建新课程（管理员专用）",
 )
-async def create_admin_course(
+def create_admin_course(
     course_data: CourseCreate,
     db: Session = Depends(get_db),
 ):
@@ -173,7 +173,7 @@ async def create_admin_course(
     summary="更新课程",
     description="更新课程信息（管理员专用）",
 )
-async def update_admin_course(
+def update_admin_course(
     id: int,
     course_data: CourseUpdate,
     db: Session = Depends(get_db),
@@ -208,7 +208,7 @@ async def update_admin_course(
     summary="删除课程",
     description="删除课程（管理员专用）",
 )
-async def delete_admin_course(
+def delete_admin_course(
     id: int,
     db: Session = Depends(get_db),
 ):
@@ -234,7 +234,7 @@ async def delete_admin_course(
     summary="发布课程",
     description="发布/取消发布课程（管理员专用）",
 )
-async def publish_admin_course(
+def publish_admin_course(
     id: int,
     publish: bool = Query(True, description="是否发布"),
     db: Session = Depends(get_db),
@@ -264,7 +264,7 @@ async def publish_admin_course(
     summary="获取章节列表",
     description="获取指定课程的所有章节（管理员专用）",
 )
-async def get_admin_chapters(
+def get_admin_chapters(
     course_id: int,
     db: Session = Depends(get_db),
 ):
@@ -292,7 +292,7 @@ async def get_admin_chapters(
     summary="创建章节",
     description="为课程创建新章节（管理员专用）",
 )
-async def create_admin_chapter(
+def create_admin_chapter(
     course_id: int,
     chapter_data: CourseChapterCreate,
     db: Session = Depends(get_db),
@@ -335,7 +335,7 @@ async def create_admin_chapter(
     summary="更新章节",
     description="更新章节信息（管理员专用）",
 )
-async def update_admin_chapter(
+def update_admin_chapter(
     course_id: int,
     chapter_id: int,
     chapter_data: CourseChapterUpdate,
@@ -370,7 +370,7 @@ async def update_admin_chapter(
     summary="删除章节",
     description="删除章节（管理员专用）",
 )
-async def delete_admin_chapter(
+def delete_admin_chapter(
     course_id: int,
     chapter_id: int,
     db: Session = Depends(get_db),
@@ -397,7 +397,7 @@ async def delete_admin_chapter(
     summary="重新排序章节",
     description="批量更新章节顺序（管理员专用）",
 )
-async def reorder_admin_chapters(
+def reorder_admin_chapters(
     course_id: int,
     chapter_orders: List[Dict[str, int]],
     db: Session = Depends(get_db),
@@ -425,7 +425,7 @@ async def reorder_admin_chapters(
     summary="导出课程数据",
     description="导出课程数据为 JSON 格式（管理员专用）",
 )
-async def export_course_data(
+def export_course_data(
     course_id: Optional[int] = Query(None, description="课程 ID，不传则导出所有课程"),
     db: Session = Depends(get_db),
 ):
@@ -444,7 +444,7 @@ async def export_course_data(
     summary="下载课程 JSON 文件",
     description="下载课程数据 JSON 文件（管理员专用）",
 )
-async def download_course_export(
+def download_course_export(
     course_id: Optional[int] = Query(None, description="课程 ID"),
     db: Session = Depends(get_db),
 ):
@@ -477,7 +477,7 @@ async def download_course_export(
     summary="预览课程导入",
     description="预览课程导入数据，检查冲突（管理员专用）",
 )
-async def preview_course_import(
+def preview_course_import(
     request: ImportPreviewRequest,
     db: Session = Depends(get_db),
 ):
@@ -496,7 +496,7 @@ async def preview_course_import(
     summary="导入课程数据",
     description="导入课程数据（管理员专用）",
 )
-async def import_course_data(
+def import_course_data(
     import_data: CourseExportData,
     strategy: ImportStrategy = Query(ImportStrategy.REPLACE, description="导入策略"),
     db: Session = Depends(get_db),
@@ -516,7 +516,7 @@ async def import_course_data(
     summary="导出课程 ZIP 包",
     description="导出课程数据为 ZIP 格式（包含 JSON 和 Markdown 文件）（管理员专用）",
 )
-async def export_course_zip(
+def export_course_zip(
     course_id: int,
     db: Session = Depends(get_db),
 ):
@@ -555,7 +555,7 @@ async def export_course_zip(
     summary="导出章节 Markdown",
     description="导出单个章节为 Markdown 格式（管理员专用）",
 )
-async def export_chapter_markdown(
+def export_chapter_markdown(
     course_id: int,
     chapter_id: int,
     db: Session = Depends(get_db),
@@ -575,7 +575,7 @@ async def export_chapter_markdown(
     summary="预览 Markdown 导入",
     description="预览 Markdown 导入章节更新（管理员专用）",
 )
-async def preview_markdown_import(
+def preview_markdown_import(
     course_id: int,
     chapter_id: int,
     markdown_content: str = Body(..., embed=True),
@@ -596,7 +596,7 @@ async def preview_markdown_import(
     summary="导入 Markdown 更新",
     description="从 Markdown 导入章节更新（管理员专用）",
 )
-async def import_markdown_update(
+def import_markdown_update(
     course_id: int,
     chapter_id: int,
     markdown_content: str = Body(..., embed=True),
@@ -620,7 +620,7 @@ async def import_markdown_update(
     summary="获取章节测验",
     description="获取指定章节的测验（包含题目和选项）",
 )
-async def get_chapter_quiz(
+def get_chapter_quiz(
     course_id: int,
     chapter_id: int,
     db: Session = Depends(get_db),
@@ -663,7 +663,7 @@ async def get_chapter_quiz(
     summary="创建章节测验",
     description="为指定章节创建测验",
 )
-async def create_chapter_quiz(
+def create_chapter_quiz(
     course_id: int,
     chapter_id: int,
     quiz_data: CourseQuizCreate,
@@ -731,7 +731,7 @@ async def create_chapter_quiz(
     summary="更新测验",
     description="更新测验信息",
 )
-async def update_quiz(
+def update_quiz(
     quiz_id: int,
     quiz_data: CourseQuizUpdate,
     db: Session = Depends(get_db),
@@ -762,7 +762,7 @@ async def update_quiz(
     summary="删除测验",
     description="删除测验及其所有题目和选项",
 )
-async def delete_quiz(
+def delete_quiz(
     quiz_id: int,
     db: Session = Depends(get_db),
 ):
@@ -791,7 +791,7 @@ async def delete_quiz(
     summary="获取章节资源",
     description="获取指定章节的所有资源",
 )
-async def get_chapter_resources(
+def get_chapter_resources(
     course_id: int,
     chapter_id: int,
     db: Session = Depends(get_db),
@@ -819,7 +819,7 @@ async def get_chapter_resources(
     summary="创建资源",
     description="为章节创建新资源",
 )
-async def create_resource(
+def create_resource(
     resource_data: CourseResourceCreate,
     db: Session = Depends(get_db),
 ):
@@ -857,7 +857,7 @@ async def create_resource(
     summary="更新资源",
     description="更新资源信息",
 )
-async def update_resource(
+def update_resource(
     resource_id: int,
     resource_data: CourseResourceUpdate,
     db: Session = Depends(get_db),
@@ -888,7 +888,7 @@ async def update_resource(
     summary="删除资源",
     description="删除资源",
 )
-async def delete_resource(
+def delete_resource(
     resource_id: int,
     db: Session = Depends(get_db),
 ):

@@ -52,7 +52,16 @@ Base = declarative_base()
 def get_db():
     """获取数据库会话
 
-    关键防御：在每次 yield 前做 ORM 级健康检查，确保 session 不是被污染的。
+    关键防御：
+    1. 每次 yield 前做 ORM 级健康检查，确保 session 不是被污染的；
+    2. 为每个事务设置 PostgreSQL 锁等待超时（lock_timeout）与语句超时（statement_timeout）。
+
+    第 2 条是全局兜底：PostgreSQL 默认对行锁等待无限期（无 lock_timeout），
+    一旦多个请求并发更新同一行（如 course_statistics.view_count 自增），
+    后到的请求会无限期等锁。而本项目数据库会话是同步 SQLAlchemy，
+    等锁期间会占住 event loop，最终把整个后端冻结（连 /openapi.json 都超时）。
+    设置 lock_timeout 后，锁等待超过阈值即报错回滚，最多短暂阻塞而不会永久冻结。
+    SET LOCAL 只在当前事务内生效，事务结束自动恢复，不影响连接池中其他会话。
     """
     db = SessionLocal()
     try:
@@ -70,6 +79,13 @@ def get_db():
             except Exception:
                 pass
             db = SessionLocal()
+        # 锁等待/语句超时兜底（仅 PostgreSQL；SQLite 无此概念）
+        try:
+            if not DATABASE_URL.startswith("sqlite"):
+                db.execute(text("SET LOCAL lock_timeout = '5s'"))
+                db.execute(text("SET LOCAL statement_timeout = '30s'"))
+        except Exception as st_exc:
+            logger.warning("[get_db] 设置锁/语句超时失败: %s", st_exc)
         yield db
     finally:
         try:
