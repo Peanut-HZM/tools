@@ -1,7 +1,7 @@
 /**
  * FileTree Component - Displays directory tree structure
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { FileNode } from '../../../types/markdownEditor';
 import { getFilePaths } from '../../../api/markdownEditorApi';
 
@@ -196,6 +196,7 @@ function TreeNode({
       <div
         className={`file-tree-item ${isSelected ? 'active' : ''}`}
         style={{ paddingLeft: `${level * 16 + 12}px` }}
+        data-path={node.path}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
@@ -425,6 +426,26 @@ export default function FileTree({
     return new Set([...expandedNodes, ...autoExpandPaths]);
   }, [expandedNodes, fileSearchQuery, autoExpandPaths]);
 
+  /** 文件树内容区容器：用于定位当前打开的文件 */
+  const treeContentRef = useRef<HTMLDivElement>(null);
+
+  // 当前文件变化、展开状态变化或搜索条件变化时，把当前打开的文件滚动到可视区域
+  useEffect(() => {
+    if (!currentFilePath) return;
+    const container = treeContentRef.current;
+    if (!container) return;
+    const items = container.querySelectorAll<HTMLElement>('[data-path]');
+    for (const item of items) {
+      if (item.dataset.path === currentFilePath) {
+        // 非浏览器环境（如 jsdom）没有 scrollIntoView，需做能力检测
+        if (typeof item.scrollIntoView === 'function') {
+          item.scrollIntoView({ block: 'nearest' });
+        }
+        break;
+      }
+    }
+  }, [currentFilePath, fileSearchQuery, effectiveExpandedNodes]);
+
   // 清除搜索
   const handleClearSearch = useCallback(() => {
     setFileSearchQuery('');
@@ -555,7 +576,7 @@ export default function FileTree({
       </div>
 
       {/* Tree Content */}
-      <div className="flex-1 overflow-auto relative" onContextMenu={handleBlankContextMenu}>
+      <div ref={treeContentRef} className="flex-1 overflow-auto relative" onContextMenu={handleBlankContextMenu}>
         {refreshingAll && (
           <div className="absolute inset-0 z-40 bg-black/30 flex items-center justify-center">
             <span className="text-sm text-ink-muted animate-spin">⟳ 刷新中...</span>

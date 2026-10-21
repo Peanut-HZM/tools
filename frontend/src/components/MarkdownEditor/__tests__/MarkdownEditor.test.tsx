@@ -15,6 +15,10 @@ import MarkdownEditor from '../MarkdownEditor';
 import { ExcelEditorProvider } from '../../../stores/excelEditorStore';
 import * as markdownEditorApi from '../../../api/markdownEditorApi';
 
+vi.mock('../../../lib/theme', () => ({
+  useTheme: () => ({ theme: 'light', resolved: 'light', setTheme: vi.fn() }),
+}));
+
 /* ------------------------------------------------------------------ */
 /* Mock @monaco-editor/react（CodeEditor 内部依赖）                    */
 /* ------------------------------------------------------------------ */
@@ -103,6 +107,7 @@ function createFileStoreMock(overrides: Record<string, unknown> = {}) {
     error: null,
     loadDirectoryTree: vi.fn(),
     openFile: vi.fn(),
+    revealFile: vi.fn(),
     saveCurrentFile: vi.fn(),
     createFile: vi.fn(),
     deleteFile: vi.fn(),

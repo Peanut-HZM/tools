@@ -27,7 +27,6 @@ import { saveMarkdownToOss, uploadMarkdownFile, readMarkdownFromOss, saveExcelEd
 import type { EditorConfig } from '../../types/markdownEditor';
 import { useToast } from '../../hooks/useToast';
 import { useTheme } from '../../lib/theme';
-import Toast from './Toast/Toast';
 import FolderBrowserDialog from './FolderBrowserDialog/FolderBrowserDialog';
 
 // SVG Icons
@@ -68,6 +67,7 @@ export default function MarkdownEditor() {
     error: fileError,
     loadDirectoryTree,
     openFile,
+    revealFile,
     saveCurrentFile,
     createFile,
     deleteFile,
@@ -232,7 +232,7 @@ export default function MarkdownEditor() {
   const [activeTocId, setActiveTocId] = useState('');
 
   // Auto-save timer ref
-  const autoSaveTimerRef = useRef<number | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load initial data - 使用 depth=1 快速加载第一层目录
   useEffect(() => {
@@ -253,6 +253,13 @@ export default function MarkdownEditor() {
       setOssFilePath(null);
     }
   }, [currentFile, setContent]);
+
+  // 文件树定位：内容区打开文件后，左侧文件树展开并定位到该文件所在目录
+  // 目录结构变化（初次加载、刷新）后同样重新定位，保证文件在树中可见
+  useEffect(() => {
+    if (!currentFilePath) return;
+    void revealFile(currentFilePath);
+  }, [currentFilePath, directoryTree, revealFile]);
   
   // Handle file upload from OSS
   const handleFileUploaded = useCallback((content: string, filename: string, filePath: string) => {

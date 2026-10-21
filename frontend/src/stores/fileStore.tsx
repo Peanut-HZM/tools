@@ -6,7 +6,7 @@ import { flushSync } from 'react-dom';
 import * as markdownEditorApi from '../api/markdownEditorApi';
 import { ApiError } from '../api/markdownEditorApi';
 import type { FileNode, FileContent, RootPathResponse } from '../types/markdownEditor';
-import type { OssFileInfo } from '../types/offlineCache';
+import type { OssFileInfo } from '../api/markdownEditorApi';
 import { getMetadata, saveMetadata } from '../utils/indexedDb';
 
 export interface FileState {
@@ -33,6 +33,8 @@ export interface FileActions {
   loadDirectoryTree: (subPath?: string, depth?: number) => Promise<void>;
   loadSubDirectory: (path: string) => Promise<void>;
   openFile: (path: string) => Promise<void>;
+  /** 定位文件：展开祖先目录并加载缺失层级，使文件在树中可见 */
+  revealFile: (path: string) => Promise<void>;
   saveCurrentFile: (content: string) => Promise<void>;
   createFile: (path: string, content?: string) => Promise<void>;
   deleteFile: (path: string) => Promise<void>;
@@ -103,6 +105,111 @@ export function removeSubtree(root: FileNode, targetPath: string): FileNode {
   // 目标路径不存在（未产生任何变化）时，返回原引用，避免无意义的重新渲染
   if (!changed) return root;
   return { ...root, children };
+}
+
+/**
+ * 递归查找树中指定路径的节点
+ * 路径不存在时返回 null（目录未加载时其子孙同样查不到）
+ */
+export function findNodeByPath(root: FileNode | null, path: string): FileNode | null {
+  if (!root || !path) return null;
+  if (root.path === path) return root;
+  for (const child of root.children ?? []) {
+    const found = findNodeByPath(child, path);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * 取文件路径的所有祖先目录（从根到直接父目录）
+ * 例：'a/b/c.md' → ['a', 'a/b']；根级文件 'c.md' → []
+ */
+export function ancestorDirsOf(path: string): string[] {
+  const segments = path.split('/').filter(Boolean);
+  const dirs: string[] = [];
+  for (let i = 1; i < segments.length; i++) {
+    dirs.push(segments.slice(0, i).join('/'));
+  }
+  return dirs;
+}
+
+/**
+ * 合并两个节点：目录合并子节点，文件节点以新数据为准
+ */
+function mergeNode(current: FileNode, incoming: FileNode): FileNode {
+  if (current.type === 'directory' && incoming.type === 'directory') {
+    return {
+      ...current,
+      children: mergeChildren(current.children ?? [], incoming.children ?? []),
+    };
+  }
+  return incoming;
+}
+
+/**
+ * 合并两组子节点：按 path 去重
+ * 已存在的目录保留其已加载的子节点内容（避免展开状态被浅层数据覆盖）
+ */
+function mergeChildren(existing: FileNode[], incoming: FileNode[]): FileNode[] {
+  const result = [...existing];
+  for (const inc of incoming) {
+    const index = result.findIndex((c) => c.path === inc.path);
+    if (index === -1) {
+      result.push(inc);
+    } else {
+      result[index] = mergeNode(result[index], inc);
+    }
+  }
+  return result;
+}
+
+/**
+ * 在树中按相对路径插入（或合并）节点
+ * @param relPath 相对于 root 的路径（root.path 为空时即完整路径）
+ */
+function upsertRelative(root: FileNode, relPath: string, node: FileNode): FileNode {
+  const segments = relPath.split('/').filter(Boolean);
+  if (segments.length === 0) {
+    // 目标就是当前节点本身
+    return mergeNode(root, node);
+  }
+
+  const first = segments[0];
+  const childPath = root.path ? `${root.path}/${first}` : first;
+  const rest = segments.slice(1).join('/');
+
+  const children = root.children ?? [];
+  const index = children.findIndex((c) => c.path === childPath);
+
+  let nextChild: FileNode;
+  if (index >= 0) {
+    nextChild = rest
+      ? upsertRelative(children[index], rest, node)
+      : mergeNode(children[index], node);
+  } else {
+    // 缺失的中间目录：创建占位节点并继续向下插入
+    const placeholder: FileNode = {
+      name: first,
+      path: childPath,
+      type: 'directory',
+      children: [],
+    };
+    nextChild = rest ? upsertRelative(placeholder, rest, node) : node;
+  }
+
+  const nextChildren = [...children];
+  nextChildren[index >= 0 ? index : nextChildren.length] = nextChild;
+  return { ...root, children: nextChildren };
+}
+
+/**
+ * 在树中按完整路径插入（或合并）节点，路径缺失的中间目录用占位节点补齐
+ * - 目标路径已存在：合并子节点（保留已加载内容）
+ * - 目标路径不存在：创建占位目录并继续向下插入
+ */
+export function upsertNode(root: FileNode, targetPath: string, node: FileNode): FileNode {
+  return upsertRelative(root, targetPath, node);
 }
 
 export function FileProvider({ children }: { children: ReactNode }) {
@@ -246,6 +353,50 @@ export function FileProvider({ children }: { children: ReactNode }) {
     }
   }, [loadDirectoryTree]);
 
+  /**
+   * 定位文件：让文件树展开并显示指定文件
+   * - 文件已在树中：仅展开其祖先目录
+   * - 文件未在树中（所在目录尚未加载）：按层级补齐缺失目录后再展开
+   * 目录加载使用 depth=0（只列一层子项），避免整棵子树的大扫描
+   */
+  const revealFile = useCallback(async (path: string) => {
+    if (!path) return;
+
+    const dirs = ancestorDirsOf(path);
+    let workingTree = directoryTree;
+
+    // 目标文件不在树中：逐级补齐缺失的目录层级
+    if (workingTree && !findNodeByPath(workingTree, path)) {
+      for (const dir of dirs) {
+        const dirNode = findNodeByPath(workingTree, dir);
+        // 目录已列出子项则无需重复加载
+        if (dirNode && dirNode.children && dirNode.children.length > 0) continue;
+        try {
+          const subTree = await markdownEditorApi.getDirectoryTree(dir, 0);
+          workingTree = upsertNode(workingTree, dir, subTree);
+          setDirectoryTree((prev) => (prev ? upsertNode(prev, dir, subTree) : prev));
+        } catch (e) {
+          // 目录不存在或无权限：停止补齐，但仍保证已知的祖先目录被展开
+          console.error(`定位文件失败，加载目录 ${dir} 出错:`, e);
+          break;
+        }
+      }
+    }
+
+    // 展开所有祖先目录，保证文件在树中可见
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const dir of dirs) {
+        if (!next.has(dir)) {
+          next.add(dir);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [directoryTree]);
+
   const openFile = useCallback(async (path: string) => {
     setIsLoading(true);
     setError(null);
@@ -271,13 +422,16 @@ export function FileProvider({ children }: { children: ReactNode }) {
         modified: file.modified
       });
       setCurrentFilePath(path);
+      // 文件在内容区打开后，文件树立即定位到该文件所在目录
+      // （currentFilePath 未变化时不会触发组件 effect，这里保证每次打开都定位）
+      void revealFile(path);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to open file');
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [revealFile]);
 
   const saveCurrentFile = useCallback(async (content: string) => {
     if (!currentFilePath) return;
@@ -451,7 +605,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
     loadRootPath,
     setRootPath: setRootPathAction,
     loadDirectoryTree,
+    loadSubDirectory,
     openFile,
+    revealFile,
     saveCurrentFile,
     createFile,
     deleteFile,
