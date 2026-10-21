@@ -44,6 +44,12 @@ async def backfill_memory_embeddings(
     except Exception as e:
         logger.warning("记忆向量回填：统计失败: %s", type(e).__name__)
         return 0
+    finally:
+        # 统计是只读的：结束事务，避免连接在后续 await 期间空闲挂起
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
     if total == 0:
         logger.info("记忆向量回填：无需回填")
@@ -81,6 +87,10 @@ async def backfill_memory_embeddings(
                 texts.append(json.dumps(value, ensure_ascii=False)[:2000])
 
         try:
+            # 先结束只读事务再去 await embedding：
+            # 事务跨越 await 会让连接长期处于 idle in transaction（占用连接池并持锁），
+            # embedding 调用一旦变慢/超时，后端就会长时间处于"锁住"状态。
+            db.rollback()
             vectors = await provider.embed(texts)
         except Exception as e:
             logger.warning(
@@ -130,21 +140,37 @@ async def backfill_memory_embeddings(
             "记忆向量回填：提前结束，已完成 %d/%d（可能需要下次启动继续）",
             filled, total,
         )
+    # 兜底：无论从哪条分支退出，都结束可能残留的事务
+    try:
+        db.rollback()
+    except Exception:
+        pass
     return filled
 
 
 def count_pending_rows(db: DBSession) -> int:
-    """统计缺失 embedding 的行数（用于启动判断是否需要回填）"""
+    """统计缺失 embedding 的行数（用于启动判断是否需要回填）
+
+    只读统计会开启一个事务，统计完必须 rollback 结束它：
+    否则该 session 会在后续 await 期间一直处于 idle in transaction，
+    长期占用一个连接并持有锁。
+    """
     from app.models.agent_memory import AgentMemoryLongTerm
     try:
-        return (
+        total = (
             db.query(AgentMemoryLongTerm)
             .filter(AgentMemoryLongTerm.embedding.is_(None))
             .count()
         )
+        return total
     except Exception as e:
         logger.warning("统计待回填行数失败: %s", type(e).__name__)
         return 0
+    finally:
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 async def run_startup_backfill(db: DBSession) -> Optional[int]:

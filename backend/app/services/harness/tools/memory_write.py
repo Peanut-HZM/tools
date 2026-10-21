@@ -278,6 +278,13 @@ class MemoryWriteTool(BuiltinTool):
                 )
 
                 agent_cfg = self._resolve_agent_config(db, agent_uuid)
+                # 结束上面的只读事务再 await embedding：
+                # 事务跨越 await 会让连接长期 idle in transaction（占用连接池并持锁），
+                # embedding 调用变慢/超时时会把后端拖入"锁住"状态。
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
                 if agent_cfg.get("embedding_provider"):
                     provider = create_embedding_provider(agent_cfg)
                     # 提取用于 embedding 的文本（与 MemoryService._extract_text 一致）
