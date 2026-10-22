@@ -211,7 +211,10 @@ export default function Preview({ content, theme = 'dark', searchQuery = '', cur
   }, [html, searchQuery, currentMatchIndex]);
 
   return (
-    <div className={`h-full overflow-auto bg-transparent text-inherit ${theme === 'dark' ? 'dark-theme' : ''}`}>
+    // light-theme / dark-theme 分别对应 Preview.css 中的亮/暗配色：
+    // .markdown-body 默认是赛博朋克 neon 暗色配色，必须显式加 light-theme 走亮色配色，
+    // 否则亮色主题下正文/标题/表格仍是浅灰与青色，落在白底上几乎不可读。
+    <div className={`h-full overflow-auto bg-transparent text-inherit ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}>
       <div
         ref={containerRef}
         className="markdown-body"

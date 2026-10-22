@@ -375,3 +375,137 @@
   background-color: #ea580c;
   color: #fff7ed;
 }
+
+/* ========================================
+   亮色主题适配（.light-theme）
+   ========================================
+   .markdown-body 默认是赛博朋克 neon 暗色配色：正文 #c0c0d0、标题 #00f5ff、
+   表格文字 #d0d0e0。这些颜色直接落在亮色背景上几乎不可读；
+   同时 text-shadow 辉光在白底上会把字边缘晕开，进一步降低清晰度。
+   亮色模式改用项目语义 token（ink / accent / border / surface）着色并去掉辉光，
+   与全站双主题规范保持一致。
+   代码块沿用深底（与正文形成强对比，两主题一致且可读），仅调整描边与顶部渐变线。 */
+.light-theme .markdown-body {
+  color: rgb(var(--ink-default));
+}
+
+/* 标题：去掉辉光，改用语义色 */
+.light-theme .markdown-body h1,
+.light-theme .markdown-body h2,
+.light-theme .markdown-body h3,
+.light-theme .markdown-body h4,
+.light-theme .markdown-body h5,
+.light-theme .markdown-body h6 {
+  text-shadow: none;
+}
+
+.light-theme .markdown-body h1 {
+  background: linear-gradient(135deg, rgb(var(--accent-info)), rgb(var(--accent-secondary)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  border-image: none;
+  border-bottom: 1px solid rgb(var(--border-default));
+  padding-bottom: 0.4em;
+}
+
+.light-theme .markdown-body h2 {
+  color: rgb(var(--accent-info));
+  border-bottom: 1px solid rgb(var(--border-default));
+}
+
+.light-theme .markdown-body h3 { color: rgb(var(--accent-secondary)); }
+.light-theme .markdown-body h4 { color: rgb(var(--accent-primary)); }
+.light-theme .markdown-body h5 { color: rgb(var(--accent-cyan)); }
+.light-theme .markdown-body h6 { color: rgb(var(--ink-muted)); }
+
+/* 正文与列表 */
+.light-theme .markdown-body p,
+.light-theme .markdown-body li { color: rgb(var(--ink-default)); }
+.light-theme .markdown-body ul li::before { color: rgb(var(--accent-info)); }
+.light-theme .markdown-body ol li::marker { color: rgb(var(--accent-secondary)); }
+
+/* 链接：补下划线（去掉霓虹下划线动画，亮底上更清晰） */
+.light-theme .markdown-body a {
+  color: rgb(var(--accent-info));
+  text-decoration: underline;
+  text-shadow: none;
+}
+.light-theme .markdown-body a:hover { color: rgb(var(--accent-primary)); text-shadow: none; }
+.light-theme .markdown-body a::after { display: none; }
+
+/* 行内代码 */
+.light-theme .markdown-body code {
+  background: rgb(var(--bg-surface-2) / 0.7);
+  border: 1px solid rgb(var(--border-default) / 0.7);
+  color: rgb(var(--accent-danger));
+  text-shadow: none;
+}
+
+/* 代码块：保留深底，仅把描边与顶部渐变线换成中性色 */
+.light-theme .markdown-body pre {
+  border: 1px solid rgb(var(--border-default) / 0.8);
+}
+.light-theme .markdown-body pre::before {
+  background: linear-gradient(90deg, transparent 0%, rgb(var(--border-strong) / 0.6) 50%, transparent 100%);
+}
+/* 亮色下代码块改浅底：github.css 是浅色主题的语法高亮（深色 token），
+   配深底时普通代码文字（github.css 的 #24292e）几乎不可见 */
+.light-theme .markdown-body pre {
+  background: rgb(var(--bg-surface-1));
+}
+.light-theme .markdown-body pre .hljs,
+.light-theme .markdown-body pre code {
+  background: transparent;
+  color: rgb(var(--ink-default));
+}
+
+/* 暗色下代码块保留深底，但普通代码文字需改浅色
+   （github.css 的 .hljs 文字是深色 #24292e，深底上不可读） */
+.dark-theme .markdown-body pre .hljs,
+.dark-theme .markdown-body pre code {
+  background: transparent;
+  color: #d6deeb;
+}
+
+/* 引用 */
+.light-theme .markdown-body blockquote {
+  color: rgb(var(--ink-muted));
+  border-left: 4px solid rgb(var(--accent-secondary));
+  background: rgb(var(--bg-surface-2) / 0.45);
+}
+.light-theme .markdown-body blockquote::before { color: rgb(var(--accent-secondary)); }
+
+/* 表格 */
+.light-theme .markdown-body table { border: 1px solid rgb(var(--border-default)); }
+.light-theme .markdown-body table tr { border-top: 1px solid rgb(var(--border-default) / 0.7); }
+.light-theme .markdown-body table tr:nth-child(2n) { background-color: rgb(var(--bg-surface-2) / 0.4); }
+.light-theme .markdown-body table th,
+.light-theme .markdown-body table td { border: 1px solid rgb(var(--border-default) / 0.7); }
+.light-theme .markdown-body table th {
+  background-color: rgb(var(--bg-surface-2) / 0.8);
+  color: rgb(var(--accent-info));
+  /* 中文表头无需大写与字距 */
+  text-transform: none;
+  letter-spacing: normal;
+}
+.light-theme .markdown-body table td { color: rgb(var(--ink-default)); }
+
+/* 分隔线与任务列表 */
+.light-theme .markdown-body hr { background: rgb(var(--border-default)); }
+.light-theme .markdown-body hr::after { color: rgb(var(--ink-faint)); }
+.light-theme .markdown-body input[type="checkbox"]:checked {
+  background-color: rgb(var(--accent-info) / 0.2);
+  border-color: rgb(var(--accent-info));
+}
+.light-theme .markdown-body input[type="checkbox"]:checked::after { color: rgb(var(--accent-info)); }
+
+/* 搜索高亮：亮色底用深色字（默认样式已是浅黄底+深字，此处仅去掉阴影外的兼容） */
+.light-theme .markdown-body mark.search-highlight {
+  background-color: #fef08a;
+  color: #1f2937;
+}
+.light-theme .markdown-body mark.search-highlight.active-search-match {
+  background-color: #fb923c;
+  color: #1f2937;
+}
