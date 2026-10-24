@@ -2,12 +2,12 @@ import * as React from "react"
 import { cn } from "@/lib/cn"
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** glass=玻璃拟态（默认），solid=实色表面（兼容个别需要实底的场景） */
+  /** solid=标准工作台面板（默认），glass=仅用于确有叠层关系的浮层 */
   variant?: "glass" | "solid"
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant = "glass", ...props }, ref) => (
+  ({ className, variant = "solid", ...props }, ref) => (
     <div
       ref={ref}
       className={cn(

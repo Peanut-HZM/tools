@@ -110,6 +110,11 @@ export const enUS = {
     heroTitleAccent: 'Developer Toolbox',
     heroSubtitle: '20+ curated tools · ready to use · cloud synced',
     heroCta: 'Start Exploring',
+    instantAccess: 'Ready to use',
+    permissionIsolation: 'Permission isolation',
+    navigationSearchLabel: 'Search tool navigation',
+    navigationSearchPlaceholder: 'Search tools...',
+    uncategorizedTools: 'Other tools',
   },
 
   // Features
@@ -234,6 +239,8 @@ export const enUS = {
       addConnection: 'Add Connection',
       editConnection: 'Edit Connection',
       emptyConnections: 'No connections configured',
+      searchClusters: 'Search clusters',
+      noMatchingClusters: 'No matching clusters',
       selectConnection: 'Select a cluster connection to enter the console',
       saveSuccess: 'Saved successfully',
       deleteSuccess: 'Deleted successfully',
@@ -349,6 +356,12 @@ export const enUS = {
         workloads: 'Workloads',
         nodes: 'Nodes',
         events: 'Events',
+      },
+      resourceDescriptions: {
+        pods: 'Container instances and status',
+        workloads: 'Deployment resources',
+        nodes: 'Cluster node information',
+        events: 'Cluster event history',
       },
       // Pod list
       podList: {
@@ -619,6 +632,7 @@ export const enUS = {
       testing: 'Testing...',
       success: 'Connection Successful',
       failed: 'Connection Failed',
+      loadFailed: 'Failed to load schemas',
       hiddenByFilter: 'All databases hidden by filter',
     },
     errors: {

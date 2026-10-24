@@ -11,8 +11,11 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      // 玻璃胶囊组：全圆角 + 玻璃底 + 玻璃描边
-      "inline-flex h-10 max-w-full items-center justify-start overflow-x-auto no-scrollbar rounded-full p-1 bg-glass-bg border border-glass-border text-ink-muted",
+      // max-w-full + overflow-x-auto：页签多时窄屏可横向滚动。
+      // 缺 max-w-full 时 inline-flex 宽度按内容自适应（如 6 个页签 464px > 375px 视口），
+      // 末几个页签会整体落在视口外，触摸用户点不到；祖先 overflow:hidden 也会直接裁掉。
+      // justify-start：内容溢出时 flex 居中会让左侧内容被裁且滚不回来。
+      "inline-flex h-9 max-w-full items-center justify-start overflow-x-auto no-scrollbar rounded-lg border border-border bg-surface-2 p-1 text-ink-muted",
       className
     )}
     {...props}
@@ -27,8 +30,8 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      // 激活态用品牌渐变胶囊 + 发光阴影；非激活态玻璃底 + 灰字
-      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-ink-muted hover:text-ink hover:bg-glass-bg data-[state=active]:text-white data-[state=active]:bg-[image:var(--gradient-brand)] data-[state=active]:shadow-[shadow:var(--shadow-glow-accent)]",
+      // shrink-0：横向滚动时页签不被压缩变形
+      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-ink-muted ring-offset-background transition-colors hover:bg-surface-1 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-surface-1 data-[state=active]:text-accent data-[state=active]:shadow-sm",
       className
     )}
     {...props}

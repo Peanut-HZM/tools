@@ -17,11 +17,15 @@ const makeTab = (id: string, name: string, isModified = false): OpenTab => ({
     body_type: 'none',
     auth_type: 'none',
     auth_config: {},
+    extract_variables: [],
+    assertions: [],
     sort_order: 0,
     created_at: '',
     updated_at: '',
   } as HttpRequest,
   isModified,
+  response: null,
+  sending: false,
 });
 
 afterEach(() => {

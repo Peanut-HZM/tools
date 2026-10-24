@@ -5,6 +5,10 @@ import SQLExecutor from './SQLExecutor';
 import { DatabaseToolProvider } from '../../../contexts/DatabaseToolContext';
 import { AuthProvider } from '../../../stores/authStore';
 
+vi.mock('../../../lib/theme', () => ({
+  useTheme: () => ({ theme: 'light', resolved: 'light', setTheme: vi.fn() }),
+}));
+
 if (typeof globalThis.ResizeObserver === 'undefined') {
   class ResizeObserverPolyfill {
     observe() {}

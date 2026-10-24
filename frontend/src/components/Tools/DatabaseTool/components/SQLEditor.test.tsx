@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import SQLEditor from './SQLEditor';
 
+vi.mock('../../../../lib/theme', () => ({
+  useTheme: () => ({ theme: 'light', resolved: 'light', setTheme: vi.fn() }),
+}));
+
 vi.mock('@monaco-editor/react', () => ({
   default: () => <div data-testid="monaco-mock" />,
   useMonaco: () => null,

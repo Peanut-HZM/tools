@@ -109,6 +109,11 @@ export const zhCN = {
     heroTitleAccent: '开发者工具箱',
     heroSubtitle: '20+ 精选工具 · 即开即用 · 数据云端同步',
     heroCta: '开始探索',
+    instantAccess: '即开即用',
+    permissionIsolation: '权限隔离',
+    navigationSearchLabel: '搜索工具导航',
+    navigationSearchPlaceholder: '搜索工具...',
+    uncategorizedTools: '其他工具',
   },
 
   // Features
@@ -233,6 +238,8 @@ export const zhCN = {
       addConnection: '添加连接',
       editConnection: '编辑连接',
       emptyConnections: '暂无连接配置',
+      searchClusters: '搜索集群',
+      noMatchingClusters: '未找到匹配的集群',
       selectConnection: '选择一个集群连接以进入控制台',
       saveSuccess: '保存成功',
       deleteSuccess: '删除成功',
@@ -348,6 +355,12 @@ export const zhCN = {
         workloads: '工作负载',
         nodes: '节点',
         events: '事件',
+      },
+      resourceDescriptions: {
+        pods: '容器实例与状态',
+        workloads: 'Deployment 资源',
+        nodes: '集群节点信息',
+        events: '集群事件记录',
       },
       // Pod 列表
       podList: {
@@ -618,6 +631,7 @@ export const zhCN = {
       testing: '测试中...',
       success: '连接成功',
       failed: '连接失败',
+      loadFailed: '加载 Schema 失败',
       hiddenByFilter: '所有数据库已被筛选隐藏',
     },
     errors: {

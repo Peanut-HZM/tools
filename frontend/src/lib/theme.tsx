@@ -9,7 +9,7 @@ interface ThemeContextValue {
 }
 
 const STORAGE_KEY = 'tk-theme';
-const DEFAULT_THEME: Theme = 'dark';
+const DEFAULT_THEME: Theme = 'light';
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
