@@ -118,10 +118,17 @@ const ImageGenerationTool: React.FC = () => {
   const [loadError, setLoadError] = useState('');
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const cancelStreamRef = useRef<(() => void) | null>(null);
+  const generationRequestRef = useRef(0);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [items]);
+
+  useEffect(() => () => {
+    generationRequestRef.current += 1;
+    cancelStreamRef.current?.();
+  }, []);
 
   /** 初始化：取 agent → 恢复/等待会话 → 回填历史 */
   useEffect(() => {
@@ -161,6 +168,10 @@ const ImageGenerationTool: React.FC = () => {
 
   /** 开始新对话：清空本地会话（下次发送时创建新会话） */
   const handleNewConversation = useCallback(() => {
+    generationRequestRef.current += 1;
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = null;
+    setBusy(false);
     localStorage.removeItem(CONV_STORAGE_KEY);
     setConversationId('');
     setItems([]);
@@ -170,6 +181,7 @@ const ImageGenerationTool: React.FC = () => {
     const text = input.trim();
     if (!text || busy || !agentId) return;
 
+    const requestId = ++generationRequestRef.current;
     let convId = conversationId;
     try {
       setBusy(true);
@@ -181,6 +193,7 @@ const ImageGenerationTool: React.FC = () => {
         const conv = await conversationApi.createConversation({
           title: `图像生成-${new Date().toLocaleString()}`,
         });
+        if (generationRequestRef.current !== requestId) return;
         convId = conv.id;
         setConversationId(convId);
         localStorage.setItem(CONV_STORAGE_KEY, convId);
@@ -203,11 +216,12 @@ const ImageGenerationTool: React.FC = () => {
         });
       };
 
-      await conversationApi.sendMessageStream(
+      cancelStreamRef.current = conversationApi.sendMessageStream(
         convId,
         { content: text, agent_id: agentId },
         {
           onChunk: (chunk) => {
+            if (generationRequestRef.current !== requestId) return;
             setItems((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
@@ -218,6 +232,7 @@ const ImageGenerationTool: React.FC = () => {
             });
           },
           onEvent: (event) => {
+            if (generationRequestRef.current !== requestId) return;
             if (event.type === 'tool_call_start' && event.name === 'image_gen') {
               patchLast({ generating: true });
             } else if (event.type === 'tool_result' && event.name === 'image_gen') {
@@ -239,6 +254,9 @@ const ImageGenerationTool: React.FC = () => {
             }
           },
           onDone: (message) => {
+            if (generationRequestRef.current !== requestId) return;
+            cancelStreamRef.current = null;
+            setBusy(false);
             // done 消息可能带 attachments（持久化来源）；内容以流式文本为准，取二者较长者
             const doneImages = imagesOf(
               (message as unknown as { attachments?: unknown }).attachments,
@@ -258,6 +276,9 @@ const ImageGenerationTool: React.FC = () => {
             });
           },
           onError: (error) => {
+            if (generationRequestRef.current !== requestId) return;
+            cancelStreamRef.current = null;
+            setBusy(false);
             patchLast({
               content:
                 (error || '') + '\n（生成未完成，可调整需求后重试，或点击"开始新对话"）',
@@ -268,8 +289,8 @@ const ImageGenerationTool: React.FC = () => {
         },
       );
     } catch (e: unknown) {
+      if (generationRequestRef.current !== requestId) return;
       setLoadError(e instanceof Error ? e.message : '发送失败');
-    } finally {
       setBusy(false);
     }
   }, [input, busy, agentId, conversationId]);

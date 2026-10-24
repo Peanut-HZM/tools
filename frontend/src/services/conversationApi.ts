@@ -135,6 +135,7 @@ export const conversationApi = {
   ) => {
     const token = getAuthToken();
     const url = `${API_BASE_URL}/conversations/${conversationId}/chat/stream`;
+    const controller = new AbortController();
     
     authedFetch(url, {
       method: 'POST',
@@ -143,6 +144,7 @@ export const conversationApi = {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(data),
+      signal: controller.signal,
     }).then(async (response) => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -197,12 +199,20 @@ export const conversationApi = {
           }
         }
       } catch (error) {
+        if (controller.signal.aborted) return;
         callbacks.onError(error instanceof Error ? error.message : '流读取失败');
       } finally {
         reader.releaseLock();
       }
     }).catch((error) => {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'name' in error &&
+        error.name === 'AbortError'
+      ) return;
       callbacks.onError(error instanceof Error ? error.message : '请求失败');
     });
+    return () => controller.abort();
   },
 };

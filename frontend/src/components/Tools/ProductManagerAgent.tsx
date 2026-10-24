@@ -1,6 +1,6 @@
 import { BarChart3, FileText, FileDown, Brain, Activity, Clock, Zap } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/Button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { conversationApi, Conversation, Message } from '../../services/conversationApi';
@@ -17,13 +17,20 @@ import { TimelinePanel } from '../Harness/TimeTravel/TimelinePanel';
 
 const ProductManagerAgent: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { conversationId } = useParams<{ conversationId?: string }>();
+  const isWorkspaceRoute = location.pathname === '/workspace';
+  const workspaceConversationId = new URLSearchParams(location.search).get('pmConversation') || undefined;
+  const activeConversationId = isWorkspaceRoute ? workspaceConversationId : conversationId;
 
   // State
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [conversationLoadError, setConversationLoadError] = useState('');
+  const [conversationReloadKey, setConversationReloadKey] = useState(0);
   const [llmConfigs, setLlmConfigs] = useState<LLMConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>('');
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -35,6 +42,18 @@ const ProductManagerAgent: React.FC = () => {
   const [showSkillsPanel, setShowSkillsPanel] = useState(false);
   const [showTracesPanel, setShowTracesPanel] = useState(false);
   const [showTimeTravelPanel, setShowTimeTravelPanel] = useState(false);
+  const cancelStreamRef = useRef<(() => void) | null>(null);
+  const conversationRequestRef = useRef(0);
+
+  useEffect(() => () => {
+    cancelStreamRef.current?.();
+  }, []);
+
+  const cancelActiveStream = () => {
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = null;
+    setLoading(false);
+  };
 
   // Load initial data
   useEffect(() => {
@@ -45,11 +64,35 @@ const ProductManagerAgent: React.FC = () => {
 
   // Load conversation when ID changes
   useEffect(() => {
-    if (conversationId) {
-      loadConversation(conversationId);
-      loadMessages(conversationId);
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = null;
+    setLoading(false);
+    setCurrentConversation(null);
+    setMessages([]);
+    setConversationLoadError('');
+
+    const requestId = ++conversationRequestRef.current;
+    if (activeConversationId) {
+      setConversationLoading(true);
+      loadConversationContext(activeConversationId, requestId);
+    } else {
+      setConversationLoading(false);
     }
-  }, [conversationId]);
+    return () => {
+      conversationRequestRef.current += 1;
+    };
+  }, [activeConversationId, conversationReloadKey]);
+
+  const selectConversation = (id: string) => {
+    cancelActiveStream();
+    if (!isWorkspaceRoute) {
+      navigate(`/tools/product-manager/${id}`);
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    params.set('pmConversation', id);
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+  };
 
   const loadConversations = async () => {
     try {
@@ -91,24 +134,26 @@ const ProductManagerAgent: React.FC = () => {
     }
   };
 
-  const loadConversation = async (id: string) => {
+  const loadConversationContext = async (id: string, requestId: number) => {
     try {
-      const data = await conversationApi.getConversation(id);
-      setCurrentConversation(data);
-    } catch (error) {
-      console.error('Failed to load conversation:', error);
-    }
-  };
-
-  const loadMessages = async (id: string) => {
-    try {
-      const data = await conversationApi.getMessages(id);
-      const sortedData = [...data].sort((a, b) =>
+      const [conversationData, messageData] = await Promise.all([
+        conversationApi.getConversation(id),
+        conversationApi.getMessages(id),
+      ]);
+      if (conversationRequestRef.current !== requestId) return;
+      const sortedMessages = [...messageData].sort((a, b) =>
         new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
       );
-      setMessages(sortedData);
+      setCurrentConversation(conversationData);
+      setMessages(sortedMessages);
     } catch (error) {
-      console.error('Failed to load messages:', error);
+      if (conversationRequestRef.current !== requestId) return;
+      console.error('Failed to load conversation context:', error);
+      setConversationLoadError('会话加载失败，请检查网络后重试。');
+    } finally {
+      if (conversationRequestRef.current === requestId) {
+        setConversationLoading(false);
+      }
     }
   };
 
@@ -117,7 +162,7 @@ const ProductManagerAgent: React.FC = () => {
       const data = await conversationApi.createConversation({
         title: '新会话',
       });
-      navigate(`/tools/product-manager/${data.id}`);
+      selectConversation(data.id);
       loadConversations();
     } catch (error) {
       console.error('Failed to create conversation:', error);
@@ -125,18 +170,18 @@ const ProductManagerAgent: React.FC = () => {
   };
 
   const handleSelectConversation = (id: string) => {
-    navigate(`/tools/product-manager/${id}`);
+    selectConversation(id);
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!conversationId) return;
+    if (!activeConversationId) return;
 
     setLoading(true);
 
     // Create temp user message
     const tempUserMessage: Message = {
       id: `temp-${Date.now()}`,
-      conversation_id: conversationId,
+      conversation_id: activeConversationId,
       sender_type: 'user',
       content: content,
       message_type: 'text',
@@ -146,7 +191,7 @@ const ProductManagerAgent: React.FC = () => {
     // Create temp agent message placeholder
     const tempAgentMessage: Message = {
       id: `temp-agent-${Date.now()}`,
-      conversation_id: conversationId,
+      conversation_id: activeConversationId,
       sender_type: 'agent',
       content: '',
       message_type: 'text',
@@ -156,8 +201,8 @@ const ProductManagerAgent: React.FC = () => {
     setMessages((prev) => [...prev, tempUserMessage, tempAgentMessage]);
 
     // Use streaming API
-    conversationApi.sendMessageStream(
-      conversationId,
+    cancelStreamRef.current = conversationApi.sendMessageStream(
+      activeConversationId,
       {
         content: content,
         llm_config_id: selectedConfigId || undefined,
@@ -175,6 +220,7 @@ const ProductManagerAgent: React.FC = () => {
           );
         },
         onDone: (agentMessage) => {
+          cancelStreamRef.current = null;
           // Replace temp messages with real messages
           setMessages((prev) =>
             prev.map((msg) => {
@@ -190,6 +236,7 @@ const ProductManagerAgent: React.FC = () => {
           setLoading(false);
         },
         onError: (error) => {
+          cancelStreamRef.current = null;
           console.error('Stream error:', error);
           // Update agent message with error
           setMessages((prev) =>
@@ -233,14 +280,14 @@ const ProductManagerAgent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-120px)]">
+    <div className="flex h-full min-h-0 overflow-hidden">
       {/* Left Sidebar - Conversation List */}
       <Sidebar
         conversations={conversations}
-        currentConversationId={conversationId}
+        currentConversationId={activeConversationId}
         onSelectConversation={handleSelectConversation}
         onNewConversation={handleNewConversation}
-        loading={false}
+        loading={loading}
       />
 
       {/* Main Content Area */}
@@ -377,12 +424,12 @@ const ProductManagerAgent: React.FC = () => {
             {/* 移动端纵向堆叠（聊天在上、侧面板在下），md 起恢复左右分栏 */}
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               {/* Chat Area */}
-              <div className={`flex-1 min-w-0 ${showPRDPreview || ((showMemoryPanel || showTracesPanel) && selectedAgentId) || (showTimeTravelPanel && conversationId) ? 'w-full md:w-1/2 md:border-r border-border' : 'w-full'}`}>
+              <div className={`flex-1 min-w-0 ${showPRDPreview || ((showMemoryPanel || showTracesPanel) && selectedAgentId) || (showTimeTravelPanel && activeConversationId) ? 'w-full md:w-1/2 md:border-r border-border' : 'w-full'}`}>
                 <ChatInterface
                   messages={messages}
                   sending={loading}
                   onSendMessage={handleSendMessage}
-                  disabled={!conversationId}
+                  disabled={!activeConversationId || conversationLoading}
                 />
               </div>
 
@@ -419,28 +466,44 @@ const ProductManagerAgent: React.FC = () => {
               {/* 执行追踪面板 */}
               {showTracesPanel && selectedAgentId && (
                 <div className="w-full md:w-1/2 overflow-auto">
-                  <TraceViewer agentId={selectedAgentId} conversationId={conversationId} />
+                  <TraceViewer agentId={selectedAgentId} conversationId={activeConversationId} />
                 </div>
               )}
 
               {/* 时间旅行面板 */}
-              {showTimeTravelPanel && conversationId && (
+              {showTimeTravelPanel && activeConversationId && (
                 <div className="w-full md:w-1/2 overflow-auto">
-                  <TimelinePanel conversationId={conversationId} />
+                  <TimelinePanel conversationId={activeConversationId} />
                 </div>
               )}
 
               {/* PRD Preview Panel */}
-              {showPRDPreview && conversationId && (
+              {showPRDPreview && activeConversationId && (
                 <div className="w-full md:w-1/2">
                   <PRDPreview
-                    conversationId={conversationId}
+                    conversationId={activeConversationId}
                     onExport={() => setShowExportDialog(true)}
                   />
                 </div>
               )}
             </div>
           </>
+        ) : conversationLoading ? (
+          <div className="flex items-center justify-center h-full text-ink-muted">
+            正在加载会话...
+          </div>
+        ) : conversationLoadError ? (
+          <div
+            role="alert"
+            className="flex h-full items-center justify-center text-ink-muted"
+          >
+            <div className="text-center">
+              <p className="mb-3 text-danger">{conversationLoadError}</p>
+              <Button onClick={() => setConversationReloadKey((value) => value + 1)}>
+                重试
+              </Button>
+            </div>
+          </div>
         ) : (
           /* Empty State */
           <div className="flex items-center justify-center h-full text-ink-muted">
@@ -454,11 +517,11 @@ const ProductManagerAgent: React.FC = () => {
       </div>
 
       {/* Export Dialog */}
-      {conversationId && (
+      {activeConversationId && (
         <ExportDialog
           isOpen={showExportDialog}
           onClose={() => setShowExportDialog(false)}
-          conversationId={conversationId}
+          conversationId={activeConversationId}
         />
       )}
     </div>
