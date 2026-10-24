@@ -56,8 +56,7 @@ describe('TabBar', () => {
     useWorkspaceStore.getState().addTab({ id: 'ssh-tool', title: 'SSH', icon: 'fas fa-key' });
 
     render(<TabBar />);
-    const k8sTab = screen.getByText('K8s').closest('[data-tab-id]');
-    fireEvent.click(k8sTab!);
+    fireEvent.click(screen.getByRole('tab', { name: 'K8s' }));
 
     expect(useWorkspaceStore.getState().activeTabId).toBe(
       useWorkspaceStore.getState().tabs[0].id
@@ -72,6 +71,21 @@ describe('TabBar', () => {
     fireEvent.click(closeBtn);
 
     expect(useWorkspaceStore.getState().tabs).toHaveLength(0);
+  });
+
+  it('should support arrow key navigation between tabs', () => {
+    useWorkspaceStore.getState().addTab({ id: 'k8s-tool', title: 'K8s', icon: 'fas fa-server' });
+    useWorkspaceStore.getState().addTab({ id: 'ssh-tool', title: 'SSH', icon: 'fas fa-key' });
+
+    render(<TabBar />);
+    const sshTab = screen.getByRole('tab', { name: 'SSH' });
+    sshTab.focus();
+    fireEvent.keyDown(sshTab, { key: 'ArrowLeft' });
+
+    const k8sTab = screen.getByRole('tab', { name: 'K8s' });
+    expect(useWorkspaceStore.getState().activeTabId).toBe(useWorkspaceStore.getState().tabs[0].id);
+    expect(document.activeElement).toBe(k8sTab);
+    expect(k8sTab.getAttribute('tabindex')).toBe('0');
   });
 
   it('should render tool icons as lucide components', () => {

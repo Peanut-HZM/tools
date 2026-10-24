@@ -3,6 +3,7 @@ import React from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useI18n } from '../../i18n';
 import type { Tool } from '../../types';
+import { resolveIcon } from '../../utils/iconResolver';
 
 interface Props {
   tools: Tool[];
@@ -39,17 +40,20 @@ export const EmptyWorkspace: React.FC<Props> = ({ tools }: Props) => {
           {t.workspace.welcomeHint}
         </p>
         {featuredTools.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            {featuredTools.map((tool) => (
-              <button
-                key={tool.id}
-                onClick={() => handleOpenTool(tool)}
-                className="flex flex-col items-center gap-2 p-4 bg-surface-1 hover:bg-surface-2 border border-border hover:border-border rounded-lg transition-colors"
-              >
-                <i className={[tool.icon, 'text-xl text-accent-info'].join(' ')}></i>
-                <span className="text-xs text-ink-muted">{tool.title}</span>
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {featuredTools.map((tool) => {
+              const Icon = resolveIcon(tool.icon);
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => handleOpenTool(tool)}
+                  className="flex flex-col items-center gap-2 rounded-lg border border-border bg-surface-1 p-4 transition-colors hover:bg-surface-2 hover:border-border"
+                >
+                  <Icon className="h-5 w-5 text-accent-info" />
+                  <span className="text-xs text-ink-muted">{tool.title}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

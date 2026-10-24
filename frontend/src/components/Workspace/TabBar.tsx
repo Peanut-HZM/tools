@@ -8,58 +8,80 @@ export const TabBar: React.FC = () => {
   const { t } = useI18n();
   const { tabs, activeTabId, setActiveTab, removeTab, isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
 
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let targetIndex: number | null = null;
+    if (event.key === 'ArrowRight') targetIndex = (index + 1) % tabs.length;
+    if (event.key === 'ArrowLeft') targetIndex = (index - 1 + tabs.length) % tabs.length;
+    if (event.key === 'Home') targetIndex = 0;
+    if (event.key === 'End') targetIndex = tabs.length - 1;
+    if (targetIndex === null) return;
+
+    event.preventDefault();
+    const targetTab = tabs[targetIndex];
+    setActiveTab(targetTab.id);
+    document.getElementById(`workspace-tab-${targetTab.id}`)?.focus();
+  };
+
   return (
-    <div className="flex items-end glass-panel border-x-0 border-t-0 rounded-none h-10 px-2 gap-0.5 overflow-x-auto">
-      {/* 玻璃化改版：标签栏走 glass-panel 玻璃底，贴边展示故去掉左右/顶部描边（同 Header 悬浮条模式） */}
-      {/* 工具列表展开/折叠按钮 */}
+    <div className="flex h-11 items-center gap-1 overflow-x-auto border-b border-border bg-surface-1 px-2">
       <button
+        type="button"
         onClick={toggleToolSidebar}
-        className="self-center p-1.5 mr-1 text-ink-muted hover:text-ink hover:bg-surface-2 rounded transition-colors flex-shrink-0"
+        className="mr-1 flex-shrink-0 rounded-md p-2 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
         title={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
         aria-label={isToolSidebarVisible ? t.workspace.collapseSidebar : t.workspace.expandSidebar}
       >
-        {isToolSidebarVisible ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        {isToolSidebarVisible ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
-      {/* 标签页分隔线 */}
-      <div className="self-stretch w-px bg-surface-2 mr-1"></div>
-      {tabs.map((tab) => {
-        const isActive = tab.id === activeTabId;
-        const Icon = resolveIcon(tab.toolIcon);
-        return (
-          <div
-            key={tab.id}
-            data-tab-id={tab.id}
-            data-active={isActive}
-            className={[
-              // 玻璃化改版：chip 改为圆角胶囊，激活态用品牌渐变底 + 发光阴影，非激活态用玻璃底 hover 提亮
-              'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors min-w-0 max-w-[180px] group',
-              isActive
-                ? 'text-white bg-[image:var(--gradient-brand)] shadow-[shadow:var(--shadow-glow-accent)]'
-                : 'text-ink-muted hover:text-ink hover:bg-glass-bg',
-            ].join(' ')}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <Icon className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{tab.toolName}</span>
-            <button
+      <div className="mr-1 h-5 w-px flex-shrink-0 bg-border" />
+      <div role="tablist" aria-label={t.workspace.toolList} className="flex min-w-max items-center gap-1">
+        {tabs.map((tab, index) => {
+          const isActive = tab.id === activeTabId;
+          const Icon = resolveIcon(tab.toolIcon);
+          return (
+            <div
+              key={tab.id}
+              data-tab-id={tab.id}
+              data-active={isActive}
               className={[
-                // 关闭 ×：激活态在品牌渐变底上用白色系保证可读性；非激活态沿用墨色 hover
-                'ml-1 rounded px-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity',
+                'group flex h-8 min-w-0 max-w-[190px] items-center rounded-md border text-xs transition-colors',
                 isActive
-                  ? 'text-white/70 hover:text-white hover:bg-white/20'
-                  : 'text-ink-faint hover:text-ink hover:bg-surface-3',
+                  ? 'border-accent/25 bg-accent/10 text-accent'
+                  : 'border-transparent text-ink-muted hover:border-border hover:bg-surface-2 hover:text-ink',
               ].join(' ')}
-              onClick={(e) => {
-                e.stopPropagation();
-                removeTab(tab.id);
-              }}
-              title={t.workspace.closeTab}
             >
-              ×
-            </button>
-          </div>
-        );
-      })}
+              <button
+                id={`workspace-tab-${tab.id}`}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`workspace-panel-${tab.id}`}
+                tabIndex={isActive ? 0 : -1}
+                className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-1.5 text-left"
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
+              >
+                <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">{tab.toolName}</span>
+              </button>
+              <button
+                type="button"
+                className={[
+                  'mr-1 flex-shrink-0 rounded px-1 text-sm',
+                  isActive
+                    ? 'text-accent/70 hover:bg-accent/10 hover:text-accent'
+                    : 'text-ink-faint hover:text-ink hover:bg-surface-3',
+                ].join(' ')}
+                onClick={() => removeTab(tab.id)}
+                title={t.workspace.closeTab}
+                aria-label={`${t.workspace.closeTab}: ${tab.toolName}`}
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

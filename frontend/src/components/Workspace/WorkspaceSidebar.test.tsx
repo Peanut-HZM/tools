@@ -33,6 +33,9 @@ vi.mock('../../i18n', () => ({
         expandSidebar: '展开侧边栏',
         searchPlaceholder: '搜索工具...',
       },
+      home: {
+        uncategorizedTools: '其他工具',
+      },
     },
     language: 'zh-CN',
     setLanguage: vi.fn(),
