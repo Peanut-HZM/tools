@@ -9,9 +9,11 @@ export default function Layout() {
   const { searchValue, debouncedValue, handleSearchChange, handleSearch } = useSearch();
   const navigate = useNavigate();
   const location = useLocation();
+  const isWorkspace = location.pathname === '/workspace';
+  const isK8sWorkspace = location.pathname === '/tools/k8s-tool';
+  // K8s 直接路由使用统一顶部导航，其余已具备独立沉浸式外壳的专业工具保持既有体验。
   const isImmersion =
-    location.pathname.startsWith('/tools/') ||
-    location.pathname === '/workspace';
+    location.pathname.startsWith('/tools/') && location.pathname !== '/tools/k8s-tool';
 
   const onSearch = () => {
     handleSearch();
@@ -29,7 +31,7 @@ export default function Layout() {
   
   return (
     <div className={`bg-canvas text-ink ${
-      isImmersion ? 'h-screen overflow-hidden' : 'min-h-screen'
+      isImmersion || isWorkspace || isK8sWorkspace ? 'h-dvh overflow-hidden' : 'min-h-screen'
     } flex flex-col relative`}>
       {/* 新增: 大气背景层 (subtle 强度, Phase 3 按页面细化) */}
       <div className="bg-mesh bg-mesh--subtle" aria-hidden="true" />
@@ -41,11 +43,11 @@ export default function Layout() {
         />
       )}
       <main className={`flex-1 flex flex-col ${
-        isImmersion ? 'min-h-0 overflow-hidden' : ''
+        isImmersion || isWorkspace || isK8sWorkspace ? 'min-h-0 overflow-hidden' : ''
       }`}>
         <Outlet context={{ searchValue, debouncedValue, handleSearchChange, handleSearch }} />
       </main>
-      {!isImmersion && (
+      {!isImmersion && !isWorkspace && !isK8sWorkspace && (
         <>
           <Footer />
           {/* 移动端底部玻璃 Tab 栏（M1 方案）：仅非沉浸路由渲染，组件内部 md:hidden 限定移动端 */}

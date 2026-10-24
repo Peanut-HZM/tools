@@ -33,6 +33,7 @@ import { fetchTools, searchTools, fetchToolsByCategory, loadToolsByCategory, fet
 import { Tool } from './types';
 import { useI18n } from './i18n';
 import { I18nProvider } from './i18n/I18nProvider';
+import { getStandaloneToolPath } from './lib/toolNavigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './contexts/ToastContext';
 import { ErrorBoundary } from './components/Common/ErrorMessages';
@@ -129,6 +130,7 @@ function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [filteredTools, setFilteredTools] = useState<Tool[]>([]);
+  const [allTools, setAllTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>(["全部工具"]);
@@ -165,6 +167,7 @@ function HomePage() {
       setLoading(true);
       const data = await fetchTools('pc');
       setFilteredTools(data);
+      setAllTools(data);
       setError(null);
     } catch (err) {
       setError(t.errors.toolLoadFailed);
@@ -239,9 +242,15 @@ function HomePage() {
   // 处理工具点击 - 使用路由导航
   const handleToolClick = (toolId: string) => {
     // 登录拦截：直接弹出登录弹框（登录成功后用户可再次点击进入）
-    const tool = filteredTools.find(t => t.id === toolId);
+    const tool = allTools.find(t => t.id === toolId);
     if (tool?.require_login && !isAuthenticated) {
       openLoginModal();
+      return;
+    }
+
+    const standalonePath = getStandaloneToolPath(toolId);
+    if (standalonePath) {
+      navigate(standalonePath);
       return;
     }
 
@@ -250,9 +259,9 @@ function HomePage() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="flex min-h-0 flex-1 flex-col">
       {error && (
-        <div className="bg-danger/10 border border-danger text-danger px-4 py-3 rounded-lg mb-8">
+        <div className="m-4 rounded-lg border border-danger bg-danger/10 px-4 py-3 text-danger">
           {error}
         </div>
       )}
@@ -279,6 +288,7 @@ function HomePage() {
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
             tools={filteredTools}
+            navigationTools={allTools}
             onToolClick={handleToolClick}
             categories={categories}
           />

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from '../ui/Dialog';
 import { fetchTools } from '../../services/api';
 import { buildCommandItems, filterCommands, PAGE_ITEMS, type CommandItem } from '../../lib/commandPalette';
 import { OPEN_COMMAND_PALETTE_EVENT } from '../../lib/navigation';
+import { getStandaloneToolPath } from '../../lib/toolNavigation';
 
 /**
  * 全局 ⌘K 命令面板：搜索工具与页面并跳转。
@@ -62,6 +63,11 @@ export default function CommandPalette() {
     setQuery('');
     // 工具走工作区 state 跳转（与 App.tsx handleToolClick 约定一致），页面走路由
     if (item.toolId) {
+      const standalonePath = getStandaloneToolPath(item.toolId);
+      if (standalonePath) {
+        navigate(standalonePath);
+        return;
+      }
       navigate('/workspace', { state: { openToolId: item.toolId } });
     } else {
       navigate(item.route);
