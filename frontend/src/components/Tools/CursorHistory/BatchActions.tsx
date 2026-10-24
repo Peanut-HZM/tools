@@ -14,7 +14,7 @@ interface BatchActionsProps {
 }
 
 export default function BatchActions({ selectedIds, onClearSelection, onRefresh }: BatchActionsProps) {
-  const { toast } = useToast();
+  const { success, error } = useToast();
   const [loading, setLoading] = useState(false);
   const [showTagModal, setShowTagModal] = useState(false);
   const [tagName, setTagName] = useState('');
@@ -39,25 +39,14 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
         link.download = result.filename || 'cursor_sessions.zip';
         link.click();
 
-        toast({
-          title: '导出成功',
-          description: `已导出 ${selectedIds.length} 个会话`,
-        });
+        success(`导出成功：已导出 ${selectedIds.length} 个会话`);
         onClearSelection();
       } else {
-        toast({
-          title: '导出失败',
-          description: result.message || '请稍后重试',
-          variant: 'destructive',
-        });
+        error(`导出失败：${result.message || '请稍后重试'}`);
       }
-    } catch (error) {
-      console.error('批量导出失败:', error);
-      toast({
-        title: '导出失败',
-        description: '请稍后重试',
-        variant: 'destructive',
-      });
+    } catch (caughtError) {
+      console.error('批量导出失败:', caughtError);
+      error('导出失败：请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -80,28 +69,17 @@ export default function BatchActions({ selectedIds, onClearSelection, onRefresh 
       const result = await response.json();
 
       if (result.success) {
-        toast({
-          title: '添加成功',
-          description: result.message,
-        });
+        success(`添加成功：${result.message}`);
         setShowTagModal(false);
         setTagName('');
         onClearSelection();
         onRefresh?.();
       } else {
-        toast({
-          title: '添加失败',
-          description: result.message || '请稍后重试',
-          variant: 'destructive',
-        });
+        error(`添加失败：${result.message || '请稍后重试'}`);
       }
-    } catch (error) {
-      console.error('批量添加标签失败:', error);
-      toast({
-        title: '添加失败',
-        description: '请稍后重试',
-        variant: 'destructive',
-      });
+    } catch (caughtError) {
+      console.error('批量添加标签失败:', caughtError);
+      error('添加失败：请稍后重试');
     } finally {
       setLoading(false);
     }

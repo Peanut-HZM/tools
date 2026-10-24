@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Columns, Key, Link, ArrowRight, Loader2, ChevronRight, Folder, Table, Eye, Terminal, RefreshCw, Archive, History, Search, FileCode, Pencil, Trash2 } from 'lucide-react';
+import { Columns, Key, Link, ArrowRight, Loader2, ChevronRight, Folder, Table, Eye, Terminal, RefreshCw, Archive, History, Search, FileCode, Pencil, Trash2, Code } from 'lucide-react';
 import { DatabaseStructure, TableItem } from '../../../../types/databaseTool';
 import { useI18n } from '../../../../i18n';
 import * as api from '../../../../api/databaseToolApi';

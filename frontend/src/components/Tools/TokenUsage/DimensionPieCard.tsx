@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip, type TooltipContentProps } from 'recharts';
 import { Card } from '@/components/ui/Card';
 
 const COLORS = ['rgb(var(--accent-info))', 'rgb(var(--accent-success))', 'rgb(var(--accent-warning))', 'rgb(var(--accent-danger))', 'rgb(var(--accent-secondary))', 'rgb(var(--accent-warm))', 'rgb(var(--accent-cyan))', 'rgb(var(--accent-primary))'];
@@ -110,8 +110,8 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
                   transform: 'translate(20px, -100px)',
                   pointerEvents: 'none',
                 }}
-                content={({ payload }: { payload?: Array<{ payload?: PieSlice }> }) => {
-                  const slice = payload?.[0]?.payload;
+                content={({ payload }: TooltipContentProps<number, string>) => {
+                  const slice = payload?.[0]?.payload as PieSlice | undefined;
                   if (!slice) return null;
                   const pct = `${(slice.percent ?? 0).toFixed(1)}%`;
                   return (

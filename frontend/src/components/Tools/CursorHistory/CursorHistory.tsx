@@ -5,8 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AlertCircle, AlertTriangle, ArrowLeft, BarChart3, Bot, Brain, CheckCircle, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Copy, Database, Download, FileCode, FileText, Folder, FolderOpen, FolderTree, History, Inbox, Indent, Loader2, MessageSquare, Outdent, RefreshCw, Search, Star, Trash2, User, Wrench, X, XCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { AlertCircle, AlertTriangle, BarChart3, Bot, Brain, CheckCircle, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Copy, Database, Download, FileCode, FileText, Folder, FolderOpen, FolderTree, History, Inbox, Indent, Loader2, MessageSquare, Outdent, RefreshCw, Search, Star, Trash2, User, Wrench, X, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -71,7 +70,6 @@ interface SearchResultItem {
 // ==================== 主组件 ====================
 
 export default function CursorHistory() {
-  const navigate = useNavigate();
   const { success: showSuccess, error: showError } = useToast();
 
   // 数据状态
@@ -966,14 +964,11 @@ export default function CursorHistory() {
   // ==================== 渲染 ====================
 
   return (
-    <div className="min-h-screen bg-canvas text-ink">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-canvas text-ink">
       {/* 顶部导航栏 */}
       <div className="bg-canvas/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-30">
-        <div className="max-w-[1920px] mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/')} className="text-ink-muted hover:text-ink transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
+        <div className="max-w-[1920px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 min-w-0">
             <button
               onClick={() => setShowProjectPanel(prev => !prev)}
               className="text-ink-muted hover:text-ink transition-colors"
@@ -1166,7 +1161,7 @@ export default function CursorHistory() {
 
       {/* 搜索结果模式 */}
       {isSearchMode ? (
-        <div className="max-w-[1920px] mx-auto px-6 flex flex-col" style={{ height: showPathSettings ? 'calc(100vh - 170px)' : 'calc(100vh - 73px)' }}>
+        <div className="mx-auto flex min-h-0 w-full max-w-[1920px] flex-1 flex-col px-6">
           {/* 搜索结果头部 */}
           <div className="flex items-center gap-2 py-4 flex-shrink-0">
             <h2 className="text-lg font-semibold text-ink">搜索结果</h2>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LogIn, LogOut, Settings, Terminal, Plus, Search, Database, ChevronRight, Filter, Pencil, Loader2, RefreshCw, Archive, History, Trash2, Table, Eye, Code, FileCode, Columns, Key, Link, ArrowRight, Layers, Copy, Cable, type LucideIcon } from 'lucide-react';
+import { LogIn, LogOut, Settings, Terminal, Plus, Search, Database, ChevronRight, Filter, Pencil, Loader2, RefreshCw, Archive, History, Trash2, Table, Eye, Code, FileCode, Columns, Key, Link, ArrowRight, Layers, Copy, Cable, X, type LucideIcon } from 'lucide-react';
 import { useDatabaseTool } from '../../../../contexts/DatabaseToolContext';
 import { useWorkspaceStore } from '../../../../stores/workspaceStore';
 import { DatabaseConfig, Environment, DatabaseStructure, TableItem, TableDetailResponse } from '../../../../types/databaseTool';

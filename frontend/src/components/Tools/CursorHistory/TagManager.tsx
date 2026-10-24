@@ -32,7 +32,7 @@ const PRESET_TAGS = [
 ];
 
 export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
-  const { toast } = useToast();
+  const { success, error } = useToast();
   const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddPanel, setShowAddPanel] = useState(false);
@@ -67,26 +67,15 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
       const result = await response.json();
 
       if (result.success) {
-        toast({
-          title: '标签已添加',
-          description: `已添加标签：${tagName}`,
-        });
+        success(`标签已添加：${tagName}`);
         await loadTags();
         onUpdate?.();
       } else {
-        toast({
-          title: '添加失败',
-          description: result.message || '标签可能已存在',
-          variant: 'destructive',
-        });
+        error(`添加失败：${result.message || '标签可能已存在'}`);
       }
-    } catch (error) {
-      console.error('添加标签失败:', error);
-      toast({
-        title: '添加失败',
-        description: '请稍后重试',
-        variant: 'destructive',
-      });
+    } catch (caughtError) {
+      console.error('添加标签失败:', caughtError);
+      error('添加失败：请稍后重试');
     } finally {
       setLoading(false);
       setShowAddPanel(false);
@@ -106,10 +95,7 @@ export default function TagManager({ composerId, onUpdate }: TagManagerProps) {
       const result = await response.json();
 
       if (result.success) {
-        toast({
-          title: '标签已移除',
-          description: `已移除标签：${tagName}`,
-        });
+        success(`标签已移除：${tagName}`);
         await loadTags();
         onUpdate?.();
       }

@@ -60,7 +60,7 @@ export default function ASRTool() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="container mx-auto flex h-full min-h-0 flex-col overflow-y-auto px-6 py-8">
       <div className="flex items-center space-x-3 mb-8">
         <div className="w-10 h-10 bg-success rounded-lg flex items-center justify-center">
           <Mic className="w-5 h-5 text-ink-inverse" />
@@ -68,7 +68,7 @@ export default function ASRTool() {
         <h1 className="text-2xl font-bold text-ink">{t.tools['asr-tool'].title}</h1>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-200px)] min-h-[600px]">
+      <div className="grid min-h-[600px] grid-cols-1 gap-8 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         {/* Input Section */}
         <Card className="p-6 shadow-md flex flex-col">
           <CardHeader className="flex-row justify-between items-center mb-4 p-0 space-y-0">

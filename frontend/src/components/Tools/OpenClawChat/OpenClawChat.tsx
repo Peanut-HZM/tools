@@ -32,6 +32,7 @@ export default function OpenClawChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const isSendingRef = useRef(false);
 
   // 检查连接状态
   const checkConnection = useCallback(async () => {
@@ -134,6 +135,18 @@ export default function OpenClawChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    isSendingRef.current = isSending;
+  }, [isSending]);
+
+  useEffect(() => () => {
+    if (isSendingRef.current) {
+      void abortChat(sessionKey).catch((error) => {
+        console.error('[OpenClaw] 卸载时中止失败:', error);
+      });
+    }
+  }, [sessionKey]);
+
   const handleSend = async () => {
     if (!inputValue.trim() || isSending || !isConnected) return;
 
@@ -234,7 +247,7 @@ export default function OpenClawChat() {
   // 未登录提示
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-120px)]">
+      <div className="flex h-full min-h-0 items-center justify-center">
         <div className="text-center text-ink-muted">
           <div className="text-6xl mb-4">
             <MessageSquare className="w-5 h-5 text-accent-secondary" />
@@ -254,14 +267,14 @@ export default function OpenClawChat() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-120px)]">
+      <div className="flex h-full min-h-0 items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-secondary"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] bg-canvas rounded-xl border border-border/50 overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-canvas">
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
