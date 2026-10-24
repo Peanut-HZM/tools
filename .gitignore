@@ -169,10 +169,13 @@ backend/scripts/minio_nginx.conf
 
 # ========================================
 # 敏感文档（包含部署细节/服务器信息，绝不提交）
+# 注意：用 docs/* 而非 docs/（排除目录本身会使其内部文件的负向例外失效）
 # ========================================
-docs/
+docs/*
 # 例外：小程序验收清单（glass-glow-acceptance.md）为阶段⑧-⑨交付物，需纳入版本管理
 !mini-program/docs/
+# 例外：数据库安全组网指南已脱敏（不含服务器IP/密码/密钥），供多设备接入使用
+!docs/数据库安全组网WireGuard多设备接入指南.md
 DEPLOYMENT.md
 认证流程分析报告.md
 AGENT_SYSTEM_DESIGN.md
