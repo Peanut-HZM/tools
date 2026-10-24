@@ -15,6 +15,8 @@ export interface FileNode {
   extension?: string;        // 文件扩展名 (如 ".md")
   file_type?: string;         // 文件类型分类 (如 "markdown", "html")
   previewable?: boolean;      // 是否支持预览
+  truncated?: boolean;        // 子树因节点数/深度超限未完整扫描
+  inaccessible?: boolean;     // 目录无权限访问
 }
 
 export interface FileContent {
@@ -210,6 +212,7 @@ export interface FileManagerItem {
   modified_at: string;
   extension: string;
   is_previewable: boolean;
+  is_hidden?: boolean;       // 是否为隐藏条目（以 . 开头）
 }
 
 export interface FileManagerBrowseResponse {

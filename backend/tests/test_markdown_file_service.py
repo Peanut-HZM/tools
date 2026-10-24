@@ -95,17 +95,45 @@ class TestScanDirectoryAllFiles:
         assert py_node.previewable is False
 
     def test_ignored_files_not_included(self, file_service, temp_dir):
-        """被忽略的文件（如 .gitignore、node_modules）不应出现"""
+        """重量级目录（node_modules）不应出现，但隐藏文件应可见"""
         _touch(os.path.join(temp_dir, "good.md"))
-        _touch(os.path.join(temp_dir, ".gitignore"))  # 隐藏文件，应被忽略
+        _touch(os.path.join(temp_dir, ".gitignore"))  # 隐藏文件，默认可见
         os.makedirs(os.path.join(temp_dir, "node_modules"), exist_ok=True)
         _touch(os.path.join(temp_dir, "node_modules", "package.js"))
 
         tree = file_service.get_directory_tree()
         all_names = [c.name for c in tree.children]
 
-        assert ".gitignore" not in all_names
+        assert ".gitignore" in all_names
         assert "node_modules" not in all_names
+
+    def test_hidden_directories_visible_but_not_recursed(self, file_service, temp_dir):
+        """隐藏目录必须出现在树中（用户要能打开 .git/.idea 等），但不递归展开"""
+        os.makedirs(os.path.join(temp_dir, ".config"), exist_ok=True)
+        _touch(os.path.join(temp_dir, ".config", "settings.json"))
+
+        tree = file_service.get_directory_tree()
+        hidden_dir = next(c for c in tree.children if c.name == ".config")
+
+        assert hidden_dir.type == "directory"
+        # 隐藏目录作为懒加载叶子节点返回，展开时再按需加载
+        assert hidden_dir.children == []
+
+    def test_hidden_disabled_hides_entries(self, temp_dir):
+        """include_hidden=False 时隐藏条目不出现"""
+        from pathlib import Path
+
+        _touch(os.path.join(temp_dir, ".env"))
+        _touch(os.path.join(temp_dir, "visible.md"))
+
+        service = MarkdownFileService("test-user-task2", include_hidden=False)
+        service._root_path = Path(temp_dir).resolve()
+
+        tree = service.get_directory_tree()
+        all_names = [c.name for c in tree.children]
+
+        assert ".env" not in all_names
+        assert "visible.md" in all_names
 
     def test_empty_directories_excluded(self, file_service, temp_dir):
         """没有任何文件的空目录不应出现在树中"""
@@ -218,7 +246,7 @@ class TestListDirectory:
         assert empty_sub["has_children"] is False
 
     def test_list_directory_ignored_entries_excluded(self, file_service, temp_dir):
-        """被忽略的条目不出现在结果中"""
+        """重量级目录被忽略，隐藏文件默认可见"""
         _touch(os.path.join(temp_dir, ".hidden_file"))
         os.makedirs(os.path.join(temp_dir, "__pycache__"), exist_ok=True)
         _touch(os.path.join(temp_dir, "visible.md"))
@@ -228,7 +256,7 @@ class TestListDirectory:
             [d["name"] for d in result["directories"]]
             + [f["name"] for f in result["files"]]
         )
-        assert ".hidden_file" not in all_names
+        assert ".hidden_file" in all_names
         assert "__pycache__" not in all_names
         assert "visible.md" in all_names
 

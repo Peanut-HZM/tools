@@ -57,6 +57,30 @@ def is_hidden(name: str) -> bool:
     return name.startswith('.')
 
 
+def expand_user_path(path: str) -> str:
+    """展开路径中的 ~ 为用户主目录。
+
+    用于「打开文件夹」等需要接受用户手输路径的场景：
+    - `~` / `~/docs` → 主目录下的对应位置
+    - `~other/...` 不做展开（不是当前用户）
+    - 其他路径原样返回
+
+    注意：HOME 环境变量可能被覆盖为缓存目录，因此统一使用 REAL_HOME。
+    """
+    if not path:
+        return path
+
+    expanded = path
+    if expanded == "~":
+        from app.config.config import REAL_HOME
+        expanded = REAL_HOME
+    elif expanded.startswith("~/"):
+        from app.config.config import REAL_HOME
+        expanded = REAL_HOME + expanded[1:]
+
+    return expanded
+
+
 def is_markdown_file(name: str) -> bool:
     """Check if a file is a Markdown file"""
     lower_name = name.lower()
@@ -209,6 +233,28 @@ def _to_posix(path_str: str) -> str:
     return normalized
 
 
+def _matches_sensitive(normalized: str) -> bool:
+    """按 POSIX 归一化路径匹配敏感路径黑名单"""
+    for sensitive in SENSITIVE_PATHS:
+        # 对于目录前缀匹配，确保带尾部斜杠
+        if sensitive.endswith('/'):
+            if normalized.startswith(sensitive):
+                return True
+        else:
+            if normalized == sensitive or normalized.startswith(sensitive + '/'):
+                return True
+    return False
+
+
+def is_sensitive_path_literal(path: str) -> bool:
+    """仅按字面路径判断是否敏感（不做 resolve）
+
+    用于目录条目过滤：条目路径本身已经是绝对路径，无需再次 resolve，
+    避免大目录下逐条 resolve 带来的额外系统调用。
+    """
+    return _matches_sensitive(_to_posix(path))
+
+
 def is_sensitive_path(path: str) -> bool:
     """检查路径是否为系统敏感路径
 
@@ -221,21 +267,13 @@ def is_sensitive_path(path: str) -> bool:
     # Windows 上 Path.resolve() 会给 /etc/shadow 加当前盘符（D:\etc\shadow），
     # 直接前缀匹配会全部失配，导致敏感路径检测在 Windows 上完全失效。
     # 因此同时用"原始输入的 POSIX 归一化"与"resolve 后路径的 POSIX 归一化"匹配。
+    # macOS 上 /etc 是指向 /private/etc 的软链接，只匹配 resolve 结果会漏掉
+    # /etc/shadow、/etc/passwd，因此原始输入也必须参与匹配。
     resolved = Path(path).resolve()
     path_str = _to_posix(str(resolved))
     normalized_input = _to_posix(path)
 
-    for sensitive in SENSITIVE_PATHS:
-        # 对于目录前缀匹配，确保带尾部斜杠
-        if sensitive.endswith('/'):
-            if normalized_input.startswith(sensitive) or path_str.startswith(sensitive):
-                return True
-        else:
-            if normalized_input == sensitive or normalized_input.startswith(sensitive + '/'):
-                return True
-            if path_str == sensitive or path_str.startswith(sensitive + '/'):
-                return True
-    return False
+    return _matches_sensitive(normalized_input) or _matches_sensitive(path_str)
 
 
 def validate_any_path(path: str) -> Tuple[bool, str]:
@@ -270,8 +308,9 @@ def validate_any_path(path: str) -> Tuple[bool, str]:
         else:
             resolved = (Path(os.getcwd()) / expanded).resolve()
 
-        # 检查敏感路径
-        if is_sensitive_path(str(resolved)):
+        # 检查敏感路径：原始输入与 resolve 后的路径都要校验
+        # （macOS 上 /etc → /private/etc，只校验 resolve 结果会漏掉 /etc/shadow）
+        if is_sensitive_path(expanded) or is_sensitive_path(str(resolved)):
             return False, "禁止访问系统敏感路径"
 
         return True, str(resolved)

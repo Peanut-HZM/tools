@@ -31,7 +31,7 @@ from app.services.markdown_file_service import MarkdownFileService
 from app.services.markdown_config_service import MarkdownConfigService
 from app.services.markdown_search_service import MarkdownSearchService
 from app.services.oss_service import oss_service
-from app.utils.path_utils import get_file_type, get_extension, is_previewable
+from app.utils.path_utils import get_file_type, get_extension, is_previewable, expand_user_path
 from app.middleware.auth_middleware import get_current_user_id
 
 router = APIRouter(prefix="/api/markdown-editor", tags=["markdown-editor"])
@@ -123,9 +123,14 @@ async def upload_markdown_file(
 @router.get("/files/root", response_model=RootPathResponse)
 async def get_root_path(user_id: str = Depends(get_current_user_id)):
     """Get current user's root directory path"""
+    config_service = MarkdownConfigService(user_id)
+    config = config_service.load_config()
     service = get_file_service(user_id)
     root_path = service.get_root_path()
-    return RootPathResponse(path=root_path, exists=True)
+    # exists 反映"用户配置的根目录"是否仍然可用，而不是恒为 True
+    configured = config.root_path or root_path
+    exists = os.path.isdir(expand_user_path(configured))
+    return RootPathResponse(path=root_path, exists=exists)
 
 
 @router.post("/files/root", response_model=RootPathResponse)
@@ -133,10 +138,15 @@ async def update_root_path(
     request: RootPathRequest, user_id: str = Depends(get_current_user_id)
 ):
     """Update user's root directory path"""
-    # Verify path exists
-    import os
+    # 支持 ~ 开头的路径，并归一化为绝对路径后保存
+    raw_path = (request.path or "").strip()
+    if not raw_path:
+        raise HTTPException(status_code=400, detail="路径不能为空")
 
-    if not os.path.exists(request.path) or not os.path.isdir(request.path):
+    expanded_path = os.path.abspath(expand_user_path(raw_path))
+
+    # Verify path exists
+    if not os.path.exists(expanded_path) or not os.path.isdir(expanded_path):
         raise HTTPException(
             status_code=400, detail="Path does not exist or is not a directory"
         )
@@ -144,10 +154,10 @@ async def update_root_path(
     # Update config
     config_service = MarkdownConfigService(user_id)
     config = config_service.load_config()
-    config.root_path = request.path
+    config.root_path = expanded_path
     config_service.save_config(config)
 
-    return RootPathResponse(path=request.path, exists=True)
+    return RootPathResponse(path=expanded_path, exists=True)
 
 
 @router.get("/files/tree", response_model=FileNode)
@@ -1105,17 +1115,27 @@ class CreateItemRequest(BaseModel):
 
 @router.get("/files/browse", response_model=BrowseResponse)
 async def browse_directory(
-    path: str = Query(default="", description="要浏览的目录路径"),
+    path: str = Query(default="", description="要浏览的目录路径（支持绝对路径、~ 开头、相对路径）"),
     page: int = Query(default=1, ge=1, description="页码"),
     page_size: int = Query(default=100, ge=1, le=1000, description="每页数量"),
+    include_hidden: bool = Query(default=True, description="是否显示以 . 开头的隐藏文件/目录"),
     user_id: str = Depends(get_current_user_id),
 ):
-    """浏览任意目录（支持分页）"""
+    """浏览任意目录（支持分页）
+
+    「打开文件夹」使用本接口：可以进入任意路径（含 .git 等隐藏目录），
+    返回的 current_path 是绝对路径，可直接作为工作区根目录。
+    """
     try:
         config_service = MarkdownConfigService(user_id)
         config = config_service.load_config()
 
-        service = MarkdownFileService(user_id, custom_root=config.root_path, allow_any_path=True)
+        service = MarkdownFileService(
+            user_id,
+            custom_root=config.root_path,
+            allow_any_path=True,
+            include_hidden=include_hidden,
+        )
         return service.browse_directory(path, page, page_size)
     except FileNotFoundError as e:
         # 文件夹已被外部删除，返回 404 让前端能识别

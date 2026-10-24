@@ -245,6 +245,24 @@ function TreeNode({
           ))}
         </div>
       )}
+
+      {/* 扫描截断 / 无权限提示（必须显式告知用户，不能静默丢内容） */}
+      {isDirectory && node.truncated && (
+        <div
+          className="text-xs text-warning px-2 py-0.5"
+          style={{ paddingLeft: `${(level + 1) * 16 + 12}px` }}
+        >
+          … 内容过多，已截断（展开该目录可继续加载）
+        </div>
+      )}
+      {isDirectory && node.inaccessible && (
+        <div
+          className="text-xs text-danger px-2 py-0.5"
+          style={{ paddingLeft: `${(level + 1) * 16 + 12}px` }}
+        >
+          无权限访问此目录
+        </div>
+      )}
     </div>
   );
 }

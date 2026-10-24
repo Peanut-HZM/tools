@@ -520,14 +520,14 @@ export default function MarkdownEditor() {
   const handleFolderBrowserConfirm = useCallback(async (path: string) => {
     setShowFolderSelect(false);
     try {
+      // setRootPath 内部已重新加载文件树，此处不再重复加载
       await setRootPath(path);
-      await loadDirectoryTree();
     } catch (e: unknown) {
       console.error(e);
       setShowFolderSelect(true);
       showToast('打开文件夹失败: ' + (e instanceof Error ? e.message : String(e)), 'error');
     }
-  }, [setRootPath, loadDirectoryTree, showToast]);
+  }, [setRootPath, showToast]);
 
   const handleCreateFile = async () => {
     if (!newFileName) return;

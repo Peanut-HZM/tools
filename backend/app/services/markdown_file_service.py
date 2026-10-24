@@ -4,6 +4,7 @@ Markdown File Service - Handles all file system operations with user isolation
 import os
 import shutil
 import base64
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Set, List
@@ -15,8 +16,25 @@ from app.models.file_models import (
 from app.utils.path_utils import (
     validate_path, validate_any_path, is_hidden, is_markdown_file,
     get_relative_path, normalize_path, ensure_user_directory,
-    get_file_type, get_extension, is_previewable
+    get_file_type, get_extension, is_previewable, expand_user_path,
+    is_sensitive_path, is_sensitive_path_literal
 )
+
+logger = logging.getLogger(__name__)
+
+# 文件树扫描时整体跳过的「重量级」目录。
+# 只影响文件树（避免一次扫描几万节点），不影响文件夹浏览——浏览时
+# 用户必须能进入 node_modules / .git 等任意目录。
+HEAVY_DIR_NAMES: Set[str] = {
+    'node_modules', '__pycache__', 'venv', 'env', 'dist', 'build', 'target',
+}
+
+# 单次文件树扫描的节点上限：超出后停止递归并在节点上标记 truncated，
+# 避免 .git/objects 这类超大目录把接口拖死。
+MAX_SCAN_NODES = 20000
+
+# 单次文件树扫描的最大深度
+MAX_SCAN_DEPTH = 30
 
 
 class MarkdownFileService:
@@ -33,7 +51,14 @@ class MarkdownFileService:
                 return f"{size:.2f} {unit}"
         return f"{size:.2f} TB"
     
-    def __init__(self, user_id: str, base_path: str = "./data/users", custom_root: Optional[str] = None, allow_any_path: bool = False):
+    def __init__(
+        self,
+        user_id: str,
+        base_path: str = "./data/users",
+        custom_root: Optional[str] = None,
+        allow_any_path: bool = False,
+        include_hidden: bool = True,
+    ):
         """
         Initialize MarkdownFileService with user-specific root directory.
         
@@ -41,25 +66,44 @@ class MarkdownFileService:
             user_id: The user's ID for file isolation
             base_path: Base path for user data storage
             custom_root: Optional custom root path (overrides default sandbox)
+            allow_any_path: 是否允许访问根目录之外的任意路径
+            include_hidden: 是否显示以 . 开头的隐藏文件/目录（默认显示）
         """
         self.user_id = user_id
         self.base_path = base_path
         self.allow_any_path = allow_any_path
-        
-        if custom_root and os.path.exists(custom_root) and os.path.isdir(custom_root):
-            self._root_path = Path(custom_root).resolve()
+        self.include_hidden = include_hidden
+        self._configured_root: Optional[str] = None
+        self._root_missing = False
+
+        if custom_root:
+            expanded_root = expand_user_path(custom_root)
+            self._configured_root = expanded_root
+            if os.path.exists(expanded_root) and os.path.isdir(expanded_root):
+                self._root_path = Path(expanded_root).resolve()
+            else:
+                # 配置的根目录已失效：回退到沙箱目录，但必须写错误日志，
+                # 否则用户会以为打开的还是原目录（静默兜底会掩盖真实问题）
+                self._root_missing = True
+                logger.error(
+                    f"用户 {user_id} 配置的根目录不存在或不是目录，已回退到沙箱目录: {expanded_root}"
+                )
+                self._root_path = Path(ensure_user_directory(user_id, base_path)).resolve()
         else:
             self._root_path = Path(ensure_user_directory(user_id, base_path)).resolve()
-        
+
         self._gitignore_patterns: Set[str] = set()
         self._add_default_ignores()
         self._load_gitignore()
-    
+
     def _add_default_ignores(self) -> None:
-        """Add default ignore patterns for performance and safety"""
+        """Add default ignore patterns for performance and safety
+
+        说明：默认忽略项只作用于**文件树**。原先被忽略的 .git/.idea/.vscode
+        等隐藏目录已移除——用户必须能打开这些隐藏目录。
+        """
         defaults = {
-            'node_modules', '.git', '.svn', '.hg', '.idea', '.vscode', 
-            '__pycache__', 'venv', 'env', 'dist', 'build', 'target',
+            'node_modules', '__pycache__', 'venv', 'env', 'dist', 'build', 'target',
             '.DS_Store', 'Thumbs.db'
         }
         self._gitignore_patterns.update(defaults)
@@ -77,21 +121,25 @@ class MarkdownFileService:
             except Exception:
                 pass  # Ignore errors reading .gitignore
     
-    def _is_ignored(self, name: str, is_dir: bool = False) -> bool:
-        """Check if a file/directory should be ignored"""
-        # Always ignore hidden files/directories (except .markdown-editor config)
-        if is_hidden(name) and name != '.markdown-editor':
-            return True
-        
-        # Check gitignore patterns (simplified matching)
+    def _matches_ignore_pattern(self, name: str) -> bool:
+        """Check if a name matches an ignore pattern (gitignore + defaults)"""
         for pattern in self._gitignore_patterns:
             pattern = pattern.rstrip('/')
             if pattern == name:
                 return True
             if pattern.endswith('*') and name.startswith(pattern[:-1]):
                 return True
-        
         return False
+
+    def _is_ignored(self, name: str, is_dir: bool = False) -> bool:
+        """Check if a file/directory should be ignored **in the file tree**
+
+        - 隐藏条目（以 . 开头）默认可见；include_hidden=False 时才隐藏
+        - .gitignore 模式与重量级目录始终在文件树中隐藏
+        """
+        if not self.include_hidden and is_hidden(name):
+            return True
+        return self._matches_ignore_pattern(name)
     
     def _validate_and_resolve(self, path: str) -> Path:
         """验证路径并返回解析后的 Path 对象"""
@@ -139,8 +187,17 @@ class MarkdownFileService:
         
         return self._scan_directory(target_path, depth)
     
-    def _scan_directory(self, dir_path: Path, depth: int = -1, _rel_path: str = None) -> FileNode:
+    def _scan_directory(self, dir_path: Path, depth: int = -1, _rel_path: str = None, _state: dict = None) -> FileNode:
         """Recursively scan a directory — includes all file types
+
+        扫描规则：
+        - 隐藏条目（. 开头）默认可见；隐藏目录**不递归**（作为叶子节点返回，
+          前端展开时再按需懒加载），既保证 .git/.idea 等能被打开，又避免
+          .git/objects 之类超大目录拖垮扫描
+        - 重量级目录（node_modules 等）整体跳过
+        - 单次扫描受 MAX_SCAN_NODES / MAX_SCAN_DEPTH 限制，超限时在节点上
+          标记 truncated，前端会明确提示"内容已截断"，不做静默丢弃
+        - 符号链接环通过 (st_dev, st_ino) 去重，避免无限递归
 
         性能说明：使用 os.scandir（Windows 下 is_dir/is_file/stat 复用目录
         枚举缓存，几乎无额外系统调用），相对路径通过父级缓存字符串拼接，
@@ -149,6 +206,8 @@ class MarkdownFileService:
         """
         if not isinstance(dir_path, Path):
             dir_path = Path(dir_path)
+        if _state is None:
+            _state = {"count": 0, "truncated": False, "visited": set()}
         if _rel_path is None:
             rel_path = get_relative_path(str(dir_path), str(self._root_path))
             if rel_path == '.':
@@ -167,6 +226,8 @@ class MarkdownFileService:
             with os.scandir(dir_path) as it:
                 entries = list(it)
         except (PermissionError, OSError):
+            # 无权限访问：明确标记，由前端提示"无权限"，而不是伪装成空目录
+            node.inaccessible = True
             return node
 
         dir_entries: list = []
@@ -183,10 +244,12 @@ class MarkdownFileService:
                 dir_entries.append(entry)
             else:
                 try:
-                    if entry.is_file():
-                        file_entries.append(entry)
+                    is_file = entry.is_file()
                 except OSError:
-                    continue
+                    is_file = False
+                if is_file or entry.is_symlink():
+                    # 断链符号链接也保留，避免条目凭空消失
+                    file_entries.append(entry)
 
         dir_entries.sort(key=lambda e: e.name.lower())
         file_entries.sort(key=lambda e: e.name.lower())
@@ -194,27 +257,84 @@ class MarkdownFileService:
         child_rel_base = f"{rel_path}/" if rel_path else ""
 
         for entry in dir_entries:
+            if _state["count"] >= MAX_SCAN_NODES:
+                node.truncated = True
+                _state["truncated"] = True
+                break
+
             child_rel_path = f"{child_rel_base}{entry.name}"
+            hidden_dir = is_hidden(entry.name)
+
             if depth == 0:
-                # 如果深度限制为 0，不再递归扫描子目录
+                # 深度限制：保留节点但不展开
                 node.children.append(FileNode(
                     name=entry.name,
                     path=normalize_path(child_rel_path),
                     type="directory",
                     children=[]
                 ))
-            else:
-                # 递归扫描，深度减 1（-1 表示无限制）
-                next_depth = depth - 1 if depth > 0 else -1
-                child_node = self._scan_directory(
-                    Path(entry.path), next_depth, child_rel_path
-                )
-                # Include directory if it has any files (not just markdown)
-                if child_node.children:
-                    node.children.append(child_node)
+                _state["count"] += 1
+                continue
+
+            if hidden_dir:
+                # 隐藏目录不递归，但必须保留节点：用户要能打开 .git/.idea 等
+                node.children.append(FileNode(
+                    name=entry.name,
+                    path=normalize_path(child_rel_path),
+                    type="directory",
+                    children=[]
+                ))
+                _state["count"] += 1
+                continue
+
+            if entry.name in HEAVY_DIR_NAMES:
+                continue
+
+            # 符号链接环检测：软链接指回祖先目录时只保留节点，不再递归
+            link_key = None
+            try:
+                link_stat = entry.stat()
+                link_key = (link_stat.st_dev, link_stat.st_ino)
+            except OSError:
+                link_key = None
+            if link_key is not None:
+                if link_key in _state["visited"]:
+                    # 已访问过：保留节点（用户可见），但不递归，避免无限循环
+                    node.children.append(FileNode(
+                        name=entry.name,
+                        path=normalize_path(child_rel_path),
+                        type="directory",
+                        children=[]
+                    ))
+                    _state["count"] += 1
+                    continue
+                _state["visited"].add(link_key)
+
+            # 递归扫描，深度减 1（-1 表示无限制）
+            next_depth = depth - 1 if depth > 0 else -1
+            if next_depth > MAX_SCAN_DEPTH:
+                next_depth = MAX_SCAN_DEPTH
+            child_node = self._scan_directory(
+                Path(entry.path), next_depth, child_rel_path, _state
+            )
+            # Include directory if it has any files (not just markdown)
+            # 隐藏目录即使暂时为空也要保留，保证用户能打开它
+            if child_node.children or child_node.truncated or child_node.inaccessible or hidden_dir:
+                node.children.append(child_node)
+                _state["count"] += 1
 
         for entry in file_entries:
-            stat = entry.stat()
+            if _state["count"] >= MAX_SCAN_NODES:
+                node.truncated = True
+                _state["truncated"] = True
+                break
+            try:
+                stat = entry.stat()
+            except OSError:
+                try:
+                    stat = entry.stat(follow_symlinks=False)
+                except OSError:
+                    continue
             node.children.append(FileNode(
                 name=entry.name,
                 path=normalize_path(f"{child_rel_base}{entry.name}"),
@@ -226,6 +346,7 @@ class MarkdownFileService:
                 file_type=get_file_type(entry.name),
                 previewable=is_previewable(entry.name),
             ))
+            _state["count"] += 1
 
         return node
 
@@ -968,23 +1089,55 @@ class MarkdownFileService:
     # Task 3: 任意路径浏览 & 文件操作
     # ---------------------------------------------------------------------------
 
+    def _resolve_browse_path(self, path: str) -> Path:
+        """解析「打开文件夹」的目标路径
+
+        - 绝对路径：直接使用
+        - `~` 开头：展开为用户主目录
+        - 相对路径：相对当前根目录解析
+        - allow_any_path=False 时仍然限制在根目录内
+
+        与 validate_any_path 的差异：允许 `..`（浏览时向上一层导航是正常操作），
+        但仍然拒绝系统敏感路径。
+        """
+        raw = (path or "").strip()
+        if not raw:
+            return Path(self._root_path)
+
+        expanded = expand_user_path(raw)
+
+        if not self.allow_any_path:
+            is_valid, result = validate_path(expanded, str(self._root_path))
+            if not is_valid:
+                raise ValueError(result)
+            return Path(result)
+
+        candidate = Path(expanded)
+        if not candidate.is_absolute():
+            candidate = Path(self._root_path) / expanded
+        resolved = candidate.resolve()
+        # 原始输入与 resolve 后的路径都要校验
+        # （macOS 上 /etc → /private/etc，只校验 resolve 结果会漏掉 /etc/shadow）
+        if is_sensitive_path(expanded) or is_sensitive_path(str(resolved)):
+            raise ValueError("禁止访问系统敏感路径")
+        return resolved
+
     def browse_directory(self, path: str = "", page: int = 1, page_size: int = 100) -> BrowseResponse:
         """浏览任意目录（支持分页）
 
+        与文件树不同：这里**不过滤**隐藏条目与重量级目录——「打开文件夹」
+        必须能进入任何目录（含 .git / node_modules 等隐藏目录）。
+
         Args:
-            path: 目标路径（空字符串表示根目录；allow_any_path 模式下默认为 /）
+            path: 目标路径（支持绝对路径、~ 开头、相对当前根目录的相对路径；
+                  空字符串表示当前根目录）
             page: 页码（从 1 开始）
             page_size: 每页数量（默认 100）
 
         Returns:
             BrowseResponse 包含文件列表和分页信息
         """
-        if path:
-            target_path = self._validate_and_resolve(path)
-        elif self.allow_any_path:
-            target_path = Path("/").resolve()
-        else:
-            target_path = self._root_path
+        target_path = self._resolve_browse_path(path)
 
         if not target_path.exists() or not target_path.is_dir():
             raise ValueError(f"目录不存在：{path}")
@@ -998,21 +1151,38 @@ class MarkdownFileService:
         except PermissionError:
             raise ValueError(f"无权限访问目录：{path}")
 
-        # 过滤隐藏文件和忽略文件
+        # 只按 include_hidden 过滤隐藏条目，其余一律展示（保证能进入任意目录）
         items = []
         for entry in entries:
-            if self._is_ignored(entry.name, entry.is_dir()):
+            if not self.include_hidden and is_hidden(entry.name):
+                continue
+            # 敏感条目（如 /etc/shadow）不展示
+            if is_sensitive_path_literal(str(entry)):
                 continue
 
-            stat = entry.stat()
+            try:
+                is_dir = entry.is_dir()
+            except OSError:
+                is_dir = False
+            try:
+                stat = entry.stat()
+            except OSError:
+                # 断链符号链接：退回 lstat，至少保留条目本身
+                try:
+                    stat = entry.stat(follow_symlinks=False)
+                except OSError:
+                    continue
+
+            is_file = not is_dir
             item = FileItem(
                 name=entry.name,
                 path=str(entry),
-                type="directory" if entry.is_dir() else "file",
-                size=stat.st_size if entry.is_file() else 0,
+                type="directory" if is_dir else "file",
+                size=stat.st_size if is_file else 0,
                 modified_at=datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                extension=get_extension(entry.name) if entry.is_file() else "",
-                is_previewable=is_previewable(entry.name) if entry.is_file() else False,
+                extension=get_extension(entry.name) if is_file else "",
+                is_previewable=is_previewable(entry.name) if is_file else False,
+                is_hidden=is_hidden(entry.name),
             )
             items.append(item)
 
@@ -1038,15 +1208,22 @@ class MarkdownFileService:
         breadcrumbs: List[dict] = []
         resolved = target_path.resolve()
 
+        parts = list(resolved.parts)
+        # Windows 盘符单独作为根节点（如 "C:"），避免拼出 "/C:\\..." 这种非法路径
+        drive = ""
+        if parts and len(parts[0]) == 2 and parts[0][1] == ":":
+            drive = parts[0]
+            parts = parts[1:]
+
         # 根目录
-        breadcrumbs.append({"name": "/", "path": "/"})
+        breadcrumbs.append({"name": drive if drive else "/", "path": drive if drive else "/"})
 
         # 逐级构建路径
-        current = ""
-        for part in resolved.parts:
+        current = drive
+        for part in parts:
             if part == '/':
                 continue
-            current = current + "/" + part
+            current = f"{current}/{part}" if current else f"/{part}"
             breadcrumbs.append({"name": part, "path": current})
 
         return breadcrumbs

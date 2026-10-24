@@ -25,7 +25,7 @@ export default function PathInput({ value, onChange, onSubmit, loading }: PathIn
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="输入路径，按 Enter 跳转..."
+        placeholder="输入绝对路径或 ~ 开头路径，按 Enter 跳转..."
         className="flex-1 px-2 py-1.5 text-sm bg-surface-2 border border-border rounded text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent-cyan/50"
         disabled={loading}
       />

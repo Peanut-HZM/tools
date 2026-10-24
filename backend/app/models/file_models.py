@@ -19,6 +19,10 @@ class FileNode(BaseModel):
     extension: Optional[str] = None       # 文件扩展名，如 ".md"
     file_type: Optional[str] = None       # 文件类型分类，如 "markdown", "html"
     previewable: Optional[bool] = None    # 是否支持预览
+    # 子树因节点数/深度超限而未完整扫描（前端需明确提示"内容已截断"）
+    truncated: bool = False
+    # 目录无权限访问（前端需提示，而不是伪装成空目录）
+    inaccessible: bool = False
 
 
 class FileRawContent(BaseModel):
@@ -150,6 +154,7 @@ class FileItem(BaseModel):
     modified_at: str  # ISO 时间字符串
     extension: str = ""  # 文件扩展名（目录为空）
     is_previewable: bool = False  # 是否可预览
+    is_hidden: bool = False  # 是否为隐藏条目（以 . 开头），前端用于区分展示
 
 
 class BrowseResponse(BaseModel):

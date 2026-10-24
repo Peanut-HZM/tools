@@ -423,16 +423,21 @@ export const listOssFiles = listOssMarkdownFiles;
 
 /**
  * 浏览任意目录（支持分页）
+ *
+ * 「打开文件夹」使用本接口：path 支持绝对路径、~ 开头、相对路径；
+ * 返回的 current_path 为绝对路径，可直接作为工作区根目录。
  */
 export async function browseFileManager(
   path: string = '',
   page: number = 1,
-  pageSize: number = 100
+  pageSize: number = 100,
+  includeHidden: boolean = true
 ): Promise<FileManagerBrowseResponse> {
   const params = new URLSearchParams();
   if (path) params.append('path', path);
   params.append('page', page.toString());
   params.append('page_size', pageSize.toString());
+  params.append('include_hidden', includeHidden ? 'true' : 'false');
 
   const response = await authedFetch(`${API_BASE_URL}/files/browse?${params}`, {
     method: 'GET',

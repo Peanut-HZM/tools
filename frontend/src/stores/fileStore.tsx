@@ -346,7 +346,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
       // Then update local state
       setRootPath(path);
       // Reload tree with new root (passing empty string because root is now set on backend)
-      await loadDirectoryTree('');
+      // 只加载第一层：与启动时保持一致，子目录在展开时按需懒加载，
+      // 避免打开大目录时一次性全量扫描导致长时间无响应
+      await loadDirectoryTree('', 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to set root path');
       throw e;

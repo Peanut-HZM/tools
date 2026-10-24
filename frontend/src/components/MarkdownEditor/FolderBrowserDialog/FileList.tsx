@@ -9,7 +9,7 @@ import FileItemRow from './FileItemRow';
 interface FileListProps {
   items: FileManagerItem[];
   selectedItems: string[];
-  onSelect: (path: string) => void;
+  onSelect: (item: FileManagerItem) => void;
   onDoubleClick: (item: FileManagerItem) => void;
   onContextMenu: (e: React.MouseEvent, item: FileManagerItem) => void;
   loading?: boolean;

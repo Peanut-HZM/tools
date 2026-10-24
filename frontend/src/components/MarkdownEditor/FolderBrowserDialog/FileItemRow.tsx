@@ -8,7 +8,7 @@ import type { FileManagerItem } from '../../../types/markdownEditor';
 interface FileItemRowProps {
   item: FileManagerItem;
   isSelected: boolean;
-  onSelect: (path: string) => void;
+  onSelect: (item: FileManagerItem) => void;
   onDoubleClick: (item: FileManagerItem) => void;
   onContextMenu: (e: React.MouseEvent, item: FileManagerItem) => void;
 }
@@ -47,7 +47,7 @@ export default function FileItemRow({
       className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors border-b border-border/50 ${
         isSelected ? 'bg-accent/20 text-accent-cyan' : 'hover:bg-surface-2'
       }`}
-      onClick={() => onSelect(item.path)}
+      onClick={() => onSelect(item)}
       onDoubleClick={() => onDoubleClick(item)}
       onContextMenu={(e) => onContextMenu(e, item)}
       role="button"
@@ -55,12 +55,15 @@ export default function FileItemRow({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onSelect(item.path);
+          onSelect(item);
         }
       }}
     >
       <span className="shrink-0 w-6 text-center">{getFileIcon(item)}</span>
-      <span className="flex-1 truncate">{item.name}</span>
+      {/* 隐藏条目（以 . 开头）用淡化样式区分，方便识别 */}
+      <span className={`flex-1 truncate ${item.is_hidden ? 'text-ink-faint italic' : ''}`}>
+        {item.name}
+      </span>
       <span className="text-ink-faint text-xs w-20 text-right">
         {item.type === 'directory' ? '文件夹' : '文件'}
       </span>

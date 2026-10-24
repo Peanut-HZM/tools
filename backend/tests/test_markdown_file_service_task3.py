@@ -172,25 +172,86 @@ class TestBrowseDirectory:
         assert result.items[0].type == "directory"
         assert result.items[1].type == "file"
 
-    def test_browse_hidden_files_excluded(self, any_path_service, temp_dir):
-        """隐藏文件被排除"""
+    def test_browse_hidden_files_included(self, any_path_service, temp_dir):
+        """隐藏文件在文件夹浏览器中可见（用户要能打开 . 开头的目录/文件）"""
         _touch(os.path.join(temp_dir, ".hidden"))
         _touch(os.path.join(temp_dir, "visible.md"))
 
         result = any_path_service.browse_directory(temp_dir)
         names = [item.name for item in result.items]
+        assert ".hidden" in names
+        assert "visible.md" in names
+
+    def test_browse_hidden_disabled_hides_entries(self, temp_dir):
+        """include_hidden=False 时隐藏条目被隐藏"""
+        _touch(os.path.join(temp_dir, ".hidden"))
+        _touch(os.path.join(temp_dir, "visible.md"))
+
+        service = MarkdownFileService("test-user-task3", allow_any_path=True, include_hidden=False)
+        service._root_path = Path(temp_dir).resolve()
+
+        result = service.browse_directory(temp_dir)
+        names = [item.name for item in result.items]
         assert ".hidden" not in names
         assert "visible.md" in names
 
-    def test_browse_ignored_dirs_excluded(self, any_path_service, temp_dir):
-        """忽略的目录（node_modules 等）被排除"""
+    def test_browse_hidden_directory_can_be_entered(self, any_path_service, temp_dir):
+        """隐藏目录可以直接进入并浏览其内容"""
+        hidden_dir = os.path.join(temp_dir, ".git")
+        os.makedirs(hidden_dir, exist_ok=True)
+        _touch(os.path.join(hidden_dir, "HEAD"), "ref: refs/heads/main")
+        _touch(os.path.join(hidden_dir, ".gitignore"), "")
+
+        result = any_path_service.browse_directory(hidden_dir)
+
+        assert result.current_path == str(Path(hidden_dir).resolve())
+        assert sorted(item.name for item in result.items) == [".gitignore", "HEAD"]
+        hidden_flags = {item.name: item.is_hidden for item in result.items}
+        assert hidden_flags[".gitignore"] is True
+        assert hidden_flags["HEAD"] is False
+
+    def test_browse_ignored_dirs_included(self, any_path_service, temp_dir):
+        """文件夹浏览器不排除重量级目录：用户必须能进入 node_modules 等任意目录"""
         os.makedirs(os.path.join(temp_dir, "node_modules"), exist_ok=True)
         _touch(os.path.join(temp_dir, "node_modules", "pkg.js"))
         _touch(os.path.join(temp_dir, "readme.md"))
 
         result = any_path_service.browse_directory(temp_dir)
         names = [item.name for item in result.items]
-        assert "node_modules" not in names
+        assert "node_modules" in names
+        assert "readme.md" in names
+
+    def test_browse_relative_path_resolved_against_root(self, any_path_service, temp_dir):
+        """相对路径相对当前根目录解析"""
+        os.makedirs(os.path.join(temp_dir, "docs"), exist_ok=True)
+        _touch(os.path.join(temp_dir, "docs", "guide.md"))
+
+        result = any_path_service.browse_directory("docs")
+
+        assert result.current_path == str(Path(temp_dir, "docs").resolve())
+        assert [item.name for item in result.items] == ["guide.md"]
+
+    def test_browse_parent_traversal_allowed(self, any_path_service, temp_dir):
+        """浏览时允许 ..（向上层导航是正常操作）"""
+        sub = os.path.join(temp_dir, "sub")
+        os.makedirs(sub, exist_ok=True)
+
+        result = any_path_service.browse_directory(os.path.join(sub, ".."))
+
+        assert result.current_path == str(Path(temp_dir).resolve())
+
+    def test_browse_tilde_expanded_to_home(self, any_path_service):
+        """~ 展开为用户主目录"""
+        from app.config.config import REAL_HOME
+
+        result = any_path_service.browse_directory("~")
+
+        assert result.current_path == str(Path(REAL_HOME).resolve())
+
+    def test_browse_rejects_sensitive_path(self, any_path_service):
+        """系统敏感路径仍然拒绝访问"""
+        with pytest.raises(ValueError, match="敏感"):
+            any_path_service.browse_directory("/etc/shadow")
 
     def test_browse_file_item_fields(self, any_path_service, temp_dir):
         """FileItem 字段正确填充"""
