@@ -178,8 +178,8 @@ export const MetricsPanel: React.FC<Props> = ({ podName, namespace }) => {
     );
   }
 
-  // 错误（Metrics Server 未安装）
-  if (isError && dataPoints.length === 0) {
+  // 后端尚未提供 Pod metrics REST 端点：明确提示不可用，绝不以静态数据替代。
+  if ((isError || !metricsData) && dataPoints.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-ink-faint gap-2">
         <LineChartIcon className="w-8 h-8 text-ink-faint" />

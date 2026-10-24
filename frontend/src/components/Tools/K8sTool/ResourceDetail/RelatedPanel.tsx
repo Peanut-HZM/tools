@@ -167,7 +167,7 @@ export const RelatedPanel: React.FC<Props> = ({ configId, namespace, podName }) 
                 <span className="text-accent-info font-medium">{ref.kind}</span>
                 <span className="text-ink-muted">/</span>
                 <span className="text-ink font-mono">{ref.name}</span>
-                <Zap className="w-4 h-4 text-ink-faint ml-auto" title={rt.viewEvents} />
+                <Zap className="w-4 h-4 text-ink-faint ml-auto" aria-label={rt.viewEvents} />
               </div>
             ))}
           </div>

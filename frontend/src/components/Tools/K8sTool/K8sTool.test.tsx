@@ -36,9 +36,17 @@ vi.mock('./ResourceTabs', () => ({
   ResourceTabs: () => <div data-testid="resource-tabs" />,
 }));
 
+vi.mock('./ClusterOverview', () => ({
+  ClusterOverview: () => <div data-testid="cluster-overview" />,
+}));
+
 // 关键：验证使用的是 RightDrawer（详情抽屉）而非直接渲染 PodDetail
 vi.mock('./RightDrawer', () => ({
   RightDrawer: () => <div data-testid="right-drawer" />,
+}));
+
+vi.mock('./useK8sWorkspaceRoute', () => ({
+  useK8sWorkspaceRoute: vi.fn(() => true),
 }));
 
 // ---- Mock hooks ----
@@ -68,7 +76,7 @@ vi.mock('../../../i18n', () => ({
 }));
 
 vi.mock('../../../hooks/useK8sClient', () => ({
-  useK8sConnections: vi.fn(),
+  useK8sConnections: vi.fn(() => ({ isSuccess: true, isError: false })),
 }));
 
 vi.mock('../../../api/k8sToolApi', () => ({

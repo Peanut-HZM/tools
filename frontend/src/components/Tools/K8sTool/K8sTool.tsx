@@ -5,7 +5,7 @@
  * 右侧主区域：TopBar（ClusterSwitcher + NamespaceFilter） + ResourceTabs
  * 右侧抽屉 RightDrawer 展示资源详情（点击 Pod 行触发）
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useK8sStore } from '../../../stores/k8sStore';
 import { useK8sConnections } from '../../../hooks/useK8sClient';
 import { ConnectionList } from './ConnectionList';
@@ -14,12 +14,14 @@ import { EmptyState } from './EmptyState';
 import { TopBar } from './TopBar';
 import { ResourceTabs } from './ResourceTabs';
 import { RightDrawer } from './RightDrawer';
+import { ClusterOverview } from './ClusterOverview';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n, interpolate } from '../../../i18n';
 import { useAuth } from '../../../stores/authStore';
 import RequireAuthNotice from '../../Common/RequireAuthNotice';
 import type { K8sConnection } from './types';
 import * as api from '../../../api/k8sToolApi';
+import { useK8sWorkspaceRoute } from './useK8sWorkspaceRoute';
 
 const K8sTool: React.FC = () => {
   const { addToast } = useToast();
@@ -37,7 +39,15 @@ const K8sTool: React.FC = () => {
   const dragStartWidthRef = useRef(0);
 
   // 加载连接列表（React Query 自动轮询刷新）
-  useK8sConnections();
+  const connectionsQuery = useK8sConnections();
+
+  const handleInvalidRouteContext = useCallback((message: string) => {
+    addToast(message, 'error');
+  }, [addToast]);
+  const isWorkspaceRouteReady = useK8sWorkspaceRoute(
+    handleInvalidRouteContext,
+    connectionsQuery.isSuccess || connectionsQuery.isError,
+  );
 
   /** 侧边栏点击 → 设置活跃连接 */
   const handleSelectConnection = (id: string) => setActiveConnection(id);
@@ -126,9 +136,12 @@ const K8sTool: React.FC = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-canvas overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col bg-canvas overflow-hidden md:flex-row">
       {/* 左侧：连接列表 */}
-      <div style={{ width: `${sidebarWidth}px` }} className="shrink-0">
+      <div
+        style={{ '--cluster-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
+        className="h-64 w-full shrink-0 md:h-full md:w-[var(--cluster-sidebar-width)]"
+      >
         <ConnectionList
           configs={connections}
           selectedId={activeConnectionId}
@@ -143,7 +156,24 @@ const K8sTool: React.FC = () => {
       {/* 可拖动的分隔条 */}
       <div
         onMouseDown={handleDragStart}
-        className={`w-1 bg-surface-2 hover:bg-accent-hover cursor-col-resize transition-colors shrink-0 ${
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-valuemin={200}
+        aria-valuemax={500}
+        aria-valuenow={sidebarWidth}
+        aria-label="调整集群列表宽度"
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            setSidebarWidth((width) => Math.max(200, width - 20));
+          }
+          if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            setSidebarWidth((width) => Math.min(500, width + 20));
+          }
+        }}
+        className={`hidden w-1 shrink-0 cursor-col-resize bg-surface-2 transition-colors hover:bg-accent-hover md:block ${
           isDragging ? 'bg-accent' : ''
         }`}
         style={{ cursor: 'col-resize' }}
@@ -155,8 +185,15 @@ const K8sTool: React.FC = () => {
           <>
             {/* 顶部操作栏：集群切换 + 命名空间过滤 */}
             <TopBar />
-            {/* 资源标签页：Pods / Workloads / Nodes / Events */}
-            <ResourceTabs />
+            {/* 仅展示后端实际可用的集群信息，不伪造容量或利用率指标 */}
+            <ClusterOverview />
+            {isWorkspaceRouteReady ? (
+              <ResourceTabs />
+            ) : (
+              <div className="flex flex-1 items-center justify-center text-sm text-ink-faint">
+                正在恢复工作区上下文…
+              </div>
+            )}
           </>
         ) : (
           <EmptyState />

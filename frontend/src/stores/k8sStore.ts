@@ -106,12 +106,16 @@ export const useK8sStore = create<K8sStore>()((set) => ({
       if (s.activeConnectionId === id) return {};
       return {
         activeConnectionId: id,
+        // 先清空旧集群命名空间，直到当前集群的查询成功后再写入，避免短暂展示旧数据。
+        namespaces: [],
         selectedNamespaces: ['default'],
         selectedResource: null,
         // 切换连接时清空已打开的资源标签，避免上一个集群的标签泄漏到新集群视图
         openedTabs: [],
         activeTabId: null,
         activeSubTabs: {},
+        rightDrawerOpen: false,
+        rightDrawerResource: null,
       };
     }),
 
@@ -136,6 +140,8 @@ export const useK8sStore = create<K8sStore>()((set) => ({
       openedTabs: [],
       activeTabId: null,
       activeSubTabs: {},
+      rightDrawerOpen: false,
+      rightDrawerResource: null,
     }),
 
   // 多标签页操作实现

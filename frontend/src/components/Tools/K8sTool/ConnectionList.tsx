@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FileUp, ClipboardPaste, Keyboard, Server, GripVertical, Pencil, Trash2, Plus } from 'lucide-react';
+import { FileUp, ClipboardPaste, Keyboard, Server, GripVertical, Pencil, Trash2, Plus, Search } from 'lucide-react';
 import type { K8sConnection } from './types';
 import { useI18n, interpolate } from '../../../i18n';
 import { Button } from '@/components/ui/Button';
@@ -80,12 +80,11 @@ const SortableConnectionItem: React.FC<{
       ref={setNodeRef}
       style={style}
       className={[
-        'p-2 rounded group flex justify-between items-center transition-colors',
+        'group flex items-center justify-between rounded-lg border px-2 py-2 transition-colors',
         isSelected
-          ? 'bg-accent/20 text-accent-info border border-accent/40'
-          : 'text-ink-muted hover:bg-surface-2 hover:text-ink',
+          ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-300'
+          : 'border-transparent text-ink-muted hover:border-border hover:bg-surface-2 hover:text-ink',
       ].join(' ')}
-      onClick={() => onSelect(conn.id)}
     >
       {/* 拖动把手 */}
       <div
@@ -97,8 +96,13 @@ const SortableConnectionItem: React.FC<{
         <GripVertical className="w-3 h-3" />
       </div>
 
-      <div className="truncate flex-1 min-w-0">
-        <div className="font-medium flex items-center truncate">
+      <button
+        type="button"
+        aria-pressed={isSelected}
+        className="min-w-0 flex-1 truncate text-left"
+        onClick={() => onSelect(conn.id)}
+      >
+        <div className="flex truncate text-xs font-medium">
           <span
             className={['w-2 h-2 rounded-full mr-2 flex-shrink-0', getHealthDotClass(conn)].join(' ')}
             title={
@@ -112,12 +116,12 @@ const SortableConnectionItem: React.FC<{
           {getSourceIcon(conn.source_type)}
           <span className="truncate">{conn.name}</span>
         </div>
-        <div className="text-xs truncate text-ink-faint group-hover:text-ink-muted ml-4">
+        <div className="ml-4 mt-0.5 truncate text-[10px] text-ink-faint group-hover:text-ink-muted" title={conn.server || conn.cluster_name}>
           {conn.server || conn.cluster_name}
         </div>
-      </div>
+      </button>
 
-      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
+      <div className="flex space-x-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ml-2 flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -158,6 +162,14 @@ export const ConnectionList: React.FC<Props> = ({
   const { t } = useI18n();
   const k8sT = t.tools['k8s-tool'];
   const [items, setItems] = useState(configs);
+  const [searchText, setSearchText] = useState('');
+  const visibleItems = items.filter((connection) => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) return true;
+    return [connection.name, connection.cluster_name, connection.server]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(keyword));
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -180,26 +192,39 @@ export const ConnectionList: React.FC<Props> = ({
   }, [configs]);
 
   return (
-    <div className="flex flex-col h-full bg-surface-1 border-r border-border w-full">
-      <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
+    <div className="flex h-full w-full flex-col border-r border-border bg-surface-1">
+      <div className="flex flex-col gap-2 border-b border-border bg-surface-1 p-3">
         <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-ink">{k8sT.connections}</h2>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">{k8sT.title}</h2>
+            <p className="mt-0.5 text-[10px] text-ink-faint">{k8sT.connections}</p>
+          </div>
           <Button
-            variant="ghost"
-            size="icon"
+            size="sm"
             onClick={onAdd}
-            className="h-8 w-8 p-0"
+            className="h-7 gap-1 px-2 text-[11px]"
             title={k8sT.addConnection}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-3.5 w-3.5" />
+            {k8sT.connection.addConfig}
           </Button>
         </div>
+        <label className="relative block">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
+          <input
+            aria-label={k8sT.searchClusters}
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder={k8sT.searchClusters}
+            className="h-8 w-full rounded-md border border-border bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-faint outline-none transition-colors focus:border-accent"
+          />
+        </label>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {items.map(conn => (
+        <SortableContext items={visibleItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex-1 space-y-1 overflow-y-auto p-2">
+            {visibleItems.map(conn => (
               <SortableConnectionItem
                 key={conn.id}
                 conn={conn}
@@ -215,6 +240,11 @@ export const ConnectionList: React.FC<Props> = ({
             {items.length === 0 && (
               <div className="p-4 text-center text-sm text-ink-faint">
                 {k8sT.emptyConnections}
+              </div>
+            )}
+            {items.length > 0 && visibleItems.length === 0 && (
+              <div className="p-4 text-center text-sm text-ink-faint">
+                {k8sT.noMatchingClusters}
               </div>
             )}
           </div>

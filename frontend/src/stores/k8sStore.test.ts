@@ -219,6 +219,36 @@ describe('k8sStore 多标签页状态管理', () => {
       expect(useK8sStore.getState().openedTabs.length).toBe(0);
       expect(useK8sStore.getState().activeTabId).toBeNull();
     });
+
+    it('切换连接时清理旧集群的命名空间和详情抽屉', () => {
+      useK8sStore.getState().setActiveConnection('connection-a');
+      useK8sStore.getState().setNamespaces(['default', 'team-a']);
+      useK8sStore.getState().setSelectedNamespaces(['team-a']);
+      useK8sStore.getState().openRightDrawer({
+        id: 'pod-team-a-api',
+        type: 'pod',
+        namespace: 'team-a',
+        name: 'api',
+      });
+
+      useK8sStore.getState().setActiveConnection('connection-b');
+
+      expect(state().namespaces).toEqual([]);
+      expect(state().selectedNamespaces).toEqual(['default']);
+      expect(state().rightDrawerOpen).toBe(false);
+      expect(state().rightDrawerResource).toBeNull();
+    });
+
+    it('重复选择同一连接时保留现有上下文', () => {
+      useK8sStore.getState().setActiveConnection('connection-a');
+      useK8sStore.getState().setNamespaces(['default', 'team-a']);
+      useK8sStore.getState().setSelectedNamespaces(['team-a']);
+
+      useK8sStore.getState().setActiveConnection('connection-a');
+
+      expect(state().namespaces).toEqual(['default', 'team-a']);
+      expect(state().selectedNamespaces).toEqual(['team-a']);
+    });
   });
 });
 
