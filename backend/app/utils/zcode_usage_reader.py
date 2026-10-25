@@ -54,8 +54,37 @@ def _get_real_home() -> Path:
 
 
 def _build_candidate() -> list[dict]:
-    """构造路径候选列表（使用真实 HOME，绕过 config.py 覆盖）。"""
+    """构造路径候选列表（使用真实 HOME，绕过 config.py 覆盖）。
+
+    ``ZCODE_HOME`` 语义对齐 ccusage ``rust/adapters/zcode``：
+    - 逗号分隔的多个根目录，每个取 ``<root>/cli/db/db.sqlite``
+    - 只有已存在的目录才有效，结果按路径去重
+    - 若设置了 ``ZCODE_HOME`` 但没有任何有效根目录，则**不再回退**到
+      ``~/.zcode``（避免配置错误时静默读到另一个位置的数据库）
+    """
     home = _get_real_home()
+
+    configured = os.environ.get("ZCODE_HOME", "").strip()
+    if configured:
+        candidates: list[dict] = []
+        seen: set[str] = set()
+        for item in configured.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            root = Path(item).expanduser()
+            if not root.is_dir():
+                continue
+            key = os.path.normcase(str(root))
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append({
+                "raw": root / "cli" / "db" / "db.sqlite",
+                "label": "ZCODE_HOME",
+            })
+        return candidates
+
     candidates = [
         {"raw": home / ".zcode" / "cli" / "db" / "db.sqlite", "label": "Mac/Linux home"},
     ]

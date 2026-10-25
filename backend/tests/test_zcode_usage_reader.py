@@ -401,6 +401,47 @@ class TestFetchZcodeRecords:
         assert len(result["errors"][0]["details"]["candidates_checked"]) >= 3
 
 
+class TestZcodeHomeEnv:
+    """ZCODE_HOME 环境变量（对齐 ccusage rust/adapters/zcode）"""
+
+    def test_zcode_home_points_to_custom_root(self, tmp_path, monkeypatch):
+        """ZCODE_HOME 指定的根目录优先于默认 ~/.zcode"""
+        from app.utils import zcode_usage_reader
+
+        root = tmp_path / "custom_zcode"
+        db_file = root / "cli" / "db" / "db.sqlite"
+        db_file.parent.mkdir(parents=True)
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[(ms, "m1", "completed", 100, 50, 0, 0, 150)])
+
+        monkeypatch.setenv("ZCODE_HOME", str(root))
+        monkeypatch.setattr(zcode_usage_reader, "_get_real_home", lambda: tmp_path / "none")
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert len(result["records"]) == 1
+        assert result["records"][0]["model"] == "m1"
+
+    def test_invalid_zcode_home_does_not_fall_back_to_default(self, tmp_path, monkeypatch):
+        """ZCODE_HOME 无效时不回退到 ~/.zcode（避免读到另一个位置的数据库）"""
+        from app.utils import zcode_usage_reader
+
+        # 默认位置放一份有效数据库，但 ZCODE_HOME 指向不存在的目录
+        default_db = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(default_db, rows=[(ms, "m1", "completed", 100, 50, 0, 0, 150)])
+        monkeypatch.setattr(zcode_usage_reader, "_get_real_home", lambda: tmp_path)
+        monkeypatch.setenv("ZCODE_HOME", str(tmp_path / "does-not-exist"))
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        assert result["records"] == []
+        assert len(result["errors"]) == 1
+        assert result["errors"][0]["error_code"] == "DB_NOT_FOUND"
+
+
 # ========== 集成测试：sync_token_usage zcode 分支 ==========
 
 class TestSyncTokenUsageZcode:
