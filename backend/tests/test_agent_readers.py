@@ -352,7 +352,8 @@ class TestMinimaxReader:
         assert record["cache_creation_tokens"] == 5
         assert record["total_tokens"] == 300 + 32 + 5 + 700
 
-    def test_missing_db_reports_error_not_exception(self, tmp_path, monkeypatch):
+    def test_missing_db_is_skipped_silently(self, tmp_path, monkeypatch):
+        """未安装 MiniMax Code 不是异常：静默跳过，不产生同步告警"""
         from app.utils.agent_readers.minimax_reader import read_minimax_records
 
         monkeypatch.setattr(
@@ -361,8 +362,7 @@ class TestMinimaxReader:
         )
         result = read_minimax_records(date(2026, 1, 1), date(2026, 1, 31))
         assert result.records == []
-        assert len(result.errors) == 1
-        assert result.errors[0]["error_code"] == "DB_NOT_FOUND"
+        assert result.errors == []
 
     def test_missing_table_reports_error(self, tmp_path, monkeypatch):
         from app.utils.agent_readers.minimax_reader import read_minimax_records

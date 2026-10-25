@@ -87,12 +87,11 @@ def read_minimax_records(since_date: date, until_date: date) -> AgentReadResult:
             break
 
     if db_path is None:
-        result.add_error(
-            source=SOURCE,
-            error=f"未找到 MiniMax Code 数据库（{_DB_RELATIVE.as_posix()}）",
-            error_code="DB_NOT_FOUND",
-            remediation="请确认 MiniMax Code 已安装并使用过",
-            details={"candidates_checked": [str(p) for p in _db_candidates()]},
+        # 未安装 MiniMax Code 不是异常：与 claude / codex / kimi 读取器一致，
+        # 数据目录缺失时静默跳过，不计入同步告警
+        logger.info(
+            "[minimax] 未找到 MiniMax Code 数据库，跳过（候选: %s）",
+            ", ".join(str(p) for p in _db_candidates()),
         )
         return result
 
