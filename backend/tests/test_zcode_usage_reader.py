@@ -275,6 +275,14 @@ class TestFetchZcodeRecords:
         assert result["errors"] == []
 
     def test_total_tokens_zero_falls_back_to_sum(self, tmp_path, monkeypatch):
+        """computed_total_tokens=0 时，total 回退为各分桶之和
+
+        口径说明（对齐 ccusage rust/adapters/zcode）：
+        ZCode 的 input_tokens 是**含 cache 的总 prompt token**，必须先扣减
+        cache_read / cache_creation 得到净输入，再参与求和。
+        本例 raw input=100、cache_read=30、cache_creation=20，
+        拆分后净 input=50，total = 50 + 50 + 20 + 30 = 150。
+        """
         db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
         ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
         _create_zcode_db(db_file, rows=[
@@ -285,7 +293,37 @@ class TestFetchZcodeRecords:
         from app.utils.zcode_usage_reader import fetch_zcode_records
         result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
 
-        assert result["records"][0]["total_tokens"] == 100 + 50 + 20 + 30
+        record = result["records"][0]
+        assert record["input_tokens"] == 50
+        assert record["output_tokens"] == 50
+        assert record["cache_creation_tokens"] == 20
+        assert record["cache_read_tokens"] == 30
+        assert record["total_tokens"] == 50 + 50 + 20 + 30
+
+    def test_cache_tokens_are_not_double_counted(self, tmp_path, monkeypatch):
+        """input_tokens 含 cache 时，cache 不得在 input 与 cache 桶中重复统计
+
+        回归用例：历史实现直接 SUM(input_tokens)，把含 cache 的总量当作净输入，
+        再叠加 cache 桶，导致总量翻倍。
+        """
+        db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"
+        ms = int(datetime(2026, 9, 11, 10, 0).timestamp() * 1000)
+        _create_zcode_db(db_file, rows=[
+            # raw input=1000（含 cache_read=800），output=100
+            # 正确拆分：净 input=200，cache_read=800，total=200+100+800=1100
+            (ms, "m1", "completed", 1000, 100, 0, 800, 1100),
+        ])
+        _patch_home_to(monkeypatch, tmp_path)
+
+        from app.utils.zcode_usage_reader import fetch_zcode_records
+        result = fetch_zcode_records(date(2026, 9, 1), date(2026, 9, 30))
+
+        record = result["records"][0]
+        assert record["input_tokens"] == 200
+        assert record["cache_read_tokens"] == 800
+        assert record["total_tokens"] == 1100
+        # 净输入 + cache 不得超过来源自报的原始 input
+        assert record["input_tokens"] + record["cache_read_tokens"] == 1000
 
     def test_table_missing_returns_table_missing_error(self, tmp_path, monkeypatch):
         db_file = tmp_path / ".zcode" / "cli" / "db" / "db.sqlite"

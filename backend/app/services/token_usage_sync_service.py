@@ -121,7 +121,15 @@ SOURCE_TOOL_MAPPING: dict[str, dict] = {
     "kimi": {"tool_id": "kimi", "tool_name": "Kimi"},
     "qwen": {"tool_id": "qwen", "tool_name": "Qwen"},
     "zcode": {"tool_id": "zcode", "tool_name": "ZCode"},
+    "minimax": {"tool_id": "minimax", "tool_name": "MiniMax Code"},
 }
+
+# 已迁移到原生读取器的 source（与 ccusage 的 agent id 完全一致，
+# 因此切换期间写入同一唯一键，不会产生重复统计）
+NATIVE_READER_SOURCES: tuple[str, ...] = ("claude", "codex", "kimi", "zcode")
+
+# 无 ccusage 对应实现、始终由原生读取器提供的 source
+NATIVE_ONLY_SOURCES: tuple[str, ...] = ("minimax",)
 
 
 def _map_source_to_tool(source: str) -> dict:
@@ -262,6 +270,112 @@ def _parse_opencode_entries(entries: list[dict]) -> list[dict]:
     return results
 
 
+def _native_readers_mode() -> str:
+    """读取原生读取器模式配置。
+
+    Returns:
+        ``off`` / ``shadow`` / ``on``；配置非法时回退为 ``off``（最保守）。
+    """
+    from app.config.config import settings
+
+    mode = str(getattr(settings, "TOKEN_USAGE_NATIVE_READERS_MODE", "off") or "off").lower().strip()
+    if mode not in ("off", "shadow", "on"):
+        logger.warning(
+            "[native-readers] 未知的 TOKEN_USAGE_NATIVE_READERS_MODE=%r，回退为 off",
+            mode,
+        )
+        return "off"
+    return mode
+
+
+def _fetch_native_records(since_date, until_date, only=None) -> dict:
+    """抓取原生读取器数据。
+
+    Args:
+        since_date: 起始日期（含）。
+        until_date: 结束日期（含）。
+        only: 仅抓取这些 source；为空表示全部已登记读取器。
+
+    Returns:
+        ``{"records": [...], "errors": [...], "sources": [...]}``
+    """
+    from app.utils.agent_readers import read_all_agents
+
+    return read_all_agents(since_date, until_date, only=only)
+
+
+def _write_native_records(
+    db,
+    user_id: str,
+    device_id: str,
+    device_name: str,
+    records: list[dict],
+) -> int:
+    """写入原生读取器记录，按 source 分组 upsert。
+
+    source id 与 ccusage 完全一致，因此与 ccusage 写入的是同一唯一键，
+    切换期间不会出现重复行（只会互相覆盖）。
+    """
+    from itertools import groupby
+
+    if not records:
+        return 0
+
+    db.flush()
+
+    records_sorted = sorted(records, key=lambda r: r["source"])
+    total_count = 0
+    for source, group in groupby(records_sorted, key=lambda r: r["source"]):
+        source_records = list(group)
+        count = _upsert_records(
+            db, user_id, device_id, source, source_records, device_name
+        )
+        total_count += count
+        logger.info(f"[native-readers] {source}: 同步 {count} 条")
+
+    logger.info(f"[native-readers] 总计同步 {total_count} 条")
+    return total_count
+
+
+def _compare_native_with_ccusage(
+    native_records: list[dict],
+    ccusage_records: list[dict],
+) -> list[dict]:
+    """对比原生读取器与 ccusage 的 (日期, 模型) token 明细，返回差异列表。
+
+    仅用于 shadow 模式的对账观测，不影响写库。
+    """
+    def _index(rows: list[dict]) -> dict:
+        result: dict[tuple[str, str], list[int]] = {}
+        for row in rows:
+            key = (str(row["record_date"]), row["model"])
+            bucket = result.setdefault(key, [0, 0, 0, 0, 0])
+            bucket[0] += row.get("input_tokens", 0)
+            bucket[1] += row.get("output_tokens", 0)
+            bucket[2] += row.get("cache_creation_tokens", 0)
+            bucket[3] += row.get("cache_read_tokens", 0)
+            bucket[4] += row.get("total_tokens", 0)
+        return result
+
+    native_index = _index(native_records)
+    ccusage_index = _index(ccusage_records)
+
+    differences: list[dict] = []
+    for key in sorted(set(native_index) | set(ccusage_index)):
+        left = native_index.get(key)
+        right = ccusage_index.get(key)
+        if left != right:
+            differences.append(
+                {
+                    "record_date": key[0],
+                    "model": key[1],
+                    "native": left,
+                    "ccusage": right,
+                }
+            )
+    return differences
+
+
 def sync_token_usage(
     user_id: str,
     days: int = 90,
@@ -387,6 +501,37 @@ def sync_token_usage(
         })
 
     # ===== 阶段二：写入数据库（快操作，仅短暂持有连接池连接）=====
+
+    # 原生读取器抓取（替代 / 对账 ccusage）
+    native_mode = _native_readers_mode()
+    native_records: list[dict] = []
+    if native_mode != "off":
+        native_targets = None
+    else:
+        # off 模式只抓取"无 ccusage 对应实现"的来源（当前为 MiniMax Code），
+        # 其余 Agent 仍由 ccusage 负责，行为与改造前保持一致
+        native_targets = list(NATIVE_ONLY_SOURCES)
+
+    try:
+        native_result = _fetch_native_records(since_date, until_date, only=native_targets)
+        native_records = native_result["records"]
+        result["errors"].extend(native_result["errors"])
+        logger.info(
+            "[native-readers] 模式=%s，读取 %s 条记录，来源: %s",
+            native_mode,
+            len(native_records),
+            ", ".join(native_result["sources"]) or "无",
+        )
+    except Exception as e:
+        logger.error(f"[native-readers] 抓取失败: {e}", exc_info=True)
+        result["errors"].append({
+            "source": "native-readers",
+            "error": f"native-readers: {str(e)}",
+            "error_code": "NATIVE_FETCH_ERROR",
+            "remediation": "请检查本地 Agent 数据目录权限",
+            "details": {"exception": str(e)},
+        })
+
     db = SessionLocal()
 
     def _safe_rollback(reason: str) -> None:
@@ -463,7 +608,7 @@ def sync_token_usage(
                 _log_sync(db, user_id, device_id, "claude", "failed", 0, str(claude_fetch_error))
             except Exception:
                 pass
-        elif claude_parsed:
+        elif claude_parsed and native_mode != "on":
             try:
                 count = _upsert_records(
                     db,
@@ -493,9 +638,17 @@ def sync_token_usage(
                     pass
 
         # 写入 ccusage v2 记录（数据已在阶段一抓取完成）
+        # 模式为 on 时，已迁移到原生读取器的 source 不再由 ccusage 写入，
+        # 避免同一 (source, date, model) 被写两遍
+        ccusage_excluded = set(NATIVE_READER_SOURCES) if native_mode == "on" else set()
         try:
             v2_count = _write_ccusage_v2_records(
-                db, user_id, device_id, device_name, ccusage_records
+                db,
+                user_id,
+                device_id,
+                device_name,
+                ccusage_records,
+                exclude_sources=ccusage_excluded,
             )
             if v2_count > 0:
                 result["ccusage_records"] = v2_count
@@ -511,8 +664,64 @@ def sync_token_usage(
             })
             _safe_rollback("ccusage-v2 写入失败")
 
+        # 写入原生读取器记录
+        # - on    ：写入已迁移的 source（claude/codex/kimi/zcode）+ 独占 source（minimax）
+        # - off/shadow：仅写入独占 source（minimax），迁移过的 source 仍由 ccusage 负责
+        if native_records:
+            if native_mode == "on":
+                native_to_write = native_records
+            else:
+                native_to_write = [
+                    r for r in native_records if r.get("source") in NATIVE_ONLY_SOURCES
+                ]
+            if native_to_write:
+                try:
+                    native_count = _write_native_records(
+                        db, user_id, device_id, device_name, native_to_write
+                    )
+                    if native_count > 0:
+                        result["native_records"] = native_count
+                        result["total_records"] += native_count
+                        for source in sorted({r["source"] for r in native_to_write}):
+                            if source not in result["sources_synced"]:
+                                result["sources_synced"].append(source)
+                            _log_sync(
+                                db, user_id, device_id, source, "success", native_count
+                            )
+                except Exception as e:
+                    logger.error(f"[native-readers] 写入失败: {e}", exc_info=True)
+                    result["errors"].append({
+                        "source": "native-readers",
+                        "error": f"native-readers: {str(e)}",
+                        "error_code": "DB_WRITE_ERROR",
+                        "remediation": "请检查数据库连接",
+                        "details": {"exception": str(e)},
+                    })
+                    _safe_rollback("native-readers 写入失败")
+
+        # shadow 模式：对比原生读取器与 ccusage 的差异（仅观测，不影响写库）
+        if native_mode == "shadow" and native_records:
+            try:
+                migrated = set(NATIVE_READER_SOURCES)
+                differences = _compare_native_with_ccusage(
+                    [r for r in native_records if r.get("source") in migrated],
+                    [r for r in ccusage_records if r.get("source") in migrated],
+                )
+                if differences:
+                    logger.warning(
+                        "[native-readers] 与 ccusage 存在 %s 处差异（前 5 条）: %s",
+                        len(differences),
+                        differences[:5],
+                    )
+                    result["native_vs_ccusage_differences"] = len(differences)
+                else:
+                    logger.info("[native-readers] 与 ccusage 逐日对账：零差异")
+            except Exception as e:
+                logger.error(f"[native-readers] 对账失败: {e}", exc_info=True)
+
         # 写入 zcode 记录（从本地 SQLite 读取，数据已在阶段一抓取完成）
-        if zcode_records:
+        # 模式为 on 时 zcode 由原生读取器写入，此处跳过，避免重复写入
+        if zcode_records and native_mode != "on":
             try:
                 zcode_count = _upsert_records(
                     db, user_id, device_id, "zcode", zcode_records, device_name
@@ -856,8 +1065,16 @@ def _write_ccusage_v2_records(
     device_id: str,
     device_name: str,
     records: list[dict],
+    exclude_sources: Optional[set[str]] = None,
 ) -> int:
-    """v2: 将已抓取解析的记录写入数据库（快操作）。"""
+    """v2: 将已抓取解析的记录写入数据库（快操作）。
+
+    Args:
+        exclude_sources: 需要跳过的 source 集合（已由原生读取器接管的来源），
+            避免同一次同步里同一个 (source, date, model) 被写两遍。
+    """
+    if exclude_sources:
+        records = [r for r in records if r.get("source") not in exclude_sources]
     if not records:
         return 0
 

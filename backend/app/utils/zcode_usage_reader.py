@@ -219,45 +219,73 @@ def fetch_zcode_records(
         has_status = "status" in columns
 
         # 按 (日期, 模型) 聚合 model_usage 中已完成状态的记录
-        # COALESCE 兜底：NULL model_id 归入 'unknown'；缺失 status 列也视作 completed
-        # started_at IS NOT NULL 过滤掉没有时间戳的脏数据
-        if has_status:
-            cur.execute("""
+        #
+        # 重要口径修正（对齐 ccusage rust/adapters/zcode）：
+        # ZCode 的 input_tokens 是**含 cache 的总 prompt token**，不能直接当作
+        # 净输入累加，否则 cache_read / cache_creation 会被重复统计
+        # （历史实现直接 SUM(input_tokens)，导致总量虚高约 2 倍）。
+        # 正确拆分顺序（逐行）：
+        #   cache_read      = min(cache_read, input)
+        #   cache_creation  = min(cache_creation, input - cache_read)
+        #   净 input        = input - cache_read - cache_creation
+        # 另外：
+        # - COALESCE 兜底：NULL / 空 model_id 归入 'unknown'
+        # - status 列存在时按 ccusage 语义只取 'completed'；列缺失时全部视作完成
+        # - started_at IS NOT NULL 过滤掉没有时间戳的脏数据
+        status_filter = "AND status = 'completed'" if has_status else ""
+        cur.execute(f"""
+            WITH base AS (
                 SELECT
-                    DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
-                    COALESCE(model_id, 'unknown') AS model_id,
-                    SUM(input_tokens) AS input_tokens,
-                    SUM(output_tokens) AS output_tokens,
-                    SUM(cache_creation_input_tokens) AS cache_creation_tokens,
-                    SUM(cache_read_input_tokens) AS cache_read_tokens,
-                    SUM(computed_total_tokens) AS total_tokens,
-                    COUNT(*) AS request_count
-                FROM model_usage
-                WHERE COALESCE(status, 'completed') = 'completed'
-                  AND started_at IS NOT NULL
-                  AND started_at >= ?
-                  AND started_at <= ?
-                GROUP BY record_date, model_id
-                ORDER BY record_date DESC, total_tokens DESC
-            """, (since_ms, until_ms))
-        else:
-            cur.execute("""
-                SELECT
-                    DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
-                    COALESCE(model_id, 'unknown') AS model_id,
-                    SUM(input_tokens) AS input_tokens,
-                    SUM(output_tokens) AS output_tokens,
-                    SUM(cache_creation_input_tokens) AS cache_creation_tokens,
-                    SUM(cache_read_input_tokens) AS cache_read_tokens,
-                    SUM(computed_total_tokens) AS total_tokens,
-                    COUNT(*) AS request_count
+                    started_at,
+                    COALESCE(NULLIF(TRIM(model_id), ''), 'unknown') AS model_id,
+                    MAX(COALESCE(input_tokens, 0), 0) AS ci,
+                    MAX(COALESCE(output_tokens, 0), 0) AS co,
+                    MAX(COALESCE(cache_creation_input_tokens, 0), 0) AS ccr,
+                    MAX(COALESCE(cache_read_input_tokens, 0), 0) AS crd,
+                    MAX(COALESCE(computed_total_tokens, 0), 0) AS ct
                 FROM model_usage
                 WHERE started_at IS NOT NULL
                   AND started_at >= ?
                   AND started_at <= ?
-                GROUP BY record_date, model_id
-                ORDER BY record_date DESC, total_tokens DESC
-            """, (since_ms, until_ms))
+                  {status_filter}
+            ),
+            clamped AS (
+                SELECT
+                    started_at,
+                    model_id,
+                    ci,
+                    co,
+                    ct,
+                    MIN(crd, ci) AS cr_b,
+                    MIN(ccr, ci - MIN(crd, ci)) AS cc_b
+                FROM base
+            ),
+            split AS (
+                SELECT
+                    DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
+                    model_id,
+                    ci - cr_b - cc_b AS in_b,
+                    co,
+                    cc_b,
+                    cr_b,
+                    MAX(ct - (ci - cr_b - cc_b) - co - cc_b - cr_b, 0) AS missing
+                FROM clamped
+            )
+            SELECT
+                record_date,
+                model_id,
+                SUM(in_b) AS input_tokens,
+                SUM(CASE WHEN missing > 0 AND co = 0 THEN missing ELSE co END) AS output_tokens,
+                SUM(cc_b) AS cache_creation_tokens,
+                SUM(cr_b) AS cache_read_tokens,
+                SUM(in_b + (CASE WHEN missing > 0 AND co = 0 THEN missing ELSE co END)
+                    + cc_b + cr_b + (CASE WHEN missing > 0 AND co > 0 THEN missing ELSE 0 END)
+                ) AS total_tokens,
+                COUNT(*) AS request_count
+            FROM split
+            GROUP BY record_date, model_id
+            ORDER BY record_date DESC, total_tokens DESC
+        """, (since_ms, until_ms))
 
         for row in cur.fetchall():
             record_date_str = row["record_date"]
@@ -273,10 +301,11 @@ def fetch_zcode_records(
             output_tokens = int(row["output_tokens"] or 0)
             cache_creation = int(row["cache_creation_tokens"] or 0)
             cache_read = int(row["cache_read_tokens"] or 0)
-            # total 统一口径：四项分量之和。ZCode SQLite 的 computed_total_tokens
-            # 只含 input+output（不含 cache_read），直接采信会导致设备/工具环形图
-            # 与顶栏（四项求和）口径不一致，因此不使用源库的 total 字段
-            total_tokens = input_tokens + output_tokens + cache_creation + cache_read
+            # total 由 SQL 按 ccusage 口径计算：四项分量之和，外加来源自报总量
+            # 超出四项之和的部分（extra 桶）。ZCode 的 computed_total_tokens
+            # 口径为「含 cache 的 input + output」，不能直接采信，否则会与拆分后
+            # 的净 input / cache 分量重复统计。
+            total_tokens = int(row["total_tokens"] or 0)
 
             records.append({
                 "record_date": record_date,

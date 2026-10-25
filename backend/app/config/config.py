@@ -116,6 +116,14 @@ class Settings(BaseSettings):
     TOKEN_USAGE_BACKGROUND_SYNC_INITIAL_DELAY_SECONDS: int = 60
     TOKEN_USAGE_BACKGROUND_SYNC_MAX_USERS_PER_RUN: int = 3
 
+    # Token Usage 原生读取器模式（替代 ccusage CLI）
+    #   off    = 完全沿用 ccusage 采集（默认，行为与改造前一致）
+    #   shadow = ccusage 采集并写库；原生读取器同时计算，仅做逐日对账并记录差异
+    #   on     = 已完成对账的 Agent 改用原生读取器写库；未迁移的 Agent 仍走 ccusage
+    # 说明：原生读取器与 ccusage 使用相同的 source id，写入同一唯一键，
+    # 因此切换期间不会出现重复统计，只可能互相覆盖。
+    TOKEN_USAGE_NATIVE_READERS_MODE: str = "off"
+
     # K8s 控制台
     K8S_UPLOAD_MAX_SIZE: int = 1_048_576  # 1MB kubeconfig 上传限制
     K8S_WS_IDLE_TIMEOUT: int = 1800       # 30 分钟 WebSocket 空闲超时（秒）

@@ -245,15 +245,27 @@ def find_ccusage() -> Optional[str]:
     return None
 
 
-def build_cmd(args: list[str]) -> list[str]:
+def build_cmd(args: list[str], ccusage_path: Optional[str] = None) -> list[str]:
     """根据当前平台构造 ccusage 执行命令。
 
     Windows 下 .cmd / .ps1 文件需要通过 node 直接调用 JS 入口，绕开 .cmd 内部
     的 node 解析（service 进程 PATH 经常不含 Node.js）。
+
+    Args:
+        args: 传给 ccusage 的参数。
+        ccusage_path: 显式指定 ccusage 可执行文件路径；为空时自动探测。
     """
-    ccusage_path = find_ccusage()
+    if ccusage_path is None:
+        ccusage_path = find_ccusage()
     if ccusage_path is None:
         return []
+
+    # 直接指向 JS 入口时，需要用 node 显式执行
+    if ccusage_path.lower().endswith(".js"):
+        node_path = find_node()
+        if node_path is None:
+            return []
+        return [node_path, ccusage_path] + list(args)
 
     # Windows 下 .cmd / .ps1 改用 node 直接调用
     if os.name == "nt" and ccusage_path.lower().endswith((".cmd", ".ps1")):
@@ -261,13 +273,23 @@ def build_cmd(args: list[str]) -> list[str]:
         if not node_path:
             return []
         npm_dir = os.path.dirname(ccusage_path)
-        # 同时支持老版 (dist/cli.js) 与新版 (src/cli.js) 布局
-        js_candidates = [
-            os.path.join(npm_dir, "node_modules", "ccusage", "dist", "cli.js"),
-            os.path.join(npm_dir, "node_modules", "ccusage", "dist", "index.js"),
-            os.path.join(npm_dir, "node_modules", "ccusage", "src", "cli.js"),
-            os.path.join(npm_dir, "node_modules", "ccusage", "src", "index.js"),
-        ]
+        # ccusage 的 JS 入口可能位于多种布局下（按优先级）：
+        # 1. <npm_bin>/node_modules/ccusage/{dist,src}/cli.js   —— 全局安装
+        # 2. <npm_dir>/ccusage/{dist,src}/cli.js               —— npm_dir 本身是 node_modules
+        # 3. <parent>/node_modules/ccusage/{dist,src}/cli.js    —— npm_dir 是 node_modules/.bin
+        npm_roots = [os.path.join(npm_dir, "node_modules"), npm_dir]
+        if os.path.basename(npm_dir).lower() == ".bin":
+            npm_roots.append(os.path.join(os.path.dirname(npm_dir), "node_modules"))
+        js_candidates = []
+        for root in npm_roots:
+            js_candidates.extend(
+                [
+                    os.path.join(root, "ccusage", "dist", "cli.js"),
+                    os.path.join(root, "ccusage", "dist", "index.js"),
+                    os.path.join(root, "ccusage", "src", "cli.js"),
+                    os.path.join(root, "ccusage", "src", "index.js"),
+                ]
+            )
         js_path = next((p for p in js_candidates if os.path.exists(p)), None)
         if js_path is None:
             return []
@@ -517,18 +539,27 @@ def _build_cli_cmd(cli_path: str, args: list[str]) -> list[str]:
     return [cli_path] + list(args)
 
 
-def run_ccusage(args: list[str], timeout: int = 180) -> dict:
+def run_ccusage(
+    args: list[str],
+    timeout: int = 180,
+    ccusage_path: Optional[str] = None,
+) -> dict:
     """统一执行 ccusage CLI 并返回结构化结果。
+
+    Args:
+        args: 传给 ccusage 的参数。
+        timeout: 子进程超时秒数。
+        ccusage_path: 显式指定 ccusage 可执行文件路径；为空时自动探测。
 
     Returns:
         {"ok": True, "data": <parsed json>}  成功
         {"ok": False, "error": CcusageError}  失败
     """
-    ccusage_path = find_ccusage()
+    ccusage_path = find_ccusage() if ccusage_path is None else ccusage_path
     if ccusage_path is None:
         return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
 
-    cmd = build_cmd(args)
+    cmd = build_cmd(args, ccusage_path=ccusage_path)
     if not cmd:
         return {"ok": False, "error": _make_cli_not_found_error(_ccusage_search_paths())}
 
