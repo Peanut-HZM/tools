@@ -31,6 +31,7 @@ MiniMax Code（MCode 桌面端）的运行时把每一次模型调用的用量�
 from __future__ import annotations
 
 import logging
+import os
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
@@ -63,8 +64,27 @@ _REQUIRED_COLUMNS = {
 
 
 def _db_candidates() -> list[Path]:
-    """返回 MiniMax Code 数据库候选路径（按优先级）。"""
+    """返回 MiniMax Code 数据库候选路径（按优先级）。
+
+    ``MINIMAX_HOME`` 环境变量可指定根目录（与 ``ZCODE_HOME`` 语义一致）：
+    取 ``<root>/v2/sqlite/runtime-state.sqlite``；便于用冻结快照做确定性对账。
+    """
     home = real_home()
+
+    configured = os.environ.get("MINIMAX_HOME", "").strip()
+    if configured:
+        candidates: list[Path] = []
+        for item in configured.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            root = Path(item).expanduser()
+            if not root.is_dir():
+                continue
+            candidates.append(root / "v2" / "sqlite" / "runtime-state.sqlite")
+        if candidates:
+            return candidates
+
     return [home / _DB_RELATIVE]
 
 

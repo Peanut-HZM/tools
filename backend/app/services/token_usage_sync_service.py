@@ -667,6 +667,7 @@ def sync_token_usage(
         # 写入原生读取器记录
         # - on    ：写入已迁移的 source（claude/codex/kimi/zcode）+ 独占 source（minimax）
         # - off/shadow：仅写入独占 source（minimax），迁移过的 source 仍由 ccusage 负责
+        native_to_write: list[dict] = []
         if native_records:
             if native_mode == "on":
                 native_to_write = native_records
@@ -674,30 +675,60 @@ def sync_token_usage(
                 native_to_write = [
                     r for r in native_records if r.get("source") in NATIVE_ONLY_SOURCES
                 ]
-            if native_to_write:
-                try:
-                    native_count = _write_native_records(
-                        db, user_id, device_id, device_name, native_to_write
-                    )
-                    if native_count > 0:
-                        result["native_records"] = native_count
-                        result["total_records"] += native_count
-                        for source in sorted({r["source"] for r in native_to_write}):
-                            if source not in result["sources_synced"]:
-                                result["sources_synced"].append(source)
-                            _log_sync(
-                                db, user_id, device_id, source, "success", native_count
-                            )
-                except Exception as e:
-                    logger.error(f"[native-readers] 写入失败: {e}", exc_info=True)
-                    result["errors"].append({
-                        "source": "native-readers",
-                        "error": f"native-readers: {str(e)}",
-                        "error_code": "DB_WRITE_ERROR",
-                        "remediation": "请检查数据库连接",
-                        "details": {"exception": str(e)},
-                    })
-                    _safe_rollback("native-readers 写入失败")
+        if native_to_write:
+            try:
+                native_count = _write_native_records(
+                    db, user_id, device_id, device_name, native_to_write
+                )
+                if native_count > 0:
+                    result["native_records"] = native_count
+                    result["total_records"] += native_count
+                    for source in sorted({r["source"] for r in native_to_write}):
+                        if source not in result["sources_synced"]:
+                            result["sources_synced"].append(source)
+                        _log_sync(
+                            db, user_id, device_id, source, "success", native_count
+                        )
+            except Exception as e:
+                logger.error(f"[native-readers] 写入失败: {e}", exc_info=True)
+                result["errors"].append({
+                    "source": "native-readers",
+                    "error": f"native-readers: {str(e)}",
+                    "error_code": "DB_WRITE_ERROR",
+                    "remediation": "请检查数据库连接",
+                    "details": {"exception": str(e)},
+                })
+                _safe_rollback("native-readers 写入失败")
+
+        # 安全兜底：某个已迁移的 source 若原生读取器完全没有产出数据
+        # （例如本地数据目录被清理、读取器异常），退回 ccusage / 既有实现，
+        # 避免该 source 在本次同步后"消失"。原生数据已存在时不写入，
+        # 以保证原生口径（与 ccusage 20.0.44 对账零差异）不被覆盖。
+        if native_mode == "on":
+            native_sources = {r["source"] for r in native_to_write}
+            missing_native = [s for s in NATIVE_READER_SOURCES if s not in native_sources]
+            if missing_native:
+                fallback_rows = [
+                    r for r in ccusage_records if r.get("source") in missing_native
+                ]
+                if not fallback_rows and "zcode" in missing_native:
+                    fallback_rows = list(zcode_records)
+                if not fallback_rows and "claude" in missing_native:
+                    fallback_rows = list(claude_parsed)
+                if fallback_rows:
+                    try:
+                        fb_count = _write_native_records(
+                            db, user_id, device_id, device_name, fallback_rows
+                        )
+                        logger.warning(
+                            "[native-readers] 以下 source 原生读取无数据，已回退 ccusage/既有实现: %s（写入 %s 条）",
+                            missing_native,
+                            fb_count,
+                        )
+                        result["total_records"] += fb_count
+                    except Exception as e:
+                        logger.error(f"[native-readers] 回退写入失败: {e}", exc_info=True)
+                        _safe_rollback("native-readers 回退写入失败")
 
         # shadow 模式：对比原生读取器与 ccusage 的差异（仅观测，不影响写库）
         if native_mode == "shadow" and native_records:
