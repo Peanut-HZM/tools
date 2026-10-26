@@ -4,7 +4,8 @@
 
 本文件是 CLAUDE.md 的引用入口，供不同 agent 加载。所有规则（Git 工作流、问题排查、部署流程、前后端规范等）均在 CLAUDE.md 中维护。
 
-**最后同步：2026-09-19**
+**最后同步：2026-10-26**
+- 2026-10-26：按 Token 统计全原生化改造沉淀，CLAUDE.md 新增：用户目录访问必须使用真实家目录、Token 用量对账口径规范、新增 Agent 数据源接入门槛
 - 2026-09-19：按全局通用规则对齐，CLAUDE.md 新增：数据库变更规范、验收测试数据规则（ZZTEST_）、语言规范、内部 ID 不展示在前端
 - 初始版本：从 logistics-finance 项目规则适配而来
 - 适配内容：
@@ -99,6 +100,45 @@ npm run test
 
 ---
 
+## 用户目录访问必须使用真实家目录（速查 — 必须遵守）
+
+- ✅ `config.py` 在非桌面模式下把 `HOME` 覆盖为 `backend/data/cache`，此后进程内的 `HOME` 是**假家目录**
+- ✅ 读用户真实家目录（`~/.claude` / `~/.codex` / `~/.kimi` / `~/.zcode` / `~/.minimax` / `~/.local/share/opencode` / `~/.openclaw` / `~/.copilot`）或反推用户级工具位置（nvm / npm-global / pnpm）时，必须用 `REAL_HOME` 或 `real_home()`
+- ✅ 解析环境变量路径里的 `~` 必须基于真实家目录展开（走 `path_utils.expand_user_path` / `agent_readers.base.expand_user_path`）
+- ❌ 禁止在这些场景使用 `Path.home()` / `os.path.expanduser("~")` / `os.environ["HOME"]`
+- ❌ 禁止假设 `HOME` 等于用户家目录
+
+详细规则见 [CLAUDE.md](./CLAUDE.md) 的「用户目录访问必须使用真实家目录」章节。
+
+---
+
+## Token 用量对账口径规范（速查 — 必须遵守）
+
+- ✅ 逐模型比对用**可见四桶**（input / output / cache_creation / cache_read）like-for-like：ccusage 的 per-model 明细不含 extra 桶，原生 `total_tokens` 含
+- ✅ extra 桶用**按日总额**校验（ccusage 的 `daily[].totalTokens` 含 extra）
+- ✅ 活跃写入的数据源用**二次采样夹逼**区分漂移与真实偏差：`原生第一次 ≤ ccusage ≤ 原生第二次` 判为漂移，不算口径不一致
+- ❌ 禁止把原生 `total_tokens` 直接与 ccusage per-model 四桶和比对
+- ❌ 禁止把"数据源活跃写入导致的当天漂移"当成口径错误去改读取器
+- ❌ 禁止 ccusage 不可用时做 shadow 对账（结果全是假阳性）
+- ❌ 禁止拿 ccusage 合并日报（`agent=all`）当 per-agent 基准
+
+详细规则见 [CLAUDE.md](./CLAUDE.md) 的「Token 用量对账口径规范」章节。
+
+---
+
+## 新增 Agent 数据源接入门槛（速查 — 必须遵守）
+
+- ✅ source id 必须与 ccusage 的 agent id 完全一致（唯一键含 source，id 不一致会产生重复行、汇总翻倍）
+- ✅ 必须跑 `python -m scripts.verify_native_readers` 达到**零差异且退出码 0**，并补对应单测，才算通过
+- ✅ 通过后才能登记 `VERIFIED_AGENTS` 与 `NATIVE_READER_SOURCES`，两者必须同步
+- ✅ `native` 模式下无原生读取器的 source 必须列为结构化错误（`SOURCE_NOT_COVERED`），禁止静默丢数据
+- ✅ "已验证"指的是**在当前机器上实测通过**（文件格式、压缩、路径布局差异会直接推翻结论）
+- ❌ 禁止未对账就登记为"已验证"（codex 曾因此在本机读到 0 条、采集停摆）
+
+详细规则见 [CLAUDE.md](./CLAUDE.md) 的「新增 Agent 数据源接入门槛」章节。
+
+---
+
 ## 与 logistics-finance 项目的差异
 
 本项目的规则是从 logistics-finance 项目适配而来，主要差异：
@@ -158,6 +198,13 @@ npm run test
 ---
 
 ## 规则演进记录
+
+### 2026-10-26 - Token 统计全原生化改造沉淀
+
+- 新增「用户目录访问必须使用真实家目录」—— HOME 被 config.py 覆盖后必须用 REAL_HOME / real_home()
+- 新增「Token 用量对账口径规范」—— 可见四桶 / extra 桶 / 活跃写入采样漂移 三层口径分离
+- 新增「新增 Agent 数据源接入门槛」—— source id 对齐 + 零差异对账 + 双处登记 + 未覆盖来源显式暴露
+- 事故来源：ccusage 发现失败导致四个来源停采一天、codex 因 `.jsonl.zst` 读到 0 条、对账脚本 extra 桶与漂移误报
 
 ### 2026-09-13 - 初始版本
 

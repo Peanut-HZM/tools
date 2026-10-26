@@ -542,6 +542,88 @@ JavaScript 的 `Number` 类型最大安全整数是 `2^53 - 1`（约 9 × 10^15�
 
 ---
 
+## 用户目录访问必须使用真实家目录（强制）
+
+**背景**：`backend/app/config/config.py` 在**非桌面模式**下会把 `HOME` 改写为 `backend/data/cache`（隔离 paddleocr / huggingface 等库的缓存目录）。此后进程内任何基于 `HOME` 的家目录推导都是**假家目录**。
+
+### 核心原则
+
+- ✅ 任何需要访问**用户真实家目录**的代码，必须使用 `app.config.config.REAL_HOME` 或 `app.utils.agent_readers.base.real_home()`（macOS/Linux 走 `pwd` 查询，不依赖 `$HOME`；Windows 走 `%USERPROFILE%`）
+- ✅ 解析**环境变量传入的路径**（`CLAUDE_CONFIG_DIR` / `CODEX_HOME` / `ZCODE_HOME` / `MINIMAX_HOME` / `KIMI_DATA_DIR` / `OPENCODE_DATA_DIR` / `OPENCLAW_DIR` / `COPILOT_HOME` / `XDG_CONFIG_HOME` / `XDG_DATA_HOME`）中的 `~` 时，必须基于 `real_home()` 展开（统一走 `app.utils.path_utils.expand_user_path` 或 `agent_readers.base.expand_user_path`）
+- ✅ 需要**反推用户级工具位置**（nvm / npm-global / pnpm 等）时同样基于真实家目录
+- ❌ 禁止在读取用户本地 Agent 数据、或推导用户级工具位置时使用 `Path.home()` / `os.path.expanduser("~")` / `os.environ["HOME"]`
+- ❌ 禁止假设 `HOME` 等于用户家目录
+
+### 涉及的真实目录
+
+`~/.claude`、`~/.codex`、`~/.kimi` / `~/.kimi-code`、`~/.zcode`、`~/.minimax`、`~/.local/share/opencode`、`~/.openclaw`、`~/.copilot`
+
+### 事故案例（2026-10-26）
+
+- `backend/app/utils/ccusage_invoker.py` 的 `_expand_user("~")` 走 `os.path.expanduser` → nvm 兜底路径落成 `backend/data/cache/.nvm/versions/node/*/bin/ccusage` → **后端找不到 ccusage**，`claude` / `codex` / `kimi` / `opencode` 四个来源**停采一天**，日志只报 `CLI_NOT_FOUND`（非桌面模式 + 服务化启动 PATH 不含 nvm 时必现）
+- `backend/scripts/verify_local_usage.py` 的 `Path.home()` → 冻结快照源路径指向缓存目录 → **快照静默失效**、校验退化为实时读取并误报毫秒级漂移
+
+---
+
+## Token 用量对账口径规范（强制）
+
+Token 用量统计支持 `off` / `shadow` / `on` / `native` 四种采集模式，原生读取器与 ccusage 的对账是**唯一验收闸门**。比对口径必须分三层，禁止混用：
+
+### 核心原则
+
+1. **逐模型比对用"可见四桶"like-for-like**
+   - 可见四桶 = `input` / `output` / `cache_creation` / `cache_read`
+   - ccusage 的 `modelBreakdowns[]` **不序列化 `totalTokens`**（其 extra 桶不可见），只有四桶
+   - 原生侧的 `total_tokens` **含 extra 桶**（如 OpenCode 的 `reasoning`），因此逐模型比较必须用原生侧的"四桶和"去比 ccusage 的四桶和
+2. **extra 桶用"按日总额"校验**
+   - ccusage 的 `daily[].totalTokens` = 四桶之和 **+ extra 桶**，与原生记录的 `total_tokens` 口径一致
+   - 因此 extra 桶的正确性由**按日总额**比对覆盖，不能由逐模型比对覆盖
+3. **活跃写入的数据源必须用"二次采样夹逼"区分漂移与真实偏差**
+   - 对账顺序是"先读原生、再读 ccusage"，对正在被写入的数据源（ZCode / MiniMax Code / OpenCode 等 SQLite 或 JSONL），ccusage 读数必然 **≥** 原生读数
+   - 判定方法：再采样一次原生读数 `native_second`。若 `native_first ≤ ccusage_value ≤ native_second`，说明 ccusage 读数落在两次原生采样之间 → **采样漂移**，不是口径不一致
+   - 只有不满足夹逼条件的差异才是真实偏差，必须追查口径
+
+### 禁止行为
+
+- ❌ 禁止把原生 `total_tokens` 直接与 ccusage 的 per-model 四桶和比对（extra 桶非零时必然全线误报）
+- ❌ 禁止把"数据源活跃写入导致的当天漂移"当成口径错误去改读取器
+- ❌ 禁止在 ccusage 不可用时做 shadow 对账（ccusage 侧为空时对比结果全是假阳性，必须跳过并告警）
+- ❌ 禁止拿 ccusage 的**合并日报**（`agent=all`）当 per-agent 基准（合并口径会把多来源归到同一模型名下）
+
+---
+
+## 新增 Agent 数据源接入门槛（强制）
+
+Token 用量统计的每个来源（source）都必须有原生读取器，且必须通过逐日逐模型零差异对账才能登记为"已验证"。
+
+### 核心原则
+
+1. **source id 必须与 ccusage 的 agent id 完全一致**
+   - 唯一键是 `(user_id, device_id, record_date, source, model)`；source id 一致才能保证切换采集实现时**互相覆盖而不是产生重复行**
+   - source id 与 ccusage agent id 不一致 → 历史数据与新数据并存 → 汇总翻倍
+2. **实现原生读取器后必须跑对账闸门并达到零差异**
+   - `cd backend && python -m scripts.verify_native_readers --since <起> --until <止>`
+   - **退出码 0** 才算通过；有差异必须继续排查直到零差异，禁止"差不多能用"
+   - 通过后还需补对应单测（`backend/tests/test_<source>_reader.py`）
+3. **只有零差异通过的来源才能登记**
+   - `backend/app/utils/agent_readers/__init__.py` 的 `VERIFIED_AGENTS`
+   - `backend/app/services/token_usage_sync_service.py` 的 `NATIVE_READER_SOURCES`
+   - 两者必须同步；`VERIFIED_AGENTS` 表达的是**本机实测通过**，不是"代码写完了"
+4. **`native` 模式下未覆盖的 source 必须显式暴露**
+   - 无原生读取器的 source 要在同步结果中列为结构化错误（`SOURCE_NOT_COVERED`），**禁止静默丢数据**
+
+### 验收基准
+
+- 对账基准是**具体版本的 ccusage**（本项目当前为 20.0.42），换版本必须重跑对账
+- 对账只比对 **token 数量**，不比对 cost（原生读取器无内置价格表，cost 统一为 0）
+
+### 事故案例（2026-10-26）
+
+- `codex` 曾被登记为"已验证"，但那是在 **codex 还产出未压缩 `.jsonl`** 的机器上得出的结论；本机 codex 会话文件全是 `.jsonl.zst`（zstd 压缩），`collect_files` 按 `Path.suffix` 匹配 `.jsonl` 必然落空 → **原生读取 0 条、采集完全停摆**，而 `VERIFIED_AGENTS` 仍标着"已验证"
+- 教训：登记"已验证"的前提是**在当前机器上实测通过**，机器差异（文件格式、压缩、路径布局）会直接推翻结论
+
+---
+
 ## 项目概览
 
 工具集合平台（tools），基于 Python FastAPI + React 18 的单体应用架构。
