@@ -261,8 +261,8 @@ async def lifespan(app: FastAPI):
     otel_ok = init_otel()
     logger.info("OpenTelemetry export: %s", "enabled" if otel_ok else "disabled")
 
-    # 启动 ccusage 调度器
-    from app.services.ccusage_scheduler import init_scheduler, shutdown_scheduler
+    # 启动 Token 用量定时同步调度器
+    from app.services.token_usage_scheduler import init_scheduler, shutdown_scheduler
     init_scheduler()
 
     # MCP streamable HTTP 会话管理器随主应用生命周期启停。
@@ -281,11 +281,11 @@ async def lifespan(app: FastAPI):
         else:
             raise
 
-    # 关闭 ccusage 调度器
+    # 关闭 Token 用量定时同步调度器
     try:
         shutdown_scheduler()
     except Exception as e:
-        logger.warning(f"ccusage scheduler 关闭失败: {e}")
+        logger.warning(f"token usage scheduler 关闭失败: {e}")
 
     # OpenTelemetry shutdown（Phase 3 Plan 1C Task 7）
     from app.services.harness.otel_init import shutdown_otel

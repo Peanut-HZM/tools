@@ -1,4 +1,4 @@
-"""APScheduler 守护：每天 00:05 自动同步 ccusage 数据。"""
+"""APScheduler 守护：每天 00:05 自动同步本机 Token 用量数据。"""
 import asyncio
 import logging
 import os
@@ -27,7 +27,7 @@ def init_scheduler():
     global _scheduler
 
     if _DESKTOP_MODE:
-        logger.info("[ccusage-scheduler] 桌面模式，跳过 scheduler 启动")
+        logger.info("[token-usage-scheduler] 桌面模式，跳过 scheduler 启动")
         return None
 
     if _scheduler is not None and _scheduler.running:
@@ -40,14 +40,14 @@ def init_scheduler():
     _scheduler.add_job(
         _daily_sync_job,
         CronTrigger(hour=0, minute=5),
-        id="daily_ccusage_sync",
-        name="Daily ccusage sync at 00:05",
+        id="daily_token_usage_sync",
+        name="Daily token usage sync at 00:05",
         coalesce=True,
         max_instances=1,
         misfire_grace_time=3600,
     )
     _scheduler.start()
-    logger.info("[ccusage-scheduler] 启动成功，每天 00:05 触发")
+    logger.info("[token-usage-scheduler] 启动成功，每天 00:05 触发")
     return _scheduler
 
 
@@ -56,26 +56,26 @@ def shutdown_scheduler():
     global _scheduler
     if _scheduler is not None and _scheduler.running:
         _scheduler.shutdown(wait=False)
-        logger.info("[ccusage-scheduler] 已关闭")
+        logger.info("[token-usage-scheduler] 已关闭")
 
 
 async def _daily_sync_job():
-    """00:05 自动任务：滚动同步最近 3 天 ccusage 数据。
+    """00:05 自动任务：滚动同步最近 3 天用量数据。
 
     只同步当天会漏掉"跨天后才落盘的昨日用量"（CLI 会话在午夜后仍在写
     前一日日期的 JSONL/SQLite 记录），因此每次回补最近 3 天，靠 upsert
     幂等覆盖，既补齐缺漏又不产生重复。
     """
     if _sync_lock.locked():
-        logger.warning("[ccusage-daily] 同步进行中，跳过本次触发")
+        logger.warning("[token-usage-daily] 同步进行中，跳过本次触发")
         return
 
     async with _sync_lock:
         try:
             count = await asyncio.to_thread(_sync_recent_days, 3)
-            logger.info(f"[ccusage-daily] 自动同步最近 3 天完成: {count} 条")
+            logger.info(f"[token-usage-daily] 自动同步最近 3 天完成: {count} 条")
         except Exception as e:
-            logger.error(f"[ccusage-daily] 自动同步失败: {e}", exc_info=True)
+            logger.error(f"[token-usage-daily] 自动同步失败: {e}", exc_info=True)
 
 
 def _resolve_scheduler_user_id(db) -> str:
@@ -107,10 +107,10 @@ def _is_uuid(value: str) -> bool:
 
 
 def _sync_recent_days(days: int = 3) -> dict:
-    """滚动同步最近 N 天全部数据源（ccusage 各 agent + zcode，run in thread）。
+    """滚动同步最近 N 天全部数据源（run in thread）。
 
-    走 v1 全源路径 sync_token_usage：内部已包含 ccusage v2 各 agent 抓取
-    与 zcode 本地 SQLite 读取，并完成设备注册。
+    走 sync_token_usage 全源路径：内部读取全部已登记的原生读取器
+    （本机 Agent 数据目录），并完成设备注册。
     """
     db = SessionLocal()
     try:
@@ -118,6 +118,6 @@ def _sync_recent_days(days: int = 3) -> dict:
     finally:
         db.close()
     if user_id == "system":
-        logger.warning("[ccusage-daily] 未找到合法用户，跳过同步")
+        logger.warning("[token-usage-daily] 未找到合法用户，跳过同步")
         return {"sources_synced": [], "total_records": 0, "errors": []}
     return sync_token_usage(user_id=user_id, days=days)

@@ -17,7 +17,6 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.config.config import settings
-from app.utils.usage_fetcher import UsageFetcher
 from app.services.token_usage_cache import (
     get_cached_data,
     set_cached_data,
@@ -37,12 +36,12 @@ from app.models.token_usage_models import (
     DeviceIdAlias,
     DeviceMergeLog,
 )
-from app.services.token_usage_sync_service import sync_token_usage, sync_token_usage_v2
+from app.services.token_usage_sync_service import sync_token_usage
 from app.services.token_usage_sync_service import _map_source_to_tool, SOURCE_TOOL_MAPPING
 from app.services.token_usage_background_sync import register_pending_sync_user
-from app.services.ccusage_scheduler import get_sync_lock
+from app.services.token_usage_scheduler import get_sync_lock
 from app.routes.auth import get_current_user_id
-from app.utils.device_id import get_device_id, get_device_display_name, get_device_fingerprint
+from app.utils.device_id import get_device_id
 
 logger = logging.getLogger(__name__)
 
@@ -174,79 +173,6 @@ def _row_safe_float(v) -> float:
         return float(v)
     except (ValueError, TypeError):
         return 0.0
-
-
-def normalize_entries(raw: dict, report_type: str) -> list[UsageItem]:
-    """统一规范化三种数据源的输出"""
-    # opencode-usage 返回 {period, total, rows: [...]}
-    entries = raw.get(
-        report_type, raw.get("data", raw.get("daily", raw.get("rows", [])))
-    )
-    # 兼容 opencode-usage: 没有 daily/data 时用 rows
-    if not entries and raw.get("rows"):
-        entries = raw.get("rows")
-    if isinstance(entries, dict):
-        entries = [entries]
-    elif not isinstance(entries, list):
-        entries = []
-
-    items = []
-    for entry in entries:
-        date_val = (
-            entry.get("date")
-            or entry.get("label")
-            or entry.get("week")
-            or entry.get("month")
-            or entry.get("timestamp", "")
-        )
-        if not date_val and entry.get("week"):
-            date_val = str(entry["week"])
-
-        tokens = entry.get("tokens", {})
-        input_tokens = _safe_int(tokens, "input") or _safe_int(
-            entry, "inputTokens", "input_tokens"
-        )
-        output_tokens = _safe_int(tokens, "output") or _safe_int(
-            entry, "outputTokens", "output_tokens"
-        )
-        cache_creation = _safe_int(tokens, "cache_write") or _safe_int(
-            entry, "cacheCreationTokens", "cache_creation_tokens"
-        )
-        cache_read = _safe_int(tokens, "cache_read") or _safe_int(
-            entry, "cacheReadTokens", "cache_read_tokens"
-        )
-
-        # 提取 breakdowns，支持多种字段名：modelBreakdowns, model_breakdowns, models
-        breakdowns = (
-            entry.get("modelBreakdowns")
-            or entry.get("model_breakdowns")
-            or entry.get("models")
-            or []
-        )
-
-        # 提取 models_used，支持多种字段名并自动解析
-        models_used = entry.get("modelsUsed") or entry.get("models_used") or []
-        if not models_used and breakdowns:
-            models_used = [
-                m.get("model") or m.get("name") or m.get("modelName") or "unknown"
-                for m in breakdowns
-            ]
-
-        items.append(
-            UsageItem(
-                date=date_val,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                cache_creation_tokens=cache_creation,
-                cache_read_tokens=cache_read,
-                total_tokens=input_tokens + output_tokens + cache_creation + cache_read,
-                total_cost=_safe_float(entry, "cost")
-                or _safe_float(entry, "totalCost", "costUSD"),
-                models_used=models_used,
-                model_breakdowns=breakdowns,
-            )
-        )
-    return items
 
 
 def aggregate_by_week(items: list[UsageItem]) -> list[UsageItem]:
@@ -1295,8 +1221,8 @@ async def db_query_token_usage(
         )
 
         if not has_data:
-            # 降级到 CLI 直查模式
-            return await _fallback_to_cli(req)
+            # 降级到原生读取器直查模式
+            return await _fallback_to_native(req)
 
         # 获取设备列表（从 device_registry）
         regs = db.query(DeviceRegistry).filter(DeviceRegistry.user_id == user_id).all()
@@ -1416,7 +1342,11 @@ def _ensure_device_registered_with_fingerprint(
 async def refresh_ccusage_endpoint(
     authorization: Optional[str] = Header(None, description="Bearer token"),
 ):
-    """手动触发 ccusage 同步（v2 数据源）。同步运行，等待完成。"""
+    """手动触发当天数据同步（原生读取器）。同步运行，等待完成。
+
+    端点路径与响应结构保持不变（历史兼容），但实现已改为直接读取本机
+    Agent 数据目录，不再调用 ccusage CLI。
+    """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
     try:
@@ -1431,54 +1361,33 @@ async def refresh_ccusage_endpoint(
     if lock.locked():
         raise HTTPException(status_code=429, detail="同步进行中，请稍后重试")
 
-    device_id = get_device_id()
-    device_name = get_device_display_name()
-    device_fingerprint, id_type = get_device_fingerprint()
-
-    db = SessionLocal()
+    today = date.today()
     try:
-        _ensure_device_registered_with_fingerprint(
-            db, user_id, device_id, device_name, device_fingerprint, id_type
-        )
-        today = date.today().isoformat()
         result = await asyncio.to_thread(
-            sync_token_usage_v2,
-            db=db,
+            sync_token_usage,
             user_id=user_id,
-            device_id=device_id,
-            device_name=device_name,
-            since=today,
-            until=today,
+            since_date=today,
+            until_date=today,
         )
         # 清除聚合查询缓存（同步后汇总数据已更新）
         invalidate_user_query_cache(user_id)
-        # result 现在是 dict: {"count": int, "errors": list[dict]}
-        count = result.get("count", 0)
+        count = result.get("total_records", 0)
         errors = result.get("errors", [])
-        response = {"success": True, "synced_records": count, "date": today}
+        response = {
+            "success": True,
+            "synced_records": count,
+            "date": today.isoformat(),
+        }
         if errors:
             response["errors"] = errors
         return response
     except Exception as e:
-        logger.error(f"[ccusage-manual] 手动同步失败: {e}", exc_info=True)
-        # 尝试从 ccusage_invoker 错误中提取结构化信息
-        from app.utils.ccusage_invoker import CcusageError
-        if isinstance(e, CcusageError):
-            raise HTTPException(
-                status_code=500,
-                detail={
-                    "message": e.message,
-                    "error_code": e.code,
-                    "remediation": e.remediation,
-                },
-            )
+        logger.error(f"[token-usage-manual] 手动同步失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={
             "message": f"同步失败: {e}",
-            "error_code": "CLI_EXECUTION_ERROR",
-            "remediation": "请检查 ccusage 安装是否完整",
+            "error_code": "SYNC_FAILED",
+            "remediation": "请检查本机 Agent 数据目录是否可读",
         })
-    finally:
-        db.close()
 
 
 @router.post("/sync")
@@ -1734,56 +1643,46 @@ def rename_device(
         db.close()
 
 
-async def _fallback_to_cli(req: DbQueryRequest) -> DbUsageResponse:
-    """降级到 CLI 直查模式"""
-    if req.source == "all":
-        # 聚合查询
-        loop = asyncio.get_event_loop()
-        since_date = datetime.now() - timedelta(days=req.days)
-        since = since_date.strftime("%Y%m%d")
-        claude_raw, opencode_raw = await asyncio.gather(
-            loop.run_in_executor(
-                None,
-                lambda: UsageFetcher.fetch_claude(
-                    report_type="daily", since=since, breakdown=True
-                ),
-            ),
-            loop.run_in_executor(
-                None, lambda: UsageFetcher.fetch_opencode(days=req.days)
-            ),
-            return_exceptions=True,
-        )
-        if isinstance(claude_raw, Exception):
-            claude_raw = {"error": str(claude_raw)}
-        if isinstance(opencode_raw, Exception):
-            opencode_raw = {"error": str(opencode_raw)}
+async def _fallback_to_native(req: DbQueryRequest) -> DbUsageResponse:
+    """降级到原生读取器直查模式（用户尚无入库数据时使用）。
 
-        items_a = (
-            normalize_entries(claude_raw, req.type) if "error" not in claude_raw else []
+    早期实现直查 ccusage CLI；现已改为直接读取本机 Agent 数据目录，
+    不依赖任何外部 CLI，且覆盖全部已实现原生读取器的来源。
+    """
+    from app.utils.agent_readers import read_all_agents
+
+    until = date.today()
+    since = until - timedelta(days=max(1, req.days) - 1)
+
+    try:
+        native = await asyncio.to_thread(read_all_agents, since, until)
+    except Exception as exc:
+        logger.error(f"[native-fallback] 原生读取失败: {exc}", exc_info=True)
+        raise HTTPException(500, detail=f"本地 Agent 数据读取失败: {exc}") from exc
+
+    items: list[UsageItem] = []
+    for record in native.get("records", []):
+        record_date = record.get("record_date")
+        if hasattr(record_date, "isoformat"):
+            record_date = record_date.isoformat()
+        items.append(
+            UsageItem(
+                date=str(record_date),
+                input_tokens=int(record.get("input_tokens") or 0),
+                output_tokens=int(record.get("output_tokens") or 0),
+                cache_creation_tokens=int(record.get("cache_creation_tokens") or 0),
+                cache_read_tokens=int(record.get("cache_read_tokens") or 0),
+                total_tokens=int(record.get("total_tokens") or 0),
+                total_cost=float(record.get("total_cost") or 0.0),
+                models_used=[record.get("model") or "unknown"],
+                model_breakdowns=[],
+            )
         )
-        items_b = (
-            normalize_entries(opencode_raw, req.type)
-            if "error" not in opencode_raw
-            else []
-        )
-        items_a = apply_aggregation(items_a, req.type)
-        items_b = apply_aggregation(items_b, req.type)
-        merged = merge_items(items_a, items_b)
-        summary = compute_summary(merged)
-        db_items = [DbUsageItem(**item.model_dump()) for item in merged]
-    else:
-        since = (datetime.now() - timedelta(days=req.days)).strftime("%Y%m%d")
-        raw = (
-            UsageFetcher.fetch_claude(report_type="daily", since=since, breakdown=True)
-            if req.source == "claude"
-            else UsageFetcher.fetch_opencode(days=req.days)
-        )
-        if "error" in raw:
-            raise HTTPException(500, detail=f"CLI 数据获取失败: {raw['error']}")
-        items = normalize_entries(raw, req.type)
-        items = apply_aggregation(items, req.type)
-        summary = compute_summary(items)
-        db_items = [DbUsageItem(**item.model_dump()) for item in items]
+
+    # 先按周/月聚合，再按日期合并（与原 CLI 降级路径的口径一致）
+    aggregated = merge_items(apply_aggregation(items, req.type), [])
+    summary = compute_summary(aggregated)
+    db_items = [DbUsageItem(**item.model_dump()) for item in aggregated]
 
     return DbUsageResponse(items=db_items, summary=summary, devices=[])
 

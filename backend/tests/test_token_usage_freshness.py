@@ -155,7 +155,7 @@ def test_query_registers_pending_sync_without_direct_sync(monkeypatch):
         registered_users.append,
     )
     monkeypatch.setattr(token_usage_route, "sync_token_usage", fail_direct_sync)
-    monkeypatch.setattr(token_usage_route, "_fallback_to_cli", fake_fallback)
+    monkeypatch.setattr(token_usage_route, "_fallback_to_native", fake_fallback)
     monkeypatch.setattr(token_usage_route, "SessionLocal", lambda: _stub_session_without_data())
 
     response = token_usage_route.query_token_usage(

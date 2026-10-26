@@ -199,16 +199,6 @@ def main() -> int:
         "--only-user", type=str, default=None, help="只同步指定用户（调试用）"
     )
     parser.add_argument(
-        "--mode",
-        type=str,
-        default="native",
-        choices=("off", "shadow", "on", "native"),
-        help=(
-            "回填时使用的原生读取器模式；默认 native（全原生，不依赖 ccusage），"
-            "保证回填口径与脚本名称一致，不受环境变量影响"
-        ),
-    )
-    parser.add_argument(
         "--drop-superseded",
         action="store_true",
         help=(
@@ -232,44 +222,40 @@ def main() -> int:
 
     from app.models.base import SessionLocal
     from app.services.token_usage_cache import invalidate_user_query_cache
-    from app.services.token_usage_sync_service import (
-        native_readers_mode_override,
-        sync_token_usage,
-    )
+    from app.services.token_usage_sync_service import sync_token_usage
 
     days = max(1, args.days)
     today = date.today()
     since = today - timedelta(days=days - 1)
     logger.info("回填范围: %s ~ %s", since, today)
-    logger.info("回填口径: 原生读取器模式=%s", args.mode)
+    logger.info("回填口径: 原生读取器")
 
     total_written = 0
     failed: list[tuple[str, str]] = []
-    with native_readers_mode_override(args.mode):
-        for user_id in user_ids:
-            if args.dry_run:
-                logger.info("[dry-run] 将同步用户 %s", user_id)
-                continue
-            try:
-                result = sync_token_usage(user_id=user_id, days=days)
-                written = result.get("total_records") or 0
-                total_written += written
-                errors = result.get("errors") or []
-                logger.info(
-                    "[user=%s] 写入 %s 条，来源 %s，错误 %s 个",
-                    user_id,
-                    written,
-                    result.get("sources_synced"),
-                    len(errors),
+    for user_id in user_ids:
+        if args.dry_run:
+            logger.info("[dry-run] 将同步用户 %s", user_id)
+            continue
+        try:
+            result = sync_token_usage(user_id=user_id, days=days)
+            written = result.get("total_records") or 0
+            total_written += written
+            errors = result.get("errors") or []
+            logger.info(
+                "[user=%s] 写入 %s 条，来源 %s，错误 %s 个",
+                user_id,
+                written,
+                result.get("sources_synced"),
+                len(errors),
+            )
+            for err in errors[:3]:
+                logger.warning(
+                    "   - %s: %s", err.get("source"), str(err.get("error"))[:160]
                 )
-                for err in errors[:3]:
-                    logger.warning(
-                        "   - %s: %s", err.get("source"), str(err.get("error"))[:160]
-                    )
-                invalidate_user_query_cache(user_id)
-            except Exception as exc:  # pragma: no cover - 单个用户失败不影响其它
-                logger.error("[user=%s] 回填失败: %s", user_id, exc, exc_info=True)
-                failed.append((user_id, str(exc)))
+            invalidate_user_query_cache(user_id)
+        except Exception as exc:  # pragma: no cover - 单个用户失败不影响其它
+            logger.error("[user=%s] 回填失败: %s", user_id, exc, exc_info=True)
+            failed.append((user_id, str(exc)))
 
     db = SessionLocal()
     try:

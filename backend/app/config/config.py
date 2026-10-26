@@ -15,8 +15,8 @@ import sys
 # 检测桌面模式（由 desktop_app.py 或 desktop_config.py 设置）
 _is_desktop = os.environ.get("DESKTOP_MODE") == "1"
 
-# 保存真实 HOME（ccusage 等 CLI 工具依赖 HOME 读取 ~/.claude 等 agent 数据）
-# 必须在覆盖 HOME 之前保存，否则 ccusage 将无法找到数据源
+# 保存真实 HOME（读取用户本地 Agent 数据目录时必须用它）
+# 必须在覆盖 HOME 之前保存，否则进程内任何基于 HOME 的家目录推导都会失效
 # 统一转成 str：REAL_HOME 会被传给 subprocess 的 env，Path 类型会触发 TypeError
 REAL_HOME = str(os.environ.get("HOME") or Path.home().expanduser())
 
@@ -117,16 +117,10 @@ class Settings(BaseSettings):
     TOKEN_USAGE_BACKGROUND_SYNC_INITIAL_DELAY_SECONDS: int = 60
     TOKEN_USAGE_BACKGROUND_SYNC_MAX_USERS_PER_RUN: int = 3
 
-    # Token Usage 原生读取器模式（替代 ccusage CLI）
-    #   off    = 完全沿用 ccusage 采集（默认，行为与改造前一致）
-    #   shadow = ccusage 采集并写库；原生读取器同时计算，仅做逐日对账并记录差异
-    #   on     = 已完成对账的 Agent 改用原生读取器写库；未迁移的 Agent 仍走 ccusage
-    #   native = 全原生：不调用任何 ccusage 子进程，全部由原生读取器供数
-    #            （要求所有有数据的 source 都已实现原生读取器，否则会在日志中
-    #              明确列出未覆盖的 source，不会静默丢数据）
-    # 说明：原生读取器与 ccusage 使用相同的 source id，写入同一唯一键，
-    # 因此切换期间不会出现重复统计，只可能互相覆盖。
-    TOKEN_USAGE_NATIVE_READERS_MODE: str = "off"
+    # 说明：Token 用量采集已全量改为原生读取器（直接读本机 Agent 数据目录），
+    # 不再有任何采集模式开关，也不再依赖 ccusage CLI。
+    # 早期版本存在过 TOKEN_USAGE_NATIVE_READERS_MODE（off/shadow/on/native），
+    # 该配置项已随 ccusage 依赖一并移除；旧 .env 中残留该变量会被忽略。
 
     # K8s 控制台
     K8S_UPLOAD_MAX_SIZE: int = 1_048_576  # 1MB kubeconfig 上传限制

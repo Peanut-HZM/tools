@@ -472,10 +472,23 @@ class TestRegistry:
             assert source in READERS
             assert source in SOURCE_TOOL_MAPPING
 
-    def test_minimax_has_no_ccusage_counterpart(self):
-        from app.services.token_usage_sync_service import NATIVE_ONLY_SOURCES
+    def test_minimax_has_native_reader(self):
+        """minimax 没有 ccusage 对应实现，必须由原生读取器提供"""
+        from app.utils.agent_readers import READERS
 
-        assert "minimax" in NATIVE_ONLY_SOURCES
+        assert "minimax" in READERS
+
+    def test_all_known_sources_have_tool_mapping(self):
+        """已知 source 必须都能映射到 tool_id / tool_name"""
+        from app.services.token_usage_sync_service import (
+            KNOWN_SOURCES,
+            SOURCE_TOOL_MAPPING,
+        )
+
+        for source in KNOWN_SOURCES:
+            assert source in SOURCE_TOOL_MAPPING
+            assert SOURCE_TOOL_MAPPING[source]["tool_id"]
+            assert SOURCE_TOOL_MAPPING[source]["tool_name"]
 
 
 # ========== 压缩文件与家目录展开 ==========
