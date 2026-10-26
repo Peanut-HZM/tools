@@ -27,8 +27,11 @@ from typing import Callable, Optional
 from app.utils.agent_readers.base import AgentReadResult
 from app.utils.agent_readers.claude_reader import read_claude_records
 from app.utils.agent_readers.codex_reader import read_codex_records
+from app.utils.agent_readers.copilot_reader import read_copilot_records
 from app.utils.agent_readers.kimi_reader import read_kimi_records
 from app.utils.agent_readers.minimax_reader import read_minimax_records
+from app.utils.agent_readers.openclaw_reader import read_openclaw_records
+from app.utils.agent_readers.opencode_reader import read_opencode_records
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +59,24 @@ def _read_zcode_records(since_date: date, until_date: date) -> AgentReadResult:
 READERS: dict[str, ReaderFn] = {
     "claude": read_claude_records,
     "codex": read_codex_records,
+    "copilot": read_copilot_records,
     "kimi": read_kimi_records,
     "zcode": _read_zcode_records,
     "minimax": read_minimax_records,
+    "openclaw": read_openclaw_records,
+    "opencode": read_opencode_records,
 }
 
 # 已完成"原生 vs ccusage 逐日对账零差异"的 Agent
-VERIFIED_AGENTS: tuple[str, ...] = ("claude", "codex", "kimi", "zcode")
+VERIFIED_AGENTS: tuple[str, ...] = (
+    "claude",
+    "codex",
+    "copilot",
+    "kimi",
+    "zcode",
+    "openclaw",
+    "opencode",
+)
 
 
 def supported_agents() -> list[str]:

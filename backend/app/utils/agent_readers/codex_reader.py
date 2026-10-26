@@ -3,6 +3,10 @@
 数据源：``~/.codex/sessions/**/*.jsonl`` 与 ``~/.codex/archived_sessions/**/*.jsonl``
 （``CODEX_HOME`` 可覆盖根目录）。
 
+文件格式：Codex 较新版本会把会话记录写成 **zstd 压缩**的 ``*.jsonl.zst``，
+较早版本是纯文本 ``*.jsonl``。两种都要读，否则在开启压缩的机器上会读到 0 条。
+压缩文件由 ``base.iter_jsonl`` 自动识别并流式解压。
+
 与 ccusage ``rust/adapters/codex`` 对齐的关键点：
 
 1. **记录类型**：``type == "event_msg"`` 且 ``payload.type == "token_count"``。
@@ -41,6 +45,7 @@ from app.utils.agent_readers.base import (
     aggregate_records,
     collect_files,
     epoch_ms_to_local_date,
+    expand_user_path,
     iter_jsonl,
     lenient_obj,
     lenient_str,
@@ -67,7 +72,7 @@ def _codex_roots() -> list[Path]:
             item = item.strip()
             if not item:
                 continue
-            path = Path(item).expanduser()
+            path = expand_user_path(item)
             key = os.path.normcase(str(path))
             if path.is_dir() and key not in seen:
                 seen.add(key)
@@ -163,7 +168,7 @@ def read_codex_records(since_date: date, until_date: date) -> AgentReadResult:
 
     for root in _codex_roots():
         for source_dir in _source_dirs(root):
-            for path in collect_files(source_dir, (".jsonl",)):
+            for path in collect_files(source_dir, (".jsonl", ".jsonl.zst")):
                 file_count += 1
                 session_id = str(path.relative_to(source_dir)).replace("\\", "/")
                 previous_total: Optional[dict] = None

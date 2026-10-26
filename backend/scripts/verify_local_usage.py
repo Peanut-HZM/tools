@@ -27,6 +27,27 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 
+def _real_home() -> Path:
+    """获取真实用户主目录（绕过 config.py 对 HOME 的覆盖）。
+
+    本模块顶部不导入 app.* 包，避免过早触发 config.py 覆盖 HOME；
+    这里用 pwd（Unix）/ USERPROFILE（Windows）直接取系统级家目录。
+    """
+    import platform
+
+    if platform.system() == "Windows":
+        userprofile = os.environ.get("USERPROFILE", "")
+        if userprofile:
+            return Path(userprofile)
+        return Path.home()
+    try:
+        import pwd
+
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (ImportError, KeyError, OSError):
+        return Path.home()
+
+
 def _freeze_sqlite(src: Path, dst: Path) -> bool:
     """用 SQLite backup API 为活动中的数据库取一致快照。"""
     if not src.is_file():
@@ -53,8 +74,13 @@ def _prepare_live_snapshots() -> tuple[Path, Path]:
     """
     tmp = Path(tempfile.mkdtemp(prefix="token_usage_verify_"))
 
+    # 必须用真实家目录：config.py 在非桌面模式下把 HOME 改写为 backend/data/cache，
+    # Path.home() 会拿到缓存目录，导致快照源路径不存在、冻结机制静默失效，
+    # 校验退化为实时读取并产生毫秒级漂移误报。
+    real_home = _real_home()
+
     zcode_home = tmp / "zcode"
-    zcode_src = Path.home() / ".zcode" / "cli" / "db" / "db.sqlite"
+    zcode_src = real_home / ".zcode" / "cli" / "db" / "db.sqlite"
     if _freeze_sqlite(zcode_src, zcode_home / "cli" / "db" / "db.sqlite"):
         os.environ["ZCODE_HOME"] = str(zcode_home)
         logger.info("zcode 使用冻结快照: %s", zcode_home)
@@ -62,7 +88,7 @@ def _prepare_live_snapshots() -> tuple[Path, Path]:
         logger.info("zcode 无本地数据库，跳过快照（保持实时读取）")
 
     minimax_home = tmp / "minimax"
-    minimax_src = Path.home() / ".minimax" / "v2" / "sqlite" / "runtime-state.sqlite"
+    minimax_src = real_home / ".minimax" / "v2" / "sqlite" / "runtime-state.sqlite"
     if _freeze_sqlite(minimax_src, minimax_home / "v2" / "sqlite" / "runtime-state.sqlite"):
         os.environ["MINIMAX_HOME"] = str(minimax_home)
         logger.info("minimax 使用冻结快照: %s", minimax_home)

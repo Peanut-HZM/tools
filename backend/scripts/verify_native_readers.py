@@ -151,7 +151,13 @@ def _ccusage_totals_by_model(payload: dict) -> dict[tuple[str, str], dict[str, i
 
 
 def _native_totals_by_model(records: list[dict]) -> dict[tuple[str, str], dict[str, int]]:
-    """把原生读取结果归一化为 ``(日期, 模型) -> token 明细``。"""
+    """把原生读取结果归一化为 ``(日期, 模型) -> token 明细``。
+
+    ``total`` 为记录自报的总 token（**含 extra 桶**：原生读取器把"已知存在但
+    无法归入四类"的 token 放进 extra 桶，只计入 total）。
+    ``visible_total`` 为四个可见桶之和，与 ccusage 的 per-model 明细口径一致，
+    逐模型比对时用它做 like-for-like 比较。
+    """
     totals: dict[tuple[str, str], dict[str, int]] = {}
     for record in records:
         raw_date = record["record_date"]
@@ -165,13 +171,47 @@ def _native_totals_by_model(records: list[dict]) -> dict[tuple[str, str], dict[s
                 "cache_creation": 0,
                 "cache_read": 0,
                 "total": 0,
+                "visible_total": 0,
             },
         )
-        bucket["input"] += int(record.get("input_tokens") or 0)
-        bucket["output"] += int(record.get("output_tokens") or 0)
-        bucket["cache_creation"] += int(record.get("cache_creation_tokens") or 0)
-        bucket["cache_read"] += int(record.get("cache_read_tokens") or 0)
+        inp = int(record.get("input_tokens") or 0)
+        out = int(record.get("output_tokens") or 0)
+        cc = int(record.get("cache_creation_tokens") or 0)
+        cr = int(record.get("cache_read_tokens") or 0)
+        bucket["input"] += inp
+        bucket["output"] += out
+        bucket["cache_creation"] += cc
+        bucket["cache_read"] += cr
+        bucket["visible_total"] += inp + out + cc + cr
         bucket["total"] += int(record.get("total_tokens") or 0)
+    return totals
+
+
+def _native_daily_totals(records: list[dict]) -> dict[str, int]:
+    """原生读取结果的按日总 token（含 extra 桶）。
+
+    对应 ccusage 的 ``daily[].totalTokens``：该值等于四桶之和再加上 extra 桶，
+    因此可以整体校验 extra 桶是否正确。
+    """
+    totals: dict[str, int] = {}
+    for record in records:
+        raw_date = record["record_date"]
+        day = raw_date.isoformat() if hasattr(raw_date, "isoformat") else str(raw_date)
+        totals[day] = totals.get(day, 0) + int(record.get("total_tokens") or 0)
+    return totals
+
+
+def _ccusage_daily_totals(payload: dict) -> dict[str, int]:
+    """ccusage 报表的按日总 token。"""
+    totals: dict[str, int] = {}
+    for day_row in payload.get("daily") or []:
+        day = day_row.get("date") or day_row.get("period") or ""
+        if not day:
+            continue
+        declared = day_row.get("totalTokens")
+        if declared is None:
+            continue
+        totals[day] = totals.get(day, 0) + int(declared or 0)
     return totals
 
 
@@ -190,7 +230,7 @@ def _diff(
         if right is None:
             differences.append({"key": key, "kind": "only_in_native", "native": left, "ccusage": None})
             continue
-        for field in ("input", "output", "cache_creation", "cache_read", "total"):
+        for field in ("input", "output", "cache_creation", "cache_read"):
             if left[field] != right[field]:
                 differences.append(
                     {
@@ -201,7 +241,105 @@ def _diff(
                         "ccusage": right[field],
                     }
                 )
+        # total 用"四桶可见和"做 like-for-like 比较：
+        # ccusage 的 per-model 明细不暴露 extra 桶，原生侧的 total 含 extra。
+        # extra 桶的正确性由按日总额校验（_diff_daily_totals）单独覆盖。
+        native_visible = left.get("visible_total", left["total"])
+        if native_visible != right["total"]:
+            differences.append(
+                {
+                    "key": key,
+                    "kind": "value_mismatch",
+                    "field": "total",
+                    "native": native_visible,
+                    "ccusage": right["total"],
+                }
+            )
     return differences
+
+
+def _diff_daily_totals(
+    native: dict[str, int],
+    reference: dict[str, int],
+) -> list[dict]:
+    """按日比较总 token（含 extra 桶），用于校验 extra 桶是否正确。
+
+    ccusage 的 ``daily[].totalTokens`` 等于四桶之和再加 extra 桶，与原生读取器
+    记录的 ``total_tokens`` 口径一致。
+    """
+    differences: list[dict] = []
+    for day in sorted(set(native) | set(reference)):
+        left = native.get(day, 0)
+        right = reference.get(day, 0)
+        if left != right:
+            differences.append(
+                {
+                    "key": (day, "_daily_total"),
+                    "kind": "daily_total_mismatch",
+                    "field": "total",
+                    "native": left,
+                    "ccusage": right,
+                }
+            )
+    return differences
+
+
+def _is_live_drift(
+    key: tuple[str, str],
+    field: str,
+    native_first: int,
+    ccusage_value: int,
+    native_second: int,
+) -> bool:
+    """判断差异是否只是"数据源正在被写入"造成的采样漂移。
+
+    对账流程是"先读原生、再读 ccusage"，因此对**正在被写入**的数据源
+    （如本机的 ZCode / MiniMax Code SQLite），ccusage 读到的值必然 >= 原生读到的值。
+
+    判定方法：再采样一次原生读数 ``native_second``。若
+    ``native_first <= ccusage_value <= native_second``，说明 ccusage 的读数落在
+    两次原生采样之间 —— 数值差异来自数据源增长，而非口径不一致。
+    """
+    return native_first <= ccusage_value <= native_second
+
+
+def _recheck_with_second_native_sample(
+    agent: str,
+    native_records: list[dict],
+    differences: list[dict],
+    since: date,
+    until: date,
+    max_diff: int = 5,
+) -> tuple[list[dict], dict]:
+    """对有差异的 Agent 再采样一次原生读数，剔除"活跃写入"造成的漂移。
+
+    Returns:
+        ``(剩余差异, 漂移说明)``
+    """
+    from app.utils.agent_readers import read_all_agents
+
+    second = read_all_agents(since, until, only=[agent])
+    native_first_map = _native_totals_by_model(native_records)
+    native_second_map = _native_totals_by_model(second.get("records", []))
+
+    remaining: list[dict] = []
+    drifts: list[dict] = []
+    for diff in differences:
+        if diff["kind"] == "value_mismatch":
+            key = diff["key"]
+            left_first = native_first_map.get(key, {}).get(diff["field"], 0)
+            left_second = native_second_map.get(key, {}).get(diff["field"], 0)
+            if _is_live_drift(
+                key,
+                diff["field"],
+                int(left_first),
+                int(diff["ccusage"]),
+                int(left_second),
+            ):
+                drifts.append(diff)
+                continue
+        remaining.append(diff)
+    return remaining, {"drift_count": len(drifts), "drifts": drifts[:max_diff]}
 
 
 def main() -> int:
@@ -287,6 +425,35 @@ def main() -> int:
 
         reference = _ccusage_totals_by_model(payload)
         differences = _diff(native, reference)
+        # 按日总额校验（含 extra 桶）——ccusage 的 daily[].totalTokens 与原生记录
+        # 的 total_tokens 口径一致，可整体校验 extra 桶
+        differences.extend(
+            _diff_daily_totals(
+                _native_daily_totals(native_by_source.get(agent, [])),
+                _ccusage_daily_totals(payload),
+            )
+        )
+
+        # 数据源正在被写入时（ZCode / MiniMax Code 等），两次采样之间数据会增长，
+        # 表现为 ccusage 读数略大于原生读数。再采样一次原生读数做夹逼判定：
+        # 若 ccusage 读数落在两次原生采样之间，则属于采样漂移而非口径不一致。
+        drift_info: dict = {"drift_count": 0, "drifts": []}
+        if differences:
+            differences, drift_info = _recheck_with_second_native_sample(
+                agent,
+                native_by_source.get(agent, []),
+                differences,
+                since,
+                until,
+                max_diff=args.max_diff,
+            )
+            if drift_info["drift_count"]:
+                logger.info(
+                    "[%s] 检出 %s 处采样漂移（数据源正在写入，已用二次采样夹逼确认）",
+                    agent,
+                    drift_info["drift_count"],
+                )
+
         native_sum = sum(v["total"] for v in native.values())
         reference_sum = sum(v["total"] for v in reference.values())
 
@@ -296,6 +463,13 @@ def main() -> int:
             "ccusage_keys": len(reference),
             "native_total_tokens": native_sum,
             "ccusage_total_tokens": reference_sum,
+            "native_visible_total_tokens": sum(
+                v.get("visible_total", v["total"]) for v in native.values()
+            ),
+            "ccusage_visible_total_tokens": reference_sum,
+            "native_extra_total_tokens": native_sum
+            - sum(v.get("visible_total", v["total"]) for v in native.values()),
+            "live_drift": drift_info,
             "differences": differences[: args.max_diff],
             "difference_count": len(differences),
         }
@@ -320,10 +494,19 @@ def main() -> int:
                 continue
             flag = "通过" if info["status"] == "passed" else "不通过"
             verified = "（已验证）" if agent in VERIFIED_AGENTS else "（未验证）"
+            extra = info.get("native_extra_total_tokens", 0)
+            extra_note = f" | 原生 extra 桶 {extra:,}" if extra else ""
+            drift = info.get("live_drift") or {}
+            drift_note = (
+                f" | 采样漂移 {drift.get('drift_count', 0)} 处（数据源活跃写入）"
+                if drift.get("drift_count")
+                else ""
+            )
             print(
                 f"[{flag}] {agent:<10}{verified} "
                 f"原生键 {info['native_keys']:>4} / ccusage 键 {info['ccusage_keys']:>4} | "
-                f"总量 原生 {info['native_total_tokens']:>16,} / ccusage {info['ccusage_total_tokens']:>16,}"
+                f"四桶和 原生 {info['native_visible_total_tokens']:>16,} / "
+                f"ccusage {info['ccusage_visible_total_tokens']:>16,}{extra_note}{drift_note}"
             )
             for diff in info["differences"]:
                 key = diff["key"]

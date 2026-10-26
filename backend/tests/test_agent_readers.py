@@ -476,3 +476,114 @@ class TestRegistry:
         from app.services.token_usage_sync_service import NATIVE_ONLY_SOURCES
 
         assert "minimax" in NATIVE_ONLY_SOURCES
+
+
+# ========== 压缩文件与家目录展开 ==========
+
+class TestCollectFiles:
+    """文件收集：支持复合后缀（.jsonl.zst），大小写不敏感"""
+
+    def test_collects_plain_jsonl(self, tmp_path):
+        from app.utils.agent_readers.base import collect_files
+
+        (tmp_path / "a.jsonl").write_text("{}\n", encoding="utf-8")
+        (tmp_path / "b.txt").write_text("x", encoding="utf-8")
+        found = collect_files(tmp_path, (".jsonl",))
+        assert [p.name for p in found] == ["a.jsonl"]
+
+    def test_collects_composite_suffix_jsonl_zst(self, tmp_path):
+        """.jsonl.zst 必须能被收集到（Codex 新版本默认写压缩会话）"""
+        from app.utils.agent_readers.base import collect_files
+
+        (tmp_path / "rollout-1.jsonl.zst").write_bytes(b"\x28\xb5\x2f\xfd")
+        found = collect_files(tmp_path, (".jsonl", ".jsonl.zst"))
+        assert [p.name for p in found] == ["rollout-1.jsonl.zst"]
+
+    def test_plain_suffix_does_not_match_composite_file(self, tmp_path):
+        """只请求 .jsonl 时不能误收 .jsonl.zst"""
+        from app.utils.agent_readers.base import collect_files
+
+        (tmp_path / "rollout-1.jsonl.zst").write_bytes(b"\x28\xb5\x2f\xfd")
+        assert collect_files(tmp_path, (".jsonl",)) == []
+
+    def test_extension_match_is_case_insensitive(self, tmp_path):
+        from app.utils.agent_readers.base import collect_files
+
+        (tmp_path / "A.JSONL").write_text("{}\n", encoding="utf-8")
+        assert len(collect_files(tmp_path, (".jsonl",))) == 1
+
+    def test_missing_root_returns_empty(self, tmp_path):
+        from app.utils.agent_readers.base import collect_files
+
+        assert collect_files(tmp_path / "nope", (".jsonl",)) == []
+
+
+class TestIterJsonl:
+    """JSONL 逐行解析 + zstd 压缩流支持"""
+
+    def test_plain_jsonl(self, tmp_path):
+        from app.utils.agent_readers.base import iter_jsonl
+
+        path = tmp_path / "a.jsonl"
+        path.write_text('{"a":1}\n\nnot-json\n{"b":2}\n', encoding="utf-8")
+        assert list(iter_jsonl(path)) == [{"a": 1}, {"b": 2}]
+
+    def test_reads_zstd_compressed_jsonl(self, tmp_path):
+        """zstd 压缩的 JSONL 必须能解出记录"""
+        zstandard = pytest.importorskip("zstandard")
+        from app.utils.agent_readers.base import iter_jsonl
+
+        path = tmp_path / "rollout.jsonl.zst"
+        payload = b'{"type":"event_msg"}\n{"type":"turn_context"}\n'
+        path.write_bytes(zstandard.ZstdCompressor().compress(payload))
+        assert [r["type"] for r in iter_jsonl(path)] == ["event_msg", "turn_context"]
+
+    def test_corrupt_zstd_file_is_skipped(self, tmp_path):
+        """压缩流损坏时只丢该文件，不抛异常中断整体"""
+        pytest.importorskip("zstandard")
+        from app.utils.agent_readers.base import iter_jsonl
+
+        path = tmp_path / "broken.jsonl.zst"
+        path.write_bytes(b"this is not a zstd frame")
+        assert list(iter_jsonl(path)) == []
+
+
+class TestExpandUserPath:
+    """环境变量路径展开必须基于真实家目录（不受 HOME 覆盖影响）"""
+
+    def test_expands_tilde_to_real_home(self, monkeypatch):
+        from app.utils.agent_readers.base import expand_user_path, real_home
+
+        expected = str(real_home())
+        assert str(expand_user_path("~")) == expected
+        assert str(expand_user_path("~/x")) == f"{expected}/x"
+
+    def test_leaves_absolute_and_other_paths_untouched(self):
+        from app.utils.agent_readers.base import expand_user_path
+
+        assert str(expand_user_path("/tmp/x")) == "/tmp/x"
+        assert str(expand_user_path("relative/x")) == "relative/x"
+
+
+class TestCcusageHomeResolution:
+    """ccusage 二进制发现必须绕过 config.py 对 HOME 的覆盖"""
+
+    def test_expand_user_uses_real_home(self, monkeypatch):
+        from app.utils import ccusage_invoker
+        from app.utils.agent_readers.base import real_home
+
+        monkeypatch.setenv("HOME", "/tmp/fake-home")
+        expanded = ccusage_invoker._expand_user("~")
+        assert expanded != "/tmp/fake-home"
+        assert expanded == str(real_home())
+
+    def test_nvm_fallback_path_uses_real_home(self, monkeypatch):
+        """nvm 兜底路径必须落在真实家目录下，而不是缓存目录"""
+        from app.utils import ccusage_invoker
+        from app.utils.agent_readers.base import real_home
+
+        monkeypatch.setenv("HOME", "/tmp/fake-home")
+        paths = ccusage_invoker._ccusage_search_paths()
+        expected = str(real_home())
+        assert any(p.startswith(expected) for p in paths), paths
+        assert not any("/tmp/fake-home" in p for p in paths), paths

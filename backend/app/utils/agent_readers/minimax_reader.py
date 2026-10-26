@@ -41,6 +41,7 @@ from app.utils.agent_readers.base import (
     aggregate_records,
     date_range_to_ms_bounds,
     epoch_ms_to_local_date,
+    expand_user_path,
     open_sqlite_readonly,
     real_home,
     table_columns,
@@ -78,7 +79,7 @@ def _db_candidates() -> list[Path]:
             item = item.strip()
             if not item:
                 continue
-            root = Path(item).expanduser()
+            root = expand_user_path(item)
             if not root.is_dir():
                 continue
             candidates.append(root / "v2" / "sqlite" / "runtime-state.sqlite")

@@ -158,11 +158,9 @@ def test_query_registers_pending_sync_without_direct_sync(monkeypatch):
     monkeypatch.setattr(token_usage_route, "_fallback_to_cli", fake_fallback)
     monkeypatch.setattr(token_usage_route, "SessionLocal", lambda: _stub_session_without_data())
 
-    response = asyncio.run(
-        token_usage_route.query_token_usage(
-            token_usage_route.DbQueryRequest(),
-            authorization="Bearer test-token",
-        )
+    response = token_usage_route.query_token_usage(
+        token_usage_route.DbQueryRequest(),
+        authorization="Bearer test-token",
     )
 
     assert registered_users == ["user-1"]
@@ -178,8 +176,20 @@ class _StubQuery:
     def filter(self, *args, **kwargs):
         return self
 
+    def group_by(self, *args, **kwargs):
+        return self
+
+    def order_by(self, *args, **kwargs):
+        return self
+
     def first(self):
         return None
+
+    def all(self):
+        return []
+
+    def distinct(self):
+        return self
 
 
 class _StubSession:
@@ -215,11 +225,9 @@ def test_query_returns_empty_response_when_database_unavailable(monkeypatch):
     )
     monkeypatch.setattr(token_usage_route, "SessionLocal", fail_session)
 
-    response = asyncio.run(
-        token_usage_route.query_token_usage(
-            token_usage_route.DbQueryRequest(),
-            authorization="Bearer test-token",
-        )
+    response = token_usage_route.query_token_usage(
+        token_usage_route.DbQueryRequest(),
+        authorization="Bearer test-token",
     )
 
     assert response.cached is False

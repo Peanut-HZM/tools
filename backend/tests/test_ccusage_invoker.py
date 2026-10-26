@@ -1,4 +1,5 @@
 """CcusageInvoker 单元测试"""
+import os
 from unittest.mock import patch
 
 import pytest
@@ -114,14 +115,19 @@ def test_find_ccusage_uses_shutil_which_first(monkeypatch):
 
 def test_find_ccusage_searches_windows_known_paths(monkeypatch):
     monkeypatch.setattr(ccusage_invoker, "_ccusage_path", None)
+    # 家目录解析走 REAL_HOME（config.py 会覆盖 HOME，不能用 os.path.expanduser）
+    monkeypatch.setattr("app.config.config.REAL_HOME", "C:\\Users\\test")
     with patch("shutil.which", return_value=None), \
          patch("platform.system", return_value="Windows"), \
-         patch("os.path.expanduser", return_value="C:\\Users\\test"), \
          patch("os.path.exists") as mock_exists:
         # 第一个不存在（.cmd），第二个存在（.ps1）
         mock_exists.side_effect = [False, True]
         result = find_ccusage()
-    assert result == "C:\\Users\\test\\AppData\\Roaming\\npm\\ccusage.ps1"
+    # 用 os.path.join 构造期望值：Windows 路径分隔符与 POSIX 不同，
+    # 硬编码反斜杠会让该用例只在 Windows 上成立。
+    assert result == os.path.join(
+        "C:\\Users\\test", "AppData", "Roaming", "npm", "ccusage.ps1"
+    )
 
 
 def test_find_ccusage_searches_macos_brew_paths(monkeypatch):
@@ -147,14 +153,19 @@ def test_build_cmd_returns_empty_when_ccusage_missing(monkeypatch):
 
 
 def test_build_cmd_windows_cmd_uses_node_and_js(monkeypatch):
-    """Windows 下 .cmd 文件应使用 node + JS 入口调用"""
-    with patch("app.utils.ccusage_invoker.find_ccusage", return_value="C:\\npm\\ccusage.cmd"), \
+    """Windows 下 .cmd 文件应使用 node + JS 入口调用
+
+    路径统一用正斜杠：Windows 的 API 同样接受正斜杠，这样
+    ``os.path.dirname`` 在 POSIX 与 Windows 上行为一致，用例可跨平台运行。
+    """
+    monkeypatch.setattr(os, "name", "nt")
+    with patch("app.utils.ccusage_invoker.find_ccusage", return_value="/npm/ccusage.cmd"), \
          patch("app.utils.ccusage_invoker.find_node", return_value="C:\\node.exe"), \
          patch("os.path.exists", return_value=True):
         result = build_cmd(["daily", "--json"])
     assert result == [
         "C:\\node.exe",
-        "C:\\npm\\node_modules\\ccusage\\dist\\cli.js",
+        os.path.join("/npm", "node_modules", "ccusage", "dist", "cli.js"),
         "daily",
         "--json",
     ]
@@ -162,6 +173,7 @@ def test_build_cmd_windows_cmd_uses_node_and_js(monkeypatch):
 
 def test_build_cmd_windows_missing_node_returns_empty(monkeypatch):
     """Windows 下 .cmd 文件但 node 缺失时返回空命令"""
+    monkeypatch.setattr(os, "name", "nt")
     with patch("app.utils.ccusage_invoker.find_ccusage", return_value="C:\\npm\\ccusage.cmd"), \
          patch("app.utils.ccusage_invoker.find_node", return_value=None):
         assert build_cmd(["daily", "--json"]) == []
@@ -183,6 +195,7 @@ def test_build_cmd_linux_uses_direct_call(monkeypatch):
 
 def test_build_cmd_windows_ps1_also_uses_node(monkeypatch):
     """Windows 下 .ps1 文件也应使用 node 调用"""
+    monkeypatch.setattr(os, "name", "nt")
     with patch("app.utils.ccusage_invoker.find_ccusage", return_value="C:\\npm\\ccusage.ps1"), \
          patch("app.utils.ccusage_invoker.find_node", return_value="C:\\node.exe"), \
          patch("os.path.exists", return_value=True):

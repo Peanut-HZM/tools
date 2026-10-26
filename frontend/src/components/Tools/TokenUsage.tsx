@@ -569,7 +569,7 @@ export default function TokenUsage() {
             onClick={handleSync}
             disabled={syncing}
             className="h-8 flex-shrink-0 text-xs"
-            title="ccusage 数据同步"
+            title="从本机 Agent 数据目录采集 Token 用量"
           >
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             {syncing ? '同步中...' : '同步数据'}

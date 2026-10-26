@@ -17,7 +17,8 @@ _is_desktop = os.environ.get("DESKTOP_MODE") == "1"
 
 # 保存真实 HOME（ccusage 等 CLI 工具依赖 HOME 读取 ~/.claude 等 agent 数据）
 # 必须在覆盖 HOME 之前保存，否则 ccusage 将无法找到数据源
-REAL_HOME = os.environ.get("HOME") or Path.home().expanduser()
+# 统一转成 str：REAL_HOME 会被传给 subprocess 的 env，Path 类型会触发 TypeError
+REAL_HOME = str(os.environ.get("HOME") or Path.home().expanduser())
 
 if _is_desktop:
     # 桌面模式：使用独立配置，不覆盖 HOME
@@ -120,6 +121,9 @@ class Settings(BaseSettings):
     #   off    = 完全沿用 ccusage 采集（默认，行为与改造前一致）
     #   shadow = ccusage 采集并写库；原生读取器同时计算，仅做逐日对账并记录差异
     #   on     = 已完成对账的 Agent 改用原生读取器写库；未迁移的 Agent 仍走 ccusage
+    #   native = 全原生：不调用任何 ccusage 子进程，全部由原生读取器供数
+    #            （要求所有有数据的 source 都已实现原生读取器，否则会在日志中
+    #              明确列出未覆盖的 source，不会静默丢数据）
     # 说明：原生读取器与 ccusage 使用相同的 source id，写入同一唯一键，
     # 因此切换期间不会出现重复统计，只可能互相覆盖。
     TOKEN_USAGE_NATIVE_READERS_MODE: str = "off"

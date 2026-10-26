@@ -53,6 +53,21 @@ def _get_real_home() -> Path:
     return Path.home()
 
 
+def _expand_user_path(path: str) -> Path:
+    """展开以 ``~`` 开头的路径（基于真实家目录）。
+
+    不能用 ``Path.expanduser()``：config.py 把 HOME 改写为 backend/data/cache 后，
+    ``expanduser`` 会把 ``~/xxx`` 展开到缓存目录，导致环境变量指定的目录失效。
+    """
+    text = str(path)
+    home = _get_real_home()
+    if text == "~":
+        return home
+    if text.startswith("~/"):
+        return home / text[2:]
+    return Path(text)
+
+
 def _build_candidate() -> list[dict]:
     """构造路径候选列表（使用真实 HOME，绕过 config.py 覆盖）。
 
@@ -72,7 +87,7 @@ def _build_candidate() -> list[dict]:
             item = item.strip()
             if not item:
                 continue
-            root = Path(item).expanduser()
+            root = _expand_user_path(item)
             if not root.is_dir():
                 continue
             key = os.path.normcase(str(root))

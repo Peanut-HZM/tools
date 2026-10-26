@@ -55,8 +55,17 @@ _cli_path_cache: dict[str, Optional[str]] = {}
 
 
 def _expand_user(path: str) -> str:
-    """跨平台展开 ~ 路径"""
-    return os.path.expanduser(path)
+    """跨平台展开 ~ 路径。
+
+    注意：不能直接用 ``os.path.expanduser``。``app/config/config.py`` 在非桌面
+    模式下把 ``HOME`` 改写为 ``backend/data/cache``，``os.path.expanduser`` 会
+    基于这个被覆盖的 HOME 展开，导致 nvm / npm-global 等用户目录兜底路径
+    全部指向缓存目录而永不命中（后端因此找不到 ccusage）。
+    这里统一走 ``path_utils.expand_user_path``，它基于覆盖前捕获的 REAL_HOME 展开。
+    """
+    from app.utils.path_utils import expand_user_path
+
+    return expand_user_path(path)
 
 
 def _nvm_version_sort_key(path: str) -> tuple:

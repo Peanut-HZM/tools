@@ -43,6 +43,7 @@ from app.utils.agent_readers.base import (
     aggregate_records,
     collect_files,
     epoch_ms_to_local_date,
+    expand_user_path,
     iter_jsonl,
     lenient_obj,
     lenient_str,
@@ -90,7 +91,7 @@ def _claude_roots() -> list[Path]:
             item = item.strip()
             if not item:
                 continue
-            path = Path(item).expanduser()
+            path = expand_user_path(item)
             # 允许直接指向 projects 目录，此时取其父目录作为配置根
             if path.name == "projects" and path.is_dir():
                 path = path.parent
@@ -101,7 +102,7 @@ def _claude_roots() -> list[Path]:
     xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
     candidates = [home / ".claude"]
     if xdg:
-        candidates.insert(0, Path(xdg).expanduser() / "claude")
+        candidates.insert(0, expand_user_path(xdg) / "claude")
     for candidate in candidates:
         _add(candidate)
     return roots

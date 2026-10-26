@@ -23,6 +23,7 @@ import logging
 import os
 import platform
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -161,6 +162,19 @@ def real_home() -> Path:
     return Path.home()
 
 
+def expand_user_path(path: str) -> Path:
+    """把以 ``~`` 开头的路径展开为基于**真实家目录**的 Path。
+
+    不能用 ``Path.expanduser()``：``app/config/config.py`` 在非桌面模式下把
+    ``HOME`` 改写为 ``backend/data/cache``，``expanduser`` 会把环境变量里
+    的 ``~/xxx`` 展开到缓存目录，导致环境变量指定的 Agent 数据目录失效。
+    这里统一走 ``path_utils.expand_user_path``（基于覆盖前捕获的 REAL_HOME）。
+    """
+    from app.utils.path_utils import expand_user_path as _expand
+
+    return Path(_expand(str(path)))
+
+
 def env_path_list(env_name: str) -> list[Path]:
     """解析逗号分隔的环境变量路径列表，返回已存在的目录（去重、保持顺序）。"""
     raw = os.environ.get(env_name, "")
@@ -170,7 +184,7 @@ def env_path_list(env_name: str) -> list[Path]:
         item = item.strip()
         if not item:
             continue
-        path = Path(item).expanduser()
+        path = expand_user_path(item)
         key = os.path.normcase(str(path))
         if path.is_dir() and key not in seen:
             seen.add(key)
@@ -185,11 +199,17 @@ def env_path_list(env_name: str) -> list[Path]:
 def collect_files(root: Path, extensions: Iterable[str]) -> list[Path]:
     """递归收集指定扩展名的文件，按路径排序。
 
-    对齐 ccusage ``collect_files_with_extension``：递归、扩展名精确匹配
-    （大小写敏感）、只取文件、缺失目录静默返回空列表。
+    对齐 ccusage ``collect_files_with_extension``：递归、扩展名匹配
+    （大小写不敏感）、只取文件、缺失目录静默返回空列表。
+
+    扩展名按 **文件名后缀** 匹配（``name.endswith(ext)``），因此支持
+    ``.jsonl.zst`` 这类复合后缀 —— ``Path.suffix`` 只能取到最后一段
+    （``"x.jsonl.zst"`` 的 suffix 是 ``".zst"``），无法表达复合后缀。
     """
-    wanted = {ext.lower() for ext in extensions}
+    wanted = tuple(ext.lower() for ext in extensions if ext)
     found: list[Path] = []
+    if not wanted:
+        return found
     if not root.is_dir():
         return found
     try:
@@ -200,7 +220,7 @@ def collect_files(root: Path, extensions: Iterable[str]) -> list[Path]:
         try:
             if entry.is_dir():
                 found.extend(collect_files(entry, wanted))
-            elif entry.is_file() and entry.suffix.lower() in wanted:
+            elif entry.is_file() and entry.name.lower().endswith(wanted):
                 found.append(entry)
         except OSError:
             continue
@@ -211,20 +231,43 @@ def iter_jsonl(path: Path) -> Iterator[dict]:
     """逐行解析 JSONL，跳过无法解析的行。
 
     对齐 ccusage ``jsonl::records``：单行解析失败只丢该行，绝不中断整个文件。
+
+    自动识别 ``.zst`` 结尾的压缩文件（zstd），用流式解压逐行读取，
+    避免把大文件整体读进内存。压缩流损坏时只跳过该文件。
     """
     try:
+        if str(path).lower().endswith(".zst"):
+            with _open_zst_text(path) as handle:
+                yield from _iter_jsonl_lines(handle)
+            return
         with path.open("r", encoding="utf-8", errors="replace") as handle:
-            for line in handle:
-                if not line.strip():
-                    continue
-                try:
-                    obj = json.loads(line)
-                except (ValueError, TypeError):
-                    continue
-                if isinstance(obj, dict):
-                    yield obj
+            yield from _iter_jsonl_lines(handle)
     except OSError as exc:
         logger.debug("[agent-readers] 读取文件失败 %s: %s", path, exc)
+    except Exception as exc:  # zstd 压缩流损坏等异常只丢该文件
+        logger.warning("[agent-readers] 解析文件失败 %s: %s", path, exc)
+
+
+def _iter_jsonl_lines(handle: Iterable[str]) -> Iterator[dict]:
+    """把文本行流解析为 JSON 对象，跳过空行与解析失败的行。"""
+    for line in handle:
+        if not line.strip():
+            continue
+        try:
+            obj = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(obj, dict):
+            yield obj
+
+
+@contextmanager
+def _open_zst_text(path: Path):
+    """以文本模式流式打开 zstd 压缩文件。"""
+    import zstandard
+
+    with zstandard.open(path, "rt", encoding="utf-8", errors="replace") as handle:
+        yield handle
 
 
 # ---------------------------------------------------------------------------
