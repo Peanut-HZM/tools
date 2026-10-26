@@ -8,6 +8,7 @@
 import json
 import logging
 from typing import List, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -158,13 +159,14 @@ async def create_model(
 
 @router.get("/{model_id}", response_model=ModelResponse)
 async def get_model(
-    model_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    model_id: UUID,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """获取单个模型详情"""
     svc = LLMModelService(db)
-    m = svc.get_model(model_id)
+    m = svc.get_model(str(model_id))
     if not m:
         raise HTTPException(status_code=404, detail="模型不存在")
     return _model_to_dict(m)
@@ -172,7 +174,8 @@ async def get_model(
 
 @router.put("/{model_id}", response_model=ModelResponse)
 async def update_model(
-    model_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    model_id: UUID,
     body: ModelUpdate,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
@@ -180,7 +183,7 @@ async def update_model(
     """更新模型"""
     svc = LLMModelService(db)
     update_data = {k: v for k, v in body.dict().items() if v is not None}
-    m = svc.update_model(model_id, **update_data)
+    m = svc.update_model(str(model_id), **update_data)
     if not m:
         raise HTTPException(status_code=404, detail="模型不存在")
     return _model_to_dict(m)
@@ -188,13 +191,14 @@ async def update_model(
 
 @router.delete("/{model_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_model(
-    model_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    model_id: UUID,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """删除模型"""
     svc = LLMModelService(db)
-    ok = svc.delete_model(model_id)
+    ok = svc.delete_model(str(model_id))
     if not ok:
         raise HTTPException(status_code=404, detail="模型不存在")
     return None
@@ -202,14 +206,15 @@ async def delete_model(
 
 @router.post("/{model_id}/set-default")
 async def set_default_model(
-    model_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    model_id: UUID,
     body: SetDefaultRequest = SetDefaultRequest(),
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """设置模型为默认（全局或分类）"""
     svc = LLMModelService(db)
-    ok = svc.set_default(model_id, category=body.category)
+    ok = svc.set_default(str(model_id), category=body.category)
     if not ok:
         raise HTTPException(status_code=404, detail="模型不存在")
-    return {"message": "已设为默认", "model_id": model_id, "category": body.category}
+    return {"message": "已设为默认", "model_id": str(model_id), "category": body.category}

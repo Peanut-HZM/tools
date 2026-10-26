@@ -4,8 +4,11 @@ from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import psycopg2
+from sqlalchemy.exc import DataError
 
 from app.api.routes import conversations, health, llm_config, messages, prd
 from app.config.config import settings
@@ -453,6 +456,50 @@ async def _scan_plugins() -> None:
 
 app = FastAPI(title="Tool Aggregation API", lifespan=lifespan)
 
+
+# ---------------------------------------------------------------------------
+# 全局异常处理：ID 格式非法导致的数据库类型转换错误
+# ---------------------------------------------------------------------------
+# 路径/查询参数里的 ID 若不是合法 UUID，透传到 UUID 列时 PostgreSQL 会抛
+# InvalidTextRepresentation，默认响应是 500（服务端错误），语义上并不准确 ——
+# 这类请求属于「资源不存在 / ID 格式非法」，应返回 404。
+#
+# 注意：SQLAlchemy ORM 会把 psycopg2 异常包装成 sqlalchemy.exc.DataError
+# （其 .orig 才是原始 psycopg2 异常），所以两种入口都要处理；
+# 且 DataError 还涵盖数值溢出、长度超限等其他错误，只有 .orig 命中
+# InvalidTextRepresentation 时才转 404，其余保持原有 500 行为不变。
+@app.exception_handler(psycopg2.errors.InvalidTextRepresentation)
+async def invalid_text_representation_handler(
+    request: Request, exc: psycopg2.errors.InvalidTextRepresentation
+):
+    logger.warning(
+        "请求参数 ID 格式非法（按资源不存在处理）: path=%s err=%s",
+        request.url.path,
+        str(exc).splitlines()[0] if str(exc) else "",
+    )
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "资源不存在或 ID 格式非法"},
+    )
+
+
+@app.exception_handler(DataError)
+async def db_data_error_handler(request: Request, exc: DataError):
+    """SQLAlchemy 数据类异常：仅 ID 格式非法转 404，其余原样抛出保持 500"""
+    orig = getattr(exc, "orig", None)
+    if isinstance(orig, psycopg2.errors.InvalidTextRepresentation):
+        logger.warning(
+            "请求参数 ID 格式非法（按资源不存在处理）: path=%s err=%s",
+            request.url.path,
+            str(orig).splitlines()[0] if str(orig) else "",
+        )
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "资源不存在或 ID 格式非法"},
+        )
+    # 其它数据类错误（数值溢出、长度超限等）不属于 ID 格式问题，保持原行为
+    raise exc
+
 # Configure CORS - Updated to support Authorization header
 cors_origins = settings.CORS_ORIGINS.split(",")
 
@@ -564,6 +611,16 @@ app.include_router(chat_stream.router, prefix="/api/v1")
 
 # Admin conversation management router
 app.include_router(admin_conversations.router, prefix="/api/v1")
+
+# 竞品分析 router
+from app.api.routes import competitor
+
+app.include_router(competitor.router, prefix="/api/v1")
+
+# 视频生成工具 router
+from app.api.routes import tools_video_generation
+
+app.include_router(tools_video_generation.router, prefix="/api/v1")
 
 # Harness admin/mcp/servers router (Phase 3-Plan-1A Task 4)
 from app.api.routes import admin_mcp_servers

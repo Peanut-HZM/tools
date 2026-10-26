@@ -15,8 +15,9 @@ import {
   type Message,
 } from '../../../services/conversationApi';
 import { getAuthHeaders } from '../../../api/authApi';
+import { API_V1_BASE_URL } from '../../../utils/apiBase';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = API_V1_BASE_URL;
 const CONV_STORAGE_KEY = 'video-gen-conversation-id';
 
 function isSafeUrl(url: string): boolean {

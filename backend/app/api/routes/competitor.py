@@ -3,6 +3,7 @@
 """
 
 from typing import List, Optional
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -47,7 +48,9 @@ class CompetitorAnalysisResponse(BaseModel):
 
 @router.get("/{conversation_id}", response_model=CompetitorAnalysisResponse)
 async def get_competitor_analysis(
-    conversation_id: str,
+    # 用 UUID 类型做入参校验：非法格式由 FastAPI 直接返回 422，
+    # 避免把脏值透传到 UUID 列触发 PostgreSQL 报错（500）
+    conversation_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -55,7 +58,7 @@ async def get_competitor_analysis(
     获取竞品分析结果
     """
     service = CompetitorAnalyzerService(db)
-    analysis = service.get_analysis(conversation_id)
+    analysis = service.get_analysis(str(conversation_id))
 
     if not analysis:
         raise HTTPException(
@@ -73,7 +76,7 @@ async def get_competitor_analysis(
 
 @router.post("/{conversation_id}", status_code=status.HTTP_201_CREATED)
 async def create_competitor_analysis(
-    conversation_id: str,
+    conversation_id: UUID,
     request: CompetitorAnalysisRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -84,12 +87,12 @@ async def create_competitor_analysis(
     service = CompetitorAnalyzerService(db)
 
     analysis = await service.analyze_and_save(
-        conversation_id=conversation_id,
+        conversation_id=str(conversation_id),
         keyword=request.keyword,
     )
 
     return {
         "id": str(analysis.id),
-        "conversation_id": str(analysis.competitors),
+        "conversation_id": str(analysis.conversation_id),
         "status": "completed",
     }

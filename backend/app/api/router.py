@@ -28,8 +28,9 @@ api_router.include_router(prd.router, tags=["PRD管理"])
 api_router.include_router(competitor.router, tags=["竞品分析"])
 
 # 大模型配置（管理员）
+# router 自身 prefix 已是 /admin，这里不再叠加，否则会变成 /api/v1/admin/admin/...
 api_router.include_router(
-    llm_config.router, prefix="/admin", tags=["大模型配置（管理员）"]
+    llm_config.router, tags=["大模型配置（管理员）"]
 )
 
 # 聊天流（Server-Sent Events）
@@ -39,8 +40,9 @@ api_router.include_router(chat_stream.router, tags=["聊天流"])
 api_router.include_router(tools_video_generation.router, tags=["视频生成工具"])
 
 # 管理员会话管理
+# router 自身 prefix 已是 /admin/conversations，这里不再叠加
 api_router.include_router(
-    admin_conversations.router, prefix="/admin", tags=["管理员会话管理"]
+    admin_conversations.router, tags=["管理员会话管理"]
 )
 
 # Agent 管理

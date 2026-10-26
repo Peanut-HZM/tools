@@ -7,6 +7,7 @@
 
 import logging
 from typing import List, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -148,13 +149,14 @@ async def create_provider(
 
 @router.get("/{provider_id}", response_model=ProviderResponse)
 async def get_provider(
-    provider_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    provider_id: UUID,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """获取单个供应商详情"""
     svc = LLMProviderService(db)
-    p = svc.get_provider(provider_id)
+    p = svc.get_provider(str(provider_id))
     if not p:
         raise HTTPException(status_code=404, detail="供应商不存在")
     return _provider_to_dict(p)
@@ -162,7 +164,8 @@ async def get_provider(
 
 @router.put("/{provider_id}", response_model=ProviderResponse)
 async def update_provider(
-    provider_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    provider_id: UUID,
     body: ProviderUpdate,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
@@ -171,7 +174,7 @@ async def update_provider(
     svc = LLMProviderService(db)
     update_data = {k: v for k, v in body.dict().items() if v is not None}
     try:
-        p = svc.update_provider(provider_id, **update_data)
+        p = svc.update_provider(str(provider_id), **update_data)
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="provider with this api_key already exists")
@@ -182,14 +185,15 @@ async def update_provider(
 
 @router.delete("/{provider_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_provider(
-    provider_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    provider_id: UUID,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """删除供应商"""
     svc = LLMProviderService(db)
     try:
-        ok = svc.delete_provider(provider_id)
+        ok = svc.delete_provider(str(provider_id))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if not ok:
@@ -199,40 +203,43 @@ async def delete_provider(
 
 @router.post("/{provider_id}/toggle")
 async def toggle_provider(
-    provider_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    provider_id: UUID,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """切换供应商启用/禁用状态"""
     svc = LLMProviderService(db)
-    p = svc.get_provider(provider_id)
+    p = svc.get_provider(str(provider_id))
     if not p:
         raise HTTPException(status_code=404, detail="供应商不存在")
-    svc.set_active(provider_id, not p.is_active)
+    svc.set_active(str(provider_id), not p.is_active)
     return {"id": str(p.id), "is_active": not p.is_active}
 
 
 @router.post("/{provider_id}/test", response_model=TestConnectionResponse)
 async def test_provider_connection(
-    provider_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    provider_id: UUID,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """测试供应商连通性"""
     svc = LLMProviderService(db)
-    ok, msg, latency = await svc.test_connection(provider_id)
+    ok, msg, latency = await svc.test_connection(str(provider_id))
     return TestConnectionResponse(success=ok, message=msg, latency_ms=latency)
 
 
 @router.post("/{provider_id}/reveal", response_model=RevealResponse)
 async def reveal_provider_key(
-    provider_id: str,
+    # 用 UUID 类型做入参校验：非法格式直接 422，避免脏值透传到 uuid.UUID() 抛 500
+    provider_id: UUID,
     db: Session = Depends(get_db),
     _admin: dict = Depends(require_admin),
 ):
     """揭示供应商 API Key 明文（仅管理员）"""
     svc = LLMProviderService(db)
-    key = svc.reveal_api_key(provider_id)
+    key = svc.reveal_api_key(str(provider_id))
     if key is None:
         raise HTTPException(status_code=404, detail="供应商不存在")
     return RevealResponse(api_key=key)

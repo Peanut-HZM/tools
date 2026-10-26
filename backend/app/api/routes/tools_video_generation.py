@@ -1,6 +1,10 @@
 """视频生成工具页面支撑 API
 
 - GET /api/v1/tools/video-generation/agent   获取（并确保存在）视频生成助手 Agent
+
+说明：router 自身只声明相对路径（/tools/video-generation），
+由 main.py 统一以 prefix="/api/v1" 挂载 —— 与项目其余 router 约定一致，
+避免把 /api/v1 写死在 router prefix 里造成双重前缀。
 """
 import logging
 
@@ -11,7 +15,7 @@ from app.api.dependencies import get_db, get_current_user
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/tools/video-generation", tags=["tools-video-generation"])
+router = APIRouter(prefix="/tools/video-generation", tags=["tools-video-generation"])
 
 
 @router.get("/agent")
