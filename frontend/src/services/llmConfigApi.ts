@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { getAuthToken } from '../api/authApi';
+import { API_V1_BASE_URL } from '../utils/apiBase';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = API_V1_BASE_URL;
 
 const getAuthHeaders = () => {
   const token = getAuthToken();

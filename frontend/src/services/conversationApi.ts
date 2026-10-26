@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { getAuthToken } from '../api/authApi';
 import { authedFetch } from '../api/http';
+import { API_V1_BASE_URL } from '../utils/apiBase';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = API_V1_BASE_URL;
 
 // 获取认证头
 const getAuthHeaders = () => {
