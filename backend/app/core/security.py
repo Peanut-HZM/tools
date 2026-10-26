@@ -16,6 +16,7 @@
 """
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.exceptions import InvalidTag
 import base64
 import os
 
@@ -26,6 +27,13 @@ LLM_MASTER_KEY_ID = "llm_master_key"
 
 # 密文版本前缀
 _VERSION_PREFIX = "v1:"
+
+# 解密失败时的统一可读错误（替代 cryptography 的 InvalidTag 原始异常）
+_DECRYPT_FAILED_MESSAGE = (
+    "API Key 密文无法解密：主密钥与该密文不匹配"
+    "（密钥被改动，或该数据来自其他环境的主密钥），"
+    "请重新录入该供应商的 API Key"
+)
 
 
 def _load_master_key() -> bytes:
@@ -70,9 +78,14 @@ def decrypt_api_key(encrypted_api_key: str) -> str:
 
     encrypted_data = base64.b64decode(data.encode("utf-8"))
     # 提取 iv (前12字节)
+    if len(encrypted_data) <= 12:
+        raise ValueError("API Key 密文长度异常，无法解密，请重新录入该供应商的 API Key")
     iv = encrypted_data[:12]
     ciphertext = encrypted_data[12:]
 
-    aesgcm = AESGCM(_load_master_key())
-    plaintext_bytes = aesgcm.decrypt(iv, ciphertext, None)
+    try:
+        aesgcm = AESGCM(_load_master_key())
+        plaintext_bytes = aesgcm.decrypt(iv, ciphertext, None)
+    except InvalidTag as e:
+        raise ValueError(_DECRYPT_FAILED_MESSAGE) from e
     return plaintext_bytes.decode("utf-8")

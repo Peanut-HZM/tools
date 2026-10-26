@@ -23,6 +23,7 @@ from app.schemas.cross_share import (
     MessageType,
     FileType,
 )
+from app.utils.secure_storage import decrypt_text, encrypt_text
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ class CrossShareService:
             "id": str(message.id) if message.id else None,
             "user_id": str(message.user_id) if message.user_id else None,
             "from_device_id": str(message.from_device_id) if message.from_device_id else None,
-            "content": str(message.content) if message.content is not None else None,
+            "content": decrypt_text(str(message.content)) if message.content is not None else None,
             "message_type": str(msg_type) if msg_type is not None else "text",
             "file_id": str(message.file_id) if message.file_id else None,
             "is_encrypted": bool(message.is_encrypted) if message.is_encrypted is not None else False,
@@ -206,7 +207,7 @@ class CrossShareService:
                 "id": str(mapping["id"]) if mapping["id"] else None,
                 "user_id": str(mapping["user_id"]) if mapping["user_id"] else None,
                 "from_device_id": str(mapping["from_device_id"]) if mapping["from_device_id"] else None,
-                "content": mapping["content"],
+                "content": decrypt_text(mapping["content"]) if mapping["content"] else mapping["content"],
                 "message_type": mapping["message_type"] or "text",
                 "file_id": str(mapping["file_id"]) if mapping["file_id"] else None,
                 "is_encrypted": bool(mapping["is_encrypted"]) if mapping["is_encrypted"] is not None else False,
@@ -227,14 +228,19 @@ class CrossShareService:
         ).first()
 
     def create_message(self, user_id: str, message: MessageCreate, from_device_id: Optional[str] = None) -> CrossMessage:
-        """创建消息"""
+        """创建消息
+
+        内容在服务端强制加密后入库（客户端传入的 is_encrypted 不再作为
+        「是否加密」的判据，服务端统一以密文形态存储，读取时由
+        MessageResponse 解密还原）。
+        """
         db_message = CrossMessage(
             user_id=user_id,
             from_device_id=from_device_id,
-            content=message.content,
+            content=encrypt_text(message.content) if message.content else message.content,
             message_type=message.message_type.value if isinstance(message.message_type, MessageType) else message.message_type,
             file_id=message.file_id,
-            is_encrypted=message.is_encrypted,
+            is_encrypted=True,
             expires_at=message.expires_at,
         )
         self.db.add(db_message)
@@ -261,7 +267,9 @@ class CrossShareService:
             return None
 
         if content is not None:
-            db_message.content = content
+            # 内容统一以密文形态入库
+            db_message.content = encrypt_text(content)
+            db_message.is_encrypted = True
         if message_type is not None:
             db_message.message_type = message_type
 

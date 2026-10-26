@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 # 历史遗留密钥来源（仅用于解密旧数据，不再用于加密新数据）
 _LEGACY_DEFAULT_KEY = "openclaw-default-key-32bytes!!"
 
+# Fernet token 的固定前缀：版本字节 0x80 base64 编码后必然以 "gAAAAA" 开头
+_FERNET_TOKEN_PREFIX = "gAAAAA"
+
 
 def _fernet_from_str(key_str: str) -> Fernet:
     """由字符串派生 Fernet 实例（与旧版 _get_encryption_key 逻辑一致）"""
@@ -53,12 +56,21 @@ def _legacy_ciphers() -> list:
     return ciphers
 
 
-ENCRYPTED_KEYS = {"password"}  # 需要加密的字段
+# 需要加密的字段（token 与 password 同属 Gateway 凭据，必须加密入库）
+ENCRYPTED_KEYS = {"password", "token"}
+
+
+def is_fernet_cipher(value: str) -> bool:
+    """判断是否为 Fernet 密文（版本字节 0x80 -> base64 后固定前缀 gAAAAA）"""
+    return bool(value) and value.startswith(_FERNET_TOKEN_PREFIX)
 
 
 def encrypt_value(value: str) -> str:
     """加密值（始终使用当前 key-in-DB 密钥）"""
     if not value:
+        return value
+    # 幂等保护：已经是密文的值不重复加密，避免二次加密导致无法解密
+    if is_fernet_cipher(value):
         return value
     return _get_cipher().encrypt(value.encode("utf-8")).decode("utf-8")
 
@@ -70,6 +82,10 @@ def decrypt_value(value: str) -> str:
     并提示重新保存以完成迁移；全部失败时保持旧行为原样返回。
     """
     if not value:
+        return value
+    # 历史明文数据（加密功能上线前写入的 token 等）：不是 Fernet 形态，直接原样返回，
+    # 不走密钥探测，避免每次读取都刷解密失败日志
+    if not is_fernet_cipher(value):
         return value
     try:
         return _get_cipher().decrypt(value.encode("utf-8")).decode("utf-8")
@@ -186,17 +202,22 @@ class OpenClawConfigService:
             conn = get_pooled_db_connection()
             with conn.cursor() as cur:
                 for key, value in data.items():
-                    if key in DEFAULT_CONFIGS:
-                        # 加密敏感字段
-                        store_value = encrypt_value(value) if key in ENCRYPTED_KEYS else value
-                        cur.execute(
-                            """
-                            UPDATE openclaw_configs
-                            SET config_value = %s, updated_at = CURRENT_TIMESTAMP
-                            WHERE config_key = %s
-                            """,
-                            (store_value, key),
-                        )
+                    if key not in DEFAULT_CONFIGS:
+                        continue
+                    # None 表示「该字段不修改」——config_value 是 NOT NULL 列，
+                    # 直接写 NULL 会触发约束异常（前端「留空不修改」语义）
+                    if value is None:
+                        continue
+                    # 加密敏感字段
+                    store_value = encrypt_value(value) if key in ENCRYPTED_KEYS else value
+                    cur.execute(
+                        """
+                        UPDATE openclaw_configs
+                        SET config_value = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE config_key = %s
+                        """,
+                        (store_value, key),
+                    )
                 conn.commit()
             logger.info(f"OpenClaw config updated: {list(data.keys())}")
             return self.get_config()

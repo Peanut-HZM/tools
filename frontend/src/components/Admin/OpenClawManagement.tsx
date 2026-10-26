@@ -46,7 +46,7 @@ export default function OpenClawManagement() {
       const data = await getOpenClawConfig();
       setConfig(data);
       setGatewayUrl(data.gateway_url || '');
-      setToken(data.token || ''); // Token 回显
+      setToken(''); // Token 不回显明文：留空表示不修改
       setUsername(data.username || '');
       setPassword(''); // 密码不回显密文
       setEnabled(data.enabled || 'true');
@@ -142,7 +142,8 @@ export default function OpenClawManagement() {
         auth_mode: config?.auth_mode || 'token',
         username: config?.auth_mode === 'token_with_password' ? config?.username : undefined,
         password: undefined,
-        token: config?.token || undefined,
+        // 不传 token：由后端取已保存配置中的凭据，避免明文流经前端
+        token: undefined,
       });
       setStatusTestResult({ ok: result.ok, message: result.message });
     } catch (err: any) {
@@ -330,7 +331,7 @@ export default function OpenClawManagement() {
                 type={showToken ? 'text' : 'password'}
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                placeholder="留空表示不修改"
+                placeholder={config?.token_configured ? '已配置（留空表示不修改）' : '留空表示不修改'}
                 className="w-full bg-canvas text-ink border border-border rounded-lg px-4 py-2.5 pr-12 focus:outline-none focus:border-accent-info font-mono"
               />
               <button
@@ -345,6 +346,7 @@ export default function OpenClawManagement() {
                           )}
               </button>
             </div>
+            <p className="text-ink-faint text-xs mt-1">Token 已加密入库，保存后不再回显明文；留空表示保留当前值</p>
             <p className="text-warning/70 text-xs mt-1">💡 保存配置后将自动尝试连接，如果连接失败会在页面顶部显示错误信息。建议先点击"测试连接"验证配置</p>
           </div>
           <div>

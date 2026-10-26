@@ -37,8 +37,67 @@ from app.models.http_client_models import (
     RequestHistoryCreate, AssertionResult,
     KeyValueItem, normalize_kv, kv_to_list_payload,
 )
+from app.utils.secure_storage import CIPHER_PREFIX, decrypt_text, encrypt_text
+from app.utils.sensitive_redactor import redact_structure
 
 logger = logging.getLogger(__name__)
+
+
+# ============= 凭据字段的加密存取 =============
+
+def encode_secret_json(value: Any) -> Optional[str]:
+    """敏感 JSON 结构加密后以 JSON 字符串形态存储
+
+    auth_config / headers / variables 这几列在库中是 JSON 类型，
+    密文本身不是合法 JSON，因此用 json.dumps 包一层，保证列类型不变。
+    """
+    if value is None:
+        return None
+    if value == "" or value == {} or value == []:
+        return json.dumps(value)
+    plain = json.dumps(value, ensure_ascii=False, default=str)
+    return json.dumps(encrypt_text(plain), ensure_ascii=False)
+
+
+def decode_secret_json(raw: Any) -> Any:
+    """解密敏感 JSON 结构
+
+    注意：JSON/JSONB 列读出来时，psycopg2 会把 JSON 字符串解析为 Python str，
+    密文形态是「不带引号的 enc:v1:...」，不是 JSON 文本，
+    因此必须先按前缀判定密文，再走解密，不能直接 json.loads。
+    """
+    if raw is None:
+        return raw
+    if isinstance(raw, (dict, list)):
+        return raw
+    if isinstance(raw, str):
+        if raw.startswith(CIPHER_PREFIX):
+            return json.loads(decrypt_text(raw))
+        # 历史明文：可能是 JSON 文本，也可能只是普通字符串
+        try:
+            return json.loads(raw)
+        except (TypeError, ValueError):
+            return raw
+    return raw
+
+
+def _decrypt_row_secrets(row: Optional[Dict]) -> Optional[Dict]:
+    """解密请求记录中的凭据列（auth_config / headers）"""
+    if row is None:
+        return row
+    for key in ("auth_config", "headers"):
+        if key in row:
+            row[key] = decode_secret_json(row[key])
+    return row
+
+
+def _decrypt_env_secrets(row: Optional[Dict]) -> Optional[Dict]:
+    """解密环境记录中的 variables 列"""
+    if row is None:
+        return row
+    if "variables" in row:
+        row["variables"] = decode_secret_json(row["variables"])
+    return row
 
 
 # ============= 轻量 JSONPath 求值器 =============
@@ -533,7 +592,10 @@ class HttpClientService:
                     WHERE collection_id = %s
                     ORDER BY sort_order, created_at
                 """, (collection_id,))
-                return cur.fetchall()
+                rows = cur.fetchall()
+                for row in rows:
+                    _decrypt_row_secrets(row)
+                return rows
         except Exception as e:
             logger.error(f"Error fetching requests: {e}")
             return []
@@ -551,7 +613,7 @@ class HttpClientService:
                     SELECT * FROM http_requests
                     WHERE id = %s
                 """, (request_id,))
-                return cur.fetchone()
+                return _decrypt_row_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error fetching request: {e}")
             return None
@@ -579,20 +641,22 @@ class HttpClientService:
                     request.name,
                     request.method,
                     request.url,
-                    json.dumps(request.headers),
+                    # headers 可能包含 Authorization 等凭据，auth_config 本身即凭据 → 加密入库
+                    encode_secret_json(request.headers),
                     json.dumps(request.params),
                     request.body_type,
                     request.body,
                     json.dumps(request.form_data or []),
                     request.auth_type,
-                    json.dumps(request.auth_config),
+                    encode_secret_json(request.auth_config),
                     json.dumps(request.extract_variables),
                     json.dumps(request.assertions),
                     request.description,
                     request.sort_order,
                 ))
                 conn.commit()
-                return cur.fetchone()
+                # RETURNING * 带出的是密文，返回前统一解密
+                return _decrypt_row_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error creating request: {e}")
             if conn:
@@ -621,7 +685,7 @@ class HttpClientService:
                 values.append(request.url)
             if request.headers is not None:
                 updates.append("headers = %s")
-                values.append(json.dumps(request.headers))
+                values.append(encode_secret_json(request.headers))
             if request.params is not None:
                 updates.append("params = %s")
                 values.append(json.dumps(request.params))
@@ -639,7 +703,7 @@ class HttpClientService:
                 values.append(request.auth_type)
             if request.auth_config is not None:
                 updates.append("auth_config = %s")
-                values.append(json.dumps(request.auth_config))
+                values.append(encode_secret_json(request.auth_config))
             if request.extract_variables is not None:
                 updates.append("extract_variables = %s")
                 values.append(json.dumps(request.extract_variables))
@@ -669,7 +733,8 @@ class HttpClientService:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(query, values)
                 conn.commit()
-                return cur.fetchone()
+                # RETURNING * 带出的是密文，返回前统一解密
+                return _decrypt_row_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error updating request: {e}")
             if conn:
@@ -713,7 +778,10 @@ class HttpClientService:
                     WHERE workspace_id = %s
                     ORDER BY created_at
                 """, (workspace_id,))
-                return cur.fetchall()
+                rows = cur.fetchall()
+                for row in rows:
+                    _decrypt_env_secrets(row)
+                return rows
         except Exception as e:
             logger.error(f"Error fetching environments: {e}")
             return []
@@ -731,7 +799,7 @@ class HttpClientService:
                     SELECT * FROM http_environments
                     WHERE workspace_id = %s AND is_active = TRUE
                 """, (workspace_id,))
-                return cur.fetchone()
+                return _decrypt_env_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error fetching active environment: {e}")
             return None
@@ -765,11 +833,12 @@ class HttpClientService:
                     request.name,
                     request.workspace_id,
                     request.base_url,
-                    json.dumps(request.variables),
+                    # 环境变量中可能存放 token / 密钥 → 加密入库
+                    encode_secret_json(request.variables),
                     request.is_active,
                 ))
                 conn.commit()
-                return cur.fetchone()
+                return _decrypt_env_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error creating environment: {e}")
             if conn:
@@ -795,7 +864,7 @@ class HttpClientService:
                 values.append(request.base_url.rstrip('/') if request.base_url else '')
             if request.variables is not None:
                 updates.append("variables = %s")
-                values.append(json.dumps(request.variables))
+                values.append(encode_secret_json(request.variables))
             if request.is_active is not None:
                 updates.append("is_active = %s")
                 values.append(request.is_active)
@@ -826,7 +895,7 @@ class HttpClientService:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(query, values)
                 conn.commit()
-                return cur.fetchone()
+                return _decrypt_env_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error updating environment: {e}")
             if conn:
@@ -846,7 +915,7 @@ class HttpClientService:
                     SELECT * FROM http_environments
                     WHERE id = %s
                 """, (env_id,))
-                return cur.fetchone()
+                return _decrypt_env_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error fetching environment: {e}")
             return None
@@ -875,7 +944,7 @@ class HttpClientService:
                     RETURNING *
                 """, (env_id,))
                 conn.commit()
-                return cur.fetchone()
+                return _decrypt_env_secrets(cur.fetchone())
         except Exception as e:
             logger.error(f"Error activating environment: {e}")
             if conn:
@@ -1656,8 +1725,10 @@ class HttpClientService:
                     url,
                     status_code,
                     response_time,
-                    json.dumps(request_data),
-                    json.dumps(response_data),
+                    # request_data 内含实际发出的请求头（可能带 Authorization 等凭据）→ 加密入库
+                    encode_secret_json(request_data),
+                    # response_data 保持可读，仅遮蔽其中的凭据形态
+                    json.dumps(redact_structure(response_data), ensure_ascii=False, default=str),
                 ))
                 conn.commit()
         except Exception as e:
@@ -1680,7 +1751,13 @@ class HttpClientService:
                     ORDER BY timestamp DESC
                     LIMIT %s
                 """, (user_id, limit))
-                return cur.fetchall()
+                rows = cur.fetchall()
+                for row in rows:
+                    if "request_data" in row:
+                        row["request_data"] = decode_secret_json(row["request_data"])
+                    if "response_data" in row:
+                        row["response_data"] = decode_secret_json(row["response_data"])
+                return rows
         except Exception as e:
             logger.error(f"Error fetching history: {e}")
             return []

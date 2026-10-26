@@ -139,8 +139,11 @@ export interface OpenClawConfig {
   auth_mode: string;
   username: string;
   password: string;
+  /** 明文 Token 不再由后端回显，始终为空串 */
   token: string;
   token_masked: string;
+  /** 是否已配置 Token（True 时表单留空表示不修改） */
+  token_configured: boolean;
   enabled: string;
   connected: boolean;
 }

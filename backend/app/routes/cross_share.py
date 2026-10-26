@@ -38,6 +38,7 @@ from app.schemas.cross_share import (
     FileType,
 )
 from app.services.auth_service import get_auth_service
+from app.utils.secure_storage import decrypt_text
 
 router = APIRouter(prefix="/api/cross-share", tags=["cross-share"])
 
@@ -343,7 +344,8 @@ async def get_messages(
                     "id": str(row["id"]) if row["id"] else None,
                     "user_id": row["user_id"],
                     "from_device_id": str(row["from_device_id"]) if row["from_device_id"] else None,
-                    "content": row["content"],
+                    # 库中为密文，输出前解密（历史明文数据原样返回）
+                    "content": decrypt_text(row["content"]) if row["content"] else row["content"],
                     "message_type": row["message_type"] or "text",
                     "file_id": str(row["file_id"]) if row["file_id"] else None,
                     "is_encrypted": bool(row["is_encrypted"]) if row["is_encrypted"] is not None else False,

@@ -38,16 +38,22 @@ class ConfigUpdateRequest(BaseModel):
 
 @router.get("/config")
 async def get_config(admin_user: UserResponse = Depends(get_admin_user)):
-    """获取当前配置（密码和 Token 脱敏）"""
+    """获取当前配置（密码与 Token 均不回显明文）"""
     config = openclaw_config_service.get_config()
     connection_info = openclaw_service.get_connection_info()
     # 密码脱敏
     password = config.get("password", "")
     config["password"] = "****" + password[-4:] if len(password) > 4 else ("****" if password else "")
-    # 保存完整 token 用于表单回显，脱敏值用于状态卡片展示
+    # Token 不再回显明文：仅返回掩码与「是否已配置」，避免凭据经 API 落到浏览器
     real_token = config.get("token", "")
     masked_token = connection_info.get("token", "")
-    return {**config, **connection_info, "token": real_token, "token_masked": masked_token}
+    return {
+        **config,
+        **connection_info,
+        "token": "",
+        "token_masked": masked_token,
+        "token_configured": bool(real_token),
+    }
 
 
 @router.put("/config")
@@ -145,13 +151,21 @@ async def test_connection(
     import time
     from websockets import connect as ws_connect
 
+    # 未提供凭据时回退到「已保存配置」中的凭据（服务端内部解密，不经 API 外传）
+    token = request.token
+    password = request.password
+    if not token or (request.auth_mode == "token_with_password" and not password):
+        saved = openclaw_config_service.get_config()
+        token = token or saved.get("token", "")
+        password = password or saved.get("password", "")
+
     url = request.gateway_url
     # 根据认证模式决定是否嵌入用户名密码
-    if request.auth_mode == "token_with_password" and request.username and request.password:
+    if request.auth_mode == "token_with_password" and request.username and password:
         if url.startswith("ws://"):
-            url = url.replace("ws://", f"ws://{request.username}:{request.password}@", 1)
+            url = url.replace("ws://", f"ws://{request.username}:{password}@", 1)
         elif url.startswith("wss://"):
-            url = url.replace("wss://", f"wss://{request.username}:{request.password}@", 1)
+            url = url.replace("wss://", f"wss://{request.username}:{password}@", 1)
 
     # 禁用 SSL 证书验证（支持自签名证书）
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -199,7 +213,7 @@ async def test_connection(
                         "instanceId": str(uuid.uuid4()),
                     },
                     "caps": [],
-                    "auth": {"token": request.token} if request.token else None,
+                    "auth": {"token": token} if token else None,
                     "role": "operator",
                     "scopes": ["operator.admin", "operator.read", "operator.write"],
                 },

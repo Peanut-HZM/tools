@@ -53,6 +53,7 @@ from app.models.database_tool_models import (
 from app.services.backup_generators import get_generator
 from app.services.backup_storage import backup_storage
 from app.utils.encryption import EncryptionUtils
+from app.utils.sensitive_redactor import redact_sensitive, redact_structure
 from app.utils.db_connection_manager import DBConnectionManager
 from app.utils.sql_executor import (
     SQLExecutor,
@@ -1118,10 +1119,12 @@ class DatabaseToolService:
                 result_data_str = None
                 result_size = 0
                 if result.result_data:
-                    result_data_str = json.dumps(result.result_data)
+                    # 落库前脱敏：结果集里若含密钥/口令，按键名与值形态遮蔽
+                    redacted_data = redact_structure(result.result_data)
+                    result_data_str = json.dumps(redacted_data, default=str)
                     result_size = len(result_data_str)
                     if result_size > MAX_RESULT_DATA_SIZE:
-                        truncated = result.result_data[:100] if isinstance(result.result_data, list) else result.result_data
+                        truncated = redacted_data[:100] if isinstance(redacted_data, list) else redacted_data
                         result_data_str = json.dumps({
                             "__truncated__": True,
                             "original_size_bytes": result_size,
@@ -1146,12 +1149,13 @@ class DatabaseToolService:
                         history_id,
                         user_id,
                         request.db_config_id,
-                        request.sql,
+                        # 落库前脱敏：SQL 原文与错误信息里可能内嵌明文密钥/口令
+                        redact_sensitive(request.sql) if request.sql else request.sql,
                         result.sql_type,
                         "success" if result.success else "failed",
                         result.affected_rows,
                         int(result.execution_time_ms),
-                        result.error_message,
+                        redact_sensitive(result.error_message) if result.error_message else result.error_message,
                         result_data_str,
                         result_size,
                         datetime.now(),

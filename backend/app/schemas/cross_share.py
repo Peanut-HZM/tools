@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import Enum
 import uuid
 
+from app.utils.secure_storage import decrypt_text
+
 
 class MessageType(str, Enum):
     """消息类型"""
@@ -115,6 +117,18 @@ class MessageResponse(BaseModel):
     @classmethod
     def validate_uuid_fields(cls, v):
         return str(v) if v else v
+
+    @field_validator('content', mode='before')
+    @classmethod
+    def decrypt_content(cls, v):
+        """消息内容在库中以密文存储，输出前统一解密
+
+        历史明文数据（加密上线前写入）没有 enc:v1: 前缀，
+        decrypt_text 会原样返回，不会误伤。
+        """
+        if v is None:
+            return v
+        return decrypt_text(v)
 
     @field_validator('message_type', mode='before')
     @classmethod
