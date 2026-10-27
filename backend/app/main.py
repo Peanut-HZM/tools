@@ -23,7 +23,6 @@ from app.routes import (
     course_platform,
     course_platform_admin,
     cross_share,
-    cursor_history,
     database_tool,
     deploy,
     http_client,
@@ -650,9 +649,6 @@ app.include_router(admin_llm_models.router, prefix="/api/v1")
 
 # Contact Message router
 app.include_router(contact_message.router)
-
-# Cursor History router
-app.include_router(cursor_history.router, prefix="/api")
 
 # Monitor router（服务器监控）
 app.include_router(monitor_router.router, prefix="/api")

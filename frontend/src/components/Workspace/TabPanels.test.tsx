@@ -40,7 +40,7 @@ describe('TabPanels', () => {
       'database-tool', 'ssh-tool', 'markdown-editor', 'redis-tool', 'token-usage',
       'json-formatter', 'calendar', 'ai-assistant', 'key-generator', 'ocr-tool', 'ocr',
       'asr-tool', 'asr', 'markitdown-converter', 'learning-share', 'course-platform',
-      'cross-share', 'cursor-history', 'openclaw', 'product-manager', 'image-downloader',
+      'cross-share', 'openclaw', 'product-manager', 'image-downloader',
       'video-downloader', 'image-generation', 'video-generation', 'system-monitor',
     ]));
   });

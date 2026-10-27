@@ -30,7 +30,7 @@ def _get_real_home() -> Path:
     以隔离 paddleocr/huggingface 等库的缓存目录。但这会让 Path.home() 返回错误路径，
     导致需要访问真实用户目录的模块（如本模块的 ~/.zcode/cli/db/db.sqlite）找不到目标。
 
-    跨平台策略（与 cursor_history_service.py:28-34 一致）：
+    跨平台策略：
     - macOS/Linux: 通过 pwd 数据库查询当前用户的真实家目录（不依赖 $HOME）
     - Windows: 通过 %USERPROFILE% 环境变量获取（无 pwd 模块）
 

@@ -62,7 +62,6 @@ const RedisTool = lazy(() => import('./components/Tools/RedisTool/RedisTool'));
 const SSHTool = lazy(() => import('./components/Tools/SSHTool/SSHTool'));
 const ProductManagerAgent = lazy(() => import('./components/Tools/ProductManagerAgent'));
 const LearningSharePlatform = lazy(() => import('./components/Tools/LearningSharePlatform'));
-const CursorHistory = lazy(() => import('./components/Tools/CursorHistory/CursorHistory'));
 const HttpApiClient = lazy(() => import('./components/Tools/HttpApiClient/HttpApiClient'));
 const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
 const TokenUsage = lazy(() => import('./components/Tools/TokenUsage'));
@@ -361,7 +360,6 @@ function App() {
                     <Route path="product-manager/:conversationId" element={<ProductManagerAgent />} />
                     <Route path="learning-share" element={<LearningSharePlatform />} />
                     <Route path="cross-share" element={<CrossShareMain />} />
-                    <Route path="cursor-history" element={<CursorHistory />} />
                     <Route path="http-api-client" element={<HttpApiClient />} />
                     <Route path="system-monitor" element={<SystemMonitor />} />
                     <Route path="token-usage" element={<TokenUsage />} />

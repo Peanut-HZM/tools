@@ -164,16 +164,6 @@ TOOLS_DATA = [
         category="学习工具",
     ),
     Tool(
-        id="cursor-history",
-        icon="fa-clock-rotate-left",
-        iconColor="bg-violet-500",
-        title="Cursor 对话历史",
-        description="浏览和搜索本地 Cursor AI 的历史对话记录，支持按项目和会话分组查看",
-        rating=4.9,
-        usageCount="New",
-        category="开发工具",
-    ),
-    Tool(
         id="http-api-client",
         icon="fa-plug",
         iconColor="bg-purple-600",

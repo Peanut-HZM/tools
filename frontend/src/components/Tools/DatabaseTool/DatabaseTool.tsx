@@ -5,7 +5,7 @@ import ConnectionList from './components/ConnectionList';
 import SQLExecutor from './SQLExecutor';
 import DatabaseConfigPanel from './DatabaseConfigPanel';
 import TableDataViewer from './TableDataViewer';
-import ResizablePanel from '../CursorHistory/ResizablePanel';
+import ResizablePanel from '../../Common/ResizablePanel';
 
 interface SqlTabState {
   configId: string;

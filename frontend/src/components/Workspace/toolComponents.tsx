@@ -14,7 +14,6 @@ import MarkItDownConverter from '../Tools/MarkItDownConverter';
 import ProductManagerAgent from '../Tools/ProductManagerAgent';
 import LearningSharePlatform from '../Tools/LearningSharePlatform';
 import CrossShareMain from '../Tools/CrossShare/CrossShareMain';
-import CursorHistory from '../Tools/CursorHistory/CursorHistory';
 import HttpApiClient from '../Tools/HttpApiClient/HttpApiClient';
 import SystemMonitor from '../Tools/SystemMonitor';
 import TokenUsage from '../Tools/TokenUsage';
@@ -47,7 +46,6 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'learning-share': LearningSharePlatform,
   'course-platform': LearningSharePlatform,
   'cross-share': CrossShareMain,
-  'cursor-history': CursorHistory,
   'http-api-client': HttpApiClient,
   'system-monitor': SystemMonitor,
   'token-usage': TokenUsage,

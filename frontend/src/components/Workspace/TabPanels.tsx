@@ -11,7 +11,6 @@ const EDGE_TO_EDGE_TOOLS = new Set([
   'redis-tool',
   'markdown-editor',
   'token-usage',
-  'cursor-history',
   'http-api-client',
   'product-manager',
 ]);
@@ -34,7 +33,6 @@ export const SESSION_KEEP_ALIVE_TOOLS = new Set([
   'learning-share',
   'course-platform',
   'cross-share',
-  'cursor-history',
   'openclaw',
   'product-manager',
   'image-downloader',
