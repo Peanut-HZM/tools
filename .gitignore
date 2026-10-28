@@ -73,6 +73,8 @@ backend/data/
 !backend/data/glm_coding_rusher/.gitkeep
 backend_deploy/data/
 backend_deploy.tar.gz
+# 运行时数据目录（本地 SQLite 与用户目录，随应用运行生成）
+data/
 
 # Design files
 design/
