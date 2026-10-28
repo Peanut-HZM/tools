@@ -55,6 +55,11 @@ interface FileTreeProps {
   refreshingPath?: string | null;
   /** 是否正在刷新整棵树 */
   refreshingAll?: boolean;
+  /**
+   * 定位信号：每次自增都触发「把当前打开的文件滚动到可视区域」。
+   * 仅由工具栏的「定位文件」按钮驱动，避免展开/收起目录时自动跳回当前文件。
+   */
+  locateNonce?: number;
 }
 
 interface TreeNodeProps {
@@ -283,6 +288,7 @@ export default function FileTree({
   onRefresh,
   refreshingPath,
   refreshingAll,
+  locateNonce = 0,
 }: FileTreeProps) {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -447,9 +453,13 @@ export default function FileTree({
   /** 文件树内容区容器：用于定位当前打开的文件 */
   const treeContentRef = useRef<HTMLDivElement>(null);
 
-  // 当前文件变化、展开状态变化或搜索条件变化时，把当前打开的文件滚动到可视区域
+  // 把当前打开的文件滚动到可视区域。
+  // 仅在「定位信号」变化时执行（由工具栏的「定位文件」按钮触发）。
+  // 早前这里还依赖展开状态与搜索条件，导致用户在左侧展开/收起其它项目目录时，
+  // 视图被反复强行拉回当前打开的文件，干扰浏览 —— 现在改为纯手动定位。
   useEffect(() => {
     if (!currentFilePath) return;
+    if (!locateNonce) return;
     const container = treeContentRef.current;
     if (!container) return;
     const items = container.querySelectorAll<HTMLElement>('[data-path]');
@@ -462,7 +472,7 @@ export default function FileTree({
         break;
       }
     }
-  }, [currentFilePath, fileSearchQuery, effectiveExpandedNodes]);
+  }, [locateNonce, currentFilePath]);
 
   // 清除搜索
   const handleClearSearch = useCallback(() => {

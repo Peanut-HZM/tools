@@ -566,6 +566,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const closeCurrentFile = useCallback(() => {
     setCurrentFile(null);
     setCurrentFilePath('');
+    // 同时关闭当前打开的 OSS 文件（OSS 模式下 currentFilePath 为空，
+    // 仅清 currentOssFile 才能让「关闭」按钮对两类文件都生效）
+    setCurrentOssFile(null);
   }, []);
 
   const clearError = useCallback(() => {

@@ -1,7 +1,7 @@
 import './MarkdownEditor.css';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Cloud } from 'lucide-react';
+import { Cloud, LocateFixed, X } from 'lucide-react';
 import FileTree from './FileTree/FileTree';
 import OssFileList from './OssFileList/OssFileList';
 import FileViewer from './FileViewer';
@@ -75,6 +75,7 @@ export default function MarkdownEditor() {
     createDirectory,
     deleteDirectory,
     toggleNode,
+    closeCurrentFile,
     clearError: clearFileError,
     setRootPath,
     loadRootPath,
@@ -218,7 +219,10 @@ export default function MarkdownEditor() {
   // OSS file state
   const [ossFilePath, setOssFilePath] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  
+
+  // 定位信号：自增时通知左侧文件树把当前打开的文件滚动到可视区域
+  const [locateNonce, setLocateNonce] = useState(0);
+
   const [isResizing, setIsResizing] = useState(false);
   const [resizeType, setResizeType] = useState<'sidebar' | 'toc' | null>(null);
 
@@ -254,13 +258,11 @@ export default function MarkdownEditor() {
     }
   }, [currentFile, setContent]);
 
-  // 文件树定位：内容区打开文件后，左侧文件树展开并定位到该文件所在目录
-  // 目录结构变化（初次加载、刷新）后同样重新定位，保证文件在树中可见
-  useEffect(() => {
-    if (!currentFilePath) return;
-    void revealFile(currentFilePath);
-  }, [currentFilePath, directoryTree, revealFile]);
-  
+  // 文件树定位：改为「手动触发」。
+  // 早前这里在 currentFilePath / directoryTree 变化时都会自动 revealFile，
+  // 导致用户在左侧展开其它项目目录时，树被反复强行拉回当前打开的文件位置。
+  // 现在定位只由工具栏的「定位文件」按钮驱动（见 handleLocateFile）。
+
   // Handle file upload from OSS
   const handleFileUploaded = useCallback((content: string, filename: string, filePath: string) => {
     setContent(content, true);
@@ -617,6 +619,38 @@ export default function MarkdownEditor() {
     }
   }, [currentFilePath]);
 
+  // 定位文件：展开当前文件所在目录并把它滚动到可视区域（手动触发）
+  const handleLocateFile = useCallback(async () => {
+    if (!currentFilePath) {
+      showToast(t.common.noFileToLocate || '当前没有打开的文件', 'info');
+      return;
+    }
+    try {
+      // 先补齐缺失的祖先层级，让文件出现在树中
+      await revealFile(currentFilePath);
+      // 再通知文件树滚动到该文件
+      setLocateNonce(n => n + 1);
+    } catch (e) {
+      showToast(t.common.locateFailed || '定位失败', 'error');
+    }
+  }, [currentFilePath, revealFile, showToast, t.common]);
+
+  // 关闭当前打开的文件
+  const handleCloseFile = useCallback(() => {
+    if (!currentFilePath && !ossFilePath) return;
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        t.editor.unsavedChangesPrompt || '当前文件有未保存的修改，确定要关闭吗？'
+      );
+      if (!confirmed) return;
+    }
+    closeCurrentFile();
+    setOssFilePath(null);
+    setContent('', true);
+    setDocumentToc([]);
+    setActiveTocId(null);
+  }, [currentFilePath, ossFilePath, hasUnsavedChanges, closeCurrentFile, setOssFilePath, setContent, setDocumentToc, setActiveTocId, t.editor]);
+
 
 
   return (
@@ -649,6 +683,16 @@ export default function MarkdownEditor() {
         </div>
         <div className="header-right min-w-0 overflow-x-auto no-scrollbar">
           <div className="neon-button-group">
+            {/* 定位文件：把当前打开的文件在左侧树中展开并滚动到可见位置 */}
+            <button
+              className="neon-button"
+              onClick={handleLocateFile}
+              disabled={!currentFilePath}
+              title={t.common.locateFile || 'Locate File'}
+            >
+              <LocateFixed className="w-4 h-4 mr-1 inline-block" />
+              {t.common.locateFile || '定位文件'}
+            </button>
             <button className="neon-button" onClick={() => setShowFolderSelect(true)}>
               <Icons.FolderOpened />
               {t.common.openFolder || 'Open Folder'}
@@ -656,6 +700,16 @@ export default function MarkdownEditor() {
             <button className="neon-button" onClick={openNewFileDialog} disabled={!hasRootPath}>
               <Icons.Plus />
               {t.common.new || 'New'}
+            </button>
+            {/* 关闭当前打开的文件 */}
+            <button
+              className="neon-button"
+              onClick={handleCloseFile}
+              disabled={!currentFilePath && !ossFilePath}
+              title={t.common.closeFile || 'Close File'}
+            >
+              <X className="w-4 h-4 mr-1 inline-block" />
+              {t.common.closeFile || '关闭文件'}
             </button>
           </div>
 
@@ -842,6 +896,7 @@ export default function MarkdownEditor() {
                   onRefresh={handleRefresh}
                   refreshingPath={refreshingPath}
                   refreshingAll={refreshingAll}
+                  locateNonce={locateNonce}
                   rootPath={rootPath}
                 />
               )
