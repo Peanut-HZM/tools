@@ -22,6 +22,7 @@ import FileList from './FileList';
 import FileContextMenu from './FileContextMenu';
 import QuickAccessBar from './QuickAccessBar';
 import PathInput from './PathInput';
+import { ensureFileExtension, resolveRenameName } from '../../../utils/filenameUtils';
 
 interface FileManagerProps {
   /** 确认选择：回传绝对路径 */
@@ -184,7 +185,10 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
         case 'rename': {
           const newName = prompt('新名称:', item.name);
           if (newName && newName !== item.name) {
-            const result = await renameFileManagerItem(item.path, newName);
+            // 文件改名时沿用原扩展名（输入带扩展名则原样使用）；文件夹保持原样
+            const finalName =
+              item.type === 'directory' ? newName : resolveRenameName(newName, item.name);
+            const result = await renameFileManagerItem(item.path, finalName);
             if (result.success) {
               loadDirectory(currentPath);
             } else {
@@ -246,7 +250,12 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
         case 'newFile': {
           const fileName = prompt('文件名称:');
           if (fileName) {
-            const result = await createFileManagerItem(currentPath, fileName, 'file');
+            // 仅当文件名完全没有扩展名时才默认补 .md，已有扩展名的保持原样
+            const result = await createFileManagerItem(
+              currentPath,
+              ensureFileExtension(fileName),
+              'file'
+            );
             if (result.success) {
               loadDirectory(currentPath);
             } else {

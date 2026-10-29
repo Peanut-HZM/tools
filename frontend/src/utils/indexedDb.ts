@@ -381,6 +381,53 @@ export async function deleteMetadata(key: string): Promise<void> {
   );
 }
 
+/**
+ * 按路径前缀批量删除元数据
+ *
+ * 用于目录重命名后清理旧路径的目录树缓存：
+ * 缓存键形如 `directory_tree_docs/guide`，重命名 `docs` 后其所有子缓存
+ * 都带着旧路径前缀，若不清理会与新路径错位。
+ *
+ * 匹配规则为「完全相等」或「以 prefix + '/' 开头」，
+ * 避免 `docs` 误删 `docsearch` 这类同前缀目录的缓存。
+ *
+ * @param prefix - 键前缀（不含结尾斜杠）
+ */
+export async function deleteMetadataByPrefix(prefix: string): Promise<void> {
+  const db = await initIndexedDB();
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction([STORE_METADATA], 'readwrite');
+    const store = transaction.objectStore(STORE_METADATA);
+    const request = store.getAllKeys();
+
+    request.onsuccess = () => {
+      const keys = (request.result ?? []) as IDBValidKey[];
+      keys.forEach((key) => {
+        if (
+          typeof key === 'string' &&
+          (key === prefix || key.startsWith(prefix + '/'))
+        ) {
+          store.delete(key);
+        }
+      });
+    };
+
+    request.onerror = () => {
+      reject(new Error(`IndexedDB operation failed: ${request.error?.message}`));
+    };
+
+    // 删除是异步的，必须等事务真正提交完成后再返回
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => {
+      reject(new Error(`Transaction failed: ${transaction.error?.message}`));
+    };
+    transaction.onabort = () => {
+      reject(new Error(`Transaction aborted: ${transaction.error?.message}`));
+    };
+  });
+}
+
 // ==================== Helper Functions ====================
 
 /**
@@ -446,4 +493,5 @@ export default {
   saveMetadata,
   getMetadata,
   deleteMetadata,
+  deleteMetadataByPrefix,
 };

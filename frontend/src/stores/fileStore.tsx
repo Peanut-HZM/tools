@@ -8,6 +8,7 @@ import { ApiError } from '../api/markdownEditorApi';
 import type { FileNode, FileContent, RootPathResponse } from '../types/markdownEditor';
 import type { OssFileInfo } from '../api/markdownEditorApi';
 import { getMetadata, saveMetadata } from '../utils/indexedDb';
+import { deleteMetadataByPrefix } from '../utils/indexedDb';
 
 export interface FileState {
   directoryTree: FileNode | null;
@@ -500,12 +501,39 @@ export function FileProvider({ children }: { children: ReactNode }) {
       await markdownEditorApi.renameFile(oldPath, newPath);
       if (currentFilePath === oldPath) {
         setCurrentFilePath(newPath);
+      } else if (currentFilePath.startsWith(oldPath + '/')) {
+        // 重命名的是上级目录：当前打开文件的路径前缀同步变化
+        setCurrentFilePath(newPath + currentFilePath.slice(oldPath.length));
       }
+      // 重命名目录时，其下所有展开节点的路径前缀同步变化
+      setExpandedNodes((prev) => {
+        if (!prev.size) return prev;
+        const next = new Set<string>();
+        let changed = false;
+        prev.forEach((p) => {
+          if (p === oldPath) {
+            next.add(newPath);
+            changed = true;
+          } else if (p.startsWith(oldPath + '/')) {
+            next.add(newPath + p.slice(oldPath.length));
+            changed = true;
+          } else {
+            next.add(p);
+          }
+        });
+        return changed ? next : prev;
+      });
       // 新旧路径可能位于不同目录，两侧子树都刷新
-      await Promise.all([
-        refreshTree(parentDirOf(oldPath)),
-        refreshTree(parentDirOf(newPath)),
-      ]);
+      // 旧路径的目录树缓存需清理，否则展开时仍会命中带旧前缀的缓存
+      await deleteMetadataByPrefix(`directory_tree_${oldPath}`);
+      const oldParent = parentDirOf(oldPath);
+      const newParent = parentDirOf(newPath);
+      // 同一目录内改名只刷新一次，避免重复的全树扫描
+      if (oldParent === newParent) {
+        await refreshTree(oldParent);
+      } else {
+        await Promise.all([refreshTree(oldParent), refreshTree(newParent)]);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to rename file');
       throw e;

@@ -4,6 +4,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { FileNode } from '../../../types/markdownEditor';
 import { getFilePaths } from '../../../api/markdownEditorApi';
+import { ensureFileExtension, resolveRenameName } from '../../../utils/filenameUtils';
 
 /** 排序字段：名称 / 创建时间 / 更新时间 */
 export type FileSortField = 'name' | 'created' | 'modified';
@@ -46,7 +47,12 @@ interface FileTreeProps {
   onCreateDirectory?: (path: string) => void;
   onDeleteFile?: (path: string) => void;
   onDeleteDirectory?: (path: string) => void;
-  onRenameFile?: (oldPath: string, newPath: string) => void;
+  /**
+   * 重命名（文件与文件夹均支持）
+   * @param oldPath 原路径（相对根目录）
+   * @param newPath 新路径（相对根目录，与原路径同级）
+   */
+  onRenameFile?: (oldPath: string, newPath: string) => void | Promise<void>;
   onCopyPath?: (message: string) => void;
   rootPath?: string;
   /** 刷新回调：path=null 表示刷新整树，非空表示刷新该子目录 */
@@ -297,6 +303,14 @@ export default function FileTree({
   } | null>(null);
   const [showNewFileInput, setShowNewFileInput] = useState(false);
   const [showNewDirInput, setShowNewDirInput] = useState(false);
+  /** 重命名输入框：目标节点 */
+  const [renameTarget, setRenameTarget] = useState<FileNode | null>(null);
+  /** 重命名输入框：用户输入的新名称 */
+  const [renameValue, setRenameValue] = useState('');
+  /** 重命名输入框：错误提示 */
+  const [renameError, setRenameError] = useState('');
+  /** 重命名提交中 */
+  const [renaming, setRenaming] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [contextPath, setContextPath] = useState('');
   // 文件搜索关键词
@@ -392,6 +406,58 @@ export default function FileTree({
     }
   }, [contextMenu, onDeleteFile, onDeleteDirectory, closeContextMenu]);
 
+  /** 打开重命名输入框（文件与文件夹均支持） */
+  const handleRename = useCallback(() => {
+    if (contextMenu) {
+      setRenameTarget(contextMenu.node);
+      setRenameValue(contextMenu.node.name);
+      setRenameError('');
+      closeContextMenu();
+    }
+  }, [contextMenu, closeContextMenu]);
+
+  /** 提交重命名：只允许改同一目录下的名称，不允许输入路径分隔符 */
+  const handleRenameSubmit = useCallback(async () => {
+    if (!renameTarget || !onRenameFile) return;
+
+    const rawName = renameValue.trim();
+    if (!rawName) {
+      setRenameError('名称不能为空');
+      return;
+    }
+    if (rawName.includes('/') || rawName.includes('\\')) {
+      setRenameError('名称不能包含路径分隔符');
+      return;
+    }
+    if (rawName === '.' || rawName === '..') {
+      setRenameError('名称无效');
+      return;
+    }
+
+    // 文件沿用原扩展名（改名时不丢失后缀）；文件夹保持原样
+    const finalName =
+      renameTarget.type === 'directory' ? rawName : resolveRenameName(rawName, renameTarget.name);
+    if (finalName === renameTarget.name) {
+      setRenameTarget(null);
+      return;
+    }
+
+    const parentPath = renameTarget.path.split('/').slice(0, -1).join('/');
+    const newPath = parentPath ? `${parentPath}/${finalName}` : finalName;
+
+    setRenaming(true);
+    setRenameError('');
+    try {
+      await onRenameFile(renameTarget.path, newPath);
+      setRenameTarget(null);
+      setRenameValue('');
+    } catch (e) {
+      setRenameError(e instanceof Error ? e.message : '重命名失败');
+    } finally {
+      setRenaming(false);
+    }
+  }, [renameTarget, renameValue, onRenameFile]);
+
   /** 空白区域右键：仅显示刷新菜单 */
   const handleBlankContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -415,9 +481,9 @@ export default function FileTree({
 
   const handleCreateFile = useCallback(() => {
     if (newItemName.trim()) {
-      const path = contextPath ? `${contextPath}/${newItemName.trim()}` : newItemName.trim();
-      const finalPath = path.endsWith('.md') ? path : `${path}.md`;
-      onCreateFile?.(finalPath);
+      const fileName = ensureFileExtension(newItemName.trim());
+      const path = contextPath ? `${contextPath}/${fileName}` : fileName;
+      onCreateFile?.(path);
       setNewItemName('');
       setShowNewFileInput(false);
     }
@@ -680,6 +746,14 @@ export default function FileTree({
           >
             新建文件夹
           </button>
+          {onRenameFile && (
+            <button
+              className="w-full px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-2 cursor-pointer"
+              onClick={handleRename}
+            >
+              重命名
+            </button>
+          )}
           <div className="border-t border-border my-1" />
           <button
             className="w-full px-4 py-2 text-left text-sm text-danger hover:bg-surface-2 cursor-pointer"
@@ -716,7 +790,7 @@ export default function FileTree({
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
-              placeholder="文件名.md"
+              placeholder="文件名（不填扩展名默认 .md）"
               className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink text-sm mb-3"
               autoFocus
               onKeyDown={(e) => {
@@ -771,6 +845,50 @@ export default function FileTree({
                 onClick={handleCreateDirectory}
               >
                 创建
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Input Modal */}
+      {renameTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface-1 rounded-lg p-4 w-[92vw] max-w-80">
+            <h3 className="text-ink font-medium mb-3">
+              重命名{renameTarget.type === 'directory' ? '文件夹' : '文件'}
+            </h3>
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => {
+                setRenameValue(e.target.value);
+                setRenameError('');
+              }}
+              placeholder={renameTarget.type === 'directory' ? '文件夹名称' : '文件名称'}
+              className="w-full px-3 py-2 bg-surface-2 border border-border rounded text-ink text-sm mb-2"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleRenameSubmit();
+                if (e.key === 'Escape') setRenameTarget(null);
+              }}
+            />
+            {renameError && (
+              <p className="text-xs text-danger mb-2">{renameError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-3 py-1 text-sm text-ink-muted hover:text-ink cursor-pointer"
+                onClick={() => setRenameTarget(null)}
+              >
+                取消
+              </button>
+              <button
+                className="px-3 py-1 text-sm bg-accent text-ink-inverse rounded hover:bg-accent-hover cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                onClick={() => void handleRenameSubmit()}
+                disabled={renaming}
+              >
+                {renaming ? '重命名中...' : '确定'}
               </button>
             </div>
           </div>

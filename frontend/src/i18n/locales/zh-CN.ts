@@ -562,6 +562,12 @@ export const zhCN = {
     line: '行',
   },
 
+  // 目录（TOC）面板
+  toc: {
+    title: '目录',
+    empty: '无标题',
+  },
+
   // Settings (Existing)
   settings: {
     title: '设置',

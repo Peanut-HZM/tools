@@ -543,6 +543,31 @@ JavaScript 的 `Number` 类型最大安全整数是 `2^53 - 1`（约 9 × 10^15�
 
 ---
 
+## 文件名扩展名处理与重命名规范（强制）
+
+**背景**：2026-10-29 用户反馈「新建文件时不管文件名是什么都会追加 `.md`」，且文件树缺少重命名能力。修复时发现前后端各自实现文件名拼接，语义不一致必然再次出错。
+
+### 核心原则
+
+1. **扩展名判断统一走 `frontend/src/utils/filenameUtils.ts`**，禁止在组件里裸写 `endsWith('.md')` 判断：
+   - `hasFileExtension(name)`：判定是否已有扩展名，语义**对齐后端 `os.path.splitext`**——`a.kubeconfig` 有扩展名，`README` 没有，`.gitignore` 与 `foo.` 视为**没有**扩展名
+   - `ensureFileExtension(name, 'md')`：**仅在完全没有扩展名时**追加默认后缀；已有扩展名原样返回
+   - `resolveRenameName(newName, originalName)`：重命名时，新名自带扩展名则原样使用（允许借此改后缀）；新名无扩展名则沿用原文件扩展名；原文件本身无扩展名则不加 `.md`
+2. **前端所有创建文件入口必须用 `ensureFileExtension`**，包括但不限于：文件编辑器「新建」对话框（`MarkdownEditor.tsx` 的 `handleCreateFile`）、文件树右键「新建文件」（`FileTree.tsx` 的 `handleCreateFile`）、打开文件夹弹窗的「新建文件」（`FolderBrowserDialog/FileManager.tsx` 的 `newFile` 分支）
+3. **文件夹名不做扩展名处理**：目录不追加 `.md`；文件重命名保留原扩展名语义（见 `resolveRenameName`）
+4. **重命名只允许同级改名**：新名不得包含 `/` 或 `\`，不得为 `.` 或 `..`；父目录保持不变
+5. **重命名后必须同步路径相关状态**（`frontend/src/stores/fileStore.tsx` 的 `renameFile`）：
+   - `currentFilePath` 若是被改名项本身或其子路径，必须同步前缀
+   - `expandedNodes` 中的展开路径前缀必须同步
+   - IndexedDB 目录树缓存（键前缀 `directory_tree_`）必须清理旧路径前缀，否则展开时命中带旧前缀的缓存
+
+### IndexedDB 事务回调覆盖坑
+
+- 通用封装里如果在 `operation(store)` 返回**之后**才给 `request.onsuccess` 赋值，会**覆盖**业务代码在回调里设置的 `request.onsuccess`，导致删除/写入**永不执行**且不报错（静默失败，最难排查）
+- 需要在 `request.onsuccess` 里继续发起 `store.delete` 这类操作时，必须使用**独立事务**实现，并以 `transaction.oncomplete` 作为 resolve 时机、`onerror`/`onabort` 作为 reject 时机
+
+---
+
 ## 用户目录访问必须使用真实家目录（强制）
 
 **背景**：`backend/app/config/config.py` 在**非桌面模式**下会把 `HOME` 改写为 `backend/data/cache`（隔离 paddleocr / huggingface 等库的缓存目录）。此后进程内任何基于 `HOME` 的家目录推导都是**假家目录**。

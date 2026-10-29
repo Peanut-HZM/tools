@@ -16,6 +16,7 @@ export default function UnifiedFileTree() {
     loadDirectoryTree,
     openFile,
     toggleNode,
+    renameFile,
     loadOssFiles
   } = useFileStore();
 
@@ -92,6 +93,7 @@ export default function UnifiedFileTree() {
             expandedNodes={expandedNodes}
             onFileSelect={handleFileSelect}
             onToggleNode={toggleNode}
+            onRenameFile={renameFile}
           />
         </div>
       )}

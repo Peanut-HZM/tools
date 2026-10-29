@@ -23,6 +23,7 @@ vi.mock('../../api/markdownEditorApi', () => ({
 vi.mock('../../utils/indexedDb', () => ({
   getMetadata: vi.fn().mockResolvedValue(null),
   saveMetadata: vi.fn().mockResolvedValue(undefined),
+  deleteMetadataByPrefix: vi.fn().mockResolvedValue(undefined),
 }));
 
 import * as api from '../../api/markdownEditorApi';

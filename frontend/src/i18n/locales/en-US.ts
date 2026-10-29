@@ -563,6 +563,12 @@ export const enUS = {
     line: 'Line',
   },
 
+  // Table of contents (TOC) panel
+  toc: {
+    title: 'Contents',
+    empty: 'No headings',
+  },
+
   // Settings (Existing)
   settings: {
     title: 'Settings',

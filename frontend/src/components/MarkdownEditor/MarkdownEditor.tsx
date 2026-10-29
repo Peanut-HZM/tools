@@ -14,6 +14,7 @@ import ExcelViewer, { isEditableExcel } from './ExcelViewer';
 import WordViewer from './WordViewer';
 import PptxViewer from './PptxViewer';
 import { getFileCategory } from '../../utils/fileType';
+import { ensureFileExtension } from '../../utils/filenameUtils';
 import SearchPanel from './SearchPanel/SearchPanel';
 import SettingsDialog from './SettingsDialog/SettingsDialog';
 import StatusBar from './StatusBar/StatusBar';
@@ -533,10 +534,8 @@ export default function MarkdownEditor() {
 
   const handleCreateFile = async () => {
     if (!newFileName) return;
-    let fileName = newFileName;
-    if (!fileName.endsWith('.md') && !fileName.endsWith('.markdown')) {
-      fileName += '.md';
-    }
+    // 仅当文件名完全没有扩展名时才默认补 .md，已有扩展名的保持原样
+    const fileName = ensureFileExtension(newFileName);
     
     // Combine folder and filename
     let fullPath = fileName;
@@ -919,7 +918,7 @@ export default function MarkdownEditor() {
                    <>
                      <div className="toc-sidebar" style={{ width: tocSidebarWidth }}>
                        <div className="toc-sidebar-header">
-                         <span>{t.search?.results || 'CONTENTS'}</span>
+                         <span>{t.toc?.title || 'CONTENTS'}</span>
                        </div>
                        <div className="toc-sidebar-content">
                           {documentToc.length > 0 ? (
@@ -935,7 +934,7 @@ export default function MarkdownEditor() {
                               ))}
                             </ul>
                           ) : (
-                            <div className="toc-empty">{t.search?.noResults || 'No headings'}</div>
+                            <div className="toc-empty">{t.toc?.empty || 'No headings'}</div>
                           )}
                        </div>
                      </div>
@@ -1139,7 +1138,7 @@ export default function MarkdownEditor() {
                 type="text"
                 value={newFileName}
                 onChange={(e) => setNewFileName(e.target.value)}
-                placeholder="example.md"
+                placeholder="example.md（不填扩展名默认 .md）"
                 className="w-full p-2 rounded bg-canvas border border-border focus:border-accent-cyan outline-none text-ink"
               />
             </div>

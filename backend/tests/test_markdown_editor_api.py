@@ -239,6 +239,41 @@ class TestRenameApi:
         assert not Path(source).exists()
         assert Path(os.path.join(temp_dir, "new_name.md")).exists()
 
+    def test_rename_relative_path(self, client, temp_dir):
+        """测试通过 /files/rename 以相对路径重命名文件"""
+        _touch(os.path.join(temp_dir, "rel_old.md"), "rename me")
+
+        response = client.post(
+            "/api/markdown-editor/files/rename",
+            json={"old_path": "rel_old.md", "new_path": "rel_new.md"},
+        )
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+        assert not Path(os.path.join(temp_dir, "rel_old.md")).exists()
+        assert Path(os.path.join(temp_dir, "rel_new.md")).exists()
+
+    def test_rename_relative_directory(self, client, temp_dir):
+        """测试通过 /files/rename 重命名目录"""
+        os.makedirs(os.path.join(temp_dir, "rel_dir"))
+        _touch(os.path.join(temp_dir, "rel_dir", "a.md"), "content")
+
+        response = client.post(
+            "/api/markdown-editor/files/rename",
+            json={"old_path": "rel_dir", "new_path": "rel_dir2"},
+        )
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+        assert not Path(os.path.join(temp_dir, "rel_dir")).exists()
+        assert Path(os.path.join(temp_dir, "rel_dir2", "a.md")).exists()
+
+    def test_rename_nonexistent_relative_path(self, client, temp_dir):
+        """相对路径重命名不存在的文件返回 404"""
+        response = client.post(
+            "/api/markdown-editor/files/rename",
+            json={"old_path": "no_such_file.md", "new_path": "whatever.md"},
+        )
+        assert response.status_code == 404
+
     def test_rename_nonexistent(self, client, temp_dir):
         """测试重命名不存在的文件"""
         response = client.post(

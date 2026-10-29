@@ -20,6 +20,7 @@ vi.mock('../../api/markdownEditorApi', async (importOriginal) => {
 vi.mock('../../utils/indexedDb', () => ({
   getMetadata: vi.fn(async () => null),
   saveMetadata: vi.fn(async () => undefined),
+  deleteMetadataByPrefix: vi.fn(async () => undefined),
 }));
 
 /** root → docs → guide → a.md */

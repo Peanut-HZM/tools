@@ -809,7 +809,10 @@ class MarkdownFileService:
     
     def rename_file(self, old_path: str, new_path: str) -> RenameResult:
         """
-        Rename a file.
+        重命名文件或目录（同一根目录内的相对路径）。
+
+        支持文件与目录：目录使用 shutil.move 移动（跨设备也能工作），
+        文件使用 rename 原子重命名。
         
         Args:
             old_path: Current relative path
@@ -825,7 +828,7 @@ class MarkdownFileService:
             if not old_file_path.exists():
                 return RenameResult(
                     success=False,
-                    message="Source file not found",
+                    message="Source item not found",
                     old_path=normalize_path(old_path),
                     new_path=normalize_path(new_path)
                 )
@@ -833,7 +836,16 @@ class MarkdownFileService:
             if new_file_path.exists():
                 return RenameResult(
                     success=False,
-                    message="Target file already exists",
+                    message="Target item already exists",
+                    old_path=normalize_path(old_path),
+                    new_path=normalize_path(new_path)
+                )
+
+            # 禁止把目录移动到它自己的子目录中（会造成目录树自环）
+            if old_file_path.is_dir() and str(new_file_path).startswith(str(old_file_path) + os.sep):
+                return RenameResult(
+                    success=False,
+                    message="Cannot move a directory into itself",
                     old_path=normalize_path(old_path),
                     new_path=normalize_path(new_path)
                 )
@@ -841,11 +853,15 @@ class MarkdownFileService:
             # Ensure parent directory exists
             new_file_path.parent.mkdir(parents=True, exist_ok=True)
             
-            old_file_path.rename(new_file_path)
+            if old_file_path.is_dir():
+                # shutil.move 支持跨文件系统（同一挂载点内 rename 也可用）
+                shutil.move(str(old_file_path), str(new_file_path))
+            else:
+                old_file_path.rename(new_file_path)
             
             return RenameResult(
                 success=True,
-                message="File renamed successfully",
+                message="Renamed successfully",
                 old_path=normalize_path(old_path),
                 new_path=normalize_path(new_path)
             )

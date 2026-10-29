@@ -4,7 +4,8 @@
 
 本文件是 CLAUDE.md 的引用入口，供不同 agent 加载。所有规则（Git 工作流、问题排查、部署流程、前后端规范等）均在 CLAUDE.md 中维护。
 
-**最后同步：2026-10-26**
+- 2026-10-29：按文件编辑器扩展名/重命名问题修复沉淀，CLAUDE.md 新增：文件名扩展名处理与重命名规范、IndexedDB 事务回调覆盖坑
+- **最后同步：2026-10-29**
 - 2026-10-26：按 Token 统计全原生化改造沉淀，CLAUDE.md 新增：用户目录访问必须使用真实家目录、Token 用量对账口径规范、新增 Agent 数据源接入门槛
 - 2026-09-19：按全局通用规则对齐，CLAUDE.md 新增：数据库变更规范、验收测试数据规则（ZZTEST_）、语言规范、内部 ID 不展示在前端
 - 初始版本：从 logistics-finance 项目规则适配而来
@@ -76,6 +77,19 @@ npm run test
 - ❌ 禁止 `git pull`（不带 `--rebase`）
 - ❌ 禁止 `git merge` 更新本地分支
 - ❌ 禁止硬编码敏感信息
+
+---
+
+## 文件名扩展名处理与重命名规范（速查 — 必须遵守）
+
+- ✅ 文件扩展名判断统一用 `frontend/src/utils/filenameUtils.ts`（`hasFileExtension` / `ensureFileExtension` / `resolveRenameName`），语义对齐后端 `os.path.splitext`
+- ✅ **仅当文件名完全没有扩展名时**才补默认 `.md`；`a.kubeconfig`、`a.txt` 等已有后缀的文件名保持原样
+- ✅ 所有创建文件入口（编辑器「新建」、文件树右键「新建文件」、打开文件夹弹窗「新建文件」）都必须走 `ensureFileExtension`
+- ✅ 文件夹名不追加扩展名；重命名只允许同级改名，禁止 `/`、`\`、`.`、`..`
+- ✅ 重命名后必须同步 `currentFilePath` / `expandedNodes` 前缀，并清理 IndexedDB 中 `directory_tree_` 旧前缀缓存
+- ❌ 禁止在组件里裸写 `endsWith('.md')` 判断扩展名；❌ 禁止自行实现与 `os.path.splitext` 不一致的扩展名语义
+
+详细规则见 [CLAUDE.md](./CLAUDE.md) 的「文件名扩展名处理与重命名规范」章节。
 
 ---
 

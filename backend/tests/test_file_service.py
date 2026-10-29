@@ -118,6 +118,58 @@ class TestMarkdownFileService:
         new_path = os.path.join(temp_dir, "new.md")
         assert os.path.exists(new_path)
 
+    def test_rename_directory(self, file_service, temp_dir):
+        """Test directory renaming (files inside should move along)"""
+        old_dir = os.path.join(temp_dir, "old_dir")
+        os.makedirs(old_dir)
+        inner = os.path.join(old_dir, "inner.md")
+        with open(inner, "w", encoding="utf-8") as f:
+            f.write("Test content")
+
+        result = file_service.rename_file("old_dir", "new_dir")
+        assert result.success == True
+
+        assert not os.path.exists(old_dir)
+        new_dir = os.path.join(temp_dir, "new_dir")
+        assert os.path.isdir(new_dir)
+        assert os.path.exists(os.path.join(new_dir, "inner.md"))
+
+    def test_rename_file_inside_directory(self, file_service, temp_dir):
+        """Test renaming a file inside a subdirectory"""
+        sub_dir = os.path.join(temp_dir, "docs")
+        os.makedirs(sub_dir)
+        old_path = os.path.join(sub_dir, "old.md")
+        with open(old_path, "w", encoding="utf-8") as f:
+            f.write("Test content")
+
+        result = file_service.rename_file("docs/old.md", "docs/new.md")
+        assert result.success == True
+
+        assert not os.path.exists(old_path)
+        assert os.path.exists(os.path.join(sub_dir, "new.md"))
+
+    def test_rename_directory_into_itself_fails(self, file_service, temp_dir):
+        """Renaming a directory into its own subdirectory must be rejected"""
+        old_dir = os.path.join(temp_dir, "docs")
+        os.makedirs(os.path.join(old_dir, "sub"))
+
+        result = file_service.rename_file("docs", "docs/sub/moved")
+        assert result.success == False
+        assert "into itself" in result.message.lower()
+        assert os.path.isdir(old_dir)
+
+    def test_rename_to_existing_target_fails(self, file_service, temp_dir):
+        """Renaming onto an existing path must fail instead of overwriting"""
+        for name in ("a.md", "b.md"):
+            with open(os.path.join(temp_dir, name), "w", encoding="utf-8") as f:
+                f.write(name)
+
+        result = file_service.rename_file("a.md", "b.md")
+        assert result.success == False
+        assert "already exists" in result.message.lower()
+        # 原文件应保持不变
+        assert os.path.exists(os.path.join(temp_dir, "a.md"))
+
     def test_create_directory(self, file_service, temp_dir):
         """Test directory creation"""
         result = file_service.create_directory("new_folder")
