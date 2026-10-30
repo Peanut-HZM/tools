@@ -1289,3 +1289,31 @@ python dev-services.py status
 - 影响面扩大原则（唯一例外）：变更涉及公共模块、共享工具类、接口/DTO、数据库迁移、全局配置时，必须把受影响的下游模块相关单测一并纳入；无法判定影响面时才允许扩大范围，且需说明理由。
 - 验收编译同理：优先增量编译（如 mvn -pl <模块> -am compile、前端增量 tsc），非发布构建避免每次全量 clean package。
 - 全量跑测仅限三种场景：发布前最终验收、架构级重构、任务规则中明确要求全量回归。
+
+---
+
+## 后台任务用户/名额分配规范（强制）
+
+> 2026-10-30 事故沉淀：Token Usage 后台同步用 `sorted(user_ids)[:max_users=3]` 选用户，
+> 库里 23 个用户副本（大量测试/僵尸账号）按字典序永久占满名额，真实用户 peanut
+> 一整天没被后台同步过一次，页面数据停留在最后一次打开页面的时刻——表现为
+> "今天的数据不准确、更新时间不更新"。
+
+- ✅ 后台定时任务按"用户/租户/实例"分配有限名额（`max_users` / `limit` / batch）时，**必须 pending（活跃用户）置顶优先 + 其余轮转（rotation）补位**，保证活跃用户当轮覆盖、其余用户长期机会均等。
+- ❌ 禁止对候选集合直接 `sorted()[:N]` / `LIMIT N` 截断后作为每轮固定名单——字典序最小的几个账号会永久占坑，形成"饥饿"；日志表现是"每轮 users=N 且永远是同一批用户"。
+- ✅ 排查此类问题用日志统计法：`grep "同步完成" | grep -oE "user=[0-9a-f-]+" | sort | uniq -c`，若某些真实用户计数为 0 即为饥饿实锤。
+- ✅ 测试/Smoke 账号产生的历史数据副本会进入后台任务的发现集合（按库内 distinct user_id 发现），治理需专项清理（先 SELECT 精确 ID、用户批准后执行），日常编码不得依赖"库里只有真实用户"的假设。
+- ✅ upsert 只更新有变化的行属于正确设计（"更新时间"是最后变更时间而非最后同步时间），判断"数据是否在更新"要看本轮同步日志的 records 数与 DB `updated_at` 推进，不要以个别静态行的更新时间为准。
+
+---
+
+## Scope rules for this repo
+
+The global `执行边界与停止规则` applies here. These project-specific constraints are additional.
+
+- **Default to read-only analysis.** Unless the user explicitly asks for a change, do not create branches, edit files, commit, open PRs, or install anything.
+- **Do not install or verify dependencies, agents, CLIs, or models on this machine.** Checking whether one thing works does not authorize installing or exercising another.
+- **Do not widen a check into a sweep.** Verifying one named item does not authorize testing every item in the same list or directory.
+- **Do not run `npx`, `npm install`, `bun install`, or equivalent to reproduce a config or catalog issue.** Reproduce with the exact command string that is already configured, and read the configuration instead of installing the package.
+- **Do not modify machine-level configuration** (such as files under `$HOME`) unless the user asks. Those changes affect the user's running setup.
+- **One question, one conclusion.** When the diagnostic output already answers the question, report it and stop. Do not re-run the same command or re-grep the same log with different filters to "confirm" it.

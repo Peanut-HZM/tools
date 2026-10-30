@@ -89,3 +89,46 @@ def test_run_background_sync_once_skips_locked_user(monkeypatch):
 
     assert result["synced_users"] == []
     assert result["skipped_users"] == ["user-locked"]
+
+
+def test_order_users_for_round_prioritizes_pending_user():
+    """字典序最后的 pending 用户不能被 sorted()[:max_users] 截断饿死。"""
+    all_users = ["0196", "026a", "029d", "317e"]
+
+    ordered = bg._order_users_for_round(all_users, {"317e"}, max_users=3)
+
+    assert "317e" in ordered
+    assert len(ordered) == 3
+    assert ordered[0] == "317e"
+
+
+def test_order_users_for_round_rotates_rest_users(monkeypatch):
+    """名额不足时其余用户按轮转补位，长期每个用户都会被覆盖。"""
+    from itertools import count
+
+    monkeypatch.setattr(bg, "_discovery_rotation", count())
+    all_users = ["u1", "u2", "u3", "u4"]
+
+    rounds = [
+        bg._order_users_for_round(all_users, set(), max_users=2)
+        for _ in range(4)
+    ]
+
+    assert rounds[0] == ["u1", "u2"]
+    assert rounds[1] == ["u2", "u3"]
+    assert rounds[2] == ["u3", "u4"]
+    assert rounds[3] == ["u4", "u1"]
+    covered = {u for round_users in rounds for u in round_users}
+    assert covered == set(all_users)
+
+
+def test_order_users_for_round_edge_cases():
+    assert bg._order_users_for_round([], set(), max_users=3) == []
+    assert bg._order_users_for_round(["u1", "u2"], {"u1"}, max_users=0) == []
+    # pending 占满全部名额
+    assert bg._order_users_for_round(["u1", "u2"], {"u1", "u2"}, max_users=2) == [
+        "u1",
+        "u2",
+    ]
+    # rest 为空时只返回 pending
+    assert bg._order_users_for_round(["u1"], {"u1"}, max_users=3) == ["u1"]

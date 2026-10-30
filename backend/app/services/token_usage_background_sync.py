@@ -7,6 +7,7 @@ import logging
 import time
 import uuid
 from contextlib import suppress
+from itertools import count
 
 from app.config.config import settings
 from app.models.base import SessionLocal
@@ -28,6 +29,11 @@ logger = logging.getLogger(__name__)
 
 _pending_sync_users: set[str] = set()
 _background_task: asyncio.Task | None = None
+
+# 轮转游标：每轮发现用户时偏移一次，保证名额受限时所有用户仍会被轮流覆盖。
+# 直接 sorted()[:max_users] 截断会让字典序最小的几个账号（测试/历史污染账号）
+# 永久占满每轮名额，真实用户被饿死（2026-10-30 事故：peanut 全天未被后台同步）。
+_discovery_rotation = count()
 
 
 def register_pending_sync_user(user_id: str | None) -> None:
@@ -69,12 +75,36 @@ def _normalize_user_ids(user_ids: set[str]) -> set[str]:
     return {user_id for user_id in user_ids if _is_valid_user_id(user_id)}
 
 
+def _order_users_for_round(
+    all_users: list[str], pending_users: set[str], max_users: int
+) -> list[str]:
+    """排定本轮同步顺序：待同步用户最优先，其余按轮转游标补位。
+
+    - pending（刚打开过 Token 页面的用户）必须在本轮出现，否则用户看着页面
+      数据却不更新；
+    - 名额不够时其余用户从轮转游标处循环取，长期看每个用户机会均等，
+      避免字典序截断造成固定饥饿。
+    """
+    if max_users <= 0 or not all_users:
+        return []
+
+    pending_sorted = sorted(u for u in all_users if u in pending_users)
+    rest = [u for u in all_users if u not in pending_users]
+    if not rest:
+        return pending_sorted[:max_users]
+
+    start = next(_discovery_rotation) % len(rest)
+    rotated = rest[start:] + rest[:start]
+    return (pending_sorted + rotated)[:max_users]
+
+
 def _discover_token_usage_user_ids(max_users: int) -> list[str]:
     """发现本轮需要同步的用户。"""
     current_device_id = get_device_id()
+    pending = _normalize_user_ids(set(_pending_sync_users))
     db = SessionLocal()
     try:
-        user_ids = set(_pending_sync_users)
+        user_ids = set(pending)
 
         device_rows = (
             db.query(DeviceRegistry.user_id)
@@ -100,7 +130,9 @@ def _discover_token_usage_user_ids(max_users: int) -> list[str]:
         )
         user_ids.update(row[0] for row in log_rows)
 
-        return sorted(_normalize_user_ids(user_ids))[:max_users]
+        return _order_users_for_round(
+            sorted(_normalize_user_ids(user_ids)), pending, max_users
+        )
     except Exception as exc:
         logger.warning(
             "获取 Token Usage 后台同步用户失败: %s",

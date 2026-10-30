@@ -308,6 +308,16 @@ npm run test
 
 ---
 
+## 后台任务用户/名额分配规范（速查 — 强制）
+
+- ✅ 后台定时任务按用户/租户分配有限名额时，必须 **pending（活跃用户）置顶优先 + 其余轮转补位**，禁止 `sorted()[:N]` / `LIMIT N` 字典序截断当固定名单（字典序最小的账号永久占坑，真实用户饥饿）
+- ✅ 事故样本（2026-10-30）：Token Usage 后台同步 23 个用户副本（含大量测试/僵尸账号）按字典序占满每轮 3 个名额，真实用户 peanut 全天零次后台同步，页面数据停在最后一次打开页面的时刻
+- ✅ 排查用日志统计法：`grep "同步完成" | grep -oE "user=[0-9a-f-]+" | sort | uniq -c`，真实用户计数为 0 即饥饿实锤
+- ✅ 测试账号的历史数据副本会进入后台任务发现集合；治理需专项清理（先 SELECT 精确 ID、用户批准），不得假设"库里只有真实用户"
+- ✅ upsert"更新时间"= 最后**变更**时间而非最后同步时间；判断数据是否在更新看同步日志 records 数与 `updated_at` 整体推进
+
+---
+
 **2026-10-28 新增规则（用户明令，CodeProjects 全目录生效）**
 
 ## 设计/计划文档强制循环审查规则（最高优先级）
@@ -315,3 +325,16 @@ npm run test
 - ✅ 写完任何设计文档（specs/*-design.md）、实施计划（docs/plans/、docs/superpowers/plans/*.md）、openspec 变更、SQL 迁移脚本、代码变更方案后，**必须调用 spec-review-loop 技能做多轮循环审查**（连续 2 轮无新发现才终止，上限 10 轮；通用维度 SQL 幂等性/设计完整性必审，Java/Spring 等栈插件按技术栈加载）
 - ✅ 审查发现持久化为台账（docs/reviews/YYYY-MM-DD-<topic>-review.md）：纯文档缺陷直接修复，关联代码白名单外问题记「待确认」由用户决策；全部发现修复/决策后才允许进入实施或提交
 - ❌ 禁止未经循环审查就声称设计/计划完成；❌ 禁止跳过审查直接实施；❌ 绝对禁止虚假报告任务完成
+
+---
+
+## Scope rules for this repo
+
+The global `执行边界与停止规则` applies here. These project-specific constraints are additional.
+
+- **Default to read-only analysis.** Unless the user explicitly asks for a change, do not create branches, edit files, commit, open PRs, or install anything.
+- **Do not install or verify dependencies, agents, CLIs, or models on this machine.** Checking whether one thing works does not authorize installing or exercising another.
+- **Do not widen a check into a sweep.** Verifying one named item does not authorize testing every item in the same list or directory.
+- **Do not run `npx`, `npm install`, `bun install`, or equivalent to reproduce a config or catalog issue.** Reproduce with the exact command string that is already configured, and read the configuration instead of installing the package.
+- **Do not modify machine-level configuration** (such as files under `$HOME`) unless the user asks. Those changes affect the user's running setup.
+- **One question, one conclusion.** When the diagnostic output already answers the question, report it and stop. Do not re-run the same command or re-grep the same log with different filters to "confirm" it.
