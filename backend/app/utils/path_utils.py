@@ -163,7 +163,7 @@ FILE_TYPE_MAP: dict[str, list[str]] = {
     'markdown': ['.md', '.markdown'],
     'html': ['.html', '.htm'],
     'text': [
-        '.txt', '.log', '.json', '.yaml', '.yml',
+        '.txt', '.log', '.json', '.jsonc', '.yaml', '.yml',
         '.xml', '.csv', '.ini', '.cfg', '.toml',
     ],
     'image': [

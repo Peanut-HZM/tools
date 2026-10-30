@@ -42,6 +42,11 @@ describe('getFileCategory', () => {
     expect(getFileLanguage('desk-dev-ns-admin.kubeconfig')).toBe('yaml');
   });
 
+  it('识别 jsonc 为代码文件（JSON 语言）', () => {
+    expect(getFileCategory('opencode.jsonc')).toBe('code');
+    expect(getFileLanguage('opencode.jsonc')).toBe('json');
+  });
+
   it('未知类型返回 unknown', () => {
     expect(getFileCategory('file.xyz')).toBe('unknown');
     expect(getFileCategory('noextension')).toBe('unknown');

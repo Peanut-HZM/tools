@@ -12,6 +12,11 @@
 import React, { useRef, useCallback, useEffect } from 'react';
 import Editor, { type OnMount, useMonaco } from '@monaco-editor/react';
 import { getFileLanguage } from '../../utils/fileType';
+import {
+  enableJsoncDiagnostics,
+  restoreStrictJsonDiagnostics,
+  isJsoncFile,
+} from '../../utils/jsoncLanguage';
 
 /** CodeEditor 组件属性 */
 interface CodeEditorProps {
@@ -54,6 +59,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ filePath, content, onChange, re
       }
     }
   }, [monaco, language]);
+
+  /** JSONC 文件：放开注释/尾逗号诊断；离开 JSONC 恢复严格 JSON 校验 */
+  useEffect(() => {
+    if (!monaco) return;
+    if (isJsoncFile(filePath)) {
+      enableJsoncDiagnostics(monaco);
+    } else {
+      restoreStrictJsonDiagnostics(monaco);
+    }
+    return () => restoreStrictJsonDiagnostics(monaco);
+  }, [monaco, filePath]);
 
   /** 内容变更时透传给外部回调 */
   const handleChange = useCallback(

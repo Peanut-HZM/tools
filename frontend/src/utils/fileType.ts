@@ -17,7 +17,7 @@ export type FileCategory = 'code' | 'pdf' | 'excel' | 'word' | 'ppt' | 'image' |
 const FILE_EXTENSIONS: Record<Exclude<FileCategory, 'unknown'>, string[]> = {
   code: [
     'js', 'ts', 'jsx', 'tsx', 'py', 'java', 'go', 'rs', 'css',
-    'html', 'htm', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini',
+    'html', 'htm', 'json', 'jsonc', 'xml', 'yaml', 'yml', 'toml', 'ini',
     'conf', 'cfg', 'properties', 'sh', 'bash', 'sql', 'c', 'cpp', 'h', 'hpp',
     'rb', 'php', 'swift', 'kt', 'scala', 'r', 'm', 'mm',
     'vue', 'svelte', 'astro', 'mdx', 'kubeconfig',
@@ -44,6 +44,7 @@ const LANGUAGE_MAP: Record<string, string> = {
   html: 'html',
   htm: 'html',
   json: 'json',
+  jsonc: 'json',
   xml: 'xml',
   yaml: 'yaml',
   yml: 'yaml',

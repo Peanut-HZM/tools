@@ -57,7 +57,7 @@ class TestGetFileType:
     # --- Text ---
     @pytest.mark.parametrize(
         "filename",
-        ["data.txt", "app.log", "config.json", "settings.yaml",
+        ["data.txt", "app.log", "config.json", "config.jsonc", "settings.yaml",
          "settings.yml", "feed.xml", "data.csv", "app.ini", "app.cfg", "config.toml"],
     )
     def test_text_types(self, filename):

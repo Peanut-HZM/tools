@@ -445,6 +445,8 @@ class MarkdownFileService:
             '.css': 'text/css',
             '.csv': 'text/csv',
             '.json': 'application/json',
+            # JSONC（带注释的 JSON，VSCode settings.json 等）：按 JSON 解析但允许注释
+            '.jsonc': 'application/json',
             '.xml': 'application/xml',
             '.yaml': 'text/yaml',
             '.yml': 'text/yaml',
