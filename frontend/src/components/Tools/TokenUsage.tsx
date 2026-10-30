@@ -94,7 +94,7 @@ export default function TokenUsage() {
   const [selectedDevice, setSelectedDevice] = useState('');
   const [selectedTool, setSelectedTool] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
-  const [sortBy, setSortBy] = useState<TokenUsageSortBy>('date');
+  const [sortBy, setSortBy] = useState<TokenUsageSortBy>('created_at');
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);

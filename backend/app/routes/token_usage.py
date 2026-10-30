@@ -1112,10 +1112,19 @@ def get_token_usage_details(
             sort_col = (TokenUsageRecord.cache_creation_tokens + TokenUsageRecord.cache_read_tokens).label("cache_tokens")
         order_expr = sort_col.desc() if req.sort_order != "asc" else sort_col.asc()
 
+        # 次级排序：主排序同值时必须有确定顺序，否则分页会在页间重复/丢行，
+        # 同一天的记录顺序也会每次刷新都变。
+        # - 非"更新时间"排序时，同值（如同一天）内按 updated_at 倒排；
+        # - id 兜底保证全序稳定。
+        order_criteria = [order_expr]
+        if sort_col is not TokenUsageRecord.updated_at:
+            order_criteria.append(TokenUsageRecord.updated_at.desc())
+        order_criteria.append(TokenUsageRecord.id.desc())
+
         paged_records = (
             db.query(TokenUsageRecord)
             .filter(*base_filters)
-            .order_by(order_expr)
+            .order_by(*order_criteria)
             .offset(req.offset)
             .limit(req.limit)
             .all()
