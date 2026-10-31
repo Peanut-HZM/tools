@@ -143,9 +143,12 @@ const SortableConnectionItem: React.FC<{
             }
           ></span>
           {getSourceIcon(conn.source_type)}
-          <span className="truncate">{conn.name}</span>
+          <span className="truncate min-w-0">{conn.name}</span>
           <span className="ml-1.5 flex-shrink-0">
-            <StorageLocationBadge location={(conn.storage_location ?? 'local') as StorageLocation} />
+            <StorageLocationBadge
+              location={(conn.storage_location ?? 'local') as StorageLocation}
+              compact
+            />
           </span>
         </div>
         <div className="ml-4 mt-0.5 truncate text-[10px] text-ink-faint group-hover:text-ink-muted" title={conn.server || conn.cluster_name}>
@@ -242,7 +245,9 @@ export const ConnectionList: React.FC<Props> = ({
   }, [configs]);
 
   return (
-    <div className="flex h-full w-full flex-col border-r border-border bg-surface-1">
+    // 桌面端高度由内容决定（md:h-auto），避免连接少时撑满整列留白；
+    // 内容超出时列表区自身滚动（下方 flex-1 + overflow-y-auto）。
+    <div className="flex h-full w-full flex-col border-r border-border bg-surface-1 md:h-auto md:max-h-full">
       <div className="flex flex-col gap-2 border-b border-border bg-surface-1 p-3">
         <div className="flex justify-between items-center">
           <div>
@@ -273,7 +278,7 @@ export const ConnectionList: React.FC<Props> = ({
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex-1 space-y-1 overflow-y-auto p-2">
+          <div className="flex-1 space-y-1 overflow-y-auto p-2 md:min-h-0 md:max-h-[calc(100vh-160px)]">
             {visibleItems.map(conn => (
               <SortableConnectionItem
                 key={conn.id}

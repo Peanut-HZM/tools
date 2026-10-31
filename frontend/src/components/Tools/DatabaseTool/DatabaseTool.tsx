@@ -183,7 +183,7 @@ const DatabaseToolContent: React.FC = () => {
         minWidth={200}
         maxWidth={500}
         storageKey="dbTool.leftPanelWidth"
-        className="h-56 w-full max-w-full shrink-0 md:h-full md:w-auto"
+        className="h-56 w-full max-w-full shrink-0 md:h-auto md:max-h-full md:w-auto"
         mobileFullWidth
       >
         <ConnectionList

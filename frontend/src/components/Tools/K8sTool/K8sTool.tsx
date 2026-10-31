@@ -136,11 +136,13 @@ const K8sTool: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-canvas overflow-hidden md:flex-row">
-      {/* 左侧：连接列表 */}
+    <div className="flex h-full min-h-0 flex-col bg-canvas overflow-hidden md:flex-row md:items-stretch">
+      {/* 左侧：连接列表。
+          桌面端不再强制撑满整列高度（改为内容自适应），否则连接少时下方大片空白；
+          列表内容超出时自身滚动（ConnectionList 内部 overflow-y-auto）。 */}
       <div
         style={{ '--cluster-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
-        className="h-64 w-full shrink-0 md:h-full md:w-[var(--cluster-sidebar-width)]"
+        className="h-64 w-full shrink-0 md:h-auto md:w-[var(--cluster-sidebar-width)]"
       >
         <ConnectionList
           configs={connections}

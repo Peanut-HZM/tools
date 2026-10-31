@@ -148,9 +148,9 @@ describe('数据库工具存储位置', () => {
       />,
     );
 
-    // 连接项旁渲染本机徽章
+    // 连接项旁渲染本机徽章（compact 模式只显示图标，用 aria-label 定位）
     await waitFor(() => {
-      expect(screen.getAllByText(/本机/).length).toBeGreaterThan(0);
+      expect(screen.getAllByLabelText(/存储位置：本机/).length).toBeGreaterThan(0);
     });
 
     // 目标是 server（当前 local），服务器可用 → 按钮可见

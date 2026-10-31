@@ -147,7 +147,9 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface-1 border-b border-r-0 md:border-b-0 md:border-r border-border">
+    // 桌面端高度由内容决定（md:h-auto），连接少时不再撑满整列留白；
+    // 内容超出时列表区自身滚动（内部 overflow-y-auto）。
+    <div className="flex flex-col h-full bg-surface-1 border-b border-r-0 md:h-auto md:max-h-full md:border-b-0 md:border-r border-border">
       <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
             <h2 className="font-semibold text-ink">{t.database.connections}</h2>
@@ -201,7 +203,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="flex-1 overflow-y-auto p-2 space-y-1 md:min-h-0 md:max-h-[calc(100vh-160px)]">
         {/* Skeleton loading placeholder */}
         {isLoading && configs.length === 0 && (
           <div className="space-y-1">
@@ -627,15 +629,21 @@ const handleSelectAndExpand = async () => {
            <Database className="w-4 h-4 text-ink-muted" />
 
            <div className="flex-1 min-w-0">
-             <div className="flex items-center space-x-2">
-                <span className="font-medium truncate text-sm">{config.alias}</span>
+             <div className="flex items-center space-x-2 min-w-0">
+                {/* min-w-0：flex 子元素默认 min-width:auto，不加则拒绝收缩，
+                    徽章会把别名挤成只剩首字母 + 省略号 */}
+                <span className="font-medium truncate text-sm min-w-0">{config.alias}</span>
                 {config.environment && (
-                  <Badge variant={getEnvColor(config.environment)} className="text-[10px] px-1.5 py-0">
+                  <Badge variant={getEnvColor(config.environment)} className="text-[10px] px-1.5 py-0 shrink-0">
                     {config.environment}
                   </Badge>
                 )}
-                {/* 存储位置徽章：旧数据缺省视为本机存储（与后端默认一致） */}
-                <StorageLocationBadge location={(config.storage_location ?? 'local') as StorageLocation} />
+                {/* 存储位置徽章：旧数据缺省视为本机存储（与后端默认一致）
+                    侧栏较窄，用紧凑模式只显示图标，避免把别名挤没 */}
+                <StorageLocationBadge
+                  location={(config.storage_location ?? 'local') as StorageLocation}
+                  compact
+                />
              </div>
            </div>
         </div>
