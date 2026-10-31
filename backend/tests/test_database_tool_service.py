@@ -32,8 +32,9 @@ class FakeConn:
         self.closed = True
 
 
-def test_get_all_configs_without_password(monkeypatch):
-    rows = [{
+def _make_config_row(**overrides):
+    """构造一条 db_configs 字典行（模拟 Repository.list 返回）"""
+    row = {
         "id": "1",
         "user_id": "u1",
         "alias": "db1",
@@ -54,48 +55,60 @@ def test_get_all_configs_without_password(monkeypatch):
         "is_active": True,
         "last_connected_at": None,
         "created_at": datetime(2024, 1, 1),
-        "updated_at": datetime(2024, 1, 2)
-    }]
+        "updated_at": datetime(2024, 1, 2),
+        "storage_location": "SERVER",
+    }
+    row.update(overrides)
+    return row
 
-    monkeypatch.setattr(database_tool_service, "get_pooled_db_connection", lambda: FakeConn(rows))
-    monkeypatch.setattr(database_tool_service, "release_db_connection", lambda conn: None)
-    monkeypatch.setattr(database_tool_service.EncryptionUtils, "decrypt", lambda value: "plain")
+
+def _fake_repo_class(rows):
+    """构造一个以 rows 为 list 返回值的假仓储类"""
+    class _FakeRepo:
+        def list(self, user_id):
+            return rows
+
+    return _FakeRepo
+
+
+def test_get_all_configs_without_password(monkeypatch):
+    from app.storage import repository as repo_module
+    from app.storage.locator import StorageLocation
+
+    rows = [_make_config_row()]
+
+    monkeypatch.setattr(
+        repo_module, "get_repository",
+        lambda location, tool: _fake_repo_class(rows)()
+        if location is StorageLocation.LOCAL else _fake_repo_class([])(),
+    )
 
     configs = database_tool_service.DatabaseToolService.get_all_configs("u1")
 
     assert configs[0].password is None
+    assert configs[0].storage_location == "server"
 
 
 def test_get_all_configs_with_password(monkeypatch):
-    rows = [{
-        "id": "1",
-        "user_id": "u1",
-        "alias": "db1",
-        "db_type": "mysql",
-        "host": "localhost",
-        "port": 3306,
-        "database_name": "test",
-        "username": "root",
-        "password_encrypted": "encrypted",
-        "environment": "dev",
-        "group_name": None,
-        "charset": "utf8mb4",
-        "connect_timeout": 10,
-        "max_pool_size": 10,
-        "ssl_mode": None,
-        "ssl_cert_path": None,
-        "extra_config": None,
-        "is_active": True,
-        "last_connected_at": None,
-        "created_at": datetime(2024, 1, 1),
-        "updated_at": datetime(2024, 1, 2)
-    }]
+    from app.storage import repository as repo_module
+    from app.storage.locator import StorageLocation
 
-    monkeypatch.setattr(database_tool_service, "get_pooled_db_connection", lambda: FakeConn(rows))
-    monkeypatch.setattr(database_tool_service, "release_db_connection", lambda conn: None)
-    monkeypatch.setattr(database_tool_service.EncryptionUtils, "decrypt", lambda value: "plain")
+    rows = [_make_config_row()]
 
-    configs = database_tool_service.DatabaseToolService.get_all_configs("u1", include_password=True)
+    monkeypatch.setattr(
+        repo_module, "get_repository",
+        lambda location, tool: _fake_repo_class(rows)()
+        if location is StorageLocation.LOCAL else _fake_repo_class([])(),
+    )
+    # 服务器侧行走 _decrypt_password 多密钥路径
+    monkeypatch.setattr(
+        database_tool_service.DatabaseToolService, "_decrypt_password",
+        staticmethod(lambda enc, cid="": ("plain", None)),
+    )
+
+    configs = database_tool_service.DatabaseToolService.get_all_configs(
+        "u1", include_password=True
+    )
 
     assert configs[0].password == "plain"
 

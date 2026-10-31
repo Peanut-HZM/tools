@@ -39,6 +39,9 @@ class DatabaseConfigBase(BaseModel):
 
 class CreateDatabaseRequest(DatabaseConfigBase):
     password: str = Field(..., description="密码")
+    storage_location: str = Field(
+        "local", description="存储位置：local(本机)/server(服务器)"
+    )
 
 
 class UpdateDatabaseRequest(BaseModel):
@@ -57,6 +60,9 @@ class UpdateDatabaseRequest(BaseModel):
     ssl_cert_path: Optional[str] = None
     extra_config: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
+    storage_location: Optional[str] = Field(
+        None, description="存储位置：local(本机)/server(服务器)"
+    )
 
 
 class DatabaseConfigResponse(DatabaseConfigBase):
@@ -66,6 +72,9 @@ class DatabaseConfigResponse(DatabaseConfigBase):
     created_at: datetime
     updated_at: datetime
     password: Optional[str] = None
+    storage_location: str = Field(
+        default="local", description="存储位置：local(本机)/server(服务器)"
+    )
 
 
 class TestConnectionRequest(BaseModel):

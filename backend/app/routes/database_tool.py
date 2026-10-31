@@ -92,8 +92,15 @@ async def create_database(
     request: CreateDatabaseRequest, user_id: str = Depends(get_current_user_id)
 ):
     """Create a new database configuration"""
+    from app.storage.locator import StorageLocation
+
     try:
-        return DatabaseToolService.create_config(user_id, request)
+        location = StorageLocation.from_value(request.storage_location)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        return DatabaseToolService.create_config(user_id, request, location)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -127,8 +134,17 @@ async def update_database(
     user_id: str = Depends(get_current_user_id),
 ):
     """Update a database configuration"""
+    from app.storage.locator import StorageLocation
+
+    location = None
+    if request.storage_location:
+        try:
+            location = StorageLocation.from_value(request.storage_location)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
     try:
-        config = DatabaseToolService.update_config(id, user_id, request)
+        config = DatabaseToolService.update_config(id, user_id, request, location)
         if not config:
             raise HTTPException(status_code=404, detail="Configuration not found")
         # 清除该配置下所有数据库的结构缓存（连接信息可能已变更）

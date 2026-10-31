@@ -195,7 +195,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -287,7 +287,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -433,7 +433,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -484,7 +484,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -544,7 +544,7 @@ class DatabaseToolService:
         # But let's avoid fetching config every time
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -584,316 +584,306 @@ class DatabaseToolService:
     # --------------------------------------------------------------------------
 
     @staticmethod
+    def _decrypt_for(row: dict) -> str | None:
+        """按行的存储位置选择对应密钥解密密码"""
+        from app.storage.locator import StorageLocation
+
+        cipher = row.get("password_encrypted")
+        if not cipher:
+            return None
+
+        if row.get("storage_location") == StorageLocation.LOCAL.value:
+            from app.storage.crypto import LocalEncryption
+
+            return LocalEncryption.decrypt(cipher)
+
+        password, _error = DatabaseToolService._decrypt_password(cipher, row.get("id", ""))
+        return password
+
+    @staticmethod
+    def _row_to_response(row: dict, password: str | None = None) -> DatabaseConfigResponse:
+        """把字典行转换为响应模型"""
+        return DatabaseConfigResponse(
+            id=row["id"],
+            user_id=row["user_id"],
+            alias=row["alias"],
+            db_type=row["db_type"],
+            host=row["host"],
+            port=row["port"],
+            database_name=row.get("database_name"),
+            username=row["username"],
+            environment=row.get("environment"),
+            group_name=row.get("group_name"),
+            charset=row.get("charset"),
+            connect_timeout=row.get("connect_timeout"),
+            max_pool_size=row.get("max_pool_size"),
+            ssl_mode=row.get("ssl_mode"),
+            ssl_cert_path=row.get("ssl_cert_path"),
+            extra_config=row.get("extra_config")
+            if isinstance(row.get("extra_config"), dict)
+            else (
+                json.loads(row["extra_config"]) if row.get("extra_config") else None
+            ),
+            is_active=row.get("is_active", True),
+            last_connected_at=row.get("last_connected_at"),
+            created_at=row.get("created_at"),
+            updated_at=row.get("updated_at"),
+            password=password,
+            # 落库标记为大写 LOCAL/SERVER，对外统一小写
+            storage_location=str(row.get("storage_location") or "server").lower(),
+        )
+
+    @staticmethod
     def get_all_configs(
         user_id: str, include_password: bool = False
     ) -> List[DatabaseConfigResponse]:
-        conn = get_pooled_db_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT * FROM db_configs WHERE user_id = %s AND deleted = FALSE ORDER BY created_at DESC",
-                    (user_id,),
-                )
-                rows = cursor.fetchall()
+        """获取用户的全部连接配置（合并本地 + 服务器两侧，按创建时间倒排）"""
+        from app.storage.locator import StorageLocation, server_available
+        from app.storage.repository import get_repository
 
-                configs = []
-                for row in rows:
+        rows: list[dict] = []
+
+        # 本地侧
+        try:
+            local_repo = get_repository(StorageLocation.LOCAL, "database")
+            rows.extend(local_repo.list(user_id))
+        except Exception as exc:
+            logger.warning("读取本地数据库配置失败：%s", exc)
+
+        # 服务器侧（不可用时跳过）
+        available, _reason = server_available()
+        if available:
+            try:
+                remote_repo = get_repository(StorageLocation.SERVER, "database")
+                rows.extend(remote_repo.list(user_id))
+            except Exception as exc:
+                logger.warning("读取服务器数据库配置失败：%s", exc)
+
+        rows.sort(key=lambda r: r.get("created_at") or datetime.min, reverse=True)
+
+        configs = []
+        for row in rows:
+            password = None
+            if include_password and row.get("password_encrypted"):
+                try:
+                    password = DatabaseToolService._decrypt_for(row)
+                except Exception as exc:
+                    logger.warning("解密配置 %s 密码失败：%s", row.get("id"), exc)
                     password = None
-                    if include_password:
-                        password, _ = DatabaseToolService._decrypt_password(
-                            row["password_encrypted"], row["id"]
-                        )
-                    # 'row' is a RealDictRow
-                    config = DatabaseConfigResponse(
-                        id=row["id"],
-                        user_id=row["user_id"],
-                        alias=row["alias"],
-                        db_type=row["db_type"],
-                        host=row["host"],
-                        port=row["port"],
-                        database_name=row["database_name"],
-                        username=row["username"],
-                        environment=row["environment"],
-                        group_name=row["group_name"],
-                        charset=row["charset"],
-                        connect_timeout=row["connect_timeout"],
-                        max_pool_size=row["max_pool_size"],
-                        ssl_mode=row["ssl_mode"],
-                        ssl_cert_path=row["ssl_cert_path"],
-                        extra_config=row["extra_config"]
-                        if isinstance(row["extra_config"], dict)
-                        else (
-                            json.loads(row["extra_config"])
-                            if row["extra_config"]
-                            else None
-                        ),
-                        is_active=row["is_active"],
-                        last_connected_at=row["last_connected_at"],
-                        created_at=row["created_at"],
-                        updated_at=row["updated_at"],
-                        password=password,
-                    )
-                    configs.append(config)
-                return configs
-        finally:
-            release_db_connection(conn)
+            configs.append(DatabaseToolService._row_to_response(row, password))
+        return configs
 
     @staticmethod
     def get_config(
         config_id: str, user_id: str, include_password: bool = False
     ) -> Optional[DatabaseConfigResponse]:
-        conn = get_pooled_db_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT * FROM db_configs WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                    (config_id, user_id),
-                )
-                row = cursor.fetchone()
-                if not row:
-                    return None
+        """获取单条配置（自动定位其所在存储位置）"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
+        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+            try:
+                repo = get_repository(location, "database")
+            except Exception:
+                continue
+            row = repo.get(config_id, user_id)
+            if row:
                 password = None
                 if include_password:
                     try:
-                        password = EncryptionUtils.decrypt(row["password_encrypted"])
-                    except Exception:
+                        password = DatabaseToolService._decrypt_for(row)
+                    except Exception as exc:
+                        logger.warning("解密配置 %s 密码失败：%s", config_id, exc)
                         password = None
-                return DatabaseConfigResponse(
-                    id=row["id"],
-                    user_id=row["user_id"],
-                    alias=row["alias"],
-                    db_type=row["db_type"],
-                    host=row["host"],
-                    port=row["port"],
-                    database_name=row["database_name"],
-                    username=row["username"],
-                    environment=row["environment"],
-                    group_name=row["group_name"],
-                    charset=row["charset"],
-                    connect_timeout=row["connect_timeout"],
-                    max_pool_size=row["max_pool_size"],
-                    ssl_mode=row["ssl_mode"],
-                    ssl_cert_path=row["ssl_cert_path"],
-                    extra_config=row["extra_config"]
-                    if isinstance(row["extra_config"], dict)
-                    else (
-                        json.loads(row["extra_config"]) if row["extra_config"] else None
-                    ),
-                    is_active=row["is_active"],
-                    last_connected_at=row["last_connected_at"],
-                    created_at=row["created_at"],
-                    updated_at=row["updated_at"],
-                    password=password,
-                )
-        finally:
-            release_db_connection(conn)
+                return DatabaseToolService._row_to_response(row, password)
+
+        return None
 
     @staticmethod
     def _get_config_with_password(
         config_id: str, user_id: str
     ) -> Optional[Dict[str, Any]]:
-        """Internal helper to get config including encrypted password"""
-        conn = get_pooled_db_connection()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT * FROM db_configs WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                    (config_id, user_id),
+        """获取配置（含解密后的密码）"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
+        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+            try:
+                repo = get_repository(location, "database")
+            except Exception:
+                continue
+            row = repo.get_with_secret(config_id, user_id)
+            if row:
+                return row
+
+        return None
+
+    @staticmethod
+    def _assert_alias_unique(
+        user_id: str, alias: str, exclude_config_id: str | None = None
+    ) -> None:
+        """别名唯一性 —— 必须跨本地与服务器两侧检查"""
+        from app.storage.locator import StorageLocation, server_available
+        from app.storage.repository import get_repository
+
+        locations = [StorageLocation.LOCAL]
+        available, _ = server_available()
+        if available:
+            locations.append(StorageLocation.SERVER)
+
+        for location in locations:
+            try:
+                repo = get_repository(location, "database")
+                existing = repo.find_by_alias(user_id, alias)
+            except Exception:
+                continue
+            if existing and existing.get("id") != exclude_config_id:
+                raise ValueError(
+                    f"别名 '{alias}' 已存在（存储位置：{location.value}）"
                 )
-                row = cursor.fetchone()
-                if not row:
-                    return None
-                return dict(row)
-        finally:
-            release_db_connection(conn)
+
+    @staticmethod
+    def _resolve_password(config_row: dict) -> str:
+        """从配置行解析明文密码（优先 Repository 已解密值，回退远程旧密钥路径）"""
+        decrypted = config_row.get("password_decrypted")
+        if decrypted:
+            return decrypted
+
+        cipher = config_row.get("password_encrypted")
+        if not cipher:
+            raise ValueError("数据库配置密码为空")
+
+        password, error = DatabaseToolService._decrypt_password(cipher, config_row.get("id", ""))
+        if password is None:
+            raise ValueError(error or "密码解密失败，请编辑该连接重新保存密码")
+        return password
 
     @staticmethod
     def create_config(
-        user_id: str, request: CreateDatabaseRequest
+        user_id: str,
+        request: CreateDatabaseRequest,
+        storage_location,
     ) -> DatabaseConfigResponse:
-        conn = get_pooled_db_connection()
-        try:
-            # Encrypt password
-            encrypted_password = EncryptionUtils.encrypt(request.password)
+        """创建连接配置（写入指定存储位置）"""
+        from app.storage.repository import get_repository
 
-            config_id = str(uuid.uuid4())
-            now = datetime.now()
+        # 跨库别名唯一性检查（本地 + 服务器两侧都查）
+        DatabaseToolService._assert_alias_unique(user_id, request.alias, exclude_config_id=None)
 
-            with conn.cursor() as cursor:
-                # Check alias uniqueness for user
-                cursor.execute(
-                    "SELECT id FROM db_configs WHERE user_id = %s AND alias = %s AND deleted = FALSE",
-                    (user_id, request.alias),
-                )
-                if cursor.fetchone():
-                    raise ValueError(f"Alias '{request.alias}' already exists")
+        config_id = str(uuid.uuid4())
+        now = datetime.now()
 
-                cursor.execute(
-                    """
-                    INSERT INTO db_configs (
-                        id, user_id, alias, db_type, host, port, database_name, username, 
-                        password_encrypted, environment, group_name, charset, connect_timeout, 
-                        max_pool_size, ssl_mode, ssl_cert_path, extra_config, is_active, 
-                        created_at, updated_at, deleted
-                    ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, 
-                        %s, %s, %s, %s, %s, 
-                        %s, %s, %s, %s, %s, 
-                        %s, %s, FALSE
-                    )
-                    """,
-                    (
-                        config_id,
-                        user_id,
-                        request.alias,
-                        request.db_type,
-                        request.host,
-                        request.port,
-                        request.database_name,
-                        request.username,
-                        encrypted_password,
-                        request.environment,
-                        request.group_name,
-                        request.charset,
-                        request.connect_timeout,
-                        request.max_pool_size,
-                        request.ssl_mode,
-                        request.ssl_cert_path,
-                        json.dumps(request.extra_config)
-                        if request.extra_config
-                        else None,
-                        request.is_active,
-                        now,
-                        now,
-                    ),
-                )
-                conn.commit()
+        payload = {
+            "id": config_id,
+            "alias": request.alias,
+            "db_type": request.db_type.value if hasattr(request.db_type, "value") else request.db_type,
+            "host": request.host,
+            "port": request.port,
+            "database_name": request.database_name,
+            "username": request.username,
+            "environment": request.environment.value if hasattr(request.environment, "value") else request.environment,
+            "group_name": request.group_name,
+            "charset": request.charset,
+            "connect_timeout": request.connect_timeout,
+            "max_pool_size": request.max_pool_size,
+            "ssl_mode": request.ssl_mode,
+            "ssl_cert_path": request.ssl_cert_path,
+            "extra_config": json.dumps(request.extra_config) if request.extra_config else None,
+            "is_active": request.is_active,
+            "created_at": now,
+            "updated_at": now,
+        }
 
-            return DatabaseToolService.get_config(config_id, user_id)
-        except Exception as e:
-            conn.rollback()
-            raise e
-        finally:
-            release_db_connection(conn)
+        repo = get_repository(storage_location, "database")
+        # 密码用目标仓储的密钥加密（本地用本地密钥，远程用服务器密钥）
+        payload["password_encrypted"] = repo._encrypt(request.password)
+
+        repo.create(user_id, payload, storage_location)
+
+        created = repo.get(config_id, user_id)
+        if created is None:
+            raise RuntimeError("配置创建后无法读回")
+        return DatabaseToolService._row_to_response(created)
 
     @staticmethod
     def update_config(
-        config_id: str, user_id: str, request: UpdateDatabaseRequest
+        config_id: str,
+        user_id: str,
+        request: UpdateDatabaseRequest,
+        storage_location=None,
     ) -> Optional[DatabaseConfigResponse]:
-        conn = get_pooled_db_connection()
-        try:
-            with conn.cursor() as cursor:
-                # Check existence
-                cursor.execute(
-                    "SELECT id FROM db_configs WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                    (config_id, user_id),
-                )
-                if not cursor.fetchone():
-                    return None
+        """更新连接配置"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
 
-                updates = []
-                params = []
+        # 定位配置当前所在位置
+        target_location = storage_location
+        repo = None
+        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+            try:
+                candidate = get_repository(location, "database")
+            except Exception:
+                continue
+            if candidate.get(config_id, user_id):
+                repo = candidate
+                target_location = location
+                break
 
-                if request.alias is not None:
-                    # Check alias uniqueness if changed
-                    cursor.execute(
-                        "SELECT id FROM db_configs WHERE user_id = %s AND alias = %s AND id != %s AND deleted = FALSE",
-                        (user_id, request.alias, config_id),
-                    )
-                    if cursor.fetchone():
-                        raise ValueError(f"Alias '{request.alias}' already exists")
-                    updates.append("alias = %s")
-                    params.append(request.alias)
+        if repo is None or target_location is None:
+            return None
 
-                if request.host is not None:
-                    updates.append("host = %s")
-                    params.append(request.host)
-                if request.port is not None:
-                    updates.append("port = %s")
-                    params.append(request.port)
-                if request.database_name is not None:
-                    updates.append("database_name = %s")
-                    params.append(request.database_name)
-                if request.username is not None:
-                    updates.append("username = %s")
-                    params.append(request.username)
-                if request.password is not None:
-                    encrypted = EncryptionUtils.encrypt(request.password)
-                    updates.append("password_encrypted = %s")
-                    params.append(encrypted)
-                if request.environment is not None:
-                    updates.append("environment = %s")
-                    params.append(request.environment)
-                if request.group_name is not None:
-                    updates.append("group_name = %s")
-                    params.append(request.group_name)
-                if request.charset is not None:
-                    updates.append("charset = %s")
-                    params.append(request.charset)
-                if request.connect_timeout is not None:
-                    updates.append("connect_timeout = %s")
-                    params.append(request.connect_timeout)
-                if request.max_pool_size is not None:
-                    updates.append("max_pool_size = %s")
-                    params.append(request.max_pool_size)
-                if request.ssl_mode is not None:
-                    updates.append("ssl_mode = %s")
-                    params.append(request.ssl_mode)
-                if request.ssl_cert_path is not None:
-                    updates.append("ssl_cert_path = %s")
-                    params.append(request.ssl_cert_path)
-                if request.extra_config is not None:
-                    updates.append("extra_config = %s")
-                    params.append(json.dumps(request.extra_config))
-                if request.is_active is not None:
-                    updates.append("is_active = %s")
-                    params.append(request.is_active)
+        if request.alias is not None:
+            DatabaseToolService._assert_alias_unique(
+                user_id, request.alias, exclude_config_id=config_id
+            )
 
-                if not updates:
-                    return DatabaseToolService.get_config(config_id, user_id)
+        updates: dict[str, Any] = {}
+        for field in (
+            "alias", "host", "port", "database_name", "username",
+            "environment", "group_name", "charset", "connect_timeout",
+            "max_pool_size", "ssl_mode", "ssl_cert_path", "is_active",
+        ):
+            value = getattr(request, field, None)
+            if value is not None:
+                updates[field] = value.value if hasattr(value, "value") else value
 
-                updates.append("updated_at = %s")
-                params.append(datetime.now())
+        if request.extra_config is not None:
+            updates["extra_config"] = json.dumps(request.extra_config)
 
-                params.append(config_id)
-                params.append(user_id)
+        if request.password is not None:
+            updates["password_encrypted"] = repo._encrypt(request.password)
 
-                sql = f"UPDATE db_configs SET {', '.join(updates)} WHERE id = %s AND user_id = %s"
-                cursor.execute(sql, tuple(params))
-                conn.commit()
+        updated = repo.update(config_id, user_id, updates, target_location)
+        if updated is None:
+            return None
 
-            # Clear engine cache if connection params changed
-            DBConnectionManager.close_engine(config_id)
+        # 连接信息可能已变更，清除引擎缓存
+        DBConnectionManager.close_engine(config_id)
 
-            return DatabaseToolService.get_config(config_id, user_id)
-        except Exception as e:
-            conn.rollback()
-            raise e
-        finally:
-            release_db_connection(conn)
+        return DatabaseToolService._row_to_response(updated)
 
     @staticmethod
     def delete_config(config_id: str, user_id: str) -> bool:
-        conn = get_pooled_db_connection()
-        try:
-            with conn.cursor() as cursor:
-                # Soft delete
-                cursor.execute(
-                    "UPDATE db_configs SET deleted = TRUE, updated_at = %s WHERE id = %s AND user_id = %s",
-                    (datetime.now(), config_id, user_id),
-                )
-                if cursor.rowcount == 0:
-                    return False
-                conn.commit()
+        """删除连接配置（两侧都尝试删，清理可能的重复残留）"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
 
-            # Close engine
+        deleted = False
+        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+            try:
+                repo = get_repository(location, "database")
+            except Exception:
+                continue
+            try:
+                if repo.delete(config_id, user_id):
+                    deleted = True
+            except Exception as exc:
+                logger.warning("删除 %s 侧配置失败：%s", location.value, exc)
+
+        if deleted:
+            # 删除配置时清除引擎缓存
             DBConnectionManager.close_engine(config_id)
-            return True
-        except Exception as e:
-            conn.rollback()
-            raise e
-        finally:
-            release_db_connection(conn)
+        return deleted
 
     @staticmethod
     def test_connection(request: TestConnectionRequest) -> ConnectionTestResult:
@@ -935,7 +925,7 @@ class DatabaseToolService:
 
         # Decrypt password
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             return ConnectionTestResult(
                 success=False, message="Failed to decrypt password"
@@ -1031,14 +1021,14 @@ class DatabaseToolService:
                 error_message="Configuration not found or access denied",
             )
 
-        password, error = DatabaseToolService._decrypt_password(
-            config_row["password_encrypted"], request.db_config_id
-        )
-        if error:
+        # 优先用 Repository 已解密的密码；远程旧数据回退到原多密钥路径
+        try:
+            password = DatabaseToolService._resolve_password(config_row)
+        except ValueError as exc:
             return SQLExecutionResult(
                 success=False,
                 execution_time_ms=0,
-                error_message=error,
+                error_message=str(exc),
             )
 
         config_dict = {
@@ -1224,11 +1214,8 @@ class DatabaseToolService:
         if not config_row:
             raise ValueError("Configuration not found")
 
-        password, error = DatabaseToolService._decrypt_password(
-            config_row["password_encrypted"], config_id
-        )
-        if error:
-            raise ValueError(error)
+        # 优先用 Repository 已解密的密码；远程旧数据回退到原多密钥路径
+        password = DatabaseToolService._resolve_password(config_row)
 
         config_dict = {
             "db_type": config_row["db_type"],
@@ -1312,7 +1299,7 @@ class DatabaseToolService:
             return []
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1417,7 +1404,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1519,7 +1506,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1550,7 +1537,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1628,14 +1615,14 @@ class DatabaseToolService:
                 error_message="Configuration not found",
             )
 
-        password, error = DatabaseToolService._decrypt_password(
-            config_row["password_encrypted"], config_id
-        )
-        if error:
+        # 优先用 Repository 已解密的密码；远程旧数据回退到原多密钥路径
+        try:
+            password = DatabaseToolService._resolve_password(config_row)
+        except ValueError as exc:
             return SQLExecutionResult(
                 success=False,
                 execution_time_ms=0,
-                error_message=error,
+                error_message=str(exc),
             )
 
         # If database_name is provided (e.g. for multi-db connections), use it
@@ -1732,7 +1719,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1799,7 +1786,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1842,7 +1829,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1887,7 +1874,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -1970,7 +1957,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2095,7 +2082,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2256,7 +2243,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2395,7 +2382,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2556,7 +2543,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2632,7 +2619,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2766,7 +2753,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2849,7 +2836,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -2936,7 +2923,7 @@ class DatabaseToolService:
             )
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             return BatchDeleteResult(
                 success=False,
@@ -3057,7 +3044,7 @@ class DatabaseToolService:
             )
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             return RowOperationResult(
                 success=False,
@@ -3159,7 +3146,7 @@ class DatabaseToolService:
             )
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             return RowOperationResult(
                 success=False,
@@ -3275,7 +3262,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
@@ -3394,7 +3381,7 @@ class DatabaseToolService:
             raise ValueError("Configuration not found")
 
         try:
-            password = EncryptionUtils.decrypt(config_row["password_encrypted"])
+            password = DatabaseToolService._resolve_password(config_row)
         except Exception:
             raise ValueError("Failed to decrypt password")
 
