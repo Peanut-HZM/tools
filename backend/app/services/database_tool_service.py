@@ -592,7 +592,7 @@ class DatabaseToolService:
         if not cipher:
             return None
 
-        if row.get("storage_location") == StorageLocation.LOCAL.value:
+        if str(row.get("storage_location") or "").upper() == StorageLocation.LOCAL.name:
             from app.storage.crypto import LocalEncryption
 
             return LocalEncryption.decrypt(cipher)
@@ -734,8 +734,17 @@ class DatabaseToolService:
         for location in locations:
             try:
                 repo = get_repository(location, "database")
+            except Exception as exc:
+                if location is StorageLocation.LOCAL:
+                    # 本地仓储不可用不能静默放行，否则会产生重复别名
+                    raise ValueError(f"本地存储不可用，无法检查别名唯一性：{exc}") from exc
+                continue
+            try:
                 existing = repo.find_by_alias(user_id, alias)
-            except Exception:
+            except Exception as exc:
+                if location is StorageLocation.LOCAL:
+                    # 本地查询失败同样不能静默放行
+                    raise ValueError(f"检查本地别名唯一性失败：{exc}") from exc
                 continue
             if existing and existing.get("id") != exclude_config_id:
                 raise ValueError(
@@ -762,7 +771,7 @@ class DatabaseToolService:
     def create_config(
         user_id: str,
         request: CreateDatabaseRequest,
-        storage_location,
+        storage_location: "StorageLocation",
     ) -> DatabaseConfigResponse:
         """创建连接配置（写入指定存储位置）"""
         from app.storage.repository import get_repository
@@ -816,18 +825,23 @@ class DatabaseToolService:
         from app.storage.locator import StorageLocation
         from app.storage.repository import get_repository
 
-        # 定位配置当前所在位置
-        target_location = storage_location
-        repo = None
-        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
-            try:
-                candidate = get_repository(location, "database")
-            except Exception:
-                continue
-            if candidate.get(config_id, user_id):
-                repo = candidate
-                target_location = location
-                break
+        if storage_location is not None:
+            # 显式指定存储位置：直接用对应仓储，不做自动定位
+            target_location = StorageLocation.from_value(storage_location)
+            repo = get_repository(target_location, "database")
+        else:
+            # 未指定：自动定位配置当前所在位置
+            target_location = None
+            repo = None
+            for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+                try:
+                    candidate = get_repository(location, "database")
+                except Exception:
+                    continue
+                if candidate.get(config_id, user_id):
+                    repo = candidate
+                    target_location = location
+                    break
 
         if repo is None or target_location is None:
             return None
