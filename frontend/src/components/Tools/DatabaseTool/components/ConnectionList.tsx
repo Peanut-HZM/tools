@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LogIn, LogOut, Settings, Terminal, Plus, Search, Database, ChevronRight, Filter, Pencil, Loader2, RefreshCw, Archive, History, Trash2, Table, Eye, Code, FileCode, Columns, Key, Link, ArrowRight, Layers, Copy, Cable, X, type LucideIcon } from 'lucide-react';
+import { LogIn, LogOut, Settings, Terminal, Plus, Search, Database, ChevronRight, Filter, Pencil, Loader2, RefreshCw, Archive, History, Trash2, Table, Eye, Code, FileCode, Columns, Key, Link, ArrowRight, ArrowRightLeft, Layers, Copy, Cable, X, type LucideIcon } from 'lucide-react';
 import { useDatabaseTool } from '../../../../contexts/DatabaseToolContext';
 import { useWorkspaceStore } from '../../../../stores/workspaceStore';
 import { DatabaseConfig, Environment, DatabaseStructure, TableItem, TableDetailResponse } from '../../../../types/databaseTool';
@@ -17,6 +17,9 @@ import DisplaySettingsDialog from './DisplaySettingsDialog';
 import SchemaNode from './SchemaNode';
 import { DisplayPreferences } from '../../../../types/databaseTool';
 import { toast } from 'sonner';
+import { getStorageStatus, migrateConfig } from '../../../../api/storageApi';
+import type { StorageLocation } from '../../../../types/storage';
+import StorageLocationBadge from '../../../Common/StorageLocationBadge';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -58,6 +61,41 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
   // 显示偏好
   const [displayPreferences, setDisplayPreferences] = useState<DisplayPreferences | null>(null);
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+
+  // 远程服务器可用性（决定迁移到服务器按钮是否展示）
+  const [serverAvailable, setServerAvailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getStorageStatus()
+      .then((status) => {
+        if (!cancelled) setServerAvailable(status.server_available);
+      })
+      .catch(() => {
+        if (!cancelled) setServerAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 单条配置迁移：迁移时用目标端的密钥重新加密凭据
+  const handleMigrate = async (configId: string, target: StorageLocation) => {
+    if (!window.confirm('确定要迁移该连接配置吗？迁移时会用目标端的密钥重新加密凭据。')) {
+      return;
+    }
+    try {
+      const result = await migrateConfig('database', configId, target);
+      if (result.success) {
+        toast.success(result.message || '迁移成功');
+        await refreshConfigs();
+      } else {
+        toast.error(result.message || '迁移失败');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '迁移失败');
+    }
+  };
 
   // 加载显示偏好
   useEffect(() => {
@@ -200,6 +238,8 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             displayPreferences={displayPreferences}
             activeDatabaseName={activeDatabaseName}
             activeSchemaName={activeSchemaName}
+            serverAvailable={serverAvailable}
+            onMigrate={handleMigrate}
           />
           );
         })}
@@ -263,10 +303,13 @@ interface ConnectionNodeProps {
   displayPreferences?: DisplayPreferences | null;
   activeDatabaseName?: string;
   activeSchemaName?: string;
+  /** 远程服务器是否可用（决定迁移按钮展示） */
+  serverAvailable: boolean;
+  onMigrate: (configId: string, target: StorageLocation) => Promise<void>;
 }
 
 const ConnectionNode: React.FC<ConnectionNodeProps> = ({
-  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences, activeDatabaseName, activeSchemaName
+  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences, activeDatabaseName, activeSchemaName, serverAvailable, onMigrate
 }) => {
   const { t } = useI18n();
   const [databases, setDatabases] = useState<string[]>([]);
@@ -591,11 +634,31 @@ const handleSelectAndExpand = async () => {
                     {config.environment}
                   </Badge>
                 )}
+                {/* 存储位置徽章：旧数据缺省视为服务器存储 */}
+                <StorageLocationBadge location={(config.storage_location ?? 'server') as StorageLocation} />
              </div>
            </div>
         </div>
 
         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* 迁移按钮：目标侧可用时展示（移到本机始终可用，移到服务器需服务器在线） */}
+          {(() => {
+            const target: StorageLocation = (config.storage_location ?? 'server') === 'local' ? 'server' : 'local';
+            const canMigrate = target === 'local' || serverAvailable;
+            if (!canMigrate) return null;
+            return (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMigrate(config.id, target);
+                }}
+                className="p-1.5 rounded transition-all text-ink-muted hover:text-ink hover:bg-surface-3"
+                title={target === 'local' ? '移到本机' : '移到服务器'}
+              >
+                <ArrowRightLeft className="w-3 h-3" />
+              </button>
+            );
+          })()}
           {!config.database_name && (
             <button
                 onClick={handleFilterClick}

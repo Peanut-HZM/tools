@@ -1,3 +1,5 @@
+import type { StorageLocation } from './storage';
+
 export enum DatabaseType {
   MYSQL = "mysql",
   POSTGRESQL = "postgresql",
@@ -35,6 +37,8 @@ export interface DatabaseConfig {
   created_at: string;
   updated_at: string;
   password?: string;
+  /** 存储位置：local=本机 / server=服务器 */
+  storage_location: StorageLocation;
 }
 
 export interface CreateDatabaseRequest {
@@ -54,6 +58,8 @@ export interface CreateDatabaseRequest {
   ssl_cert_path?: string;
   extra_config?: Record<string, any>;
   is_active?: boolean;
+  /** 存储位置：local=本机 / server=服务器（默认本机） */
+  storage_location?: StorageLocation;
 }
 
 export interface UpdateDatabaseRequest {
@@ -72,6 +78,8 @@ export interface UpdateDatabaseRequest {
   ssl_cert_path?: string;
   extra_config?: Record<string, any>;
   is_active?: boolean;
+  /** 存储位置：local=本机 / server=服务器（仅编辑时如需变更才传） */
+  storage_location?: StorageLocation;
 }
 
 export interface TestConnectionRequest {

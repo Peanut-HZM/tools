@@ -5,6 +5,9 @@ import * as api from '../../../api/databaseToolApi';
 import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import { useAuth } from '../../../stores';
+import { getStorageStatus } from '../../../api/storageApi';
+import StorageLocationSelector from '../../../components/Common/StorageLocationSelector';
+import type { StorageLocation } from '../../../types/storage';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
@@ -23,6 +26,23 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
   const [testing, setTesting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [decryptedPassword, setDecryptedPassword] = useState<string>('');
+  // 存储位置：默认本机；挂载时探测服务器可用性
+  const [storageLocation, setStorageLocation] = useState<StorageLocation>('local');
+  const [serverAvailable, setServerAvailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getStorageStatus()
+      .then((status) => {
+        if (!cancelled) setServerAvailable(status.server_available);
+      })
+      .catch(() => {
+        if (!cancelled) setServerAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   
   const [formData, setFormData] = useState<CreateDatabaseRequest>({
     alias: '',
@@ -104,11 +124,11 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
           delete updateData.password;
         }
         
-        await api.updateDatabase(editConfigId, updateData);
+        await api.updateDatabase(editConfigId, { ...updateData, storage_location: storageLocation });
         toast.success(t.common.success);
       } else {
         // Create
-        await api.createDatabase(formData);
+        await api.createDatabase({ ...formData, storage_location: storageLocation });
         toast.success(t.common.success);
       }
       await refreshConfigs();
@@ -284,6 +304,13 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
             </div>
 
           </div>
+
+          {/* 存储位置选择（创建/编辑均生效） */}
+          <StorageLocationSelector
+            value={storageLocation}
+            onChange={setStorageLocation}
+            serverAvailable={serverAvailable}
+          />
 
           <div className="flex justify-between pt-5 border-t border-border">
              {editConfigId ? (

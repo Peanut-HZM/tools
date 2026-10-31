@@ -22,6 +22,7 @@ import {
   BackupRecord,
   DisplayPreferences,
 } from '../types/databaseTool';
+import type { StorageLocation } from '../types/storage';
 import { DBCache } from '../utils/dbCache';
 
 // Re-export types for use in components
@@ -102,10 +103,12 @@ export async function getDatabases(includePassword = false): Promise<DatabaseCon
 }
 
 export async function createDatabase(data: CreateDatabaseRequest): Promise<DatabaseConfig> {
+  // 未显式指定存储位置时默认保存在本机
+  const payload = { storage_location: 'local' as StorageLocation, ...data };
   const response = await fetchWithTimeout(`${BASE_URL}/databases`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data)
+    body: JSON.stringify(payload)
   });
   const result = await handleResponse<DatabaseConfig>(response);
   // 配置变更：清除连接列表缓存
