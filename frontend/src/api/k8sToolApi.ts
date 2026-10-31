@@ -8,6 +8,7 @@
 import { API_BASE_URL } from '../config/api';
 import { getAuthHeaders, getAuthToken } from './authApi';
 import { authedFetch } from './http';
+import type { StorageLocation } from '../types/storage';
 import type {
   K8sConnection,
   CreateK8sManualRequest,
@@ -71,10 +72,15 @@ export const getK8sConfigs = () =>
   request<K8sConnection[]>(`${K8S_API_URL}/configs`);
 
 /** 上传 kubeconfig 文件创建连接（multipart/form-data） */
-export const uploadKubeconfig = (file: File, namespaceFilter: string[] = []) => {
+export const uploadKubeconfig = (
+  file: File,
+  namespaceFilter: string[] = [],
+  storageLocation: StorageLocation = 'local',
+) => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('namespace_filter', JSON.stringify(namespaceFilter));
+  formData.append('storage_location', storageLocation);
 
   // request() 函数会自动检测 FormData 并删除 Content-Type
   return request<K8sConnection[]>(`${K8S_API_URL}/configs/upload`, {
@@ -87,14 +93,14 @@ export const uploadKubeconfig = (file: File, namespaceFilter: string[] = []) => 
 export const pasteKubeconfig = (data: CreateK8sPasteRequest) =>
   request<K8sConnection[]>(`${K8S_API_URL}/configs/paste`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ storage_location: 'local' as StorageLocation, ...data }),
   });
 
 /** 手动填写连接信息创建配置 */
 export const createK8sManual = (data: CreateK8sManualRequest) =>
   request<K8sConnection>(`${K8S_API_URL}/configs/manual`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ storage_location: 'local' as StorageLocation, ...data }),
   });
 
 /** 更新连接配置（名称、命名空间过滤） */

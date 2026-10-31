@@ -3,6 +3,7 @@
  *
  * 对应后端 k8s_tool_models.py 中的模型字段
  */
+import type { StorageLocation } from '../../../types/storage';
 
 // K8s 连接配置
 export interface K8sConnection {
@@ -15,6 +16,8 @@ export interface K8sConnection {
   server: string;
   auth_type: 'bearer_token' | 'client_cert' | 'basic_auth';
   has_auth_data: boolean;
+  /** 存储位置：local=本机 / server=服务器 */
+  storage_location: StorageLocation;
   has_ca_cert: boolean;
   namespace_filter: string[];
   is_metrics_available: boolean;
@@ -36,12 +39,16 @@ export interface CreateK8sManualRequest {
   password?: string;
   ca_cert?: string;
   namespace_filter?: string[];
+  /** 存储位置：local=本机 / server=服务器（缺省本机） */
+  storage_location?: StorageLocation;
 }
 
 // 粘贴 kubeconfig 文本创建请求
 export interface CreateK8sPasteRequest {
   kubeconfig_text: string;
   namespace_filter?: string[];
+  /** 存储位置：local=本机 / server=服务器（缺省本机） */
+  storage_location?: StorageLocation;
 }
 
 // 更新连接配置请求

@@ -20,6 +20,9 @@ import { useK8sStore } from '../../../stores/k8sStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import StorageLocationSelector from '../../Common/StorageLocationSelector';
+import { getStorageStatus } from '../../../api/storageApi';
+import type { StorageLocation } from '../../../types/storage';
 
 type TabKey = 'upload' | 'paste' | 'manual';
 type AuthType = CreateK8sManualRequest['auth_type'];
@@ -85,6 +88,12 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
   const [testMessage, setTestMessage] = useState('');
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
+  // 存储位置：新建默认本机；编辑时回填原位置
+  const [storageLocation, setStorageLocation] = useState<StorageLocation>('local');
+  const [originalLocation, setOriginalLocation] = useState<StorageLocation | null>(null);
+  // 远程服务器是否可用（探测失败时按不可用处理，不提供上传选项）
+  const [serverAvailable, setServerAvailable] = useState(false);
+
   const isEditing = !!initialData;
 
   /** 将逗号分隔的命名空间字符串转为数组 */
@@ -97,6 +106,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
     if (initialData) {
       setEditName(initialData.name);
       setEditNamespaceFilter(initialData.namespace_filter.join(', '));
+      // 回填原存储位置（旧数据缺省按本机处理）；未改动时提交不带该字段，避免静默迁移
+      const loc = (initialData.storage_location ?? 'local') as StorageLocation;
+      setStorageLocation(loc);
+      setOriginalLocation(loc);
       // 重置敏感字段
       setEditToken('');
       setEditClientCert('');
@@ -104,6 +117,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
       setEditUsername('');
       setEditPassword('');
       setEditCaCert('');
+    } else {
+      // 新建：默认本机
+      setStorageLocation('local');
+      setOriginalLocation(null);
     }
     // 重置所有创建表单状态
     setActiveTab('upload');
@@ -126,6 +143,23 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
     setTestMessage('');
     setTestStatus('idle');
   }, [isOpen, initialData]);
+
+  // 探测远程服务器是否可用：决定是否展示「上传到服务器」选项
+  // 探测失败时按不可用处理（不提供上传选项），不做假可用兜底
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    getStorageStatus()
+      .then((status) => {
+        if (!cancelled) setServerAvailable(status.server_available);
+      })
+      .catch(() => {
+        if (!cancelled) setServerAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   /** react-dropzone 回调 */
   const onDrop = useCallback((accepted: File[]) => {
@@ -150,7 +184,11 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
     }
     setIsUploading(true);
     try {
-      await api.uploadKubeconfig(uploadFile, parseNamespaceFilter(uploadNamespaceFilter));
+      await api.uploadKubeconfig(
+        uploadFile,
+        parseNamespaceFilter(uploadNamespaceFilter),
+        storageLocation,
+      );
       addToast(k8sT.modal.upload.uploadSuccess, 'success');
       // 立即刷新连接列表
       queryClient.invalidateQueries({ queryKey: ['k8s', 'connections'] });
@@ -173,6 +211,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
       await api.pasteKubeconfig({
         kubeconfig_text: pasteText,
         namespace_filter: parseNamespaceFilter(pasteNamespaceFilter),
+        storage_location: storageLocation,
       });
       addToast(k8sT.saveSuccess, 'success');
       // 立即刷新连接列表
@@ -201,6 +240,7 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
       server: manualServer.trim(),
       auth_type: manualAuthType,
       namespace_filter: parseNamespaceFilter(manualNamespaceFilter),
+      storage_location: storageLocation,
     };
 
     // 按认证类型填充字段
@@ -240,10 +280,14 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
     setIsSaving(true);
     try {
       // 先更新基本信息
+      // 编辑保存：仅当用户显式改动了存储位置才传该字段，绝不静默改变存储位置
       const updatedConfig = await api.updateK8sConfig({
         id: initialData.id,
         name: editName.trim(),
         namespace_filter: parseNamespaceFilter(editNamespaceFilter),
+        ...(originalLocation !== null && storageLocation !== originalLocation
+          ? { storage_location: storageLocation }
+          : {}),
       });
 
       // 如果有敏感字段更新，调用 update-auth API
@@ -469,6 +513,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                 />
               </div>
 
+              {/* 存储位置：仅当用户显式改动才会随保存提交 */}
+              <StorageLocationSelector
+                value={storageLocation}
+                onChange={setStorageLocation}
+                serverAvailable={serverAvailable}
+              />
+
               {/* 测试连接 + 保存按钮 */}
               <div className="flex items-center gap-3">
                 <Button
@@ -546,6 +597,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                       onChange={e => setUploadNamespaceFilter(e.target.value)}
                     />
                   </div>
+
+                  {/* 存储位置 */}
+                  <StorageLocationSelector
+                    value={storageLocation}
+                    onChange={setStorageLocation}
+                    serverAvailable={serverAvailable}
+                  />
                 </div>
               )}
 
@@ -574,6 +632,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                       onChange={e => setPasteNamespaceFilter(e.target.value)}
                     />
                   </div>
+
+                  {/* 存储位置 */}
+                  <StorageLocationSelector
+                    value={storageLocation}
+                    onChange={setStorageLocation}
+                    serverAvailable={serverAvailable}
+                  />
                 </div>
               )}
 
@@ -720,6 +785,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, initialData 
                       onChange={e => setManualNamespaceFilter(e.target.value)}
                     />
                   </div>
+
+                  {/* 存储位置 */}
+                  <StorageLocationSelector
+                    value={storageLocation}
+                    onChange={setStorageLocation}
+                    serverAvailable={serverAvailable}
+                  />
                 </div>
               )}
             </>

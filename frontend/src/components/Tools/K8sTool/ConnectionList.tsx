@@ -3,6 +3,7 @@
  * 左侧边栏：展示所有 K8s 集群连接，支持拖动排序
  */
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   closestCenter,
@@ -20,10 +21,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FileUp, ClipboardPaste, Keyboard, Server, GripVertical, Pencil, Trash2, Plus, Search } from 'lucide-react';
+import { FileUp, ClipboardPaste, Keyboard, Server, GripVertical, Pencil, Trash2, Plus, Search, HardDriveDownload, HardDriveUpload } from 'lucide-react';
 import type { K8sConnection } from './types';
 import { useI18n, interpolate } from '../../../i18n';
 import { Button } from '@/components/ui/Button';
+import StorageLocationBadge from '../../Common/StorageLocationBadge';
+import { migrateConfig } from '../../../api/storageApi';
+import { useToast } from '../../../hooks/useToast';
+import type { StorageLocation } from '../../../types/storage';
 
 interface Props {
   configs: K8sConnection[];
@@ -57,9 +62,11 @@ const SortableConnectionItem: React.FC<{
   onSelect: (id: string) => void;
   onEdit: (config: K8sConnection) => void;
   onDelete: (id: string) => void;
+  onMigrated?: () => void;
   k8sT: any;
   t: any;
-}> = ({ conn, selectedId, onSelect, onEdit, onDelete, k8sT, t }) => {
+}> = ({ conn, selectedId, onSelect, onEdit, onDelete, onMigrated, k8sT, t }) => {
+  const { addToast } = useToast();
   const {
     attributes,
     listeners,
@@ -74,6 +81,28 @@ const SortableConnectionItem: React.FC<{
   };
 
   const isSelected = conn.id === selectedId;
+
+  /** 存储位置迁移：本机 ↔ 服务器（迁移时后端会用目标端密钥重新加密凭据） */
+  const handleMigrate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const target: StorageLocation =
+      (conn.storage_location ?? 'local') === 'local' ? 'server' : 'local';
+    const targetLabel = target === 'local' ? '仅保存在本机' : '上传到服务器';
+    if (
+      !window.confirm(
+        `确定要「${targetLabel}」该连接配置吗？\n迁移时会用目标端的密钥重新加密凭据。`,
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await migrateConfig('k8s', conn.id, target);
+      addToast(result.message || '迁移成功', result.success ? 'success' : 'error');
+      onMigrated?.();
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '迁移失败', 'error');
+    }
+  };
 
   return (
     <div
@@ -115,6 +144,9 @@ const SortableConnectionItem: React.FC<{
           ></span>
           {getSourceIcon(conn.source_type)}
           <span className="truncate">{conn.name}</span>
+          <span className="ml-1.5 flex-shrink-0">
+            <StorageLocationBadge location={(conn.storage_location ?? 'local') as StorageLocation} />
+          </span>
         </div>
         <div className="ml-4 mt-0.5 truncate text-[10px] text-ink-faint group-hover:text-ink-muted" title={conn.server || conn.cluster_name}>
           {conn.server || conn.cluster_name}
@@ -122,6 +154,23 @@ const SortableConnectionItem: React.FC<{
       </button>
 
       <div className="flex space-x-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ml-2 flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleMigrate}
+          className="h-7 w-7 p-0"
+          title={
+            (conn.storage_location ?? 'local') === 'local'
+              ? '迁移到服务器存储'
+              : '迁移到本机存储'
+          }
+        >
+          {(conn.storage_location ?? 'local') === 'local' ? (
+            <HardDriveUpload className="w-3 h-3" />
+          ) : (
+            <HardDriveDownload className="w-3 h-3" />
+          )}
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -161,6 +210,7 @@ export const ConnectionList: React.FC<Props> = ({
 }) => {
   const { t } = useI18n();
   const k8sT = t.tools['k8s-tool'];
+  const queryClient = useQueryClient();
   const [items, setItems] = useState(configs);
   const [searchText, setSearchText] = useState('');
   const visibleItems = items.filter((connection) => {
@@ -232,6 +282,9 @@ export const ConnectionList: React.FC<Props> = ({
                 onSelect={onSelect}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onMigrated={() =>
+                  queryClient.invalidateQueries({ queryKey: ['k8s', 'connections'] })
+                }
                 k8sT={k8sT}
                 t={t}
               />
