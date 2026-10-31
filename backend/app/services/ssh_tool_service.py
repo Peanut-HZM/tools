@@ -99,6 +99,8 @@ class SSHToolService:
         return SSHToolService._column_map
     @staticmethod
     def _row_to_response(row) -> SSHConfigResponse:
+        # 落库为大写 LOCAL/SERVER，对外统一小写
+        storage_location = str(row.get('storage_location') or 'server').lower()
         return SSHConfigResponse(
             id=row['id'],
             user_id=row['user_id'],
@@ -110,6 +112,7 @@ class SSHToolService:
             private_key=None,
             passphrase=None,
             group_name=row['group_name'],
+            storage_location=storage_location,
             is_active=row['is_active'],
             created_at=row['created_at'],
             updated_at=row['updated_at']
@@ -161,44 +164,116 @@ class SSHToolService:
 
     @staticmethod
     def _get_config_record(config_id: str, user_id: str):
-        column_map = SSHToolService._get_column_map()
-        deleted_column = column_map["deleted"]
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                f"SELECT * FROM ssh_configs WHERE id = %s AND user_id = %s AND {deleted_column} = FALSE",
-                (config_id, user_id)
-            )
-            return cursor.fetchone()
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        """按需获取配置记录（自动定位存储位置，含解密后的敏感字段）"""
+        repo, _location = SSHToolService._locate(user_id, config_id)
+        if repo is None:
+            return None
+        return repo.get_with_secret(config_id, user_id)
+
+    @staticmethod
+    def _decrypt_password(cipher: Optional[str]) -> Optional[str]:
+        """兼容路径：直接解密密文（远程旧行可能缺 *_decrypted 键时使用）"""
+        if not cipher:
+            return None
+        from app.utils.encryption import EncryptionUtils
+
+        return EncryptionUtils.decrypt(cipher)
+
+    @staticmethod
+    def _get_connection_secrets(config: dict):
+        """从配置记录提取连接用的明文密码/私钥/口令。
+
+        优先用 get_with_secret 的 *_decrypted 明文键；
+        兜底走密文列 + _decrypt_password 兼容路径。
+        """
+        password = config.get("password_decrypted")
+        if password is None:
+            password = SSHToolService._decrypt_password(config.get("password_encrypted"))
+        private_key = config.get("private_key_decrypted")
+        if private_key is None:
+            private_key = SSHToolService._decrypt_password(config.get("private_key_encrypted"))
+        passphrase = config.get("passphrase_decrypted")
+        if passphrase is None:
+            passphrase = SSHToolService._decrypt_password(config.get("passphrase_encrypted"))
+        return password, private_key, passphrase
 
     @staticmethod
     def get_configs(user_id: str) -> List[SSHConfigResponse]:
-        column_map = SSHToolService._get_column_map()
-        deleted_column = column_map["deleted"]
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
+        """获取当前用户的所有 SSH 配置（合并本地 + 服务器，脱敏）"""
+        from app.storage.locator import StorageLocation, server_available
+        from app.storage.repository import get_repository
+
+        rows: list[dict] = []
+
         try:
-            cursor.execute(
-                f"SELECT * FROM ssh_configs WHERE user_id = %s AND {deleted_column} = FALSE ORDER BY created_at DESC",
-                (user_id,)
-            )
-            rows = cursor.fetchall()
-            return [SSHToolService._row_to_response(row) for row in rows]
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+            rows.extend(get_repository(StorageLocation.LOCAL, "ssh").list(user_id))
+        except Exception as exc:
+            logger.warning("读取本地 SSH 配置失败：%s", exc)
+
+        available, _ = server_available()
+        if available:
+            try:
+                rows.extend(get_repository(StorageLocation.SERVER, "ssh").list(user_id))
+            except Exception as exc:
+                logger.warning("读取服务器 SSH 配置失败：%s", exc)
+
+        rows.sort(key=lambda r: r.get("created_at") or datetime.min, reverse=True)
+        return [SSHToolService._row_to_response(row) for row in rows]
 
     @staticmethod
-    def create_config(user_id: str, request: CreateSSHRequest) -> SSHConfigResponse:
-        column_map = SSHToolService._get_column_map()
-        deleted_column = column_map["deleted"]
-        password_column = column_map["password"]
-        private_key_column = column_map["private_key"]
-        passphrase_column = column_map["passphrase"]
+    def get_config(user_id: str, config_id: str) -> Optional[SSHConfigResponse]:
+        """获取单条配置（自动定位存储位置，脱敏）"""
+        repo, _location = SSHToolService._locate(user_id, config_id)
+        if repo is None:
+            return None
+        row = repo.get(config_id, user_id)
+        if row is None:
+            return None
+        return SSHToolService._row_to_response(row)
+
+    @staticmethod
+    def _locate(user_id: str, config_id: str):
+        """定位配置所在位置与仓储；找不到返回 (None, None)"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
+        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+            try:
+                repo = get_repository(location, "ssh")
+            except Exception:
+                continue
+            if repo.get(config_id, user_id):
+                return repo, location
+        return None, None
+
+    @staticmethod
+    def _assert_alias_unique(user_id: str, alias: str, exclude_config_id: str | None = None) -> None:
+        """别名唯一性 —— 跨本地与服务器两侧检查"""
+        from app.storage.locator import StorageLocation, server_available
+        from app.storage.repository import get_repository
+
+        locations = [StorageLocation.LOCAL]
+        available, _ = server_available()
+        if available:
+            locations.append(StorageLocation.SERVER)
+
+        for location in locations:
+            try:
+                repo = get_repository(location, "ssh")
+                existing = repo.find_by_alias(user_id, alias)
+            except Exception:
+                continue
+            if existing and existing.get("id") != exclude_config_id:
+                raise ValueError(f"别名 '{alias}' 已存在（存储位置：{location.value}）")
+
+    @staticmethod
+    def create_config(
+        user_id: str, request: CreateSSHRequest, storage_location: StorageLocation
+    ) -> SSHConfigResponse:
+        """创建 SSH 连接配置（敏感字段按存储位置加密）"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
         alias = SSHToolService._normalize(request.alias)
         host = SSHToolService._normalize(request.host)
         username = SSHToolService._normalize(request.username)
@@ -208,151 +283,125 @@ class SSHToolService:
             raise HTTPException(status_code=400, detail="Invalid configuration")
         SSHToolService._validate_port(request.port)
 
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            config_id = str(uuid.uuid4())
-            now = datetime.now()
+        SSHToolService._assert_alias_unique(user_id, alias)
 
-            encrypted_password = EncryptionUtils.encrypt(request.password) if request.password else None
-            encrypted_key = EncryptionUtils.encrypt(request.private_key) if request.private_key else None
-            encrypted_passphrase = EncryptionUtils.encrypt(request.passphrase) if request.passphrase else None
+        if not isinstance(storage_location, StorageLocation):
+            storage_location = StorageLocation.from_value(storage_location)
 
-            cursor.execute(
-                f"""
-                INSERT INTO ssh_configs (
-                    id, user_id, alias, host, port, username, {password_column},
-                    {private_key_column}, {passphrase_column}, group_name, is_active,
-                    created_at, updated_at, {deleted_column}
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
-                """,
-                (
-                    config_id, user_id, alias, host, request.port,
-                    username, encrypted_password, encrypted_key, encrypted_passphrase,
-                    group_name, True, now, now
-                )
-            )
-            conn.commit()
+        repo = get_repository(storage_location, "ssh")
+        config_id = str(uuid.uuid4())
+        now = datetime.now()
 
-            cursor.execute("SELECT * FROM ssh_configs WHERE id = %s", (config_id,))
-            row = cursor.fetchone()
-            logger.info("SSH config created: %s", config_id)
-            return SSHToolService._row_to_response(row)
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        payload = {
+            "id": config_id,
+            "alias": alias,
+            "host": host,
+            "port": request.port,
+            "username": username,
+            "group_name": group_name,
+            "is_active": True,
+            "created_at": now,
+            "updated_at": now,
+        }
+        # 敏感字段用目标仓储的密钥加密（本地用本地密钥，远程用服务器密钥）
+        if request.password:
+            payload["password_encrypted"] = repo._encrypt(request.password)
+        if request.private_key:
+            payload["private_key_encrypted"] = repo._encrypt(request.private_key)
+        if request.passphrase:
+            payload["passphrase_encrypted"] = repo._encrypt(request.passphrase)
+
+        repo.create(user_id, payload, storage_location)
+
+        row = repo.get(config_id, user_id)
+        if row is None:
+            raise RuntimeError("SSH 配置创建后无法读回")
+        logger.info("SSH config created: %s (storage=%s)", config_id, storage_location.value)
+        return SSHToolService._row_to_response(row)
 
     @staticmethod
-    def update_config(user_id: str, request: UpdateSSHRequest) -> SSHConfigResponse:
-        column_map = SSHToolService._get_column_map()
-        password_column = column_map["password"]
-        private_key_column = column_map["private_key"]
-        passphrase_column = column_map["passphrase"]
-        if not SSHToolService._get_config_record(request.id, user_id):
+    def update_config(
+        user_id: str,
+        request: UpdateSSHRequest,
+        storage_location: Optional[StorageLocation] = None,
+    ) -> SSHConfigResponse:
+        """更新配置；显式传位置直接用指定仓储，传 None 自动定位"""
+        from app.storage.locator import StorageLocation
+
+        if storage_location is not None:
+            if not isinstance(storage_location, StorageLocation):
+                storage_location = StorageLocation.from_value(storage_location)
+            repo = get_repository(storage_location, "ssh")
+            location = storage_location
+        else:
+            repo, location = SSHToolService._locate(user_id, request.id)
+        if repo is None:
             raise HTTPException(status_code=404, detail="Config not found")
 
-        update_fields = []
-        params = []
+        existing = repo.get(request.id, user_id)
+        if existing is None:
+            raise HTTPException(status_code=404, detail="Config not found")
+
+        updates: dict = {}
 
         if request.alias is not None:
             alias = SSHToolService._normalize(request.alias)
             if not alias:
                 raise HTTPException(status_code=400, detail="Invalid alias")
-            update_fields.append("alias = %s")
-            params.append(alias)
+            if alias != existing.get("alias"):
+                SSHToolService._assert_alias_unique(user_id, alias, exclude_config_id=request.id)
+            updates["alias"] = alias
 
         if request.host is not None:
             host = SSHToolService._normalize(request.host)
             if not host:
                 raise HTTPException(status_code=400, detail="Invalid host")
-            update_fields.append("host = %s")
-            params.append(host)
+            updates["host"] = host
 
         if request.port is not None:
             SSHToolService._validate_port(request.port)
-            update_fields.append("port = %s")
-            params.append(request.port)
+            updates["port"] = request.port
 
         if request.username is not None:
             username = SSHToolService._normalize(request.username)
             if not username:
                 raise HTTPException(status_code=400, detail="Invalid username")
-            update_fields.append("username = %s")
-            params.append(username)
+            updates["username"] = username
 
         if request.password is not None:
-            encrypted_password = EncryptionUtils.encrypt(request.password) if request.password else None
-            update_fields.append(f"{password_column} = %s")
-            params.append(encrypted_password)
+            updates["password_encrypted"] = repo._encrypt(request.password) if request.password else None
 
         if request.private_key is not None:
-            encrypted_key = EncryptionUtils.encrypt(request.private_key) if request.private_key else None
-            update_fields.append(f"{private_key_column} = %s")
-            params.append(encrypted_key)
+            updates["private_key_encrypted"] = repo._encrypt(request.private_key) if request.private_key else None
 
         if request.passphrase is not None:
-            encrypted_passphrase = EncryptionUtils.encrypt(request.passphrase) if request.passphrase else None
-            update_fields.append(f"{passphrase_column} = %s")
-            params.append(encrypted_passphrase)
+            updates["passphrase_encrypted"] = repo._encrypt(request.passphrase) if request.passphrase else None
 
         if request.group_name is not None:
-            group_name = SSHToolService._normalize(request.group_name)
-            update_fields.append("group_name = %s")
-            params.append(group_name)
+            updates["group_name"] = SSHToolService._normalize(request.group_name)
 
         if request.is_active is not None:
-            update_fields.append("is_active = %s")
-            params.append(request.is_active)
+            updates["is_active"] = request.is_active
 
-        if not update_fields:
-            record = SSHToolService._get_config_record(request.id, user_id)
-            return SSHToolService._row_to_response(record)
+        if not updates:
+            return SSHToolService._row_to_response(existing)
 
-        update_fields.append("updated_at = CURRENT_TIMESTAMP")
-        params.append(request.id)
-        params.append(user_id)
-
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            sql = f"UPDATE ssh_configs SET {', '.join(update_fields)} WHERE id = %s AND user_id = %s"
-            cursor.execute(sql, tuple(params))
-            conn.commit()
-            record = SSHToolService._get_config_record(request.id, user_id)
-            logger.info("SSH config updated: %s", request.id)
-            return SSHToolService._row_to_response(record)
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        updated = repo.update(request.id, user_id, updates, location)
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Config not found")
+        logger.info("SSH config updated: %s", request.id)
+        return SSHToolService._row_to_response(updated)
 
     @staticmethod
     def delete_config(user_id: str, config_id: str) -> bool:
-        column_map = SSHToolService._get_column_map()
-        deleted_column = column_map["deleted"]
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                f"UPDATE ssh_configs SET {deleted_column} = TRUE WHERE id = %s AND user_id = %s",
-                (config_id, user_id)
-            )
-            conn.commit()
-            if cursor.rowcount > 0:
-                logger.info("SSH config deleted: %s", config_id)
-                return True
+        """删除配置（本地为硬删除，服务器侧由仓储决定）"""
+        repo, _location = SSHToolService._locate(user_id, config_id)
+        if repo is None:
             return False
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        deleted = repo.delete(config_id, user_id)
+        if deleted:
+            logger.info("SSH config deleted: %s", config_id)
+        return deleted
 
     @staticmethod
     def _load_private_key(private_key: str, passphrase: Optional[str]):
@@ -400,13 +449,7 @@ class SSHToolService:
 
         channel = None
         try:
-            column_map = SSHToolService._get_column_map()
-            password_value = config.get(column_map["password"])
-            private_key_value = config.get(column_map["private_key"])
-            passphrase_value = config.get(column_map["passphrase"])
-            password = EncryptionUtils.decrypt(password_value) if password_value else None
-            private_key = EncryptionUtils.decrypt(private_key_value) if private_key_value else None
-            passphrase = EncryptionUtils.decrypt(passphrase_value) if passphrase_value else None
+            password, private_key, passphrase = SSHToolService._get_connection_secrets(config)
             pkey = SSHToolService._load_private_key(private_key, passphrase) if private_key else None
 
             ssh.connect(
@@ -554,14 +597,7 @@ class SSHToolService:
         if not config:
             raise ValueError("Configuration not found")
 
-        column_map = SSHToolService._get_column_map()
-        password_value = config.get(column_map["password"])
-        private_key_value = config.get(column_map["private_key"])
-        passphrase_value = config.get(column_map["passphrase"])
-
-        password = EncryptionUtils.decrypt(password_value) if password_value else None
-        private_key = EncryptionUtils.decrypt(private_key_value) if private_key_value else None
-        passphrase = EncryptionUtils.decrypt(passphrase_value) if passphrase_value else None
+        password, private_key, passphrase = SSHToolService._get_connection_secrets(config)
 
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -775,14 +811,7 @@ class SSHToolService:
             if not config:
                 raise ValueError("Configuration not found")
 
-            column_map = SSHToolService._get_column_map()
-            password_value = config.get(column_map["password"])
-            private_key_value = config.get(column_map["private_key"])
-            passphrase_value = config.get(column_map["passphrase"])
-
-            password = EncryptionUtils.decrypt(password_value) if password_value else None
-            private_key = EncryptionUtils.decrypt(private_key_value) if private_key_value else None
-            passphrase = EncryptionUtils.decrypt(passphrase_value) if passphrase_value else None
+            password, private_key, passphrase = SSHToolService._get_connection_secrets(config)
 
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -862,14 +891,7 @@ class SSHToolService:
             if not config:
                 raise ValueError("Configuration not found")
 
-            column_map = SSHToolService._get_column_map()
-            password_value = config.get(column_map["password"])
-            private_key_value = config.get(column_map["private_key"])
-            passphrase_value = config.get(column_map["passphrase"])
-
-            password = EncryptionUtils.decrypt(password_value) if password_value else None
-            private_key = EncryptionUtils.decrypt(private_key_value) if private_key_value else None
-            passphrase = EncryptionUtils.decrypt(passphrase_value) if passphrase_value else None
+            password, private_key, passphrase = SSHToolService._get_connection_secrets(config)
 
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())

@@ -23,14 +23,36 @@ async def create_config(
     request: CreateSSHRequest,
     user_id: str = Depends(get_current_user_id)
 ):
-    return SSHToolService.create_config(user_id, request)
+    from app.storage.locator import StorageLocation
+
+    try:
+        location = StorageLocation.from_value(request.storage_location)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        return SSHToolService.create_config(user_id, request, location)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/configs/update", response_model=SSHConfigResponse)
 async def update_config(
     request: UpdateSSHRequest,
     user_id: str = Depends(get_current_user_id)
 ):
-    return SSHToolService.update_config(user_id, request)
+    from app.storage.locator import StorageLocation
+
+    location = None
+    if request.storage_location:
+        try:
+            location = StorageLocation.from_value(request.storage_location)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        return SSHToolService.update_config(user_id, request, location)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/configs/delete")
 async def delete_config(request: DeleteSSHRequest = Body(...), user_id: str = Depends(get_current_user_id)):

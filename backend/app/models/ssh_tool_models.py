@@ -12,6 +12,7 @@ class CreateSSHRequest(BaseModel):
     private_key: Optional[str] = Field(None, max_length=8000)
     passphrase: Optional[str] = Field(None, max_length=512)
     group_name: Optional[str] = Field(None, max_length=64)
+    storage_location: str = Field("local", description="存储位置：local/server")
 
 class UpdateSSHRequest(BaseModel):
     id: str = Field(..., min_length=1, max_length=64)
@@ -23,6 +24,7 @@ class UpdateSSHRequest(BaseModel):
     private_key: Optional[str] = Field(None, max_length=8000)
     passphrase: Optional[str] = Field(None, max_length=512)
     group_name: Optional[str] = Field(None, max_length=64)
+    storage_location: Optional[str] = Field(None, description="存储位置：local/server（可选，不传自动定位）")
     is_active: Optional[bool] = None
 
 class DeleteSSHRequest(BaseModel):
@@ -51,6 +53,7 @@ class SSHConfigResponse(BaseModel):
     private_key: Optional[str] = None
     passphrase: Optional[str] = None
     group_name: Optional[str] = None
+    storage_location: str = Field(default="local", description="存储位置：local/server")
     is_active: bool
     created_at: datetime
     updated_at: datetime
