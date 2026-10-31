@@ -20,26 +20,6 @@ from app.storage.repository import (
 logger = logging.getLogger(__name__)
 
 
-def _decrypt_sensitive(tool: str, row: dict, location: StorageLocation) -> dict:
-    """用源端密钥解密敏感列，返回明文字典（仅在内存）"""
-    from app.storage.crypto import LocalEncryption
-    from app.utils.encryption import EncryptionUtils
-
-    plain: dict = {}
-    for column in SENSITIVE_COLUMNS.get(tool, []):
-        cipher = row.get(column)
-        if not cipher:
-            plain[column] = None
-            continue
-
-        if location is StorageLocation.LOCAL:
-            plain[column] = LocalEncryption.decrypt(cipher)
-        else:
-            plain[column] = EncryptionUtils.decrypt(cipher)
-
-    return plain
-
-
 def _encrypt_sensitive(tool: str, plain: dict, location: StorageLocation) -> dict:
     """用目标端密钥加密敏感列"""
     from app.storage.crypto import LocalEncryption
@@ -146,7 +126,10 @@ def migrate_config(
 
     with target_repo._engine().begin() as conn:
         conn.execute(
-            sa_delete(target_repo.table).where(target_repo.table.c.id == config_id)
+            sa_delete(target_repo.table).where(
+                target_repo.table.c.id == config_id,
+                target_repo.table.c.user_id == user_id,
+            )
         )
 
     #    只取目标端 Table 中真实存在的列 —— 源端行可能包含额外的派生字段

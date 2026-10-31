@@ -135,10 +135,14 @@ class ConfigRepository:
         return dict(row) if row else None
 
     def find_by_alias(self, user_id: str, alias: str) -> dict | None:
-        """按别名查找（用于跨库唯一性检查）"""
+        """按别名查找（用于跨库唯一性检查）。
+
+        k8s 表的别名列是 name，其余工具是 alias。
+        """
+        alias_column = self.table.c.name if self.tool == "k8s" else self.table.c.alias
         stmt = select(self.table).where(
             self.table.c.user_id == user_id,
-            self.table.c.alias == alias,
+            alias_column == alias,
             self.table.c.deleted.is_(False),
             self.table.c.storage_location == self._location_tag(),
         )

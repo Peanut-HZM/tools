@@ -157,6 +157,68 @@ class TestMigrateConfig:
         assert LocalEncryption.decrypt(cipher) == "migrate-secret"
 
 
+class TestK8sAliasColumn:
+    def test_k8s_migrate_alias_check_uses_name_column(self, local_env, monkeypatch):
+        """k8s 表别名列是 name：冲突检查不得抛 AttributeError，且能命中同名配置"""
+        from app.storage import migration as migration_module
+        from app.storage.repository import get_repository as real_get_repository
+
+        # 本地种一条 k8s 配置（目标端，与源端 id 不同、name 相同 → 冲突）
+        conflict_id = str(uuid.uuid4())
+        with get_local_engine().begin() as conn:
+            conn.execute(text(
+                "INSERT INTO k8s_connections "
+                "(id, user_id, name, source_type, cluster_name, context_name, server, "
+                " auth_type, storage_location, created_at, updated_at, deleted) "
+                "VALUES (:i, 'u-mig', 'mig-k8s', 'kubeconfig', 'c', 'ctx', 'https://s', "
+                " 'token', 'LOCAL', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)"
+            ), {"i": conflict_id})
+
+        class K8sSourceRepo:
+            """伪造 k8s 源端（SERVER 侧）仓储"""
+
+            def get(self, cid, uid):
+                if cid != "src-k8s-id":
+                    return None
+                return {
+                    "id": "src-k8s-id", "user_id": uid, "name": "mig-k8s",
+                    "source_type": "kubeconfig", "cluster_name": "c",
+                    "context_name": "ctx", "server": "https://s",
+                    "auth_type": "token", "auth_data_encrypted": "x",
+                    "storage_location": "SERVER", "deleted": False,
+                }
+
+            def get_with_secret(self, cid, uid):
+                row = self.get(cid, uid)
+                row["auth_data_decrypted"] = "plain-token"
+                return row
+
+            def create(self, user_id, data, storage_location):
+                raise AssertionError("目标端同名时不应走到写入")
+
+            def delete(self, cid, uid):
+                return True
+
+        original_get_repository = migration_module.get_repository
+
+        def fake_get_repository(location, tool):
+            if location is StorageLocation.SERVER and tool == "k8s":
+                return K8sSourceRepo()
+            return original_get_repository(location, tool)
+
+        monkeypatch.setattr(migration_module, "get_repository", fake_get_repository)
+        monkeypatch.setattr(migration_module, "server_available", lambda: (True, ""))
+
+        # 目标端（本地）已有同名 k8s 配置 → 必须报别名冲突而不是 AttributeError
+        with pytest.raises(ValueError, match="同名配置"):
+            migrate_config("u-mig", "k8s", "src-k8s-id", StorageLocation.LOCAL)
+
+        # 交叉验证：repository.find_by_alias 对 k8s 正常按 name 查询
+        local_repo = real_get_repository(StorageLocation.LOCAL, "k8s")
+        assert local_repo.find_by_alias("u-mig", "mig-k8s") is not None
+        assert local_repo.find_by_alias("u-mig", "not-exist") is None
+
+
 class TestMigrateOrdering:
     def test_target_written_before_source_deleted(self, local_env, monkeypatch):
         """执行顺序验证：目标端写入发生在源端删除之前"""

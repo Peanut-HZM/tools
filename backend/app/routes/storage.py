@@ -44,7 +44,7 @@ class MigrateAllResponse(BaseModel):
 
 
 @router.get("/status", response_model=StorageStatusResponse)
-async def get_status():
+async def get_status(user_id: str = Depends(get_current_user_id)):
     """获取存储状态：远程服务器是否可用 + 本地库路径"""
     available, reason = server_available()
     return StorageStatusResponse(
@@ -73,7 +73,7 @@ async def migrate_one(
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         logger.error("迁移配置 %s 失败：%s", config_id, exc)
-        raise HTTPException(status_code=500, detail=f"迁移失败：{exc}")
+        raise HTTPException(status_code=500, detail="迁移失败，请查看服务端日志")
 
 
 @router.post("/{tool}/configs/migrate-all", response_model=MigrateAllResponse)
@@ -94,4 +94,4 @@ async def migrate_everything(
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         logger.error("批量迁移失败：%s", exc)
-        raise HTTPException(status_code=500, detail=f"批量迁移失败：{exc}")
+        raise HTTPException(status_code=500, detail="批量迁移失败，请查看服务端日志")
