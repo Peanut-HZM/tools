@@ -58,6 +58,18 @@ class TestServerAvailable:
             "postgresql://u:p@127.0.0.1:59999/nonexistent",
         )
 
+        # 连接池走 app.models.base.engine 全局单例（导入时已按真实 DATABASE_URL 建立），
+        # monkeypatch settings.DATABASE_URL 不会重建它，故此处直接 mock 连接获取，
+        # 模拟「PG 不可达」的真实故障路径。
+        from app.config import database as database_module
+
+        def _raise_unreachable():
+            raise ConnectionError("could not connect to server")
+
+        monkeypatch.setattr(
+            database_module, "get_pooled_db_connection", _raise_unreachable
+        )
+
         available, reason = server_available()
 
         assert available is False
