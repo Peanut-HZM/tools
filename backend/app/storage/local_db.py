@@ -25,6 +25,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import sessionmaker
 
 from app.storage.paths import get_local_db_path
 
@@ -147,6 +148,7 @@ sql_execution_history = Table(
     Column("execution_time_ms", Integer),
     Column("error_message", Text),
     Column("result_data", Text),
+    Column("result_size", Integer),
     Column("created_at", DateTime, nullable=False, server_default=func.now()),
 )
 
@@ -154,7 +156,10 @@ db_scan_history = Table(
     "db_scan_history", metadata,
     Column("id", String(64), primary_key=True),
     Column("user_id", String(64), nullable=False),
-    Column("db_config_id", String(64), nullable=False),
+    # 对齐 init_db_tool.sql：无 db_config_id，扫描按路径维度记录
+    Column("scan_path", String(500), nullable=False),
+    Column("configs_found", Integer, default=0),
+    # SQL 中为 JSON 列，SQLAlchemy 侧统一用 Text 承载
     Column("scan_result", Text),
     Column("created_at", DateTime, nullable=False, server_default=func.now()),
 )
@@ -164,9 +169,11 @@ table_schema_cache = Table(
     Column("id", String(64), primary_key=True),
     Column("user_id", String(64), nullable=False),
     Column("db_config_id", String(64), nullable=False),
+    Column("table_name", String(255), nullable=False),
+    # SQL 中为 JSON NOT NULL，SQLAlchemy 侧统一用 Text 承载
     Column("schema_data", Text, nullable=False),
-    Column("created_at", DateTime, nullable=False, server_default=func.now()),
-    Column("updated_at", DateTime, nullable=False, server_default=func.now()),
+    Column("cached_at", DateTime, nullable=False, server_default=func.now()),
+    Column("expires_at", DateTime, nullable=False),
 )
 
 user_display_preferences = Table(
@@ -180,6 +187,9 @@ user_display_preferences = Table(
 # ============ 引擎管理 ============
 
 _engine: Engine | None = None
+
+# session 工厂缓存（key 为 engine，reset 时随引擎一起清理）
+_session_factories: dict[Engine, sessionmaker] = {}
 
 
 def get_local_engine() -> Engine:
@@ -217,6 +227,7 @@ def reset_local_engine() -> None:
     if _engine is not None:
         _engine.dispose()
     _engine = None
+    _session_factories.clear()
 
 
 def init_local_tables(engine: Engine | None = None) -> None:
@@ -228,12 +239,13 @@ def init_local_tables(engine: Engine | None = None) -> None:
 
 @contextmanager
 def get_local_session():
-    """本地库会话上下文管理器"""
-    from sqlalchemy.orm import sessionmaker
-
+    """本地库会话上下文管理器（工厂按 engine 缓存，避免重复创建）"""
     engine = get_local_engine()
-    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = Session()
+    factory = _session_factories.get(engine)
+    if factory is None:
+        factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        _session_factories[engine] = factory
+    session = factory()
     try:
         yield session
         session.commit()

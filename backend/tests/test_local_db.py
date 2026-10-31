@@ -36,6 +36,9 @@ class TestLocalEngine:
         db_file = tmp_path / ".toolbox" / "toolbox.db"
         assert db_file.exists()
 
+        # 防止模块级缓存泄漏指向已废弃的 tmp_path
+        local_db.reset_local_engine()
+
     def test_engine_is_cached(self, local_engine):
         assert local_db.get_local_engine() is local_engine
 
