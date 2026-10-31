@@ -125,6 +125,7 @@ const SSHTool: React.FC = () => {
         onAdd={handleAddConfig}
         onEdit={handleEditConfig}
         onDelete={handleDeleteConfig}
+        onMigrated={loadConfigs}
       />
       <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
         {tabs.length === 0 ? (

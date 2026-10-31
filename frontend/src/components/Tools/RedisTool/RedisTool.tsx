@@ -78,6 +78,7 @@ const RedisTool: React.FC = () => {
         onAdd={handleAddConfig}
         onEdit={handleEditConfig}
         onDelete={handleDeleteConfig}
+        onMigrated={loadConfigs}
       />
       <div className="flex-1 overflow-hidden bg-canvas flex flex-col">
         {selectedConfigId ? (

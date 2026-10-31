@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../config/api';
 import { getAuthHeaders } from './authApi';
 import { authedFetch } from './http';
+import type { StorageLocation } from '../types/storage';
 
 const REDIS_API_URL = `${API_BASE_URL}/redis-tool`;
 
@@ -13,6 +14,8 @@ export interface RedisConfig {
   db: number;
   group_name?: string;
   is_active: boolean;
+  /** 存储位置：local=本机 / server=服务器 */
+  storage_location: StorageLocation;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +29,8 @@ export interface CreateRedisRequest {
   db: number;
   group_name?: string;
   is_active?: boolean;
+  /** 存储位置：local=本机 / server=服务器（缺省本机） */
+  storage_location?: StorageLocation;
 }
 
 export interface UpdateRedisRequest extends Partial<CreateRedisRequest> {}

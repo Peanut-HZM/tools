@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../config/api';
 import { getAuthHeaders } from './authApi';
 import { authedFetch } from './http';
+import type { StorageLocation } from '../types/storage';
 
 const SSH_API_URL = `${API_BASE_URL}/ssh-tool`;
 
@@ -12,6 +13,8 @@ export interface SSHConfig {
   username: string;
   group_name?: string;
   is_active: boolean;
+  /** 存储位置：local=本机 / server=服务器 */
+  storage_location: StorageLocation;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +28,8 @@ export interface CreateSSHRequest {
   private_key?: string;
   passphrase?: string;
   group_name?: string;
+  /** 存储位置：local=本机 / server=服务器（缺省本机） */
+  storage_location?: StorageLocation;
 }
 
 export interface UpdateSSHRequest extends Partial<CreateSSHRequest> {

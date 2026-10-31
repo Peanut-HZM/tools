@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import StorageLocationSelector from '../../Common/StorageLocationSelector';
+import { getStorageStatus } from '../../../api/storageApi';
+import type { StorageLocation } from '../../../types/storage';
 
 interface Props {
   isOpen: boolean;
@@ -28,6 +31,27 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
   const [isTesting, setIsTesting] = useState(false);
   const [testMessage, setTestMessage] = useState('');
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  // 存储位置：新建默认本机；编辑时回填原位置
+  const [storageLocation, setStorageLocation] = useState<StorageLocation>('local');
+  const [originalLocation, setOriginalLocation] = useState<StorageLocation | null>(null);
+  // 远程服务器是否可用（探测失败时按不可用处理，不提供上传选项）
+  const [serverAvailable, setServerAvailable] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // 探测远程服务器是否可用：决定是否展示「上传到服务器」选项
+    let cancelled = false;
+    getStorageStatus()
+      .then((status) => {
+        if (!cancelled) setServerAvailable(status.server_available);
+      })
+      .catch(() => {
+        if (!cancelled) setServerAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (initialData) {
@@ -41,6 +65,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
         passphrase: '',
         group_name: initialData.group_name || ''
       });
+      // 回填原存储位置（旧数据缺省按本机处理）；未改动时提交不带该字段，避免静默迁移
+      const loc = (initialData.storage_location ?? 'local') as StorageLocation;
+      setStorageLocation(loc);
+      setOriginalLocation(loc);
     } else {
       setFormData({
         alias: '',
@@ -52,6 +80,9 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
         passphrase: '',
         group_name: ''
       });
+      // 新建：默认本机
+      setStorageLocation('local');
+      setOriginalLocation(null);
     }
     setIsTesting(false);
     setTestMessage('');
@@ -72,6 +103,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
       if (formData.password) payload.password = formData.password;
       if (formData.private_key) payload.private_key = formData.private_key;
       if (formData.passphrase) payload.passphrase = formData.passphrase;
+      // 编辑保存：仅当用户显式改动了存储位置才传该字段，绝不静默改变存储位置
+      if (originalLocation !== null && storageLocation !== originalLocation) {
+        payload.storage_location = storageLocation;
+      }
       await onSave(payload);
     } else {
       await onSave({
@@ -82,7 +117,8 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
         password: formData.password || undefined,
         private_key: formData.private_key || undefined,
         passphrase: formData.passphrase || undefined,
-        group_name: formData.group_name || undefined
+        group_name: formData.group_name || undefined,
+        storage_location: storageLocation
       });
     }
     onClose();
@@ -199,6 +235,11 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
               />
             </div>
           </div>
+          <StorageLocationSelector
+            value={storageLocation}
+            onChange={setStorageLocation}
+            serverAvailable={serverAvailable}
+          />
           <div className="flex items-center justify-between pt-4">
             <div className="text-sm">
               {testMessage && (

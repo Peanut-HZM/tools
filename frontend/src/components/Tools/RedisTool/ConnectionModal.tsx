@@ -4,6 +4,9 @@ import { useToast } from '../../../hooks/useToast';
 import { useI18n } from '../../../i18n';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import StorageLocationSelector from '../../Common/StorageLocationSelector';
+import { getStorageStatus } from '../../../api/storageApi';
+import type { StorageLocation } from '../../../types/storage';
 
 interface Props {
   isOpen: boolean;
@@ -26,6 +29,27 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
     is_active: true
   });
   const [testing, setTesting] = useState(false);
+  // 存储位置：新建默认本机；编辑时回填原位置
+  const [storageLocation, setStorageLocation] = useState<StorageLocation>('local');
+  const [originalLocation, setOriginalLocation] = useState<StorageLocation | null>(null);
+  // 远程服务器是否可用（探测失败时按不可用处理，不提供上传选项）
+  const [serverAvailable, setServerAvailable] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // 探测远程服务器是否可用：决定是否展示「上传到服务器」选项
+    let cancelled = false;
+    getStorageStatus()
+      .then((status) => {
+        if (!cancelled) setServerAvailable(status.server_available);
+      })
+      .catch(() => {
+        if (!cancelled) setServerAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (initialData) {
@@ -39,6 +63,10 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
         group_name: initialData.group_name || '',
         is_active: initialData.is_active
       });
+      // 回填原存储位置（旧数据缺省按本机处理）
+      const loc = (initialData.storage_location ?? 'local') as StorageLocation;
+      setStorageLocation(loc);
+      setOriginalLocation(loc);
     } else {
       setFormData({
         alias: '',
@@ -50,6 +78,9 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
         group_name: '',
         is_active: true
       });
+      // 新建：默认本机
+      setStorageLocation('local');
+      setOriginalLocation(null);
     }
   }, [initialData, isOpen]);
 
@@ -71,7 +102,13 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSave(formData);
+    // 编辑保存：仅当用户显式改动了存储位置才传该字段，绝不静默改变存储位置
+    if (originalLocation !== null && storageLocation === originalLocation) {
+      const { storage_location: _omitted, ...rest } = formData;
+      await onSave(rest as CreateRedisRequest);
+    } else {
+      await onSave({ ...formData, storage_location: storageLocation });
+    }
     onClose();
   };
 
@@ -147,6 +184,11 @@ export const ConnectionModal: React.FC<Props> = ({ isOpen, onClose, onSave, init
               onChange={e => setFormData({ ...formData, db: parseInt(e.target.value) })}
             />
           </div>
+          <StorageLocationSelector
+            value={storageLocation}
+            onChange={setStorageLocation}
+            serverAvailable={serverAvailable}
+          />
           <div className="flex justify-between items-center pt-4">
              <Button
               type="button"
