@@ -22,6 +22,7 @@ class RedisConfigBase(BaseModel):
 
 class CreateRedisRequest(RedisConfigBase):
     password: Optional[str] = Field(None, description="密码")
+    storage_location: str = Field("local", description="存储位置：local/server")
 
 class UpdateRedisRequest(BaseModel):
     alias: Optional[str] = Field(None, min_length=2, max_length=32)
@@ -32,10 +33,12 @@ class UpdateRedisRequest(BaseModel):
     db: Optional[int] = Field(None, ge=0, le=15)
     group_name: Optional[str] = None
     is_active: Optional[bool] = None
+    storage_location: Optional[str] = Field(None, description="存储位置：local/server")
 
 class RedisConfigResponse(RedisConfigBase):
     id: str
     user_id: str
+    storage_location: str = Field(default="local", description="存储位置：local/server")
     created_at: datetime
     updated_at: datetime
 

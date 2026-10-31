@@ -34,10 +34,17 @@ async def create_config(
     user_id: str = Depends(get_current_user_id)
 ):
     """Create a new redis configuration"""
+    from app.storage.locator import StorageLocation
+
     try:
-        return RedisToolService.create_config(user_id, request)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        location = StorageLocation.from_value(request.storage_location)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        return RedisToolService.create_config(user_id, request, location)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/configs/{id}", response_model=RedisConfigResponse)
 async def update_config(
@@ -46,11 +53,24 @@ async def update_config(
     user_id: str = Depends(get_current_user_id)
 ):
     """Update a redis configuration"""
+    from app.storage.locator import StorageLocation
+
+    location = None
+    if request.storage_location:
+        try:
+            location = StorageLocation.from_value(request.storage_location)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
     try:
-        config = RedisToolService.update_config(id, user_id, request)
+        config = RedisToolService.update_config(id, user_id, request, location)
         if not config:
             raise HTTPException(status_code=404, detail="Configuration not found")
         return config
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

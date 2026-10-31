@@ -113,6 +113,8 @@ class RedisToolService:
     
     @staticmethod
     def _row_to_response(row) -> RedisConfigResponse:
+        # 落库为大写 LOCAL/SERVER，对外统一小写
+        storage_location = str(row.get('storage_location') or 'server').lower()
         return RedisConfigResponse(
             id=row['id'],
             user_id=row['user_id'],
@@ -123,186 +125,197 @@ class RedisToolService:
             db=row['db'],
             group_name=row['group_name'],
             is_active=row['is_active'],
+            storage_location=storage_location,
             created_at=row['created_at'],
             updated_at=row['updated_at']
         )
 
     @staticmethod
     def get_all_configs(user_id: str) -> List[RedisConfigResponse]:
+        """获取当前用户的所有 Redis 配置（合并本地 + 服务器，脱敏）"""
+        from app.storage.locator import StorageLocation, server_available
+        from app.storage.repository import get_repository
+
         RedisToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
+        rows: list[dict] = []
+
         try:
-            column_map = RedisToolService._get_column_map()
-            deleted_column = column_map["deleted"]
-            cursor.execute(
-                f"SELECT * FROM redis_configs WHERE user_id = %s AND {deleted_column} = FALSE ORDER BY created_at DESC",
-                (user_id,)
-            )
-            rows = cursor.fetchall()
-            return [RedisToolService._row_to_response(row) for row in rows]
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+            rows.extend(get_repository(StorageLocation.LOCAL, "redis").list(user_id))
+        except Exception as exc:
+            logger.warning("读取本地 Redis 配置失败：%s", exc)
+
+        available, _ = server_available()
+        if available:
+            try:
+                rows.extend(get_repository(StorageLocation.SERVER, "redis").list(user_id))
+            except Exception as exc:
+                logger.warning("读取服务器 Redis 配置失败：%s", exc)
+
+        rows.sort(key=lambda r: r.get("created_at") or datetime.min, reverse=True)
+        return [RedisToolService._row_to_response(row) for row in rows]
 
     @staticmethod
-    def create_config(user_id: str, request: CreateRedisRequest) -> RedisConfigResponse:
+    def _locate(user_id: str, config_id: str):
+        """定位配置所在位置与仓储；找不到返回 (None, None)"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
+        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+            try:
+                repo = get_repository(location, "redis")
+            except Exception:
+                continue
+            if repo.get(config_id, user_id):
+                return repo, location
+        return None, None
+
+    @staticmethod
+    def _assert_alias_unique(user_id: str, alias: str, exclude_config_id: Optional[str] = None) -> None:
+        """别名唯一性 —— 跨本地与服务器两侧检查"""
+        from app.storage.locator import StorageLocation, server_available
+        from app.storage.repository import get_repository
+
+        locations = [StorageLocation.LOCAL]
+        available, _ = server_available()
+        if available:
+            locations.append(StorageLocation.SERVER)
+
+        for location in locations:
+            try:
+                repo = get_repository(location, "redis")
+                existing = repo.find_by_alias(user_id, alias)
+            except Exception:
+                continue
+            if existing and existing.get("id") != exclude_config_id:
+                raise ValueError(f"别名 '{alias}' 已存在（存储位置：{location.value}）")
+
+    @staticmethod
+    def create_config(
+        user_id: str, request: CreateRedisRequest, storage_location
+    ) -> RedisConfigResponse:
+        """创建 Redis 连接配置（密码按存储位置加密）"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
         RedisToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            column_map = RedisToolService._get_column_map()
-            deleted_column = column_map["deleted"]
-            config_id = str(uuid.uuid4())
-            password_encrypted = EncryptionUtils.encrypt(request.password) if request.password else None
+        RedisToolService._assert_alias_unique(user_id, request.alias)
 
-            cursor.execute(
-                f"""
-                INSERT INTO redis_configs
-                (id, user_id, alias, host, port, username, password_encrypted, db, group_name, is_active, created_at, updated_at, {deleted_column})
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE)
-                """,
-                (
-                    config_id, user_id, request.alias, request.host, request.port,
-                    request.username, password_encrypted, request.db, request.group_name, request.is_active
-                )
-            )
-            conn.commit()
+        if not isinstance(storage_location, StorageLocation):
+            storage_location = StorageLocation.from_value(storage_location)
 
-            # Fetch created config
-            cursor.execute("SELECT * FROM redis_configs WHERE id = %s", (config_id,))
-            row = cursor.fetchone()
-            return RedisToolService._row_to_response(row)
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Failed to create redis config: {e}")
-            raise e
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        repo = get_repository(storage_location, "redis")
+        config_id = str(uuid.uuid4())
+        now = datetime.now()
+
+        payload = {
+            "id": config_id,
+            "alias": request.alias,
+            "host": request.host,
+            "port": request.port,
+            "username": request.username,
+            "db": request.db,
+            "group_name": request.group_name,
+            "is_active": request.is_active,
+            "created_at": now,
+            "updated_at": now,
+        }
+        # 密码用目标仓储的密钥加密（本地用本地密钥，远程用服务器密钥）
+        if request.password:
+            payload["password_encrypted"] = repo._encrypt(request.password)
+
+        repo.create(user_id, payload, storage_location)
+
+        row = repo.get(config_id, user_id)
+        if row is None:
+            raise RuntimeError("Redis 配置创建后无法读回")
+        logger.info("Redis config created: %s (storage=%s)", config_id, storage_location.value)
+        return RedisToolService._row_to_response(row)
 
     @staticmethod
     def get_config(config_id: str, user_id: str) -> Optional[RedisConfigResponse]:
+        """获取单条配置（自动定位存储位置，脱敏）"""
         RedisToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            column_map = RedisToolService._get_column_map()
-            deleted_column = column_map["deleted"]
-            cursor.execute(
-                f"SELECT * FROM redis_configs WHERE id = %s AND user_id = %s AND {deleted_column} = FALSE",
-                (config_id, user_id)
-            )
-            row = cursor.fetchone()
-            if row:
-                return RedisToolService._row_to_response(row)
+        repo, _location = RedisToolService._locate(user_id, config_id)
+        if repo is None:
             return None
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        row = repo.get(config_id, user_id)
+        if row is None:
+            return None
+        return RedisToolService._row_to_response(row)
 
     @staticmethod
     def _get_config_with_password(config_id: str, user_id: str):
-        RedisToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            column_map = RedisToolService._get_column_map()
-            deleted_column = column_map["deleted"]
-            cursor.execute(
-                f"SELECT * FROM redis_configs WHERE id = %s AND user_id = %s AND {deleted_column} = FALSE",
-                (config_id, user_id)
-            )
-            return cursor.fetchone()
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        """按需获取配置记录（自动定位存储位置，含解密后的明文密码）"""
+        repo, _location = RedisToolService._locate(user_id, config_id)
+        if repo is None:
+            return None
+        return repo.get_with_secret(config_id, user_id)
 
     @staticmethod
-    def update_config(config_id: str, user_id: str, request: UpdateRedisRequest) -> Optional[RedisConfigResponse]:
+    def update_config(
+        config_id: str, user_id: str, request: UpdateRedisRequest, storage_location=None
+    ) -> Optional[RedisConfigResponse]:
+        """更新配置；显式传位置直接用指定仓储，传 None 自动定位"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
         RedisToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            column_map = RedisToolService._get_column_map()
-            deleted_column = column_map["deleted"]
-            # Check existence
-            cursor.execute(
-                f"SELECT * FROM redis_configs WHERE id = %s AND user_id = %s AND {deleted_column} = FALSE",
-                (config_id, user_id)
-            )
-            if not cursor.fetchone():
-                return None
-                
-            update_fields = []
-            params = []
-            
-            if request.alias is not None:
-                update_fields.append("alias = %s")
-                params.append(request.alias)
-            if request.host is not None:
-                update_fields.append("host = %s")
-                params.append(request.host)
-            if request.port is not None:
-                update_fields.append("port = %s")
-                params.append(request.port)
-            if request.username is not None:
-                update_fields.append("username = %s")
-                params.append(request.username)
-            if request.password is not None:
-                update_fields.append("password_encrypted = %s")
-                params.append(EncryptionUtils.encrypt(request.password))
-            if request.db is not None:
-                update_fields.append("db = %s")
-                params.append(request.db)
-            if request.group_name is not None:
-                update_fields.append("group_name = %s")
-                params.append(request.group_name)
-            if request.is_active is not None:
-                update_fields.append("is_active = %s")
-                params.append(request.is_active)
-                
-            if not update_fields:
-                return RedisToolService.get_config(config_id, user_id)
-                
-            update_fields.append("updated_at = CURRENT_TIMESTAMP")
-            params.append(config_id)
-            params.append(user_id)
-            
-            sql = f"UPDATE redis_configs SET {', '.join(update_fields)} WHERE id = %s AND user_id = %s"
-            cursor.execute(sql, tuple(params))
-            conn.commit()
-            
-            return RedisToolService.get_config(config_id, user_id)
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Failed to update redis config: {e}")
-            raise e
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+
+        if storage_location is not None:
+            if not isinstance(storage_location, StorageLocation):
+                storage_location = StorageLocation.from_value(storage_location)
+            repo = get_repository(storage_location, "redis")
+            location = storage_location
+        else:
+            repo, location = RedisToolService._locate(user_id, config_id)
+        if repo is None:
+            return None
+
+        existing = repo.get(config_id, user_id)
+        if existing is None:
+            return None
+
+        updates: dict = {}
+
+        if request.alias is not None:
+            if request.alias != existing.get("alias"):
+                RedisToolService._assert_alias_unique(user_id, request.alias, exclude_config_id=config_id)
+            updates["alias"] = request.alias
+        if request.host is not None:
+            updates["host"] = request.host
+        if request.port is not None:
+            updates["port"] = request.port
+        if request.username is not None:
+            updates["username"] = request.username
+        if request.password is not None:
+            updates["password_encrypted"] = repo._encrypt(request.password) if request.password else None
+        if request.db is not None:
+            updates["db"] = request.db
+        if request.group_name is not None:
+            updates["group_name"] = request.group_name
+        if request.is_active is not None:
+            updates["is_active"] = request.is_active
+
+        if not updates:
+            return RedisToolService._row_to_response(existing)
+
+        updated = repo.update(config_id, user_id, updates, location)
+        if updated is None:
+            return None
+        logger.info("Redis config updated: %s", config_id)
+        return RedisToolService._row_to_response(updated)
 
     @staticmethod
     def delete_config(config_id: str, user_id: str) -> bool:
+        """删除配置（本地为硬删除，服务器侧由仓储决定）"""
         RedisToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            column_map = RedisToolService._get_column_map()
-            deleted_column = column_map["deleted"]
-            cursor.execute(
-                f"UPDATE redis_configs SET {deleted_column} = TRUE WHERE id = %s AND user_id = %s",
-                (config_id, user_id)
-            )
-            conn.commit()
-            return cursor.rowcount > 0
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Failed to delete redis config: {e}")
-            raise e
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        repo, _location = RedisToolService._locate(user_id, config_id)
+        if repo is None:
+            return False
+        deleted = repo.delete(config_id, user_id)
+        if deleted:
+            logger.info("Redis config deleted: %s", config_id)
+        return deleted
 
     @staticmethod
     def _get_redis_client(host, port, password=None, username=None, db=0, decode_responses=True):
@@ -351,7 +364,10 @@ class RedisToolService:
             return ConnectionTestResult(success=False, message="Configuration not found")
             
         try:
-            password = EncryptionUtils.decrypt(config_row['password_encrypted']) if config_row['password_encrypted'] else None
+            # 优先用 get_with_secret 解密好的明文；兼容旧路径（密文列 + EncryptionUtils）
+            password = config_row.get('password_decrypted')
+            if password is None:
+                password = EncryptionUtils.decrypt(config_row['password_encrypted']) if config_row.get('password_encrypted') else None
         except Exception:
             return ConnectionTestResult(success=False, message="Failed to decrypt password")
             
@@ -370,7 +386,10 @@ class RedisToolService:
         if not config_row:
             raise ValueError("Configuration not found")
             
-        password = EncryptionUtils.decrypt(config_row['password_encrypted']) if config_row['password_encrypted'] else None
+        # 优先用 get_with_secret 解密好的明文；兼容旧路径（密文列 + EncryptionUtils）
+        password = config_row.get('password_decrypted')
+        if password is None:
+            password = EncryptionUtils.decrypt(config_row['password_encrypted']) if config_row.get('password_encrypted') else None
         
         return RedisToolService._get_redis_client(
             host=config_row['host'],
