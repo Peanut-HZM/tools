@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS db_configs (
     extra_config JSON,                             -- 额外配置（JSON格式）
     is_active BOOLEAN DEFAULT TRUE,                -- 是否激活
     last_connected_at TIMESTAMP,                   -- 最后连接时间
+    storage_location VARCHAR(16) NOT NULL DEFAULT 'SERVER',  -- 存储位置：LOCAL(本机)/SERVER(服务器)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted BOOLEAN DEFAULT FALSE,

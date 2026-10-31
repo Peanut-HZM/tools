@@ -69,6 +69,15 @@ class RedisToolService:
             )
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_redis_script_templates_user_id ON redis_script_templates(user_id)")
 
+            # 幂等加列：存储位置标记（LOCAL=本机 / SERVER=服务器）
+            from app.storage.remote_db import ensure_remote_column
+
+            ensure_remote_column(
+                "redis_configs",
+                "storage_location",
+                "storage_location VARCHAR(16) NOT NULL DEFAULT 'SERVER'",
+            )
+
             conn.commit()
         finally:
             cursor.close()

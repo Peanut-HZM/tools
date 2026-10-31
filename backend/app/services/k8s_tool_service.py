@@ -74,6 +74,15 @@ class K8sToolService:
                 "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_sort "
                 "ON k8s_connections(user_id, sort_order, name)"
             )
+            # 幂等加列：存储位置标记（LOCAL=本机 / SERVER=服务器）。
+            # 注意：不能使用 ADD COLUMN IF NOT EXISTS —— SQLite 不支持该语法。
+            from app.storage.remote_db import ensure_remote_column
+
+            ensure_remote_column(
+                "k8s_connections",
+                "storage_location",
+                "storage_location VARCHAR(16) NOT NULL DEFAULT 'SERVER'",
+            )
             conn.commit()
         except Exception:
             conn.rollback()
