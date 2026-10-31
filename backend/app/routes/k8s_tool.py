@@ -43,6 +43,7 @@ async def get_configs(user_id: str = Depends(get_current_user_id)):
 async def upload_kubeconfig(
     file: UploadFile = File(..., description="kubeconfig 文件（UTF-8 文本）"),
     namespace_filter: str = Form(default="[]", description="命名空间过滤，JSON 数组"),
+    storage_location: str = Form(default="local", description="存储位置：local/server"),
     user_id: str = Depends(get_current_user_id),
 ):
     """上传 kubeconfig 文件，按其中每个 context 批量创建连接配置"""
@@ -72,7 +73,15 @@ async def upload_kubeconfig(
     except json.JSONDecodeError:
         ns_filter = []
 
-    return K8sToolService.create_from_kubeconfig(user_id, text, ns_filter)
+    # 解析存储位置（非法值直接 400）
+    from app.storage.locator import StorageLocation
+
+    try:
+        location = StorageLocation.from_value(storage_location)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return K8sToolService.create_from_kubeconfig(user_id, text, ns_filter, location)
 
 
 @router.post("/configs/paste", response_model=List[K8sConfigResponse])
@@ -81,8 +90,15 @@ async def paste_kubeconfig(
     user_id: str = Depends(get_current_user_id),
 ):
     """粘贴 kubeconfig 文本，按其中每个 context 批量创建连接配置"""
+    from app.storage.locator import StorageLocation
+
+    try:
+        location = StorageLocation.from_value(request.storage_location)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     return K8sToolService.create_from_kubeconfig(
-        user_id, request.kubeconfig_text, request.namespace_filter
+        user_id, request.kubeconfig_text, request.namespace_filter, location
     )
 
 
@@ -92,17 +108,34 @@ async def create_manual(
     user_id: str = Depends(get_current_user_id),
 ):
     """手动表单创建单条连接配置"""
-    return K8sToolService.create_config(user_id, request)
+    from app.storage.locator import StorageLocation
+
+    try:
+        location = StorageLocation.from_value(request.storage_location)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return K8sToolService.create_config(user_id, request, location)
 
 
 @router.put("/configs/update", response_model=K8sConfigResponse)
 async def update_config(
     request: UpdateK8sRequest,
+    storage_location: Optional[str] = Query(None, description="存储位置：local/server（可选，不传自动定位）"),
     user_id: str = Depends(get_current_user_id),
 ):
     """更新连接配置（仅允许修改 name / namespace_filter）"""
+    from app.storage.locator import StorageLocation
+
+    location = None
+    if storage_location is not None:
+        try:
+            location = StorageLocation.from_value(storage_location)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
     try:
-        return K8sToolService.update_config(user_id, request)
+        return K8sToolService.update_config(user_id, request, location)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -110,11 +143,21 @@ async def update_config(
 @router.post("/configs/update-auth", response_model=K8sConfigResponse)
 async def update_config_auth(
     request: UpdateK8sAuthRequest,
+    storage_location: Optional[str] = Query(None, description="存储位置：local/server（可选，不传自动定位）"),
     user_id: str = Depends(get_current_user_id),
 ):
     """更新连接的认证信息（token/cert/key 等）"""
+    from app.storage.locator import StorageLocation
+
+    location = None
+    if storage_location is not None:
+        try:
+            location = StorageLocation.from_value(storage_location)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
     try:
-        return K8sToolService.update_config_auth(user_id, request)
+        return K8sToolService.update_config_auth(user_id, request, location)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -191,6 +234,7 @@ async def test_connection(
 
             # 更新测试结果到数据库
             K8sToolService.update_test_result(
+                user_id,
                 config_id,
                 success=True,
                 error=None,
@@ -211,6 +255,7 @@ async def test_connection(
 
         # 更新测试结果到数据库
         K8sToolService.update_test_result(
+            user_id,
             config_id,
             success=False,
             error=error_msg,

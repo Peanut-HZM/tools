@@ -1,91 +1,87 @@
-"""K8s 连接配置 Service 单元测试"""
+"""K8s 连接配置 Service 单元测试（双存储改造后：走 Repository + 本地 SQLite）"""
+import os
+import sys
 import pytest
-from unittest.mock import patch, MagicMock
-from app.services.k8s_tool_service import K8sToolService
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app.models.k8s_tool_models import CreateK8sManualRequest
+from app.storage.crypto import LocalEncryption
+from app.storage.locator import StorageLocation
+from app.storage.local_db import get_local_engine, init_local_tables, reset_local_engine
 
 
 @pytest.fixture
-def mock_db():
-    """Mock 数据库连接，模拟 RealDictCursor 返回 dict 行"""
-    with patch("app.services.k8s_tool_service.get_pooled_db_connection") as mock_get, \
-         patch("app.services.k8s_tool_service.release_db_connection") as mock_release:
-        conn = MagicMock()
-        cursor = MagicMock()
-        conn.cursor.return_value = cursor
-        mock_get.return_value = conn
-        yield cursor, conn
-        # 验证每次获取的连接最终都被归还
-        mock_release.assert_called_with(conn)
+def local_env(monkeypatch, tmp_path):
+    from app.config import config as config_module
+
+    monkeypatch.setattr(config_module, "REAL_HOME", str(tmp_path))
+    LocalEncryption.reset_cipher_suite()
+    reset_local_engine()
+
+    init_local_tables(get_local_engine())
+    yield
+    reset_local_engine()
 
 
-def test_ensure_table_creates_table(mock_db):
-    """_ensure_table 执行 CREATE TABLE IF NOT EXISTS"""
-    cursor, _ = mock_db
-    K8sToolService._ensure_table()
-    # 收集所有 execute 调用的 SQL 文本
-    calls = [str(c) for c in cursor.execute.call_args_list]
-    assert any("CREATE TABLE IF NOT EXISTS k8s_connections" in c for c in calls)
-
-
-def test_create_config_encrypts_secrets(mock_db):
-    """创建配置时敏感字段被加密，响应不含明文"""
-    cursor, conn = mock_db
-    # fetchone 返回刚插入的行（模拟 RealDictCursor dict 行）
-    cursor.fetchone.return_value = {
-        "id": "test-id",
-        "user_id": "u1",
+def _make_request(**overrides):
+    payload = {
         "name": "test-cluster",
-        "source_type": "manual",
-        "cluster_name": "cluster",
-        "context_name": "ctx",
         "server": "https://k8s:6443",
         "auth_type": "bearer_token",
-        "auth_data_encrypted": "encrypted_token",
-        "ca_cert_encrypted": None,
-        "namespace_filter": "[]",
-        "is_metrics_available": False,
-        "last_test_at": None,
-        "last_test_error": None,
-        "created_at": "2026-08-10T00:00:00",
-        "updated_at": "2026-08-10T00:00:00",
+        "token": "my-secret-token",
     }
+    payload.update(overrides)
+    return CreateK8sManualRequest(**payload)
 
-    request = CreateK8sManualRequest(
-        name="test-cluster",
-        server="https://k8s:6443",
-        auth_type="bearer_token",
-        token="my-secret-token",
-    )
 
-    with patch("app.services.k8s_tool_service.EncryptionUtils") as mock_enc:
-        mock_enc.encrypt.return_value = "encrypted_token"
-        result = K8sToolService.create_config("u1", request)
+def test_create_config_encrypts_secrets(local_env):
+    """创建配置时敏感字段被加密落库，响应不含明文"""
+    from app.services.k8s_tool_service import K8sToolService
+    from sqlalchemy import text
 
-    # 验证加密函数被调用（token JSON 序列化后被加密）
-    mock_enc.encrypt.assert_called()
+    result = K8sToolService.create_config("u1", _make_request(), StorageLocation.LOCAL)
+
+    # 落库为密文（token 明文不出现在密文里）
+    with get_local_engine().begin() as conn:
+        cipher = conn.execute(text(
+            "SELECT auth_data_encrypted FROM k8s_connections WHERE id = :i"
+        ), {"i": result.id}).first()[0]
+
+    assert "my-secret-token" not in cipher
     # 响应标记已配置认证信息
     assert result.has_auth_data is True
+    assert result.storage_location == "local"
     # 响应对象不应含明文 token 字段（Pydantic 模型无此字段）
     assert not hasattr(result, "token")
 
 
-def test_get_configs_filters_by_user(mock_db):
-    """列表查询按 user_id 过滤，且只返回未删除记录"""
-    cursor, _ = mock_db
-    cursor.fetchall.return_value = []
-    K8sToolService.get_configs("user-123")
-    sql, params = cursor.execute.call_args[0]
-    assert "user_id = %s" in sql
-    assert "deleted = FALSE" in sql
-    assert params == ("user-123",)
+def test_get_configs_merges_and_sorts(local_env):
+    """列表合并本地 + 服务器两侧，按 sort_order / name 排序"""
+    from app.services.k8s_tool_service import K8sToolService
+
+    K8sToolService.create_config(
+        "user-123", _make_request(name="b-cluster"), StorageLocation.LOCAL
+    )
+    K8sToolService.create_config(
+        "user-123", _make_request(name="a-cluster"), StorageLocation.LOCAL
+    )
+
+    configs = K8sToolService.get_configs("user-123")
+
+    assert [c.name for c in configs] == ["a-cluster", "b-cluster"]
+    # 过滤了其他用户
+    assert all(c.user_id == "user-123" for c in configs)
 
 
-def test_delete_config_soft_delete(mock_db):
-    """删除操作是软删除（SET deleted = TRUE），不物理删除行"""
-    cursor, _ = mock_db
-    cursor.rowcount = 1
-    result = K8sToolService.delete_config("u1", "config-id")
-    assert result is True
-    sql, _ = cursor.execute.call_args[0]
-    assert "deleted = TRUE" in sql or "deleted = true" in sql.lower()
+def test_delete_config_removes_row(local_env):
+    """删除后配置不再出现在列表与定位结果中"""
+    from app.services.k8s_tool_service import K8sToolService
+
+    created = K8sToolService.create_config(
+        "u1", _make_request(name="to-delete"), StorageLocation.LOCAL
+    )
+
+    assert K8sToolService.delete_config("u1", created.id) is True
+    assert K8sToolService.get_config_by_id("u1", created.id) is None
+    assert K8sToolService.delete_config("u1", created.id) is False

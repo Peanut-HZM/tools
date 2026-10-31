@@ -2,7 +2,7 @@
 K8s 控制台工具 Service
 
 连接配置 CRUD + kubeconfig 解析 + 连通性测试。
-遵循项目模式：psycopg2 原生 SQL + Pydantic DTO + 静态方法。
+遵循项目模式：Repository 双存储读写 + Pydantic DTO + 静态方法。
 """
 import json
 import logging
@@ -10,14 +10,12 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from app.config.database import get_pooled_db_connection, release_db_connection
 from app.models.k8s_tool_models import (
     CreateK8sManualRequest,
     UpdateK8sRequest,
     UpdateK8sAuthRequest,
     K8sConfigResponse,
 )
-from app.utils.encryption import EncryptionUtils
 from app.utils.k8s_config_parser import parse_kubeconfig, ParsedContext
 
 logger = logging.getLogger(__name__)
@@ -26,394 +24,257 @@ logger = logging.getLogger(__name__)
 class K8sToolService:
     """K8s 连接配置管理服务（所有方法均为 @staticmethod）"""
 
-    # ============ 表初始化 ============
-
-    @staticmethod
-    def _ensure_table():
-        """创建 k8s_connections 表（幂等，可重复执行）"""
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS k8s_connections (
-                    id VARCHAR(64) PRIMARY KEY,
-                    user_id VARCHAR(64) NOT NULL,
-                    name VARCHAR(128) NOT NULL,
-                    source_type VARCHAR(32) NOT NULL,
-                    cluster_name VARCHAR(255) NOT NULL,
-                    context_name VARCHAR(255) NOT NULL,
-                    server VARCHAR(512) NOT NULL,
-                    auth_type VARCHAR(32) NOT NULL,
-                    auth_data_encrypted TEXT,
-                    ca_cert_encrypted TEXT,
-                    namespace_filter TEXT DEFAULT '[]',
-                    is_metrics_available BOOLEAN DEFAULT FALSE,
-                    last_test_at TIMESTAMP,
-                    last_test_error TEXT,
-                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    sort_order INTEGER DEFAULT 0,
-                    deleted BOOLEAN DEFAULT FALSE,
-                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-                )
-            """)
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user "
-                "ON k8s_connections(user_id)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_deleted "
-                "ON k8s_connections(user_id, deleted)"
-            )
-            # 兼容已存在的表：添加 sort_order 字段（必须在引用该列的索引之前）
-            cursor.execute("""
-                ALTER TABLE k8s_connections
-                ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0
-            """)
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_k8s_conn_user_sort "
-                "ON k8s_connections(user_id, sort_order, name)"
-            )
-            # 幂等加列：存储位置标记（LOCAL=本机 / SERVER=服务器）。
-            # 注意：不能使用 ADD COLUMN IF NOT EXISTS —— SQLite 不支持该语法。
-            from app.storage.remote_db import ensure_remote_column
-
-            ensure_remote_column(
-                "k8s_connections",
-                "storage_location",
-                "storage_location VARCHAR(16) NOT NULL DEFAULT 'SERVER'",
-            )
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
-
     # ============ CRUD ============
 
     @staticmethod
     def get_configs(user_id: str) -> List[K8sConfigResponse]:
-        """获取当前用户的所有连接配置（脱敏，不含敏感字段原文）"""
-        K8sToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
+        """获取当前用户的所有连接配置（合并本地 + 服务器，脱敏）"""
+        from app.storage.locator import StorageLocation, server_available
+        from app.storage.repository import get_repository
+
+        rows: list[dict] = []
+
         try:
-            cursor.execute(
-                "SELECT * FROM k8s_connections "
-                "WHERE user_id = %s AND deleted = FALSE "
-                "ORDER BY sort_order ASC, name ASC",
-                (user_id,),
+            rows.extend(
+                get_repository(StorageLocation.LOCAL, "k8s").list(user_id)
             )
-            rows = cursor.fetchall()
-            return [K8sToolService._row_to_response(row) for row in rows]
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        except Exception as exc:
+            logger.warning("读取本地 K8s 配置失败：%s", exc)
+
+        available, _ = server_available()
+        if available:
+            try:
+                rows.extend(
+                    get_repository(StorageLocation.SERVER, "k8s").list(user_id)
+                )
+            except Exception as exc:
+                logger.warning("读取服务器 K8s 配置失败：%s", exc)
+
+        rows.sort(key=lambda r: (r.get("sort_order", 0), r.get("name", "")))
+        return [K8sToolService._row_to_response(row) for row in rows]
+
+    @staticmethod
+    def _locate(user_id: str, config_id: str):
+        """定位配置所在位置与仓储；找不到返回 (None, None)"""
+        from app.storage.locator import StorageLocation
+        from app.storage.repository import get_repository
+
+        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+            try:
+                repo = get_repository(location, "k8s")
+            except Exception:
+                continue
+            if repo.get(config_id, user_id):
+                return repo, location
+        return None, None
 
     @staticmethod
     def update_sort_order(
         user_id: str, config_ids: List[str]
     ) -> None:
-        """批量更新连接配置的排序顺序"""
-        K8sToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            for idx, config_id in enumerate(config_ids):
-                cursor.execute(
-                    "UPDATE k8s_connections "
-                    "SET sort_order = %s, updated_at = %s "
-                    "WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                    (idx, datetime.now(), config_id, user_id),
-                )
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        """批量更新连接配置的排序顺序（逐条定位所在存储位置）"""
+        for idx, config_id in enumerate(config_ids):
+            repo, location = K8sToolService._locate(user_id, config_id)
+            if repo is None:
+                continue
+            repo.update(config_id, user_id, {"sort_order": idx}, location)
 
     @staticmethod
     def create_config(
-        user_id: str, request: CreateK8sManualRequest
+        user_id: str,
+        request: CreateK8sManualRequest,
+        storage_location: "StorageLocation",
     ) -> K8sConfigResponse:
-        """手动创建单条连接配置（敏感字段加密存储）"""
-        K8sToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            config_id = str(uuid.uuid4())
-            now = datetime.now()
+        """手动创建单条连接配置（敏感字段按存储位置加密）"""
+        from app.storage.repository import get_repository
 
-            # 加密敏感字段：auth_data（token/cert/password 等）和 ca_cert
-            auth_data = K8sToolService._build_auth_data(request)
-            auth_data_encrypted = (
-                EncryptionUtils.encrypt(json.dumps(auth_data)) if auth_data else None
-            )
-            ca_cert_encrypted = (
-                EncryptionUtils.encrypt(request.ca_cert) if request.ca_cert else None
-            )
+        repo = get_repository(storage_location, "k8s")
+        config_id = str(uuid.uuid4())
+        now = datetime.now()
 
-            cursor.execute(
-                """INSERT INTO k8s_connections
-                   (id, user_id, name, source_type, cluster_name, context_name, server,
-                    auth_type, auth_data_encrypted, ca_cert_encrypted, namespace_filter,
-                    created_at, updated_at)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (
-                    config_id,
-                    user_id,
-                    request.name,
-                    "manual",
-                    request.name,       # cluster_name 默认使用显示名
-                    request.name,       # context_name 默认使用显示名
-                    request.server,
-                    request.auth_type,
-                    auth_data_encrypted,
-                    ca_cert_encrypted,
-                    json.dumps(request.namespace_filter),
-                    now,
-                    now,
-                ),
-            )
-            conn.commit()
+        auth_data = K8sToolService._build_auth_data(request)
+        payload = {
+            "id": config_id,
+            "name": request.name,
+            "source_type": "manual",
+            "cluster_name": request.name,
+            "context_name": request.name,
+            "server": request.server,
+            "auth_type": request.auth_type,
+            "namespace_filter": json.dumps(request.namespace_filter),
+            "created_at": now,
+            "updated_at": now,
+        }
+        # 敏感字段用目标仓储的密钥加密（本地用本地密钥，远程用服务器密钥）
+        if auth_data:
+            payload["auth_data_encrypted"] = repo._encrypt(json.dumps(auth_data))
+        if request.ca_cert:
+            payload["ca_cert_encrypted"] = repo._encrypt(request.ca_cert)
 
-            # 查回刚插入的行，构建脱敏响应
-            cursor.execute(
-                "SELECT * FROM k8s_connections WHERE id = %s", (config_id,)
-            )
-            row = cursor.fetchone()
-            return K8sToolService._row_to_response(row)
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        repo.create(user_id, payload, storage_location)
+
+        row = repo.get(config_id, user_id)
+        if row is None:
+            raise RuntimeError("K8s 配置创建后无法读回")
+        return K8sToolService._row_to_response(row)
 
     @staticmethod
     def create_from_kubeconfig(
         user_id: str,
         kubeconfig_text: str,
         namespace_filter: Optional[List[str]] = None,
+        storage_location: "StorageLocation" = None,
     ) -> List[K8sConfigResponse]:
-        """从 kubeconfig 文本批量创建连接配置（每个 context 一条）"""
+        """从 kubeconfig 文本批量创建连接配置（每个 context 一条，落在同一存储位置）"""
+        from app.storage.locator import StorageLocation
+
+        if storage_location is None:
+            storage_location = StorageLocation.LOCAL
+
         parsed = parse_kubeconfig(kubeconfig_text)
         results = []
         for ctx in parsed.contexts:
             req = K8sToolService._parsed_context_to_manual_request(
                 ctx, namespace_filter or []
             )
-            results.append(K8sToolService.create_config(user_id, req))
+            results.append(
+                K8sToolService.create_config(user_id, req, storage_location)
+            )
         return results
 
     @staticmethod
     def update_config(
-        user_id: str, request: UpdateK8sRequest
+        user_id: str,
+        request: UpdateK8sRequest,
+        storage_location: "StorageLocation | None" = None,
     ) -> K8sConfigResponse:
         """更新连接配置（仅允许修改 name / namespace_filter）"""
-        K8sToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            update_fields = ["updated_at = %s"]
-            params: list = [datetime.now()]
+        if storage_location is not None:
+            # 显式指定存储位置：直接用对应仓储
+            from app.storage.repository import get_repository
 
-            if request.name is not None:
-                update_fields.append("name = %s")
-                params.append(request.name)
-            if request.namespace_filter is not None:
-                update_fields.append("namespace_filter = %s")
-                params.append(json.dumps(request.namespace_filter))
+            repo = get_repository(storage_location, "k8s")
+            location = storage_location
+        else:
+            # 未指定：自动定位配置当前所在位置
+            repo, location = K8sToolService._locate(user_id, request.id)
+        if repo is None:
+            raise ValueError(f"K8s 配置不存在：{request.id}")
 
-            params.extend([request.id, user_id])
+        updates: dict = {}
+        if request.name is not None:
+            updates["name"] = request.name
+        if request.namespace_filter is not None:
+            updates["namespace_filter"] = json.dumps(request.namespace_filter)
 
-            cursor.execute(
-                f"UPDATE k8s_connections SET {', '.join(update_fields)} "
-                "WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                params,
-            )
-            conn.commit()
-
-            if cursor.rowcount == 0:
-                raise ValueError("连接配置不存在或无权操作")
-
-            cursor.execute(
-                "SELECT * FROM k8s_connections WHERE id = %s", (request.id,)
-            )
-            row = cursor.fetchone()
-            return K8sToolService._row_to_response(row)
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        updated = repo.update(request.id, user_id, updates, location)
+        if updated is None:
+            raise ValueError(f"K8s 配置不存在：{request.id}")
+        return K8sToolService._row_to_response(updated)
 
     @staticmethod
     def update_config_auth(
-        user_id: str, request: UpdateK8sAuthRequest
+        user_id: str,
+        request: UpdateK8sAuthRequest,
+        storage_location: "StorageLocation | None" = None,
     ) -> K8sConfigResponse:
         """更新连接的认证信息（仅更新提供的字段）"""
-        K8sToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            # 检查配置是否存在并获取 auth_type
-            cursor.execute(
-                "SELECT id, auth_type FROM k8s_connections "
-                "WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                (request.id, user_id),
-            )
-            row = cursor.fetchone()
-            if not row:
-                raise ValueError("连接配置不存在或无权操作")
+        if storage_location is not None:
+            # 显式指定存储位置：直接用对应仓储
+            from app.storage.repository import get_repository
 
-            auth_type = row['auth_type']
-            update_fields = ["updated_at = %s"]
-            params: list = [datetime.now()]
+            repo = get_repository(storage_location, "k8s")
+            location = storage_location
+        else:
+            repo, location = K8sToolService._locate(user_id, request.id)
+        if repo is None:
+            raise ValueError(f"K8s 配置不存在：{request.id}")
 
-            # 收集认证数据更新
-            auth_data_updates = {}
-            if auth_type == 'bearer_token' and request.token:
-                auth_data_updates['token'] = request.token
-            if auth_type == 'client_cert':
-                if request.client_cert:
-                    auth_data_updates['client_cert'] = request.client_cert
-                if request.client_key:
-                    auth_data_updates['client_key'] = request.client_key
-            if auth_type == 'basic_auth':
-                if request.username:
-                    auth_data_updates['username'] = request.username
-                if request.password:
-                    auth_data_updates['password'] = request.password
+        # 读取现有配置与已解密的认证数据（auth_type 决定更新哪些字段）
+        row = repo.get_with_secret(request.id, user_id)
+        if row is None:
+            raise ValueError(f"K8s 配置不存在：{request.id}")
 
-            # 如果有认证数据更新
-            if auth_data_updates:
-                cursor.execute(
-                    "SELECT auth_data_encrypted FROM k8s_connections WHERE id = %s",
-                    (request.id,),
-                )
-                existing_row = cursor.fetchone()
-                if existing_row and existing_row['auth_data_encrypted']:
-                    existing_decrypted = EncryptionUtils.decrypt(existing_row['auth_data_encrypted'])
-                    existing_data = json.loads(existing_decrypted)
-                    existing_data.update(auth_data_updates)
-                    auth_data_encrypted = EncryptionUtils.encrypt(json.dumps(existing_data))
-                else:
-                    auth_data_encrypted = EncryptionUtils.encrypt(json.dumps(auth_data_updates))
+        auth_type = row["auth_type"]
+        auth_data_updates: dict = {}
+        if auth_type == 'bearer_token' and request.token:
+            auth_data_updates['token'] = request.token
+        if auth_type == 'client_cert':
+            if request.client_cert:
+                auth_data_updates['client_cert'] = request.client_cert
+            if request.client_key:
+                auth_data_updates['client_key'] = request.client_key
+        if auth_type == 'basic_auth':
+            if request.username:
+                auth_data_updates['username'] = request.username
+            if request.password:
+                auth_data_updates['password'] = request.password
 
-                update_fields.append("auth_data_encrypted = %s")
-                params.append(auth_data_encrypted)
+        updates: dict = {}
+        if auth_data_updates:
+            # 合并进已解密的认证数据后整体重加密
+            existing_raw = row.get("auth_data_decrypted")
+            if existing_raw:
+                existing_data = json.loads(existing_raw)
+                existing_data.update(auth_data_updates)
+                merged = existing_data
+            else:
+                merged = auth_data_updates
+            updates["auth_data_encrypted"] = repo._encrypt(json.dumps(merged))
 
-            # CA 证书更新
-            if request.ca_cert:
-                ca_cert_encrypted = EncryptionUtils.encrypt(request.ca_cert)
-                update_fields.append("ca_cert_encrypted = %s")
-                params.append(ca_cert_encrypted)
+        if request.ca_cert:
+            updates["ca_cert_encrypted"] = repo._encrypt(request.ca_cert)
 
-            params.extend([request.id, user_id])
-
-            cursor.execute(
-                f"UPDATE k8s_connections SET {', '.join(update_fields)} "
-                "WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                params,
-            )
-            conn.commit()
-
-            if cursor.rowcount == 0:
-                raise ValueError("连接配置不存在或无权操作")
-
-            # 返回更新后的配置
-            cursor.execute("SELECT * FROM k8s_connections WHERE id = %s", (request.id,))
-            row = cursor.fetchone()
-            return K8sToolService._row_to_response(row)
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        updated = repo.update(request.id, user_id, updates, location)
+        if updated is None:
+            raise ValueError(f"K8s 配置不存在：{request.id}")
+        return K8sToolService._row_to_response(updated)
 
     @staticmethod
     def update_test_result(
+        user_id: str,
         config_id: str,
         success: bool,
         error: Optional[str] = None,
         metrics_available: bool = False,
     ) -> None:
-        """更新连接测试结果"""
-        K8sToolService._ensure_table()
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
+        """更新连接测试结果（写入配置所在存储位置）"""
+        repo, location = K8sToolService._locate(user_id, config_id)
+        if repo is None:
+            logger.warning("更新测试结果失败，配置不存在：%s", config_id)
+            return
         try:
-            cursor.execute(
-                """
-                UPDATE k8s_connections
-                SET last_test_at = %s,
-                    last_test_error = %s,
-                    is_metrics_available = %s,
-                    updated_at = %s
-                WHERE id = %s
-                """,
-                (
-                    datetime.now(),
-                    error if not success else None,
-                    metrics_available,
-                    datetime.now(),
-                    config_id,
-                ),
+            repo.update(
+                config_id,
+                user_id,
+                {
+                    "last_test_at": datetime.now(),
+                    "last_test_error": error if not success else None,
+                    "is_metrics_available": metrics_available,
+                },
+                location,
             )
-            conn.commit()
         except Exception as e:
-            conn.rollback()
             logger.error(f"更新测试结果失败: {e}")
-        finally:
-            cursor.close()
-            release_db_connection(conn)
 
     @staticmethod
     def delete_config(user_id: str, config_id: str) -> bool:
-        """软删除连接配置（SET deleted = TRUE，保留数据用于审计）"""
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                "UPDATE k8s_connections SET deleted = TRUE, updated_at = %s "
-                "WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                (datetime.now(), config_id, user_id),
-            )
-            conn.commit()
-            return cursor.rowcount > 0
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        """软删除连接配置（本地为硬删除，服务器侧由仓储决定）"""
+        repo, _location = K8sToolService._locate(user_id, config_id)
+        if repo is None:
+            return False
+        return repo.delete(config_id, user_id)
 
     @staticmethod
     def get_config_by_id(user_id: str, config_id: str) -> Optional[dict]:
         """
-        获取配置完整记录（含加密字段）。
+        获取配置完整记录（自动定位存储位置，含加密字段）。
         仅供内部使用（如建立 K8s 连接时解密凭据），不对外暴露。
         """
-        conn = get_pooled_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                "SELECT * FROM k8s_connections "
-                "WHERE id = %s AND user_id = %s AND deleted = FALSE",
-                (config_id, user_id),
-            )
-            row = cursor.fetchone()
-            return dict(row) if row else None
-        finally:
-            cursor.close()
-            release_db_connection(conn)
+        repo, _location = K8sToolService._locate(user_id, config_id)
+        if repo is None:
+            return None
+        return repo.get(config_id, user_id)
 
     # ============ 内部辅助方法 ============
 
@@ -464,6 +325,9 @@ class K8sToolService:
         except (json.JSONDecodeError, TypeError):
             ns_filter = []
 
+        # 落库为大写 LOCAL/SERVER，对外统一小写
+        storage_location = str(row.get("storage_location") or "server").lower()
+
         return K8sConfigResponse(
             id=row["id"],
             user_id=row["user_id"],
@@ -473,6 +337,7 @@ class K8sToolService:
             context_name=row["context_name"],
             server=row["server"],
             auth_type=row["auth_type"],
+            storage_location=storage_location,
             has_auth_data=bool(row.get("auth_data_encrypted")),
             has_ca_cert=bool(row.get("ca_cert_encrypted")),
             namespace_filter=ns_filter,

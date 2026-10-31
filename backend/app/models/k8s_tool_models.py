@@ -22,18 +22,27 @@ class CreateK8sManualRequest(BaseModel):
     # 可选
     ca_cert: Optional[str] = Field(None, max_length=65536, description="集群 CA 证书（自签名）")
     namespace_filter: List[str] = Field(default_factory=list, description="只暴露指定 namespace")
+    storage_location: str = Field(
+        "local", description="存储位置：local(本机)/server(服务器)"
+    )
 
 
 class CreateK8sPasteRequest(BaseModel):
     """粘贴 kubeconfig 文本批量创建"""
     kubeconfig_text: str = Field(..., min_length=1, max_length=1_048_576)
     namespace_filter: List[str] = Field(default_factory=list)
+    storage_location: str = Field(
+        "local", description="存储位置：local(本机)/server(服务器)"
+    )
 
 
 class CreateK8sUploadRequest(BaseModel):
     """上传 kubeconfig 文件批量创建（文件由路由层处理，此处只是元数据）"""
     filename: str = Field(..., max_length=255)
     namespace_filter: List[str] = Field(default_factory=list)
+    storage_location: str = Field(
+        "local", description="存储位置：local(本机)/server(服务器)"
+    )
 
 
 class UpdateK8sRequest(BaseModel):
@@ -77,6 +86,9 @@ class K8sConfigResponse(BaseModel):
     server: str
     auth_type: str
     has_auth_data: bool = Field(description="是否已配置认证信息")
+    storage_location: str = Field(
+        default="local", description="存储位置：local(本机)/server(服务器)"
+    )
     has_ca_cert: bool = Field(description="是否已配置 CA 证书")
     namespace_filter: List[str]
     is_metrics_available: bool
