@@ -634,8 +634,8 @@ const handleSelectAndExpand = async () => {
                     {config.environment}
                   </Badge>
                 )}
-                {/* 存储位置徽章：旧数据缺省视为服务器存储 */}
-                <StorageLocationBadge location={(config.storage_location ?? 'server') as StorageLocation} />
+                {/* 存储位置徽章：旧数据缺省视为本机存储（与后端默认一致） */}
+                <StorageLocationBadge location={(config.storage_location ?? 'local') as StorageLocation} />
              </div>
            </div>
         </div>
@@ -643,7 +643,7 @@ const handleSelectAndExpand = async () => {
         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* 迁移按钮：目标侧可用时展示（移到本机始终可用，移到服务器需服务器在线） */}
           {(() => {
-            const target: StorageLocation = (config.storage_location ?? 'server') === 'local' ? 'server' : 'local';
+            const target: StorageLocation = (config.storage_location ?? 'local') === 'local' ? 'server' : 'local';
             const canMigrate = target === 'local' || serverAvailable;
             if (!canMigrate) return null;
             return (

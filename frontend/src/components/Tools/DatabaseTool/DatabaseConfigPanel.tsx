@@ -26,8 +26,9 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
   const [testing, setTesting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [decryptedPassword, setDecryptedPassword] = useState<string>('');
-  // 存储位置：默认本机；挂载时探测服务器可用性
+  // 存储位置：默认本机；编辑模式下为原配置的存储位置（未改动时提交不带该字段）
   const [storageLocation, setStorageLocation] = useState<StorageLocation>('local');
+  const [originalLocation, setOriginalLocation] = useState<StorageLocation | null>(null);
   const [serverAvailable, setServerAvailable] = useState(false);
 
   useEffect(() => {
@@ -79,6 +80,10 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
           ssl_mode: config.ssl_mode,
           is_active: config.is_active
         });
+        // 回填原存储位置（旧数据缺省按服务器语义处理）；未改动时提交不带该字段，避免静默迁移
+        const loc = (config.storage_location ?? 'local') as StorageLocation;
+        setStorageLocation(loc);
+        setOriginalLocation(loc);
       }
     }
   }, [editConfigId, configs]);
@@ -118,13 +123,16 @@ const DatabaseConfigPanel: React.FC<DatabaseConfigPanelProps> = ({ editConfigId,
     setLoading(true);
     try {
       if (editConfigId) {
-        // Update - only send password if actually changed (not masked placeholder)
+        // 编辑保存：仅当用户显式改动了存储位置才传该字段，绝不静默改变存储位置
         const updateData: UpdateDatabaseRequest = { ...formData };
         if (!updateData.password || updateData.password === '••••••••') {
           delete updateData.password;
         }
-        
-        await api.updateDatabase(editConfigId, { ...updateData, storage_location: storageLocation });
+        if (originalLocation !== null && storageLocation !== originalLocation) {
+          updateData.storage_location = storageLocation;
+        }
+
+        await api.updateDatabase(editConfigId, updateData);
         toast.success(t.common.success);
       } else {
         // Create
