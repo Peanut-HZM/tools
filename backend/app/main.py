@@ -563,6 +563,11 @@ app.include_router(ssh_tool.router, prefix="/api")
 # K8s Tool router
 app.include_router(k8s_tool.router, prefix="/api")
 
+# Storage router（存储状态 + 配置迁移，router 自带 /api/storage 前缀）
+from app.routes import storage as storage_router
+
+app.include_router(storage_router.router)
+
 # User API Token router（个人 PAT，供 MCP endpoint 认证）
 from app.routes import user_api_token
 app.include_router(user_api_token.router, prefix="/api")
