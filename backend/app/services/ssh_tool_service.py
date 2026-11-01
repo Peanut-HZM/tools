@@ -21,6 +21,7 @@ from app.models.ssh_tool_models import (
     BatchCommandRequest, BatchCommandResponse, BatchCommandResult, TunnelProtocol
 )
 from app.services.auth_service import get_auth_service
+from app.storage.repository import ensure_storage_location
 from app.utils.encryption import EncryptionUtils
 
 logger = logging.getLogger(__name__)
@@ -325,14 +326,23 @@ class SSHToolService:
         request: UpdateSSHRequest,
         storage_location: Optional[StorageLocation] = None,
     ) -> SSHConfigResponse:
-        """更新配置；显式传位置直接用指定仓储，传 None 自动定位"""
+        """更新配置。
+
+        storage_location 语义：
+        - None → 自动定位配置当前所在位置，就地更新（不改变存储位置）
+        - 显式值 → 确保配置位于该位置。若原本在另一侧，执行**迁移**
+          （用目标端密钥重加密 + 物理删除源端），保证「选了本地，服务器侧
+          不残留任何副本」。
+        """
         from app.storage.locator import StorageLocation
 
         if storage_location is not None:
             if not isinstance(storage_location, StorageLocation):
                 storage_location = StorageLocation.from_value(storage_location)
-            repo = get_repository(storage_location, "ssh")
-            location = storage_location
+            # 位置变化时先迁移（重加密 + 删源端），再在目标端做字段更新
+            repo, location = ensure_storage_location(
+                user_id, "ssh", request.id, storage_location
+            )
         else:
             repo, location = SSHToolService._locate(user_id, request.id)
         if repo is None:
@@ -394,18 +404,38 @@ class SSHToolService:
 
     @staticmethod
     def delete_config(user_id: str, config_id: str) -> bool:
-        """删除配置（本地为硬删除，服务器侧由仓储决定）"""
-        repo, _location = SSHToolService._locate(user_id, config_id)
-        if repo is None:
-            return False
-        deleted = repo.delete(config_id, user_id)
+        """删除配置（本地 + 服务器两侧都物理删除）
+
+        安全要求：配置选择「仅保存在本机」后，服务器侧不允许残留任何副本。
+        因此删除时两侧都尝试物理删除（Repository.delete 走 SQL DELETE）。
+        """
+        from app.storage.repository import delete_config_everywhere
+
+        deleted = delete_config_everywhere(user_id, "ssh", config_id)
         if deleted:
             logger.info("SSH config deleted: %s", config_id)
         return deleted
 
     @staticmethod
     def _load_private_key(private_key: str, passphrase: Optional[str]):
-        key_classes = [paramiko.RSAKey, paramiko.Ed25519Key, paramiko.ECDSAKey, paramiko.DSSKey]
+        """加载私钥（内容或文件路径）。
+
+        候选密钥类型必须动态探测：paramiko 5.x 已移除 DSSKey，
+        写死 paramiko.DSSKey 会在模块属性访问时直接抛 AttributeError。
+        """
+        key_classes = [
+            key_cls
+            for key_cls in (
+                getattr(paramiko, "RSAKey", None),
+                getattr(paramiko, "Ed25519Key", None),
+                getattr(paramiko, "ECDSAKey", None),
+                getattr(paramiko, "DSSKey", None),  # paramiko < 5 才有，缺失时跳过
+            )
+            if key_cls is not None
+        ]
+        if not key_classes:
+            raise HTTPException(status_code=500, detail="SSH 客户端不支持任何私钥类型")
+
         if "BEGIN" in private_key:
             for key_cls in key_classes:
                 try:

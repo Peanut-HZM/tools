@@ -50,6 +50,10 @@ class UpdateK8sRequest(BaseModel):
     id: str = Field(..., min_length=1, max_length=64)
     name: Optional[str] = Field(None, min_length=1, max_length=128)
     namespace_filter: Optional[List[str]] = None
+    storage_location: Optional[str] = Field(
+        None,
+        description="存储位置：local/server（可选，不传自动定位；传了且与当前位置不同则迁移）",
+    )
 
 
 class DeleteK8sRequest(BaseModel):
@@ -66,6 +70,10 @@ class UpdateK8sAuthRequest(BaseModel):
     username: Optional[str] = None  # basic_auth
     password: Optional[str] = None  # basic_auth
     ca_cert: Optional[str] = None  # 所有类型通用
+    storage_location: Optional[str] = Field(
+        None,
+        description="存储位置：local/server（可选，不传自动定位；传了且与当前位置不同则迁移）",
+    )
 
 
 class UpdateConfigSortRequest(BaseModel):

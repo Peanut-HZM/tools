@@ -127,10 +127,12 @@ async def update_config(
     """更新连接配置（仅允许修改 name / namespace_filter）"""
     from app.storage.locator import StorageLocation
 
+    # 位置来源：body 优先（与其它工具一致），Query 兜底（兼容旧调用）
+    raw_location = request.storage_location or storage_location
     location = None
-    if storage_location is not None:
+    if raw_location:
         try:
-            location = StorageLocation.from_value(storage_location)
+            location = StorageLocation.from_value(raw_location)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
 
@@ -149,10 +151,12 @@ async def update_config_auth(
     """更新连接的认证信息（token/cert/key 等）"""
     from app.storage.locator import StorageLocation
 
+    # 位置来源：body 优先（与其它工具一致），Query 兜底（兼容旧调用）
+    raw_location = request.storage_location or storage_location
     location = None
-    if storage_location is not None:
+    if raw_location:
         try:
-            location = StorageLocation.from_value(storage_location)
+            location = StorageLocation.from_value(raw_location)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
 

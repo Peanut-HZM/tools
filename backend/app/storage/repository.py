@@ -311,3 +311,59 @@ def get_repository(location: StorageLocation, tool: str) -> ConfigRepository:
     if location is StorageLocation.LOCAL:
         return LocalConfigRepository(tool)
     return RemoteConfigRepository(tool)
+
+
+def delete_config_everywhere(user_id: str, tool: str, config_id: str) -> bool:
+    """删除配置：本地侧与服务器侧**都**尝试物理删除。
+
+    安全要求：配置选择「仅保存在本机」后，服务器侧不允许残留任何副本
+    （含密文列）。Repository.delete 走的是 SQL DELETE（物理删除），
+    不是软删除标记，因此本函数保证「删除后两侧都查不到该 id」。
+
+    一侧不可达（如远程库连接失败）时跳过该侧并记录日志，不影响另一侧。
+    """
+    deleted = False
+
+    for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
+        try:
+            repo = get_repository(location, tool)
+        except Exception as exc:
+            logger.warning("获取 %s 侧仓储失败（tool=%s）：%s", location.value, tool, exc)
+            continue
+        try:
+            if repo.delete(config_id, user_id):
+                deleted = True
+        except Exception as exc:
+            logger.warning("删除 %s 侧配置 %s 失败：%s", location.value, config_id, exc)
+
+    return deleted
+
+
+def ensure_storage_location(
+    user_id: str, tool: str, config_id: str, target: StorageLocation
+) -> tuple[ConfigRepository, StorageLocation]:
+    """确保配置位于 target 存储位置，返回（仓储, 位置）。
+
+    若配置当前已在 target 侧 → 直接返回该侧仓储，不做任何写操作。
+    若配置在另一侧 → 执行迁移（重加密写入目标端 + 物理删除源端），
+    返回目标端仓储。
+
+    安全保证：迁移后源端**物理删除**该行（Repository.delete 走 SQL DELETE），
+    不会出现「已选本地但服务器仍残留密文副本」的情况。
+
+    放在本模块（而非 migration.py）的原因：仓储路由的唯一真源是本模块的
+    `get_repository`，这样调用方 monkeypatch `repository.get_repository` 时
+    行为一致，不会出现两套仓储引用。
+    """
+    target = StorageLocation.from_value(target)
+
+    # 先看目标侧是否已有该配置
+    target_repo = get_repository(target, tool)
+    if target_repo.get(config_id, user_id):
+        return target_repo, target
+
+    # 目标侧没有 → 源端必然有，迁移过去（延迟 import 避免循环依赖）
+    from app.storage.migration import migrate_config
+
+    migrate_config(user_id, tool, config_id, target)
+    return target_repo, target

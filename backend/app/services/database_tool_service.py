@@ -821,14 +821,23 @@ class DatabaseToolService:
         request: UpdateDatabaseRequest,
         storage_location=None,
     ) -> Optional[DatabaseConfigResponse]:
-        """更新连接配置"""
+        """更新连接配置。
+
+        storage_location 语义：
+        - None → 自动定位配置当前所在位置，就地更新（不改变存储位置）
+        - 显式值 → 确保配置位于该位置。若原本在另一侧，执行**迁移**
+          （用目标端密钥重加密 + 物理删除源端），保证「选了本地，服务器侧
+          不残留任何副本」。
+        """
         from app.storage.locator import StorageLocation
-        from app.storage.repository import get_repository
+        from app.storage.repository import ensure_storage_location, get_repository
 
         if storage_location is not None:
-            # 显式指定存储位置：直接用对应仓储，不做自动定位
+            # 显式指定存储位置：确保配置在该位置（必要时迁移）
             target_location = StorageLocation.from_value(storage_location)
-            repo = get_repository(target_location, "database")
+            repo, target_location = ensure_storage_location(
+                user_id, "database", config_id, target_location
+            )
         else:
             # 未指定：自动定位配置当前所在位置
             target_location = None
@@ -878,21 +887,13 @@ class DatabaseToolService:
 
     @staticmethod
     def delete_config(config_id: str, user_id: str) -> bool:
-        """删除连接配置（两侧都尝试删，清理可能的重复残留）"""
-        from app.storage.locator import StorageLocation
-        from app.storage.repository import get_repository
+        """删除连接配置（本地 + 服务器两侧都物理删除）
 
-        deleted = False
-        for location in (StorageLocation.LOCAL, StorageLocation.SERVER):
-            try:
-                repo = get_repository(location, "database")
-            except Exception:
-                continue
-            try:
-                if repo.delete(config_id, user_id):
-                    deleted = True
-            except Exception as exc:
-                logger.warning("删除 %s 侧配置失败：%s", location.value, exc)
+        安全要求：配置选择「仅保存在本机」后，服务器侧不允许残留任何副本。
+        """
+        from app.storage.repository import delete_config_everywhere
+
+        deleted = delete_config_everywhere(user_id, "database", config_id)
 
         if deleted:
             # 删除配置时清除引擎缓存

@@ -119,6 +119,8 @@ export const updateK8sConfigAuth = (payload: {
   username?: string;
   password?: string;
   ca_cert?: string;
+  /** 存储位置：local/server（传了且与当前位置不同则后端执行迁移） */
+  storage_location?: StorageLocation;
 }) =>
   request<K8sConnection>(`${K8S_API_URL}/configs/update-auth`, {
     method: 'POST',

@@ -56,6 +56,8 @@ export interface UpdateK8sRequest {
   id: string;
   name?: string;
   namespace_filter?: string[];
+  /** 存储位置：local/server（传了且与当前位置不同则后端执行迁移） */
+  storage_location?: StorageLocation;
 }
 
 // 连接测试结果

@@ -692,6 +692,62 @@ Response: { "success": bool, "migrated": int, "failed": int, "errors": [...] }
 
 ---
 
+## 10.1 存储位置切换的安全不变量（2026-11-01 补充）
+
+> 本节记录实现阶段暴露的三个真实缺陷及其修复后的**强制不变量**。
+
+### 不变量 1：编辑弹窗切位置 = 真迁移
+
+「编辑连接」弹窗里改变存储位置，**必须等价于调用迁移接口**（重加密 + 物理删源端），
+不能只是「用目标端仓储做一次 UPDATE」。
+
+实现：所有工具的 `update_config` 在收到显式 `storage_location` 时走
+`app.storage.migration.ensure_storage_location(user_id, tool, config_id, target)`：
+
+- 目标侧**已有**该配置 → 直接返回目标端仓储，不做任何写入
+- 目标侧**没有** → 执行 `migrate_config`（先写目标端重加密 → 后删源端物理删除）
+
+> ⚠️ 历史坑：SSH 工具的 `update_config` 漏 import `get_repository`，
+> 显式传位置时抛 `NameError` → HTTP 500 → 保存静默失败 → 用户看到
+> 「选本地就连不上」（配置其实还在服务器上）。**4 个工具都必须 import 到位。**
+
+### 不变量 2：选 LOCAL 后服务器侧不得有任何残留
+
+「仅保存在本机」= 凭据只在本机。切换完成后：
+
+| 检查项 | 断言 |
+|---|---|
+| 远程 PG 中该 id | **物理不存在**（不是 `deleted=TRUE` 的软删除标记） |
+| 远程 PG 中 `storage_location='LOCAL'` 的行 | **恒为 0**（LOCAL 行只写本地库） |
+| 本地 SQLite 中该 id | 存在，且 `storage_location='LOCAL'` |
+
+### 不变量 3：删除配置时两侧都清
+
+`DELETE /api/{tool}/configs/{id}` 必须**两侧都尝试物理删除**：
+
+- 统一实现：`app.storage.repository.delete_config_everywhere(user_id, tool, config_id)`
+- 一侧不可达（如远程库故障）时跳过该侧并记日志，不影响另一侧
+- 目的：清理「迁移中间态」（同 id 两端都存在）残留
+
+### ⚠️ K8s 工具的 body/query 参数差异（踩坑记录）
+
+K8s 的两个更新接口原本从 **Query** 读 `storage_location`：
+
+```python
+async def update_config(request: UpdateK8sRequest, storage_location: Optional[str] = Query(...))
+```
+
+但前端把 `storage_location` 放在**请求体**里 → 后端完全收不到 →
+「切位置」看起来保存成功，实际配置仍在服务器侧（**违反不变量 2**）。
+
+**修复与约定**：
+
+- `UpdateK8sRequest` / `UpdateK8sAuthRequest` 增加 `storage_location` 字段
+- 路由读取顺序：**body 优先，Query 兜底**（兼容旧调用）
+- **约定**：4 个工具的 `storage_location` 一律走**请求体**，不再用 Query
+
+---
+
 ## 11. 测试策略
 
 ### 11.1 后端

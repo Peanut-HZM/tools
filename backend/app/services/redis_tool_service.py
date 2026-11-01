@@ -255,17 +255,26 @@ class RedisToolService:
     def update_config(
         config_id: str, user_id: str, request: UpdateRedisRequest, storage_location=None
     ) -> Optional[RedisConfigResponse]:
-        """更新配置；显式传位置直接用指定仓储，传 None 自动定位"""
+        """更新配置。
+
+        storage_location 语义：
+        - None → 自动定位配置当前所在位置，就地更新（不改变存储位置）
+        - 显式值 → 确保配置位于该位置。若原本在另一侧，执行**迁移**
+          （用目标端密钥重加密 + 物理删除源端），保证「选了本地，服务器侧
+          不残留任何副本」。
+        """
         from app.storage.locator import StorageLocation
-        from app.storage.repository import get_repository
+        from app.storage.repository import ensure_storage_location
 
         RedisToolService._ensure_table()
 
         if storage_location is not None:
             if not isinstance(storage_location, StorageLocation):
                 storage_location = StorageLocation.from_value(storage_location)
-            repo = get_repository(storage_location, "redis")
-            location = storage_location
+            # 位置变化时先迁移（重加密 + 删源端），再在目标端做字段更新
+            repo, location = ensure_storage_location(
+                user_id, "redis", config_id, storage_location
+            )
         else:
             repo, location = RedisToolService._locate(user_id, config_id)
         if repo is None:
@@ -307,12 +316,14 @@ class RedisToolService:
 
     @staticmethod
     def delete_config(config_id: str, user_id: str) -> bool:
-        """删除配置（本地为硬删除，服务器侧由仓储决定）"""
+        """删除配置（本地 + 服务器两侧都物理删除）
+
+        安全要求：配置选择「仅保存在本机」后，服务器侧不允许残留任何副本。
+        """
+        from app.storage.repository import delete_config_everywhere
+
         RedisToolService._ensure_table()
-        repo, _location = RedisToolService._locate(user_id, config_id)
-        if repo is None:
-            return False
-        deleted = repo.delete(config_id, user_id)
+        deleted = delete_config_everywhere(user_id, "redis", config_id)
         if deleted:
             logger.info("Redis config deleted: %s", config_id)
         return deleted

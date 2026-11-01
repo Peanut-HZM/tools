@@ -148,13 +148,21 @@ class K8sToolService:
         request: UpdateK8sRequest,
         storage_location: "StorageLocation | None" = None,
     ) -> K8sConfigResponse:
-        """更新连接配置（仅允许修改 name / namespace_filter）"""
-        if storage_location is not None:
-            # 显式指定存储位置：直接用对应仓储
-            from app.storage.repository import get_repository
+        """更新连接配置（仅允许修改 name / namespace_filter）
 
-            repo = get_repository(storage_location, "k8s")
-            location = storage_location
+        storage_location 语义：
+        - None → 自动定位配置当前所在位置，就地更新（不改变存储位置）
+        - 显式值 → 确保配置位于该位置。若原本在另一侧，执行**迁移**
+          （用目标端密钥重加密 + 物理删除源端），保证「选了本地，服务器侧
+          不残留任何副本」。
+        """
+        if storage_location is not None:
+            # 显式指定存储位置：确保配置在该位置（必要时迁移）
+            from app.storage.repository import ensure_storage_location
+
+            repo, location = ensure_storage_location(
+                user_id, "k8s", request.id, storage_location
+            )
         else:
             # 未指定：自动定位配置当前所在位置
             repo, location = K8sToolService._locate(user_id, request.id)
@@ -178,13 +186,18 @@ class K8sToolService:
         request: UpdateK8sAuthRequest,
         storage_location: "StorageLocation | None" = None,
     ) -> K8sConfigResponse:
-        """更新连接的认证信息（仅更新提供的字段）"""
-        if storage_location is not None:
-            # 显式指定存储位置：直接用对应仓储
-            from app.storage.repository import get_repository
+        """更新连接的认证信息（仅更新提供的字段）
 
-            repo = get_repository(storage_location, "k8s")
-            location = storage_location
+        storage_location 语义同 update_config：显式指定且与当前位置不同
+        时执行迁移（重加密 + 物理删除源端）。
+        """
+        if storage_location is not None:
+            # 显式指定存储位置：确保配置在该位置（必要时迁移）
+            from app.storage.repository import ensure_storage_location
+
+            repo, location = ensure_storage_location(
+                user_id, "k8s", request.id, storage_location
+            )
         else:
             repo, location = K8sToolService._locate(user_id, request.id)
         if repo is None:
@@ -259,11 +272,13 @@ class K8sToolService:
 
     @staticmethod
     def delete_config(user_id: str, config_id: str) -> bool:
-        """软删除连接配置（本地为硬删除，服务器侧由仓储决定）"""
-        repo, _location = K8sToolService._locate(user_id, config_id)
-        if repo is None:
-            return False
-        return repo.delete(config_id, user_id)
+        """删除连接配置（本地 + 服务器两侧都物理删除）
+
+        安全要求：配置选择「仅保存在本机」后，服务器侧不允许残留任何副本。
+        """
+        from app.storage.repository import delete_config_everywhere
+
+        return delete_config_everywhere(user_id, "k8s", config_id)
 
     @staticmethod
     def get_config_by_id(user_id: str, config_id: str) -> Optional[dict]:
