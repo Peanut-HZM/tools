@@ -1102,13 +1102,14 @@ def get_token_usage_details(
         #
         # 排序字段映射说明：
         # - "date" → record_date（数据归属日期）
-        # - "created_at" → record_date（前端「更新时间」列的语义是数据归属日期）
+        # - "created_at" → updated_at（记录最后一次被写入/刷新到库的时间）
+        # - "updated_at" 不是前端合法选项，但兜底同 updated_at
         #
-        # 关键：不能用 updated_at 做默认排序。后台同步会批量刷新 updated_at
-        # （一次同步把同一批历史记录全部改成同一时间戳），导致：
-        # 1) 排序按「哪批被同步过」而非「数据属于哪天」——几个月前的记录
-        #    因刚被同步而 updated_at 变最新，插队到真正最新日期之前；
-        # 2) 页面「更新时间」显示同步时刻，误导用户。
+        # 主排序约定（详见 _record_tiebreakers）：「更新时间」视图 = 先按日期降序、
+        # 再按 updated_at 降序（用户需求：同一天内，最新更新的排最前）。
+        #
+        # 不能用 updated_at 做全局主排序字段 —— 后台同步会批量刷新 updated_at，
+        # 导致历史记录插队。这里只在「日期」内部用 updated_at 做次级排序。
         allowed_sort_fields = {
             "date": TokenUsageRecord.record_date,
             "total_tokens": TokenUsageRecord.total_tokens,
@@ -1116,19 +1117,24 @@ def get_token_usage_details(
             "input_tokens": TokenUsageRecord.input_tokens,
             "output_tokens": TokenUsageRecord.output_tokens,
             "created_at": TokenUsageRecord.record_date,
+            "updated_at": TokenUsageRecord.record_date,
         }
         sort_col = allowed_sort_fields.get(req.sort_by, TokenUsageRecord.record_date)
         if req.sort_by == "cache_tokens":
             sort_col = (TokenUsageRecord.cache_creation_tokens + TokenUsageRecord.cache_read_tokens).label("cache_tokens")
         order_expr = sort_col.desc() if req.sort_order != "asc" else sort_col.asc()
 
-        # 次级排序：主排序同值时必须有确定顺序，否则分页会在页间重复/丢行，
-        # 同一天的记录顺序也会每次刷新都变。
-        # - 主排序非 record_date 时，同值内按 record_date 倒排（保证日期新的在前）；
-        # - id 兜底保证全序稳定。
+        # 次级排序：主排序同值时必须有确定顺序，否则分页会在页间重复/丢行。
+        # 用户需求（「更新时间」视图，即 sort_by='created_at'）：
+        #   先按 record_date 降序（日期新→旧），同日内再按 updated_at 降序（最新更新排最前）。
+        # 不能全局用 updated_at 做主排序 —— 后台同步批量刷新 updated_at 会让历史记录插队。
         order_criteria = [order_expr]
         if sort_col is not TokenUsageRecord.record_date:
             order_criteria.append(TokenUsageRecord.record_date.desc())
+        # 「更新时间」视图：同一日期内按 updated_at 降序（忽略时区差异，updated_at 带
+        # timezone=True，record_date 是纯日期，二者同级比较会触发报错，用 cast 统一）。
+        if req.sort_by == "created_at":
+            order_criteria.append(TokenUsageRecord.updated_at.desc())
         order_criteria.append(TokenUsageRecord.id.desc())
 
         paged_records = (
