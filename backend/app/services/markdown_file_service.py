@@ -187,6 +187,26 @@ class MarkdownFileService:
         
         return self._scan_directory(target_path, depth)
     
+    @staticmethod
+    def _dir_has_children(dir_path: Path) -> bool:
+        """判断目录是否含有子项（不递归，仅探测一层）。
+
+        用于给未展开的目录节点标注 has_children —— 前端据此显示展开箭头。
+        空目录返回 False（确实没有子项，不该显示箭头）。
+        """
+        try:
+            with os.scandir(dir_path) as it:
+                for entry in it:
+                    try:
+                        if entry.is_dir() or entry.is_file() or entry.is_symlink():
+                            return True
+                    except OSError:
+                        return True
+        except (PermissionError, OSError):
+            # 无权限时保守返回 True，让前端仍可尝试展开（展开时会给出无权限提示）
+            return True
+        return False
+
     def _scan_directory(self, dir_path: Path, depth: int = -1, _rel_path: str = None, _state: dict = None) -> FileNode:
         """Recursively scan a directory — includes all file types
 
@@ -266,23 +286,26 @@ class MarkdownFileService:
             hidden_dir = is_hidden(entry.name)
 
             if depth == 0:
-                # 深度限制：保留节点但不展开
+                # 深度限制：保留节点但不展开。
+                # has_children 仍需如实反映"该目录是否有子项"，
+                # 否则前端无法区分空目录与未加载目录，展开箭头会全部消失。
                 node.children.append(FileNode(
                     name=entry.name,
                     path=normalize_path(child_rel_path),
                     type="directory",
-                    children=[]
+                    children=[],
+                    has_children=self._dir_has_children(Path(entry.path)),
                 ))
                 _state["count"] += 1
                 continue
 
-            if hidden_dir:
-                # 隐藏目录不递归，但必须保留节点：用户要能打开 .git/.idea 等
+            if hidden_dir:                # 隐藏目录不递归，但必须保留节点：用户要能打开 .git/.idea 等
                 node.children.append(FileNode(
                     name=entry.name,
                     path=normalize_path(child_rel_path),
                     type="directory",
-                    children=[]
+                    children=[],
+                    has_children=self._dir_has_children(Path(entry.path)),
                 ))
                 _state["count"] += 1
                 continue
@@ -290,11 +313,15 @@ class MarkdownFileService:
             if entry.name in HEAVY_DIR_NAMES:
                 continue
 
-            # 符号链接环检测：软链接指回祖先目录时只保留节点，不再递归
+            # 符号链接环检测：软链接指回祖先目录时只保留节点，不再递归。
+            # 只对真正的符号链接生效 —— 普通目录参与去重会在部分平台
+            # （Windows + Python 3.14 的 st_ino 为 0）把所有目录的 key 撞成
+            # 同一个值，导致第二个及之后的目录全被误判为环而不递归。
             link_key = None
             try:
-                link_stat = entry.stat()
-                link_key = (link_stat.st_dev, link_stat.st_ino)
+                if entry.is_symlink():
+                    link_stat = entry.stat()
+                    link_key = (link_stat.st_dev, link_stat.st_ino)
             except OSError:
                 link_key = None
             if link_key is not None:
@@ -304,7 +331,8 @@ class MarkdownFileService:
                         name=entry.name,
                         path=normalize_path(child_rel_path),
                         type="directory",
-                        children=[]
+                        children=[],
+                        has_children=self._dir_has_children(Path(entry.path)),
                     ))
                     _state["count"] += 1
                     continue
@@ -348,6 +376,8 @@ class MarkdownFileService:
             ))
             _state["count"] += 1
 
+        # 本节点是否含有子项（目录已完整扫描时，children 即为全部子项）
+        node.has_children = bool(node.children)
         return node
 
     def read_file_raw(self, path: str) -> FileRawContent:

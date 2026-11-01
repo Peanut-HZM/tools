@@ -186,7 +186,13 @@ function TreeNode({
   const isExpanded = expandedNodes.has(node.path);
   const isSelected = node.path === currentFilePath;
   const isDirectory = node.type === 'directory';
-  const hasChildren = isDirectory && node.children && node.children.length > 0;
+  // 是否显示展开箭头：
+  // - 已加载子树：按 children 是否有内容判断
+  // - 未加载子树（后端 has_children=true）：按后端标记判断，
+  //   否则未展开的目录会被误判为空目录，导致展开箭头全部消失
+  const hasChildren = isDirectory && (
+    (node.children && node.children.length > 0) || node.has_children === true
+  );
 
   const handleClick = useCallback(() => {
     if (isDirectory) {

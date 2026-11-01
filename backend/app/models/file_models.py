@@ -23,6 +23,10 @@ class FileNode(BaseModel):
     truncated: bool = False
     # 目录无权限访问（前端需提示，而不是伪装成空目录）
     inaccessible: bool = False
+    # 目录是否含有子项（即使子树未加载也返回 True）。
+    # 前端据此显示展开箭头 —— 否则未展开的目录（children=[]）会被误判为空目录，
+    # 导致除已加载过的目录外全部没有展开按钮。
+    has_children: bool = False
 
 
 class FileRawContent(BaseModel):

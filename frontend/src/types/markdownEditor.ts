@@ -17,6 +17,7 @@ export interface FileNode {
   previewable?: boolean;      // 是否支持预览
   truncated?: boolean;        // 子树因节点数/深度超限未完整扫描
   inaccessible?: boolean;     // 目录无权限访问
+  has_children?: boolean;     // 目录是否含有子项（子树未加载时也返回 true）
 }
 
 export interface FileContent {

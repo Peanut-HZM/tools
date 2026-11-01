@@ -331,5 +331,67 @@ class TestBackwardCompatibility:
         assert isinstance(tree.children, list)
 
 
+# ---------------------------------------------------------------------------
+# has_children：未展开的目录也要标记「有子项」
+# ---------------------------------------------------------------------------
+class TestHasChildren:
+    """前端靠 has_children 显示展开箭头。
+
+    未展开的目录 children 为空（子树未加载），若不返回 has_children，
+    前端会把所有未展开目录误判为空目录，展开箭头全部消失。
+    """
+
+    def test_root_reports_children(self, file_service, temp_dir):
+        _touch(os.path.join(temp_dir, "readme.md"))
+        tree = file_service.get_directory_tree()
+        assert tree.has_children is True
+
+    def test_empty_root_reports_no_children(self, file_service, temp_dir):
+        """空目录不应标记有子项（否则会显示无效的展开箭头）"""
+        tree = file_service.get_directory_tree()
+        assert tree.has_children is False
+
+    def test_unexpanded_child_dir_has_children_true(self, file_service, temp_dir):
+        """depth=0 时未展开的子目录仍要标记 has_children=True"""
+        os.makedirs(os.path.join(temp_dir, "sub", "nested"), exist_ok=True)
+        _touch(os.path.join(temp_dir, "sub", "nested", "a.md"))
+
+        tree = file_service.get_directory_tree("", depth=0)
+
+        sub = next(c for c in tree.children if c.name == "sub")
+        assert sub.children == []          # 子树未加载
+        assert sub.has_children is True    # 但明确告知有子项
+
+    def test_unexpanded_empty_dir_has_children_false(self, file_service, temp_dir):
+        """确实是空的目录，has_children 应为 False"""
+        os.makedirs(os.path.join(temp_dir, "empty_dir"), exist_ok=True)
+
+        tree = file_service.get_directory_tree("", depth=0)
+
+        empty = next(c for c in tree.children if c.name == "empty_dir")
+        assert empty.has_children is False
+
+    def test_expanded_child_dir_has_children_true(self, file_service, temp_dir):
+        """完整扫描时，含有文件的子目录 has_children=True"""
+        os.makedirs(os.path.join(temp_dir, "sub"), exist_ok=True)
+        _touch(os.path.join(temp_dir, "sub", "a.md"))
+
+        tree = file_service.get_directory_tree()
+
+        sub = next(c for c in tree.children if c.name == "sub")
+        assert sub.has_children is True
+        assert len(sub.children) == 1
+
+    def test_hidden_dir_has_children(self, file_service, temp_dir):
+        """隐藏目录不递归，但有子项时也要标记"""
+        os.makedirs(os.path.join(temp_dir, ".git", "objects"), exist_ok=True)
+        _touch(os.path.join(temp_dir, ".git", "objects", "x"))
+
+        tree = file_service.get_directory_tree("", depth=0)
+
+        hidden = next(c for c in tree.children if c.name == ".git")
+        assert hidden.has_children is True
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
