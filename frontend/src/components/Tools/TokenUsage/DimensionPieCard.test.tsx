@@ -66,15 +66,38 @@ describe('DimensionPieCard 切片显示', () => {
     expect(screen.queryByText('其他')).toBeNull();
   });
 
-  it('20 项数据：全部渲染，图例可滚动', () => {
+  it('20 项数据：全部渲染，图例逐项列出不被裁剪', () => {
     const twenty = Array.from({ length: 20 }, (_, i) => slice(`s${i}`, `模型 ${i}`, 200 - i * 8));
     const { container } = render(
       <DimensionPieCard title="模型" data={twenty} totalTokens={2000} />
     );
     expect(screen.getAllByTestId('cell')).toHaveLength(20);
-    // 图例区域应有滚动能力
-    const legendArea = container.querySelector('.overflow-y-auto');
-    expect(legendArea).toBeTruthy();
+    // 图例必须逐项渲染全部条目（早期实现用固定高度 + overflow 裁剪，
+    // 导致 6 项以上的维度尾部项（如 Kimi）被隐藏，用户误以为没有该工具的数据）
+    for (let i = 0; i < 20; i++) {
+      expect(screen.getByText(`模型 ${i}`)).toBeTruthy();
+    }
+    // 图例区不再用固定高度裁剪
+    expect(container.querySelector('.overflow-y-auto')).toBeNull();
+  });
+  it('6 项工具数据：图例全部 6 项都可见（Kimi 这类尾部项不能被裁掉）', () => {
+    // 回归：卡片曾固定 h-80，图例区只剩 ~82px，6 项里后 2 项（Kimi/Codex）
+    // 被裁剪隐藏，用户误以为这两个工具「没有 token 统计」。
+    const tools = [
+      slice('zcode', 'ZCode', 245000000),
+      slice('claude', 'Claude Code', 40600000),
+      slice('opencode', 'OpenCode', 24300000),
+      slice('minimax', 'MiniMax Code', 18300000),
+      slice('kimi', 'Kimi', 6300000),
+      slice('codex', 'Codex', 7400000),
+    ];
+    render(<DimensionPieCard title="工具" data={tools} totalTokens={335300000} />);
+
+    // 6 项图例全部渲染可见
+    for (const t of tools) {
+      expect(screen.getByText(t.label)).toBeTruthy();
+    }
+    expect(screen.getByText('6 项')).toBeTruthy();
   });
 });
 

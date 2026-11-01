@@ -56,7 +56,7 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   if (processed.type !== 'data') {
     const message = processed.type === 'empty-no-data' ? emptyHint : '暂无 Token 数据';
     return (
-      <Card className="p-3 h-80 flex flex-col">
+      <Card className="p-3 min-h-80 flex flex-col">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium text-ink">{title}</h2>
         </div>
@@ -70,13 +70,16 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
   const slices = processed.slices;
 
   return (
-    <Card className="p-3 h-80 flex flex-col">
+    // 高度随图例项数自适应（min-h-80 保底）：固定 h-80 会让图例区只剩 ~82px，
+    // 6 项以上的维度（工具 6 项 / 模型 27 项）后面的项被裁掉看不见 ——
+    // 用户会以为某些工具/模型「没有数据」。图例区不裁剪，全部项都可见。
+    <Card className="p-3 min-h-80 flex flex-col">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-medium text-ink">{title}</h2>
         <span className="text-xs text-ink-faint">{slices.length} 项</span>
       </div>
-      <div className="flex-1 min-h-0 flex flex-col">
-        <div className="relative h-44">
+      <div className="flex flex-col">
+        <div className="relative h-44 flex-none">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -130,7 +133,8 @@ const DimensionPieCard: React.FC<DimensionPieCardProps> = ({
             <span className="text-xs text-accent-success">Token</span>
           </div>
         </div>
-        <div className="mt-2 flex-1 overflow-y-auto space-y-1">
+        {/* 图例：完整列出所有项，不做高度裁剪（否则尾部项会被隐藏） */}
+        <div className="mt-2 space-y-1">
           {slices.map((s, i) => (
             <div key={s.key} className="flex items-center justify-between gap-2 text-xs">
               <span className="flex min-w-0 items-center gap-1.5 text-ink-muted">
