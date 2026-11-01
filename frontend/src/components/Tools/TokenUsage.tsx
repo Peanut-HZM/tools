@@ -787,8 +787,7 @@ export default function TokenUsage() {
         ))}
       </Card>
 
-      {/* items-start：各卡片按自身内容高度排列，不被最高的那张拉伸 */}
-      <div className="mb-5 grid items-start gap-3 xl:grid-cols-3 lg:grid-cols-2 grid-cols-1">
+      <div className="mb-5 grid gap-3 xl:grid-cols-3 lg:grid-cols-2 grid-cols-1">
         <DimensionPieCard
           title="设备"
           data={devicePieSlices}
