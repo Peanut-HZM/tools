@@ -1099,13 +1099,23 @@ def get_token_usage_details(
         total = _row_safe_int(total) if not isinstance(total, int) else total
 
         # DB 层排序 + 分页，避免全量加载到 Python 内存
+        #
+        # 排序字段映射说明：
+        # - "date" → record_date（数据归属日期）
+        # - "created_at" → record_date（前端「更新时间」列的语义是数据归属日期）
+        #
+        # 关键：不能用 updated_at 做默认排序。后台同步会批量刷新 updated_at
+        # （一次同步把同一批历史记录全部改成同一时间戳），导致：
+        # 1) 排序按「哪批被同步过」而非「数据属于哪天」——几个月前的记录
+        #    因刚被同步而 updated_at 变最新，插队到真正最新日期之前；
+        # 2) 页面「更新时间」显示同步时刻，误导用户。
         allowed_sort_fields = {
             "date": TokenUsageRecord.record_date,
             "total_tokens": TokenUsageRecord.total_tokens,
             "total_cost": TokenUsageRecord.total_cost,
             "input_tokens": TokenUsageRecord.input_tokens,
             "output_tokens": TokenUsageRecord.output_tokens,
-            "created_at": TokenUsageRecord.updated_at,
+            "created_at": TokenUsageRecord.record_date,
         }
         sort_col = allowed_sort_fields.get(req.sort_by, TokenUsageRecord.record_date)
         if req.sort_by == "cache_tokens":
@@ -1114,11 +1124,11 @@ def get_token_usage_details(
 
         # 次级排序：主排序同值时必须有确定顺序，否则分页会在页间重复/丢行，
         # 同一天的记录顺序也会每次刷新都变。
-        # - 非"更新时间"排序时，同值（如同一天）内按 updated_at 倒排；
+        # - 主排序非 record_date 时，同值内按 record_date 倒排（保证日期新的在前）；
         # - id 兜底保证全序稳定。
         order_criteria = [order_expr]
-        if sort_col is not TokenUsageRecord.updated_at:
-            order_criteria.append(TokenUsageRecord.updated_at.desc())
+        if sort_col is not TokenUsageRecord.record_date:
+            order_criteria.append(TokenUsageRecord.record_date.desc())
         order_criteria.append(TokenUsageRecord.id.desc())
 
         paged_records = (
@@ -1158,6 +1168,10 @@ def get_token_usage_details(
                     group_key=group_key,
                     device_id=r.device_id,
                     device_name=device_name_map.get(r.device_id, r.device_id),
+                    # 「更新时间」列显示记录最后一次被写入/刷新到库的时间（updated_at），
+                    # 与「日期」列（数据归属日期 record_date）语义不同，两列都要保留。
+                    # 注意：排序不用 updated_at —— 后台同步会批量刷新它，
+                    # 同步过的历史记录会「插队」到最新日期之前（见上方排序说明）。
                     created_at=_to_iso(getattr(r, "updated_at", None) or getattr(r, "created_at", None)),
                 )
             )

@@ -892,7 +892,7 @@ export default function TokenUsage() {
                 </tr>
               ) : paginatedItems.map((item, index) => (
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-border hover:bg-surface-1/60">
-                  <td className="px-4 py-3 text-ink">{item.date}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-ink">{item.date}</td>
                   {groupBy !== 'none' && <td className="max-w-[180px] truncate px-4 py-3 text-ink-muted" title={getGroupLabel(item)}>{getGroupLabel(item)}</td>}
                   <td className="max-w-[160px] truncate px-4 py-3 text-ink-muted" title={resolveDeviceName(item)}>
                     {resolveDeviceName(item)}
@@ -906,7 +906,7 @@ export default function TokenUsage() {
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.cache_read_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono font-medium text-ink">{formatToken(item.total_tokens)}</td>
                   <td className="max-w-[240px] truncate px-4 py-3 text-ink-muted" title={formatModelsUsed(item.models_used)}>{formatModelsUsed(item.models_used)}</td>
-                  <td className="px-4 py-3 text-xs text-ink-faint">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-ink-faint">{item.created_at ? formatDateTime(item.created_at) : '-'}</td>
                 </tr>
               ))}
             </tbody>
