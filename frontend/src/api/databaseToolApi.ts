@@ -24,6 +24,7 @@ import {
 } from '../types/databaseTool';
 import type { StorageLocation } from '../types/storage';
 import { DBCache } from '../utils/dbCache';
+import { withDeviceId } from '../utils/clientDevice';
 
 // Re-export types for use in components
 export type { BackupResponse, BackupRecord, BackupListResponse, BackupRequest };
@@ -702,8 +703,9 @@ export function getBackupDownloadUrl(backupId: string): string {
 // ============ 显示偏好 API ============
 
 export async function getDisplayPreferences(): Promise<DisplayPreferences> {
+  // 带设备标识：显示偏好按设备隔离，各设备回显自己那一份
   const response = await fetchWithTimeout(`${BASE_URL}/preferences`, {
-    headers: getAuthHeaders()
+    headers: withDeviceId(getAuthHeaders())
   });
   return handleResponse<DisplayPreferences>(response);
 }
@@ -711,9 +713,10 @@ export async function getDisplayPreferences(): Promise<DisplayPreferences> {
 export async function saveDisplayPreferences(
   prefs: DisplayPreferences
 ): Promise<DisplayPreferences> {
+  // 带设备标识：保存只影响本设备，不覆盖其它设备的设置
   const response = await fetchWithTimeout(`${BASE_URL}/preferences`, {
     method: 'PUT',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: withDeviceId({ ...getAuthHeaders(), 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       visible_connections: prefs.visible_connections,
       visible_databases: prefs.visible_databases,

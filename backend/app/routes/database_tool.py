@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Query, Path as PathParam, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Path as PathParam, Body, Header
 from typing import List, Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -831,21 +831,29 @@ async def delete_backup(
 
 @router.get("/preferences", response_model=DisplayPreferenceResponse)
 async def get_display_preferences(
+    x_device_id: Optional[str] = Header(None, alias="X-Device-Id"),
     user_id: str = Depends(get_current_user_id),
 ):
-    """获取当前用户的显示偏好"""
-    return DatabaseToolService.get_display_preferences(user_id)
+    """获取当前用户在**本设备**上的显示偏好"""
+    from app.utils.client_device import resolve_device_id
+
+    return DatabaseToolService.get_display_preferences(
+        user_id, resolve_device_id(x_device_id)
+    )
 
 
 @router.put("/preferences", response_model=DisplayPreferenceResponse)
 async def save_display_preferences(
     preferences: DisplayPreference,
+    x_device_id: Optional[str] = Header(None, alias="X-Device-Id"),
     user_id: str = Depends(get_current_user_id),
 ):
-    """保存当前用户的显示偏好"""
+    """保存当前用户在**本设备**上的显示偏好（不影响其它设备）"""
+    from app.utils.client_device import resolve_device_id
+
     try:
         return DatabaseToolService.save_display_preferences(
-            user_id, preferences.model_dump()
+            user_id, preferences.model_dump(), resolve_device_id(x_device_id)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

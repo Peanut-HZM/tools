@@ -179,6 +179,9 @@ table_schema_cache = Table(
 user_display_preferences = Table(
     "user_display_preferences", metadata,
     Column("user_id", String(64), primary_key=True),
+    # 设备标识：同一用户在不同设备上的显示偏好各自独立
+    # '' 表示历史数据兜底行（迁移自旧的「仅按 user_id 存储」结构）
+    Column("device_id", String(128), primary_key=True, default=""),
     Column("visible_connections", Text),
     Column("visible_databases", Text),
     Column("updated_at", DateTime, nullable=False, server_default=func.now()),

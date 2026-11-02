@@ -3463,15 +3463,40 @@ class DatabaseToolService:
         return backup_storage.increment_download_count(backup_id, user_id)
 
     @staticmethod
-    def get_display_preferences(user_id: str) -> DisplayPreferenceResponse:
-        """获取用户的显示偏好"""
+    def _ensure_display_preferences_table():
+        """幂等确保 user_display_preferences 表结构（含 device_id 列）"""
+        from app.storage.remote_db import ensure_remote_column
+
+        ensure_remote_column(
+            "user_display_preferences",
+            "device_id",
+            "device_id VARCHAR(128) NOT NULL DEFAULT ''",
+        )
+
+    @staticmethod
+    def get_display_preferences(user_id: str, device_id: str = "") -> DisplayPreferenceResponse:
+        """获取用户的显示偏好（按设备维度）。
+
+        device_id 为空时先看历史兜底行（device_id=''）；仍无则返回空偏好
+        （visible_connections=None 表示「全部显示」）。
+        """
+        from app.utils.client_device import normalize_device_id
+
+        device_id = normalize_device_id(device_id)
+        DatabaseToolService._ensure_display_preferences_table()
+
         conn = get_pooled_db_connection()
         try:
             with conn.cursor() as cur:
+                # 取本设备的行；本设备没有则回退到历史兜底行（device_id=''）。
+                # device_id 必须出现在 SELECT 列表里 —— UNION/ORDER BY 只能引用输出列。
+                # ORDER BY device_id DESC：'' 排最后 → 优先命中本设备自己的行。
                 cur.execute(
-                    "SELECT visible_connections, visible_databases, updated_at "
-                    "FROM user_display_preferences WHERE user_id = %s",
-                    (user_id,),
+                    "SELECT device_id, visible_connections, visible_databases, updated_at "
+                    "FROM user_display_preferences "
+                    "WHERE user_id = %s AND device_id IN (%s, '') "
+                    "ORDER BY device_id DESC LIMIT 1",
+                    (user_id, device_id),
                 )
                 row = cur.fetchone()
                 if row:
@@ -3486,10 +3511,18 @@ class DatabaseToolService:
 
     @staticmethod
     def save_display_preferences(
-        user_id: str, preferences: dict
+        user_id: str, preferences: dict, device_id: str = ""
     ) -> DisplayPreferenceResponse:
-        """保存用户的显示偏好"""
+        """保存用户的显示偏好（按设备维度）。
+
+        同一用户在不同设备上保存时写入各自的行，互不覆盖。
+        """
         import json as json_mod
+
+        from app.utils.client_device import normalize_device_id
+
+        device_id = normalize_device_id(device_id)
+        DatabaseToolService._ensure_display_preferences_table()
 
         conn = get_pooled_db_connection()
         try:
@@ -3498,15 +3531,16 @@ class DatabaseToolService:
             with conn.cursor() as cur:
                 cur.execute(
                     "INSERT INTO user_display_preferences "
-                    "(user_id, visible_connections, visible_databases) "
-                    "VALUES (%s, %s, %s) "
-                    "ON CONFLICT (user_id) DO UPDATE SET "
+                    "(user_id, device_id, visible_connections, visible_databases) "
+                    "VALUES (%s, %s, %s, %s) "
+                    "ON CONFLICT (user_id, device_id) DO UPDATE SET "
                     "visible_connections = EXCLUDED.visible_connections, "
                     "visible_databases = EXCLUDED.visible_databases, "
                     "updated_at = CURRENT_TIMESTAMP "
                     "RETURNING visible_connections, visible_databases, updated_at",
                     (
                         user_id,
+                        device_id,
                         json_mod.dumps(visible_conn) if visible_conn is not None else None,
                         json_mod.dumps(visible_db) if visible_db else None,
                     ),

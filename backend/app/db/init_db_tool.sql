@@ -131,11 +131,16 @@ CREATE INDEX IF NOT EXISTS idx_ssh_configs_user_id ON ssh_configs(user_id);
 CREATE INDEX IF NOT EXISTS idx_ssh_configs_user_alias ON ssh_configs(user_id, alias);
 
 -- 用户显示偏好表
+-- 注意：偏好按「用户 + 设备」维度存储（device_id），同一用户在多台设备上
+-- 设置的可见连接/数据库互不影响，各自回显自己那一份。
+-- device_id 为 '' 的历史行按「旧行为」处理：作为该用户的默认兜底。
 CREATE TABLE IF NOT EXISTS user_display_preferences (
-    user_id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    device_id VARCHAR(128) NOT NULL DEFAULT '',     -- 设备标识；''=旧数据兜底
     visible_connections JSON,                        -- null=全部显示, ["id1","id2"]=仅显示这些
     visible_databases JSON,                          -- {"config_id": ["db1", "db2"]} 每个连接可见的数据库
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, device_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
