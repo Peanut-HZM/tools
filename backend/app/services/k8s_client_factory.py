@@ -48,6 +48,35 @@ def _safe_unlink(path: Optional[str]) -> None:
         pass
 
 
+def _decrypt_sensitive(config: dict, column: str) -> str:
+    """按配置所在存储位置选择对应密钥解密敏感列。
+
+    本地库（storage_location=LOCAL）的密文用本机密钥 LocalEncryption 加密，
+    服务器库用服务器密钥 EncryptionUtils 加密。两把密钥物理隔离，
+    用错密钥会抛 InvalidToken（前端表现为 500 / "Failed to fetch"）。
+
+    优先使用 get_with_secret 已解出的明文键（*_decrypted），
+    缺失时按 storage_location 兜底解密。
+    """
+    plain_key = f"{column.removesuffix('_encrypted')}_decrypted"
+    plain = config.get(plain_key)
+    if plain is not None:
+        return plain
+
+    cipher = config.get(column)
+    if not cipher:
+        return ""
+
+    from app.storage.locator import StorageLocation
+
+    if str(config.get("storage_location") or "").upper() == StorageLocation.LOCAL.name:
+        from app.storage.crypto import LocalEncryption
+
+        return LocalEncryption.decrypt(cipher)
+
+    return EncryptionUtils.decrypt(cipher)
+
+
 @asynccontextmanager
 async def build_client(config: dict):
     """
@@ -75,7 +104,7 @@ async def build_client(config: dict):
     if not auth_data_encrypted:
         raise ValueError("auth_data_encrypted is missing，无法构造 K8s 客户端")
 
-    auth_data_raw = EncryptionUtils.decrypt(auth_data_encrypted)
+    auth_data_raw = _decrypt_sensitive(config, "auth_data_encrypted")
     try:
         auth_data = json.loads(auth_data_raw)
     except json.JSONDecodeError as e:
@@ -83,7 +112,7 @@ async def build_client(config: dict):
 
     # 2. 解密 CA 证书（可选）
     ca_cert_encrypted = config.get("ca_cert_encrypted")
-    ca_cert = EncryptionUtils.decrypt(ca_cert_encrypted) if ca_cert_encrypted else None
+    ca_cert = _decrypt_sensitive(config, "ca_cert_encrypted") if ca_cert_encrypted else None
 
     # 3. 构造 kubernetes_asyncio Configuration
     k8s_config = k8s_client.Configuration()

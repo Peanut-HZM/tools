@@ -283,13 +283,17 @@ class K8sToolService:
     @staticmethod
     def get_config_by_id(user_id: str, config_id: str) -> Optional[dict]:
         """
-        获取配置完整记录（自动定位存储位置，含加密字段）。
+        获取配置完整记录（自动定位存储位置，含解密后的敏感字段）。
+
         仅供内部使用（如建立 K8s 连接时解密凭据），不对外暴露。
+        必须用 get_with_secret —— 它按配置所在存储位置选择对应密钥解密
+        （本地库用本机密钥，服务器库用服务器密钥），用 get 只会拿到密文，
+        导致本地存储的连接解密失败。
         """
         repo, _location = K8sToolService._locate(user_id, config_id)
         if repo is None:
             return None
-        return repo.get(config_id, user_id)
+        return repo.get_with_secret(config_id, user_id)
 
     # ============ 内部辅助方法 ============
 

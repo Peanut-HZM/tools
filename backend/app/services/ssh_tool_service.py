@@ -22,6 +22,7 @@ from app.models.ssh_tool_models import (
 )
 from app.services.auth_service import get_auth_service
 from app.storage.repository import ensure_storage_location
+from app.storage.locator import StorageLocation
 from app.utils.encryption import EncryptionUtils
 
 logger = logging.getLogger(__name__)

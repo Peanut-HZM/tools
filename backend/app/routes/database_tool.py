@@ -187,15 +187,18 @@ async def decrypt_password(
     user_id: str = Depends(get_current_user_id),
 ):
     """Decrypt and return the password for a database config (owner only)"""
-    from app.utils.encryption import EncryptionUtils
-
     config_row = DatabaseToolService._get_config_with_password(id, user_id)
     if not config_row:
         raise HTTPException(status_code=404, detail="Configuration not found")
 
     try:
-        plaintext = EncryptionUtils.decrypt(config_row["password_encrypted"])
-        return {"password": plaintext}
+        # _get_config_with_password 已按配置所在存储位置用对应密钥解密，
+        # 直接取 password_decrypted；缺失时按 storage_location 兜底解密。
+        # 不能用服务器密钥硬解 —— 本地存储的密码用本机密钥加密。
+        plaintext = config_row.get("password_decrypted")
+        if plaintext is None:
+            plaintext = DatabaseToolService._decrypt_for(config_row)
+        return {"password": plaintext or ""}
     except Exception as e:
         logger.error("Failed to decrypt password for config %s: %s", id, str(e))
         raise HTTPException(status_code=500, detail="Failed to decrypt password")

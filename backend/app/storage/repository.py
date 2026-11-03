@@ -8,6 +8,8 @@
 3. 每个 Repository 只读写自己那一侧的行（storage_location 过滤兜底）
 4. 密钥隔离 —— 本地库用本机文件密钥，远程库用服务器密钥，密文互不可解
 """
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 
