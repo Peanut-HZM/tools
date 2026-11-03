@@ -589,64 +589,66 @@ JavaScript 的 `Number` 类型最大安全整数是 `2^53 - 1`（约 9 × 10^15�
 - `backend/app/utils/ccusage_invoker.py` 的 `_expand_user("~")` 走 `os.path.expanduser` → nvm 兜底路径落成 `backend/data/cache/.nvm/versions/node/*/bin/ccusage` → **后端找不到 ccusage**，`claude` / `codex` / `kimi` / `opencode` 四个来源**停采一天**，日志只报 `CLI_NOT_FOUND`（非桌面模式 + 服务化启动 PATH 不含 nvm 时必现）
 - `backend/scripts/verify_local_usage.py` 的 `Path.home()` → 冻结快照源路径指向缓存目录 → **快照静默失效**、校验退化为实时读取并误报毫秒级漂移
 
+> 该事故是 ccusage 被彻底移除的直接原因：`ccusage_invoker.py` 与对账脚本已删除，采集链路不再依赖任何外部 CLI。
+
 ---
 
-## Token 用量对账口径规范（强制）
+## Token 用量统计口径规范（强制）
 
-Token 用量统计支持 `off` / `shadow` / `on` / `native` 四种采集模式，原生读取器与 ccusage 的对账是**唯一验收闸门**。比对口径必须分三层，禁止混用：
+Token 用量统计已**全量原生化**（直接读本机 Agent 数据目录，不调用任何外部 CLI）。
+每个读取器复刻了 ccusage 各 Agent 适配器的口径规则，这些规则**沉淀在读取器实现与单测里**。
 
 ### 核心原则
 
-1. **逐模型比对用"可见四桶"like-for-like**
-   - 可见四桶 = `input` / `output` / `cache_creation` / `cache_read`
-   - ccusage 的 `modelBreakdowns[]` **不序列化 `totalTokens`**（其 extra 桶不可见），只有四桶
-   - 原生侧的 `total_tokens` **含 extra 桶**（如 OpenCode 的 `reasoning`），因此逐模型比较必须用原生侧的"四桶和"去比 ccusage 的四桶和
-2. **extra 桶用"按日总额"校验**
-   - ccusage 的 `daily[].totalTokens` = 四桶之和 **+ extra 桶**，与原生记录的 `total_tokens` 口径一致
-   - 因此 extra 桶的正确性由**按日总额**比对覆盖，不能由逐模型比对覆盖
-3. **活跃写入的数据源必须用"二次采样夹逼"区分漂移与真实偏差**
-   - 对账顺序是"先读原生、再读 ccusage"，对正在被写入的数据源（ZCode / MiniMax Code / OpenCode 等 SQLite 或 JSONL），ccusage 读数必然 **≥** 原生读数
-   - 判定方法：再采样一次原生读数 `native_second`。若 `native_first ≤ ccusage_value ≤ native_second`，说明 ccusage 读数落在两次原生采样之间 → **采样漂移**，不是口径不一致
-   - 只有不满足夹逼条件的差异才是真实偏差，必须追查口径
+1. **可见四桶 = `input` / `output` / `cache_creation` / `cache_read`**
+   - 原生记录的 `total_tokens` = 四桶之和 **+ extra 桶**（extra 为"已知存在但无法归入四类"的桶，仅计入 total，不单独展示）
+   - extra 桶常见来源：OpenCode 的 `reasoning`、Copilot 的 `reasoningTokens`（**单独记录，不计入 total**）
+2. **input 是否含 cache 各 Agent 不同**
+   - zcode / copilot / grok / gemini 的 input **包含** cache，直接累加会导致 cache 重复统计
+   - 必须先走 `base.split_inclusive_input()` 扣减（cache_read 先封顶到 input，cache_creation 再封顶到 input - cache_read）
+3. **日期归桶使用本机时区自然日**（`base.epoch_ms_to_local_date`）
+4. **单行解析失败只丢该行**，不得中断整个文件/目录的读取
+5. **活跃写入的数据源存在采样漂移**：同一时刻两次读取结果不同是正常的，不得把漂移当成口径错误去改读取器
 
 ### 禁止行为
 
-- ❌ 禁止把原生 `total_tokens` 直接与 ccusage 的 per-model 四桶和比对（extra 桶非零时必然全线误报）
-- ❌ 禁止把"数据源活跃写入导致的当天漂移"当成口径错误去改读取器
-- ❌ 禁止在 ccusage 不可用时做 shadow 对账（ccusage 侧为空时对比结果全是假阳性，必须跳过并告警）
-- ❌ 禁止拿 ccusage 的**合并日报**（`agent=all`）当 per-agent 基准（合并口径会把多来源归到同一模型名下）
+- ❌ 禁止把 extra 桶当成"多算"去扣减（`total_tokens` 含 extra 是正确口径）
+- ❌ 禁止把"数据源活跃写入导致的当天漂移"当成口径错误
+- ❌ 禁止在读取器里自行实现与 `base.py` 重复的字段解析/时间戳/归桶逻辑（口径必须只有一处实现）
 
 ---
 
 ## 新增 Agent 数据源接入门槛（强制）
 
-Token 用量统计的每个来源（source）都必须有原生读取器，且必须通过逐日逐模型零差异对账才能登记为"已验证"。
+Token 用量统计的每个来源（source）都必须有原生读取器，且必须通过验收才能登记为"已验证"。
 
 ### 核心原则
 
-1. **source id 必须与 ccusage 的 agent id 完全一致**
+1. **source id 必须与 `SOURCE_TOOL_MAPPING` 的 key 完全一致**
    - 唯一键是 `(user_id, device_id, record_date, source, model)`；source id 一致才能保证切换采集实现时**互相覆盖而不是产生重复行**
-   - source id 与 ccusage agent id 不一致 → 历史数据与新数据并存 → 汇总翻倍
-2. **实现原生读取器后必须跑对账闸门并达到零差异**
-   - `cd backend && python -m scripts.verify_native_readers --since <起> --until <止>`
-   - **退出码 0** 才算通过；有差异必须继续排查直到零差异，禁止"差不多能用"
-   - 通过后还需补对应单测（`backend/tests/test_<source>_reader.py`）
-3. **只有零差异通过的来源才能登记**
+   - source id 改名 → 历史数据与新数据并存 → 汇总翻倍
+2. **实现原生读取器后必须补单测并在本机实测通过**
+   - 单测必须包含**手工核算的期望值**（不依赖任何外部 CLI，不依赖本机恰好有该 Agent 数据）
+   - 必须覆盖：四桶映射、extra 桶归位、input 含 cache 的扣减、日期归桶、损坏行跳过
+   - **"已验证"指的是在当前机器上实测通过**，机器差异（文件格式、压缩、路径布局）会直接推翻结论
+3. **只有单测通过 + 本机实测通过的来源才能登记**
    - `backend/app/utils/agent_readers/__init__.py` 的 `VERIFIED_AGENTS`
    - `backend/app/services/token_usage_sync_service.py` 的 `NATIVE_READER_SOURCES`
    - 两者必须同步；`VERIFIED_AGENTS` 表达的是**本机实测通过**，不是"代码写完了"
-4. **`native` 模式下未覆盖的 source 必须显式暴露**
+4. **未覆盖的 source 必须显式暴露**
    - 无原生读取器的 source 要在同步结果中列为结构化错误（`SOURCE_NOT_COVERED`），**禁止静默丢数据**
 
 ### 验收基准
 
-- 对账基准是**具体版本的 ccusage**（本项目当前为 20.0.42），换版本必须重跑对账
-- 对账只比对 **token 数量**，不比对 cost（原生读取器无内置价格表，cost 统一为 0）
+- 口径基准是**各读取器 docstring 中记录的 ccusage 适配器规则**（ccusage 已从代码库移除，仅作为口径来源的知识沉淀保留）
+- 存量 8 个来源（claude / codex / copilot / kimi / zcode / minimax / openclaw / opencode）在 ccusage 仍在时已完成**逐日逐模型零差异对账**，该结论有效
+- 新增来源无法再做外部交叉对账（ccusage 已移除），因此**单测的期望值必须能独立手工核算**，不能是"跑出来是什么就是什么"
 
 ### 事故案例（2026-10-26）
 
 - `codex` 曾被登记为"已验证"，但那是在 **codex 还产出未压缩 `.jsonl`** 的机器上得出的结论；本机 codex 会话文件全是 `.jsonl.zst`（zstd 压缩），`collect_files` 按 `Path.suffix` 匹配 `.jsonl` 必然落空 → **原生读取 0 条、采集完全停摆**，而 `VERIFIED_AGENTS` 仍标着"已验证"
 - 教训：登记"已验证"的前提是**在当前机器上实测通过**，机器差异（文件格式、压缩、路径布局）会直接推翻结论
+- 同日起 ccusage CLI 发现失败导致四个来源停采一天、`codex` 因 `.jsonl.zst` 读到 0 条、对账脚本 extra 桶与漂移误报 —— 三个问题叠加，最终促成 ccusage 彻底移除
 
 ---
 

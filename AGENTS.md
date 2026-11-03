@@ -127,28 +127,30 @@ npm run test
 
 ---
 
-## Token 用量对账口径规范（速查 — 必须遵守）
+## Token 用量统计口径规范（速查 — 必须遵守）
 
-- ✅ 逐模型比对用**可见四桶**（input / output / cache_creation / cache_read）like-for-like：ccusage 的 per-model 明细不含 extra 桶，原生 `total_tokens` 含
-- ✅ extra 桶用**按日总额**校验（ccusage 的 `daily[].totalTokens` 含 extra）
-- ✅ 活跃写入的数据源用**二次采样夹逼**区分漂移与真实偏差：`原生第一次 ≤ ccusage ≤ 原生第二次` 判为漂移，不算口径不一致
-- ❌ 禁止把原生 `total_tokens` 直接与 ccusage per-model 四桶和比对
+- ✅ 可见四桶 = input / output / cache_creation / cache_read；原生 `total_tokens` = 四桶之和 **+ extra 桶**（extra 仅计入 total，不单独展示）
+- ✅ input **是否含 cache 各 Agent 不同**（zcode / copilot / grok / gemini 含）→ 必须先走 `base.split_inclusive_input()` 扣减，否则 cache 重复统计
+- ✅ extra 桶常见来源：OpenCode 的 `reasoning`、Copilot 的 `reasoningTokens`（后者单独记录，不计入 total）
+- ✅ 日期归桶用本机时区自然日（`base.epoch_ms_to_local_date`）；单行解析失败只丢该行
+- ✅ 口径实现只能有一处（复用 `base.py`），禁止在读取器里重复实现字段解析 / 时间戳 / 归桶
+- ❌ 禁止把 extra 桶当成"多算"去扣减
 - ❌ 禁止把"数据源活跃写入导致的当天漂移"当成口径错误去改读取器
-- ❌ 禁止 ccusage 不可用时做 shadow 对账（结果全是假阳性）
-- ❌ 禁止拿 ccusage 合并日报（`agent=all`）当 per-agent 基准
 
-详细规则见 [CLAUDE.md](./CLAUDE.md) 的「Token 用量对账口径规范」章节。
+详细规则见 [CLAUDE.md](./CLAUDE.md) 的「Token 用量统计口径规范」章节。
 
 ---
 
 ## 新增 Agent 数据源接入门槛（速查 — 必须遵守）
 
-- ✅ source id 必须与 ccusage 的 agent id 完全一致（唯一键含 source，id 不一致会产生重复行、汇总翻倍）
-- ✅ 必须跑 `python -m scripts.verify_native_readers` 达到**零差异且退出码 0**，并补对应单测，才算通过
+- ✅ source id 必须与 `SOURCE_TOOL_MAPPING` 的 key 完全一致（唯一键含 source，id 不一致会产生重复行、汇总翻倍）
+- ✅ 必须补单测，且期望值要能**独立手工核算**（不依赖外部 CLI、不依赖本机恰好有该 Agent 数据）
+- ✅ 单测必须覆盖：四桶映射、extra 桶归位、input 含 cache 的扣减、日期归桶、损坏行跳过
 - ✅ 通过后才能登记 `VERIFIED_AGENTS` 与 `NATIVE_READER_SOURCES`，两者必须同步
-- ✅ `native` 模式下无原生读取器的 source 必须列为结构化错误（`SOURCE_NOT_COVERED`），禁止静默丢数据
+- ✅ 无原生读取器的 source 必须列为结构化错误（`SOURCE_NOT_COVERED`），禁止静默丢数据
 - ✅ "已验证"指的是**在当前机器上实测通过**（文件格式、压缩、路径布局差异会直接推翻结论）
-- ❌ 禁止未对账就登记为"已验证"（codex 曾因此在本机读到 0 条、采集停摆）
+- ❌ 禁止未实测就登记为"已验证"（codex 曾因此在本机读到 0 条、采集停摆）
+- ⚠️ ccusage 已彻底移除（`ccusage_invoker.py` + 对账脚本已删），新增来源**无法再做外部交叉对账**，单测期望值必须自洽可核算
 
 详细规则见 [CLAUDE.md](./CLAUDE.md) 的「新增 Agent 数据源接入门槛」章节。
 
