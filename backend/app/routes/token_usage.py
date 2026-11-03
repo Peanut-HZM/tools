@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 import threading
 import time
 import uuid
@@ -1367,58 +1366,6 @@ def _ensure_device_registered_with_fingerprint(
     return None
 
 
-@router.post("/refresh-ccusage")
-async def refresh_ccusage_endpoint(
-    authorization: Optional[str] = Header(None, description="Bearer token"),
-):
-    """手动触发当天数据同步（原生读取器）。同步运行，等待完成。
-
-    端点路径与响应结构保持不变（历史兼容），但实现已改为直接读取本机
-    Agent 数据目录，不再调用 ccusage CLI。
-    """
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    try:
-        user_id = get_current_user_id(authorization=authorization)
-    except HTTPException:
-        raise HTTPException(status_code=401, detail="认证失败")
-
-    if os.environ.get("DESKTOP_MODE") == "1":
-        raise HTTPException(status_code=403, detail="桌面模式不支持手动同步")
-
-    lock = get_sync_lock()
-    if lock.locked():
-        raise HTTPException(status_code=429, detail="同步进行中，请稍后重试")
-
-    today = date.today()
-    try:
-        result = await asyncio.to_thread(
-            sync_token_usage,
-            user_id=user_id,
-            since_date=today,
-            until_date=today,
-        )
-        # 清除聚合查询缓存（同步后汇总数据已更新）
-        invalidate_user_query_cache(user_id)
-        count = result.get("total_records", 0)
-        errors = result.get("errors", [])
-        response = {
-            "success": True,
-            "synced_records": count,
-            "date": today.isoformat(),
-        }
-        if errors:
-            response["errors"] = errors
-        return response
-    except Exception as e:
-        logger.error(f"[token-usage-manual] 手动同步失败: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail={
-            "message": f"同步失败: {e}",
-            "error_code": "SYNC_FAILED",
-            "remediation": "请检查本机 Agent 数据目录是否可读",
-        })
-
-
 @router.post("/sync")
 def sync_token_usage_endpoint(
     authorization: Optional[str] = Header(None, description="Bearer token"),
@@ -1675,8 +1622,8 @@ def rename_device(
 async def _fallback_to_native(req: DbQueryRequest) -> DbUsageResponse:
     """降级到原生读取器直查模式（用户尚无入库数据时使用）。
 
-    早期实现直查 ccusage CLI；现已改为直接读取本机 Agent 数据目录，
-    不依赖任何外部 CLI，且覆盖全部已实现原生读取器的来源。
+    直接读取本机 Agent 数据目录，不依赖任何外部 CLI，
+    且覆盖全部已实现原生读取器的来源。
     """
     from app.utils.agent_readers import read_all_agents
 

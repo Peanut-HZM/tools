@@ -1,10 +1,15 @@
 """Agent 原生 Token 用量读取器 — 公共基础能力
 
-本模块提供各 Agent 读取器共享的底层能力，目标是在**不依赖 ccusage CLI** 的
-前提下，复现 ccusage 的取数语义（路径发现 / 字段映射 / 去重 / 总数口径），
-使 Token 消耗统计可以完全原生化。
+本模块提供各 Agent 读取器共享的底层能力，实现 Token 消耗统计的
+**完全原生化**：直接读本机 Agent 数据目录，不调用任何外部 CLI。
 
-与 ccusage 对齐的关键语义（见 ccusage rust/adapters + rust/crates/ccusage-core）：
+口径来源
+    下文各条规则的**规范出处**是 ccusage 的 rust/adapters + rust/crates/ccusage-core。
+    ccusage CLI 及其调用器已从本代码库移除（2026-11），但它定义的口径规则
+    是本模块与各读取器的**唯一事实来源**，故保留"对齐 ccusage xxx"的出处标注。
+    改动任何口径前，必须先确认 ccusage 对应适配器的行为。
+
+关键语义：
 
 1. **总 token 口径**统一为 ``input + output + cache_creation + cache_read + extra``
    （extra 为"已知存在但无法归入四类"的桶，仅计入 total，不单独展示）。

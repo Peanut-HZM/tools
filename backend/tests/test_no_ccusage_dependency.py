@@ -1,15 +1,22 @@
-"""守卫测试：运行时链路不得再依赖 ccusage
+"""守卫测试：运行时链路与全仓库不得再依赖 ccusage
 
 背景
     Token 用量采集已全量改为原生读取器（直接读本机 Agent 数据目录），
-    不再调用任何外部 CLI。本文件用**静态扫描 + 运行时断言**两条手段，
-    防止 ccusage 依赖被后续改动重新引入运行时链路。
+    ccusage CLI 及其调用器已从项目中**彻底移除**。本文件用**静态扫描 +
+    运行时断言**两条手段，防止 ccusage 依赖被后续改动重新引入。
 
-例外（允许保留）
-    - ``app/utils/ccusage_invoker.py``：仅供开发期对账脚本
-      ``scripts/verify_native_readers.py`` 作为独立交叉验证基准使用，
-      不允许被任何 ``app/`` 下的运行时模块导入。
+移除后的允许范围
     - 各读取器 docstring 中"对齐 ccusage xxx 适配器"的口径说明文字。
+      这些文字记录的是**口径来源**（原生实现复刻了 ccusage 的哪套规则），
+      属于知识沉淀，不是可执行依赖。
+    - 历史上 ccusage 引发的事故记录（CLAUDE.md / AGENTS.md 等文档）。
+
+禁止范围
+    - 任何 ``app/`` / ``scripts/`` / ``tests/`` 下的 Python 模块**导入**
+      ccusage 相关实现。
+    - 任何模块**调用** ccusage CLI（subprocess 方式）。
+    - 任何模块在**非 docstring** 的位置出现 ccusage 符号（函数名、变量名、
+      字符串常量形式的配置项路径等）。
 """
 import ast
 import pathlib
@@ -22,23 +29,12 @@ APP_ROOT = BACKEND_ROOT / "app"
 # 扫描时跳过的目录（虚拟环境与缓存，体积大且与本项目无关）
 SKIP_DIRS = {"venv", ".venv", "__pycache__", ".git", "node_modules", "data", "logs"}
 
-# 允许保留 ccusage 引用的模块（开发期工具 / 口径说明）
-ALLOWED_CCUSAGE_MODULES = {
-    "app/utils/ccusage_invoker.py",
-}
+# 本文件自身必然包含 ccusage 字面量（守卫逻辑本身），扫描时排除
+SELF_PATH = pathlib.Path(__file__).resolve()
 
-# 允许在文档字符串中出现 "ccusage" 的模块
-DOC_ONLY_ALLOWED = {
-    "app/utils/agent_readers/claude_reader.py",
-    "app/utils/agent_readers/codex_reader.py",
-    "app/utils/agent_readers/copilot_reader.py",
-    "app/utils/agent_readers/kimi_reader.py",
-    "app/utils/agent_readers/minimax_reader.py",
-    "app/utils/agent_readers/openclaw_reader.py",
-    "app/utils/agent_readers/opencode_reader.py",
-    "app/utils/agent_readers/base.py",
-    "app/utils/agent_readers/__init__.py",
-}
+
+def _is_self(path: pathlib.Path) -> bool:
+    return path.resolve() == SELF_PATH
 
 
 def _module_files() -> list[pathlib.Path]:
@@ -76,31 +72,93 @@ def _imported_modules(path: pathlib.Path) -> set[str]:
     return names
 
 
-class TestNoRuntimeCcusageDependency:
-    """静态扫描：app/ 下不得有模块导入 ccusage 相关实现"""
+def _code_level_ccusage_refs(path: pathlib.Path) -> list[str]:
+    """用 AST 找出**真正的代码引用**（排除 docstring 与注释）。
 
-    def test_no_app_module_imports_ccusage_invoker(self):
+    判定口径：只有出现在 Name / Attribute / Import / FunctionDef 名字里的
+    ccusage 才算代码依赖；字符串常量（docstring、提示文案）与注释不算。
+    """
+    try:
+        tree = ast.parse(_read_source(path))
+    except SyntaxError:  # pragma: no cover
+        return []
+
+    hits: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and "ccusage" in node.id.lower():
+            hits.append(f"Name:{node.id}@{node.lineno}")
+        elif isinstance(node, ast.Attribute) and "ccusage" in node.attr.lower():
+            hits.append(f"Attr:{node.attr}@{node.lineno}")
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if "ccusage" in node.name.lower():
+                hits.append(f"Def:{node.name}@{node.lineno}")
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            module = getattr(node, "module", "") or ""
+            names = [a.name for a in node.names]
+            if "ccusage" in module.lower() or any("ccusage" in n.lower() for n in names):
+                hits.append(f"Import:{module or names}@{node.lineno}")
+    return hits
+
+
+class TestCcusageFullyRemoved:
+    """ccusage 的可执行实现已彻底移除"""
+
+    def test_invoker_module_deleted(self):
+        """ccusage CLI 调用器文件必须不存在"""
+        assert not (BACKEND_ROOT / "app/utils/ccusage_invoker.py").exists()
+
+    def test_verify_script_deleted(self):
+        """ccusage 对账脚本必须不存在"""
+        assert not (BACKEND_ROOT / "scripts/verify_native_readers.py").exists()
+
+    def test_no_module_imports_ccusage(self):
+        """任何模块都不得导入 ccusage 相关实现"""
         offenders = []
-        for path in _module_files():
+        for path in BACKEND_ROOT.rglob("*.py"):
             rel = _rel(path)
-            if rel in ALLOWED_CCUSAGE_MODULES:
+            if any(part in SKIP_DIRS for part in path.parts) or _is_self(path):
                 continue
             for name in _imported_modules(path):
-                if "ccusage_invoker" in name or "usage_fetcher" in name:
+                if "ccusage" in name.lower():
                     offenders.append(f"{rel} -> {name}")
-        assert offenders == [], f"运行时模块仍导入 ccusage: {offenders}"
+        assert offenders == [], f"仍有模块导入 ccusage: {offenders}"
 
-    def test_no_app_module_imports_removed_fetcher_modules(self):
-        """usage_fetcher / usage_fetcher_v2 已删除，任何模块都不应再引用"""
+    def test_no_code_level_ccusage_symbols(self):
+        """非 docstring 位置不得出现 ccusage 符号（函数名/变量名/导入）"""
         offenders = []
-        for path in _module_files():
-            for name in _imported_modules(path):
-                if "usage_fetcher" in name:
-                    offenders.append(f"{_rel(path)} -> {name}")
-        assert offenders == [], f"仍引用已删除的 fetcher 模块: {offenders}"
+        for path in BACKEND_ROOT.rglob("*.py"):
+            rel = _rel(path)
+            if any(part in SKIP_DIRS for part in path.parts) or _is_self(path):
+                continue
+            for hit in _code_level_ccusage_refs(path):
+                offenders.append(f"{rel} -> {hit}")
+        assert offenders == [], f"仍有代码级 ccusage 引用: {offenders}"
 
-    def test_sync_service_has_no_ccusage_branches(self):
-        """同步服务里不应残留 ccusage 相关函数或分支"""
+    def test_no_module_invokes_ccusage_cli(self):
+        """不得通过 subprocess 调用 ccusage CLI"""
+        offenders = []
+        for path in BACKEND_ROOT.rglob("*.py"):
+            rel = _rel(path)
+            if any(part in SKIP_DIRS for part in path.parts) or _is_self(path):
+                continue
+            source = _read_source(path)
+            # 注释与 docstring 里的说明不算调用
+            code_lines = [
+                line
+                for line in source.splitlines()
+                if not line.strip().startswith("#")
+            ]
+            code = "\n".join(code_lines)
+            if '"ccusage"' in code or "'ccusage'" in code:
+                offenders.append(rel)
+        assert offenders == [], f"仍有模块以字面量引用 ccusage CLI: {offenders}"
+
+
+class TestNoRuntimeCcusageDependency:
+    """同步链路必须保持纯原生"""
+
+    def test_sync_service_has_no_ccusage_symbols(self):
+        """同步服务里不应暴露任何 ccusage 符号"""
         from app.services import token_usage_sync_service as svc
 
         for name in dir(svc):
@@ -120,33 +178,11 @@ class TestNoRuntimeCcusageDependency:
         assert hasattr(svc, "sync_token_usage")
         assert not hasattr(svc, "sync_token_usage_v2")
 
+    def test_readers_registry_has_no_ccusage_source(self):
+        """原生读取器注册表里不得有 ccusage 这个 source"""
+        from app.utils.agent_readers import READERS
 
-class TestCcusageInvokerIsDevOnly:
-    """ccusage 调用器必须只被开发期对账脚本使用"""
-
-    def test_only_verify_script_imports_it(self):
-        importers: set[str] = set()
-        for path in BACKEND_ROOT.rglob("*.py"):
-            rel = _rel(path)
-            if rel in ALLOWED_CCUSAGE_MODULES:
-                continue
-            if rel.startswith("tests/"):
-                continue
-            if any(part in SKIP_DIRS for part in path.parts):
-                continue
-            for name in _imported_modules(path):
-                if "ccusage_invoker" in name:
-                    importers.add(rel)
-        assert importers == {"scripts/verify_native_readers.py"}, (
-            f"ccusage_invoker 只允许被开发期对账脚本导入，实际: {sorted(importers)}"
-        )
-
-    def test_verify_script_still_works_as_cross_check(self):
-        """对账脚本仍能定位 ccusage（作为独立交叉验证基准）"""
-        from app.utils.ccusage_invoker import find_ccusage
-
-        # 不要求本机一定装了 ccusage，只要求发现逻辑可调用不抛异常
-        assert find_ccusage() is None or isinstance(find_ccusage(), str)
+        assert not any("ccusage" in s.lower() for s in READERS)
 
 
 class TestNoCollectionModeSwitch:

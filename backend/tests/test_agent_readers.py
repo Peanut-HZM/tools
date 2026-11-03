@@ -460,8 +460,8 @@ class TestKimiReader:
 class TestRegistry:
     """读取器注册表"""
 
-    def test_source_ids_match_ccusage_agent_ids(self):
-        """source id 必须与 ccusage agent id 一致，否则会与历史数据产生重复行"""
+    def test_source_ids_match_tool_mapping(self):
+        """source id 必须与 tool 映射的 key 一致，否则会与历史数据产生重复行"""
         from app.services.token_usage_sync_service import (
             NATIVE_READER_SOURCES,
             SOURCE_TOOL_MAPPING,
@@ -577,26 +577,3 @@ class TestExpandUserPath:
         assert str(expand_user_path("/tmp/x")) == "/tmp/x"
         assert str(expand_user_path("relative/x")) == "relative/x"
 
-
-class TestCcusageHomeResolution:
-    """ccusage 二进制发现必须绕过 config.py 对 HOME 的覆盖"""
-
-    def test_expand_user_uses_real_home(self, monkeypatch):
-        from app.utils import ccusage_invoker
-        from app.utils.agent_readers.base import real_home
-
-        monkeypatch.setenv("HOME", "/tmp/fake-home")
-        expanded = ccusage_invoker._expand_user("~")
-        assert expanded != "/tmp/fake-home"
-        assert expanded == str(real_home())
-
-    def test_nvm_fallback_path_uses_real_home(self, monkeypatch):
-        """nvm 兜底路径必须落在真实家目录下，而不是缓存目录"""
-        from app.utils import ccusage_invoker
-        from app.utils.agent_readers.base import real_home
-
-        monkeypatch.setenv("HOME", "/tmp/fake-home")
-        paths = ccusage_invoker._ccusage_search_paths()
-        expected = str(real_home())
-        assert any(p.startswith(expected) for p in paths), paths
-        assert not any("/tmp/fake-home" in p for p in paths), paths

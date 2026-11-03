@@ -4,18 +4,19 @@
 
 设计要点（与「不重复统计」直接相关）：
 
-1. **每个 Agent 只有一个读取器**，source id 与 ccusage 的 agent id 完全一致
-   （``claude`` / ``codex`` / ``kimi`` / ``zcode`` / ``minimax``）。
+1. **每个 Agent 只有一个读取器**，source id 与 ``SOURCE_TOOL_MAPPING`` 的 key
+   完全一致（``claude`` / ``codex`` / ``kimi`` / ``zcode`` / ``minimax``）。
    因为 ``token_usage_records`` 的唯一键是
-   ``(user_id, device_id, record_date, source, model)``，source id 一致就意味着
-   **原生读取器与 ccusage 写的是同一批行**，切换实现不会产生重复，
-   只会互相覆盖（覆盖期间也不会出现两份）。
+   ``(user_id, device_id, record_date, source, model)``，source id 稳定就意味着
+   **切换实现不会产生重复行**，只会互相覆盖（覆盖期间也不会出现两份）。
 2. **读取器只产出 source，不产出 tool 维度**：tool_id / tool_name 统一由
    ``token_usage_sync_service.SOURCE_TOOL_MAPPING`` 推导，避免两处维护。
 3. **单个读取器失败不影响其它读取器**：异常被捕获并转成结构化 error。
-4. **未迁移的 Agent 继续走 ccusage**：本注册表只包含已完成"原生 vs ccusage
-   逐日对账零差异"的 Agent；其余 Agent 暂由 ccusage 兜底，
-   迁移时只需新增一个读取器并登记，无需改动同步主流程。
+4. **未实现的 Agent 显式暴露**：本注册表只包含已实现的读取器；其余 source
+   由同步层列为结构化错误（``SOURCE_NOT_COVERED``），禁止静默丢数据。
+
+各读取器的口径规则复刻自 ccusage 对应 Agent 适配器（ccusage 已从代码库移除，
+仅作为口径来源的知识沉淀保留在 docstring 与单测中）。
 """
 
 from __future__ import annotations
@@ -55,7 +56,8 @@ def _read_zcode_records(since_date: date, until_date: date) -> AgentReadResult:
 
 
 # source id → 读取器
-# 说明：source id 必须与 ccusage 的 agent id 一致，否则会与历史数据产生重复行。
+# 说明：source id 必须与 token_usage_sync_service.SOURCE_TOOL_MAPPING 的 key 一致，
+#      否则会与历史数据产生重复行。
 READERS: dict[str, ReaderFn] = {
     "claude": read_claude_records,
     "codex": read_codex_records,
@@ -67,7 +69,7 @@ READERS: dict[str, ReaderFn] = {
     "opencode": read_opencode_records,
 }
 
-# 已完成"原生 vs ccusage 逐日对账零差异"的 Agent
+# 已在本机实测通过的 Agent（单测 + 实测双重验证）
 VERIFIED_AGENTS: tuple[str, ...] = (
     "claude",
     "codex",

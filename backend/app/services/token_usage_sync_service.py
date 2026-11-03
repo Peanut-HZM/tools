@@ -59,7 +59,7 @@ SOURCE_TOOL_MAPPING: dict[str, dict] = {
     "minimax": {"tool_id": "minimax", "tool_name": "MiniMax Code"},
 }
 
-# 已由原生读取器覆盖的 source（source id 与历史 ccusage agent id 保持一致，
+# 已由原生读取器覆盖的 source（source id 与历史采集实现保持一致，
 # 因此历史数据与原生数据写入同一唯一键，不会产生重复统计）
 NATIVE_READER_SOURCES: tuple[str, ...] = (
     "claude",
@@ -158,7 +158,7 @@ def _write_native_records(
 ) -> int:
     """写入原生读取器记录，按 source 分组 upsert。
 
-    source id 与 ccusage 完全一致，因此与 ccusage 写入的是同一唯一键，
+    source id 与历史采集实现完全一致，因此写入的是同一唯一键，
     切换期间不会出现重复行（只会互相覆盖）。
     """
     from itertools import groupby
