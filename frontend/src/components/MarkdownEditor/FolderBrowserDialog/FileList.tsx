@@ -13,6 +13,10 @@ interface FileListProps {
   onDoubleClick: (item: FileManagerItem) => void;
   onContextMenu: (e: React.MouseEvent, item: FileManagerItem) => void;
   loading?: boolean;
+  /** 名称搜索关键词：用于高亮匹配片段 */
+  highlightQuery?: string;
+  /** 列表为空时的提示文案 */
+  emptyText?: string;
 }
 
 export default function FileList({
@@ -22,6 +26,8 @@ export default function FileList({
   onDoubleClick,
   onContextMenu,
   loading,
+  highlightQuery = '',
+  emptyText = '空目录',
 }: FileListProps) {
   if (loading) {
     return (
@@ -35,7 +41,7 @@ export default function FileList({
   if (items.length === 0) {
     return (
       <div className="text-center py-8 text-ink-muted">
-        空目录
+        {emptyText}
       </div>
     );
   }
@@ -59,6 +65,7 @@ export default function FileList({
           onSelect={onSelect}
           onDoubleClick={onDoubleClick}
           onContextMenu={onContextMenu}
+          highlightQuery={highlightQuery}
         />
       ))}
     </div>

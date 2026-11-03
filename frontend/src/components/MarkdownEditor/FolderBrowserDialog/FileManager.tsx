@@ -7,7 +7,7 @@
  * - 隐藏文件与隐藏目录可见（可一键切换显示/隐藏）
  * - 确认时回传**绝对路径**，直接作为工作区根目录（避免相对路径导致打开失败）
  */
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   browseFileManager,
   copyFileItem,
@@ -66,6 +66,8 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
   const [page, setPage] = useState(1);
   const [includeHidden, setIncludeHidden] = useState(true);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: FileManagerItem } | null>(null);
+  /** 名称搜索关键词（不区分大小写的子串匹配，仅过滤当前目录已加载的条目） */
+  const [searchQuery, setSearchQuery] = useState('');
 
   /**
    * include_hidden 通过 ref 读取：让 loadDirectory 保持稳定引用，
@@ -73,6 +75,20 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
    */
   const includeHiddenRef = useRef(includeHidden);
   includeHiddenRef.current = includeHidden;
+
+  /** 过滤后的条目：按名称做不区分大小写的子串匹配 */
+  const filteredItems = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return items;
+    return items.filter((item) => item.name.toLowerCase().includes(query));
+  }, [items, searchQuery]);
+
+  /** 搜索把当前选中项过滤掉时清除选中，避免"看不见却仍被选中并参与确认" */
+  useEffect(() => {
+    if (!selectedItem) return;
+    const stillVisible = filteredItems.some((item) => item.path === selectedItem.path);
+    if (!stillVisible) setSelectedItem(null);
+  }, [filteredItems, selectedItem]);
 
   /** 加载目录（成功返回 true，失败返回 false） */
   const loadDirectory = useCallback(async (path: string, pageNum: number = 1, append: boolean = false): Promise<boolean> => {
@@ -105,6 +121,12 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
     }
   }, []);
 
+  /** 导航到新目录：切换目录时清空名称搜索，避免过滤条件带到新目录 */
+  const navigateTo = useCallback((path: string) => {
+    setSearchQuery('');
+    loadDirectory(path);
+  }, [loadDirectory]);
+
   /**
    * 初始加载。
    * 配置的工作区目录若已被外部删除，自动回退到文件系统根目录，
@@ -128,13 +150,13 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
   const handlePathSubmit = useCallback(() => {
     const target = pathInput.trim();
     if (!target) return;
-    loadDirectory(target);
-  }, [pathInput, loadDirectory]);
+    navigateTo(target);
+  }, [pathInput, navigateTo]);
 
   /** 快速访问导航 */
   const handleQuickAccess = useCallback((path: string) => {
-    loadDirectory(path);
-  }, [loadDirectory]);
+    navigateTo(path);
+  }, [navigateTo]);
 
   /** 切换隐藏文件显示 */
   const handleToggleHidden = useCallback(() => {
@@ -149,14 +171,26 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
     setSelectedItem(item);
   }, []);
 
+  /** 搜索框键盘事件：Esc 清空关键词（阻止冒泡，避免触发外层快捷键） */
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Escape' && searchQuery) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSearchQuery('');
+      }
+    },
+    [searchQuery],
+  );
+
   /** 双击打开 */
   const handleDoubleClick = useCallback((item: FileManagerItem) => {
     if (item.type === 'directory') {
-      loadDirectory(item.path);
+      navigateTo(item.path);
     } else if (item.is_previewable) {
       window.open(getDownloadUrl(item.path), '_blank');
     }
-  }, [loadDirectory]);
+  }, [navigateTo]);
 
   /** 右键菜单 */
   const handleContextMenu = useCallback((e: React.MouseEvent, item: FileManagerItem) => {
@@ -168,8 +202,8 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
   const handleGoUp = useCallback(() => {
     const parent = getParentPath(currentPath);
     if (!parent) return;
-    loadDirectory(parent);
-  }, [currentPath, loadDirectory]);
+    navigateTo(parent);
+  }, [currentPath, navigateTo]);
 
   /** 右键菜单操作 */
   const handleMenuAction = useCallback(async (action: string, item: FileManagerItem) => {
@@ -177,7 +211,7 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
       switch (action) {
         case 'open':
           if (item.type === 'directory') {
-            loadDirectory(item.path);
+            navigateTo(item.path);
           } else if (item.is_previewable) {
             window.open(getDownloadUrl(item.path), '_blank');
           }
@@ -269,7 +303,7 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
       const message = e instanceof Error ? e.message : '操作失败';
       alert(message);
     }
-  }, [currentPath, loadDirectory]);
+  }, [currentPath, loadDirectory, navigateTo]);
 
   /** 确认目标：优先选中的文件夹，否则为当前目录 */
   const confirmTarget =
@@ -311,7 +345,7 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
           <React.Fragment key={crumb.path || 'root'}>
             {i > 0 && <span className="text-ink-faint shrink-0">/</span>}
             <button
-              onClick={() => loadDirectory(crumb.path)}
+              onClick={() => navigateTo(crumb.path)}
               className={`hover:text-accent-cyan cursor-pointer transition-colors whitespace-nowrap ${
                 crumb.path === currentPath ? 'text-ink font-medium' : ''
               }`}
@@ -321,6 +355,37 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
             </button>
           </React.Fragment>
         ))}
+      </div>
+
+      {/* 名称搜索：按名称过滤当前目录已加载的文件与文件夹 */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-surface-2/20">
+        <span className="text-ink-faint text-sm shrink-0" aria-hidden="true">🔍</span>
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="按名称搜索文件和文件夹..."
+            aria-label="按名称搜索文件和文件夹"
+            className="w-full px-2 py-1 pr-7 text-sm bg-surface-1 border border-border rounded text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent-cyan"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink text-xs cursor-pointer"
+              title="清除搜索 (Esc)"
+              aria-label="清除搜索"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {searchQuery.trim() && (
+          <span className="text-xs text-ink-faint shrink-0">
+            匹配 {filteredItems.length} 项
+          </span>
+        )}
       </div>
 
       {/* 显示隐藏文件开关 */}
@@ -335,9 +400,18 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
           显示隐藏文件（以 . 开头）
         </label>
         <span className="text-xs text-ink-faint">
-          共 {items.length} 项{breadcrumbs.length > 0 ? ` · ${currentPath}` : ''}
+          共 {filteredItems.length} 项
+          {searchQuery.trim() ? `（已过滤，原 ${items.length} 项）` : ''}
+          {breadcrumbs.length > 0 ? ` · ${currentPath}` : ''}
         </span>
       </div>
+
+      {/* 搜索只覆盖已加载条目时的提示 */}
+      {searchQuery.trim() && hasMore && (
+        <div className="px-3 py-1 text-xs text-ink-faint bg-surface-2/10 border-b border-border">
+          当前仅搜索已加载的 {items.length} 项，可能还有未加载的匹配项 —— 点击下方「加载更多」继续加载
+        </div>
+      )}
 
       {/* 错误提示 */}
       {error && (
@@ -348,12 +422,18 @@ export default function FileManager({ onConfirm, onCancel, initialPath = '' }: F
 
       {/* 文件列表 */}
       <FileList
-        items={items}
+        items={filteredItems}
         selectedItems={selectedItem ? [selectedItem.path] : []}
         onSelect={handleSelect}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
         loading={loading}
+        highlightQuery={searchQuery.trim()}
+        emptyText={
+          searchQuery.trim() && items.length > 0
+            ? `未找到匹配「${searchQuery.trim()}」的文件或文件夹`
+            : '空目录'
+        }
       />
 
       {/* 加载更多 */}

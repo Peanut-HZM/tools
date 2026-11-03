@@ -11,6 +11,8 @@ interface FileItemRowProps {
   onSelect: (item: FileManagerItem) => void;
   onDoubleClick: (item: FileManagerItem) => void;
   onContextMenu: (e: React.MouseEvent, item: FileManagerItem) => void;
+  /** 名称搜索关键词：命中的片段高亮显示 */
+  highlightQuery?: string;
 }
 
 /** 格式化文件大小 */
@@ -35,12 +37,44 @@ function getFileIcon(item: FileManagerItem): string {
   return '📄';
 }
 
+/** 按搜索关键词高亮名称中的命中片段（不区分大小写） */
+function highlightName(name: string, query: string): React.ReactNode {
+  const keyword = query.trim();
+  if (!keyword) return name;
+
+  const lowerName = name.toLowerCase();
+  const lowerKeyword = keyword.toLowerCase();
+  const parts: React.ReactNode[] = [];
+  let start = 0;
+  let index = lowerName.indexOf(lowerKeyword, start);
+  let key = 0;
+
+  while (index !== -1) {
+    if (index > start) parts.push(name.slice(start, index));
+    parts.push(
+      <mark
+        key={`hl-${key++}`}
+        className="bg-accent/30 text-accent-cyan rounded-sm px-0.5"
+      >
+        {name.slice(index, index + keyword.length)}
+      </mark>,
+    );
+    start = index + keyword.length;
+    index = lowerName.indexOf(lowerKeyword, start);
+  }
+
+  if (parts.length === 0) return name;
+  if (start < name.length) parts.push(name.slice(start));
+  return <>{parts}</>;
+}
+
 export default function FileItemRow({
   item,
   isSelected,
   onSelect,
   onDoubleClick,
   onContextMenu,
+  highlightQuery = '',
 }: FileItemRowProps) {
   return (
     <div
@@ -62,7 +96,7 @@ export default function FileItemRow({
       <span className="shrink-0 w-6 text-center">{getFileIcon(item)}</span>
       {/* 隐藏条目（以 . 开头）用淡化样式区分，方便识别 */}
       <span className={`flex-1 truncate ${item.is_hidden ? 'text-ink-faint italic' : ''}`}>
-        {item.name}
+        {highlightName(item.name, highlightQuery)}
       </span>
       <span className="text-ink-faint text-xs w-20 text-right">
         {item.type === 'directory' ? '文件夹' : '文件'}
