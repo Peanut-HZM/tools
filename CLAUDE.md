@@ -362,6 +362,48 @@
 - ❌ **绝对禁止** 宽条件清理（`WHERE deleted=0`、`LIKE '%test%'` 等）
 - ❌ 禁止以"改回去就行"为由修改真实数据；禁止验收完不清理
 
+### 集成测试隔离生产库（最高优先级）
+
+**集成测试绝对禁止把数据写进生产库。** 生产库是共享的真实环境，污染会直接影响真实用户的报表。
+
+#### 隔离三要素
+
+| 要素 | 做法 | 漏了会怎样 |
+|---|---|---|
+| **DB** | 用 `tmp_path` 临时 SQLite + `patch("app.routes.<mod>.SessionLocal", ...)` | 写入生产库 |
+| **Redis** | 注入 `FakeRedis`（参考 `tests/test_token_usage_split_cache.py`） | 读到真实缓存，返回别人的数据 |
+| **后台副作用** | `patch("app.routes.token_usage._maybe_trigger_stale_sync", lambda *a, **k: None)` | **把本机真实用量写进生产库** |
+
+#### 事故案例（2026-11-03）
+
+`GET /api/token-usage/summary` 在数据过期时（`sync_meta.is_stale`）会**自动触发真实后台同步**
+（`_maybe_trigger_stale_sync` → `sync_token_usage` → 写真实用量进生产库）。
+
+集成测试调 `/summary` 时，临时 SQLite 里没有 `token_usage_sync_log` 记录 → `last_success_at` 为
+`None` → `is_stale` **恒为 True** → **必然触发**。
+
+后果（真实污染已清理）：
+
+- `user-1`（`test_token_usage_split_api.py`）：470 行 / 458 亿 token
+- `u1`（`test_token_usage_split_integration.py` 旧版）：435 行 / 368 亿 token
+- `zztest_token_usage_split_u1`：171 行
+- 真实用户名下的测试 device_id（`test-device-id-12345` 等）
+
+**放大机制**：后台同步的用户发现逻辑从 `token_usage_records` 表捞所有 `user_id`
+（`_discover_token_usage_user_ids`），测试写的行会让测试账号进入同步名单。
+所幸已有 UUID 校验（`_is_valid_user_id`，真实 user_id 均为 UUID）挡住非 UUID 账号，
+属一次性残留而非持续增长 —— **但这层保护不能依赖**。
+
+#### 规则
+
+- ✅ 所有调 `/summary` 或 `/db-usage` 的集成测试，必须用 `autouse` fixture 隔离 stale-sync
+- ✅ 生产库污染检查由 `tests/test_no_production_db_pollution.py` 守卫（静态扫描 + 运行时查询）
+- ✅ 清理用 `python -m scripts.cleanup_test_usage_data`（默认 dry-run，`--apply` 才删）
+- ✅ 测试 user_id 一律用 UUID 格式（`zztest-` 前缀 + UUID），避免与真实账号混淆
+- ❌ 禁止在集成测试里用非 UUID 的 `user_id`（如 `u1` / `user-1`）
+- ❌ 禁止在集成测试里直接调用真实 `sync_token_usage`
+- ❌ 禁止依赖"测试跑完进程会退出"来规避异步副作用（守护线程可能在断言后才写库）
+
 ---
 
 ## Git 工作流完整规范（最高优先级）

@@ -16,6 +16,22 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def no_stale_sync(monkeypatch):
+    """隔离 /summary 的自动同步副作用。
+
+    /summary 在数据过期（sync_meta.is_stale）时会触发真实后台同步
+    （_maybe_trigger_stale_sync），把**本机 Agent 的真实用量**写进生产库。
+    测试用的临时 SQLite 没有 sync_log 记录 → last_success_at 为 None →
+    is_stale 恒为 True → 必然触发。
+
+    历史上因此把本机真实用量写到了 user-1 名下（470 行 / 458 亿 token）。
+    """
+    monkeypatch.setattr(
+        "app.routes.token_usage._maybe_trigger_stale_sync", lambda *a, **k: None
+    )
+
+
 @pytest.fixture
 def auth_headers():
     return {"Authorization": "Bearer test-token-123"}

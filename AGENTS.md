@@ -127,6 +127,23 @@ npm run test
 
 ---
 
+## 集成测试隔离生产库（速查 — 必须遵守）
+
+- ✅ 集成测试必须隔离三要素：**DB**（临时 SQLite + patch `SessionLocal`）、**Redis**（注入 `FakeRedis`）、**后台副作用**（patch `_maybe_trigger_stale_sync`）
+- ✅ `GET /api/token-usage/summary` 数据过期时会**自动触发真实后台同步**（`_maybe_trigger_stale_sync`），把**本机真实用量**写进生产库；临时 SQLite 无 sync_log → `is_stale` 恒为 True → **必然触发**
+- ✅ 生产库污染由 `tests/test_no_production_db_pollution.py` 守卫（静态扫描 + 运行时查询）
+- ✅ 清理用 `python -m scripts.cleanup_test_usage_data`（默认 dry-run，`--apply` 才删）
+- ✅ 测试 user_id 一律用 UUID 格式（`zztest-` 前缀 + UUID）
+- ❌ 禁止在集成测试里用非 UUID 的 `user_id`（如 `u1` / `user-1`）
+- ❌ 禁止在集成测试里直接调用真实 `sync_token_usage`
+- ❌ 禁止依赖"测试跑完进程会退出"来规避异步副作用（守护线程可能在断言后才写库）
+
+事故案例（2026-11-03）：`user-1` 污染 470 行 / 458 亿 token、`u1` 435 行、`zztest_xxx` 171 行。
+
+详细规则见 [CLAUDE.md](./CLAUDE.md) 的「验收测试数据规则」章节。
+
+---
+
 ## Token 用量统计口径规范（速查 — 必须遵守）
 
 - ✅ 可见四桶 = input / output / cache_creation / cache_read；原生 `total_tokens` = 四桶之和 **+ extra 桶**（extra 仅计入 total，不单独展示）
