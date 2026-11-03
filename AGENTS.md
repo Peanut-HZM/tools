@@ -340,3 +340,15 @@ The global `执行边界与停止规则` applies here. These project-specific co
 - **Do not run `npx`, `npm install`, `bun install`, or equivalent to reproduce a config or catalog issue.** Reproduce with the exact command string that is already configured, and read the configuration instead of installing the package.
 - **Do not modify machine-level configuration** (such as files under `$HOME`) unless the user asks. Those changes affect the user's running setup.
 - **One question, one conclusion.** When the diagnostic output already answers the question, report it and stop. Do not re-run the same command or re-grep the same log with different filters to "confirm" it.
+
+---
+
+## 密钥暴露面规则（全局强制·最高优先级）
+
+**适用于所有项目、所有场景。目标：真实密钥永不进入命令行、终端输出、AI 会话记录、shell history、日志和任何提交。**
+
+1. **永不打印密钥值**：读取/检查任何含密钥的文件（`~/.paseo/config.json`、`.env`、`*.zshrc` 等）时，只允许**存在性检查**（`grep -c`、`jq 'has("...")'`、字段名列表）；严禁 `cat`、`print`、`jq .` 等会把 value 带进终端/会话输出的命令。需要确认格式时可打印**脱敏后**的值（如 `sk-***`）。
+2. **密钥禁止出现在命令行**：运行进程需要密钥时，禁止 `MY_KEY=xxx command` 或把密钥作为命令行参数——会进 shell history 与进程列表。正确做法：先 `export MY_KEY` 到当前 shell（通过 env 文件 source 或让用户手动执行），或在脚本内从 `.env`/keychain 读取；脚本用法文档一律写占位符（`MY_KEY=xxx node script.mjs`）。
+3. **脚本零硬编码密钥**：对外分享/提交的脚本（含 issue/PR 附件）只允许 `process.env.XXX` / `os.environ[...]` 方式读取密钥；交付前必须 `grep` 自查无任何真实密钥片段。
+4. **提交前三重自查**：任何 `git push`、issue/PR 评论、附件上传之前，对要提交的内容 `grep` 本项目已知密钥的特征片段（key 前缀、后缀、变量名赋值）；发现真实值立即停止提交并脱敏。
+5. **历史污染处理**：密钥一旦进入会话记录/终端输出，视为已暴露——提醒用户轮换该密钥，并清理本地 history；不得以"只是本地"为由跳过。
