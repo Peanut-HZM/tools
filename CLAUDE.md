@@ -440,6 +440,85 @@ git pull --rebase --autostash origin master  # 3. rebase 更新
 git status --porcelain                    # 4. 确认 rebase 成功
 ```
 
+### 第六部分：多远程仓库的 rebase 更新（强制）
+
+本仓库有 3 个远程，必须区分对待：
+
+| 远程 | 地址 | 角色 |
+|------|------|------|
+| `origin` | gitee.com/peanut_hzm/tools.git | 主远程，跟踪分支（`branch.master.remote=origin`） |
+| `gitea` | 自建 gitea | 私有备份镜像，可能含"换机迁移"本地快照提交 |
+| `github` | github.com/Peanut-HZM/tools.git | 公开镜像，**泄露后果最严重** |
+
+#### 更新流程
+
+```bash
+# 1. 摸清每个远程的独有提交及其内容
+git fetch --all --prune
+for r in origin gitea github; do
+  echo "=== $r 独有提交 ==="
+  git log --oneline master..$r/master
+  git show --name-status --format='' $r/master
+done
+
+# 2. rebase 前建备份分支（第四部分强制要求）
+git branch backup-before-rebase-$(date +%Y%m%d-%H%M%S)
+
+# 3. 更新主远程（走标准流程）
+git pull --rebase --autostash origin master
+```
+
+#### 判断标准：哪些提交可以并入 master
+
+| 提交类型 | 是否并入 master | 理由 |
+|----------|----------------|------|
+| 真实代码提交（feature / fix / refactor） | ✅ 必须并入 | 这是要同步的代码 |
+| 含真实密钥的本地快照提交 | ❌ 绝不并入 | 并入后 push 会把密钥发布到 origin / github |
+| 纯文档 / 规则文件提交 | ✅ 并入 | 无泄露风险 |
+
+#### 密钥文件的本地留存与防泄露
+
+必须**双层排除**，缺一不可：
+
+```bash
+# 第一层：.gitignore（随仓库分发，全员生效）
+backend/.env
+frontend/.env
+mini-program/.env.production
+backend/backups.db
+
+# 第二层：.git/info/exclude（仅本机生效，不随仓库分发，兜底防误提交）
+```
+
+**为什么必须两层**：`gitea` 这类"远程备份"性质的提交一旦被误并入 master，即使 `.gitignore` 覆盖了该路径，**历史里的 blob 依然会被 push 出去**。`.git/info/exclude` 提供本机最后一道防线，防止将来 `.gitignore` 被调整时静默泄露。
+
+#### 历史污染判定：要区分占位符与真实密钥
+
+扫描历史时，**不能**简单认为"文件出现过 = 泄露"：
+
+- ✅ **占位符内容**不算泄露 —— 如 `mini-program/.env.production` 在 `780bcb62` 引入的 67 字节内容仅为公开 API 域名（`TARO_APP_API_URL=https://...`），无任何密钥
+- ❌ **真实密钥内容**算泄露 —— 如 gitea `03018de7` 引入的 `backend/.env` 含 `*_SECRET=` / `*_API_KEY=` / `*_PASSWORD=` 真实值
+
+判定特征（仅做存在性判断，**绝不打印匹配到的值本身**，遵守《密钥暴露面规则》）：
+
+```
+^\s*[A-Z0-9_]*(SECRET|PASSWORD|PRIVATE_KEY|ACCESS_KEY|API_KEY|TOKEN)[A-Z0-9_]*\s*=\s*\S+
+-----BEGIN [A-Z ]*PRIVATE KEY-----
+\sk-[A-Za-z0-9]{16,}
+LTAI[A-Za-z0-9]{12,}
+```
+
+#### 自动守卫
+
+`backend/tests/test_no_secret_files_tracked.py` 自动校验四件事：
+
+1. 敏感文件未被 Git 跟踪（`git ls-files`）
+2. 敏感文件被 `.gitignore` 命中（`git check-ignore`）
+3. 敏感文件存在于本地工作区（本地可正常启动的前提）
+4. `master` 历史未引入**含真实密钥**的敏感文件
+
+历史扫描只扫 `master`（会推送到 origin / github 的分支），**不扫 `--all`** —— gitea 上那个含密钥的迁移备份提交是既成事实的独立问题（需轮换密钥 + 单独清理 gitea 历史），不应让守卫永久变红。
+
 ### 第二部分：冲突解决规范
 
 1. **查看冲突文件列表**：`git status`

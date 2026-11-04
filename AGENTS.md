@@ -105,6 +105,22 @@ npm run test
 
 ---
 
+## 多远程仓库 rebase 更新规范（速查 — 必须遵守）
+
+本仓库有 3 个远程：`origin`（gitee）、`gitea`（自建）、`github`。
+
+- ✅ **更新前先摸清各远程差异**：`git fetch --all --prune` 后逐个比对 `git log --oneline <remote>/master..master`，确认每个远程的独有提交**是什么内容**再决定如何并入
+- ✅ **rebase 前先建备份分支**：`git branch backup-before-rebase-<timestamp>`（CLAUDE.md 第四部分强制要求）
+- ✅ **只并入代码提交**：`gitea/master` 的换机备份提交 `03018de7` 只含 `.env` / `backups.db` 等真实密钥文件、**零代码**，其内容已在本地磁盘（hash 一致），不得并入 `master` —— 一旦并入，后续 push 会把真实密钥发布到 origin / github
+- ✅ **密钥文件只留本地**：`backend/.env`、`frontend/.env`、`mini-program/.env.production`、`backend/backups.db` 必须在 `.gitignore` **和** `.git/info/exclude` 双层排除，保证本地能正常启动但绝不进提交
+- ✅ **历史扫描要区分占位符与真实密钥**：`mini-program/.env.production` 历史里的是公开 API 域名（占位符），不算泄露；只有含密钥特征（`sk-*` / `LTAI*` / `*_SECRET=` 等）才算违规
+- ✅ **防泄露守卫**：`backend/tests/test_no_secret_files_tracked.py` 自动校验「未被跟踪 + 被 ignore + 本地存在 + master 历史无真实密钥」
+- ❌ 禁止把含真实密钥的提交 rebase 进 `master`；❌ 禁止只靠 `.gitignore` 一层防护（远端备份类提交仍需 `.git/info/exclude` 兜底）
+
+详细规则见 [CLAUDE.md](./CLAUDE.md) 的「Git 工作流完整规范」章节。
+
+---
+
 ## 功能完成浏览器强制验收规则（速查 — 必须遵守）
 
 - ✅ 代码写完 ≠ 完成：必须打开浏览器真实操作完整用户流程验收（渲染 + 交互 + Console 无错 + 接口真实成功）
