@@ -1,11 +1,22 @@
 /**
  * WordViewer - Word 文件查看器
  *
- * 使用 mammoth 将 Word 文档转换为 HTML 并渲染。
+ * 按文件真实格式分流（见 utils/wordDocument.ts）：
+ * - .docx（OOXML zip）→ mammoth 转 HTML，内联渲染
+ * - .doc 实为 MHTML（Confluence / Outlook 导出）→ 提取 HTML，sandbox iframe 渲染
+ * - .doc 实为 HTML → sandbox iframe 渲染
+ * - 旧版二进制 .doc（OLE2）/ .odt / .rtf → 明确提示无法在浏览器端解析
+ *
  * content 接收 base64 编码的 Word 数据（来自 FileRawContent.data）。
  */
 import React, { useState, useEffect } from 'react';
 import mammoth from 'mammoth';
+import DOMPurify from 'dompurify';
+import {
+  decodeWordDocument,
+  UNSUPPORTED_WORD_REASON,
+  type DecodedWordDocument,
+} from '../../utils/wordDocument';
 
 /** WordViewer 组件接口 */
 interface WordViewerProps {
@@ -15,55 +26,88 @@ interface WordViewerProps {
   fileName?: string;
 }
 
+type ViewState =
+  | { status: 'empty' }
+  | { status: 'loading' }
+  | { status: 'inline'; html: string }
+  | { status: 'document'; html: string }
+  | { status: 'unsupported'; reason: string }
+  | { status: 'error'; message: string };
+
 /**
- * 将 base64 字符串解码为 ArrayBuffer
- * mammoth 需要以 ArrayBuffer 形式接收数据
+ * 清洗 Word / MHTML 提取出的 HTML。
+ * 保留 style（Word 依赖其排版），移除脚本等可执行内容；
+ * 最终还会放进不带 allow-scripts 的 sandbox iframe，双重兜底。
  */
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryStr = atob(base64);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
-  }
-  return bytes.buffer;
+function sanitizeWordHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    WHOLE_DOCUMENT: true,
+    ADD_TAGS: ['style'],
+    ADD_ATTR: ['style'],
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'link', 'meta'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick'],
+  });
 }
 
 const WordViewer: React.FC<WordViewerProps> = ({ content, fileName }) => {
-  const [html, setHtml] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<ViewState>({ status: 'empty' });
 
   useEffect(() => {
     if (!content) {
-      setHtml('');
-      setError(null);
+      setState({ status: 'empty' });
       return;
     }
 
+    let cancelled = false;
+    setState({ status: 'loading' });
+
     const loadDocument = async () => {
       try {
-        // 解码 base64 为 ArrayBuffer
-        const arrayBuffer = base64ToArrayBuffer(content);
+        const doc: DecodedWordDocument = decodeWordDocument(content);
 
-        // 使用 mammoth 将 Word 转换为 HTML
-        const result = await mammoth.convertToHtml({ arrayBuffer });
-        setHtml(result.value);
+        if (doc.kind === 'docx' && doc.arrayBuffer) {
+          const result = await mammoth.convertToHtml({ arrayBuffer: doc.arrayBuffer });
+          if (cancelled) return;
+          setState({ status: 'inline', html: result.value });
 
-        if (result.messages.length > 0) {
-          // 记录转换过程中的警告信息（如不支持的样式等）
-          // eslint-disable-next-line no-console
-          console.warn('Word 转换警告:', result.messages);
+          if (result.messages.length > 0) {
+            // 记录转换过程中的警告信息（如不支持的样式等）
+            // eslint-disable-next-line no-console
+            console.warn('Word 转换警告:', result.messages);
+          }
+          return;
         }
+
+        if ((doc.kind === 'mhtml' || doc.kind === 'html') && doc.html) {
+          const html = sanitizeWordHtml(doc.html);
+          if (cancelled) return;
+          setState({ status: 'document', html });
+          return;
+        }
+
+        if (cancelled) return;
+        setState({
+          status: 'unsupported',
+          reason: UNSUPPORTED_WORD_REASON[doc.kind] || UNSUPPORTED_WORD_REASON.unknown,
+        });
       } catch (e) {
-        setError(`Word 解析失败：${e instanceof Error ? e.message : '未知错误'}`);
-        setHtml('');
+        if (cancelled) return;
+        setState({
+          status: 'error',
+          message: `Word 解析失败：${e instanceof Error ? e.message : '未知错误'}`,
+        });
       }
     };
 
     loadDocument();
+
+    return () => {
+      cancelled = true;
+    };
   }, [content]);
 
   // 无内容时显示占位提示
-  if (!content) {
+  if (state.status === 'empty') {
     return (
       <div className="flex items-center justify-center h-full text-ink-muted">
         <div className="text-center">
@@ -83,22 +127,40 @@ const WordViewer: React.FC<WordViewerProps> = ({ content, fileName }) => {
       </div>
 
       {/* Word 内容区域 */}
-      <div className="flex-1 overflow-auto bg-surface-3 p-6">
-        {error ? (
-          <div className="text-center text-danger py-8">
-            {error}
-          </div>
-        ) : html ? (
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: html }}
+      {state.status === 'document' ? (
+        // MHTML / HTML 形式的 .doc：sandbox iframe 隔离 Word 自带样式，禁止脚本执行
+        <div className="flex-1 overflow-hidden bg-white">
+          <iframe
+            title={fileName || 'Word 文档'}
+            className="w-full h-full border-0 bg-white"
+            sandbox=""
+            referrerPolicy="no-referrer"
+            srcDoc={state.html}
           />
-        ) : (
-          <div className="text-center text-ink-muted py-8">
-            加载 Word 文档中...
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto bg-surface-3 p-6">
+          {state.status === 'error' ? (
+            <div className="text-center text-danger py-8">
+              {state.message}
+            </div>
+          ) : state.status === 'unsupported' ? (
+            <div className="text-center text-ink-muted py-8 px-4">
+              <div className="text-base mb-2 text-ink">无法预览该 Word 文件</div>
+              <div className="text-sm">{state.reason}</div>
+            </div>
+          ) : state.status === 'inline' ? (
+            <div
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: state.html }}
+            />
+          ) : (
+            <div className="text-center text-ink-muted py-8">
+              加载 Word 文档中...
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
