@@ -84,6 +84,7 @@ if [ -n "${ORIGINAL_HEAD}" ] && git rev-parse --verify "${ORIGINAL_HEAD}" >/dev/
     fi
 fi
 
+# 应用 stash；返回 0=成功/软失败（untracked-only），1=tracked 文件真正冲突
 apply_stash() {
     local sha="$1"
     if [ -z "${sha}" ] || [ "${sha}" = "null" ]; then
@@ -97,45 +98,89 @@ apply_stash() {
     APPLY_OUT="$(git stash apply --index "${sha}" 2>&1)"
     APPLY_EXIT=$?
     set -e
-    if [ ${APPLY_EXIT} -ne 0 ]; then
-        echo "WARN: git stash apply 未干净成功：${APPLY_OUT}" >&2
-        if [ "${INVENTORY_JSON}" = "[]" ]; then
-            return 1
-        fi
+    if [ ${APPLY_EXIT} -eq 0 ]; then
         return 0
     fi
+    # stash apply 失败 → 区分 untracked-only 冲突 vs tracked 文件冲突
+    if echo "${APPLY_OUT}" | grep -q 'CONFLICT'; then
+        echo "ERROR: stash apply 存在 tracked 文件冲突，需手动解决" >&2
+        echo "${APPLY_OUT}" >&2
+        return 1
+    fi
+    if echo "${APPLY_OUT}" | grep -q 'already exists, no checkout'; then
+        # untracked 文件已存在 → 软失败，由后续 check_missing_files 判定
+        echo "WARN: git stash apply 因 untracked 文件已存在而报告失败（非真正错误）" >&2
+        return 0
+    fi
+    # 其他未知失败
+    echo "ERROR: git stash apply 未知失败" >&2
+    echo "${APPLY_OUT}" >&2
+    return 1
+}
+
+# 检查 inventory 中的文件是否都在磁盘上；返回 0=完整，1=有缺失
+check_missing_files() {
+    local missing
+    missing="$(python3 -c '
+import json, os, re, sys
+inv = json.loads(sys.argv[1])
+missing = []
+
+def decode_git_path(s):
+    """解码 git status --porcelain 中的路径（八进制转义 + 引号包裹）"""
+    if s.startswith("\"") and s.endswith("\""):
+        s = s[1:-1]
+        # git 用 \\NNN 八进制转义非 ASCII 字节
+        def _repl(m):
+            return bytes([int(m.group(1), 8)])
+        return re.sub(rb"\\([0-7]{3})", _repl, s.encode()).decode("utf-8", errors="replace")
+    return s
+
+for row in inv:
+    line = row.rstrip("\n")
+    if len(line) < 4:
+        continue
+    code = line[:2]
+    path = decode_git_path(line[3:])
+    # 工作区删除记录：文件本就不该存在
+    if code.strip() == "D":
+        continue
+    # CONFLICT 状态码（UU/AA/DD/AU/UA/DU/UD）：文件存在但需手动解决
+    stripped = code.strip()
+    if stripped in ("UU", "AA", "DD", "AU", "UA", "DU", "UD"):
+        continue
+    if not os.path.lexists(path):
+        missing.append(path)
+print("\n".join(missing))
+' "${INVENTORY_JSON}" 2>/dev/null || true)"
+    if [ -n "${missing}" ]; then
+        echo "ERROR: 恢复后仍缺失以下文件（stash 未 drop，可重试）：" >&2
+        echo "${missing}" >&2
+        return 1
+    fi
     return 0
+}
+
+# 检查 inventory 是否只有 untracked (??) 条目
+inventory_has_only_untracked() {
+    [ "${INVENTORY_JSON}" = "[]" ] && return 1
+    python3 -c '
+import json, sys
+inv = json.loads(sys.argv[1])
+for row in inv:
+    line = row.rstrip("\n")
+    if len(line) < 4: continue
+    if line[:2].strip() != "??":
+        sys.exit(1)
+sys.exit(0)
+' "${INVENTORY_JSON}" 2>/dev/null
 }
 
 if [ "${STASH_CREATED}" = true ] && [ -n "${STASH_SHA}" ]; then
     apply_stash "${STASH_SHA}" || exit 1
 fi
 
-MISSING="$(python3 -c '
-import json, os, sys
-inv = json.loads(sys.argv[1])
-missing = []
-for row in inv:
-    line = row.rstrip("\n")
-    if len(line) < 4:
-        continue
-    code = line[:2]
-    path = line[3:]
-    if path.startswith("\"") and path.endswith("\""):
-        path = bytes(path[1:-1], "utf-8").decode("unicode_escape")
-    # 工作区删除记录：文件本就不该存在
-    if code.strip() == "D":
-        continue
-    if not os.path.lexists(path):
-        missing.append(path)
-print("\n".join(missing))
-' "${INVENTORY_JSON}")"
-
-if [ -n "${MISSING}" ]; then
-    echo "ERROR: 恢复后仍缺失以下文件（stash 未 drop，可重试）：" >&2
-    echo "${MISSING}" >&2
-    exit 1
-fi
+check_missing_files || exit 1
 
 # 验证通过才 drop 对应 stash，绝不 drop 其它条目
 if [ -n "${STASH_SHA}" ]; then

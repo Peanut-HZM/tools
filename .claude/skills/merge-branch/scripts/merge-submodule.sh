@@ -7,6 +7,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# v3：远端认证自愈（fetch 失败时按 ~/.ssh/config IdentityFile 显式重试）与错误分类
+# shellcheck source=lib-git-auth.sh
+source "${SCRIPT_DIR}/lib-git-auth.sh"
+
 SUBMODULE_PATH="$1"
 SOURCE_BRANCH="$2"
 TARGET_BRANCH="$3"
@@ -137,8 +141,10 @@ if [ -n "${SUB_WORKTREE}" ]; then
 fi
 write_sub_restore_state
 
-# === fetch ===
-git fetch origin >/dev/null 2>&1 || fail_sub "submodule fetch 失败"
+# === fetch（带认证自愈；失败按分类报告） ===
+if ! git_fetch_with_retry origin; then
+    fail_sub "submodule fetch 失败（$(classify_git_error "${GIT_NET_LAST_ERR}")）"
+fi
 
 # === 辅助：检查远程分支 ===
 remote_has_branch() {

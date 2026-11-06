@@ -1,0 +1,15 @@
+# Shell 脚本强制 LF 行尾 —— CRLF 会导致 bash 报 `syntax error: \r`（Linux/macOS 失效）
+*.sh text eol=lf
+
+# 保持原有二进制识别
+*.db binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.whl binary
+*.exe binary
+*.msi binary

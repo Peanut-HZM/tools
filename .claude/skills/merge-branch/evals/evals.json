@@ -22,7 +22,7 @@
     {
       "id": 4,
       "prompt": "/merge-branch dev（在存在冲突的场景下）",
-      "expected_output": "脚本返回 merge_result=conflict + conflict_files。AI 读取每个冲突文件，分析三方改动，编辑文件解决冲突（代劳型），展示 diff 摘要（auto-resolved / needs-review / undecidable 分类），等用户确认后才 git add + commit + push。",
+      "expected_output": "脚本返回 merge_result=conflict + conflict_files。AI 读取每个冲突文件，分析三方改动，分析三方改动并为每个冲突区域拟定方案，全部展示（auto-resolved / needs-review / undecidable 分类），等用户明确确认后才写入解决结果、git add + commit + push；用户确认前禁止编辑冲突文件。",
       "files": []
     },
     {
@@ -40,7 +40,7 @@
     {
       "id": 7,
       "prompt": "/merge-branch dev（工作区有未提交改动和未跟踪文件）",
-      "expected_output": "脚本 stash -u 并记录 stash_sha。合并完成后必须运行 restore-workspace.sh（按 SHA apply，禁止 git stash pop）。未跑 restore 不得报告成功。",
+      "expected_output": "不询问、不暂停，记录未提交改动清单后直接调用脚本（脚本自动 stash -u）。只合并已提交的 commit。合并完成后必须运行 restore-workspace.sh（按 SHA apply，禁止 git stash pop），并用 git status --porcelain 确认未提交改动与合并前一致。最终报告必须含「未提交改动」区块，列出保留在原分支的文件并说明未包含在合并中。未跑 restore 不得报告成功。",
       "files": []
     },
     {
@@ -70,7 +70,7 @@
     {
       "id": 12,
       "prompt": "/merge-branch dev（submodule 中存在冲突）",
-      "expected_output": "submodule 脚本返回 merge_result=conflict。代劳型解决后 commit、push，在 submodule 内运行 restore-workspace.sh。回到主仓库提交 submodule 引用更新。",
+      "expected_output": "submodule 脚本返回 merge_result=conflict。AI 展示冲突方案并等用户明确确认后写入解决，再 commit、push，在 submodule 内运行 restore-workspace.sh。回到主仓库提交 submodule 引用更新。",
       "files": []
     },
     {
@@ -113,6 +113,54 @@
       "id": 19,
       "prompt": "/merge-branch dev（切分支）",
       "expected_output": "全程禁止 git checkout -f 与 git reset --hard。source 只允许 ff-only pull。push 前 merge-base --is-ancestor 验证 source 提交仍在。",
+      "files": []
+    },
+    {
+      "id": 20,
+      "prompt": "/merge-branch master（项目包含 submodule，且 submodule commit 对象本地齐全）",
+      "expected_output": "Step 5 自动 `git fetch --recurse-submodules=on-demand` + `git submodule update --init --recursive` 成功（无需 warn）。Step 9 merge 成功后，Step 9.5 自动 `git submodule update --init --merge --recursive`：若 source 与 target 的 submodule gitlink 满足祖先关系，git ort 策略自动 FF 到 descendant，无需 AI 介入。JSON 输出 `submodule_status[*].merge_strategy_hint` 为 `auto-ff-from-source` 或 `auto-ff-from-target`。",
+      "files": []
+    },
+    {
+      "id": 21,
+      "prompt": "/merge-branch master（项目包含 submodule，source 侧 submodule commit 对象本地缺失）",
+      "expected_output": "Step 5 自动 `git fetch --recurse-submodules=on-demand` 拉取缺失的 submodule commit 对象；Step 9 merge 三方比对因对象齐全而能自动进行，不再把 gitlink 指针作为冲突抛出。若仍有 gitlink 冲突，JSON `submodule_status[*]` 含 source/target commit 信息，AI 可读取并按 merge_strategy_hint 决策（auto-ff 时直接保留建议侧，无需用户决策）。",
+      "files": []
+    },
+    {
+      "id": 22,
+      "prompt": "/merge-branch master（项目包含 submodule，双方 submodule commit 对象都本地缺失）",
+      "expected_output": "Step 5 fetch + submodule update 全部失败（warn）。主仓库 merge 仍尝试进行；gitlink 冲突概率升高。冲突出现时 JSON submodule_status[*].objects_available=false，AI 应识别并主动 fetch submodule 远程 commit 对象补齐，再按 merge_strategy_hint 决策；若 fetch 后仍冲突，在阶段 3 接手处理：AI 展示冲突方案并等用户确认后写入解决。绝不掩盖 fetch 失败、把决策悄悄降级给用户。",
+      "files": []
+    },
+    {
+      "id": 23,
+      "prompt": "/merge-branch master（v2：submodule URL 是 HTTPS，主仓 origin 是 SSH）",
+      "expected_output": "Step 8.5 _submodule_ssh_url() 从主仓 origin（ssh://git@host:port/dir/xxx.git）推导 submodule SSH URL（ssh://git@host:port/dir/<sub_name>.git），优先尝试 SSH fetch；失败 fallback 到 .gitmodules 原 HTTPS URL。期望：objects_available=true，subject/commit_time/author 6 个新字段全填充。",
+      "files": []
+    },
+    {
+      "id": 24,
+      "prompt": "/merge-branch master（v2：submodule URL 主机不可达）",
+      "expected_output": "SSH fetch + HTTPS fallback 均失败。WARN 应按 stderr 关键字分类：本场景 'Could not resolve host' → 分类 'URL 配置错误'。提示信息明确指出 SSH URL 与 HTTPS URL，便于用户排查。绝不在 fetch 失败时静默掩盖。",
+      "files": []
+    },
+    {
+      "id": 25,
+      "prompt": "/merge-branch master（v2：merge 成功且 submodule 指针被 update --merge 改动，merge commit 未推送）",
+      "expected_output": "Step 9.6 安全闸：merge-base --is-ancestor HEAD origin/master 失败 → 判定未推送 → git add <submodule_path> + git commit --amend --no-edit。merge commit 的 tree 含更新后的 submodule 指针；commit message 保持 git 自动生成的 Merge branch 'agent-roi-dashboard'。INFO 提示 'amend，未推送安全'。",
+      "files": []
+    },
+    {
+      "id": 26,
+      "prompt": "/merge-branch master（v2：merge 成功但 submodule 指针未变）",
+      "expected_output": "Step 9.6 检测到 amended_submodules 为空，跳过 amend 与独立 commit，无 INFO 输出。merge commit 内容与未含 submodule 改动场景一致。",
+      "files": []
+    },
+    {
+      "id": 27,
+      "prompt": "/merge-branch master（v2：merge 成功但 merge commit 已推送 — 模拟 origin/master 已包含 HEAD）",
+      "expected_output": "Step 9.6 安全闸：merge-base --is-ancestor HEAD origin/master 成功 → 判定已推送 → 降级为独立 commit（git commit --no-edit -m 'chore: update submodule pointers after merge'）。绝不 amend 已发布的 merge commit hash。INFO 提示 '已推送，避免重写 hash'。",
       "files": []
     }
   ]
