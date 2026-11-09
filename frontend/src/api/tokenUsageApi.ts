@@ -13,7 +13,6 @@ export type TokenUsageSource =
   | 'claude'
   | 'opencode'
   | 'codex'
-  | 'openclaw'
   | 'copilot'
   | 'kimi'
   | 'zcode'

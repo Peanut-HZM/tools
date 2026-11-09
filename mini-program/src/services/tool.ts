@@ -14,7 +14,6 @@ const TOOL_PATH_MAP: Record<string, string | null> = {
   'ocr-tool': '/pages/ocr/index',
   'asr-tool': '/pages/asr/index',
   'http-api-client': '/pages/http-client/index',
-  'openclaw': '/pages/openclaw/index',
   // 第一批：媒体与文档
   'image-downloader': '/package-media/pages/image-downloader/index',
   'video-downloader': '/package-media/pages/video-downloader/index',

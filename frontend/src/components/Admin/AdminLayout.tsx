@@ -47,7 +47,6 @@ export const ADMIN_MENU_GROUPS: Array<{
       { path: '/admin/users', label: '用户管理', icon: <Users className="w-5 h-5" /> },
       { path: '/admin/oss', label: 'OSS 文件管理', icon: <CloudUpload className="w-5 h-5" /> },
       { path: '/admin/llm-configs', label: '大模型配置', icon: <Brain className="w-5 h-5" /> },
-      { path: '/admin/openclaw', label: 'OpenClaw 管理', icon: <MessagesSquare className="w-5 h-5" /> },
       { path: '/admin/mcp', label: 'MCP 工具', icon: <Plug className="w-5 h-5" /> },
       { path: '/admin/settings', label: '系统设置', icon: <Settings className="w-5 h-5" /> },
     ],

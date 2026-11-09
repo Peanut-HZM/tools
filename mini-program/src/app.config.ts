@@ -13,7 +13,6 @@ export default {
     'pages/asr/index',
     'pages/change-password/index',
     'pages/help/index',
-    'pages/openclaw/index',
   ],
   subPackages: [
     {

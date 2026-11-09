@@ -306,7 +306,7 @@ async def record_detail(record_id: int,
 
 # ---------- WebSocket ----------
 def _verify_ws_token(token: str) -> str:
-    """WS 认证：token 查询参数（小程序 Taro 全局 socket 无法带 header，沿用 openclaw_ws 先例）"""
+    """WS 认证：token 查询参数（小程序 Taro 全局 socket 无法带 header）"""
     try:
         token_data = get_auth_service().verify_token_data(token)
         return token_data.user_id

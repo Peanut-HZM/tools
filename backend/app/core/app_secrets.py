@@ -90,7 +90,7 @@ def get_or_create_secret(key_id: str, length: int = 32, engine=None) -> bytes:
     """
     读取（或首次生成）指定 key_id 的应用级密钥。
 
-    key_id: 密钥标识，如 'llm_master_key' / 'openclaw_master_key'
+    key_id: 密钥标识，如 'llm_master_key'
     length: 首次生成时的字节长度（读取已有值时忽略）
     engine: 可注入独立 engine（测试用）；默认使用全局 engine（结果进程内缓存）
 

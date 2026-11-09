@@ -17,7 +17,6 @@ import ConversationManagement from './components/Admin/ConversationManagement';
 import ContactMessagesManagement from './components/Admin/ContactMessagesManagement';
 import CrossShareMain from './components/Tools/CrossShare/CrossShareMain';
 import { WorkspacePage } from './components/Workspace/WorkspacePage';
-import OpenClawManagement from './components/Admin/OpenClawManagement';
 import McpServers from './components/Admin/McpServers';
 import CourseLearnPage from './pages/CourseLearnPage';
 import CoursesPage from './pages/CoursesPage';
@@ -65,7 +64,6 @@ const LearningSharePlatform = lazy(() => import('./components/Tools/LearningShar
 const HttpApiClient = lazy(() => import('./components/Tools/HttpApiClient/HttpApiClient'));
 const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
 const TokenUsage = lazy(() => import('./components/Tools/TokenUsage'));
-const OpenClawChat = lazy(() => import('./components/Tools/OpenClawChat/OpenClawChat'));
 const K8sTool = lazy(() => import('./components/Tools/K8sTool/K8sTool'));
 
 // React Query 客户端实例（进程级别单例）
@@ -363,7 +361,6 @@ function App() {
                     <Route path="http-api-client" element={<HttpApiClient />} />
                     <Route path="system-monitor" element={<SystemMonitor />} />
                     <Route path="token-usage" element={<TokenUsage />} />
-                    <Route path="openclaw" element={<OpenClawChat />} />
                     <Route path="k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
                   </Routes>
                 </Suspense>
@@ -383,7 +380,6 @@ function App() {
               <Route path="llm-configs" element={<LLMConfigsPage />} />
               <Route path="course" element={<CourseManagement />} />
               <Route path="course/:id" element={<CourseDetail />} />
-              <Route path="openclaw" element={<OpenClawManagement />} />
               <Route path="mcp" element={<McpServers />} />
             </Route>
 

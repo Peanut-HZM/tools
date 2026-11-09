@@ -172,14 +172,6 @@ async def lifespan(app: FastAPI):
         logger.warning(f"数据库连接池清理任务启动失败: {e}")
         db_pool_cleanup_task = None
 
-    # 启动 OpenClaw 连接
-    try:
-        from app.services.openclaw_service import openclaw_service
-
-        await openclaw_service.start()
-    except Exception as e:
-        logger.warning(f"OpenClaw 连接启动失败（功能将不可用）: {e}")
-
     # 启动 Token Usage 后台定时同步任务，不阻塞首屏查询
     start_background_sync_task()
 
@@ -296,13 +288,6 @@ async def lifespan(app: FastAPI):
     # 关闭时
     logger.info("Shutting down application...")
     logger.info("Harness ToolRegistry 已清理（按需实例随 session 释放）")
-
-    try:
-        from app.services.openclaw_service import openclaw_service
-
-        await openclaw_service.stop()
-    except Exception as e:
-        logger.error(f"OpenClaw 关闭异常: {e}")
 
     # 停止监控采集引擎
     try:
@@ -658,22 +643,12 @@ app.include_router(contact_message.router)
 # Monitor router（服务器监控）
 app.include_router(monitor_router.router, prefix="/api")
 
-# OpenClaw router
-from app.routes import openclaw as openclaw_router
-
 # HTTP Client router
 app.include_router(http_client.router, prefix="/api")
 
-# OpenClaw router (SSE streaming)
-app.include_router(openclaw_router.router, prefix="/api")
-
-# OpenClaw WebSocket router (mini-program)
-from app.routes import openclaw_ws as openclaw_ws_router
+# WebSocket 游戏路由
 from app.routes import werewolf as werewolf_router
 from app.routes import sanguo as sanguo_router
-
-app.include_router(openclaw_ws_router.router, prefix="/api")
-app.include_router(werewolf_router.router, prefix="/api")
 app.include_router(sanguo_router.router)
 # WS 路由直接挂载：经 include_router 注册的 websocket 路由在本 Starlette 版本
 # 的 _IncludedRouter 分发下会被 1008 拒绝，故用纯 Starlette 路由挂载
@@ -683,11 +658,6 @@ app.router.routes.append(_WerewolfWSRoute("/api/games/werewolf/rooms/{room_id}/w
                                           werewolf_router.room_ws))
 app.router.routes.append(_WerewolfWSRoute("/api/games/sanguo/rooms/{room_id}/ws",
                                           sanguo_router.sanguo_room_ws))
-
-# OpenClaw Admin router
-from app.routes import openclaw_admin as openclaw_admin_router
-
-app.include_router(openclaw_admin_router.router)
 
 # Harness memories management router (Phase 3 Plan-1B / Task 6)
 from app.api.routes.harness_memories import (

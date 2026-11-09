@@ -8,15 +8,13 @@
 处理项：
     1. sql_execution_history.sql_statement / error_message / result_data
        —— 落库前脱敏（保持可读，遮蔽其中的密钥/口令/私钥）
-    2. openclaw_configs.token
-       —— Fernet 密文（与运行时 openclaw_config_service.encrypt_value 同一密钥）
-    3. cross_share_messages.content
+    2. cross_share_messages.content
        —— enc:v1: 密文（与运行时 secure_storage.encrypt_text 同一主密钥）
-    4. http_requests.auth_config / headers
+    3. http_requests.auth_config / headers
        —— enc:v1: 密文（JSON 字符串形态，列类型不变）
-    5. http_environments.variables
+    4. http_environments.variables
        —— enc:v1: 密文（JSON 字符串形态，列类型不变）
-    6. http_request_history.request_data
+    5. http_request_history.request_data
        —— enc:v1: 密文（含实际请求头，可能带 Authorization）
        http_request_history.response_data
        —— 脱敏（保持可读，遮蔽响应体中的凭据）
@@ -46,7 +44,6 @@ from psycopg2.extras import RealDictCursor
 
 from app.utils.sensitive_redactor import redact_sensitive, redact_structure
 from app.utils.secure_storage import CIPHER_PREFIX, decrypt_text, encrypt_text
-from app.services.openclaw_config_service import encrypt_value as openclaw_encrypt
 
 DRY_RUN = "--dry-run" in sys.argv
 
@@ -65,7 +62,7 @@ def count_rows(cur, table: str, where: str = "", params=()) -> int:
 
 def migrate_sql_history(cur, conn):
     """1. SQL 执行历史脱敏"""
-    log("\n=== [1/6] sql_execution_history 脱敏 ===")
+    log("\n=== [1/5] sql_execution_history 脱敏 ===")
     cur.execute("SELECT id, sql_statement, error_message, result_data FROM sql_execution_history")
     rows = cur.fetchall()
     before = len(rows)
@@ -94,34 +91,9 @@ def migrate_sql_history(cur, conn):
     return changed
 
 
-def migrate_openclaw_token(cur, conn):
-    """2. openclaw_configs.token 加密"""
-    log("\n=== [2/6] openclaw_configs.token 加密 ===")
-    cur.execute("SELECT config_key, config_value FROM openclaw_configs WHERE config_key = 'token'")
-    row = cur.fetchone()
-    if not row:
-        log("  token 配置不存在，跳过")
-        return 0
-    value = row["config_value"] or ""
-    if value.startswith("gAAAAA"):
-        log("  已是 Fernet 密文，跳过")
-        return 0
-    if not value:
-        log("  token 为空，跳过")
-        return 0
-    if not DRY_RUN:
-        cur.execute(
-            "UPDATE openclaw_configs SET config_value = %s, updated_at = CURRENT_TIMESTAMP WHERE config_key = 'token'",
-            (openclaw_encrypt(value),),
-        )
-        conn.commit()
-    log("  明文 token 已加密（dry_run=%s）" % DRY_RUN)
-    return 1
-
-
 def migrate_cross_share(cur, conn):
     """3. cross_share_messages.content 加密"""
-    log("\n=== [3/6] cross_share_messages.content 加密 ===")
+    log("\n=== [2/5] cross_share_messages.content 加密 ===")
     cur.execute("SELECT id, content FROM cross_share_messages WHERE content IS NOT NULL AND content <> ''")
     rows = cur.fetchall()
     changed = 0
@@ -177,7 +149,7 @@ def _parse_json_value(raw):
 
 def migrate_http_requests(cur, conn):
     """4. http_requests.auth_config / headers 加密"""
-    log("\n=== [4/6] http_requests.auth_config / headers 加密 ===")
+    log("\n=== [3/5] http_requests.auth_config / headers 加密 ===")
     cur.execute("SELECT id, auth_config, headers FROM http_requests")
     rows = cur.fetchall()
     changed = 0
@@ -207,7 +179,7 @@ def migrate_http_requests(cur, conn):
 
 def migrate_http_environments(cur, conn):
     """5. http_environments.variables 加密"""
-    log("\n=== [5/6] http_environments.variables 加密 ===")
+    log("\n=== [4/5] http_environments.variables 加密 ===")
     cur.execute("SELECT id, variables FROM http_environments")
     rows = cur.fetchall()
     changed = 0
@@ -232,7 +204,7 @@ def migrate_http_environments(cur, conn):
 
 def migrate_http_history(cur, conn):
     """6. http_request_history 加密 request_data / 脱敏 response_data"""
-    log("\n=== [6/6] http_request_history 加密 request_data / 脱敏 response_data ===")
+    log("\n=== [5/5] http_request_history 加密 request_data / 脱敏 response_data ===")
     cur.execute("SELECT id, request_data, response_data FROM http_request_history")
     rows = cur.fetchall()
     changed_req = 0
@@ -289,12 +261,6 @@ def verify(cur):
         status = "OK" if not hits else "!! 仍有残留"
         log(f"  [{status}] {table}.{col} 含明文 key 形态：{len(hits)} 行")
 
-    cur.execute("SELECT config_value FROM openclaw_configs WHERE config_key = 'token'")
-    row = cur.fetchone()
-    if row:
-        v = row["config_value"] or ""
-        log(f"  [{'OK' if v.startswith('gAAAAA') else '!!'}] openclaw_configs.token 密文形态：{v[:8]}...")
-
     cur.execute("SELECT COUNT(*) AS c FROM cross_share_messages WHERE content LIKE %s", (f"%{CIPHER_PREFIX}%",))
     log(f"  跨设备消息已加密数：{cur.fetchone()['c']}")
 
@@ -312,7 +278,6 @@ def main():
 
     total = 0
     total += migrate_sql_history(cur, conn)
-    total += migrate_openclaw_token(cur, conn)
     total += migrate_cross_share(cur, conn)
     total += migrate_http_requests(cur, conn)
     total += migrate_http_environments(cur, conn)

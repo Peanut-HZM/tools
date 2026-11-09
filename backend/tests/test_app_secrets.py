@@ -69,7 +69,7 @@ class TestKeyInDb:
 
     def test_different_key_ids_independent(self, sqlite_engine):
         key_a = get_or_create_secret("llm_master_key", engine=sqlite_engine)
-        key_b = get_or_create_secret("openclaw_master_key", engine=sqlite_engine)
+        key_b = get_or_create_secret("cross_share_master_key", engine=sqlite_engine)
         assert key_a != key_b
 
     def test_persisted_in_db(self, sqlite_engine):

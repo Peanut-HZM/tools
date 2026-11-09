@@ -12,7 +12,6 @@ vi.mock('./toolComponents', () => ({
     'ssh-tool': () => <div>SSH 会话内容</div>,
     'markdown-editor': () => <div>文件编辑草稿</div>,
     'json-formatter': () => <div>JSON 草稿</div>,
-    'openclaw': () => <div>流式对话任务</div>,
   },
 }));
 
@@ -40,7 +39,7 @@ describe('TabPanels', () => {
       'database-tool', 'ssh-tool', 'markdown-editor', 'redis-tool', 'token-usage',
       'json-formatter', 'calendar', 'ai-assistant', 'key-generator', 'ocr-tool', 'ocr',
       'asr-tool', 'asr', 'markitdown-converter', 'learning-share', 'course-platform',
-      'cross-share', 'openclaw', 'product-manager', 'image-downloader',
+      'cross-share', 'product-manager', 'image-downloader',
       'video-downloader', 'image-generation', 'video-generation', 'system-monitor',
     ]));
   });
@@ -77,7 +76,6 @@ describe('TabPanels', () => {
     ['ssh-tool', 'SSH 会话内容'],
     ['markdown-editor', '文件编辑草稿'],
     ['json-formatter', 'JSON 草稿'],
-    ['openclaw', '流式对话任务'],
   ])('%s 非活跃时保留用户上下文', (toolId, content) => {
     useWorkspaceStore.setState({
       tabs: [

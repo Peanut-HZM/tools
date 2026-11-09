@@ -33,7 +33,6 @@ export const SESSION_KEEP_ALIVE_TOOLS = new Set([
   'learning-share',
   'course-platform',
   'cross-share',
-  'openclaw',
   'product-manager',
   'image-downloader',
   'video-downloader',

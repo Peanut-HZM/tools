@@ -251,8 +251,8 @@ def release_db_connection(conn):
 
     接受 _PooledRawConnection（新路径）或任何有 .close() 的对象（向后兼容）。
 
-    关键修复：在 close() 前显式 rollback()。背景：openclaw_config_service
-    等模块在 import 时会通过 psycopg2 直接使用池中的连接。如果该连接
+    关键修复：在 close() 前显式 rollback()。背景：某些服务模块
+    在 import 时会通过 psycopg2 直接使用池中的连接。如果该连接
     因某种原因处于异常状态，pool_reset_on_return='rollback' 可能不触发
     （因为 _PooledRawConnection 包装了底层连接，SQLAlchemy 的 reset
     可能作用于 fairy 层而非 DBAPI 层）。显式 rollback 确保连接状态

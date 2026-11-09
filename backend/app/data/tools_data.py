@@ -204,17 +204,6 @@ TOOLS_DATA = [
         category="开发工具",
     ),
     Tool(
-        id="openclaw",
-        icon="fa-comments",
-        iconColor="bg-violet-500",
-        title="OpenClaw AI 对话",
-        description="连接 OpenClaw Gateway 的 AI 智能对话助手",
-        rating=4.9,
-        usageCount="New",
-        category="AI工具",
-        require_login=True,
-    ),
-    Tool(
         id="k8s-tool",
         icon="fa-dharmachakra",
         iconColor="bg-blue-600",
