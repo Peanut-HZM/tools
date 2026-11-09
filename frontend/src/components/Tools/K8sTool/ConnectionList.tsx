@@ -128,10 +128,10 @@ const SortableConnectionItem: React.FC<{
       <button
         type="button"
         aria-pressed={isSelected}
-        className="min-w-0 flex-1 truncate text-left"
+        className="min-w-0 flex-1 text-left"
         onClick={() => onSelect(conn.id)}
       >
-        <div className="flex truncate text-xs font-medium">
+        <div className="flex text-xs font-medium">
           <span
             className={['w-2 h-2 rounded-full mr-2 flex-shrink-0', getHealthDotClass(conn)].join(' ')}
             title={
@@ -143,7 +143,8 @@ const SortableConnectionItem: React.FC<{
             }
           ></span>
           {getSourceIcon(conn.source_type)}
-          <span className="truncate min-w-0">{conn.name}</span>
+          {/* break-all：连接名称始终完整展示，过长时自动换行而非截断 */}
+          <span className="min-w-0 break-all">{conn.name}</span>
           <span className="ml-1.5 flex-shrink-0">
             <StorageLocationBadge
               location={(conn.storage_location ?? 'local') as StorageLocation}
@@ -151,12 +152,13 @@ const SortableConnectionItem: React.FC<{
             />
           </span>
         </div>
-        <div className="ml-4 mt-0.5 truncate text-[10px] text-ink-faint group-hover:text-ink-muted" title={conn.server || conn.cluster_name}>
+        <div className="ml-4 mt-0.5 break-all text-[10px] text-ink-faint group-hover:text-ink-muted" title={conn.server || conn.cluster_name}>
           {conn.server || conn.cluster_name}
         </div>
       </button>
 
-      <div className="flex space-x-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ml-2 flex-shrink-0">
+      {/* 操作按钮始终显示，不随 hover 隐藏（隐藏但占位会造成名称截断 + 行内留白） */}
+      <div className="flex space-x-1 ml-2 flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"

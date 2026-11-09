@@ -631,8 +631,9 @@ const handleSelectAndExpand = async () => {
            <div className="flex-1 min-w-0">
              <div className="flex items-center space-x-2 min-w-0">
                 {/* min-w-0：flex 子元素默认 min-width:auto，不加则拒绝收缩，
-                    徽章会把别名挤成只剩首字母 + 省略号 */}
-                <span className="font-medium truncate text-sm min-w-0">{config.alias}</span>
+                    徽章会把别名挤成只剩首字母 + 省略号。
+                    break-all：别名始终完整展示，过长时自动换行而非截断 */}
+                <span className="font-medium text-sm min-w-0 break-all">{config.alias}</span>
                 {config.environment && (
                   <Badge variant={getEnvColor(config.environment)} className="text-[10px] px-1.5 py-0 shrink-0">
                     {config.environment}
@@ -648,7 +649,8 @@ const handleSelectAndExpand = async () => {
            </div>
         </div>
 
-        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* 操作按钮始终显示，不随 hover 隐藏（隐藏但占位会造成名称截断 + 行内留白） */}
+        <div className="flex items-center space-x-1">
           {/* 迁移按钮：目标侧可用时展示（移到本机始终可用，移到服务器需服务器在线） */}
           {(() => {
             const target: StorageLocation = (config.storage_location ?? 'local') === 'local' ? 'server' : 'local';
