@@ -29,6 +29,7 @@ import StorageLocationBadge from '../../Common/StorageLocationBadge';
 import { migrateConfig } from '../../../api/storageApi';
 import { useToast } from '../../../hooks/useToast';
 import type { StorageLocation } from '../../../types/storage';
+import { useNameFitWidth } from './useAdaptiveSidebarWidth';
 
 interface Props {
   configs: K8sConnection[];
@@ -38,6 +39,8 @@ interface Props {
   onEdit: (config: K8sConnection) => void;
   onDelete: (id: string) => void;
   onSortEnd: (configIds: string[]) => void;
+  /** 侧栏宽度自适应：上报"让所有连接名称完整显示所需的宽度"（px） */
+  onRequiredWidthChange?: (width: number) => void;
 }
 
 function getHealthDotClass(conn: K8sConnection): string {
@@ -65,7 +68,9 @@ const SortableConnectionItem: React.FC<{
   onMigrated?: () => void;
   k8sT: any;
   t: any;
-}> = ({ conn, selectedId, onSelect, onEdit, onDelete, onMigrated, k8sT, t }) => {
+  /** 名称元素的 ref 回调，用于测量截断状态 */
+  nameRef?: (el: HTMLElement | null) => void;
+}> = ({ conn, selectedId, onSelect, onEdit, onDelete, onMigrated, k8sT, t, nameRef }) => {
   const { addToast } = useToast();
   const {
     attributes,
@@ -143,8 +148,9 @@ const SortableConnectionItem: React.FC<{
             }
           ></span>
           {getSourceIcon(conn.source_type)}
-          {/* break-all：连接名称始终完整展示，过长时自动换行而非截断 */}
-          <span className="min-w-0 break-all">{conn.name}</span>
+          {/* 单行展示：宽度由侧栏自适应保证完整显示（useNameFitWidth 测量真实
+              截断状态并上报所需宽度）；极端窄宽时仍以省略号兜底，title 可悬停看全名 */}
+          <span ref={nameRef} className="min-w-0 truncate" title={conn.name}>{conn.name}</span>
           <span className="ml-1.5 flex-shrink-0">
             <StorageLocationBadge
               location={(conn.storage_location ?? 'local') as StorageLocation}
@@ -152,7 +158,7 @@ const SortableConnectionItem: React.FC<{
             />
           </span>
         </div>
-        <div className="ml-4 mt-0.5 break-all text-[10px] text-ink-faint group-hover:text-ink-muted" title={conn.server || conn.cluster_name}>
+        <div className="ml-4 mt-0.5 truncate text-[10px] text-ink-faint group-hover:text-ink-muted" title={conn.server || conn.cluster_name}>
           {conn.server || conn.cluster_name}
         </div>
       </button>
@@ -212,12 +218,22 @@ export const ConnectionList: React.FC<Props> = ({
   onEdit,
   onDelete,
   onSortEnd,
+  onRequiredWidthChange,
 }) => {
   const { t } = useI18n();
   const k8sT = t.tools['k8s-tool'];
   const queryClient = useQueryClient();
   const [items, setItems] = useState(configs);
   const [searchText, setSearchText] = useState('');
+
+  // 侧栏宽度自适应：测量每个名称元素的真实截断状态，上报所需宽度
+  const sidebarRef = React.useRef<HTMLDivElement | null>(null);
+  const { registerName, requiredWidth } = useNameFitWidth(sidebarRef);
+
+  useEffect(() => {
+    onRequiredWidthChange?.(requiredWidth);
+  }, [requiredWidth, onRequiredWidthChange]);
+
   const visibleItems = items.filter((connection) => {
     const keyword = searchText.trim().toLowerCase();
     if (!keyword) return true;
@@ -249,7 +265,10 @@ export const ConnectionList: React.FC<Props> = ({
   return (
     // 桌面端高度由内容决定（md:h-auto），避免连接少时撑满整列留白；
     // 内容超出时列表区自身滚动（下方 flex-1 + overflow-y-auto）。
-    <div className="flex h-full w-full flex-col border-r border-border bg-surface-1 md:h-auto md:max-h-full">
+    <div
+      ref={sidebarRef}
+      className="flex h-full w-full flex-col border-r border-border bg-surface-1 md:h-auto md:max-h-full"
+    >
       <div className="flex flex-col gap-2 border-b border-border bg-surface-1 p-3">
         <div className="flex justify-between items-center">
           <div>
@@ -281,7 +300,7 @@ export const ConnectionList: React.FC<Props> = ({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
           <div className="flex-1 space-y-1 overflow-y-auto p-2 md:min-h-0 md:max-h-[calc(100vh-160px)]">
-            {visibleItems.map(conn => (
+            {visibleItems.map((conn, index) => (
               <SortableConnectionItem
                 key={conn.id}
                 conn={conn}
@@ -294,6 +313,7 @@ export const ConnectionList: React.FC<Props> = ({
                 }
                 k8sT={k8sT}
                 t={t}
+                nameRef={registerName(index)}
               />
             ))}
 

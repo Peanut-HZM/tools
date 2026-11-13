@@ -38,6 +38,11 @@ const K8sTool: React.FC = () => {
   const dragStartXRef = useRef(0);
   const dragStartWidthRef = useRef(0);
 
+  // 侧栏宽度自适应：连接列表测量出"让所有名称完整显示所需的宽度"后上报。
+  // 与用户拖动的宽度取较大值——名称必须完整，手动拖宽依然可用。
+  const [requiredSidebarWidth, setRequiredSidebarWidth] = useState(0);
+  const effectiveSidebarWidth = Math.max(sidebarWidth, requiredSidebarWidth);
+
   // 加载连接列表（React Query 自动轮询刷新）
   const connectionsQuery = useK8sConnections();
 
@@ -141,7 +146,7 @@ const K8sTool: React.FC = () => {
           桌面端不再强制撑满整列高度（改为内容自适应），否则连接少时下方大片空白；
           列表内容超出时自身滚动（ConnectionList 内部 overflow-y-auto）。 */}
       <div
-        style={{ '--cluster-sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
+        style={{ '--cluster-sidebar-width': `${effectiveSidebarWidth}px` } as React.CSSProperties}
         className="h-64 w-full shrink-0 md:h-auto md:w-[var(--cluster-sidebar-width)]"
       >
         <ConnectionList
@@ -152,6 +157,7 @@ const K8sTool: React.FC = () => {
           onEdit={handleEditConfig}
           onDelete={handleDeleteConfig}
           onSortEnd={handleSortEnd}
+          onRequiredWidthChange={setRequiredSidebarWidth}
         />
       </div>
 
@@ -163,7 +169,7 @@ const K8sTool: React.FC = () => {
         aria-orientation="vertical"
         aria-valuemin={200}
         aria-valuemax={500}
-        aria-valuenow={sidebarWidth}
+        aria-valuenow={effectiveSidebarWidth}
         aria-label="调整集群列表宽度"
         onKeyDown={(event) => {
           if (event.key === 'ArrowLeft') {

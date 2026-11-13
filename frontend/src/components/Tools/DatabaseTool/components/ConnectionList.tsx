@@ -632,8 +632,8 @@ const handleSelectAndExpand = async () => {
              <div className="flex items-center space-x-2 min-w-0">
                 {/* min-w-0：flex 子元素默认 min-width:auto，不加则拒绝收缩，
                     徽章会把别名挤成只剩首字母 + 省略号。
-                    break-all：别名始终完整展示，过长时自动换行而非截断 */}
-                <span className="font-medium text-sm min-w-0 break-all">{config.alias}</span>
+                    单行展示：超宽时省略号截断（title 悬停看全名），拖宽侧栏可完整显示，禁止换行 */}
+                <span className="font-medium truncate text-sm min-w-0" title={config.alias}>{config.alias}</span>
                 {config.environment && (
                   <Badge variant={getEnvColor(config.environment)} className="text-[10px] px-1.5 py-0 shrink-0">
                     {config.environment}
