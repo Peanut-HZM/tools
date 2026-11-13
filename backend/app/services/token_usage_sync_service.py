@@ -57,6 +57,8 @@ SOURCE_TOOL_MAPPING: dict[str, dict] = {
     "qwen": {"tool_id": "qwen", "tool_name": "Qwen"},
     "zcode": {"tool_id": "zcode", "tool_name": "ZCode"},
     "minimax": {"tool_id": "minimax", "tool_name": "MiniMax Code"},
+    # Paseo 托管的 ACP Agent（GLM / Kimi / Cursor 等），用量由 ACP 中间层落盘
+    "paseo": {"tool_id": "paseo", "tool_name": "Paseo ACP Agent"},
 }
 
 # 已由原生读取器覆盖的 source（source id 与历史采集实现保持一致，
@@ -69,6 +71,7 @@ NATIVE_READER_SOURCES: tuple[str, ...] = (
     "zcode",
     "openclaw",
     "opencode",
+    "paseo",
 )
 
 # 已知 source 全集（= SOURCE_TOOL_MAPPING 的 key）。

@@ -33,6 +33,7 @@ from app.utils.agent_readers.kimi_reader import read_kimi_records
 from app.utils.agent_readers.minimax_reader import read_minimax_records
 from app.utils.agent_readers.openclaw_reader import read_openclaw_records
 from app.utils.agent_readers.opencode_reader import read_opencode_records
+from app.utils.agent_readers.paseo_reader import read_paseo_records
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ READERS: dict[str, ReaderFn] = {
     "minimax": read_minimax_records,
     "openclaw": read_openclaw_records,
     "opencode": read_opencode_records,
+    "paseo": read_paseo_records,
 }
 
 # 已在本机实测通过的 Agent（单测 + 实测双重验证）
@@ -78,6 +80,7 @@ VERIFIED_AGENTS: tuple[str, ...] = (
     "zcode",
     "openclaw",
     "opencode",
+    "paseo",
 )
 
 
