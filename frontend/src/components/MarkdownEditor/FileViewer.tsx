@@ -15,7 +15,7 @@
  * 类型判断逻辑统一由 utils/fileType.ts 提供，FileViewer 仅负责路由。
  */
 import React from 'react';
-import { getFileCategory, getFileLanguage } from '../../utils/fileType';
+import { getFileCategoryWithContentType, getFileLanguage } from '../../utils/fileType';
 import Editor from './Editor/Editor';
 import CodeEditor from './CodeEditor';
 import PdfViewer from './PdfViewer';
@@ -30,6 +30,13 @@ import type { EditorConfig } from '../../types/markdownEditor';
 interface FileViewerProps {
   /** 文件路径（含或不含路径前缀均可，按扩展名判断） */
   filePath: string;
+  /**
+   * 后端返回的 MIME 类型。
+   *
+   * **没有扩展名**的文件（如 `xa-higress-config`）无法靠文件名判断类型，
+   * 需要靠这个值（后端已做内容嗅探）路由到正确的查看器。
+   */
+  contentType?: string;
   /** 文件内容；文本文件为文本字符串，二进制文件（如 PDF）为 base64 数据 */
   fileContent: string | null;
   /** 内容变更回调（仅对可编辑文件类型生效） */
@@ -58,6 +65,7 @@ const PlaceholderViewer: React.FC<{ fileType: string }> = ({ fileType }) => (
 
 const FileViewer: React.FC<FileViewerProps> = ({
   filePath,
+  contentType,
   fileContent,
   onChange,
   readOnly: _readOnly,
@@ -65,7 +73,9 @@ const FileViewer: React.FC<FileViewerProps> = ({
   onSave,
   onCursorChange,
 }) => {
-  const category = getFileCategory(filePath);
+  // 先按文件名（扩展名）判断；识别不出来时用 MIME 类型兜底，
+  // 保证无扩展名的文本文件（如 higress config）也能正常打开
+  const category = getFileCategoryWithContentType(filePath, contentType);
 
   switch (category) {
     case 'code': {

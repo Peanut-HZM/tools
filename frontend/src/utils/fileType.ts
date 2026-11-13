@@ -49,8 +49,7 @@ const LANGUAGE_MAP: Record<string, string> = {
   yaml: 'yaml',
   yml: 'yaml',
   kubeconfig: 'yaml',
-  toml: 'toml',
-  ini: 'ini',
+  toml: 'toml',  ini: 'ini',
   conf: 'ini',
   cfg: 'ini',
   properties: 'ini',
@@ -130,4 +129,78 @@ export function getFileLanguage(filename: string): string {
 export function isTextFile(filename: string): boolean {
   const category = getFileCategory(filename);
   return category === 'text' || category === 'code';
+}
+
+/**
+ * 根据后端返回的 MIME 类型判断是否属于文本内容
+ *
+ * 用于**没有扩展名**的文件（如 `xa-higress-config`）：这类文件无法靠
+ * 文件名判断类型，但后端在读取时已经做了内容嗅探（`_sniff_is_text`），
+ * 会返回 `text/plain`（或 `text/*`）。
+ *
+ * @param contentType - 后端 `read-raw` 返回的 content_type
+ * @returns 是否为文本内容
+ */
+export function isTextContentType(contentType: string | undefined | null): boolean {
+  if (!contentType) return false;
+  const normalized = contentType.trim().toLowerCase();
+  if (!normalized) return false;
+  // 明确的二进制类型
+  if (normalized === 'application/octet-stream') return false;
+  if (normalized.startsWith('image/')) return false;
+  if (normalized.startsWith('audio/') || normalized.startsWith('video/')) return false;
+  if (
+    normalized === 'application/pdf' ||
+    normalized === 'application/zip' ||
+    normalized === 'application/x-zip-compressed' ||
+    normalized === 'application/gzip' ||
+    normalized === 'application/msword' ||
+    normalized === 'application/vnd.openxmlformats-officedocument' ||
+    normalized === 'application/vnd.ms-excel' ||
+    normalized === 'application/vnd.ms-powerpoint'
+  ) {
+    return false;
+  }
+  // text/* 以及常见的文本类 JSON / XML / JS MIME
+  return (
+    normalized.startsWith('text/') ||
+    normalized === 'application/json' ||
+    normalized === 'application/xml' ||
+    normalized === 'application/javascript' ||
+    normalized === 'application/x-sh' ||
+    normalized === 'application/yaml' ||
+    normalized === 'application/x-yaml'
+  );
+}
+
+/**
+ * 综合文件路径与 MIME 类型判断文件分类
+ *
+ * 优先级：
+ * 1. 文件名能识别出扩展名 → 用扩展名判断（最准确）
+ * 2. 没有扩展名（`getFileCategory` 返回 'unknown'）→ 用 MIME 类型兜底：
+ *    - 文本类 MIME → 'text'（用编辑器打开）
+ *    - 图片类 MIME → 'image'
+ *    - 其余 → 'unknown'
+ *
+ * 这样 `xa-higress-config`（无扩展名、实际是文本）就能正常打开，
+ * 而不是落到「不支持的文件类型」占位页。
+ *
+ * @param filename - 文件名（含或不含路径均可）
+ * @param contentType - 后端返回的 MIME 类型，可选
+ * @returns 文件所属类别
+ */
+export function getFileCategoryWithContentType(
+  filename: string,
+  contentType?: string | undefined | null,
+): FileCategory {
+  const byName = getFileCategory(filename);
+  if (byName !== 'unknown') return byName;
+
+  const normalized = (contentType || '').trim().toLowerCase();
+  if (!normalized) return 'unknown';
+
+  if (normalized.startsWith('image/')) return 'image';
+  if (isTextContentType(normalized)) return 'text';
+  return 'unknown';
 }

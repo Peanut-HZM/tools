@@ -422,7 +422,9 @@ export function FileProvider({ children }: { children: ReactNode }) {
         path: file.path,
         content: textContent || '',
         size: file.size,
-        modified: file.modified
+        modified: file.modified,
+        // 保留后端嗅探出的 MIME 类型：无扩展名的文件靠它路由到正确查看器
+        contentType: file.content_type,
       });
       setCurrentFilePath(path);
       // 文件在内容区打开后，文件树立即定位到该文件所在目录

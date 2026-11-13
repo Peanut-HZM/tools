@@ -16,7 +16,7 @@ from app.models.file_models import (
 from app.utils.path_utils import (
     validate_path, validate_any_path, is_hidden, is_markdown_file,
     get_relative_path, normalize_path, ensure_user_directory,
-    get_file_type, get_extension, is_previewable, expand_user_path,
+    get_file_type, get_effective_file_type, get_extension, is_previewable, expand_user_path,
     is_sensitive_path, is_sensitive_path_literal
 )
 
@@ -371,7 +371,7 @@ class MarkdownFileService:
                 modified=datetime.fromtimestamp(stat.st_mtime),
                 created=datetime.fromtimestamp(stat.st_ctime),
                 extension=get_extension(entry.name),
-                file_type=get_file_type(entry.name),
+                file_type=get_effective_file_type(entry.name),
                 previewable=is_previewable(entry.name),
             ))
             _state["count"] += 1
@@ -1067,7 +1067,7 @@ class MarkdownFileService:
                     "name": entry.name,
                     "path": normalize_path(entry_rel_path),
                     "extension": get_extension(entry.name),
-                    "file_type": get_file_type(entry.name),
+                    "file_type": get_effective_file_type(entry.name),
                     "previewable": is_previewable(entry.name),
                     "size": stat.st_size,
                 })

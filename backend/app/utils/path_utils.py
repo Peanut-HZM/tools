@@ -2,6 +2,7 @@
 Path validation utilities for security
 """
 import os
+import re
 from pathlib import Path
 from typing import Tuple, Optional
 
@@ -181,6 +182,22 @@ FILE_TYPE_MAP: dict[str, list[str]] = {
 PREVIEWABLE_TYPES: set[str] = {'markdown', 'html'}
 
 
+# 无扩展名但内容确定是文本的知名配置文件名后缀（精确匹配文件名，不含路径）
+#
+# 背景：`xa-higress-config` 这类文件没有扩展名，靠扩展名判断会落到 'other'，
+# 前端无法路由到编辑器（显示「不支持的文件类型」）。
+# 这里按**文件名后缀**把这类文件识别为 YAML 文本，既能正常打开，
+# 也能在列表里显示正确的图标。
+#
+# 注意：这里只登记「确定是文本」的知名配置，避免把任意无扩展名文件
+# （可能是二进制）误判成文本。
+KNOWN_EXTENSIONLESS_TEXT_SUFFIXES: dict[str, str] = {
+    'kubeconfig': 'yaml',
+    'higress-config': 'yaml',
+    'config': 'yaml',
+}
+
+
 def get_file_type(name: str) -> str:
     """根据文件名（或路径）返回文件类型分类。
 
@@ -191,6 +208,51 @@ def get_file_type(name: str) -> str:
     for file_type, extensions in FILE_TYPE_MAP.items():
         if any(lower_name.endswith(ext) for ext in extensions):
             return file_type
+    return 'other'
+
+
+def get_file_type_for_extensionless(name: str) -> str:
+    """判断无扩展名的知名文本配置文件，返回其语言标识。
+
+    仅对**没有扩展名**的文件生效（``os.path.splitext`` 结果为空）。
+    命中返回语言标识（如 ``'yaml'``），未命中返回空串。
+
+    匹配时会去掉常见的副本后缀（``-copy`` / ``(1)`` / ``-pd(1)`` 等），
+    因此 ``xa-higress-config`` 与 ``xa-higress-config-pd(1)`` 都能命中。
+
+    用途：让这类文件在前端也能正确路由到编辑器，
+    并在文件列表中显示为 YAML 类型而不是「其他」。
+    """
+    base = os.path.basename(name).lower()
+    if os.path.splitext(base)[1]:
+        # 有扩展名 → 走 get_file_type 的常规逻辑
+        return ''
+    # 去掉常见的副本后缀（如 `-copy`、`(1)`、`-pd(1)`）
+    stem = re.sub(r'[-_ ]?(copy|副本|拷贝)$', '', base)
+    stem = re.sub(r'\s*\(\d+\)$', '', stem)
+    stem = re.sub(r'[-_ ]?(pd|副本)$', '', stem)
+    for suffix, language in KNOWN_EXTENSIONLESS_TEXT_SUFFIXES.items():
+        if stem == suffix or stem.endswith('-' + suffix) or stem.endswith('_' + suffix):
+            return language
+    return ''
+
+
+def get_effective_file_type(name: str) -> str:
+    """返回文件的**有效类型分类**（供文件树 / 列表使用）。
+
+    与 ``get_file_type`` 的区别：本函数额外识别「无扩展名但确定是文本」
+    的知名配置文件（如 ``xa-higress-config``），把它们归为 ``'text'``，
+    而不是笼统的 ``'other'``。
+
+    这样前端能：
+    - 在文件列表里给它们显示正确的图标（📄 文本而非灰 Other）
+    - 知道它们是可编辑的文本文件
+    """
+    file_type = get_file_type(name)
+    if file_type != 'other':
+        return file_type
+    if get_file_type_for_extensionless(name):
+        return 'text'
     return 'other'
 
 

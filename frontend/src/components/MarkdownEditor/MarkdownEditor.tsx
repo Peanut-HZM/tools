@@ -1055,6 +1055,7 @@ export default function MarkdownEditor() {
                    {(currentFile || ossFilePath) && (
                      <FileViewer
                        filePath={currentFilePath || ossFilePath || ''}
+                       contentType={currentFile?.contentType}
                        fileContent={content}
                        onChange={updateContent}
                        readOnly={!!ossFilePath}

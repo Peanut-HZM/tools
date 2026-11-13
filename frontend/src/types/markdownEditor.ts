@@ -25,6 +25,13 @@ export interface FileContent {
   content: string;
   size: number;
   modified: string;
+  /**
+   * 后端返回的 MIME 类型。
+   *
+   * 用于**没有扩展名**的文件（如 `xa-higress-config`）：这类文件无法靠
+   * 文件名判断类型，必须靠后端内容嗅探的结果来路由到正确的查看器。
+   */
+  contentType?: string;
 }
 
 export interface FileRawContent {
