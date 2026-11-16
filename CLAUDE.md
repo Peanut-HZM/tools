@@ -65,6 +65,26 @@
 - ❌ 未达上述标准，**绝对不允许提交代码**
 - ❌ 禁止"差不多就行了"的提交——必须 100% 验收通过
 
+
+### 3.1 内置浏览器的判定顺序（含 Paseo 宿主）
+
+**判定顺序（自上而下，命中即停）：**
+
+1. **运行在 Paseo 内的 agent** → Paseo 内置浏览器（`browser_*` 工具）就是"本工具内置浏览器"，必须优先使用。
+   - 自检：能调用 `browser_list_tabs` 即已具备；报 `browser_disabled` → 该 host 未开 Browser tools；报 `browser_no_host` → Paseo 桌面端未运行；按第 4 条回退并**原样报告错误码**。
+   - 标准流程：`browser_new_tab` → `browser_navigate` → `browser_snapshot`（用可访问性树断言文案/元素，不要用截图当唯一证据）→ `browser_click/fill/keypress` 走完整流程 → `browser_logs`（Console 错误 + Network 状态码）→ `browser_screenshot` 留证 → `browser_close_tab`。
+   - ref（如 `@e3`）来自同一 tab 最近一次 `browser_snapshot`，页面变化后立即失效，报 `browser_stale_ref` 时必须重新 snapshot，禁止猜 ref。
+2. 非 Paseo 宿主、且该 CLI 自带内置浏览器（Claude Desktop / Claude Code、ChatGPT / Codex、Kimi Code、MiniMax Code、OpenCode、ZCode 等） → 用该 CLI 自带浏览器。
+3. 非 Paseo 宿主、且 CLI 无内置浏览器 → 回退 Playwright MCP / agent-browser。
+4. 以上都不可用 → 才允许系统浏览器，并在验收报告中写明"已尝试 1-3，因 <具体原因> 回退"。
+
+**明确不支持 Paseo 工具注入的 provider，直接按"无内置浏览器"处理：Muse Code、Antigravity。**
+
+**安全约束（使用 Paseo 浏览器时强制）：**
+- ✅ 只操作验收目标 URL 及其流程内链接；禁止用共享 profile 访问与验收无关的站点/账号
+- ✅ 截图/快照落盘前脱敏：不得包含 cookie、Authorization、token、个人信息
+- ❌ 禁止通过 `browser_evaluate` 读取或导出 `document.cookie` / localStorage 凭证
+- ❌ 禁止把共享 profile 的登录态、页面数据提交进仓库
 ### 违反后果
 
 - 未验收就提交代码是虚假完成报告，是最严重的诚信问题
@@ -1405,6 +1425,15 @@ python dev-services.py status
 
 ---
 
+## 浏览器验收（本项目）
+
+- 验收入口：`http://localhost:8080`（以本项目启动脚本 / 端口约定为准）
+- 浏览器判定：运行在 Paseo 内 → 用 Paseo `browser_*`；否则按各自 CLI 自带浏览器 → Playwright → 系统浏览器回退，并在报告注明
+- Console 新增错误 = 0；Network 4xx/5xx（预期内除外）= 0
+- 证据落盘 `.acceptance/<feature>-<日期>/`，按临时产物规则清理或加入 `.gitignore`
+
+---
+
 ## 单测验收最小化规则（强制）
 
 - 单测验收默认**最小化执行**：只运行与本次代码变更直接相关的单测，禁止无差别全量跑测，不浪费 token 与时间。
@@ -1452,3 +1481,18 @@ The global `执行边界与停止规则` applies here. These project-specific co
 3. **脚本零硬编码密钥**：对外分享/提交的脚本（含 issue/PR 附件）只允许 `process.env.XXX` / `os.environ[...]` 方式读取密钥；交付前必须 `grep` 自查无任何真实密钥片段。
 4. **提交前三重自查**：任何 `git push`、issue/PR 评论、附件上传之前，对要提交的内容 `grep` 本项目已知密钥的特征片段（key 前缀、后缀、变量名赋值）；发现真实值立即停止提交并脱敏。
 5. **历史污染处理**：密钥一旦进入会话记录/终端输出，视为已暴露——提醒用户轮换该密钥，并清理本地 history；不得以"只是本地"为由跳过。
+
+---
+
+## 桌面版（pywebview + PyInstaller）打包规范（速查 — 2026-11-17 沉淀）
+
+- ✅ PyInstaller 6.x 的 spec 执行环境**没有 `__file__`**，取 spec 所在目录必须用内置注入的 `SPECPATH`
+- ✅ Python 3.12 + PyInstaller 6 下 `excludes` **禁止包含 `distutils`**（setuptools 钩子重复注册触发 `already imported as ExcludedModule`）
+- ✅ **包内数据目录必须显式进 `datas`**：magika 需 `models/` + `config/` 两个目录（缺一即导入期崩溃）；通用做法是 `find_spec` 定位包目录后逐个收录
+- ✅ `psycopg2` 子模块（`errors/extras/pool/sql/tz`）由 C 扩展运行期动态注册，hiddenimports 必须显式列出，否则冻结后 `module 'psycopg2' has no attribute 'errors'`
+- ✅ PyInstaller 命令加 `--noconfirm`，避免残留产物目录导致 COLLECT 拒绝执行
+- ✅ 窗口化 exe（console=False）**无 stdout/stderr**：未处理异常只弹 "Unhandled exception in script" 对话框不留痕迹 —— 桌面入口必须落盘崩溃日志（主线程 try + `run_uvicorn` try + `threading.excepthook` 三层，见 `backend/desktop_app.py`）
+- ✅ 诊断对话框崩溃：`ctypes` EnumWindows 读 "#32770" 对话框子控件文本，即可拿到 traceback（见本次事故排查路径）
+- ✅ 桌面版配置链：`desktop_config` 三级 .env 查找（exe 同级 → 打包内置 `_internal/.env` → `~/.toolbox/.env`）；本地构建时 spec 把 `backend/.env` 打进 `_internal/.env`（`backend/dist/` 已被 .gitignore 忽略，绝不入库），使桌面版获得与 Web 版一致的 PostgreSQL/密钥配置
+- ⚠️ 本项目**双库并存**：工具列表相关表（tools/tool_categories/tool_visits）走 `app/config/database.py` 的 pooled 连接（本机为 PostgreSQL），其余 ORM 表走 `DATABASE_URL`（默认 SQLite `backend/data/tools.db`）—— 排查工具列表数据问题时先分清在哪
+- ❌ 禁止在 web 版共用文件（`app/main.py` 等）里为桌面版加分支逻辑；桌面差异全部收敛在 `desktop_app.py` / `desktop_config.py` / `desktop.spec`

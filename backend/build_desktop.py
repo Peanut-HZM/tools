@@ -27,15 +27,24 @@ def run(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, check=check)
 
 
+def _pick_node_runner() -> str:
+    """选择前端包管理器：优先 pnpm（项目用 pnpm-lock.yaml），缺失回退 npm。"""
+    if shutil.which("pnpm"):
+        return "pnpm"
+    print("⚠️  未找到 pnpm，回退使用 npm（可能产生 package-lock.json 与 pnpm-lock 不一致）")
+    return "npm"
+
+
 def step_build_frontend():
     """构建前端。"""
     print("\n" + "=" * 60)
     print("Step 1: 构建前端")
     print("=" * 60)
 
+    runner = _pick_node_runner()
     os.chdir(FRONTEND_DIR)
-    run(["npm", "install"])
-    run(["npm", "run", "build"])
+    run([runner, "install"])
+    run([runner, "run", "build"])
     os.chdir(SCRIPT_DIR)
 
     dist = FRONTEND_DIR / "dist"
@@ -86,7 +95,8 @@ def step_pyinstaller(dev_mode: bool):
     print("Step 3: PyInstaller 打包")
     print("=" * 60)
 
-    cmd = [sys.executable, "-m", "PyInstaller", str(SCRIPT_DIR / "desktop.spec")]
+    # --noconfirm: 产物目录已存在（上次构建残留）时自动覆盖，无需交互确认
+    cmd = [sys.executable, "-m", "PyInstaller", str(SCRIPT_DIR / "desktop.spec"), "--noconfirm"]
 
     if dev_mode:
         cmd += ["--debug", "all", "--log-level", "DEBUG"]

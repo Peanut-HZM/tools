@@ -67,8 +67,8 @@ def get_desktop_env_path() -> Path:
         app_data.mkdir(parents=True, exist_ok=True)
         return app_data / ".env"
     else:
-        # 开发模式：与 config.py 一致
-        return Path(__file__).parent.parent / ".env"
+        # 开发模式：与 config.py 非桌面分支一致，加载 backend/.env
+        return Path(__file__).parent / ".env"
 
 
 def init_desktop_config() -> None:
@@ -99,6 +99,12 @@ def init_desktop_config() -> None:
         logger.info(f"桌面模式: 已加载 {env_path}")
     else:
         logger.info(f"桌面模式: .env 不存在 ({env_path})，使用默认配置")
+
+    # CWD 确定化：DATABASE_URL（sqlite:///./data/tools.db）、日志、用户数据等
+    # 相对路径全部基于 CWD 解析；frozen 模式下双击/快捷方式启动时 CWD 不可预测，
+    # 必须显式 chdir 到项目根（dev=backend/，frozen=exe 目录），保证落点确定
+    os.chdir(project_root)
+    logger.info(f"桌面模式: CWD 已切换到 {project_root}")
 
     # 设置 AI 模型缓存目录（不覆盖 HOME）
     cache_dir = data_dir / "cache"

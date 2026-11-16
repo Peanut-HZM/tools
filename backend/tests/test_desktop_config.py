@@ -95,3 +95,146 @@ class TestConfigIsolation:
         field = Settings.model_fields['DATABASE_URL']
         assert field.default == "sqlite:///./data/tools.db"
         assert not field.is_required()
+
+
+class TestSpaRoutes:
+    """测试桌面模式 SPA 静态服务装配（setup_spa_routes）"""
+
+    def _make_app_with_dist(self, tmp_path):
+        """构建带 dist 目录与示例 API 路由的最小 FastAPI 应用"""
+        from fastapi import FastAPI
+        from desktop_app import setup_spa_routes
+
+        dist = tmp_path / "dist"
+        dist.mkdir()
+        (dist / "index.html").write_text(
+            "<html><body>TOOLBOX_SPA</body></html>", encoding="utf-8"
+        )
+        assets = dist / "assets"
+        assets.mkdir()
+        (assets / "app.js").write_text("console.log(1);", encoding="utf-8")
+
+        app = FastAPI()
+
+        @app.get("/api/v1/health")
+        async def health():
+            return {"status": "ok"}
+
+        ok = setup_spa_routes(app, str(dist))
+        return app, ok
+
+    def test_setup_returns_true_with_valid_dist(self, tmp_path):
+        app, ok = self._make_app_with_dist(tmp_path)
+        assert ok is True
+
+    def test_setup_returns_false_without_index(self, tmp_path):
+        from fastapi import FastAPI
+        from desktop_app import setup_spa_routes
+
+        empty = tmp_path / "empty_dist"
+        empty.mkdir()
+        app = FastAPI()
+        assert setup_spa_routes(app, str(empty)) is False
+
+    def test_root_serves_index_html(self, tmp_path):
+        """根路径必须返回前端页面而非 JSON（缺陷 1 回归）"""
+        from fastapi.testclient import TestClient
+
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert "text/html" in resp.headers["content-type"]
+        assert "TOOLBOX_SPA" in resp.text
+
+    def test_read_root_json_route_removed(self, tmp_path):
+        """endpoint 名为 read_root 的 JSON 根路由装配后被移除"""
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from desktop_app import setup_spa_routes
+
+        dist = tmp_path / "dist2"
+        dist.mkdir()
+        (dist / "index.html").write_text("<html>SPA</html>", encoding="utf-8")
+
+        app = FastAPI()
+
+        @app.get("/")
+        def read_root():
+            return {"message": "Tool Aggregation API"}
+
+        setup_spa_routes(app, str(dist))
+        client = TestClient(app)
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert "text/html" in resp.headers["content-type"]
+        assert "Tool Aggregation API" not in resp.text
+
+    def test_api_route_still_works(self, tmp_path):
+        """既有 API 路由优先于 catch-all，不受 SPA 装配影响"""
+        from fastapi.testclient import TestClient
+
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/api/v1/health")
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+    def test_unknown_api_path_404(self, tmp_path):
+        """未知 API 路径显式 404 JSON，不做 SPA 兜底"""
+        from fastapi.testclient import TestClient
+
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/api/v1/nonexistent")
+        assert resp.status_code == 404
+        assert resp.headers["content-type"].startswith("application/json")
+
+    def test_mcp_prefix_404(self, tmp_path):
+        """mcp 前缀未知路径显式 404"""
+        from fastapi.testclient import TestClient
+
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/mcp/nonexistent")
+        assert resp.status_code == 404
+
+    def test_static_file_served(self, tmp_path):
+        """dist 内静态文件直出"""
+        from fastapi.testclient import TestClient
+
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/assets/app.js")
+        assert resp.status_code == 200
+        assert "console.log(1);" in resp.text
+
+    def test_missing_asset_with_extension_404(self, tmp_path):
+        """带扩展名但缺失的资源显式 404（不回退 index.html）"""
+        from fastapi.testclient import TestClient
+
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/assets/stale-chunk.js")
+        assert resp.status_code == 404
+
+    def test_deep_link_fallback_to_index(self, tmp_path):
+        """BrowserRouter 深链接回退 index.html（缺陷 2 回归）"""
+        from fastapi.testclient import TestClient
+
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/tools/token-usage")
+        assert resp.status_code == 200
+        assert "TOOLBOX_SPA" in resp.text
+
+    def test_path_traversal_blocked(self, tmp_path):
+        """路径穿越被阻断：dist 外文件不可读"""
+        from fastapi.testclient import TestClient
+
+        secret = tmp_path / "secret.txt"
+        secret.write_text("TOP_SECRET", encoding="utf-8")
+        app, _ = self._make_app_with_dist(tmp_path)
+        client = TestClient(app)
+        resp = client.get("/../secret.txt")
+        assert "TOP_SECRET" not in resp.text

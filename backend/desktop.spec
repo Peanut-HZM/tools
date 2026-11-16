@@ -10,8 +10,11 @@ from pathlib import Path
 
 block_cipher = None
 
+# PyInstaller 6.x 的 spec 执行环境不再提供 __file__，使用注入的 SPECPATH（spec 所在目录字符串）
+spec_dir = Path(SPECPATH)
+
 # 前端 dist 目录路径 (backend/ 的父目录是 tools/)
-frontend_root = Path(__file__).parent.parent / "frontend" / "dist"
+frontend_root = spec_dir.parent / "frontend" / "dist"
 
 # 收集 datas: Python 代码 + 前端静态文件 + 必要资源
 datas = []
@@ -22,10 +25,31 @@ else:
     print(f"⚠️  前端 dist 目录不存在: {frontend_root}")
     print("   请先运行: cd frontend && npm run build")
 
-# 可选: 打包 .env 模板
-env_file = Path(__file__).parent / ".env.desktop-template"
-if env_file.exists():
-    datas.append((str(env_file), "."))
+# magika（markitdown 依赖）的包内数据文件：PyInstaller 只收集代码，不收集包内
+# 数据目录；缺 models/standard_v3_3 报 "model dir not found"，
+# 缺 config/content_types_kb.min.json 报 FileNotFoundError（导入 converter 时崩溃）
+import importlib.util as _ilutil
+
+_magika_spec = _ilutil.find_spec("magika")
+if _magika_spec and _magika_spec.origin:
+    _magika_pkg = Path(_magika_spec.origin).parent
+    for _sub in ("models", "config"):
+        _data_dir = _magika_pkg / _sub
+        if _data_dir.exists():
+            datas.append((str(_data_dir), f"magika/{_sub}"))
+            print(f"✅ 已收录 magika 数据: {_data_dir}")
+        else:
+            print(f"⚠️  magika 数据目录不存在: {_data_dir}")
+
+# 打包内置 .env（desktop_config frozen 三级查找的第二级：_internal/.env）。
+# 本地构建产物（backend/dist/ 已被 .gitignore 忽略，绝不入库）——
+# 使桌面版获得与 backend/.env 一致的 PostgreSQL/OSS/密钥配置，功能与 Web 版对齐
+_backend_env = spec_dir / ".env"
+if _backend_env.exists():
+    datas.append((str(_backend_env), "."))
+    print("✅ 已打包内置 backend/.env 到 _internal/.env（本地构建产物，不入库）")
+else:
+    print(f"⚠️  backend/.env 不存在，桌面版将使用默认配置（SQLite/无密钥）")
 
 a = Analysis(
     ["desktop_app.py"],
@@ -54,9 +78,15 @@ a = Analysis(
         "cryptography.hazmat",
         # SQLAlchemy
         "sqlalchemy.dialects.sqlite",
-        # psycopg2 (如果打包)
+        # psycopg2（如果打包）——子模块是动态注册的，只列主包会导致
+        # 冻结后 module 'psycopg2' has no attribute 'errors' / extras 等 AttributeError
         "psycopg2",
         "psycopg2.extensions",
+        "psycopg2.errors",
+        "psycopg2.extras",
+        "psycopg2.pool",
+        "psycopg2.sql",
+        "psycopg2.tz",
         # paramiko
         "paramiko",
         "paramiko.transport",
@@ -80,14 +110,14 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[
         # 排除不需要的包，减小体积
+        # 注意：Python 3.12 + PyInstaller 6 下不能 exclude distutils——
+        # setuptools 钩子会再次注册它，触发 "already imported as ExcludedModule" 冲突
         "matplotlib",
         "tkinter",
         "jupyter",
         "IPython",
         "notebook",
         "nbconvert",
-        "setuptools",
-        "distutils",
         "test",
         "pytest",
     ],
@@ -100,7 +130,7 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 # 确定图标路径
-assets_dir = Path(__file__).parent / "assets"
+assets_dir = spec_dir / "assets"
 if sys.platform == "darwin":
     icon_path = str(assets_dir / "icon.icns") if (assets_dir / "icon.icns").exists() else None
 else:

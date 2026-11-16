@@ -142,19 +142,29 @@ backend/
 
 ## 桌面应用
 
-本项目可以打包为 Windows 和 macOS 桌面应用。
+本项目可以打包为 Windows 和 macOS 桌面应用（pywebview + PyInstaller，设计文档见
+`docs/plans/2026-11-16-desktop-app-design.md`）。
 
 ### 开发模式
 
 ```bash
-# 1. 启动前端（另一个终端）
-cd ../frontend && npm run dev
+# 1. 启动 Web 版服务（前端 5178 + 后端 19092）
+python dev-services.py
 
-# 2. 启动桌面应用（开发模式，前端连接 Vite 热重载服务器）
+# 2. 启动桌面应用（开发模式：不启动嵌入式后端，窗口直连 Vite 热重载服务器，
+#    前端 /api 代理走 dev-services 的 19092 后端）
 DESKTOP_DEV=1 python desktop_app.py
 ```
 
 桌面窗口会使用 pywebview 内嵌浏览器展示前端，开发模式下支持 F12 打开开发者工具。
+
+### 生产模式（本地真实运行）
+
+```bash
+# 先构建前端产物，再直接启动（嵌入式后端自动占用 19093+ 空闲端口，与 Web 版 19092 避让）
+cd ../frontend && pnpm run build
+python desktop_app.py
+```
 
 ### 构建桌面应用
 
