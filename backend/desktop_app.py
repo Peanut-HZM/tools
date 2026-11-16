@@ -15,6 +15,8 @@ import time
 import socket
 import threading
 import logging
+import subprocess
+import urllib.request
 from pathlib import Path
 
 # 窗口化 exe（console=False）双击启动时 sys.stdout/stderr 为 None：
@@ -26,9 +28,47 @@ if sys.stdout is None:
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w", encoding="utf-8")
 
+
+def _suppress_subprocess_console_windows() -> None:
+    """窗口化 exe 下，所有 console 子进程默认隐藏窗口（仅 Windows 打包态）。
+
+    背景：GUI 父进程 spawn console 子进程（nvidia-smi、shell 命令等）时，
+    Windows 会为其分配新 console —— 每次调用都闪现一个 cmd/conhost 窗口
+    （capture_output=True 不隐藏窗口）。全局兜底避免逐个调用点修改共用代码。
+    """
+    if sys.platform != "win32" or not getattr(sys, "frozen", False):
+        return
+    no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    if not no_window:
+        return
+    _orig_run = subprocess.run
+    _orig_popen = subprocess.Popen
+
+    def run(*args, **kwargs):  # noqa: ANN002,ANN003
+        if kwargs.get("creationflags") is None:
+            kwargs["creationflags"] = no_window
+        return _orig_run(*args, **kwargs)
+
+    class Popen(_orig_popen):  # noqa: N801
+        """必须用子类包装而非函数替换：asyncio.windows_utils 等库会
+        `class Popen(subprocess.Popen)` 继承它，换成函数会让类定义
+        崩溃（function() argument 'code' must be code, not str）。"""
+
+        def __init__(self, *args, **kwargs):  # noqa: ANN002,ANN003
+            if kwargs.get("creationflags") is None:
+                kwargs["creationflags"] = no_window
+            super().__init__(*args, **kwargs)
+
+    subprocess.run = run
+    subprocess.Popen = Popen
+    logging.getLogger(__name__).info("已启用子进程窗口隐藏（CREATE_NO_WINDOW）")
+
+
+_suppress_subprocess_console_windows()
+
 # 必须在所有其他导入之前初始化桌面配置（含 .env 加载与 CWD 确定化）
 sys.path.insert(0, str(Path(__file__).parent))
-from desktop_config import init_desktop_config  # noqa: E402
+from desktop_config import get_desktop_data_root, init_desktop_config  # noqa: E402
 
 init_desktop_config()
 
@@ -231,11 +271,17 @@ def main() -> None:
         logger.info(f"开发模式: 窗口直连 Vite 热重载服务器 {vite_url}（嵌入式后端不启动）")
         server_url = vite_url
     else:
-        # 生产模式：嵌入式后端 + 同源前端
+        # 单实例保护：health 探针命中说明已有实例在跑，避免多实例叠加周期任务
+        existing = _probe_existing_instance()
+        if existing is not None:
+            _alert(f"工具箱已在运行（端口 {existing}），请勿重复启动。")
+            return
+
         try:
             port = find_available_port()
         except RuntimeError as e:
             logging.error(str(e))
+            _alert(str(e))
             sys.exit(1)
 
         logger.info(f"使用端口: {port}")
@@ -253,6 +299,10 @@ def main() -> None:
         if not wait_for_server(health_url):
             logger.error(f"服务器启动超时（{health_url}）")
             shutdown_event.set()
+            _alert(
+                "工具箱后端启动超时，请查看日志后重试：\n"
+                f"{_get_crash_log_path().parent}"
+            )
             sys.exit(1)
 
         logger.info(f"FastAPI 已就绪: http://127.0.0.1:{port}")
@@ -292,13 +342,40 @@ def main() -> None:
     logger.info("桌面应用已退出")
 
 
+def _alert(message: str) -> None:
+    """给用户可见的弹窗反馈（仅打包态；窗口化 exe 静默退出会让用户以为没反应）。"""
+    logger.error(message)
+    if sys.platform == "win32" and getattr(sys, "frozen", False):
+        try:
+            import ctypes
+
+            ctypes.windll.user32.MessageBoxW(0, message, "工具箱", 0x40)
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _probe_existing_instance(start_port: int = 19093, max_attempts: int = 20) -> int | None:
+    """探测是否已有本应用实例在运行（health 探针命中即视为已有实例）。"""
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/api/v1/health", timeout=0.6
+            ):
+                return port
+        except Exception:  # noqa: BLE001
+            continue
+    return None
+
+
 def _get_crash_log_path() -> Path:
-    """获取崩溃日志路径：frozen=exe 同级 logs/，dev=backend/logs/。"""
-    if getattr(sys, 'frozen', False):
-        base = Path(sys.executable).parent
+    """获取崩溃日志路径：Windows 打包态放 exe 同级 logs/（用户易找）；
+    macOS .app 内只读，放 ~/Library/Application Support/ToolBox/logs/；dev=backend/logs/。"""
+    if getattr(sys, "frozen", False) and sys.platform == "darwin":
+        log_dir = get_desktop_data_root() / "logs"
+    elif getattr(sys, "frozen", False):
+        log_dir = Path(sys.executable).parent / "logs"
     else:
-        base = Path(__file__).parent
-    log_dir = base / "logs"
+        log_dir = Path(__file__).parent / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir / "crash.log"
 
@@ -314,4 +391,5 @@ if __name__ == "__main__":
         import traceback as _tb
         crash_path = _get_crash_log_path()
         crash_path.write_text(_tb.format_exc(), encoding="utf-8")
+        _alert("工具箱启动失败，详细原因已写入：\n" + str(crash_path))
         raise

@@ -1497,3 +1497,7 @@ The global `执行边界与停止规则` applies here. These project-specific co
 - ⚠️ 本项目**双库并存**：工具列表相关表（tools/tool_categories/tool_visits）走 `app/config/database.py` 的 pooled 连接（本机为 PostgreSQL），其余 ORM 表走 `DATABASE_URL`（默认 SQLite `backend/data/tools.db`）—— 排查工具列表数据问题时先分清在哪
 - ❌ 禁止在 web 版共用文件（`app/main.py` 等）里为桌面版加分支逻辑；桌面差异全部收敛在 `desktop_app.py` / `desktop_config.py` / `desktop.spec`
 - ❌ **禁止用带 std 句柄的方式验收窗口化 exe**：窗口化 exe（console=False）双击启动时 `sys.stdout/stderr` 为 None，uvicorn `ColourizedFormatter` 调 `isatty()` 直接崩溃；而 bash `./xxx.exe > log 2>&1` 启动给了句柄，会**掩盖此 bug 造成假验收**。桌面 exe 终验必须用 `cmd //c start "" xxx.exe`（零句柄、与双击等价）启动，并以「窗口标题 + 无新增 crash.log + 端口监听」三要素判定
+- ✅ **窗口化 exe 里所有 console 子进程都会闪 cmd/conhost 窗口**（GUI 父进程 spawn console 子进程必分配新 console；`capture_output=True` 不隐藏）——桌面入口用 `subprocess.run=函数包装 + subprocess.Popen=**子类包装**` 全局默认 `CREATE_NO_WINDOW`。**Popen 必须用子类不能用函数替换**：`asyncio/windows_utils.py` 有 `class Popen(subprocess.Popen)`，函数替换会让该类定义崩溃（`function() argument 'code' must be code, not str`）
+- ✅ 排查"cmd 窗口闪现"用**父进程归属取证**（CIM 轮询新 conhost/cmd 的 ParentProcessId）而非进程计数快照——瞬时 conhost 会让计数法误判（采样 job 自身也会污染计数）
+- ✅ macOS 桌面版：`.app` bundle 内只读，数据根必须落 `~/Library/Application Support/ToolBox`（`desktop_config.get_desktop_data_root` 已按平台分支）；PyInstaller 不支持交叉编译，mac 产物走 `.github/workflows/desktop-build.yml`（推送 `ToolBox-v*` tag 或手动触发）
+- ✅ 桌面应用必须做**单实例保护**（health 探针探测已有实例，二次启动弹窗退出）与**异常可见反馈**（静默退出会让用户以为"打不开"；`_alert` 用 MessageBoxW，仅打包态弹）

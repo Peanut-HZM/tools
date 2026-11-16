@@ -1,0 +1,133 @@
+# 工具箱桌面应用打包（Windows + macOS）
+#
+# 背景：PyInstaller 不支持交叉编译——macOS 的 .app 产物必须在 macOS 上构建，
+# Windows 的 exe 在 Windows 上构建。本 workflow 在两种 runner 上分别产出可打开
+# 的桌面应用并上传为 artifact。
+#
+# 触发方式：
+#   - Actions 页面手动运行（可勾选只构建某一平台）
+#   - 推送 `ToolBox-v*` 形式的 tag（发布桌面版时打 tag，双平台全量构建）
+#
+# 注意：CI 环境没有 backend/.env（本机密钥文件不入库），CI 产物使用默认配置
+# （SQLite 数据库、无 OSS/LLM 密钥）。需要完整配置的产物请在配置齐全的机器上
+# 本地运行 `python backend/build_desktop.py` 构建（backend/.env 会被打进
+# _internal/.env，且 dist/ 已被 .gitignore 忽略）。
+
+name: Desktop Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_windows:
+        description: "构建 Windows 版（ToolBox.exe）"
+        type: boolean
+        default: true
+      build_macos:
+        description: "构建 macOS 版（ToolBox.app）"
+        type: boolean
+        default: true
+  push:
+    tags:
+      - "ToolBox-v*"
+
+jobs:
+  build-windows:
+    name: Windows（ToolBox.exe）
+    runs-on: windows-latest
+    if: github.event_name == 'push' || inputs.build_windows
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-desktop.txt
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 安装后端依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-desktop.txt
+
+      - name: 构建桌面应用（pnpm build 前端 + PyInstaller 打包）
+        working-directory: backend
+        run: python build_desktop.py
+
+      - name: 整理产物
+        run: Compress-Archive -Path backend/dist/ToolBox -DestinationPath ToolBox-windows.zip
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ToolBox-windows
+          path: ToolBox-windows.zip
+          retention-days: 14
+
+  build-macos:
+    name: macOS（ToolBox.app）
+    runs-on: macos-latest
+    if: github.event_name == 'push' || inputs.build_macos
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-desktop.txt
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 安装后端依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-desktop.txt
+
+      - name: 构建桌面应用（pnpm build 前端 + PyInstaller 打包）
+        working-directory: backend
+        run: python build_desktop.py
+
+      - name: 整理产物（保留 .app 内符号链接，ditto 打 zip）
+        run: |
+          cd backend/dist
+          ditto -c -k --sequesterRsrc --keepParent ToolBox.app ToolBox-macos.zip
+          ls -lh ToolBox-macos.zip
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ToolBox-macos
+          path: backend/dist/ToolBox-macos.zip
+          retention-days: 14

@@ -174,6 +174,15 @@ python build_desktop.py [--dev] [--clean] [--skip-frontend]
 
 产物输出到 `dist/ToolBox.app`（macOS）或 `dist/ToolBox/ToolBox.exe`（Windows）。
 
+#### macOS 支持
+
+- PyInstaller **不支持交叉编译**：macOS 的 `.app` 必须在 macOS 上构建（Windows 构建的 exe 无法在 macOS 运行，反之亦然）
+- 两条构建路径：
+  1. 在 macOS 机器上执行本脚本（需 Python 3.12、pnpm、Node 20；`pip install -r requirements.txt -r requirements-desktop.txt` 后运行 `python build_desktop.py`，pywebview 在 macOS 会自动带 PyObjC 依赖）
+  2. 推送 `ToolBox-v*` tag 或在 GitHub Actions 手动触发 `.github/workflows/desktop-build.yml`，CI 会在 `macos-latest`（产物为 arm64 `.app`）与 `windows-latest` 分别构建并上传 artifact
+- 数据落点（macOS）：`~/Library/Application Support/ToolBox/`（数据库、日志、缓存；`.app` bundle 内只读，不能写）
+- CI 产物不含 `backend/.env`（密钥文件不入库），使用默认配置（SQLite）；需要完整配置请在配置齐全的机器上本地构建（`backend/.env` 会打进 `_internal/.env`，`dist/` 已被 .gitignore 忽略）
+
 ### 外部依赖
 
 桌面应用需要以下外部服务配置（通过 `.env` 文件）：

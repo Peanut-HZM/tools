@@ -34,10 +34,24 @@ def get_desktop_project_root() -> Path:
         return Path(__file__).parent
 
 
+def get_desktop_data_root() -> Path:
+    """获取可写数据根目录（数据库/日志/缓存的落点，也是 CWD 确定化目标）。
+
+    Windows：exe 同级目录（与打包资源 _MEIPASS 分离，但同在 dist/ToolBox 下）
+    macOS：~/Library/Application Support/ToolBox —— .app bundle 内只读，
+           数据绝不能写进 bundle（签名/dmg 挂载后更是必然失败）
+    """
+    if getattr(sys, "frozen", False) and sys.platform == "darwin":
+        data_root = Path.home() / "Library" / "Application Support" / "ToolBox"
+    else:
+        data_root = get_desktop_project_root()
+    data_root.mkdir(parents=True, exist_ok=True)
+    return data_root
+
+
 def get_desktop_data_dir() -> Path:
     """获取桌面模式下的数据目录（数据库、日志等）。"""
-    root = get_desktop_project_root()
-    data_dir = root / "data"
+    data_dir = get_desktop_data_root() / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
 
@@ -102,9 +116,11 @@ def init_desktop_config() -> None:
 
     # CWD 确定化：DATABASE_URL（sqlite:///./data/tools.db）、日志、用户数据等
     # 相对路径全部基于 CWD 解析；frozen 模式下双击/快捷方式启动时 CWD 不可预测，
-    # 必须显式 chdir 到项目根（dev=backend/，frozen=exe 目录），保证落点确定
-    os.chdir(project_root)
-    logger.info(f"桌面模式: CWD 已切换到 {project_root}")
+    # 必须显式 chdir 到可写数据根（Windows=exe 目录，macOS=Application Support），
+    # 保证落点确定且可写（macOS .app bundle 内只读，不能作为 CWD）
+    data_root = get_desktop_data_root()
+    os.chdir(data_root)
+    logger.info(f"桌面模式: CWD 已切换到 {data_root}")
 
     # 设置 AI 模型缓存目录（不覆盖 HOME）
     cache_dir = data_dir / "cache"
