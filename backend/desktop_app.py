@@ -17,6 +17,15 @@ import threading
 import logging
 from pathlib import Path
 
+# 窗口化 exe（console=False）双击启动时 sys.stdout/stderr 为 None：
+# uvicorn 的 ColourizedFormatter（自动颜色检测）、colorama 等库会调用
+# sys.stdout.isatty() 直接 AttributeError。必须在任何库初始化日志之前兜底。
+# （bash/终端带句柄启动时二者非 None，不受影响）
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
 # 必须在所有其他导入之前初始化桌面配置（含 .env 加载与 CWD 确定化）
 sys.path.insert(0, str(Path(__file__).parent))
 from desktop_config import init_desktop_config  # noqa: E402
@@ -155,6 +164,7 @@ def run_uvicorn(app: FastAPI, port: int, shutdown_event: threading.Event) -> Non
         port=port,
         log_level="info",
         access_log=False,
+        use_colors=False,  # 窗口化 exe 无终端，禁用颜色避免 isatty 检测
     )
     server = uvicorn.Server(config)
     _uvicorn_server = server

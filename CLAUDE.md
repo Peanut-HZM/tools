@@ -1496,3 +1496,4 @@ The global `执行边界与停止规则` applies here. These project-specific co
 - ✅ 桌面版配置链：`desktop_config` 三级 .env 查找（exe 同级 → 打包内置 `_internal/.env` → `~/.toolbox/.env`）；本地构建时 spec 把 `backend/.env` 打进 `_internal/.env`（`backend/dist/` 已被 .gitignore 忽略，绝不入库），使桌面版获得与 Web 版一致的 PostgreSQL/密钥配置
 - ⚠️ 本项目**双库并存**：工具列表相关表（tools/tool_categories/tool_visits）走 `app/config/database.py` 的 pooled 连接（本机为 PostgreSQL），其余 ORM 表走 `DATABASE_URL`（默认 SQLite `backend/data/tools.db`）—— 排查工具列表数据问题时先分清在哪
 - ❌ 禁止在 web 版共用文件（`app/main.py` 等）里为桌面版加分支逻辑；桌面差异全部收敛在 `desktop_app.py` / `desktop_config.py` / `desktop.spec`
+- ❌ **禁止用带 std 句柄的方式验收窗口化 exe**：窗口化 exe（console=False）双击启动时 `sys.stdout/stderr` 为 None，uvicorn `ColourizedFormatter` 调 `isatty()` 直接崩溃；而 bash `./xxx.exe > log 2>&1` 启动给了句柄，会**掩盖此 bug 造成假验收**。桌面 exe 终验必须用 `cmd //c start "" xxx.exe`（零句柄、与双击等价）启动，并以「窗口标题 + 无新增 crash.log + 端口监听」三要素判定
