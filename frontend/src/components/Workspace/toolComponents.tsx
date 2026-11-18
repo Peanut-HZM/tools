@@ -16,6 +16,7 @@ import LearningSharePlatform from '../Tools/LearningSharePlatform';
 import CrossShareMain from '../Tools/CrossShare/CrossShareMain';
 import HttpApiClient from '../Tools/HttpApiClient/HttpApiClient';
 import SystemMonitor from '../Tools/SystemMonitor';
+import AgentHub from '../Tools/AgentHub';
 import TokenUsage from '../Tools/TokenUsage';
 import SubscriptionQuotaTool from '../Tools/SubscriptionQuota';
 import ImageDownloader from '../Tools/ImageDownloader';
@@ -48,6 +49,7 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'cross-share': CrossShareMain,
   'http-api-client': HttpApiClient,
   'system-monitor': SystemMonitor,
+  'agent-hub': AgentHub,
   'token-usage': TokenUsage,
   'subscription-quota': SubscriptionQuotaTool,
   'image-downloader': ImageDownloader,

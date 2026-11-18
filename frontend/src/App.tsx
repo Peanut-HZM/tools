@@ -63,6 +63,7 @@ const ProductManagerAgent = lazy(() => import('./components/Tools/ProductManager
 const LearningSharePlatform = lazy(() => import('./components/Tools/LearningSharePlatform'));
 const HttpApiClient = lazy(() => import('./components/Tools/HttpApiClient/HttpApiClient'));
 const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
+const AgentHub = lazy(() => import('./components/Tools/AgentHub'));
 const TokenUsage = lazy(() => import('./components/Tools/TokenUsage'));
 const SubscriptionQuotaTool = lazy(() => import('./components/Tools/SubscriptionQuota'));
 const K8sTool = lazy(() => import('./components/Tools/K8sTool/K8sTool'));
@@ -361,6 +362,7 @@ function App() {
                     <Route path="cross-share" element={<CrossShareMain />} />
                     <Route path="http-api-client" element={<HttpApiClient />} />
                     <Route path="system-monitor" element={<SystemMonitor />} />
+                    <Route path="agent-hub" element={<AgentHub />} />
                     <Route path="token-usage" element={<TokenUsage />} />
                     <Route path="subscription-quota" element={<SubscriptionQuotaTool />} />
                     <Route path="k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />

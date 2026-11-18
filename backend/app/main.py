@@ -109,7 +109,17 @@ async def lifespan(app: FastAPI):
             TokenUsageRecord,
             TokenUsageSyncLog,
         )
-        Base.metadata.create_all(bind=engine)
+        # Agent Hub（Agent 订阅与供应商中心）模型注册，纳入统一建表
+        from app.models.agent_hub_models import (  # noqa: F401
+            AgentHubProvider,
+            AgentHubSubscription,
+            AgentHubSwitch,
+        )
+        # 注意：lifespan 后文存在函数内 `from app.models.base import engine`，
+        # 会使 engine 成为局部变量并在此处触发 UnboundLocalError（既有休眠 bug，
+        # 曾导致 create_all 一直静默失败）——改用模块属性访问绕开局部绑定
+        from app.models import base as _models_base
+        Base.metadata.create_all(bind=_models_base.engine)
         logger.info("Token Usage 数据库表创建成功")
     except Exception as e:
         logger.warning(f"Token Usage 数据库表创建失败: {e}")
@@ -694,3 +704,8 @@ app.include_router(harness_checkpoints_router)
 @app.get("/")
 def read_root():
     return {"message": "Tool Aggregation API"}
+
+# Agent Hub（Agent 订阅与供应商中心）—— cc-switch + magpie 核心能力整合（2026-11-18）
+from app.routes.agent_hub import router as agent_hub_router  # noqa: E402
+
+app.include_router(agent_hub_router, prefix="/api/agent-hub")
