@@ -24,9 +24,10 @@ class CredentialStatus:
 
 @dataclass
 class QuotaTier:
-    """单个限速窗口（5 小时 / 每周 / 每月 等）
+    """单个限速窗口（5 小时 / 每周 / 每月 等）或余额项
 
-    ``utilization`` 为**已用**百分比 0–100。
+    * 窗口型：``utilization`` 为**已用**百分比 0–100
+    * 余额型：``utilization`` 恒为 0，金额放在 ``balance_amount`` / ``balance_unit``
     """
 
     name: str
@@ -36,6 +37,9 @@ class QuotaTier:
     used_value_usd: Optional[float] = None
     #: 可选：窗口上限金额（USD）
     max_value_usd: Optional[float] = None
+    #: 余额型专用：金额与币种
+    balance_amount: Optional[float] = None
+    balance_unit: Optional[str] = None
 
     def to_dict(self) -> dict:
         data = {
@@ -47,6 +51,10 @@ class QuotaTier:
             data["usedValueUsd"] = self.used_value_usd
         if self.max_value_usd is not None:
             data["maxValueUsd"] = self.max_value_usd
+        if self.balance_amount is not None:
+            data["balanceAmount"] = self.balance_amount
+        if self.balance_unit is not None:
+            data["balanceUnit"] = self.balance_unit
         return data
 
 
@@ -63,6 +71,8 @@ class SubscriptionQuota:
     plan_name: Optional[str] = None
     error: Optional[str] = None
     queried_at: Optional[int] = None
+    #: 用户自定义标签（多账号区分）
+    label: Optional[str] = None
 
     def to_dict(self) -> dict:
         return {
@@ -74,6 +84,7 @@ class SubscriptionQuota:
             "planName": self.plan_name,
             "error": self.error,
             "queriedAt": self.queried_at,
+            "label": self.label,
         }
 
     # ---------- 构造辅助（对应 cc-switch 的 not_found / error） ----------

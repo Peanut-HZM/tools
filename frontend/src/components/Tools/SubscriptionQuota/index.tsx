@@ -1,35 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle2, Clock, Gauge, Loader2, RefreshCw } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Plus,
+  RefreshCw,
+  Settings2,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import * as quotaApi from '../../../api/subscriptionQuotaApi';
-import type { SubscriptionQuotaDto } from '../../../api/subscriptionQuotaApi';
+import type {
+  ProviderSpecDto,
+  QuotaAccountDto,
+  QuotaResultDto,
+  QuotaTierDto,
+  SubscriptionStatusDto,
+} from '../../../api/subscriptionQuotaApi';
 import {
   countdownStr,
   credentialStatusText,
+  formatAmount,
+  isBalanceTier,
+  kindLabel,
+  needsHint,
   pickTiers,
+  providerInitials,
   relativeTime,
   remainingPercent,
   sortTiers,
   tierLabel,
+  toneForBalance,
   toneForRemaining,
-  toolLabel,
-  type QuotaTier,
 } from './quotaRules';
 
 const TONE_STYLES = {
-  normal: {
-    text: 'text-accent-success',
-    bar: 'bg-accent-success',
-  },
-  warning: {
-    text: 'text-accent-warning',
-    bar: 'bg-accent-warning',
-  },
-  danger: {
-    text: 'text-accent-danger',
-    bar: 'bg-accent-danger',
-  },
+  normal: { text: 'text-accent-success', bar: 'bg-accent-success' },
+  warning: { text: 'text-accent-warning', bar: 'bg-accent-warning' },
+  danger: { text: 'text-accent-danger', bar: 'bg-accent-danger' },
 } as const;
 
 /** 每 30 秒刷新一次倒计时与相对时间 */
@@ -44,13 +54,25 @@ function useNow(active: boolean) {
 }
 
 interface TierRowProps {
-  tier: QuotaTier;
+  tier: QuotaTierDto;
   now: number;
-  compact?: boolean;
 }
 
-/** 单个额度档位（条 + 剩余百分比 + 重置倒计时） */
-function TierRow({ tier, now, compact = false }: TierRowProps) {
+/** 单个额度档位（窗口：条 + 剩余%；余额：金额） */
+function TierRow({ tier, now }: TierRowProps) {
+  if (isBalanceTier(tier)) {
+    const amount = tier.balanceAmount ?? 0;
+    const tone = toneForBalance(amount);
+    return (
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="shrink-0 text-ink-muted">{tierLabel(tier.name)}</span>
+        <span className={`tabular-nums font-medium ${TONE_STYLES[tone].text}`}>
+          {formatAmount(amount, tier.balanceUnit)}
+        </span>
+      </div>
+    );
+  }
+
   const remaining = remainingPercent(tier.utilization);
   const tone = toneForRemaining(remaining);
   const styles = TONE_STYLES[tone];
@@ -58,9 +80,7 @@ function TierRow({ tier, now, compact = false }: TierRowProps) {
 
   return (
     <div className="flex items-center gap-2 text-sm" title={`已用 ${tier.utilization.toFixed(1)}%`}>
-      <span className={`shrink-0 text-ink-muted ${compact ? 'w-[68px]' : 'w-[76px]'} truncate`}>
-        {tierLabel(tier.name)}
-      </span>
+      <span className="w-[76px] shrink-0 truncate text-ink-muted">{tierLabel(tier.name)}</span>
       <span
         role="meter"
         aria-label={`${tierLabel(tier.name)} 剩余 ${Math.round(remaining)}%`}
@@ -90,65 +110,86 @@ function TierRow({ tier, now, compact = false }: TierRowProps) {
 }
 
 interface QuotaCardProps {
-  quota: SubscriptionQuotaDto;
+  quota: QuotaResultDto;
   now: number;
   refreshing: boolean;
   onRefresh: () => void;
+  onRemove?: () => void;
 }
 
-/** 单个供应商的额度卡片 */
-export function QuotaCard({ quota, now, refreshing, onRefresh }: QuotaCardProps) {
+/** 单个账号 / 订阅的额度卡片 */
+export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove }: QuotaCardProps) {
   const tiers = useMemo(() => sortTiers(quota.tiers ?? []), [quota.tiers]);
   const shownTiers = useMemo(() => pickTiers(tiers, 4), [tiers]);
   const updated = relativeTime(quota.queriedAt, now);
 
-  const statusBadge = (() => {
-    if (quota.success) {
-      return (
-        <Badge variant="tint-success" className="gap-1">
-          <CheckCircle2 className="h-3 w-3" aria-hidden />
-          {credentialStatusText(quota.credentialStatus)}
-        </Badge>
-      );
-    }
-    if (quota.credentialStatus === 'not_found') {
-      return <Badge variant="outline">{credentialStatusText(quota.credentialStatus)}</Badge>;
-    }
-    return (
-      <Badge variant="tint-warning" className="gap-1">
-        <AlertCircle className="h-3 w-3" aria-hidden />
-        {credentialStatusText(quota.credentialStatus)}
-      </Badge>
-    );
-  })();
+  const statusBadge = quota.success ? (
+    <Badge variant="tint-success" className="gap-1">
+      <CheckCircle2 className="h-3 w-3" aria-hidden />
+      {credentialStatusText(quota.credentialStatus)}
+    </Badge>
+  ) : quota.credentialStatus === 'not_found' ? (
+    <Badge variant="outline">{credentialStatusText(quota.credentialStatus)}</Badge>
+  ) : (
+    <Badge variant="tint-warning" className="gap-1">
+      <AlertCircle className="h-3 w-3" aria-hidden />
+      {credentialStatusText(quota.credentialStatus)}
+    </Badge>
+  );
+
+  const removable = Boolean(onRemove) && Boolean(quota.accountId) && !quota.isLocal;
 
   return (
     <Card className="flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
-            <h3 className="truncate text-sm font-semibold text-ink">{toolLabel(quota.tool)}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              aria-hidden
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-2 text-[10px] font-semibold text-ink-muted"
+            >
+              {providerInitials(quota.label)}
+            </span>
+            <h3 className="truncate text-sm font-semibold text-ink">{quota.label}</h3>
+            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-faint">
+              {kindLabel(quota.kind)}
+            </span>
             {quota.planName && (
               <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-muted">
                 {quota.planName}
               </span>
             )}
           </div>
-          <div className="mt-1 flex items-center gap-2 text-xs text-ink-faint">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
             {statusBadge}
+            {quota.maskedKey && <span className="font-mono">{quota.maskedKey}</span>}
+            {quota.isLocal && (
+              <span className="rounded-full bg-surface-2 px-2 py-0.5">本机登录</span>
+            )}
             {updated && <span>{updated}更新</span>}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={refreshing}
-          aria-label={`刷新 ${toolLabel(quota.tool)} 额度`}
-          className="shrink-0 rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
-        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label={`刷新 ${quota.label} 额度`}
+            className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
+          </button>
+          {onRemove && quota.accountId && !quota.isLocal && (
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={`删除 ${quota.label}`}
+              className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-danger/10 hover:text-accent-danger"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </button>
+          )}
+        </div>
       </div>
 
       {quota.success ? (
@@ -158,7 +199,9 @@ export function QuotaCard({ quota, now, refreshing, onRefresh }: QuotaCardProps)
               <TierRow key={tier.name} tier={tier} now={now} />
             ))}
             {tiers.length > shownTiers.length && (
-              <p className="text-xs text-ink-faint">另有 {tiers.length - shownTiers.length} 个档位未显示</p>
+              <p className="text-xs text-ink-faint">
+                另有 {tiers.length - shownTiers.length} 个档位未显示
+              </p>
             )}
           </div>
         ) : (
@@ -167,16 +210,11 @@ export function QuotaCard({ quota, now, refreshing, onRefresh }: QuotaCardProps)
       ) : (
         <div className="flex flex-col gap-1">
           <p className="text-sm text-accent-danger">
-            {quota.credentialStatus === 'not_found' ? '未检测到本地登录凭据' : '额度查询失败'}
+            {quota.credentialStatus === 'not_found' ? '未检测到可用凭据' : '额度查询失败'}
           </p>
           {(quota.error || quota.credentialMessage) && (
             <p className="break-words text-xs text-ink-faint">
               {quota.error || quota.credentialMessage}
-            </p>
-          )}
-          {quota.credentialStatus === 'not_found' && (
-            <p className="text-xs text-ink-faint">
-              请先在本机用对应命令行工具登录，再回到这里刷新。
             </p>
           )}
         </div>
@@ -185,29 +223,241 @@ export function QuotaCard({ quota, now, refreshing, onRefresh }: QuotaCardProps)
   );
 }
 
+interface AddAccountDialogProps {
+  providers: ProviderSpecDto[];
+  initialProviderId?: string;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+/** 添加供应商账号对话框 */
+function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: AddAccountDialogProps) {
+  const addable = useMemo(() => providers.filter((p) => p.addable), [providers]);
+  const [providerId, setProviderId] = useState(initialProviderId ?? addable[0]?.id ?? '');
+  const spec = useMemo(
+    () => addable.find((p) => p.id === providerId) ?? null,
+    [addable, providerId]
+  );
+  const [label, setLabel] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [region, setRegion] = useState('cn');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [extraValues, setExtraValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLabel(spec?.name ?? '');
+    setExtraValues({});
+    setApiKey('');
+    setBaseUrl('');
+    setRegion(spec?.regions?.includes('cn') ? 'cn' : 'intl');
+  }, [spec]);
+
+  const handleSave = useCallback(async () => {
+    if (!spec) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const extra: Record<string, unknown> = { ...extraValues };
+      if (spec.regions.length > 0) extra.region = region;
+      if (spec.needsBaseUrl && baseUrl.trim()) extra.base_url = baseUrl.trim();
+      if (spec.needs.includes('control_key')) {
+        extra.control_key = apiKey;
+      } else if (spec.needs.includes('access_key')) {
+        // AK/SK 都从 extraValues 来
+      } else {
+        extra.api_key = apiKey;
+      }
+      await quotaApi.addAccount({
+        providerId: spec.id,
+        label: label.trim() || spec.name,
+        apiKey: apiKey || undefined,
+        extra,
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [spec, label, apiKey, region, baseUrl, extraValues, onSaved, onClose]);
+
+  const keyField = spec?.needs.find((n) => n === 'api_key' || n === 'control_key') ?? 'api_key';
+  const otherFields = spec?.needs.filter((n) => n !== 'api_key' && n !== 'control_key') ?? [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="添加供应商"
+        className="w-full max-w-lg rounded-xl border border-border bg-surface-1 p-5 shadow-xl"
+      >
+        <div className="mb-4 flex items-start justify-between">
+          <h2 className="text-base font-semibold text-ink">添加供应商</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="关闭"
+            className="rounded-md p-1 text-ink-muted hover:bg-surface-2 hover:text-ink"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            供应商
+            <select
+              value={providerId}
+              onChange={(e) => setProviderId(e.target.value)}
+              className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+            >
+              {addable.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}（{kindLabel(p.kind)}）
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {spec && (
+            <p className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-ink-muted">
+              {spec.hint}
+              <br />
+              {needsHint(spec.needs, spec.extraFields)}
+            </p>
+          )}
+
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            显示名称
+            <input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder={spec?.name}
+              className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+            />
+          </label>
+
+          {spec?.regions && spec.regions.length > 1 && (
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              站点
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+              >
+                {spec.regions.map((r) => (
+                  <option key={r} value={r}>
+                    {r === 'cn' ? '国内站' : '国际站'}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            {keyField === 'control_key' ? 'Control Key' : 'API Key'}
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="sk-..."
+              autoComplete="off"
+              className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 font-mono text-sm text-ink"
+            />
+          </label>
+
+          {spec?.needsBaseUrl && (
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              用量地址（base_url）
+              <input
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://..."
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+              />
+            </label>
+          )}
+
+          {otherFields.map((field) => (
+            <label key={field} className="flex flex-col gap-1 text-xs text-ink-muted">
+              {spec?.extraFields[field] ?? field}
+              <input
+                value={extraValues[field] ?? ''}
+                onChange={(e) =>
+                  setExtraValues((prev) => ({ ...prev, [field]: e.target.value }))
+                }
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 font-mono text-sm text-ink"
+              />
+            </label>
+          ))}
+
+          {error && <p className="text-xs text-accent-danger">{error}</p>}
+
+          <div className="mt-1 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink hover:bg-surface-2"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !spec}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? '保存中…' : '保存'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** 订阅套餐额度工具主界面 */
 export default function SubscriptionQuotaTool() {
-  const [quotas, setQuotas] = useState<SubscriptionQuotaDto[]>([]);
+  const [providers, setProviders] = useState<ProviderSpecDto[]>([]);
+  const [accounts, setAccounts] = useState<QuotaAccountDto[]>([]);
+  const [results, setResults] = useState<QuotaResultDto[]>([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusDto[]>([]);
   const [queriedAt, setQueriedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
   const mountedRef = useRef(true);
 
-  const now = useNow(quotas.length > 0 || Boolean(queriedAt));
+  const now = useNow(results.length > 0 || Boolean(queriedAt));
 
-  const load = useCallback(async (forceRefresh: boolean) => {
+  const loadAll = useCallback(async (forceRefresh: boolean) => {
     if (forceRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
     try {
-      const data = await quotaApi.queryQuotas({ forceRefresh });
+      const [providerData, accountData, subData] = await Promise.all([
+        quotaApi.getProviders(),
+        quotaApi.getAccounts(),
+        quotaApi.getSubscriptions(),
+      ]);
       if (!mountedRef.current) return;
-      setQuotas(data.quotas ?? []);
-      setQueriedAt(data.queriedAt ?? Date.now());
+      setProviders(providerData.providers);
+      setAccounts(accountData.accounts);
+      setSubscriptionStatus(subData.subscriptions);
+
+      // 无论有没有用户账号都查一次：本机 CLI 凭据（如 Kimi Code 登录）会自动出现
+      const quotaData = await quotaApi.queryQuotas({ forceRefresh });
+      if (!mountedRef.current) return;
+      setResults([...quotaData.accounts, ...quotaData.subscriptions]);
+      setQueriedAt(quotaData.queriedAt);
     } catch (err) {
       if (!mountedRef.current) return;
-      setError(err instanceof Error ? err.message : '查询失败');
+      setError(err instanceof Error ? err.message : '加载失败');
     } finally {
       if (!mountedRef.current) return;
       setLoading(false);
@@ -217,64 +467,91 @@ export default function SubscriptionQuotaTool() {
 
   useEffect(() => {
     mountedRef.current = true;
-    void load(false);
+    void loadAll(false);
     return () => {
       mountedRef.current = false;
     };
-  }, [load]);
+  }, [loadAll]);
 
-  const handleRefreshAll = useCallback(() => {
-    void load(true);
-  }, [load]);
-
-  const handleRefreshOne = useCallback(
-    async (tool: string) => {
-      setRefreshing(true);
-      try {
-        const data = await quotaApi.queryQuotas({ tools: [tool], forceRefresh: true });
-        if (!mountedRef.current) return;
-        setQuotas((prev) => {
-          const next = prev.map((item) =>
-            item.tool === tool ? data.quotas[0] ?? item : item
-          );
-          return next;
-        });
-        setQueriedAt(data.queriedAt ?? Date.now());
-      } catch (err) {
-        if (!mountedRef.current) return;
-        setError(err instanceof Error ? err.message : '刷新失败');
-      } finally {
-        if (mountedRef.current) setRefreshing(false);
+  const handleRefreshOne = useCallback(async (quota: QuotaResultDto) => {
+    if (!quota.accountId) {
+      void loadAll(true);
+      return;
+    }
+    setRefreshing(true);
+    try {
+      const data = await quotaApi.queryQuotas({
+        accountIds: [quota.accountId],
+        includeSubscriptions: false,
+        forceRefresh: true,
+      });
+      if (!mountedRef.current) return;
+      const updated = data.accounts[0];
+      if (updated) {
+        setResults((prev) =>
+          prev.map((item) => (item.accountId === quota.accountId ? updated : item))
+        );
+        setQueriedAt(data.queriedAt);
       }
-    },
-    []
-  );
+    } catch (err) {
+      if (!mountedRef.current) return;
+      setError(err instanceof Error ? err.message : '刷新失败');
+    } finally {
+      if (mountedRef.current) setRefreshing(false);
+    }
+  }, [loadAll]);
 
-  const successCount = quotas.filter((q) => q.success).length;
+  const handleRemove = useCallback(async (accountId: string) => {
+    try {
+      await quotaApi.deleteAccount(accountId);
+      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+      setResults((prev) => prev.filter((r) => r.accountId !== accountId));
+      const providerData = await quotaApi.getProviders();
+      if (mountedRef.current) setProviders(providerData.providers);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除失败');
+    }
+  }, []);
+
+  const successCount = results.filter((r) => r.success).length;
+  const hasAnything =
+    accounts.length > 0 ||
+    subscriptionStatus.some((s) => s.hasCredential) ||
+    results.some((r) => r.isLocal);
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-ink">订阅套餐额度</h2>
           <p className="mt-0.5 text-xs text-ink-muted">
-            读取本机各 CLI 的官方登录凭据查询订阅剩余额度；只读凭据，不做任何修改。
+            添加供应商并填入 API Key 即可查询套餐窗口与账户余额；只读凭据，不做任何修改。
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleRefreshAll}
-          disabled={refreshing || loading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
-          {refreshing ? '刷新中…' : '全部刷新'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            添加供应商
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadAll(true)}
+            disabled={refreshing || loading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
+            {refreshing ? '刷新中…' : '全部刷新'}
+          </button>
+        </div>
       </div>
 
-      {queriedAt && (
+      {queriedAt && hasAnything && (
         <p className="text-xs text-ink-faint">
-          共 {quotas.length} 家供应商，成功 {successCount} 家 · 更新于 {relativeTime(queriedAt, now)}
+          共 {results.length} 项，成功 {successCount} 项 · 更新于 {relativeTime(queriedAt, now)}
         </p>
       )}
 
@@ -286,23 +563,51 @@ export default function SubscriptionQuotaTool() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-ink-muted">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden />
-          正在查询订阅额度…
+          <RefreshCw className="mr-2 h-5 w-5 animate-spin" aria-hidden />
+          正在加载…
         </div>
-      ) : quotas.length === 0 ? (
-        <p className="py-16 text-center text-sm text-ink-muted">暂无可用供应商</p>
+      ) : !hasAnything ? (
+        <div className="flex flex-col items-center gap-3 py-16 text-center">
+          <Settings2 className="h-10 w-10 text-ink-faint" aria-hidden />
+          <p className="text-sm font-medium text-ink">还没有配置任何订阅</p>
+          <p className="max-w-md text-xs text-ink-muted">
+            大多数供应商只需要一个 API Key：点「添加供应商」，选择供应商并粘贴 Key 即可。
+            本机已登录的 Claude Code / Codex / Gemini 会自动出现。
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            添加第一个供应商
+          </button>
+        </div>
+      ) : results.length === 0 ? (
+        <p className="py-16 text-center text-sm text-ink-muted">暂无已配置的供应商</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {quotas.map((quota) => (
+          {results.map((quota) => (
             <QuotaCard
-              key={quota.tool}
+              key={`${quota.providerId}:${quota.accountId ?? 'subscription'}`}
               quota={quota}
               now={now}
               refreshing={refreshing}
-              onRefresh={() => handleRefreshOne(quota.tool)}
+              onRefresh={() => void handleRefreshOne(quota)}
+              onRemove={
+                quota.accountId ? () => void handleRemove(quota.accountId!) : undefined
+              }
             />
           ))}
         </div>
+      )}
+
+      {showAdd && (
+        <AddAccountDialog
+          providers={providers}
+          onClose={() => setShowAdd(false)}
+          onSaved={() => void loadAll(true)}
+        />
       )}
     </div>
   );

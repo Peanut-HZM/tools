@@ -1,41 +1,29 @@
 /**
- * 订阅额度的纯函数（对照 cc-switch 的 `src/components/quota/quotaRules.ts`）
+ * 订阅额度的纯函数（对照 cc-switch 的 quotaRules.ts + 余额展示）
  *
- * 约定：后端返回的 `utilization` 是**已用**百分比，前端按剩余展示。
- * 这里全部是纯函数，便于单测覆盖。
+ * 后端返回的 `utilization` 是**已用**百分比；余额型条目改用
+ * `balanceAmount` / `balanceUnit`，`utilization` 恒为 0。
  */
 
-export type CredentialStatus =
-  | 'valid'
-  | 'expired'
-  | 'refresh_pending'
-  | 'not_found'
-  | 'parse_error';
-
-export interface QuotaTier {
-  name: string;
-  /** 已用百分比 0–100 */
-  utilization: number;
-  resetsAt: string | null;
-  usedValueUsd?: number | null;
-  maxValueUsd?: number | null;
-}
-
-export interface SubscriptionQuota {
-  tool: string;
-  credentialStatus: CredentialStatus;
-  credentialMessage: string | null;
-  success: boolean;
-  tiers: QuotaTier[];
-  planName: string | null;
-  error: string | null;
-  queriedAt: number | null;
-}
+export type QuotaTone = 'normal' | 'warning' | 'danger';
 
 /** 额度紧张阈值：剩余低于该值显示橙色 */
 export const WARN_BELOW_PERCENT = 20;
 
-export type QuotaTone = 'normal' | 'warning' | 'danger';
+export interface TierLike {
+  name: string;
+  utilization: number;
+  resetsAt: string | null;
+  balanceAmount?: number | null;
+  balanceUnit?: string | null;
+  usedValueUsd?: number | null;
+  maxValueUsd?: number | null;
+}
+
+/** 是否是余额型条目 */
+export function isBalanceTier(tier: TierLike): boolean {
+  return typeof tier.balanceAmount === 'number' && Number.isFinite(tier.balanceAmount);
+}
 
 /** 把「已用」百分比换成「剩余」百分比（夹在 0–100） */
 export function remainingPercent(utilization: number): number {
@@ -50,7 +38,12 @@ export function toneForRemaining(remaining: number): QuotaTone {
   return 'normal';
 }
 
-/** 档位窗口的中文名 */
+/** 余额色调：<=0 红，其余中性（不做「快用完」的加深） */
+export function toneForBalance(amount: number): QuotaTone {
+  return amount <= 0 ? 'danger' : 'normal';
+}
+
+/** 档位窗口中文名 */
 export const TIER_LABELS: Record<string, string> = {
   five_hour: '5 小时',
   seven_day: '每周',
@@ -64,12 +57,15 @@ export const TIER_LABELS: Record<string, string> = {
   gemini_flash: 'Gemini Flash',
   gemini_flash_lite: 'Gemini Flash Lite',
   credits: 'Credits',
+  balance: '余额',
 };
 
 export function tierLabel(name: string): string {
   const known = TIER_LABELS[name];
   if (known) return known;
-  // 形如 12_hour / 3_day 的未知窗口，尽量可读
+  if (name.startsWith('balance_')) {
+    return `余额 ${name.slice('balance_'.length)}`;
+  }
   const match = /^(\d+)_(hour|day)$/.exec(name);
   if (match) {
     const value = match[1];
@@ -78,7 +74,6 @@ export function tierLabel(name: string): string {
   return name || '额度';
 }
 
-/** 档位窗口的排序权重（越小越靠前） */
 const TIER_ORDER: Record<string, number> = {
   five_hour: 0,
   seven_day: 1,
@@ -86,8 +81,8 @@ const TIER_ORDER: Record<string, number> = {
   seven_day_opus: 1,
   seven_day_sonnet: 1,
   weekly_limit: 1,
-  '30_day': 2,
   monthly: 2,
+  '30_day': 2,
   gemini_pro: 0,
   gemini_flash: 1,
   gemini_flash_lite: 2,
@@ -95,24 +90,26 @@ const TIER_ORDER: Record<string, number> = {
 };
 
 export function tierOrder(name: string): number {
+  if (name.startsWith('balance_')) return 10;
   const known = TIER_ORDER[name];
-  if (known !== undefined) return known;
-  return 99;
+  return known !== undefined ? known : 99;
 }
 
-/** 按窗口排序（稳定排序，未知窗口保持原顺序排在最后） */
-export function sortTiers(tiers: QuotaTier[]): QuotaTier[] {
+/** 排序：窗口从短到长，余额排最后 */
+export function sortTiers<T extends TierLike>(tiers: T[]): T[] {
   return tiers
     .map((tier, index) => ({ tier, index }))
-    .sort((a, b) => tierOrder(a.tier.name) - tierOrder(b.tier.name) || a.index - b.index)
+    .sort(
+      (a, b) => tierOrder(a.tier.name) - tierOrder(b.tier.name) || a.index - b.index
+    )
     .map(({ tier }) => tier);
 }
 
-/**
- * 倒计时的纯时间字符串（如 "2h30m"、"3d12h"）
- * 没有重置时间或已过期时返回 null。
- */
-export function countdownStr(resetsAt: string | null | undefined, now = Date.now()): string | null {
+/** 倒计时字符串（"2h30m" / "3d12h"）；没有或已过期为 null */
+export function countdownStr(
+  resetsAt: string | null | undefined,
+  now = Date.now()
+): string | null {
   if (!resetsAt) return null;
   const target = Date.parse(resetsAt);
   if (!Number.isFinite(target)) return null;
@@ -130,7 +127,10 @@ export function countdownStr(resetsAt: string | null | undefined, now = Date.now
 }
 
 /** 相对时间（「3 分钟前」） */
-export function relativeTime(timestamp: number | null | undefined, now = Date.now()): string {
+export function relativeTime(
+  timestamp: number | null | undefined,
+  now = Date.now()
+): string {
   if (!timestamp || !Number.isFinite(timestamp)) return '';
   const diffSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
   if (diffSeconds < 60) return '刚刚';
@@ -139,30 +139,33 @@ export function relativeTime(timestamp: number | null | undefined, now = Date.no
   return `${Math.floor(diffSeconds / 86400)} 天前`;
 }
 
-/**
- * 一家供应商是否还有可展示的额度：
- * 有档位、或成功但档位为空（如未开始使用的套餐）
- */
-export function hasDisplayableQuota(quota: SubscriptionQuota): boolean {
-  return quota.success;
+/** 金额格式化：小于 1 保留 2 位，其余保留 2 位但带千分位 */
+export function formatAmount(amount: number, unit?: string | null): string {
+  if (!Number.isFinite(amount)) return '—';
+  const abs = Math.abs(amount);
+  const digits = abs >= 1000 ? 0 : 2;
+  const text = amount.toLocaleString('zh-CN', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return unit ? `${text} ${unit}` : text;
 }
 
-/** 供应商名称（后端也会返回，这里兜底） */
-export const TOOL_LABELS: Record<string, string> = {
-  claude: 'Claude Code',
-  codex: 'Codex (ChatGPT)',
-  gemini: 'Gemini CLI',
-  kimi: 'Kimi Code',
-  minimax: 'MiniMax',
-  zhipu: '智谱 GLM',
-};
-
-export function toolLabel(tool: string): string {
-  return TOOL_LABELS[tool] ?? tool;
+/** 供应商类别标签 */
+export function kindLabel(kind: string): string {
+  switch (kind) {
+    case 'balance':
+      return '余额';
+    case 'subscription':
+      return '订阅';
+    case 'window':
+    default:
+      return '套餐';
+  }
 }
 
-/** 凭据状态的中文说明 */
-export function credentialStatusText(status: CredentialStatus): string {
+/** 凭据状态文案 */
+export function credentialStatusText(status: string): string {
   switch (status) {
     case 'valid':
       return '已登录';
@@ -179,15 +182,49 @@ export function credentialStatusText(status: CredentialStatus): string {
 }
 
 /**
- * 卡片上最多显示几行：剩余最少的优先，再按原顺序排回去。
- * 与 cc-switch 的 `pickLines` 语义一致。
+ * 卡片上最多显示几行：余额优先（金额是主要信息），其余按剩余最少的优先。
  */
-export function pickTiers(tiers: QuotaTier[], max = 2): QuotaTier[] {
+export function pickTiers<T extends TierLike>(tiers: T[], max = 4): T[] {
   if (tiers.length <= max) return tiers;
   return tiers
-    .map((tier, index) => ({ tier, index, remaining: remainingPercent(tier.utilization) }))
-    .sort((a, b) => a.remaining - b.remaining)
+    .map((tier, index) => ({
+      tier,
+      index,
+      score: isBalanceTier(tier)
+        ? -1000
+        : remainingPercent(tier.utilization),
+    }))
+    .sort((a, b) => a.score - b.score)
     .slice(0, max)
     .sort((a, b) => a.index - b.index)
     .map(({ tier }) => tier);
+}
+
+/** 某个供应商需要哪些字段的提示文案 */
+export function needsHint(needs: string[], extraFields: Record<string, string>): string {
+  const names: Record<string, string> = {
+    api_key: 'API Key',
+    control_key: 'Control Key',
+    access_key: 'AccessKey ID',
+    secret_key: 'Secret AccessKey',
+    organization_id: '组织 ID',
+    project_id: '项目 ID',
+  };
+  const parts = needs.map((n) => names[n] ?? extraFields[n] ?? n);
+  return parts.length > 0 ? `需要 ${parts.join(' + ')}` : '无需额外凭据';
+}
+
+/** 供应商首字母（无图标时占位） */
+export function providerInitials(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '?';
+  const ascii = trimmed.replace(/[^A-Za-z0-9 ]/g, '').trim();
+  if (ascii) {
+    const words = ascii.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return ascii.slice(0, 2).toUpperCase();
+  }
+  return trimmed.slice(0, 2);
 }
