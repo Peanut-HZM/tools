@@ -72,6 +72,12 @@ class TestRequest(BaseModel):
     extra: dict = Field(default_factory=dict)
 
 
+class ImportRequest(BaseModel):
+    """从 cc-switch 导入供应商配置"""
+
+    dry_run: bool = Field(default=False, description="只预览不写库")
+
+
 def _require_user(authorization: Optional[str]) -> str:
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
@@ -105,6 +111,103 @@ def list_providers(authorization: Optional[str] = Header(None)):
         "displayNames": TOOL_DISPLAY_NAMES,
         "subscriptionIds": list(SUBSCRIPTION_IDS),
         "manualProviderIds": list(MANUAL_PROVIDER_IDS),
+    }
+
+
+@router.post("/import/cc-switch")
+def import_from_ccswitch(
+    req: ImportRequest = ImportRequest(),
+    authorization: Optional[str] = Header(None),
+):
+    """从本机 cc-switch 导入供应商配置（含 OpenDesign 的控制面 Key）
+
+    cc-switch 把 **控制面 Key**（OpenDesign 的 `vela_ctrl_…`）存在
+    `providers.meta.usage_script.apiKey`，而 `settings_config` 里只有推理 Key。
+    推理 Key 查不了账单，所以导入时必须优先取控制面 Key。
+    """
+    user_id = _require_user(authorization)
+
+    import os
+    import sys
+    from pathlib import Path
+
+    backend_dir = Path(__file__).resolve().parent.parent.parent
+    if str(backend_dir) not in sys.path:
+        sys.path.insert(0, str(backend_dir))
+
+    from scripts.import_ccswitch_providers import load_candidates
+
+    db_path = Path(os.environ.get("USERPROFILE") or Path.home()) / ".cc-switch" / "cc-switch.db"
+    if not db_path.exists():
+        raise HTTPException(status_code=404, detail=f"未找到 cc-switch 数据库：{db_path}")
+
+    candidates = load_candidates(db_path)
+    if not candidates:
+        return {"imported": 0, "items": [], "message": "cc-switch 里没有可导入的供应商凭据"}
+
+    # 同一 provider 只保留一条（优先控制面 Key）
+    best: dict[str, dict] = {}
+    for item in candidates:
+        current = best.get(item["provider_id"])
+        if current is None or (item["from_control_key"] and not current["from_control_key"]):
+            best[item["provider_id"]] = item
+
+    existing = {a.provider_id: a for a in list_accounts(user_id)}
+    items: list[dict] = []
+    created = updated = 0
+
+    for pid, item in best.items():
+        extra: dict = {"region": item["region"], "api_key": item["api_key"]}
+        if pid == "opendesign":
+            extra["control_key"] = item["api_key"]
+            extra["base_url"] = "https://amr-api.open-design.ai"
+        elif item["base_url"]:
+            extra["base_url"] = item["base_url"]
+
+        label = f"{item['source_name']}（cc-switch 导入）"
+        items.append(
+            {
+                "providerId": pid,
+                "sourceApp": item["source_app"],
+                "sourceName": item["source_name"],
+                "fromControlKey": item["from_control_key"],
+                "maskedKey": (
+                    f"{item['api_key'][:6]}…{item['api_key'][-4:]}"
+                    if len(item["api_key"]) > 12
+                    else "***"
+                ),
+                "action": "update" if pid in existing else "create",
+            }
+        )
+
+        if req.dry_run:
+            continue
+
+        if pid in existing:
+            update_account(
+                user_id, existing[pid].id, label=label, api_key=item["api_key"], extra=extra
+            )
+            updated += 1
+        else:
+            create_account(user_id, pid, label=label, api_key=item["api_key"], extra=extra)
+            created += 1
+
+    if not req.dry_run:
+        clear_cache()
+        logger.info(
+            "用户 %s 从 cc-switch 导入 %d 个供应商（新建 %d / 更新 %d）",
+            user_id,
+            len(items),
+            created,
+            updated,
+        )
+
+    return {
+        "imported": 0 if req.dry_run else len(items),
+        "created": created,
+        "updated": updated,
+        "dryRun": req.dry_run,
+        "items": items,
     }
 
 

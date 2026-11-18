@@ -117,6 +117,24 @@ export interface LocalCredentialNoteDto {
   message: string;
 }
 
+export interface ImportedProviderDto {
+  providerId: string;
+  sourceApp: string;
+  sourceName: string;
+  /** 是否来自 cc-switch 的控制面 Key（OpenDesign 必须用这个） */
+  fromControlKey: boolean;
+  maskedKey: string;
+  action: 'create' | 'update';
+}
+
+export interface ImportResponse {
+  imported: number;
+  created: number;
+  updated: number;
+  dryRun: boolean;
+  items: ImportedProviderDto[];
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
@@ -206,6 +224,16 @@ export async function deleteAccount(accountId: string): Promise<{ success: boole
     headers: getAuthHeaders(),
   });
   return parseJson(response);
+}
+
+/** 从本机 cc-switch 导入供应商（含 OpenDesign 控制面 Key） */
+export async function importFromCcSwitch(dryRun = false): Promise<ImportResponse> {
+  const response = await authedFetch(`${BASE_URL}/import/cc-switch`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ dry_run: dryRun }),
+  });
+  return parseJson<ImportResponse>(response);
 }
 
 /** 测试单个账号（可传临时凭据） */

@@ -3,6 +3,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  Download,
   Plus,
   RefreshCw,
   Settings2,
@@ -433,6 +434,8 @@ export default function SubscriptionQuotaTool() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   const now = useNow(results.length > 0 || Boolean(queriedAt));
@@ -516,6 +519,32 @@ export default function SubscriptionQuotaTool() {
     }
   }, []);
 
+  const handleImport = useCallback(async () => {
+    setImporting(true);
+    setError(null);
+    setImportResult(null);
+    try {
+      const result = await quotaApi.importFromCcSwitch(false);
+      if (!mountedRef.current) return;
+      if (result.imported === 0) {
+        setImportResult('cc-switch 里没有可导入的供应商凭据');
+      } else {
+        const control = result.items.filter((i) => i.fromControlKey).map((i) => i.providerId);
+        setImportResult(
+          `已导入 ${result.imported} 个供应商（新建 ${result.created} / 更新 ${result.updated}）` +
+            (control.length > 0 ? `，其中控制面 Key：${control.join('、')}` : '')
+        );
+      }
+      await loadAll(true);
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : '导入失败');
+      }
+    } finally {
+      if (mountedRef.current) setImporting(false);
+    }
+  }, [loadAll]);
+
   const successCount = results.filter((r) => r.success).length;
   const hasAnything =
     accounts.length > 0 ||
@@ -544,6 +573,16 @@ export default function SubscriptionQuotaTool() {
           </button>
           <button
             type="button"
+            onClick={() => void handleImport()}
+            disabled={importing}
+            title="从本机 cc-switch 自动导入已配置的供应商（含 OpenDesign 控制面 Key）"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
+          >
+            <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
+            {importing ? '导入中…' : '从 cc-switch 导入'}
+          </button>
+          <button
+            type="button"
             onClick={() => void loadAll(true)}
             disabled={refreshing || loading}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
@@ -563,6 +602,20 @@ export default function SubscriptionQuotaTool() {
       {error && (
         <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-accent-danger">
           {error}
+        </div>
+      )}
+
+      {importResult && (
+        <div className="flex items-start justify-between gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-accent-success">
+          <span>{importResult}</span>
+          <button
+            type="button"
+            onClick={() => setImportResult(null)}
+            aria-label="关闭导入提示"
+            className="shrink-0 rounded p-0.5 hover:bg-success/20"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
         </div>
       )}
 
