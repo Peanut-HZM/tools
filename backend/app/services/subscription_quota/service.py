@@ -136,7 +136,7 @@ async def _query_subscription(tool: str) -> SubscriptionQuota:
 
 
 async def _query_account(account: QuotaAccount) -> SubscriptionQuota:
-    """用户添加的账号"""
+    """用户添加的账号（或本机自动发现的虚拟账号）"""
     func = QUERY_FUNCS.get(account.provider_id)
     if func is None:
         return SubscriptionQuota.failure(
@@ -180,9 +180,16 @@ async def query_for_accounts(
     本机 CLI 凭据（如 Kimi Code 登录）会作为虚拟账号一并查询。
     """
     accounts = list_accounts(user_id, only_enabled=True)
-    if include_local:
-        # 本机凭据作为虚拟账号；若用户已手动添加同 provider 账号，仍全部保留
-        accounts = accounts + discover_local_accounts()
+
+    if include_local and not account_ids:
+        # 本机凭据作为虚拟账号，但与库里同 provider 的账号去重
+        # （导入脚本会把同样的 Key 写进库，避免同一份额度显示两次）
+        stored_providers = {a.provider_id for a in accounts}
+        for local in discover_local_accounts():
+            if local.provider_id in stored_providers:
+                continue
+            accounts.append(local)
+
     if account_ids is not None:
         wanted = {str(a) for a in account_ids}
         accounts = [a for a in accounts if a.id in wanted]

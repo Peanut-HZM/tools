@@ -56,6 +56,60 @@ def discover_local_accounts() -> list[QuotaAccount]:
             )
         )
 
+    # ZCode：凭据是自有加密格式，但可以按 ZCode 自己的实现解密出智谱 access token
+    try:
+        from app.services.subscription_quota.zcode_credentials import read_zcode_token
+
+        zcode = read_zcode_token()
+    except Exception as exc:
+        logger.warning("读取 ZCode 本地凭据异常: %s", exc)
+        zcode = None
+
+    if zcode is not None and zcode.token:
+        accounts.append(
+            QuotaAccount(
+                id=f"{LOCAL_ACCOUNT_PREFIX}zcode",
+                user_id="",
+                provider_id="zhipu",
+                label="智谱 GLM（ZCode 登录）",
+                api_key=zcode.token,
+                extra={"region": "cn", "api_key": zcode.token},
+                enabled=True,
+            )
+        )
+
+    # ZCode provider_config.json 里的明文 Key（服务账户也能读到）
+    try:
+        from app.services.subscription_quota.zcode_provider_config import read_provider_keys
+
+        provider_keys = read_provider_keys()
+    except Exception as exc:
+        logger.warning("读取 ZCode provider 配置异常: %s", exc)
+        provider_keys = []
+
+    existing = {a.provider_id for a in accounts}
+    for item in provider_keys:
+        if item.provider_id in existing:
+            continue
+        extra: dict = {"region": item.region, "api_key": item.api_key}
+        if item.provider_id == "opendesign":
+            # OpenDesign 用 control_key 字段名
+            extra["control_key"] = item.api_key
+        if item.base_url:
+            extra["base_url"] = item.base_url
+        accounts.append(
+            QuotaAccount(
+                id=f"{LOCAL_ACCOUNT_PREFIX}zcode-{item.provider_id}",
+                user_id="",
+                provider_id=item.provider_id,
+                label=item.label,
+                api_key=item.api_key,
+                extra=extra,
+                enabled=True,
+            )
+        )
+        existing.add(item.provider_id)
+
     return accounts
 
 
@@ -73,24 +127,32 @@ def local_credential_notes() -> list[LocalCredentialNote]:
         )
     )
 
-    # ZCode：凭据存在但为自有加密格式
+    # ZCode：按 ZCode 自己的加密实现解密凭据
     try:
-        from pathlib import Path
+        from app.services.subscription_quota.zcode_credentials import read_zcode_token
 
-        from app.config.config import REAL_HOME
-
-        zcode_cred = Path(REAL_HOME) / ".zcode" / "v2" / "credentials.json"
-        if zcode_cred.exists():
-            notes.append(
-                LocalCredentialNote(
-                    provider_id="zhipu",
-                    name="智谱 GLM（ZCode）",
-                    status="needs_manual_key",
-                    message="检测到 ZCode 登录，但其凭据是 ZCode 自有加密格式，无法直接读取；"
-                    "请在 ZCode 里复制 API Key 后手动添加",
-                )
-            )
+        zcode = read_zcode_token()
     except Exception as exc:
-        logger.debug("检查 ZCode 凭据失败: %s", exc)
+        logger.warning("读取 ZCode 凭据异常: %s", exc)
+        zcode = None
+
+    if zcode is not None and zcode.token:
+        notes.append(
+            LocalCredentialNote(
+                provider_id="zhipu",
+                name="智谱 GLM（ZCode）",
+                status="available",
+                message="已从本机 ZCode 登录自动识别（智谱 GLM 额度已就绪）",
+            )
+        )
+    elif zcode is not None and zcode.status == "unsupported":
+        notes.append(
+            LocalCredentialNote(
+                provider_id="zhipu",
+                name="智谱 GLM（ZCode）",
+                status="needs_manual_key",
+                message=zcode.message or "无法读取 ZCode 加密凭据，请手动填写 API Key",
+            )
+        )
 
     return notes

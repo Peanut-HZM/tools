@@ -650,55 +650,96 @@ def parse_command_code_quota(
 
 
 async def query_opendesign(account: QuotaAccount) -> SubscriptionQuota:
-    """OpenDesign：workspaces/current 取 id → billing/snapshot 取窗口"""
+    """OpenDesign：workspaces/current 取 id → billing/snapshot 取窗口
+
+    注意：账单接口只认 AMR **控制面 controlKey**；ZCode / 推理配置里存的是
+    运行时推理 Key（`sk-amr-ew__…`），一定被拒。所以这里对 401/404 都给出
+    「需要 controlKey」的明确指引，而不是含糊的接口错误。
+    """
     base = _base_url(account) or "https://amr-api.open-design.ai"
     base = base.rstrip("/")
-    # 推理地址 amr-link 换成控制面 amr-api
+    # 去掉推理地址里的 /v1 之类路径，只保留 origin
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(base)
+        if parsed.scheme and parsed.netloc:
+            base = f"{parsed.scheme}://{parsed.netloc}"
+    except ValueError:
+        pass
+    # 控制面 host 与推理 host 不同：只做一次明确的候选回退
+    candidates = [base]
     if "amr-link." in base:
-        base = base.replace("amr-link.", "amr-api.")
+        candidates.append(base.replace("amr-link.", "amr-api."))
+    elif "amr-api." in base:
+        candidates.append(base.replace("amr-api.", "amr-link."))
+    candidates = list(dict.fromkeys(candidates))
 
     headers = _bearer(account, "control_key")
     headers["Content-Type"] = "application/json"
 
-    status, current, err = await _request_json("GET", f"{base}/api/v1/workspaces/current", headers)
-    if status in (401, 403):
-        return _auth_failure("opendesign", status)
-    if err is not None:
-        return _api_failure("opendesign", f"workspaces/current 失败: {err}")
+    last_status: Optional[int] = None
+    last_error: Optional[str] = None
 
-    workspace_id = None
-    if isinstance(current, dict):
-        for key in ("workspaceId", "activeWorkspaceId"):
-            value = current.get(key)
-            if isinstance(value, str) and value.strip():
-                workspace_id = value.strip()
-                break
-    if not workspace_id:
-        workspace_id = str(account.extra.get("workspace_id") or "").strip() or None
-    if not workspace_id:
-        return _api_failure(
-            "opendesign", "拿不到 workspace id（可在配置里手动填写 workspace_id）"
+    for candidate in candidates:
+        status, current, err = await _request_json(
+            "GET", f"{candidate}/api/v1/workspaces/current", headers
+        )
+        last_status, last_error = status, err
+        if status in (401, 403):
+            return SubscriptionQuota.failure(
+                "opendesign",
+                CredentialStatus.EXPIRED,
+                "OpenDesign 账单接口只认 AMR 控制面 controlKey"
+                "（推理运行时 Key `sk-amr-ew__…` 会被拒），"
+                "请到 OpenDesign 控制台复制 controlKey 后重新添加",
+            )
+        if status == 404 or err is not None:
+            continue
+
+        workspace_id = None
+        if isinstance(current, dict):
+            for key in ("workspaceId", "activeWorkspaceId"):
+                value = current.get(key)
+                if isinstance(value, str) and value.strip():
+                    workspace_id = value.strip()
+                    break
+        if not workspace_id:
+            workspace_id = str(account.extra.get("workspace_id") or "").strip() or None
+        if not workspace_id:
+            return _api_failure(
+                "opendesign", "拿不到 workspace id（可在配置里手动填写 workspace_id）"
+            )
+
+        status2, snapshot, err2 = await _request_json(
+            "GET", f"{candidate}/api/v1/workspaces/{workspace_id}/billing/snapshot", headers
+        )
+        if status2 in (401, 403):
+            return SubscriptionQuota.failure(
+                "opendesign",
+                CredentialStatus.EXPIRED,
+                "OpenDesign 账单接口只认 AMR 控制面 controlKey，请重新填 controlKey",
+            )
+        if err2 is not None:
+            return _api_failure("opendesign", f"billing/snapshot 失败: {err2}")
+        if not isinstance(snapshot, dict):
+            return _api_failure("opendesign", "响应结构异常")
+
+        tiers = parse_opendesign_tiers(snapshot)
+        if not tiers:
+            return _api_failure("opendesign", "快照里没有 designPlanWindows 额度")
+        return SubscriptionQuota(
+            tool="opendesign",
+            credential_status=CredentialStatus.VALID,
+            success=True,
+            tiers=tiers,
+            queried_at=now_millis(),
         )
 
-    status, snapshot, err = await _request_json(
-        "GET", f"{base}/api/v1/workspaces/{workspace_id}/billing/snapshot", headers
-    )
-    if status in (401, 403):
-        return _auth_failure("opendesign", status)
-    if err is not None:
-        return _api_failure("opendesign", f"billing/snapshot 失败: {err}")
-    if not isinstance(snapshot, dict):
-        return _api_failure("opendesign", "响应结构异常")
-
-    tiers = parse_opendesign_tiers(snapshot)
-    if not tiers:
-        return _api_failure("opendesign", "快照里没有 designPlanWindows 额度")
-    return SubscriptionQuota(
-        tool="opendesign",
-        credential_status=CredentialStatus.VALID,
-        success=True,
-        tiers=tiers,
-        queried_at=now_millis(),
+    return _api_failure(
+        "opendesign",
+        f"控制面不可达（HTTP {last_status or 'n/a'}）：{last_error or '无响应'}；"
+        "请确认使用 AMR 控制面地址并填写 controlKey",
     )
 
 
@@ -1097,3 +1138,13 @@ QUERY_FUNCS: dict[str, Callable] = {
     "ollama_cloud": query_ollama_cloud,
     "zhipu_payg": query_zhipu_payg,
 }
+
+
+def _register_zcode() -> None:
+    """ZCode 单独模块（避免循环导入）"""
+    from app.services.subscription_quota.providers_zcode import query_zcode
+
+    QUERY_FUNCS["zcode"] = query_zcode
+
+
+_register_zcode()

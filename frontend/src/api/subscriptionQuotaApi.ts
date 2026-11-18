@@ -76,9 +76,26 @@ export interface QuotaResultDto {
   readOnly?: boolean;
 }
 
+export interface ProviderAggregateDto {
+  providerId: string;
+  label: string;
+  kind: ProviderKind;
+  /** 该供应商下的账号数 */
+  accounts: number;
+  /** 还能用的账号数 */
+  available: number;
+  /** 所有账号里最紧张的剩余百分比（None 表示不适用，如纯余额） */
+  tightestRemaining: number | null;
+  /** 推荐使用的账号 id（smart 策略） */
+  recommendedAccountId: string | null;
+  /** 多账号可切换 */
+  isFailoverReady: boolean;
+}
+
 export interface QueryResponse {
   accounts: QuotaResultDto[];
   subscriptions: QuotaResultDto[];
+  aggregates?: ProviderAggregateDto[];
   queriedAt: number;
   configured: boolean;
 }

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import * as quotaApi from '../../../api/subscriptionQuotaApi';
 import type {
+  ProviderAggregateDto,
   ProviderSpecDto,
   QuotaAccountDto,
   QuotaResultDto,
@@ -425,6 +426,7 @@ export default function SubscriptionQuotaTool() {
   const [providers, setProviders] = useState<ProviderSpecDto[]>([]);
   const [accounts, setAccounts] = useState<QuotaAccountDto[]>([]);
   const [results, setResults] = useState<QuotaResultDto[]>([]);
+  const [aggregates, setAggregates] = useState<ProviderAggregateDto[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusDto[]>([]);
   const [queriedAt, setQueriedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -450,10 +452,11 @@ export default function SubscriptionQuotaTool() {
       setAccounts(accountData.accounts);
       setSubscriptionStatus(subData.subscriptions);
 
-      // 无论有没有用户账号都查一次：本机 CLI 凭据（如 Kimi Code 登录）会自动出现
+      // 无论有没有用户账号都查一次：本机 CLI 凭据（如 Kimi Code / ZCode 登录）会自动出现
       const quotaData = await quotaApi.queryQuotas({ forceRefresh });
       if (!mountedRef.current) return;
       setResults([...quotaData.accounts, ...quotaData.subscriptions]);
+      setAggregates(quotaData.aggregates ?? []);
       setQueriedAt(quotaData.queriedAt);
     } catch (err) {
       if (!mountedRef.current) return;
@@ -519,6 +522,8 @@ export default function SubscriptionQuotaTool() {
     subscriptionStatus.some((s) => s.hasCredential) ||
     results.some((r) => r.isLocal);
 
+  const failoverGroups = aggregates.filter((a) => a.isFailoverReady);
+
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -561,6 +566,31 @@ export default function SubscriptionQuotaTool() {
         </div>
       )}
 
+      {failoverGroups.length > 0 && (
+        <div className="rounded-lg border border-border bg-surface-1 px-3 py-2">
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+            <Settings2 className="h-3.5 w-3.5" aria-hidden />
+            多账号可切换（同供应商配了多个账号，额度用完自动换下一个）
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {failoverGroups.map((group) => (
+              <span
+                key={group.providerId}
+                className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink"
+                title={`该供应商 ${group.accounts} 个账号，${group.available} 个可用`}
+              >
+                {group.label}
+                <span className="ml-1 text-ink-faint">
+                  {group.available}/{group.accounts} 可用
+                  {group.tightestRemaining !== null &&
+                    ` · 最紧 ${group.tightestRemaining.toFixed(0)}%`}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16 text-ink-muted">
           <RefreshCw className="mr-2 h-5 w-5 animate-spin" aria-hidden />
@@ -572,7 +602,7 @@ export default function SubscriptionQuotaTool() {
           <p className="text-sm font-medium text-ink">还没有配置任何订阅</p>
           <p className="max-w-md text-xs text-ink-muted">
             大多数供应商只需要一个 API Key：点「添加供应商」，选择供应商并粘贴 Key 即可。
-            本机已登录的 Claude Code / Codex / Gemini 会自动出现。
+            本机已登录的 Kimi Code / ZCode / Claude Code / Codex / Gemini 会自动出现。
           </p>
           <button
             type="button"

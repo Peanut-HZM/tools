@@ -146,6 +146,15 @@ PROVIDER_SPECS: tuple[ProviderSpec, ...] = (
         extra_fields={"workspace_id": "工作区 ID（可选，留空自动解析）"},
     ),
     ProviderSpec(
+        id="zcode",
+        name="ZCode 套餐",
+        kind="window",
+        needs=("zcode_token",),
+        hint="ZCode 套餐额度：可直接使用本机 ZCode 登录自动识别；"
+        "也可粘贴 ZCode 的 access token（billing/balance 不可用时回落智谱 GLM 额度接口）",
+        extra_fields={"zcode_token": "ZCode access token / API Key"},
+    ),
+    ProviderSpec(
         id="volcengine",
         name="火山方舟 Agent/Coding Plan",
         kind="window",

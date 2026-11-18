@@ -261,6 +261,11 @@ async def query_quotas_endpoint(
     if req.include_subscriptions:
         subscriptions = await query_subscriptions(force_refresh=req.force_refresh)
 
+    # magpie 风格的按供应商聚合视图（多账号 failover 状态 + 推荐账号）
+    from app.services.subscription_quota.failover import aggregate_by_provider
+
+    aggregates = aggregate_by_provider(accounts_quota)
+
     # 「已配置」只统计用户自己添加的账号或本机已登录的订阅（不含虚拟本地账号）
     user_account_count = len([q for q in accounts_quota if not q.get("isLocal")])
     has_subscription = any(s.get("success") or s.get("credentialStatus") != "not_found"
@@ -282,6 +287,7 @@ async def query_quotas_endpoint(
     return {
         "accounts": accounts_quota,
         "subscriptions": subscriptions,
+        "aggregates": aggregates,
         "queriedAt": int(time.time() * 1000),
         "configured": configured,
     }
