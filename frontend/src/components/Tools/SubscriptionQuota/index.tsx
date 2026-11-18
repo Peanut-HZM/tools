@@ -39,6 +39,7 @@ import {
   toneForRemaining,
 } from './quotaRules';
 import { UsagePanel } from './UsagePanel';
+import { GatewayPanel } from './GatewayPanel';
 
 const TONE_STYLES = {
   normal: { text: 'text-accent-success', bar: 'bg-accent-success' },
@@ -674,6 +675,8 @@ export default function SubscriptionQuotaTool() {
         days={usageDays}
         onDaysChange={setUsageDays}
       />
+
+      <GatewayPanel />
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-ink-muted">
