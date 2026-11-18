@@ -211,6 +211,20 @@ def import_from_ccswitch(
     }
 
 
+@router.get("/usage")
+def get_usage(days: int = 30, authorization: Optional[str] = Header(None)):
+    """用量与成本（来自本机 cc-switch 的用量汇总）
+
+    与「额度」互补：额度看还剩多少，用量看已经花了多少。
+    """
+    _require_user(authorization)
+    from app.services.subscription_quota.usage_import import read_usage
+
+    clamped = max(1, min(365, days))
+    summary = read_usage(clamped)
+    return summary.to_dict()
+
+
 @router.get("/subscriptions")
 def list_subscriptions(authorization: Optional[str] = Header(None)):
     """本机订阅类凭据状态（Claude / Codex / Gemini）+ 可自动识别的本地凭据"""

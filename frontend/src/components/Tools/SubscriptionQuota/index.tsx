@@ -20,6 +20,7 @@ import type {
   QuotaResultDto,
   QuotaTierDto,
   SubscriptionStatusDto,
+  UsageSummaryDto,
 } from '../../../api/subscriptionQuotaApi';
 import {
   countdownStr,
@@ -37,6 +38,7 @@ import {
   toneForBalance,
   toneForRemaining,
 } from './quotaRules';
+import { UsagePanel } from './UsagePanel';
 
 const TONE_STYLES = {
   normal: { text: 'text-accent-success', bar: 'bg-accent-success' },
@@ -430,12 +432,14 @@ export default function SubscriptionQuotaTool() {
   const [aggregates, setAggregates] = useState<ProviderAggregateDto[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusDto[]>([]);
   const [queriedAt, setQueriedAt] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
+  const [usage, setUsage] = useState<UsageSummaryDto | null>(null);
+  const [usageDays, setUsageDays] = useState(30);
+  const [usageLoading, setUsageLoading] = useState(false);
   const mountedRef = useRef(true);
 
   const now = useNow(results.length > 0 || Boolean(queriedAt));
@@ -478,6 +482,26 @@ export default function SubscriptionQuotaTool() {
       mountedRef.current = false;
     };
   }, [loadAll]);
+
+  // 用量与成本（来自 cc-switch），与额度并行加载
+  useEffect(() => {
+    let cancelled = false;
+    setUsageLoading(true);
+    quotaApi
+      .getUsage(usageDays)
+      .then((data) => {
+        if (!cancelled) setUsage(data);
+      })
+      .catch(() => {
+        if (!cancelled) setUsage(null);
+      })
+      .finally(() => {
+        if (!cancelled) setUsageLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [usageDays]);
 
   const handleRefreshOne = useCallback(async (quota: QuotaResultDto) => {
     if (!quota.accountId) {
@@ -643,6 +667,13 @@ export default function SubscriptionQuotaTool() {
           </div>
         </div>
       )}
+
+      <UsagePanel
+        usage={usage}
+        loading={usageLoading}
+        days={usageDays}
+        onDaysChange={setUsageDays}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-ink-muted">

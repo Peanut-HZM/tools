@@ -135,6 +135,29 @@ export interface ImportResponse {
   items: ImportedProviderDto[];
 }
 
+export interface UsageBucketDto {
+  key: string;
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  totalTokens: number;
+  costUsd: number;
+}
+
+export interface UsageSummaryDto {
+  available: boolean;
+  message: string | null;
+  days: number;
+  dateFrom: string | null;
+  dateTo: string | null;
+  totals: UsageBucketDto;
+  byDay: UsageBucketDto[];
+  byProvider: UsageBucketDto[];
+  byModel: UsageBucketDto[];
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
@@ -234,6 +257,15 @@ export async function importFromCcSwitch(dryRun = false): Promise<ImportResponse
     body: JSON.stringify({ dry_run: dryRun }),
   });
   return parseJson<ImportResponse>(response);
+}
+
+/** 用量与成本（来自本机 cc-switch） */
+export async function getUsage(days = 30): Promise<UsageSummaryDto> {
+  const response = await authedFetch(`${BASE_URL}/usage?days=${days}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return parseJson<UsageSummaryDto>(response);
 }
 
 /** 测试单个账号（可传临时凭据） */
