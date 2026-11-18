@@ -84,20 +84,12 @@ function TierRow({ tier, now }: TierRowProps) {
   const countdown = countdownStr(tier.resetsAt, now);
 
   return (
-    <div className="flex items-center gap-2 text-sm" title={`已用 ${tier.utilization.toFixed(1)}%`}>
-      <span className="w-[76px] shrink-0 truncate text-ink-muted">{tierLabel(tier.name)}</span>
-      <span
-        role="meter"
-        aria-label={`${tierLabel(tier.name)} 剩余 ${Math.round(remaining)}%`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(remaining)}
-        className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-3"
-      >
-        <span
-          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ${styles.bar}`}
-          style={{ width: `${remaining}%` }}
-        />
+    <div
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm sm:flex-nowrap"
+      title={`已用 ${tier.utilization.toFixed(1)}%`}
+    >
+      <span className="min-w-0 flex-1 truncate text-ink-muted sm:w-[76px] sm:flex-none">
+        {tierLabel(tier.name)}
       </span>
       <span className={`shrink-0 tabular-nums ${styles.text}`}>{remaining.toFixed(0)}%</span>
       <span className="flex w-[58px] shrink-0 items-center gap-0.5 text-xs text-ink-faint">
@@ -109,6 +101,20 @@ function TierRow({ tier, now }: TierRowProps) {
         ) : (
           <span aria-hidden>—</span>
         )}
+      </span>
+      {/* 移动端：进度条独占一行；桌面端：夹在档名与百分比之间 */}
+      <span
+        role="meter"
+        aria-label={`${tierLabel(tier.name)} 剩余 ${Math.round(remaining)}%`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(remaining)}
+        className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface-3 sm:order-2 sm:h-1.5 sm:w-auto sm:min-w-0 sm:flex-1"
+      >
+        <span
+          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ${styles.bar}`}
+          style={{ width: `${remaining}%` }}
+        />
       </span>
     </div>
   );
@@ -145,9 +151,9 @@ export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove }: Quota
   const removable = Boolean(onRemove) && Boolean(quota.accountId) && !quota.isLocal;
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
+    <Card className="flex flex-col gap-3 p-3 sm:p-4">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span
               aria-hidden
@@ -155,7 +161,7 @@ export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove }: Quota
             >
               {providerInitials(quota.label)}
             </span>
-            <h3 className="truncate text-sm font-semibold text-ink">{quota.label}</h3>
+            <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{quota.label}</h3>
             <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-faint">
               {kindLabel(quota.kind)}
             </span>
@@ -165,9 +171,11 @@ export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove }: Quota
               </span>
             )}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
             {statusBadge}
-            {quota.maskedKey && <span className="font-mono">{quota.maskedKey}</span>}
+            {quota.maskedKey && (
+              <span className="min-w-0 break-all font-mono">{quota.maskedKey}</span>
+            )}
             {quota.isLocal && (
               <span className="rounded-full bg-surface-2 px-2 py-0.5">本机登录</span>
             )}
@@ -293,12 +301,12 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
   const otherFields = spec?.needs.filter((n) => n !== 'api_key' && n !== 'control_key') ?? [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="添加供应商"
-        className="w-full max-w-lg rounded-xl border border-border bg-surface-1 p-5 shadow-xl"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-xl border border-border bg-surface-1 p-4 shadow-xl sm:max-h-[88vh] sm:rounded-xl sm:p-5"
       >
         <div className="mb-4 flex items-start justify-between">
           <h2 className="text-base font-semibold text-ink">添加供应商</h2>
@@ -399,7 +407,6 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
               />
             </label>
           ))}
-
           {error && <p className="text-xs text-accent-danger">{error}</p>}
 
           <div className="mt-1 flex justify-end gap-2">
@@ -579,19 +586,27 @@ export default function SubscriptionQuotaTool() {
   const failoverGroups = aggregates.filter((a) => a.isFailoverReady);
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-ink">订阅套餐额度</h2>
-          <p className="mt-0.5 text-xs text-ink-muted">
+    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4">
+      {/* 订阅用量信息：页面第一行容器，置顶展示 */}
+      <UsagePanel
+        usage={usage}
+        loading={usageLoading}
+        days={usageDays}
+        onDaysChange={setUsageDays}
+      />
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-ink sm:text-lg">订阅套餐额度</h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
             添加供应商并填入 API Key 即可查询套餐窗口与账户余额；只读凭据，不做任何修改。
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover sm:flex-none"
           >
             <Plus className="h-4 w-4" aria-hidden />
             添加供应商
@@ -601,16 +616,17 @@ export default function SubscriptionQuotaTool() {
             onClick={() => void handleImport()}
             disabled={importing}
             title="从本机 cc-switch 自动导入已配置的供应商（含 OpenDesign 控制面 Key）"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
           >
             <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
-            {importing ? '导入中…' : '从 cc-switch 导入'}
+            <span className="hidden sm:inline">{importing ? '导入中…' : '从 cc-switch 导入'}</span>
+            <span className="sm:hidden">{importing ? '导入中…' : '导入'}</span>
           </button>
           <button
             type="button"
             onClick={() => void loadAll(true)}
             disabled={refreshing || loading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
             {refreshing ? '刷新中…' : '全部刷新'}
@@ -632,7 +648,7 @@ export default function SubscriptionQuotaTool() {
 
       {importResult && (
         <div className="flex items-start justify-between gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-accent-success">
-          <span>{importResult}</span>
+          <span className="min-w-0 break-words">{importResult}</span>
           <button
             type="button"
             onClick={() => setImportResult(null)}
@@ -669,13 +685,6 @@ export default function SubscriptionQuotaTool() {
         </div>
       )}
 
-      <UsagePanel
-        usage={usage}
-        loading={usageLoading}
-        days={usageDays}
-        onDaysChange={setUsageDays}
-      />
-
       <GatewayPanel />
 
       {loading ? (
@@ -684,7 +693,7 @@ export default function SubscriptionQuotaTool() {
           正在加载…
         </div>
       ) : !hasAnything ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
+        <div className="flex flex-col items-center gap-3 px-2 py-12 text-center sm:py-16">
           <Settings2 className="h-10 w-10 text-ink-faint" aria-hidden />
           <p className="text-sm font-medium text-ink">还没有配置任何订阅</p>
           <p className="max-w-md text-xs text-ink-muted">

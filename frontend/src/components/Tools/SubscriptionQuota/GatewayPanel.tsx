@@ -72,21 +72,21 @@ export function GatewayPanel() {
   const baseUrl = `http://${cfg.host}:{port}/api/gateway`.replace('{port}', String(cfg.port));
 
   return (
-    <div className="rounded-xl border border-border bg-surface-1 p-4">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-        <div>
+    <div className="rounded-xl border border-border bg-surface-1 p-3 sm:p-4">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
             <Server className="h-4 w-4" aria-hidden />
             本地网关
           </h3>
-          <p className="mt-0.5 text-xs text-ink-faint">
+          <p className="mt-0.5 text-xs leading-relaxed text-ink-faint">
             一个端点同时兼容 OpenAI 与 Anthropic 协议；支持多账号失败切换、隐私掩码、意图路由。
             <br />
             <span className="text-accent-warning">本工具不会自动改写任何 CLI 配置</span>，
             需要你自行把 agent 的 base_url 指过来。
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {cfg.enabled ? (
             <Badge variant="tint-success" className="gap-1">
               <CheckCircle2 className="h-3 w-3" aria-hidden />
@@ -126,13 +126,13 @@ export function GatewayPanel() {
         </div>
       )}
 
-      <div className="mb-3 rounded-lg bg-surface-2 px-3 py-2 font-mono text-xs text-ink-muted">
-        <div>OpenAI 兼容：{baseUrl}/v1/chat/completions</div>
-        <div>Anthropic 兼容：{baseUrl}/v1/messages</div>
-        <div>模型目录：{baseUrl}/v1/models（{models.length} 项）</div>
+      <div className="mb-3 rounded-lg bg-surface-2 px-3 py-2 font-mono text-[11px] leading-relaxed text-ink-muted sm:text-xs">
+        <div className="break-all">OpenAI 兼容：{baseUrl}/v1/chat/completions</div>
+        <div className="break-all">Anthropic 兼容：{baseUrl}/v1/messages</div>
+        <div className="break-all">模型目录：{baseUrl}/v1/models（{models.length} 项）</div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {/* 隐私掩码 */}
         <Section
           icon={<Shield className="h-3.5 w-3.5" aria-hidden />}
@@ -210,14 +210,14 @@ export function GatewayPanel() {
         <div className="mb-1 text-xs text-ink-muted">路由组（成员写 provider/model）</div>
         <div className="flex flex-col gap-1">
           {Object.entries(cfg.groups).map(([name, members]) => (
-            <div key={name} className="flex items-center gap-2 text-xs">
-              <span className="w-[92px] shrink-0 font-mono text-ink-muted">group/{name}</span>
-              <span className="min-w-0 flex-1 truncate text-ink-faint">
+            <div key={name} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+              <span className="shrink-0 font-mono text-ink-muted sm:w-[92px]">group/{name}</span>
+              <span className="min-w-0 flex-1 break-all text-ink-faint">
                 {members.length > 0 ? members.join('、') : '（空，未配置成员）'}
               </span>
               {members.length === 0 && (
                 <span className="shrink-0 text-[10px] text-ink-faint">
-                  目标会回落到直接路由
+                  回落到直接路由
                 </span>
               )}
             </div>
@@ -263,15 +263,15 @@ function Toggle({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-xs text-ink">
+    <label className="flex cursor-pointer items-start gap-2 py-0.5 text-xs leading-relaxed text-ink sm:items-center">
       <input
         type="checkbox"
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-3.5 w-3.5 rounded border-border accent-accent disabled:opacity-50"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-accent disabled:opacity-50 sm:mt-0 sm:h-3.5 sm:w-3.5"
       />
-      {label}
+      <span className="min-w-0">{label}</span>
     </label>
   );
 }

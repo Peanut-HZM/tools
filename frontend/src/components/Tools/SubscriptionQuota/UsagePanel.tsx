@@ -57,15 +57,15 @@ export function UsagePanel({ usage, loading, days, onDaysChange }: UsagePanelPro
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface-1 p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div>
+    <div className="rounded-xl border border-border bg-surface-1 p-3 sm:p-4">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink">用量与成本</h3>
-          <p className="mt-0.5 text-xs text-ink-faint">
+          <p className="mt-0.5 text-xs leading-relaxed text-ink-faint">
             数据来自本机 cc-switch · {usage.dateFrom} → {usage.dateTo}（{usage.days} 天）
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {DAY_OPTIONS.map((option) => (
             <button
               key={option}
@@ -96,7 +96,7 @@ export function UsagePanel({ usage, loading, days, onDaysChange }: UsagePanelPro
 
       <div className="mb-3">
         <div className="mb-1 text-xs text-ink-muted">每日成本</div>
-        <div className="flex h-16 items-end gap-0.5" role="img" aria-label="每日成本柱状图">
+        <div className="flex h-14 items-end gap-0.5 sm:h-16" role="img" aria-label="每日成本柱状图">
           {recentDays.map((day) => {
             const height = Math.max(2, (day.costUsd / maxDayCost) * 100);
             return (
@@ -111,7 +111,7 @@ export function UsagePanel({ usage, loading, days, onDaysChange }: UsagePanelPro
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <BreakdownList title="按供应商" buckets={topProviders} />
         <BreakdownList title="按模型" buckets={topModels} />
       </div>
@@ -143,7 +143,10 @@ function BreakdownList({
       <div className="flex flex-col gap-1">
         {buckets.map((bucket) => (
           <div key={bucket.key} className="flex items-center gap-2 text-xs">
-            <span className="w-[92px] shrink-0 truncate text-ink-muted" title={bucket.key}>
+            <span
+              className="w-[76px] shrink-0 truncate text-ink-muted sm:w-[92px]"
+              title={bucket.key}
+            >
               {bucket.key}
             </span>
             <span className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-3">
@@ -152,10 +155,10 @@ function BreakdownList({
                 style={{ width: `${(bucket.costUsd / max) * 100}%` }}
               />
             </span>
-            <span className="w-[58px] shrink-0 text-right tabular-nums text-ink">
+            <span className="w-[54px] shrink-0 text-right tabular-nums text-ink sm:w-[58px]">
               ${bucket.costUsd.toFixed(2)}
             </span>
-            <span className="w-[64px] shrink-0 text-right tabular-nums text-ink-faint">
+            <span className="hidden w-[64px] shrink-0 text-right tabular-nums text-ink-faint sm:block">
               {formatTokens(bucket.totalTokens)}
             </span>
           </div>
