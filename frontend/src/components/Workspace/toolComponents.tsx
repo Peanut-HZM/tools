@@ -17,6 +17,7 @@ import CrossShareMain from '../Tools/CrossShare/CrossShareMain';
 import HttpApiClient from '../Tools/HttpApiClient/HttpApiClient';
 import SystemMonitor from '../Tools/SystemMonitor';
 import TokenUsage from '../Tools/TokenUsage';
+import SubscriptionQuotaTool from '../Tools/SubscriptionQuota';
 import ImageDownloader from '../Tools/ImageDownloader';
 import VideoDownloader from '../Tools/VideoDownloader';
 import ImageGenerationTool from '../Tools/ImageGeneration/ImageGenerationTool';
@@ -48,6 +49,7 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'http-api-client': HttpApiClient,
   'system-monitor': SystemMonitor,
   'token-usage': TokenUsage,
+  'subscription-quota': SubscriptionQuotaTool,
   'image-downloader': ImageDownloader,
   'video-downloader': VideoDownloader,
   'image-generation': ImageGenerationTool,

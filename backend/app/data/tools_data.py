@@ -204,6 +204,18 @@ TOOLS_DATA = [
         category="开发工具",
     ),
     Tool(
+        id="subscription-quota",
+        icon="fa-gauge-high",
+        iconColor="bg-emerald-600",
+        title="订阅套餐额度",
+        description="读取本机各 CLI 的官方登录凭据，查询 Claude / Codex / Gemini / Kimi / MiniMax / 智谱 的套餐剩余额度",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具",
+        require_login=True,
+        show_mobile=False,
+    ),
+    Tool(
         id="k8s-tool",
         icon="fa-dharmachakra",
         iconColor="bg-blue-600",

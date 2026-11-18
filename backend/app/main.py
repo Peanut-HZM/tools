@@ -36,6 +36,7 @@ from app.routes import (
     redis_tool,
     resource_management,
     ssh_tool,
+    subscription_quota,
     tech_contents,
     token_usage,
     tools,
@@ -568,6 +569,9 @@ app.include_router(json_tool.router, prefix="/api")
 
 # Token Usage router
 app.include_router(token_usage.router, prefix="/api")
+
+# Subscription Quota router（订阅套餐额度，只读本机 CLI 凭据）
+app.include_router(subscription_quota.router, prefix="/api")
 
 # Resource Management router
 app.include_router(resource_management.router, prefix="/api")

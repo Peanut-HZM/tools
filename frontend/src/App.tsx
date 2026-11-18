@@ -64,6 +64,7 @@ const LearningSharePlatform = lazy(() => import('./components/Tools/LearningShar
 const HttpApiClient = lazy(() => import('./components/Tools/HttpApiClient/HttpApiClient'));
 const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
 const TokenUsage = lazy(() => import('./components/Tools/TokenUsage'));
+const SubscriptionQuotaTool = lazy(() => import('./components/Tools/SubscriptionQuota'));
 const K8sTool = lazy(() => import('./components/Tools/K8sTool/K8sTool'));
 
 // React Query 客户端实例（进程级别单例）
@@ -361,6 +362,7 @@ function App() {
                     <Route path="http-api-client" element={<HttpApiClient />} />
                     <Route path="system-monitor" element={<SystemMonitor />} />
                     <Route path="token-usage" element={<TokenUsage />} />
+                    <Route path="subscription-quota" element={<SubscriptionQuotaTool />} />
                     <Route path="k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
                   </Routes>
                 </Suspense>
