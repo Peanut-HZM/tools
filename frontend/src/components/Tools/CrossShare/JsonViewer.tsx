@@ -77,7 +77,9 @@ const JsonViewer: React.FC<JsonViewerProps> = ({
         />
       </div>
       {/* 代码内容 */}
-      <div className={`rounded-lg overflow-hidden border border-border ${!codeExpanded && lineCount > 10 ? 'max-h-64 overflow-hidden' : ''}`}>
+      {/* 代码区：窄屏下长行需要横向滚动而不是被裁掉，
+          因此用 overflow-x-auto（而非 overflow-hidden）承接溢出。 */}
+      <div className={`rounded-lg border border-border overflow-x-auto ${!codeExpanded && lineCount > 10 ? 'max-h-64 overflow-y-hidden' : ''}`}>
         <SyntaxHighlighter
           language="json"
           style={vs2015}
@@ -85,6 +87,7 @@ const JsonViewer: React.FC<JsonViewerProps> = ({
             margin: 0,
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
+            overflowX: 'auto',
           }}
           showLineNumbers={true}
           wrapLines={true}

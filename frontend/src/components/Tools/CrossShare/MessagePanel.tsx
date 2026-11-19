@@ -112,7 +112,9 @@ const MessagePanel: React.FC = () => {
       // 认证失败（401/403）熔断：停止轮询，提示用户重新登录
       if (httpStatus === 401 || httpStatus === 403) {
         if (intervalRef.current) {
-          clearInterval(intervalRef.current);
+          // 轮询已改为 setTimeout 链式调度，必须用 clearTimeout 清理
+          // （用 clearInterval 清 setTimeout 的句柄在部分实现下不生效，会漏定时器）
+          clearTimeout(intervalRef.current);
           intervalRef.current = null;
         }
         setPollingStopped(true);
@@ -129,18 +131,48 @@ const MessagePanel: React.FC = () => {
       // 非认证失败的错误处理（带退避和去重）
       consecutiveErrorsRef.current += 1;
 
+      // 区分「服务不可用」类错误（网络/超时/5xx）与「业务错误」。
+      //
+      // 服务不可用时（后端连不上数据库等），原来的去重策略是
+      // 「首次 + 每连续失败 6 次弹一次」，但轮询在后台标签页会被浏览器
+      // 节流到 1 分钟/次，于是用户在页签里会看到 3 个几乎同时弹出的
+      // 500 报错弹窗——既刷屏又无法操作。
+      //
+      // 改进：这类错误**只提示一次**（错误信息变化时再提示一次，
+      // 便于感知恢复或换了个错误），避免刷屏。
+      const isServiceUnavailable =
+        httpStatus >= 500 ||
+        httpStatus === 429 ||
+        error.code === 'ECONNABORTED' ||
+        error.code === 'ETIMEDOUT' ||
+        /timeout|network|failed to fetch|网络|连接/i.test(errorMsg);
+
       // 错误去重策略：
       // 1. 首次失败时显示 toast
-      // 2. 错误信息变化时显示 toast
-      // 3. 之后每连续失败 6 次（约 30 秒）提醒一次，避免完全静默
+      // 2. 错误信息变化时显示 toast（服务恢复后再次失败能感知到）
+      // 3. 服务不可用类错误：不重复提示（避免刷屏）
+      // 4. 其余业务错误：每连续失败 6 次提醒一次，避免完全静默
+      //
+      // 注意：规则 4 与规则 1/2 是**或**关系而非被「错误信息未变」整体挡住。
+      // 原实现把 `lastErrorRef.current !== errorMsg` 放在最外层，导致
+      // 「同一错误信息连续失败时每 6 次提醒一次」永远不触发（死代码），
+      // 服务持续异常期间会彻底静默。
+      const isSameError = lastErrorRef.current === errorMsg;
       const shouldShowToast =
-        lastErrorRef.current !== errorMsg &&
-        (consecutiveErrorsRef.current === 1 ||
-         !hasShownFirstErrorRef.current ||
-         consecutiveErrorsRef.current % 6 === 0);
+        // 错误信息变化 → 重新提示（能感知服务恢复或换了个错误）
+        (!isSameError && consecutiveErrorsRef.current > 0) ||
+        // 首次失败
+        (consecutiveErrorsRef.current === 1 && !hasShownFirstErrorRef.current) ||
+        // 业务错误：每连续失败 6 次提醒一次（服务不可用时不重复，避免刷屏）
+        (!isServiceUnavailable && consecutiveErrorsRef.current % 6 === 0);
 
       if (shouldShowToast) {
-        showToast('加载消息失败：' + errorMsg, 'error');
+        showToast(
+          isServiceUnavailable
+            ? '服务暂时不可用，已停止重复提示：' + errorMsg
+            : '加载消息失败：' + errorMsg,
+          'error'
+        );
         hasShownFirstErrorRef.current = true;
       }
 
@@ -158,25 +190,42 @@ const MessagePanel: React.FC = () => {
   }, [showToast]);
 
   // 轮询逻辑：首次加载 + 定时轮询
+  //
+  // 用 setTimeout 链式调度（而非 setInterval），以便在服务不可用时
+  // 动态拉长间隔做退避，避免持续高频重试打爆后端。
   useEffect(() => {
     // React StrictMode 兼容：使用 cleanup 标记避免双重调用
     let isMounted = true;
 
-    // 首次加载
-    loadMessages(false);
+    // 正常轮询间隔 5 秒；连续失败时按指数退避放大（5s → 10s → 20s → 60s 封顶）
+    const BASE_POLL_MS = 5000;
+    const MAX_POLL_MS = 60000;
 
-    // 定时轮询（每 5 秒）
-    intervalRef.current = setInterval(() => {
-      if (isMounted && !pollingStopped) {
-        loadMessages(true);
-      }
-    }, 5000);
+    const scheduleNext = (delay: number) => {
+      if (!isMounted || pollingStopped) return;
+      intervalRef.current = setTimeout(() => {
+        if (!isMounted || pollingStopped) return;
+        void loadMessages(true).finally(() => {
+          const errors = consecutiveErrorsRef.current;
+          const nextDelay =
+            errors === 0
+              ? BASE_POLL_MS
+              : Math.min(MAX_POLL_MS, BASE_POLL_MS * Math.pow(2, Math.min(errors - 1, 4)));
+          scheduleNext(nextDelay);
+        });
+      }, delay);
+    };
+
+    // 首次加载
+    void loadMessages(false).finally(() => {
+      scheduleNext(BASE_POLL_MS);
+    });
 
     // 清理函数
     return () => {
       isMounted = false;
       if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+        clearTimeout(intervalRef.current);
         intervalRef.current = null;
       }
     };
@@ -414,8 +463,9 @@ const MessagePanel: React.FC = () => {
     // Markdown 或普通文本
     return (
       <div className="relative">
-        {/* 操作按钮 - 始终在顶部横铺 */}
-        <div className="absolute right-0 top-0 z-10">
+        {/* 操作按钮 - 右对齐独立成行（不再绝对定位覆盖正文，
+            窄屏下按钮与首行文字重叠、长文本被遮挡的问题） */}
+        <div className="z-10 mb-2 flex flex-wrap justify-end gap-1.5">
           <MessageActions
             content={content}
             messageId={msg.id}
@@ -432,7 +482,7 @@ const MessagePanel: React.FC = () => {
               contentRefs.current.set(msg.id, el);
             }
           }}
-          className={`prose prose-sm dark:prose-invert max-w-none transition-all duration-300 ${
+          className={`prose prose-sm dark:prose-invert max-w-none transition-all duration-300 break-words [overflow-wrap:anywhere] ${
             !isExpanded && needsCollapse ? 'overflow-hidden' : ''
           }`}
           style={
@@ -479,7 +529,15 @@ const MessagePanel: React.FC = () => {
           <div className="text-ink-muted mb-6">{loadError}</div>
           <Button
             variant="default"
-            onClick={loadMessages}
+            onClick={() => {
+              // 手动重试：恢复轮询（认证失败时熔断会置 pollingStopped），
+              // 否则重试虽能拉到数据但轮询不再恢复
+              setPollingStopped(false);
+              hasShownFirstErrorRef.current = false;
+              consecutiveErrorsRef.current = 0;
+              lastErrorRef.current = null;
+              void loadMessages(false);
+            }}
             className="px-6 py-2 font-semibold"
           >
             重试
@@ -526,7 +584,7 @@ const MessagePanel: React.FC = () => {
 
       {/* Messages List - 使用 flex-1 填充剩余空间，内部滚动 */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
           {filteredMessages.length === 0 ? (
             <div className="text-center text-ink-faint py-16">
               <div className="text-6xl mb-4">🔍</div>
@@ -539,12 +597,14 @@ const MessagePanel: React.FC = () => {
             filteredMessages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex items-start space-x-3 group ${
+                className={`flex items-start space-x-3 group min-w-0 ${
                   msg.message_type === 'clipboard' ? 'opacity-70' : ''
                 }`}
               >
                 <div className="text-2xl">{getMessageIcon(msg.message_type)}</div>
-                <div className="flex-1 bg-surface-2/50 rounded-lg p-4 border border-border relative">
+                {/* min-w-0：flex 子项默认 min-width:auto，长 URL / API Key 等
+                    不可断行的长串会把气泡撑破容器，导致窄屏下横向溢出。 */}
+                <div className="flex-1 min-w-0 bg-surface-2/50 rounded-lg p-4 border border-border relative">
                   {renderMessageContent(msg)}
                   <div className="text-xs text-ink-faint mt-2">
                     <span>
@@ -604,22 +664,24 @@ const MessagePanel: React.FC = () => {
       </div>
 
       {/* Input Area - 固定在底部 */}
-      <div className="flex-shrink-0 border-t border-border p-4">
-        <div className="flex items-end space-x-3">
+      <div className="flex-shrink-0 border-t border-border p-3 sm:p-4">
+        {/* 窄屏（< sm）改为上下堆叠：横向排布会把输入框压到几十像素，
+            placeholder 溢出且发送按钮点不到。 */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
           <textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             onPaste={handlePaste}
             placeholder="输入消息... (支持 Markdown，Ctrl+V 同步剪贴板)"
-            className="flex-1 bg-surface-2/50 border border-border rounded-lg px-4 py-3 text-ink placeholder-ink-faint focus:outline-none focus:border-accent-info resize-none"
+            className="w-full sm:flex-1 sm:min-w-0 bg-surface-2/50 border border-border rounded-lg px-3 sm:px-4 py-3 text-ink placeholder-ink-faint focus:outline-none focus:border-accent-info resize-none"
             rows={2}
           />
           <Button
             variant="default"
             onClick={handleSend}
             disabled={!inputValue.trim() || sending}
-            className="px-6 py-3 font-semibold disabled:bg-surface-3 disabled:text-ink-muted disabled:cursor-not-allowed h-auto"
+            className="w-full sm:w-auto px-6 py-3 font-semibold disabled:bg-surface-3 disabled:text-ink-muted disabled:cursor-not-allowed h-auto shrink-0"
           >
             {sending ? '发送中...' : '发送'}
           </Button>
@@ -658,4 +720,3 @@ const MessagePanel: React.FC = () => {
 };
 
 export default MessagePanel;
-

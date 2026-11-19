@@ -137,8 +137,9 @@ const CrossShareMain: React.FC = () => {
         {/* Sidebar */}
         <Sidebar activePanel={activePanel} onSelectPanel={setActivePanel} />
 
-        {/* Main Panel - 使用 flex 布局，内容区域自适应高度 */}
-        <main className="flex-1 min-w-0 min-h-0 overflow-hidden h-full py-6 px-3 md:px-6">
+        {/* Main Panel - 使用 flex 布局，内容区域自适应高度。
+            纵向留白改由面板自身统一控制，避免与工作区外层 padding 叠加。 */}
+        <main className="flex-1 min-w-0 min-h-0 overflow-hidden h-full py-3 px-3 sm:py-4 sm:px-4 md:py-6 md:px-6">
           {renderPanel()}
         </main>
       </div>
