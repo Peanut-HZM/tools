@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Download,
-  Plus,
-  RefreshCw,
-  Settings2,
-  Trash2,
-  X,
+  AlertCircle, ArrowRightLeft, CheckCircle2, Clock, Download, Gauge, LayoutDashboard,
+  Package, Plus, RefreshCw, Server, Settings2, Trash2, TrendingUp, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -23,29 +16,30 @@ import type {
   UsageSummaryDto,
 } from '../../../api/subscriptionQuotaApi';
 import {
-  countdownStr,
-  credentialStatusText,
-  formatAmount,
-  isBalanceTier,
-  kindLabel,
-  needsHint,
-  pickTiers,
-  providerInitials,
-  relativeTime,
-  remainingPercent,
-  sortTiers,
-  tierLabel,
-  toneForBalance,
-  toneForRemaining,
+  countdownStr, credentialStatusText, formatAmount, isBalanceTier, kindLabel,
+  needsHint, pickTiers, providerInitials, relativeTime, remainingPercent,
+  sortTiers, tierLabel, toneForBalance, toneForRemaining,
 } from './quotaRules';
 import { UsagePanel } from './UsagePanel';
 import { GatewayPanel } from './GatewayPanel';
+import { AgentSwitchPanel } from './AgentSwitchPanel';
 
 const TONE_STYLES = {
   normal: { text: 'text-accent-success', bar: 'bg-accent-success' },
   warning: { text: 'text-accent-warning', bar: 'bg-accent-warning' },
   danger: { text: 'text-accent-danger', bar: 'bg-accent-danger' },
 } as const;
+
+type TabKey = 'overview' | 'quota' | 'providers' | 'agents' | 'usage' | 'gateway';
+
+const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: 'overview', label: '概览', icon: LayoutDashboard },
+  { key: 'quota', label: '套餐额度', icon: Gauge },
+  { key: 'providers', label: '供应商', icon: Package },
+  { key: 'agents', label: 'Agent 切换', icon: ArrowRightLeft },
+  { key: 'usage', label: '用量成本', icon: TrendingUp },
+  { key: 'gateway', label: '本地网关', icon: Server },
+];
 
 /** 每 30 秒刷新一次倒计时与相对时间 */
 function useNow(active: boolean) {
@@ -102,7 +96,6 @@ function TierRow({ tier, now }: TierRowProps) {
           <span aria-hidden>—</span>
         )}
       </span>
-      {/* 移动端：进度条独占一行；桌面端：夹在档名与百分比之间 */}
       <span
         role="meter"
         aria-label={`${tierLabel(tier.name)} 剩余 ${Math.round(remaining)}%`}
@@ -126,10 +119,11 @@ interface QuotaCardProps {
   refreshing: boolean;
   onRefresh: () => void;
   onRemove?: () => void;
+  onAdjust?: () => void;
 }
 
 /** 单个账号 / 订阅的额度卡片 */
-export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove }: QuotaCardProps) {
+export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove, onAdjust }: QuotaCardProps) {
   const tiers = useMemo(() => sortTiers(quota.tiers ?? []), [quota.tiers]);
   const shownTiers = useMemo(() => pickTiers(tiers, 4), [tiers]);
   const updated = relativeTime(quota.queriedAt, now);
@@ -147,8 +141,6 @@ export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove }: Quota
       {credentialStatusText(quota.credentialStatus)}
     </Badge>
   );
-
-  const removable = Boolean(onRemove) && Boolean(quota.accountId) && !quota.isLocal;
 
   return (
     <Card className="flex flex-col gap-3 p-3 sm:p-4">
@@ -183,6 +175,16 @@ export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove }: Quota
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
+          {onAdjust && (
+            <button
+              type="button"
+              onClick={onAdjust}
+              aria-label={`调整 ${quota.label} 额度`}
+              className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <Settings2 className="h-4 w-4" aria-hidden />
+            </button>
+          )}
           <button
             type="button"
             onClick={onRefresh}
@@ -256,6 +258,8 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
   const [region, setRegion] = useState('cn');
   const [baseUrl, setBaseUrl] = useState('');
   const [extraValues, setExtraValues] = useState<Record<string, string>>({});
+  const [manualTotal, setManualTotal] = useState('');
+  const [manualUsed, setManualUsed] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -265,7 +269,11 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
     setApiKey('');
     setBaseUrl('');
     setRegion(spec?.regions?.includes('cn') ? 'cn' : 'intl');
+    setManualTotal('');
+    setManualUsed('');
   }, [spec]);
+
+  const isManual = spec?.kind === 'manual';
 
   const handleSave = useCallback(async () => {
     if (!spec) return;
@@ -274,12 +282,12 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
     try {
       const extra: Record<string, unknown> = { ...extraValues };
       if (spec.regions.length > 0) extra.region = region;
-      if (spec.needsBaseUrl && baseUrl.trim()) extra.base_url = baseUrl.trim();
+      if ((spec.needsBaseUrl || isManual) && baseUrl.trim()) extra.base_url = baseUrl.trim();
       if (spec.needs.includes('control_key')) {
         extra.control_key = apiKey;
       } else if (spec.needs.includes('access_key')) {
         // AK/SK 都从 extraValues 来
-      } else {
+      } else if (!isManual) {
         extra.api_key = apiKey;
       }
       await quotaApi.addAccount({
@@ -287,6 +295,10 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
         label: label.trim() || spec.name,
         apiKey: apiKey || undefined,
         extra,
+        manualTotal: isManual && manualTotal ? Number(manualTotal) : undefined,
+        manualUsed: isManual && manualUsed ? Number(manualUsed) : undefined,
+        quotaUnit: isManual ? (extraValues.quota_unit || 'credits') : undefined,
+        windowType: isManual ? (extraValues.window_type || 'none') : undefined,
       });
       onSaved();
       onClose();
@@ -295,10 +307,12 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
     } finally {
       setSaving(false);
     }
-  }, [spec, label, apiKey, region, baseUrl, extraValues, onSaved, onClose]);
+  }, [spec, label, apiKey, region, baseUrl, extraValues, manualTotal, manualUsed, isManual, onSaved, onClose]);
 
   const keyField = spec?.needs.find((n) => n === 'api_key' || n === 'control_key') ?? 'api_key';
-  const otherFields = spec?.needs.filter((n) => n !== 'api_key' && n !== 'control_key') ?? [];
+  const otherFields = (spec?.needs.filter((n) => n !== 'api_key' && n !== 'control_key') ?? []).filter(
+    (f) => !(isManual && (f === 'quota_unit' || f === 'window_type'))
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
@@ -371,17 +385,44 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
             </label>
           )}
 
-          <label className="flex flex-col gap-1 text-xs text-ink-muted">
-            {keyField === 'control_key' ? 'Control Key' : 'API Key'}
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-..."
-              autoComplete="off"
-              className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 font-mono text-sm text-ink"
-            />
-          </label>
+          {!isManual && (
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              {keyField === 'control_key' ? 'Control Key' : 'API Key'}
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                autoComplete="off"
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 font-mono text-sm text-ink"
+              />
+            </label>
+          )}
+
+          {isManual && (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1 text-xs text-ink-muted">
+                总额度
+                <input
+                  type="number"
+                  value={manualTotal}
+                  onChange={(e) => setManualTotal(e.target.value)}
+                  placeholder="100"
+                  className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-ink-muted">
+                已用
+                <input
+                  type="number"
+                  value={manualUsed}
+                  onChange={(e) => setManualUsed(e.target.value)}
+                  placeholder="0"
+                  className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+                />
+              </label>
+            </div>
+          )}
 
           {spec?.needsBaseUrl && (
             <label className="flex flex-col gap-1 text-xs text-ink-muted">
@@ -407,6 +448,7 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
               />
             </label>
           ))}
+
           {error && <p className="text-xs text-accent-danger">{error}</p>}
 
           <div className="mt-1 flex justify-end gap-2">
@@ -432,15 +474,322 @@ function AddAccountDialog({ providers, initialProviderId, onClose, onSaved }: Ad
   );
 }
 
-/** 订阅套餐额度工具主界面 */
+interface QuotaAdjustDialogProps {
+  account: QuotaAccountDto;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+/** 手动额度调整对话框（从 agent-hub 合并：额度支持手动增加） */
+function QuotaAdjustDialog({ account, onClose, onSaved }: QuotaAdjustDialogProps) {
+  const [total, setTotal] = useState(String(account.manualTotal || ''));
+  const [used, setUsed] = useState(String(account.manualUsed || ''));
+  const [add, setAdd] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await quotaApi.adjustQuota(account.id, {
+        total: total ? Number(total) : undefined,
+        used: used ? Number(used) : undefined,
+        add: add ? Number(add) : undefined,
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [account.id, total, used, add, onSaved, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="调整额度"
+        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-xl border border-border bg-surface-1 p-4 shadow-xl sm:rounded-xl sm:p-5"
+      >
+        <div className="mb-3 flex items-start justify-between">
+          <h2 className="text-base font-semibold text-ink">调整额度 · {account.label}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="关闭"
+            className="rounded-md p-1 text-ink-muted hover:bg-surface-2 hover:text-ink"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              总额度
+              <input
+                type="number"
+                value={total}
+                onChange={(e) => setTotal(e.target.value)}
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              已用
+              <input
+                type="number"
+                value={used}
+                onChange={(e) => setUsed(e.target.value)}
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+              />
+            </label>
+          </div>
+
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            在现有总额度上增加（套餐续期时用）
+            <input
+              type="number"
+              value={add}
+              onChange={(e) => setAdd(e.target.value)}
+              placeholder="例如 500"
+              className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+            />
+          </label>
+
+          <p className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-ink-faint">
+            填「总额度」会直接覆盖；只填「增加」则在当前总额上累加。单位与窗口沿用该订阅的原有设置。
+          </p>
+
+          {error && <p className="text-xs text-accent-danger">{error}</p>}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink hover:bg-surface-2"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? '保存中…' : '保存'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface EditAccountDialogProps {
+  account: QuotaAccountDto;
+  spec: ProviderSpecDto | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+/** 编辑已有账号（对齐原 agent-hub 的「编辑供应商」能力） */
+function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialogProps) {
+  const [label, setLabel] = useState(account.label);
+  const [apiKey, setApiKey] = useState('');
+  const [baseUrl, setBaseUrl] = useState(String(account.extra?.base_url ?? ''));
+  const [controlKey, setControlKey] = useState('');
+  const [notes, setNotes] = useState(account.notes ?? '');
+  const [enabled, setEnabled] = useState(account.enabled);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const needsControlKey = spec?.needs.includes('control_key') ?? false;
+  const needsBaseUrl = Boolean(spec?.needsBaseUrl);
+  // 手动额度账号不查网络，没有任何 Key 需要填
+  const showKeyField = !account.isManual && (spec ? spec.needs.length > 0 : true);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      // 保留原有 extra 的其他字段，只覆盖本次可编辑项
+      const extra: Record<string, unknown> = { ...(account.extra ?? {}) };
+      if (needsBaseUrl) {
+        if (baseUrl.trim()) extra.base_url = baseUrl.trim();
+        else delete extra.base_url;
+      }
+      // 留空 = 不修改，避免把已有 Key 清掉
+      const key = apiKey.trim();
+      if (key) {
+        if (needsControlKey) extra.control_key = key;
+        else extra.api_key = key;
+      }
+      if (controlKey.trim()) extra.control_key = controlKey.trim();
+
+      await quotaApi.updateAccount(account.id, {
+        label: label.trim() || account.label,
+        apiKey: key || undefined,
+        extra,
+        enabled,
+        notes,
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    account,
+    apiKey,
+    baseUrl,
+    controlKey,
+    enabled,
+    label,
+    needsBaseUrl,
+    needsControlKey,
+    notes,
+    onSaved,
+    onClose,
+  ]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="编辑供应商账号"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-xl border border-border bg-surface-1 p-4 shadow-xl sm:rounded-xl sm:p-5"
+      >
+        <div className="mb-4 flex items-start justify-between">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-ink">编辑 · {account.label}</h2>
+            <p className="mt-0.5 text-xs text-ink-faint">
+              {spec?.name ?? account.providerId} · Key 留空表示保持不变
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="关闭"
+            className="shrink-0 rounded-md p-1 text-ink-muted hover:bg-surface-2 hover:text-ink"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            显示名称
+            <input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+            />
+          </label>
+
+          {showKeyField && (
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              {needsControlKey ? 'Control Key' : 'API Key'}
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={
+                  account.maskedKey ? `当前 ${account.maskedKey}（留空不改）` : '未配置'
+                }
+                autoComplete="off"
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 font-mono text-sm text-ink"
+              />
+            </label>
+          )}
+
+          {needsBaseUrl && (
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              站点地址（base_url）
+              <input
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://..."
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+              />
+            </label>
+          )}
+
+          {needsControlKey && (
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              用量查询控制面 Key（可选）
+              <input
+                type="password"
+                value={controlKey}
+                onChange={(e) => setControlKey(e.target.value)}
+                placeholder="留空不改"
+                autoComplete="off"
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 font-mono text-sm text-ink"
+              />
+            </label>
+          )}
+
+          <label className="flex flex-col gap-1 text-xs text-ink-muted">
+            备注
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="例如：工作号 / 备用"
+              className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 text-xs text-ink-muted">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-border"
+            />
+            启用（停用后不在额度列表里查询与展示）
+          </label>
+
+          {error && <p className="text-xs text-accent-danger">{error}</p>}
+
+          <div className="mt-1 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink hover:bg-surface-2"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? '保存中…' : '保存'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Agent 订阅中心（合并 订阅套餐额度 + Agent 订阅中心） */
 export default function SubscriptionQuotaTool() {
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [providers, setProviders] = useState<ProviderSpecDto[]>([]);
   const [accounts, setAccounts] = useState<QuotaAccountDto[]>([]);
   const [results, setResults] = useState<QuotaResultDto[]>([]);
   const [aggregates, setAggregates] = useState<ProviderAggregateDto[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusDto[]>([]);
   const [queriedAt, setQueriedAt] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -448,6 +797,8 @@ export default function SubscriptionQuotaTool() {
   const [usage, setUsage] = useState<UsageSummaryDto | null>(null);
   const [usageDays, setUsageDays] = useState(30);
   const [usageLoading, setUsageLoading] = useState(false);
+  const [adjusting, setAdjusting] = useState<QuotaAccountDto | null>(null);
+  const [editingAccount, setEditingAccount] = useState<QuotaAccountDto | null>(null);
   const mountedRef = useRef(true);
 
   const now = useNow(results.length > 0 || Boolean(queriedAt));
@@ -467,7 +818,7 @@ export default function SubscriptionQuotaTool() {
       setAccounts(accountData.accounts);
       setSubscriptionStatus(subData.subscriptions);
 
-      // 无论有没有用户账号都查一次：本机 CLI 凭据（如 Kimi Code / ZCode 登录）会自动出现
+      // 无论有没有用户账号都查一次：本机 CLI 凭据会自动出现
       const quotaData = await quotaApi.queryQuotas({ forceRefresh });
       if (!mountedRef.current) return;
       setResults([...quotaData.accounts, ...quotaData.subscriptions]);
@@ -491,7 +842,7 @@ export default function SubscriptionQuotaTool() {
     };
   }, [loadAll]);
 
-  // 用量与成本（来自 cc-switch），与额度并行加载
+  // 用量与成本（来自 cc-switch）
   useEffect(() => {
     let cancelled = false;
     setUsageLoading(true);
@@ -551,6 +902,20 @@ export default function SubscriptionQuotaTool() {
     }
   }, []);
 
+  const handleToggleEnabled = useCallback(async (account: QuotaAccountDto) => {
+    try {
+      const { account: updated } = await quotaApi.updateAccount(account.id, {
+        enabled: !account.enabled,
+      });
+      if (!mountedRef.current) return;
+      setAccounts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      // 停用后需重新查询，让该账号从额度列表里消失
+      await loadAll(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '切换启用状态失败');
+    }
+  }, [loadAll]);
+
   const handleImport = useCallback(async () => {
     setImporting(true);
     setError(null);
@@ -582,63 +947,64 @@ export default function SubscriptionQuotaTool() {
     accounts.length > 0 ||
     subscriptionStatus.some((s) => s.hasCredential) ||
     results.some((r) => r.isLocal);
-
   const failoverGroups = aggregates.filter((a) => a.isFailoverReady);
+
+  const manualAccount = useMemo(() => {
+    if (!adjusting) return null;
+    return accounts.find((a) => a.id === adjusting.id) ?? adjusting;
+  }, [adjusting, accounts]);
+
+  const renderQuotaGrid = () =>
+    results.length === 0 ? (
+      <p className="py-16 text-center text-sm text-ink-muted">暂无已配置的供应商</p>
+    ) : (
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {results.map((quota) => {
+          const account = accounts.find((a) => a.id === quota.accountId);
+          return (
+            <QuotaCard
+              key={`${quota.providerId}:${quota.accountId ?? 'subscription'}`}
+              quota={quota}
+              now={now}
+              refreshing={refreshing}
+              onRefresh={() => void handleRefreshOne(quota)}
+              onRemove={
+                quota.accountId ? () => void handleRemove(quota.accountId!) : undefined
+              }
+              onAdjust={
+                account?.isManual ? () => setAdjusting(account) : undefined
+              }
+            />
+          );
+        })}
+      </div>
+    );
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4">
-      {/* 订阅用量信息：页面第一行容器，置顶展示 */}
-      <UsagePanel
-        usage={usage}
-        loading={usageLoading}
-        days={usageDays}
-        onDaysChange={setUsageDays}
-      />
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-ink sm:text-lg">订阅套餐额度</h2>
-          <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-            添加供应商并填入 API Key 即可查询套餐窗口与账户余额；只读凭据，不做任何修改。
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover sm:flex-none"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            添加供应商
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleImport()}
-            disabled={importing}
-            title="从本机 cc-switch 自动导入已配置的供应商（含 OpenDesign 控制面 Key）"
-            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
-          >
-            <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
-            <span className="hidden sm:inline">{importing ? '导入中…' : '从 cc-switch 导入'}</span>
-            <span className="sm:hidden">{importing ? '导入中…' : '导入'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => void loadAll(true)}
-            disabled={refreshing || loading}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
-            {refreshing ? '刷新中…' : '全部刷新'}
-          </button>
-        </div>
+      {/* Tab 导航：移动端横向可滚动 */}
+      <div className="-mx-3 flex gap-1 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              aria-current={active ? 'page' : undefined}
+              className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                active
+                  ? 'bg-accent text-white'
+                  : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
-
-      {queriedAt && hasAnything && (
-        <p className="text-xs text-ink-faint">
-          共 {results.length} 项，成功 {successCount} 项 · 更新于 {relativeTime(queriedAt, now)}
-        </p>
-      )}
 
       {error && (
         <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-accent-danger">
@@ -660,78 +1026,294 @@ export default function SubscriptionQuotaTool() {
         </div>
       )}
 
-      {failoverGroups.length > 0 && (
-        <div className="rounded-lg border border-border bg-surface-1 px-3 py-2">
-          <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-            <Settings2 className="h-3.5 w-3.5" aria-hidden />
-            多账号可切换（同供应商配了多个账号，额度用完自动换下一个）
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {failoverGroups.map((group) => (
-              <span
-                key={group.providerId}
-                className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink"
-                title={`该供应商 ${group.accounts} 个账号，${group.available} 个可用`}
+      {/* ---------- Tab: 概览 ---------- */}
+      {activeTab === 'overview' && (
+        <>
+          <UsagePanel
+            usage={usage}
+            loading={usageLoading}
+            days={usageDays}
+            onDaysChange={setUsageDays}
+          />
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-ink sm:text-lg">Agent 订阅中心</h2>
+              <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+                供应商 / 套餐额度 / 用量成本 / Agent 切换 / 本地网关，都在这里。
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAdd(true)}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover sm:flex-none"
               >
-                {group.label}
-                <span className="ml-1 text-ink-faint">
-                  {group.available}/{group.accounts} 可用
-                  {group.tightestRemaining !== null &&
-                    ` · 最紧 ${group.tightestRemaining.toFixed(0)}%`}
-                </span>
-              </span>
-            ))}
+                <Plus className="h-4 w-4" aria-hidden />
+                添加供应商
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleImport()}
+                disabled={importing}
+                title="从本机 cc-switch 自动导入已配置的供应商（含 OpenDesign 控制面 Key）"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
+              >
+                <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
+                <span className="hidden sm:inline">{importing ? '导入中…' : '从 cc-switch 导入'}</span>
+                <span className="sm:hidden">{importing ? '导入中…' : '导入'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void loadAll(true)}
+                disabled={refreshing || loading}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
+                {refreshing ? '刷新中…' : '全部刷新'}
+              </button>
+            </div>
           </div>
+
+          {queriedAt && hasAnything && (
+            <p className="text-xs text-ink-faint">
+              共 {results.length} 项，成功 {successCount} 项 · 更新于 {relativeTime(queriedAt, now)}
+            </p>
+          )}
+
+          {failoverGroups.length > 0 && (
+            <div className="rounded-lg border border-border bg-surface-1 px-3 py-2">
+              <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+                <Settings2 className="h-3.5 w-3.5" aria-hidden />
+                多账号可切换（同供应商配了多个账号，额度用完自动换下一个）
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {failoverGroups.map((group) => (
+                  <span
+                    key={group.providerId}
+                    className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink"
+                    title={`该供应商 ${group.accounts} 个账号，${group.available} 个可用`}
+                  >
+                    {group.label}
+                    <span className="ml-1 text-ink-faint">
+                      {group.available}/{group.accounts} 可用
+                      {group.tightestRemaining !== null &&
+                        ` · 最紧 ${group.tightestRemaining.toFixed(0)}%`}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-ink-muted">
+              <RefreshCw className="mr-2 h-5 w-5 animate-spin" aria-hidden />
+              正在加载…
+            </div>
+          ) : !hasAnything ? (
+            <div className="flex flex-col items-center gap-3 px-2 py-12 text-center sm:py-16">
+              <Settings2 className="h-10 w-10 text-ink-faint" aria-hidden />
+              <p className="text-sm font-medium text-ink">还没有配置任何订阅</p>
+              <p className="max-w-md text-xs text-ink-muted">
+                大多数供应商只需要一个 API Key：点「添加供应商」，选择供应商并粘贴 Key 即可。
+                本机已登录的 Kimi Code / ZCode / Claude Code / Codex / Gemini 会自动出现。
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAdd(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                添加第一个供应商
+              </button>
+            </div>
+          ) : (
+            renderQuotaGrid()
+          )}
+        </>
+      )}
+
+      {/* ---------- Tab: 套餐额度 ---------- */}
+      {activeTab === 'quota' && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-ink">套餐额度</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {queriedAt
+                  ? `共 ${results.length} 项，成功 ${successCount} 项 · ${relativeTime(queriedAt, now)}`
+                  : '添加供应商并填入 API Key 即可查询'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadAll(true)}
+              disabled={refreshing || loading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
+              {refreshing ? '刷新中…' : '全部刷新'}
+            </button>
+          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-ink-muted">
+              <RefreshCw className="mr-2 h-5 w-5 animate-spin" aria-hidden />
+              正在加载…
+            </div>
+          ) : (
+            renderQuotaGrid()
+          )}
+        </>
+      )}
+
+      {/* ---------- Tab: 供应商 ---------- */}
+      {activeTab === 'providers' && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-ink">供应商</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                共 {providers.length} 家可选，已配置 {accounts.length} 个账号
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAdd(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                添加
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleImport()}
+                disabled={importing}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
+              >
+                <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
+                {importing ? '导入中…' : 'cc-switch 导入'}
+              </button>
+            </div>
+          </div>
+
+          {accounts.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border py-12 text-center text-sm text-ink-muted">
+              还没有供应商账号。点「添加」选择预设后粘贴 API Key 即可。
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {accounts.map((account) => {
+                const spec = providers.find((p) => p.id === account.providerId);
+                return (
+                  <div
+                    key={account.id}
+                    className="flex flex-col gap-1.5 rounded-lg border border-border p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                        {account.label}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-faint">
+                        {kindLabel(spec?.kind ?? 'window')}
+                      </span>
+                      {!account.enabled && <Badge variant="outline">已停用</Badge>}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
+                      {account.maskedKey ? (
+                        <span className="break-all font-mono">{account.maskedKey}</span>
+                      ) : (
+                        <span>无需 Key</span>
+                      )}
+                      {account.isManual && (
+                        <span>
+                          手动：{account.manualUsed}/{account.manualTotal} {account.quotaUnit}
+                        </span>
+                      )}
+                    </div>
+                    {spec?.hint && (
+                      <p className="line-clamp-2 text-[11px] text-ink-faint">{spec.hint}</p>
+                    )}
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {account.isManual && (
+                        <button
+                          type="button"
+                          onClick={() => setAdjusting(account)}
+                          className="rounded-md px-2 py-1 text-xs text-ink-muted hover:bg-surface-2 hover:text-ink"
+                        >
+                          调整额度
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setEditingAccount(account)}
+                        className="rounded-md px-2 py-1 text-xs text-ink-muted hover:bg-surface-2 hover:text-ink"
+                      >
+                        编辑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleToggleEnabled(account)}
+                        className="rounded-md px-2 py-1 text-xs text-ink-muted hover:bg-surface-2 hover:text-ink"
+                      >
+                        {account.enabled ? '停用' : '启用'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleRemove(account.id)}
+                        className="rounded-md px-2 py-1 text-xs text-ink-muted hover:bg-danger/10 hover:text-accent-danger"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      <GatewayPanel />
+      {/* ---------- Tab: Agent 切换 ---------- */}
+      {activeTab === 'agents' && <AgentSwitchPanel accounts={accounts} />}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-ink-muted">
-          <RefreshCw className="mr-2 h-5 w-5 animate-spin" aria-hidden />
-          正在加载…
-        </div>
-      ) : !hasAnything ? (
-        <div className="flex flex-col items-center gap-3 px-2 py-12 text-center sm:py-16">
-          <Settings2 className="h-10 w-10 text-ink-faint" aria-hidden />
-          <p className="text-sm font-medium text-ink">还没有配置任何订阅</p>
-          <p className="max-w-md text-xs text-ink-muted">
-            大多数供应商只需要一个 API Key：点「添加供应商」，选择供应商并粘贴 Key 即可。
-            本机已登录的 Kimi Code / ZCode / Claude Code / Codex / Gemini 会自动出现。
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            添加第一个供应商
-          </button>
-        </div>
-      ) : results.length === 0 ? (
-        <p className="py-16 text-center text-sm text-ink-muted">暂无已配置的供应商</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {results.map((quota) => (
-            <QuotaCard
-              key={`${quota.providerId}:${quota.accountId ?? 'subscription'}`}
-              quota={quota}
-              now={now}
-              refreshing={refreshing}
-              onRefresh={() => void handleRefreshOne(quota)}
-              onRemove={
-                quota.accountId ? () => void handleRemove(quota.accountId!) : undefined
-              }
-            />
-          ))}
-        </div>
+      {/* ---------- Tab: 用量成本 ---------- */}
+      {activeTab === 'usage' && (
+        <UsagePanel
+          usage={usage}
+          loading={usageLoading}
+          days={usageDays}
+          onDaysChange={setUsageDays}
+        />
       )}
+
+      {/* ---------- Tab: 本地网关 ---------- */}
+      {activeTab === 'gateway' && <GatewayPanel />}
 
       {showAdd && (
         <AddAccountDialog
           providers={providers}
           onClose={() => setShowAdd(false)}
+          onSaved={() => void loadAll(true)}
+        />
+      )}
+
+      {manualAccount && (
+        <QuotaAdjustDialog
+          account={manualAccount}
+          onClose={() => setAdjusting(null)}
+          onSaved={() => void loadAll(true)}
+        />
+      )}
+
+      {editingAccount && (
+        <EditAccountDialog
+          account={
+            accounts.find((a) => a.id === editingAccount.id) ?? editingAccount
+          }
+          spec={providers.find((p) => p.id === editingAccount.providerId) ?? null}
+          onClose={() => setEditingAccount(null)}
           onSaved={() => void loadAll(true)}
         />
       )}

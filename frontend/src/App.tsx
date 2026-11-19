@@ -362,7 +362,8 @@ function App() {
                     <Route path="cross-share" element={<CrossShareMain />} />
                     <Route path="http-api-client" element={<HttpApiClient />} />
                     <Route path="system-monitor" element={<SystemMonitor />} />
-                    <Route path="agent-hub" element={<AgentHub />} />
+                    {/* 合并后：两个工具 id 都渲染同一个统一页面 */}
+                    <Route path="agent-hub" element={<SubscriptionQuotaTool />} />
                     <Route path="token-usage" element={<TokenUsage />} />
                     <Route path="subscription-quota" element={<SubscriptionQuotaTool />} />
                     <Route path="k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />

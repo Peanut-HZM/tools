@@ -48,6 +48,16 @@ class AccountCreateRequest(BaseModel):
     label: str = Field(default="", description="自定义显示名，例如「工作号」")
     api_key: Optional[str] = Field(default=None, description="API Key（服务端加密存储）")
     extra: dict = Field(default_factory=dict, description="额外字段：region / base_url / control_key 等")
+    # 合并 agent-hub 后新增（都有默认值，老调用方不受影响）
+    category: Optional[str] = Field(default=None, description="official/aggregator/third_party/custom/manual")
+    app: Optional[str] = Field(default=None, description="作用对象 agent")
+    notes: Optional[str] = None
+    website_url: Optional[str] = None
+    manual_total: Optional[float] = Field(default=None, description="手动额度总额")
+    manual_used: Optional[float] = Field(default=None, description="手动额度已用")
+    quota_unit: Optional[str] = None
+    window_type: Optional[str] = None
+    window_reset_at: Optional[str] = None
 
 
 class AccountUpdateRequest(BaseModel):
@@ -55,6 +65,26 @@ class AccountUpdateRequest(BaseModel):
     api_key: Optional[str] = None
     extra: Optional[dict] = None
     enabled: Optional[bool] = None
+    category: Optional[str] = None
+    app: Optional[str] = None
+    notes: Optional[str] = None
+    website_url: Optional[str] = None
+    manual_total: Optional[float] = None
+    manual_used: Optional[float] = None
+    quota_unit: Optional[str] = None
+    window_type: Optional[str] = None
+    window_reset_at: Optional[str] = None
+
+
+class QuotaAdjustRequest(BaseModel):
+    """手动额度调整（对齐 agent-hub 的「额度支持手动增加」）"""
+
+    total: Optional[float] = Field(default=None, description="新的总额度")
+    used: Optional[float] = Field(default=None, description="新的已用额度")
+    add: Optional[float] = Field(default=None, description="在现有总额度上增加多少")
+    unit: Optional[str] = None
+    window_type: Optional[str] = None
+    window_reset_at: Optional[str] = None
 
 
 class QueryRequest(BaseModel):
@@ -76,6 +106,83 @@ class ImportRequest(BaseModel):
     """从 cc-switch 导入供应商配置"""
 
     dry_run: bool = Field(default=False, description="只预览不写库")
+
+
+#: Agent 切换指针表（从 agent-hub 的 agent_hub_switches 合并；带 user_id 隔离）
+_SWITCH_TABLE = "subscription_quota_switches"
+_switch_ready = False
+
+
+def _ensure_switch_table() -> None:
+    global _switch_ready
+    if _switch_ready:
+        return
+    from sqlalchemy import text
+
+    from app.models.base import engine
+
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                f"""
+                CREATE TABLE IF NOT EXISTS {_SWITCH_TABLE} (
+                    user_id     VARCHAR(64) NOT NULL,
+                    agent       VARCHAR(32) NOT NULL,
+                    provider_id VARCHAR(64) NOT NULL DEFAULT '',
+                    switched_at VARCHAR(40) NOT NULL DEFAULT '',
+                    PRIMARY KEY (user_id, agent)
+                )
+                """
+            )
+        )
+    _switch_ready = True
+
+
+def _load_switches(user_id: str) -> dict[str, dict]:
+    """读取该用户各 agent 的当前切换指针"""
+    from sqlalchemy import text
+
+    from app.models.base import engine
+
+    _ensure_switch_table()
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                f"SELECT agent, provider_id, switched_at FROM {_SWITCH_TABLE} WHERE user_id = :uid"
+            ),
+            {"uid": user_id},
+        ).fetchall()
+    return {
+        row[0]: {"provider_id": row[1] or "", "switched_at": row[2] or ""} for row in rows
+    }
+
+
+def _save_switch(user_id: str, agent: str, provider_id: str) -> None:
+    """保存切换指针（provider_id 为空表示已恢复默认）"""
+    import time
+
+    from sqlalchemy import text
+
+    from app.models.base import engine
+
+    _ensure_switch_table()
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                f"""
+                INSERT INTO {_SWITCH_TABLE} (user_id, agent, provider_id, switched_at)
+                VALUES (:uid, :agent, :pid, :at)
+                ON CONFLICT (user_id, agent) DO UPDATE
+                SET provider_id = EXCLUDED.provider_id, switched_at = EXCLUDED.switched_at
+                """
+            ),
+            {
+                "uid": user_id,
+                "agent": agent,
+                "pid": provider_id or "",
+                "at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            },
+        )
 
 
 def _require_user(authorization: Optional[str]) -> str:
@@ -211,6 +318,115 @@ def import_from_ccswitch(
     }
 
 
+# ---------------------------------------------------------------- Agent 切换（合并 agent-hub）
+
+
+class SwitchPreviewRequest(BaseModel):
+    model: str = Field(default="", description="可选：同时写入的模型名")
+
+
+@router.get("/agents")
+def list_agents(authorization: Optional[str] = Header(None)):
+    """检测本机各 agent 配置是否存在（只读，不写任何文件）"""
+    user_id = _require_user(authorization)
+    from app.services.subscription_quota.agent_switch import WRITER_AGENTS, list_agent_status
+
+    accounts = {a.id: a for a in list_accounts(user_id)}
+    switches = _load_switches(user_id)
+
+    agents = []
+    for status in list_agent_status():
+        data = status.to_dict()
+        switch = switches.get(status.agent) or {}
+        provider = accounts.get(switch.get("provider_id", ""))
+        data["currentProviderId"] = switch.get("provider_id", "")
+        data["currentProviderName"] = provider.label if provider else ""
+        data["switchedAt"] = switch.get("switched_at", "")
+        agents.append(data)
+
+    return {"agents": agents, "supported": list(WRITER_AGENTS)}
+
+
+@router.get("/agents/{agent}/config-preview")
+def preview_agent_switch(
+    agent: str,
+    account_id: str,
+    model: str = "",
+    authorization: Optional[str] = Header(None),
+):
+    """预览切换会写哪些字段（dry-run，不落盘）"""
+    user_id = _require_user(authorization)
+    from app.services.subscription_quota.agent_switch import AgentWriterError, preview_switch
+
+    account = get_account(user_id, account_id)
+    if account is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+
+    spec = get_spec(account.provider_id)
+    base_url = str(account.extra.get("base_url") or "")
+    try:
+        return preview_switch(
+            agent,
+            name=account.label or (spec.name if spec else account.provider_id),
+            base_url=base_url,
+            api_key=account.api_key or "",
+            model=model,
+        )
+    except AgentWriterError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/agents/{agent}/switch")
+def switch_agent(
+    agent: str,
+    account_id: str,
+    req: SwitchPreviewRequest = SwitchPreviewRequest(),
+    authorization: Optional[str] = Header(None),
+):
+    """把该账号写入本机 CLI 配置（带首写备份，可一键恢复）"""
+    user_id = _require_user(authorization)
+    from app.services.subscription_quota.agent_switch import AgentWriterError, apply_switch
+
+    account = get_account(user_id, account_id)
+    if account is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+
+    spec = get_spec(account.provider_id)
+    name = account.label or (spec.name if spec else account.provider_id)
+    base_url = str(account.extra.get("base_url") or "")
+    try:
+        result = apply_switch(
+            agent,
+            name=name,
+            base_url=base_url,
+            api_key=account.api_key or "",
+            model=req.model,
+            kind=spec.kind if spec else None,
+        )
+    except AgentWriterError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    _save_switch(user_id, agent, account.id)
+    logger.info("用户 %s 把 %s 切换到 %s（写入 %s 个文件）", user_id, agent, name, len(result.get("written") or []))
+    return {"ok": True, "agent": agent, "providerName": name, "written": result.get("written") or []}
+
+
+@router.post("/agents/{agent}/restore")
+def restore_agent(agent: str, authorization: Optional[str] = Header(None)):
+    """恢复该 agent 的首写备份"""
+    user_id = _require_user(authorization)
+    from app.services.subscription_quota.agent_switch import AgentWriterError, restore
+
+    try:
+        restored = restore(agent)
+    except AgentWriterError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    _save_switch(user_id, agent, "")
+    logger.info("用户 %s 恢复 %s 的备份，共 %d 个文件", user_id, agent, len(restored))
+    return {"ok": True, "restored": restored}
+
+
 @router.get("/usage")
 def get_usage(days: int = 30, authorization: Optional[str] = Header(None)):
     """用量与成本（来自本机 cc-switch 的用量汇总）
@@ -282,6 +498,15 @@ def add_account(
         label=req.label or spec.name,
         api_key=req.api_key,
         extra=extra,
+        category=req.category or "official",
+        app=req.app or "",
+        notes=req.notes or "",
+        website_url=req.website_url or "",
+        manual_total=req.manual_total or 0.0,
+        manual_used=req.manual_used or 0.0,
+        quota_unit=req.quota_unit or "credits",
+        window_type=req.window_type or "none",
+        window_reset_at=req.window_reset_at or "",
     )
     clear_cache()
     logger.info("用户 %s 添加订阅额度账号 provider=%s", user_id, req.provider_id)
@@ -311,6 +536,15 @@ def edit_account(
         api_key=req.api_key,
         extra=extra,
         enabled=req.enabled,
+        category=req.category,
+        app=req.app,
+        notes=req.notes,
+        website_url=req.website_url,
+        manual_total=req.manual_total,
+        manual_used=req.manual_used,
+        quota_unit=req.quota_unit,
+        window_type=req.window_type,
+        window_reset_at=req.window_reset_at,
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="账号不存在")
@@ -325,6 +559,50 @@ def remove_account(account_id: str, authorization: Optional[str] = Header(None))
         raise HTTPException(status_code=404, detail="账号不存在")
     clear_cache()
     return {"success": True}
+
+
+@router.put("/accounts/{account_id}/quota")
+def adjust_quota(
+    account_id: str,
+    req: QuotaAdjustRequest,
+    authorization: Optional[str] = Header(None),
+):
+    """手动额度调整（从 agent-hub 合并：额度支持手动增加）
+
+    * ``total`` 直接设为新总额
+    * ``add`` 在现有总额上增加（最常用：套餐续期加额度）
+    * ``used`` 直接设为新已用
+    """
+    user_id = _require_user(authorization)
+    existing = get_account(user_id, account_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+
+    total = req.total
+    if req.add is not None:
+        total = float(existing.manual_total or 0) + float(req.add)
+
+    updated = update_account(
+        user_id,
+        account_id,
+        manual_total=total,
+        manual_used=req.used,
+        quota_unit=req.unit,
+        window_type=req.window_type,
+        window_reset_at=req.window_reset_at,
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    clear_cache()
+    logger.info(
+        "用户 %s 调整手动额度 id=%s total=%s add=%s used=%s",
+        user_id,
+        account_id,
+        total,
+        req.add,
+        req.used,
+    )
+    return {"account": updated.to_public_dict()}
 
 
 @router.post("/accounts/{account_id}/test")

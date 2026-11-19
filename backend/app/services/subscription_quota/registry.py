@@ -215,6 +215,44 @@ PROVIDER_SPECS: tuple[ProviderSpec, ...] = (
         regions=("cn", "intl"),
         hint="Coding Plan 之外的钱包余额",
     ),
+    # ---- 从 agent-hub 合并进来的通用模板（B 独有）----
+    ProviderSpec(
+        id="newapi",
+        name="NewAPI 中转站",
+        kind="balance",
+        needs=("api_key",),
+        needs_base_url=True,
+        hint="任意 NewAPI 站点：读 /api/user/self，quota÷500000 = USD",
+        extra_fields={"user_id": "站点数字用户 ID（New-Api-User 头，可选）"},
+    ),
+    ProviderSpec(
+        id="sub2api",
+        name="Sub2API 中转站",
+        kind="balance",
+        needs=("api_key",),
+        needs_base_url=True,
+        hint="任意 Sub2API 站点：读 /v1/usage，返回 quota{limit,used}",
+    ),
+    ProviderSpec(
+        id="generic_balance",
+        name="通用余额接口",
+        kind="balance",
+        needs=("api_key",),
+        needs_base_url=True,
+        hint="读 {base_url}/user/balance，自动识别 balance / total_balance 字段",
+    ),
+    ProviderSpec(
+        id="manual",
+        name="手动额度订阅",
+        kind="manual",
+        needs=(),
+        hint="不查网络：总额度与已用由你自己维护，可随时手动增加",
+        extra_fields={
+            "quota_unit": "单位（credits/USD/tokens/requests/percent）",
+            "window_type": "窗口（none/5h/7d/30d/monthly）",
+        },
+        enabled_by_default=False,
+    ),
 )
 
 PROVIDER_BY_ID: dict[str, ProviderSpec] = {spec.id: spec for spec in PROVIDER_SPECS}

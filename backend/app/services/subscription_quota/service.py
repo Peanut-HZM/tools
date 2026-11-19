@@ -142,8 +142,13 @@ async def _query_account(account: QuotaAccount) -> SubscriptionQuota:
         return SubscriptionQuota.failure(
             account.provider_id, CredentialStatus.PARSE_ERROR, "未知供应商类型"
         )
-    if not account.api_key and not account.extra.get("control_key") and not (
-        account.extra.get("access_key") and account.extra.get("secret_key")
+    # 手动额度账号（manual）不查网络，额度由用户自行维护 → 不需要任何 Key
+    if not account.is_manual and (
+        not account.api_key
+        and not account.extra.get("control_key")
+        and not (
+            account.extra.get("access_key") and account.extra.get("secret_key")
+        )
     ):
         return SubscriptionQuota.failure(
             account.provider_id, CredentialStatus.NOT_FOUND, "该账号没有配置 API Key"

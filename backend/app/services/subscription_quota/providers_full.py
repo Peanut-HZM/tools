@@ -1117,6 +1117,173 @@ async def query_zhipu_payg(account: QuotaAccount) -> SubscriptionQuota:
 
 
 # --------------------------------------------------------------------------
+# 从 agent-hub 合并过来的通用模板（newapi / sub2api / generic_balance / manual）
+# --------------------------------------------------------------------------
+
+
+async def query_newapi(account: QuotaAccount) -> SubscriptionQuota:
+    """NewAPI 中转站：``GET {base}/api/user/self``，quota ÷ 500000 = USD"""
+    base = _base_url(account).rstrip("/")
+    if not base:
+        return _api_failure("newapi", "NewAPI 需要填写站点地址（base_url）")
+
+    headers = {
+        "Authorization": f"Bearer {account.api_key or ''}",
+        "Accept": "application/json",
+        "User-Agent": USER_AGENT,
+    }
+    user_id = account.extra.get("user_id")
+    if user_id:
+        headers["New-Api-User"] = str(user_id)
+
+    status, body, err = await _request_json("GET", f"{base}/api/user/self", headers)
+    if status in (401, 403):
+        return _auth_failure("newapi", status)
+    if err is not None:
+        return _api_failure("newapi", f"接口错误: {err}")
+    if not isinstance(body, dict):
+        return _api_failure("newapi", "响应结构异常")
+
+    if body.get("success") is False:
+        return _api_failure("newapi", f"站点返回错误：{body.get('message') or '未知错误'}")
+
+    data = body.get("data") if isinstance(body.get("data"), dict) else body
+    quota = _num(data.get("quota"))
+    used = _num(data.get("used_quota"))
+    if quota is None:
+        return _api_failure("newapi", "响应缺少 quota 字段")
+
+    # NewAPI 的 quota 单位是 1/500000 USD
+    total_usd = quota / 500000.0
+    used_usd = (used or 0.0) / 500000.0
+    remaining = total_usd - used_usd
+    return SubscriptionQuota(
+        tool="newapi",
+        credential_status=CredentialStatus.VALID,
+        success=True,
+        tiers=[balance_tier("balance_USD", remaining, "USD")],
+        queried_at=now_millis(),
+    )
+
+
+async def query_sub2api(account: QuotaAccount) -> SubscriptionQuota:
+    """Sub2API 中转站：``GET {base}/v1/usage`` → quota{limit,used}"""
+    base = _base_url(account).rstrip("/")
+    if not base:
+        return _api_failure("sub2api", "Sub2API 需要填写站点地址（base_url）")
+
+    status, body, err = await _request_json("GET", f"{base}/v1/usage", _bearer(account))
+    if status in (401, 403):
+        return _auth_failure("sub2api", status)
+    if err is not None:
+        return _api_failure("sub2api", f"接口错误: {err}")
+    if not isinstance(body, dict):
+        return _api_failure("sub2api", "响应结构异常")
+
+    quota = body.get("quota") if isinstance(body.get("quota"), dict) else body
+    limit = _num(quota.get("limit"))
+    used = _num(quota.get("used"))
+    if limit is None or limit <= 0:
+        return _api_failure("sub2api", "响应缺少有效的 limit 字段")
+
+    used_value = used or 0.0
+    tiers = [
+        QuotaTier(
+            name="monthly",
+            utilization=max(0.0, min(100.0, used_value / limit * 100.0)),
+            resets_at=None,
+        )
+    ]
+    return SubscriptionQuota(
+        tool="sub2api",
+        credential_status=CredentialStatus.VALID,
+        success=True,
+        tiers=tiers,
+        queried_at=now_millis(),
+    )
+
+
+async def query_generic_balance(account: QuotaAccount) -> SubscriptionQuota:
+    """通用余额：``GET {base}/user/balance``，自动识别字段名"""
+    base = _base_url(account).rstrip("/")
+    if not base:
+        return _api_failure("generic_balance", "通用余额需要填写站点地址（base_url）")
+
+    status, body, err = await _request_json("GET", f"{base}/user/balance", _bearer(account))
+    if status in (401, 403):
+        return _auth_failure("generic_balance", status)
+    if err is not None:
+        return _api_failure("generic_balance", f"接口错误: {err}")
+    if not isinstance(body, dict):
+        return _api_failure("generic_balance", "响应结构异常")
+
+    data = body.get("data") if isinstance(body.get("data"), dict) else body
+    amount = None
+    unit = "USD"
+    for key in ("balance", "total_balance", "availableBalance", "available_balance", "totalBalance"):
+        value = _num(data.get(key))
+        if value is not None:
+            amount = value
+            break
+    if amount is None:
+        infos = data.get("balance_infos")
+        if isinstance(infos, list):
+            for info in infos:
+                if not isinstance(info, dict):
+                    continue
+                value = _num(info.get("total_balance"))
+                if value is not None:
+                    amount = value
+                    unit = str(info.get("currency") or "USD")
+                    break
+    if amount is None:
+        return _api_failure("generic_balance", "响应里找不到可识别的余额字段")
+
+    return SubscriptionQuota(
+        tool="generic_balance",
+        credential_status=CredentialStatus.VALID,
+        success=True,
+        tiers=[balance_tier(f"balance_{unit}", amount, unit)],
+        queried_at=now_millis(),
+    )
+
+
+async def query_manual_quota(account: QuotaAccount) -> SubscriptionQuota:
+    """手动额度订阅：不查网络，直接读账号上的 manual_total / manual_used"""
+    total = float(account.manual_total or 0)
+    used = float(account.manual_used or 0)
+    unit = account.quota_unit or "credits"
+
+    if total <= 0:
+        # 没有总额度时按余额型展示「已用」
+        tier = balance_tier(f"balance_{unit}", used, unit)
+        return SubscriptionQuota(
+            tool="manual",
+            credential_status=CredentialStatus.VALID,
+            success=True,
+            tiers=[tier],
+            queried_at=now_millis(),
+        )
+
+    utilization = max(0.0, min(100.0, used / total * 100.0))
+    tier = QuotaTier(
+        name=f"manual_{account.window_type or 'none'}",
+        utilization=utilization,
+        resets_at=account.window_reset_at or None,
+    )
+    tier.balance_amount = max(0.0, total - used)
+    tier.balance_unit = unit
+    return SubscriptionQuota(
+        tool="manual",
+        credential_status=CredentialStatus.VALID,
+        success=True,
+        tiers=[tier],
+        plan_name=account.label or None,
+        queried_at=now_millis(),
+    )
+
+
+# --------------------------------------------------------------------------
 # 注册表
 # --------------------------------------------------------------------------
 
@@ -1137,6 +1304,11 @@ QUERY_FUNCS: dict[str, Callable] = {
     "novita": query_novita,
     "ollama_cloud": query_ollama_cloud,
     "zhipu_payg": query_zhipu_payg,
+    # ---- 从 agent-hub 合并 ----
+    "newapi": query_newapi,
+    "sub2api": query_sub2api,
+    "generic_balance": query_generic_balance,
+    "manual": query_manual_quota,
 }
 
 

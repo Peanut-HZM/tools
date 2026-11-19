@@ -38,6 +38,24 @@ CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
 )
 """
 
+#: 合并 agent-hub 后新增的列（幂等 ADD COLUMN，全部有默认值 → 老数据零影响）
+_EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
+    # 供应商分类：official / aggregator / third_party / custom / manual
+    ("category", "VARCHAR(32) NOT NULL DEFAULT 'official'"),
+    # 作用对象 agent（写入本机配置时用）
+    ("app", "VARCHAR(32) NOT NULL DEFAULT ''"),
+    ("notes", "TEXT NOT NULL DEFAULT ''"),
+    ("website_url", "VARCHAR(500) NOT NULL DEFAULT ''"),
+    # manual 模式的额度（支持手动增加）
+    ("manual_total", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
+    ("manual_used", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
+    ("quota_unit", "VARCHAR(20) NOT NULL DEFAULT 'credits'"),
+    ("window_type", "VARCHAR(20) NOT NULL DEFAULT 'none'"),
+    ("window_reset_at", "VARCHAR(40) NOT NULL DEFAULT ''"),
+    # keep-last-good：最近一次成功查询结果（失败时前端显示上次数据）
+    ("last_good_json", "TEXT NOT NULL DEFAULT ''"),
+)
+
 _INDEX_SQL = (
     f"CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_user ON {TABLE_NAME} (user_id, sort_order)"
 )
@@ -46,7 +64,7 @@ _schema_ready = False
 
 
 def ensure_schema() -> None:
-    """幂等建表（进程内只做一次）。"""
+    """幂等建表 + 幂等补列（进程内只做一次）。"""
     global _schema_ready
     if _schema_ready:
         return
@@ -54,6 +72,11 @@ def ensure_schema() -> None:
         with engine.begin() as conn:
             conn.execute(text(_CREATE_SQL))
             conn.execute(text(_INDEX_SQL))
+            # 合并 agent-hub 后新增的列：ADD COLUMN IF NOT EXISTS 幂等
+            for column, ddl in _EXTRA_COLUMNS:
+                conn.execute(
+                    text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
+                )
         _schema_ready = True
     except Exception as exc:  # 建表失败不静默：让调用方看到真实错误
         logger.error("创建 %s 表失败: %s", TABLE_NAME, exc, exc_info=True)
@@ -62,7 +85,12 @@ def ensure_schema() -> None:
 
 @dataclass
 class QuotaAccount:
-    """一条供应商账号配置（api_key 字段为明文，仅服务端内部使用）"""
+    """一条供应商账号配置（api_key 字段为明文，仅服务端内部使用）
+
+    合并 agent-hub 后新增：category / app / notes / website_url /
+    manual_total / manual_used / quota_unit / window_type / window_reset_at /
+    last_good（keep-last-good 缓存）。全部有默认值，老数据零影响。
+    """
 
     id: str
     user_id: str
@@ -74,6 +102,23 @@ class QuotaAccount:
     sort_order: int = 0
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+
+    # ---- 合并 agent-hub 新增字段 ----
+    category: str = "official"
+    app: str = ""
+    notes: str = ""
+    website_url: str = ""
+    manual_total: float = 0.0
+    manual_used: float = 0.0
+    quota_unit: str = "credits"
+    window_type: str = "none"
+    window_reset_at: str = ""
+    last_good: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def is_manual(self) -> bool:
+        """手动额度订阅（不查网络，额度由用户维护）"""
+        return self.provider_id == "manual" or self.extra.get("kind") == "manual"
 
     def masked_key(self) -> Optional[str]:
         """返回掩码后的 Key（前端展示用）。"""
@@ -100,6 +145,18 @@ class QuotaAccount:
             "sortOrder": self.sort_order,
             "createdAt": self.created_at,
             "updatedAt": self.updated_at,
+            # ---- 合并 agent-hub 新增字段 ----
+            "category": self.category,
+            "app": self.app,
+            "notes": self.notes,
+            "websiteUrl": self.website_url,
+            "manualTotal": self.manual_total,
+            "manualUsed": self.manual_used,
+            "quotaUnit": self.quota_unit,
+            "windowType": self.window_type,
+            "windowResetAt": self.window_reset_at,
+            "isManual": self.is_manual,
+            "lastGood": self.last_good or None,
         }
 
 
@@ -117,6 +174,10 @@ def _row_to_account(row) -> QuotaAccount:
         extra = json.loads(mapping.get("extra_json") or "{}")
     except json.JSONDecodeError:
         extra = {}
+    try:
+        last_good = json.loads(mapping.get("last_good_json") or "{}")
+    except (json.JSONDecodeError, TypeError):
+        last_good = {}
     created = mapping.get("created_at")
     updated = mapping.get("updated_at")
     return QuotaAccount(
@@ -130,6 +191,16 @@ def _row_to_account(row) -> QuotaAccount:
         sort_order=int(mapping.get("sort_order") or 0),
         created_at=created.isoformat() if isinstance(created, datetime) else created,
         updated_at=updated.isoformat() if isinstance(updated, datetime) else updated,
+        category=mapping.get("category") or "official",
+        app=mapping.get("app") or "",
+        notes=mapping.get("notes") or "",
+        website_url=mapping.get("website_url") or "",
+        manual_total=float(mapping.get("manual_total") or 0.0),
+        manual_used=float(mapping.get("manual_used") or 0.0),
+        quota_unit=mapping.get("quota_unit") or "credits",
+        window_type=mapping.get("window_type") or "none",
+        window_reset_at=mapping.get("window_reset_at") or "",
+        last_good=last_good if isinstance(last_good, dict) else {},
     )
 
 
@@ -161,6 +232,15 @@ def create_account(
     label: str = "",
     api_key: Optional[str] = None,
     extra: Optional[dict] = None,
+    category: str = "official",
+    app: str = "",
+    notes: str = "",
+    website_url: str = "",
+    manual_total: float = 0.0,
+    manual_used: float = 0.0,
+    quota_unit: str = "credits",
+    window_type: str = "none",
+    window_reset_at: str = "",
 ) -> QuotaAccount:
     ensure_schema()
     account_id = str(uuid.uuid4())
@@ -173,8 +253,10 @@ def create_account(
         conn.execute(
             text(
                 f"INSERT INTO {TABLE_NAME} "
-                "(id, user_id, provider_id, label, api_key_enc, extra_json, enabled, sort_order, created_at, updated_at) "
-                "VALUES (:id, :uid, :pid, :label, :key, :extra, TRUE, :order, :now, :now)"
+                "(id, user_id, provider_id, label, api_key_enc, extra_json, enabled, sort_order, created_at, updated_at, "
+                " category, app, notes, website_url, manual_total, manual_used, quota_unit, window_type, window_reset_at) "
+                "VALUES (:id, :uid, :pid, :label, :key, :extra, TRUE, :order, :now, :now, "
+                " :category, :app, :notes, :website, :mtotal, :mused, :unit, :wtype, :wreset)"
             ),
             {
                 "id": account_id,
@@ -185,6 +267,15 @@ def create_account(
                 "extra": json.dumps(extra or {}, ensure_ascii=False),
                 "order": int(next_order or 0),
                 "now": now,
+                "category": category or "official",
+                "app": app or "",
+                "notes": notes or "",
+                "website": website_url or "",
+                "mtotal": float(manual_total or 0),
+                "mused": float(manual_used or 0),
+                "unit": quota_unit or "credits",
+                "wtype": window_type or "none",
+                "wreset": window_reset_at or "",
             },
         )
     logger.info("新增订阅额度账号: user=%s provider=%s id=%s", user_id, provider_id, account_id)
@@ -202,6 +293,16 @@ def update_account(
     api_key: Optional[str] = None,
     extra: Optional[dict] = None,
     enabled: Optional[bool] = None,
+    category: Optional[str] = None,
+    app: Optional[str] = None,
+    notes: Optional[str] = None,
+    website_url: Optional[str] = None,
+    manual_total: Optional[float] = None,
+    manual_used: Optional[float] = None,
+    quota_unit: Optional[str] = None,
+    window_type: Optional[str] = None,
+    window_reset_at: Optional[str] = None,
+    last_good: Optional[dict] = None,
 ) -> Optional[QuotaAccount]:
     ensure_schema()
     sets: list[str] = []
@@ -219,6 +320,36 @@ def update_account(
     if enabled is not None:
         sets.append("enabled = :enabled")
         params["enabled"] = bool(enabled)
+    if category is not None:
+        sets.append("category = :category")
+        params["category"] = category
+    if app is not None:
+        sets.append("app = :app")
+        params["app"] = app
+    if notes is not None:
+        sets.append("notes = :notes")
+        params["notes"] = notes
+    if website_url is not None:
+        sets.append("website_url = :website")
+        params["website"] = website_url
+    if manual_total is not None:
+        sets.append("manual_total = :mtotal")
+        params["mtotal"] = float(manual_total)
+    if manual_used is not None:
+        sets.append("manual_used = :mused")
+        params["mused"] = float(manual_used)
+    if quota_unit is not None:
+        sets.append("quota_unit = :unit")
+        params["unit"] = quota_unit
+    if window_type is not None:
+        sets.append("window_type = :wtype")
+        params["wtype"] = window_type
+    if window_reset_at is not None:
+        sets.append("window_reset_at = :wreset")
+        params["wreset"] = window_reset_at
+    if last_good is not None:
+        sets.append("last_good_json = :lastgood")
+        params["lastgood"] = json.dumps(last_good, ensure_ascii=False)
 
     if not sets:
         return get_account(user_id, account_id)

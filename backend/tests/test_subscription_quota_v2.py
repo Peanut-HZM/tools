@@ -69,10 +69,14 @@ def test_registry_specs_are_consistent():
     for spec in PROVIDER_SPECS:
         assert spec.id
         assert spec.name
-        assert spec.kind in ("window", "balance", "subscription")
+        # 合并 agent-hub 后新增 manual（手动额度）
+        assert spec.kind in ("window", "balance", "subscription", "manual")
         if spec.kind == "subscription":
             assert spec.needs == ()
             assert spec.local_source
+        elif spec.kind == "manual":
+            # 手动额度不需要任何网络凭据
+            assert spec.needs == ()
         else:
             assert len(spec.needs) > 0, f"{spec.id} 需要至少一个凭据字段"
 
@@ -105,6 +109,93 @@ def test_volcengine_needs_ak_sk():
     spec = get_spec("volcengine")
     assert spec is not None
     assert set(spec.needs) == {"access_key", "secret_key"}
+
+
+# ---------------------------------------------------------------- 手动额度（合并 agent-hub）
+
+
+def test_manual_provider_needs_nothing():
+    spec = get_spec("manual")
+    assert spec is not None
+    assert spec.kind == "manual"
+    assert spec.needs == ()
+    assert spec.enabled_by_default is False
+    assert "manual" in MANUAL_PROVIDER_IDS
+
+
+def test_account_is_manual_flag():
+    by_provider = QuotaAccount(id="a1", user_id="u1", provider_id="manual")
+    assert by_provider.is_manual is True
+    by_extra = QuotaAccount(
+        id="a2", user_id="u1", provider_id="newapi", extra={"kind": "manual"}
+    )
+    assert by_extra.is_manual is True
+    normal = QuotaAccount(id="a3", user_id="u1", provider_id="kimi", api_key="sk-x")
+    assert normal.is_manual is False
+
+
+@pytest.mark.asyncio
+async def test_manual_quota_tier_from_local_numbers():
+    """手动额度不联网：直接按 manual_total / manual_used 算利用率"""
+    from app.services.subscription_quota.providers_full import query_manual_quota
+
+    account = QuotaAccount(
+        id="a1",
+        user_id="u1",
+        provider_id="manual",
+        label="手动套餐",
+        manual_total=500,
+        manual_used=125,
+        quota_unit="credits",
+    )
+    quota = await query_manual_quota(account)
+    assert quota.success is True
+    assert len(quota.tiers) == 1
+    tier = quota.tiers[0]
+    assert tier.utilization == pytest.approx(25.0)
+    assert tier.balance_amount == pytest.approx(375.0)
+    assert tier.balance_unit == "credits"
+    assert quota.plan_name == "手动套餐"
+
+
+@pytest.mark.asyncio
+async def test_manual_quota_without_total_is_balance():
+    """没有总额度时按余额展示已用（不编造默认总额）"""
+    from app.services.subscription_quota.providers_full import query_manual_quota
+
+    account = QuotaAccount(id="a1", user_id="u1", provider_id="manual", manual_used=88)
+    quota = await query_manual_quota(account)
+    assert quota.success is True
+    assert quota.tiers[0].balance_amount == pytest.approx(88.0)
+
+
+@pytest.mark.asyncio
+async def test_manual_account_queried_without_api_key():
+    """manual 账号没有 API Key 也必须能查（不能被「未配置 Key」拦下）"""
+    from app.services.subscription_quota.service import _query_account
+
+    account = QuotaAccount(
+        id="a1",
+        user_id="u1",
+        provider_id="manual",
+        label="手动",
+        manual_total=100,
+        manual_used=10,
+    )
+    quota = await _query_account(account)
+    assert quota.success is True
+    assert quota.credential_status == CredentialStatus.VALID
+
+
+@pytest.mark.asyncio
+async def test_normal_account_without_key_still_rejected():
+    """普通账号没 Key 仍然如实报「未配置」，不静默放行"""
+    from app.services.subscription_quota.service import _query_account
+
+    account = QuotaAccount(id="a1", user_id="u1", provider_id="kimi")
+    quota = await _query_account(account)
+    assert quota.success is False
+    assert quota.credential_status == CredentialStatus.NOT_FOUND
 
 
 # ---------------------------------------------------------------- 加密与掩码

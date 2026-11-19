@@ -16,7 +16,6 @@ import LearningSharePlatform from '../Tools/LearningSharePlatform';
 import CrossShareMain from '../Tools/CrossShare/CrossShareMain';
 import HttpApiClient from '../Tools/HttpApiClient/HttpApiClient';
 import SystemMonitor from '../Tools/SystemMonitor';
-import AgentHub from '../Tools/AgentHub';
 import TokenUsage from '../Tools/TokenUsage';
 import SubscriptionQuotaTool from '../Tools/SubscriptionQuota';
 import ImageDownloader from '../Tools/ImageDownloader';
@@ -49,7 +48,9 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'cross-share': CrossShareMain,
   'http-api-client': HttpApiClient,
   'system-monitor': SystemMonitor,
-  'agent-hub': AgentHub,
+  // 合并后：agent-hub 与 subscription-quota 两个入口共用同一个统一页面
+  // （原 AgentHub 组件保留在仓库中作为回滚保障，不再挂到路由上）
+  'agent-hub': SubscriptionQuotaTool,
   'token-usage': TokenUsage,
   'subscription-quota': SubscriptionQuotaTool,
   'image-downloader': ImageDownloader,

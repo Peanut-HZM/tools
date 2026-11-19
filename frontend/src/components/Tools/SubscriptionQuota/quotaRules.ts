@@ -66,6 +66,16 @@ export function tierLabel(name: string): string {
   if (name.startsWith('balance_')) {
     return `余额 ${name.slice('balance_'.length)}`;
   }
+  // 手动额度：manual_none / manual_5h / manual_7d / manual_30d / manual_monthly
+  if (name.startsWith('manual_')) {
+    const window = name.slice('manual_'.length);
+    const windowLabel = MANUAL_WINDOW_LABELS[window];
+    return windowLabel ? `手动 · ${windowLabel}` : '手动额度';
+  }
+  // 通用余额模板：generic_balance 之类
+  if (name.startsWith('generic_')) {
+    return '余额';
+  }
   const match = /^(\d+)_(hour|day)$/.exec(name);
   if (match) {
     const value = match[1];
@@ -73,6 +83,15 @@ export function tierLabel(name: string): string {
   }
   return name || '额度';
 }
+
+/** 手动额度的窗口类型文案（与后端 window_type 取值一致） */
+const MANUAL_WINDOW_LABELS: Record<string, string> = {
+  none: '不限窗口',
+  '5h': '5 小时',
+  '7d': '每周',
+  '30d': '30 天',
+  monthly: '每月',
+};
 
 const TIER_ORDER: Record<string, number> = {
   five_hour: 0,
@@ -158,6 +177,8 @@ export function kindLabel(kind: string): string {
       return '余额';
     case 'subscription':
       return '订阅';
+    case 'manual':
+      return '手动';
     case 'window':
     default:
       return '套餐';

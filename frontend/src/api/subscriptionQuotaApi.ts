@@ -11,7 +11,7 @@ export type CredentialStatus =
   | 'not_found'
   | 'parse_error';
 
-export type ProviderKind = 'window' | 'balance' | 'subscription';
+export type ProviderKind = 'window' | 'balance' | 'subscription' | 'manual';
 
 export interface QuotaTierDto {
   name: string;
@@ -55,6 +55,18 @@ export interface QuotaAccountDto {
   sortOrder: number;
   createdAt: string | null;
   updatedAt: string | null;
+  /** 合并 agent-hub 新增字段 */
+  category: string;
+  app: string;
+  notes: string;
+  websiteUrl: string;
+  manualTotal: number;
+  manualUsed: number;
+  quotaUnit: string;
+  windowType: string;
+  windowResetAt: string;
+  isManual: boolean;
+  lastGood: Record<string, unknown> | null;
 }
 
 export interface QuotaResultDto {
@@ -115,6 +127,21 @@ export interface LocalCredentialNoteDto {
   /** available | needs_manual_key | absent */
   status: string;
   message: string;
+}
+
+export interface AgentSwitchStatusDto {
+  agent: string;
+  files: { path: string; exists: boolean }[];
+  configured: boolean;
+  currentProviderId: string;
+  currentProviderName: string;
+  switchedAt: string;
+}
+
+export interface SwitchPreviewDto {
+  agent: string;
+  files: { path: string; exists: boolean; backed_up: boolean }[];
+  floor: Record<string, string>;
 }
 
 export interface ImportedProviderDto {
@@ -208,6 +235,11 @@ export async function addAccount(input: {
   label?: string;
   apiKey?: string;
   extra?: Record<string, unknown>;
+  manualTotal?: number;
+  manualUsed?: number;
+  quotaUnit?: string;
+  windowType?: string;
+  windowResetAt?: string;
 }): Promise<{ account: QuotaAccountDto }> {
   const response = await authedFetch(`${BASE_URL}/accounts`, {
     method: 'POST',
@@ -217,6 +249,11 @@ export async function addAccount(input: {
       label: input.label ?? '',
       api_key: input.apiKey ?? null,
       extra: input.extra ?? {},
+      manual_total: input.manualTotal,
+      manual_used: input.manualUsed,
+      quota_unit: input.quotaUnit,
+      window_type: input.windowType,
+      window_reset_at: input.windowResetAt,
     }),
   });
   return parseJson(response);
@@ -225,7 +262,19 @@ export async function addAccount(input: {
 /** 修改账号 */
 export async function updateAccount(
   accountId: string,
-  input: { label?: string; apiKey?: string; extra?: Record<string, unknown>; enabled?: boolean }
+  input: {
+    label?: string;
+    apiKey?: string;
+    extra?: Record<string, unknown>;
+    enabled?: boolean;
+    notes?: string;
+    websiteUrl?: string;
+    manualTotal?: number;
+    manualUsed?: number;
+    quotaUnit?: string;
+    windowType?: string;
+    windowResetAt?: string;
+  }
 ): Promise<{ account: QuotaAccountDto }> {
   const response = await authedFetch(`${BASE_URL}/accounts/${accountId}`, {
     method: 'PUT',
@@ -235,6 +284,13 @@ export async function updateAccount(
       api_key: input.apiKey,
       extra: input.extra,
       enabled: input.enabled,
+      notes: input.notes,
+      website_url: input.websiteUrl,
+      manual_total: input.manualTotal,
+      manual_used: input.manualUsed,
+      quota_unit: input.quotaUnit,
+      window_type: input.windowType,
+      window_reset_at: input.windowResetAt,
     }),
   });
   return parseJson(response);
@@ -266,6 +322,73 @@ export async function getUsage(days = 30): Promise<UsageSummaryDto> {
     headers: getAuthHeaders(),
   });
   return parseJson<UsageSummaryDto>(response);
+}
+
+/** 手动额度调整（合并 agent-hub：额度支持手动增加） */
+export async function adjustQuota(
+  accountId: string,
+  input: { total?: number; used?: number; add?: number; unit?: string; windowType?: string; windowResetAt?: string }
+): Promise<{ account: QuotaAccountDto }> {
+  const response = await authedFetch(`${BASE_URL}/accounts/${accountId}/quota`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      total: input.total,
+      used: input.used,
+      add: input.add,
+      unit: input.unit,
+      window_type: input.windowType,
+      window_reset_at: input.windowResetAt,
+    }),
+  });
+  return parseJson(response);
+}
+
+/** 本机各 agent 的配置状态（只读） */
+export async function listAgents(): Promise<{ agents: AgentSwitchStatusDto[]; supported: string[] }> {
+  const response = await authedFetch(`${BASE_URL}/agents`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return parseJson(response);
+}
+
+/** 切换预览（dry-run，不写文件） */
+export async function previewAgentSwitch(
+  agent: string,
+  accountId: string,
+  model = ''
+): Promise<SwitchPreviewDto> {
+  const params = new URLSearchParams({ account_id: accountId, model });
+  const response = await authedFetch(
+    `${BASE_URL}/agents/${agent}/config-preview?${params.toString()}`,
+    { method: 'GET', headers: getAuthHeaders() }
+  );
+  return parseJson<SwitchPreviewDto>(response);
+}
+
+/** 执行切换（写本机配置，带首写备份） */
+export async function switchAgent(
+  agent: string,
+  accountId: string,
+  model = ''
+): Promise<{ ok: boolean; agent: string; providerName: string; written: string[] }> {
+  const params = new URLSearchParams({ account_id: accountId });
+  const response = await authedFetch(`${BASE_URL}/agents/${agent}/switch?${params.toString()}`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ model }),
+  });
+  return parseJson(response);
+}
+
+/** 恢复备份 */
+export async function restoreAgent(agent: string): Promise<{ ok: boolean; restored: string[] }> {
+  const response = await authedFetch(`${BASE_URL}/agents/${agent}/restore`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  return parseJson(response);
 }
 
 /** 测试单个账号（可传临时凭据） */

@@ -64,7 +64,8 @@ def memory_store(monkeypatch):
     """用内存字典替代表存储"""
     store: dict[str, accounts_mod.QuotaAccount] = {}
 
-    def _create(user_id, provider_id, *, label="", api_key=None, extra=None):
+    def _create(user_id, provider_id, *, label="", api_key=None, extra=None, **kwargs):
+        """假实现：接受与生产同签名的新字段（category/app/manual_* 等）"""
         import uuid
 
         account = accounts_mod.QuotaAccount(
@@ -75,6 +76,21 @@ def memory_store(monkeypatch):
             api_key=api_key,
             extra=dict(extra or {}),
             enabled=True,
+            **{
+                key: kwargs[key]
+                for key in (
+                    "category",
+                    "app",
+                    "notes",
+                    "website_url",
+                    "manual_total",
+                    "manual_used",
+                    "quota_unit",
+                    "window_type",
+                    "window_reset_at",
+                )
+                if key in kwargs
+            },
         )
         store[account.id] = account
         return account
@@ -96,14 +112,24 @@ def memory_store(monkeypatch):
         account = store.get(aid)
         if account is None:
             return None
-        if kwargs.get("label") is not None:
-            account.label = kwargs["label"]
-        if kwargs.get("api_key") is not None:
-            account.api_key = kwargs["api_key"]
-        if kwargs.get("extra") is not None:
-            account.extra = kwargs["extra"]
-        if kwargs.get("enabled") is not None:
-            account.enabled = kwargs["enabled"]
+        # 新字段（category/app/manual_* 等）与老字段一样，按关键字直接赋值
+        for field in (
+            "label",
+            "api_key",
+            "extra",
+            "enabled",
+            "category",
+            "app",
+            "notes",
+            "website_url",
+            "manual_total",
+            "manual_used",
+            "quota_unit",
+            "window_type",
+            "window_reset_at",
+        ):
+            if kwargs.get(field) is not None:
+                setattr(account, field, kwargs[field])
         return account
 
     def _delete(user_id, aid):
