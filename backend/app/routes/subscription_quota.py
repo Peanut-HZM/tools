@@ -384,6 +384,273 @@ async def import_from_ccswitch(
     }
 
 
+# ---------------------------------------------------------------- 从 magpie 同步
+
+
+class MagpieSyncRequest(BaseModel):
+    """从 magpie 同步已配置的供应商/账号"""
+
+    dry_run: bool = Field(default=False, description="只预览不写库")
+    overwrite: bool = Field(
+        default=False,
+        description="已存在时是否更新凭据字段（默认不覆盖，保护用户已有数据）",
+    )
+    include_accounts: bool = Field(
+        default=True,
+        description="是否同时同步订阅账号（需要 magpie CLI，较慢）",
+    )
+
+
+@router.get("/magpie/status")
+def magpie_status(authorization: Optional[str] = Header(None)):
+    """magpie 是否可用于同步（只读探测，不写任何文件）"""
+    _require_user(authorization)
+    from app.services.subscription_quota.magpie_sync import (
+        find_magpie_binary,
+        magpie_available,
+        providers_json_path,
+    )
+
+    path = providers_json_path()
+    return {
+        "available": magpie_available(),
+        "providersPath": str(path),
+        "providersFileExists": path.exists(),
+        "binary": find_magpie_binary() or "",
+    }
+
+
+@router.post("/import/magpie")
+async def import_from_magpie(
+    req: MagpieSyncRequest = MagpieSyncRequest(),
+    authorization: Optional[str] = Header(None),
+):
+    """从本机 magpie 同步已配置的供应商（+ 可选订阅账号）
+
+    ## 同步什么
+
+    * `~/.config/magpie/providers.json` 里的**每一个**供应商：
+      按 preset/id 映射到本工具的 provider_id；映射不到但有 base_url 的
+      归到「通用余额接口」；连 base_url 都没有的跳过并说明原因。
+    * `magpie accounts --json` 的订阅账号：按 agent 归到对应官方订阅
+      （claude / codex / gemini），plan 写进 label，窗口写进 last_good。
+
+    ## 安全约定
+
+    与 cc-switch 导入一致：**已存在的账号默认整条跳过**，绝不覆盖用户
+    在页面里改过的 label / 手工额度 / 启停状态。只有显式 ``overwrite=true``
+    才更新，且只更新凭据字段。
+    """
+    user_id = _require_user(authorization)
+
+    from app.services.subscription_quota.magpie_sync import (
+        load_accounts,
+        load_providers,
+    )
+    from app.services.subscription_quota.registry import get_spec
+
+    providers = load_providers()
+    accounts = load_accounts() if req.include_accounts else []
+
+    if not providers and not accounts:
+        return {
+            "imported": 0,
+            "created": 0,
+            "updated": 0,
+            "skipped": 0,
+            "dryRun": req.dry_run,
+            "items": [],
+            "skippedItems": [],
+            "message": "magpie 里没有可同步的供应商或账号（未安装 / 未配置）",
+        }
+
+    existing_by_provider: dict[str, list] = {}
+    for account in list_accounts(user_id):
+        existing_by_provider.setdefault(account.provider_id, []).append(account)
+
+    items: list[dict] = []
+    skipped_items: list[dict] = []
+    created = updated = skipped = 0
+
+    # ---- 1) 供应商 ----
+    for prov in providers:
+        pid = prov.provider_id
+        if pid is None:
+            skipped_items.append(
+                {
+                    "source": "magpie-provider",
+                    "name": prov.name,
+                    "preset": prov.preset or prov.id,
+                    "reason": "本工具没有对应的供应商类型（无可识别 preset）",
+                }
+            )
+            continue
+
+        spec = get_spec(pid)
+        if spec is None:
+            skipped_items.append(
+                {
+                    "source": "magpie-provider",
+                    "name": prov.name,
+                    "preset": prov.preset or prov.id,
+                    "reason": f"映射到的供应商 {pid} 未在注册表中",
+                }
+            )
+            continue
+
+        if not prov.key:
+            skipped_items.append(
+                {
+                    "source": "magpie-provider",
+                    "name": prov.name,
+                    "preset": prov.preset or prov.id,
+                    "reason": "magpie 里这条供应商没有 Key（可能是账号登录型）",
+                }
+            )
+            continue
+
+        extra: dict = {"api_key": prov.key, "source": "magpie"}
+        if prov.base_url:
+            extra["base_url"] = prov.base_url
+        if pid == "opendesign":
+            extra["control_key"] = prov.key
+
+        label = f"{prov.name}（magpie 同步）"
+        existing = existing_by_provider.get(pid) or []
+
+        if existing and not req.overwrite:
+            action = "skip"
+        elif existing:
+            action = "update"
+        else:
+            action = "create"
+
+        items.append(
+            {
+                "source": "magpie-provider",
+                "providerId": pid,
+                "sourceName": prov.name,
+                "preset": prov.preset or prov.id,
+                "maskedKey": prov.masked_key(),
+                "action": action,
+            }
+        )
+
+        if req.dry_run or action == "skip":
+            if action == "skip":
+                skipped += 1
+            continue
+
+        if action == "update":
+            update_account(user_id, existing[0].id, api_key=prov.key, extra=extra)
+            updated += 1
+        else:
+            create_account(
+                user_id,
+                pid,
+                label=label,
+                api_key=prov.key,
+                extra=extra,
+                category="aggregator" if pid in ("newapi", "sub2api", "generic_balance") else "official",
+                website_url=prov.website,
+            )
+            created += 1
+
+    # ---- 2) 订阅账号（magpie 的 accounts --json）----
+    # agent → 本工具 provider_id（只有官方订阅型）
+    agent_to_provider = {
+        "claude": "claude",
+        "codex": "codex",
+        "gemini": "gemini",
+    }
+    for acc in accounts:
+        pid = agent_to_provider.get(acc.agent.lower())
+        if pid is None:
+            skipped_items.append(
+                {
+                    "source": "magpie-account",
+                    "name": acc.alias or acc.user,
+                    "preset": acc.agent,
+                    "reason": f"agent {acc.agent} 不是本工具支持的官方订阅类型",
+                }
+            )
+            continue
+
+        label_parts = [acc.alias or acc.user or acc.agent]
+        if acc.plan:
+            label_parts.append(acc.plan)
+        label = " · ".join(part for part in label_parts if part)
+
+        existing = existing_by_provider.get(pid) or []
+        if existing and not req.overwrite:
+            skipped += 1
+            items.append(
+                {
+                    "source": "magpie-account",
+                    "providerId": pid,
+                    "sourceName": label,
+                    "preset": acc.agent,
+                    "maskedKey": "",
+                    "action": "skip",
+                }
+            )
+            continue
+
+        # magpie 的订阅账号靠本机登录凭据，不需要我们的 API Key；
+        # 把窗口信息存进 extra，供页面展示「最近一次已知额度」。
+        extra = {
+            "source": "magpie",
+            "agent": acc.agent,
+            "user": acc.user,
+            "plan": acc.plan,
+            "windows": acc.windows,
+            "balance": acc.balance,
+            "lapsed": acc.lapsed,
+        }
+
+        items.append(
+            {
+                "source": "magpie-account",
+                "providerId": pid,
+                "sourceName": label,
+                "preset": acc.agent,
+                "maskedKey": "",
+                "action": "update" if existing else "create",
+            }
+        )
+
+        if req.dry_run:
+            continue
+
+        if existing:
+            update_account(user_id, existing[0].id, extra=extra)
+            updated += 1
+        else:
+            create_account(user_id, pid, label=label, extra=extra, category="official")
+            created += 1
+
+    if not req.dry_run:
+        clear_cache()
+        logger.info(
+            "用户 %s 从 magpie 同步：新建 %d / 更新 %d / 跳过已存在 %d / 跳过不可映射 %d",
+            user_id,
+            created,
+            updated,
+            skipped,
+            len(skipped_items),
+        )
+
+    return {
+        "imported": 0 if req.dry_run else created + updated,
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "dryRun": req.dry_run,
+        "items": items,
+        "skippedItems": skipped_items,
+    }
+
+
 # ---------------------------------------------------------------- Agent 切换（合并 agent-hub）
 
 
@@ -493,18 +760,9 @@ def restore_agent(agent: str, authorization: Optional[str] = Header(None)):
     return {"ok": True, "restored": restored}
 
 
-@router.get("/usage")
-def get_usage(days: int = 30, authorization: Optional[str] = Header(None)):
-    """用量与成本（来自本机 cc-switch 的用量汇总）
-
-    与「额度」互补：额度看还剩多少，用量看已经花了多少。
-    """
-    _require_user(authorization)
-    from app.services.subscription_quota.usage_import import read_usage
-
-    clamped = max(1, min(365, days))
-    summary = read_usage(clamped)
-    return summary.to_dict()
+# 注：「用量成本」接口已下线。Token 用量统计有专门的「Token 消耗统计」工具，
+# 本工具只负责订阅套餐额度与 Agent 配置切换。
+# usage_import 模块仍保留：它的 ccswitch_db_path() 被 cc-switch 导入复用。
 
 
 @router.get("/subscriptions")

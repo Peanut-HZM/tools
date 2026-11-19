@@ -204,18 +204,6 @@ TOOLS_DATA = [
         category="开发工具",
     ),
     Tool(
-        id="subscription-quota",
-        icon="fa-gauge-high",
-        iconColor="bg-emerald-600",
-        title="订阅套餐额度",
-        description="读取本机各 CLI 的官方登录凭据，查询 Claude / Codex / Gemini / Kimi / MiniMax / 智谱 的套餐剩余额度",
-        rating=5.0,
-        usageCount="New",
-        category="开发工具",
-        require_login=True,
-        show_mobile=False,
-    ),
-    Tool(
         id="k8s-tool",
         icon="fa-dharmachakra",
         iconColor="bg-blue-600",
@@ -259,6 +247,18 @@ TOOLS_DATA = [
         sort_order=6,
         show_pc=False,  # 多人游戏仅小程序端提供
         require_login=True,  # 联机对战需要账号
+    ),
+    Tool(
+        id="agent-hub",
+        icon="fa-random",
+        iconColor="bg-indigo-500",
+        title="Agent 订阅中心",
+        description="管理各 Agent CLI 的供应商与订阅套餐：一键切换、套餐额度用量显示（含 OpenDesign 等）、额度手动调整",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具",
+        sort_order=1,
+        require_login=True,  # 读写本机 agent 配置/订阅数据需要账号
     ),
 ]
 

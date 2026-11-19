@@ -32,6 +32,34 @@ function generateTabId(): string {
   return `tab-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 }
 
+/**
+ * 已下线工具 → 替代入口
+ *
+ * 「订阅套餐额度」(`subscription-quota`) 的全部能力已并入「Agent 订阅中心」
+ * (`agent-hub`)。用户本地 localStorage 里可能还留着旧标签页，
+ * 这里统一改写成新入口，避免出现「未知工具」。
+ */
+const RETIRED_TOOL_ALIASES: Record<string, { id: string; name: string }> = {
+  'subscription-quota': { id: 'agent-hub', name: 'Agent 订阅中心' },
+};
+
+/** 把持久化恢复出来的旧标签页迁移到当前工具 id */
+function migrateRetiredTabs(tabs: WorkspaceTab[]): WorkspaceTab[] {
+  const seen = new Set<string>();
+  const out: WorkspaceTab[] = [];
+  for (const tab of tabs) {
+    const alias = RETIRED_TOOL_ALIASES[tab.toolId];
+    const next = alias ? { ...tab, toolId: alias.id, toolName: alias.name } : tab;
+    // 迁移后可能与已有标签重复（旧+新并存），只保留第一个
+    if (seen.has(next.toolId)) {
+      continue;
+    }
+    seen.add(next.toolId);
+    out.push(next);
+  }
+  return out;
+}
+
 /** 上报一次工具使用（fire-and-forget，失败静默，不阻塞交互） */
 function trackToolUsage(toolId: string, toolName: string): void {
   recordToolVisit(toolId, toolName).catch(() => {});
@@ -124,6 +152,21 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         activeTabId: state.activeTabId,
         isToolSidebarVisible: state.isToolSidebarVisible,
       }),
+      // 旧版本持久化的标签页在这里迁移（已下线工具 → 新入口）
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<WorkspaceState> | undefined;
+        if (!saved || !Array.isArray(saved.tabs)) {
+          return current;
+        }
+        const tabs = migrateRetiredTabs(saved.tabs);
+        const stillActive = tabs.some((t) => t.id === saved.activeTabId);
+        return {
+          ...current,
+          ...saved,
+          tabs,
+          activeTabId: stillActive ? (saved.activeTabId as string) : (tabs[0]?.id ?? null),
+        };
+      },
     }
   )
 );

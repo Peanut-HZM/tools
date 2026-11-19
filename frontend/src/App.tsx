@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import Header from './components/Header/Header'; // Keep import for types if needed, but remove usage
 import Hero from './components/Hero/Hero';
 import Layout from './components/Layout/Layout';
@@ -63,7 +63,6 @@ const ProductManagerAgent = lazy(() => import('./components/Tools/ProductManager
 const LearningSharePlatform = lazy(() => import('./components/Tools/LearningSharePlatform'));
 const HttpApiClient = lazy(() => import('./components/Tools/HttpApiClient/HttpApiClient'));
 const SystemMonitor = lazy(() => import('./components/Tools/SystemMonitor'));
-const AgentHub = lazy(() => import('./components/Tools/AgentHub'));
 const TokenUsage = lazy(() => import('./components/Tools/TokenUsage'));
 const SubscriptionQuotaTool = lazy(() => import('./components/Tools/SubscriptionQuota'));
 const K8sTool = lazy(() => import('./components/Tools/K8sTool/K8sTool'));
@@ -367,10 +366,13 @@ function App() {
                     <Route path="cross-share" element={<CrossShareMain />} />
                     <Route path="http-api-client" element={<HttpApiClient />} />
                     <Route path="system-monitor" element={<SystemMonitor />} />
-                    {/* 合并后：两个工具 id 都渲染同一个统一页面 */}
+                    {/* 「订阅套餐额度」已并入「Agent 订阅中心」，旧路由重定向保留兼容 */}
                     <Route path="agent-hub" element={<SubscriptionQuotaTool />} />
                     <Route path="token-usage" element={<TokenUsage />} />
-                    <Route path="subscription-quota" element={<SubscriptionQuotaTool />} />
+                    <Route
+                      path="subscription-quota"
+                      element={<Navigate to="/tools/agent-hub" replace />}
+                    />
                     <Route path="k8s-tool" element={<ErrorBoundary><K8sTool /></ErrorBoundary>} />
                   </Routes>
                 </Suspense>

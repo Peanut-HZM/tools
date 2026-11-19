@@ -165,29 +165,6 @@ export interface ImportResponse {
   items: ImportedProviderDto[];
 }
 
-export interface UsageBucketDto {
-  key: string;
-  requests: number;
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens: number;
-  cacheCreationTokens: number;
-  totalTokens: number;
-  costUsd: number;
-}
-
-export interface UsageSummaryDto {
-  available: boolean;
-  message: string | null;
-  days: number;
-  dateFrom: string | null;
-  dateTo: string | null;
-  totals: UsageBucketDto;
-  byDay: UsageBucketDto[];
-  byProvider: UsageBucketDto[];
-  byModel: UsageBucketDto[];
-}
-
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
@@ -318,13 +295,60 @@ export async function importFromCcSwitch(dryRun = false): Promise<ImportResponse
   return parseJson<ImportResponse>(response);
 }
 
-/** 用量与成本（来自本机 cc-switch） */
-export async function getUsage(days = 30): Promise<UsageSummaryDto> {
-  const response = await authedFetch(`${BASE_URL}/usage?days=${days}`, {
+export interface MagpieSyncItemDto {
+  source: string;
+  providerId: string;
+  sourceName: string;
+  preset: string;
+  maskedKey: string;
+  action: string;
+}
+
+export interface MagpieSkippedItemDto {
+  source: string;
+  name: string;
+  preset: string;
+  reason: string;
+}
+
+export interface MagpieSyncResponse {
+  imported: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  dryRun: boolean;
+  items: MagpieSyncItemDto[];
+  skippedItems: MagpieSkippedItemDto[];
+  message?: string;
+}
+
+export interface MagpieStatusDto {
+  available: boolean;
+  providersPath: string;
+  providersFileExists: boolean;
+  binary: string;
+}
+
+/** magpie 是否可用于同步 */
+export async function getMagpieStatus(): Promise<MagpieStatusDto> {
+  const response = await authedFetch(`${BASE_URL}/magpie/status`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
-  return parseJson<UsageSummaryDto>(response);
+  return parseJson<MagpieStatusDto>(response);
+}
+
+/** 从本机 magpie 同步已配置的供应商与订阅账号 */
+export async function importFromMagpie(
+  dryRun = false,
+  includeAccounts = true
+): Promise<MagpieSyncResponse> {
+  const response = await authedFetch(`${BASE_URL}/import/magpie`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ dry_run: dryRun, include_accounts: includeAccounts }),
+  });
+  return parseJson<MagpieSyncResponse>(response);
 }
 
 /** 手动额度调整（合并 agent-hub：额度支持手动增加） */

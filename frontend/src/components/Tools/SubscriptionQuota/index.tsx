@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowRightLeft, CheckCircle2, Clock, Download, Gauge, LayoutDashboard,
-  Package, Pencil, Plus, RefreshCw, Server, Settings2, Trash2, TrendingUp, X,
+  Package, Pencil, Plus, RefreshCw, Server, Settings2, Trash2, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -13,14 +13,12 @@ import type {
   QuotaResultDto,
   QuotaTierDto,
   SubscriptionStatusDto,
-  UsageSummaryDto,
 } from '../../../api/subscriptionQuotaApi';
 import {
   countdownStr, credentialStatusText, formatAmount, isBalanceTier, kindLabel,
   needsHint, pickTiers, providerInitials, relativeTime, remainingPercent,
   sortTiers, tierLabel, toneForBalance, toneForRemaining,
 } from './quotaRules';
-import { UsagePanel } from './UsagePanel';
 import { GatewayPanel } from './GatewayPanel';
 import { AgentSwitchPanel } from './AgentSwitchPanel';
 
@@ -30,14 +28,13 @@ const TONE_STYLES = {
   danger: { text: 'text-accent-danger', bar: 'bg-accent-danger' },
 } as const;
 
-type TabKey = 'overview' | 'quota' | 'providers' | 'agents' | 'usage' | 'gateway';
+type TabKey = 'overview' | 'quota' | 'providers' | 'agents' | 'gateway';
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'overview', label: '概览', icon: LayoutDashboard },
   { key: 'quota', label: '套餐额度', icon: Gauge },
   { key: 'providers', label: '供应商', icon: Package },
   { key: 'agents', label: 'Agent 切换', icon: ArrowRightLeft },
-  { key: 'usage', label: '用量成本', icon: TrendingUp },
   { key: 'gateway', label: '本地网关', icon: Server },
 ];
 
@@ -872,9 +869,6 @@ export default function SubscriptionQuotaTool() {
   const [showAdd, setShowAdd] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
-  const [usage, setUsage] = useState<UsageSummaryDto | null>(null);
-  const [usageDays, setUsageDays] = useState(30);
-  const [usageLoading, setUsageLoading] = useState(false);
   const [adjusting, setAdjusting] = useState<QuotaAccountDto | null>(null);
   const [editingAccount, setEditingAccount] = useState<QuotaAccountDto | null>(null);
   const mountedRef = useRef(true);
@@ -919,26 +913,6 @@ export default function SubscriptionQuotaTool() {
       mountedRef.current = false;
     };
   }, [loadAll]);
-
-  // 用量与成本（来自 cc-switch）
-  useEffect(() => {
-    let cancelled = false;
-    setUsageLoading(true);
-    quotaApi
-      .getUsage(usageDays)
-      .then((data) => {
-        if (!cancelled) setUsage(data);
-      })
-      .catch(() => {
-        if (!cancelled) setUsage(null);
-      })
-      .finally(() => {
-        if (!cancelled) setUsageLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [usageDays]);
 
   const handleRefreshOne = useCallback(async (quota: QuotaResultDto) => {
     if (!quota.accountId) {
@@ -994,7 +968,7 @@ export default function SubscriptionQuotaTool() {
     }
   }, [loadAll]);
 
-  const handleImport = useCallback(async () => {
+  const handleCcSwitchImport = useCallback(async () => {
     setImporting(true);
     setError(null);
     setImportResult(null);
@@ -1012,7 +986,7 @@ export default function SubscriptionQuotaTool() {
       } else {
         const control = result.items.filter((i) => i.fromControlKey).map((i) => i.providerId);
         setImportResult(
-          `已导入 ${result.imported} 个供应商（新建 ${result.created} / 更新 ${result.updated}）` +
+          `已从 cc-switch 同步 ${result.imported} 个供应商（新建 ${result.created} / 更新 ${result.updated}）` +
             (result.skipped > 0 ? `，已存在跳过 ${result.skipped} 个` : '') +
             (control.length > 0 ? `，其中控制面 Key：${control.join('、')}` : '')
         );
@@ -1020,7 +994,41 @@ export default function SubscriptionQuotaTool() {
       await loadAll(true);
     } catch (err) {
       if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : '导入失败');
+        setError(err instanceof Error ? err.message : '从 cc-switch 同步失败');
+      }
+    } finally {
+      if (mountedRef.current) setImporting(false);
+    }
+  }, [loadAll]);
+
+  const handleMagpieImport = useCallback(async () => {
+    setImporting(true);
+    setError(null);
+    setImportResult(null);
+    try {
+      const result = await quotaApi.importFromMagpie(false, true);
+      if (!mountedRef.current) return;
+      if (result.message) {
+        setImportResult(result.message);
+      } else if (result.imported === 0 && result.skipped === 0) {
+        setImportResult('magpie 里没有可同步的供应商或账号');
+      } else {
+        const parts = [
+          `已从 magpie 同步 ${result.imported} 项（新建 ${result.created} / 更新 ${result.updated}）`,
+        ];
+        if (result.skipped > 0) parts.push(`已存在跳过 ${result.skipped} 项`);
+        if (result.skippedItems.length > 0) {
+          const reasons = Array.from(
+            new Set(result.skippedItems.map((i) => i.reason))
+          ).slice(0, 3);
+          parts.push(`另有 ${result.skippedItems.length} 项无法映射：${reasons.join('；')}`);
+        }
+        setImportResult(parts.join('；'));
+      }
+      await loadAll(true);
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : '从 magpie 同步失败');
       }
     } finally {
       if (mountedRef.current) setImporting(false);
@@ -1115,18 +1123,11 @@ export default function SubscriptionQuotaTool() {
       {/* ---------- Tab: 概览 ---------- */}
       {activeTab === 'overview' && (
         <>
-          <UsagePanel
-            usage={usage}
-            loading={usageLoading}
-            days={usageDays}
-            onDaysChange={setUsageDays}
-          />
-
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
             <div className="min-w-0">
               <h2 className="text-base font-semibold text-ink sm:text-lg">Agent 订阅中心</h2>
               <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-                供应商 / 套餐额度 / 用量成本 / Agent 切换 / 本地网关，都在这里。
+                套餐额度 / 供应商 / Agent 切换 / 本地网关，都在这里。
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1140,14 +1141,29 @@ export default function SubscriptionQuotaTool() {
               </button>
               <button
                 type="button"
-                onClick={() => void handleImport()}
+                onClick={() => void handleCcSwitchImport()}
                 disabled={importing}
                 title="从本机 cc-switch 自动导入已配置的供应商（含 OpenDesign 控制面 Key）"
                 className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
               >
                 <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
-                <span className="hidden sm:inline">{importing ? '导入中…' : '从 cc-switch 导入'}</span>
-                <span className="sm:hidden">{importing ? '导入中…' : '导入'}</span>
+                <span className="hidden sm:inline">
+                  {importing ? '同步中…' : '从 cc-switch 同步'}
+                </span>
+                <span className="sm:hidden">{importing ? '同步中…' : 'cc-switch'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleMagpieImport()}
+                disabled={importing}
+                title="从本机 magpie 同步已配置的供应商与订阅账号"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
+              >
+                <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
+                <span className="hidden sm:inline">
+                  {importing ? '同步中…' : '从 magpie 同步'}
+                </span>
+                <span className="sm:hidden">{importing ? '同步中…' : 'magpie'}</span>
               </button>
               <button
                 type="button"
@@ -1191,6 +1207,19 @@ export default function SubscriptionQuotaTool() {
               </div>
             </div>
           )}
+
+          {/* 套餐额度：概览首屏置顶（用户明确要求） */}
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+              <Gauge className="h-4 w-4" aria-hidden />
+              套餐额度
+            </h3>
+            {queriedAt && hasAnything && (
+              <span className="text-xs text-ink-faint">
+                共 {results.length} 项，成功 {successCount} 项
+              </span>
+            )}
+          </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-16 text-ink-muted">
@@ -1274,12 +1303,21 @@ export default function SubscriptionQuotaTool() {
               </button>
               <button
                 type="button"
-                onClick={() => void handleImport()}
+                onClick={() => void handleCcSwitchImport()}
                 disabled={importing}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
               >
                 <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
-                {importing ? '导入中…' : 'cc-switch 导入'}
+                {importing ? '同步中…' : 'cc-switch 同步'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleMagpieImport()}
+                disabled={importing}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
+              >
+                <Download className={`h-4 w-4 ${importing ? 'animate-pulse' : ''}`} aria-hidden />
+                {importing ? '同步中…' : 'magpie 同步'}
               </button>
             </div>
           </div>
@@ -1363,16 +1401,6 @@ export default function SubscriptionQuotaTool() {
 
       {/* ---------- Tab: Agent 切换 ---------- */}
       {activeTab === 'agents' && <AgentSwitchPanel accounts={accounts} />}
-
-      {/* ---------- Tab: 用量成本 ---------- */}
-      {activeTab === 'usage' && (
-        <UsagePanel
-          usage={usage}
-          loading={usageLoading}
-          days={usageDays}
-          onDaysChange={setUsageDays}
-        />
-      )}
 
       {/* ---------- Tab: 本地网关 ---------- */}
       {activeTab === 'gateway' && <GatewayPanel />}

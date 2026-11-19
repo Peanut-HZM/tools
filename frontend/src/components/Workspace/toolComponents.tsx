@@ -48,11 +48,12 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'cross-share': CrossShareMain,
   'http-api-client': HttpApiClient,
   'system-monitor': SystemMonitor,
-  // 合并后：agent-hub 与 subscription-quota 两个入口共用同一个统一页面
-  // （原 AgentHub 组件保留在仓库中作为回滚保障，不再挂到路由上）
+  // 合并后：agent-hub 是唯一入口
   'agent-hub': SubscriptionQuotaTool,
-  'token-usage': TokenUsage,
+  // 「订阅套餐额度」工具已下线，但用户本地可能还留着旧标签页（store 持久化）：
+  // 旧 id 直接映射到合并后的统一页面，避免出现「未知工具」报错。
   'subscription-quota': SubscriptionQuotaTool,
+  'token-usage': TokenUsage,
   'image-downloader': ImageDownloader,
   'video-downloader': VideoDownloader,
   'image-generation': ImageGenerationTool,
