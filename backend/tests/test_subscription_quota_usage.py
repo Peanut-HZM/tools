@@ -130,3 +130,89 @@ def test_usage_summary_to_dict_shape(patched_db):
         "key", "requests", "inputTokens", "outputTokens", "cacheReadTokens",
         "cacheCreationTokens", "totalTokens", "costUsd",
     }
+
+
+def test_ccswitch_db_path_uses_real_home_not_overridden_home(tmp_path, monkeypatch):
+    """回归：必须基于 REAL_HOME 解析，不能用被 config.py 覆盖后的 HOME。
+
+    真实缺陷（2026-11-19）：``app.config.config`` 在非桌面模式把 ``HOME``
+    改写为 ``backend/data/cache``，原实现用 ``Path.home()`` 解析，于是
+    ``~/.cc-switch/cc-switch.db`` 被解析到缓存目录，本机明明装了 cc-switch，
+    页面却报「未找到 cc-switch 数据库」。
+    """
+    fake_real_home = tmp_path / "real-home"
+    fake_cache_home = tmp_path / "cache"
+    fake_real_home.mkdir()
+    fake_cache_home.mkdir()
+
+    # 模拟 config.py 覆盖 HOME：进程内 HOME 指向缓存目录
+    monkeypatch.setenv("HOME", str(fake_cache_home))
+    monkeypatch.delenv("CCSWITCH_DB", raising=False)
+
+    # 让 REAL_HOME 指向真实家目录（真实实现是模块级常量）
+    import app.services.subscription_quota.credentials as credentials
+
+    monkeypatch.setattr(credentials, "real_home", lambda: fake_real_home)
+
+    resolved = usage_import.ccswitch_db_path()
+
+    assert resolved == fake_real_home / ".cc-switch" / "cc-switch.db"
+    # 关键断言：绝不能落到被覆盖的 HOME（缓存目录）下
+    assert str(fake_cache_home) not in str(resolved)
+
+
+def test_ccswitch_db_path_env_override_wins(monkeypatch, tmp_path):
+    """CCSWITCH_DB 显式指定时优先级最高（便于测试和自定义安装位置）。"""
+    custom = tmp_path / "custom" / "cc-switch.db"
+    monkeypatch.setenv("CCSWITCH_DB", str(custom))
+    assert usage_import.ccswitch_db_path() == custom
+
+
+# ---------------------------------------------------------------- 存储位置（本机 / 远程）
+
+
+def test_storage_defaults_to_local(monkeypatch):
+    """默认必须存本机：订阅额度数据是每台设备各不相同的本机状态"""
+    monkeypatch.delenv("QUOTA_STORAGE", raising=False)
+    assert usage_import is not None  # 保持 import 使用痕迹
+    from app.services.subscription_quota import accounts
+
+    assert accounts._storage_location() == "local"
+    assert accounts._use_local() is True
+
+
+def test_storage_can_be_switched_to_server(monkeypatch):
+    """显式 QUOTA_STORAGE=server 时走远程主库（多端共享场景）"""
+    monkeypatch.setenv("QUOTA_STORAGE", "server")
+    from app.services.subscription_quota import accounts
+
+    assert accounts._storage_location() == "server"
+    assert accounts._use_local() is False
+
+
+def test_local_storage_engine_is_local_sqlite(monkeypatch, tmp_path):
+    """本地模式的 engine 必须指向 ~/.toolbox/toolbox.db，绝不能是远程主库"""
+    monkeypatch.delenv("QUOTA_STORAGE", raising=False)
+    from app.services.subscription_quota import accounts
+
+    engine = accounts._get_engine()
+    url = str(engine.url)
+    assert url.startswith("sqlite:///"), f"本地模式应是 SQLite，实际 {url}"
+    assert ".toolbox" in url
+
+
+def test_local_storage_encrypts_with_local_key(monkeypatch):
+    """本地模式的密文必须用本机文件密钥（不能依赖远程主库的主密钥）"""
+    monkeypatch.delenv("QUOTA_STORAGE", raising=False)
+    from app.services.subscription_quota import accounts
+    from app.storage.crypto import LocalEncryption
+
+    plain = "sk-local-secret-key-for-test"
+    cipher = accounts._encrypt_key(plain)
+
+    # 能被本机密钥解开
+    assert LocalEncryption.decrypt(cipher) == plain
+    # 且密文形态不是 AES-GCM 的 v1: 前缀（那是远程主密钥的格式）
+    assert not cipher.startswith("v1:")
+    # 往返一致
+    assert accounts._decrypt_key(cipher) == plain

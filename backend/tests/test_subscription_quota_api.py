@@ -380,3 +380,216 @@ def test_query_failure_keeps_error_not_fake_data(fake_user, memory_store, monkey
     assert quota["success"] is False
     assert quota["tiers"] == []
     assert "401" in quota["error"]
+
+
+# ---------------------------------------------------------------- cc-switch 导入（非破坏性）
+
+
+@pytest.fixture
+def fake_ccswitch(monkeypatch):
+    """把 cc-switch 候选与数据库路径打桩，避免依赖本机 cc-switch 安装"""
+    from app.routes import subscription_quota as route_module
+    from app.services.subscription_quota import usage_import
+
+    # 伪造一个存在的 db 文件路径（只用于通过 exists() 检查，内容不会被读）
+    fake_db = __import__("pathlib").Path("/tmp/zztest-cc-switch.db")
+    monkeypatch.setattr(usage_import, "ccswitch_db_path", lambda: fake_db)
+    monkeypatch.setattr(
+        __import__("pathlib").Path, "exists", lambda self: True, raising=False
+    )
+
+    import sys as _sys
+
+    sys_mod = __import__("sys")
+    fake_module = type(sys_mod)("scripts.import_ccswitch_providers")
+
+    def _load_candidates(_db):
+        return [
+            {
+                "provider_id": "zhipu",
+                "source_app": "claude",
+                "source_name": "Zhipu GLM",
+                "api_key": "sk-ccswitch-zhipu-key-0001",
+                "region": "cn",
+                "base_url": "",
+                "from_control_key": False,
+            },
+            {
+                "provider_id": "newprov",
+                "source_app": "codex",
+                "source_name": "New Provider",
+                "api_key": "sk-ccswitch-new-key-0002",
+                "region": "",
+                "base_url": "https://new.example.com",
+                "from_control_key": False,
+            },
+        ]
+
+    fake_module.load_candidates = _load_candidates
+    monkeypatch.setitem(sys_mod.modules, "scripts.import_ccswitch_providers", fake_module)
+    monkeypatch.setattr(route_module, "clear_cache", lambda: None)
+
+    # 探测会真实联网查额度 —— 测试里必须打桩，否则依赖外网且结果不稳定。
+    # 默认「全部可用」，各用例可按需覆盖成不可用。
+    from app.services.subscription_quota import credential_probe
+
+    async def _pick_all_working(candidates):
+        for candidate in candidates:
+            if candidate.get("from_control_key"):
+                return candidate
+        return candidates[0] if candidates else None
+
+    monkeypatch.setattr(credential_probe, "pick_working_candidate", _pick_all_working)
+    return route_module
+
+
+AUTH = {"Authorization": "Bearer zztest"}
+
+
+def test_ccswitch_import_does_not_overwrite_existing(fake_user, memory_store, fake_ccswitch):
+    """核心回归：已存在的账号不能被 cc-switch 导入覆盖
+
+    真实缺陷：导入逻辑对同 provider 的账号无条件 update，
+    把用户在页面里改过的 Key / 显示名 / 手工额度全部冲掉。
+    """
+    # 用户已有 zhipu 账号，且手工改过 label 与额度
+    accounts_mod.create_account(
+        fake_user, "zhipu", label="我自己改的名字", api_key="sk-user-manual-key-9999"
+    )
+    existing = accounts_mod.list_accounts(fake_user)[0]
+    accounts_mod.update_account(
+        fake_user, existing.id, manual_total=500.0, manual_used=123.0, notes="手工备注"
+    )
+
+    resp = client.post("/api/subscription-quota/import/cc-switch", json={}, headers=AUTH)
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # zhipu 应被跳过；newprov 应被新建
+    assert body["skipped"] == 1
+    assert body["created"] == 1
+    assert body["updated"] == 0
+
+    after = {a.provider_id: a for a in accounts_mod.list_accounts(fake_user)}
+    zhipu = after["zhipu"]
+    # 关键断言：用户数据一个都不能变
+    assert zhipu.label == "我自己改的名字"
+    assert zhipu.api_key == "sk-user-manual-key-9999"
+    assert zhipu.manual_total == 500.0
+    assert zhipu.manual_used == 123.0
+    assert zhipu.notes == "手工备注"
+    # 新供应商正常导入
+    assert "newprov" in after
+
+
+def test_ccswitch_import_overwrite_flag_only_touches_credentials(
+    fake_user, memory_store, fake_ccswitch
+):
+    """显式 overwrite 时只更新凭据，用户手工维护的字段仍保留"""
+    accounts_mod.create_account(
+        fake_user, "zhipu", label="我改的名字", api_key="sk-old-key-0000"
+    )
+    existing = accounts_mod.list_accounts(fake_user)[0]
+    accounts_mod.update_account(
+        fake_user, existing.id, manual_total=800.0, notes="别动我"
+    )
+
+    resp = client.post(
+        "/api/subscription-quota/import/cc-switch",
+        json={"overwrite": True},
+        headers=AUTH,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["updated"] == 1
+
+    zhipu = {a.provider_id: a for a in accounts_mod.list_accounts(fake_user)}["zhipu"]
+    # 凭据被更新
+    assert zhipu.api_key == "sk-ccswitch-zhipu-key-0001"
+    # 用户手工维护的字段保持不变
+    assert zhipu.label == "我改的名字"
+    assert zhipu.manual_total == 800.0
+    assert zhipu.notes == "别动我"
+
+
+def test_ccswitch_import_dry_run_writes_nothing(fake_user, memory_store, fake_ccswitch):
+    resp = client.post(
+        "/api/subscription-quota/import/cc-switch", json={"dry_run": True}, headers=AUTH
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["dryRun"] is True
+    assert body["imported"] == 0
+    assert accounts_mod.list_accounts(fake_user) == []
+
+
+def test_ccswitch_import_probes_and_skips_unusable_keys(
+    fake_user, memory_store, fake_ccswitch, monkeypatch
+):
+    """回归：候选 Key 不可用时不得导入
+
+    真实缺陷：cc-switch 里同一供应商常有多条配置（给不同 CLI 各配一份），
+    盲目取第一条会把失效 Key 导进来 —— 卡片永远显示
+    「认证失败（HTTP 401）」/「当前用户不存在coding plan」。
+    现在改为探测后只导入可用的那条。
+    """
+    from app.services.subscription_quota import credential_probe
+
+    async def _none_works(candidates):
+        # 模拟：该供应商的所有候选 Key 都失效（例如 cc-switch 里只剩过期 Key）
+        return None
+
+    monkeypatch.setattr(credential_probe, "pick_working_candidate", _none_works)
+
+    resp = client.post("/api/subscription-quota/import/cc-switch", json={}, headers=AUTH)
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # 全部候选不可用 → 一条都不写入，并给出原因
+    assert body["created"] == 0
+    assert {s["providerId"] for s in body["probeSkipped"]} == {"zhipu", "newprov"}
+    assert accounts_mod.list_accounts(fake_user) == []
+
+
+def test_ccswitch_import_reports_probe_skipped_reason(
+    fake_user, memory_store, fake_ccswitch, monkeypatch
+):
+    """所有候选都不可用时要给出明确原因，不能静默消失"""
+    from app.services.subscription_quota import credential_probe
+
+    async def _none_works(candidates):
+        return None
+
+    monkeypatch.setattr(credential_probe, "pick_working_candidate", _none_works)
+
+    resp = client.post("/api/subscription-quota/import/cc-switch", json={}, headers=AUTH)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["imported"] == 0
+    assert body["probeSkipped"], "必须返回探测失败原因"
+    reasons = {s["providerId"]: s["reason"] for s in body["probeSkipped"]}
+    assert "zhipu" in reasons and "不可用" in reasons["zhipu"]
+
+
+def test_edit_account_syncs_extra_api_key(fake_user, memory_store):
+    """回归：编辑 Key 必须同步 extra.api_key
+
+    真实缺陷：查询实现读的是 `extra.api_key or api_key`，只改 api_key 字段时
+    extra 里的旧值优先级更高，导致「页面显示新 Key、查询仍用旧 Key」。
+    """
+    account = accounts_mod.create_account(
+        fake_user, "zhipu", label="测试", api_key="sk-old-key-0000"
+    )
+
+    resp = client.put(
+        f"/api/subscription-quota/accounts/{account.id}",
+        json={"api_key": "sk-new-key-1111"},
+        headers=AUTH,
+    )
+    assert resp.status_code == 200
+
+    saved = accounts_mod.get_account(fake_user, account.id)
+    assert saved is not None
+    assert saved.api_key == "sk-new-key-1111"
+    # 关键断言：extra 里的副本必须同步，否则查询会用旧 Key
+    assert saved.extra.get("api_key") == "sk-new-key-1111"

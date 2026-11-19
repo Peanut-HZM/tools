@@ -151,13 +151,16 @@ export interface ImportedProviderDto {
   /** 是否来自 cc-switch 的控制面 Key（OpenDesign 必须用这个） */
   fromControlKey: boolean;
   maskedKey: string;
-  action: 'create' | 'update';
+  /** skip = 已存在（默认不覆盖，保留用户已有数据） */
+  action: 'create' | 'update' | 'skip';
 }
 
 export interface ImportResponse {
   imported: number;
   created: number;
   updated: number;
+  /** 已存在而跳过的数量（默认不覆盖用户已有数据） */
+  skipped: number;
   dryRun: boolean;
   items: ImportedProviderDto[];
 }

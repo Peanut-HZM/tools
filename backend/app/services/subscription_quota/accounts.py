@@ -1,14 +1,23 @@
 """订阅额度账号存储（用户自助添加供应商 + API Key）
 
-* API Key 用 AES-256-GCM 加密入库（复用 app.core.security）
+* API Key 加密入库（本机库用本机文件密钥，远程库用服务器主密钥）
 * 所有读取接口只返回掩码，明文仅在服务端内存中短暂存在
 * 表自动创建（与项目既有服务一致：首次访问时 CREATE TABLE IF NOT EXISTS）
+
+## 存储位置：默认本机，不外泄到远程库
+
+订阅额度数据（供应商、API Key、切换指针）是**每台设备各不相同**的本机状态：
+同一账号在办公机和家里电脑登录的 CLI、配置的供应商、看到的余额都不一样。
+因此默认存本机 SQLite（``~/.toolbox/toolbox.db``），与 k8s/ssh/redis/db 配置
+的「本机 / 服务器」双层模型保持一致；也可用 ``QUOTA_STORAGE=server`` 切回
+远程主库（多端共享场景）。
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -16,12 +25,60 @@ from typing import Any, Optional
 
 from sqlalchemy import text
 
-from app.core.security import decrypt_api_key, encrypt_api_key
 from app.models.base import engine
+from app.storage.crypto import LocalEncryption
+from app.storage.local_db import get_local_engine, init_local_tables
 
 logger = logging.getLogger(__name__)
 
 TABLE_NAME = "subscription_quota_accounts"
+
+#: 存储位置开关：local（默认，本机 SQLite）| server（远程主库）
+STORAGE_ENV = "QUOTA_STORAGE"
+
+
+def _storage_location() -> str:
+    """当前订阅额度数据的存储位置。
+
+    默认 ``local``：这类数据是「本机状态」，不同设备的供应商/凭据/余额都不同，
+    存到远程库会互相覆盖。显式设 ``QUOTA_STORAGE=server`` 才走远程主库。
+    """
+    return (os.environ.get(STORAGE_ENV) or "local").strip().lower()
+
+
+def _use_local() -> bool:
+    return _storage_location() != "server"
+
+
+def _get_engine():
+    """按存储位置返回 engine。
+
+    本地模式走 ``~/.toolbox/toolbox.db``（延迟创建），
+    远程模式走 ``app.models.base.engine``（主应用库）。
+    """
+    if _use_local():
+        local_engine = get_local_engine()
+        init_local_tables(local_engine)
+        return local_engine
+    return engine
+
+
+def _encrypt_key(plain: str) -> str:
+    """按存储位置加密 API Key（两侧密钥物理隔离）"""
+    if _use_local():
+        return LocalEncryption.encrypt(plain)
+    from app.core.security import encrypt_api_key
+
+    return encrypt_api_key(plain)
+
+
+def _decrypt_key(cipher: str) -> str:
+    """按存储位置解密 API Key"""
+    if _use_local():
+        return LocalEncryption.decrypt(cipher)
+    from app.core.security import decrypt_api_key
+
+    return decrypt_api_key(cipher)
 
 _CREATE_SQL = f"""
 CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
@@ -48,8 +105,7 @@ _EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("website_url", "VARCHAR(500) NOT NULL DEFAULT ''"),
     # manual 模式的额度（支持手动增加）
     ("manual_total", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
-    ("manual_used", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
-    ("quota_unit", "VARCHAR(20) NOT NULL DEFAULT 'credits'"),
+    ("manual_used", "DOUBLE PRECISION NOT NULL DEFAULT 0"),    ("quota_unit", "VARCHAR(20) NOT NULL DEFAULT 'credits'"),
     ("window_type", "VARCHAR(20) NOT NULL DEFAULT 'none'"),
     ("window_reset_at", "VARCHAR(40) NOT NULL DEFAULT ''"),
     # keep-last-good：最近一次成功查询结果（失败时前端显示上次数据）
@@ -60,26 +116,40 @@ _INDEX_SQL = (
     f"CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_user ON {TABLE_NAME} (user_id, sort_order)"
 )
 
-_schema_ready = False
+_schema_ready_by_location: set[str] = set()
+
+
+def _sqlite_columns(conn) -> set[str]:
+    """读取 SQLite 表现有列名（SQLite 不支持 ADD COLUMN IF NOT EXISTS）"""
+    rows = conn.execute(text(f"PRAGMA table_info({TABLE_NAME})")).fetchall()
+    return {row[1] for row in rows}
 
 
 def ensure_schema() -> None:
-    """幂等建表 + 幂等补列（进程内只做一次）。"""
-    global _schema_ready
-    if _schema_ready:
+    """幂等建表 + 幂等补列（按存储位置分别只做一次）。"""
+    location = _storage_location()
+    if location in _schema_ready_by_location:
         return
     try:
-        with engine.begin() as conn:
+        target = _get_engine()
+        with target.begin() as conn:
             conn.execute(text(_CREATE_SQL))
             conn.execute(text(_INDEX_SQL))
-            # 合并 agent-hub 后新增的列：ADD COLUMN IF NOT EXISTS 幂等
-            for column, ddl in _EXTRA_COLUMNS:
-                conn.execute(
-                    text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
-                )
-        _schema_ready = True
+            if _use_local():
+                # SQLite 不支持 ADD COLUMN IF NOT EXISTS，先查已有列再补
+                existing = _sqlite_columns(conn)
+                for column, ddl in _EXTRA_COLUMNS:
+                    if column not in existing:
+                        conn.execute(text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN {column} {ddl}"))
+            else:
+                # 合并 agent-hub 后新增的列：ADD COLUMN IF NOT EXISTS 幂等
+                for column, ddl in _EXTRA_COLUMNS:
+                    conn.execute(
+                        text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
+                    )
+        _schema_ready_by_location.add(location)
     except Exception as exc:  # 建表失败不静默：让调用方看到真实错误
-        logger.error("创建 %s 表失败: %s", TABLE_NAME, exc, exc_info=True)
+        logger.error("创建 %s 表失败（storage=%s）: %s", TABLE_NAME, location, exc, exc_info=True)
         raise
 
 
@@ -166,7 +236,7 @@ def _row_to_account(row) -> QuotaAccount:
     plain: Optional[str] = None
     if raw_key:
         try:
-            plain = decrypt_api_key(raw_key)
+            plain = _decrypt_key(raw_key)
         except Exception as exc:
             logger.error("解密账号 %s 的 API Key 失败: %s", mapping.get("id"), exc)
             plain = None
@@ -210,14 +280,14 @@ def list_accounts(user_id: str, *, only_enabled: bool = False) -> list[QuotaAcco
     if only_enabled:
         sql += " AND enabled = TRUE"
     sql += " ORDER BY sort_order ASC, created_at ASC"
-    with engine.connect() as conn:
+    with _get_engine().connect() as conn:
         rows = conn.execute(text(sql), {"uid": user_id}).fetchall()
     return [_row_to_account(row) for row in rows]
 
 
 def get_account(user_id: str, account_id: str) -> Optional[QuotaAccount]:
     ensure_schema()
-    with engine.connect() as conn:
+    with _get_engine().connect() as conn:
         row = conn.execute(
             text(f"SELECT * FROM {TABLE_NAME} WHERE user_id = :uid AND id = :aid"),
             {"uid": user_id, "aid": account_id},
@@ -245,7 +315,7 @@ def create_account(
     ensure_schema()
     account_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    with engine.begin() as conn:
+    with _get_engine().begin() as conn:
         next_order = conn.execute(
             text(f"SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM {TABLE_NAME} WHERE user_id = :uid"),
             {"uid": user_id},
@@ -263,7 +333,7 @@ def create_account(
                 "uid": user_id,
                 "pid": provider_id,
                 "label": label or "",
-                "key": encrypt_api_key(api_key) if api_key else None,
+                "key": _encrypt_key(api_key) if api_key else None,
                 "extra": json.dumps(extra or {}, ensure_ascii=False),
                 "order": int(next_order or 0),
                 "now": now,
@@ -313,7 +383,7 @@ def update_account(
         params["label"] = label
     if api_key is not None:
         sets.append("api_key_enc = :key")
-        params["key"] = encrypt_api_key(api_key) if api_key else None
+        params["key"] = _encrypt_key(api_key) if api_key else None
     if extra is not None:
         sets.append("extra_json = :extra")
         params["extra"] = json.dumps(extra, ensure_ascii=False)
@@ -357,7 +427,7 @@ def update_account(
     sets.append("updated_at = :now")
     params["now"] = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    with engine.begin() as conn:
+    with _get_engine().begin() as conn:
         conn.execute(
             text(f"UPDATE {TABLE_NAME} SET {', '.join(sets)} WHERE user_id = :uid AND id = :aid"),
             params,
@@ -368,7 +438,7 @@ def update_account(
 
 def delete_account(user_id: str, account_id: str) -> bool:
     ensure_schema()
-    with engine.begin() as conn:
+    with _get_engine().begin() as conn:
         result = conn.execute(
             text(f"DELETE FROM {TABLE_NAME} WHERE user_id = :uid AND id = :aid"),
             {"uid": user_id, "aid": account_id},

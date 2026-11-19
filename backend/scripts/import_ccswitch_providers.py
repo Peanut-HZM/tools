@@ -194,12 +194,23 @@ def load_candidates(db_path: Path) -> list[dict]:
     return candidates
 
 
+def _default_db_path() -> str:
+    """cc-switch 数据库默认路径。
+
+    必须基于 ``REAL_HOME``：``app.config.config`` 在非桌面模式把 ``HOME``
+    覆盖成缓存目录，``Path.home()`` 会解析到错误位置。
+    """
+    from app.config.config import REAL_HOME
+
+    return str(Path(REAL_HOME) / ".cc-switch" / "cc-switch.db")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="从 cc-switch 导入供应商到订阅额度账号库")
     parser.add_argument("--user-id", required=True, help="目标用户 id")
     parser.add_argument(
         "--db",
-        default=str(Path(os.environ.get("USERPROFILE") or Path.home()) / ".cc-switch" / "cc-switch.db"),
+        default=_default_db_path(),
         help="cc-switch.db 路径",
     )
     parser.add_argument("--dry-run", action="store_true", help="只显示会导入什么，不写库")

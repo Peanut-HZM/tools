@@ -106,22 +106,28 @@ class ImportRequest(BaseModel):
     """从 cc-switch 导入供应商配置"""
 
     dry_run: bool = Field(default=False, description="只预览不写库")
+    #: 默认 False：已存在的账号整条跳过，绝不覆盖用户已有数据（Key / 显示名 / 手工额度）
+    overwrite: bool = Field(
+        default=False,
+        description="已存在时是否更新凭据字段（默认不覆盖，保护用户已有数据）",
+    )
 
 
 #: Agent 切换指针表（从 agent-hub 的 agent_hub_switches 合并；带 user_id 隔离）
+#: 与账号表同库同位置 —— 切换指针同样是「本机状态」，不同设备各自独立。
 _SWITCH_TABLE = "subscription_quota_switches"
-_switch_ready = False
+_switch_ready_by_location: set[str] = set()
 
 
 def _ensure_switch_table() -> None:
-    global _switch_ready
-    if _switch_ready:
-        return
     from sqlalchemy import text
 
-    from app.models.base import engine
+    from app.services.subscription_quota.accounts import _get_engine, _storage_location
 
-    with engine.begin() as conn:
+    location = _storage_location()
+    if location in _switch_ready_by_location:
+        return
+    with _get_engine().begin() as conn:
         conn.execute(
             text(
                 f"""
@@ -135,17 +141,17 @@ def _ensure_switch_table() -> None:
                 """
             )
         )
-    _switch_ready = True
+    _switch_ready_by_location.add(location)
 
 
 def _load_switches(user_id: str) -> dict[str, dict]:
     """读取该用户各 agent 的当前切换指针"""
     from sqlalchemy import text
 
-    from app.models.base import engine
+    from app.services.subscription_quota.accounts import _get_engine
 
     _ensure_switch_table()
-    with engine.connect() as conn:
+    with _get_engine().connect() as conn:
         rows = conn.execute(
             text(
                 f"SELECT agent, provider_id, switched_at FROM {_SWITCH_TABLE} WHERE user_id = :uid"
@@ -163,10 +169,10 @@ def _save_switch(user_id: str, agent: str, provider_id: str) -> None:
 
     from sqlalchemy import text
 
-    from app.models.base import engine
+    from app.services.subscription_quota.accounts import _get_engine
 
     _ensure_switch_table()
-    with engine.begin() as conn:
+    with _get_engine().begin() as conn:
         conn.execute(
             text(
                 f"""
@@ -222,7 +228,7 @@ def list_providers(authorization: Optional[str] = Header(None)):
 
 
 @router.post("/import/cc-switch")
-def import_from_ccswitch(
+async def import_from_ccswitch(
     req: ImportRequest = ImportRequest(),
     authorization: Optional[str] = Header(None),
 ):
@@ -231,10 +237,21 @@ def import_from_ccswitch(
     cc-switch 把 **控制面 Key**（OpenDesign 的 `vela_ctrl_…`）存在
     `providers.meta.usage_script.apiKey`，而 `settings_config` 里只有推理 Key。
     推理 Key 查不了账单，所以导入时必须优先取控制面 Key。
+
+    **安全约定：已存在的数据绝不覆盖**
+
+    用户可能已经在页面里手工改过 Key、改过显示名、或手工维护过额度；
+    再次点「从 cc-switch 导入」时，这些改动绝不能被 cc-switch 里的旧值冲掉。
+    因此：
+
+    * 默认 ``overwrite=False``：已存在的账号**整条跳过**（计入 skipped），
+      不改 Key、不改 label、不改 extra，也不动手工额度字段与 keep-last-good 缓存。
+    * 只有显式传 ``overwrite=true`` 才更新，且**只更新凭据相关字段**
+      （api_key / extra），用户手工维护的 label、manual_*、notes、website_url、
+      enabled 仍然保留 —— 这些是用户在页面里改的，cc-switch 并不知道。
     """
     user_id = _require_user(authorization)
 
-    import os
     import sys
     from pathlib import Path
 
@@ -243,8 +260,11 @@ def import_from_ccswitch(
         sys.path.insert(0, str(backend_dir))
 
     from scripts.import_ccswitch_providers import load_candidates
+    from app.services.subscription_quota.usage_import import ccswitch_db_path
 
-    db_path = Path(os.environ.get("USERPROFILE") or Path.home()) / ".cc-switch" / "cc-switch.db"
+    # 统一走 ccswitch_db_path()：它基于 REAL_HOME 解析，
+    # 避免 config.py 覆盖 HOME 后把 ~/.cc-switch 解析到缓存目录而误报未找到。
+    db_path = ccswitch_db_path()
     if not db_path.exists():
         raise HTTPException(status_code=404, detail=f"未找到 cc-switch 数据库：{db_path}")
 
@@ -252,16 +272,43 @@ def import_from_ccswitch(
     if not candidates:
         return {"imported": 0, "items": [], "message": "cc-switch 里没有可导入的供应商凭据"}
 
-    # 同一 provider 只保留一条（优先控制面 Key）
-    best: dict[str, dict] = {}
+    # 按 provider 分组：同一供应商在 cc-switch 里常有多条配置（给不同 CLI 各配一份，
+    # 或新旧 Key 并存），Key 不一定都有效。这里不打桩取「第一条」，而是**实际探测**
+    # 每个候选能否查通额度，只导入可用的那条 —— 否则会把失效 Key 导进来，
+    # 卡片永远显示「认证失败 / 不存在 coding plan」。
+    grouped: dict[str, list[dict]] = {}
     for item in candidates:
-        current = best.get(item["provider_id"])
-        if current is None or (item["from_control_key"] and not current["from_control_key"]):
-            best[item["provider_id"]] = item
+        grouped.setdefault(item["provider_id"], []).append(item)
 
-    existing = {a.provider_id: a for a in list_accounts(user_id)}
+    from app.services.subscription_quota.credential_probe import pick_working_candidate
+
+    picked: dict[str, dict] = {}
+    probe_skipped: list[dict] = []
+    for pid, group in grouped.items():
+        working = await pick_working_candidate(group)
+        if working is None:
+            probe_skipped.append(
+                {
+                    "providerId": pid,
+                    "reason": f"{len(group)} 个候选凭据均不可用（已验证额度查询失败）",
+                }
+            )
+            continue
+        picked[pid] = working
+
+    if not picked and not probe_skipped:
+        return {"imported": 0, "items": [], "message": "cc-switch 里没有可导入的供应商凭据"}
+
+    best = picked
+
+    # 按 provider_id 归组：同一 provider 可能有多个账号（多账号 failover），
+    # 只要该 provider 下已有账号就视为「已配置」，不再新建、也不再改。
+    existing_by_provider: dict[str, list] = {}
+    for account in list_accounts(user_id):
+        existing_by_provider.setdefault(account.provider_id, []).append(account)
+
     items: list[dict] = []
-    created = updated = 0
+    created = updated = skipped = 0
 
     for pid, item in best.items():
         extra: dict = {"region": item["region"], "api_key": item["api_key"]}
@@ -272,6 +319,16 @@ def import_from_ccswitch(
             extra["base_url"] = item["base_url"]
 
         label = f"{item['source_name']}（cc-switch 导入）"
+        existing = existing_by_provider.get(pid) or []
+
+        # 决定本条的动作。默认「已存在就跳过」，绝不覆盖用户数据。
+        if existing and not req.overwrite:
+            action = "skip"
+        elif existing:
+            action = "update"
+        else:
+            action = "create"
+
         items.append(
             {
                 "providerId": pid,
@@ -283,17 +340,22 @@ def import_from_ccswitch(
                     if len(item["api_key"]) > 12
                     else "***"
                 ),
-                "action": "update" if pid in existing else "create",
+                "action": action,
             }
         )
 
         if req.dry_run:
             continue
 
-        if pid in existing:
-            update_account(
-                user_id, existing[pid].id, label=label, api_key=item["api_key"], extra=extra
-            )
+        if action == "skip":
+            skipped += 1
+            continue
+
+        if action == "update":
+            # 仅覆盖凭据字段；用户在页面里维护的 label / manual_* / notes /
+            # website_url / enabled 一律保留（cc-switch 不知道这些）。
+            target = existing[0]
+            update_account(user_id, target.id, api_key=item["api_key"], extra=extra)
             updated += 1
         else:
             create_account(user_id, pid, label=label, api_key=item["api_key"], extra=extra)
@@ -302,19 +364,23 @@ def import_from_ccswitch(
     if not req.dry_run:
         clear_cache()
         logger.info(
-            "用户 %s 从 cc-switch 导入 %d 个供应商（新建 %d / 更新 %d）",
+            "用户 %s 从 cc-switch 导入：新建 %d / 更新 %d / 跳过已存在 %d",
             user_id,
-            len(items),
             created,
             updated,
+            skipped,
         )
 
     return {
-        "imported": 0 if req.dry_run else len(items),
+        "imported": 0 if req.dry_run else created + updated,
         "created": created,
         "updated": updated,
+        "skipped": skipped,
         "dryRun": req.dry_run,
         "items": items,
+        # 探测阶段就判定为不可用的供应商（所有候选 Key 都查不通额度），
+        # 不写入库，但要让用户知道为什么没导入，而不是静默消失。
+        "probeSkipped": probe_skipped,
     }
 
 
@@ -527,6 +593,10 @@ def edit_account(
     extra = req.extra
     if req.api_key:
         extra = dict(extra if extra is not None else existing.extra)
+        # 必须同步覆盖 extra.api_key：查询实现（_bearer / query_zhipu 等）读的是
+        # `extra.get("api_key") or account.api_key`，extra 里的历史旧值优先级更高。
+        # 只改 api_key 字段而不清 extra 里的副本，会出现「页面显示新 Key、查询仍用旧 Key」
+        # 的诡异现象（表现为永远 401 / 不存在 coding plan）。
         extra["api_key"] = req.api_key
 
     updated = update_account(

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowRightLeft, CheckCircle2, Clock, Download, Gauge, LayoutDashboard,
-  Package, Plus, RefreshCw, Server, Settings2, Trash2, TrendingUp, X,
+  Package, Pencil, Plus, RefreshCw, Server, Settings2, Trash2, TrendingUp, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -120,10 +120,20 @@ interface QuotaCardProps {
   onRefresh: () => void;
   onRemove?: () => void;
   onAdjust?: () => void;
+  /** 编辑该账号的订阅配置（Key / 显示名 / 站点 / 备注 / 启用状态） */
+  onEdit?: () => void;
 }
 
 /** 单个账号 / 订阅的额度卡片 */
-export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove, onAdjust }: QuotaCardProps) {
+export function QuotaCard({
+  quota,
+  now,
+  refreshing,
+  onRefresh,
+  onRemove,
+  onAdjust,
+  onEdit,
+}: QuotaCardProps) {
   const tiers = useMemo(() => sortTiers(quota.tiers ?? []), [quota.tiers]);
   const shownTiers = useMemo(() => pickTiers(tiers, 4), [tiers]);
   const updated = relativeTime(quota.queriedAt, now);
@@ -175,6 +185,17 @@ export function QuotaCard({ quota, now, refreshing, onRefresh, onRemove, onAdjus
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label={`编辑 ${quota.label} 的订阅配置`}
+              title="编辑订阅配置（Key / 显示名 / 站点 / 备注）"
+              className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <Pencil className="h-4 w-4" aria-hidden />
+            </button>
+          )}
           {onAdjust && (
             <button
               type="button"
@@ -601,6 +622,16 @@ function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialo
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState(String(account.extra?.base_url ?? ''));
   const [controlKey, setControlKey] = useState('');
+  const [region, setRegion] = useState(String(account.extra?.region ?? 'cn'));
+  const [extraValues, setExtraValues] = useState<Record<string, string>>(() => {
+    // 供应商专属字段（如 zhipu_team 的 organization_id / project_id）从已有 extra 回填
+    const init: Record<string, string> = {};
+    for (const field of spec?.extraFields ? Object.keys(spec.extraFields) : []) {
+      const value = account.extra?.[field];
+      if (value !== undefined && value !== null) init[field] = String(value);
+    }
+    return init;
+  });
   const [notes, setNotes] = useState(account.notes ?? '');
   const [enabled, setEnabled] = useState(account.enabled);
   const [saving, setSaving] = useState(false);
@@ -608,6 +639,11 @@ function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialo
 
   const needsControlKey = spec?.needs.includes('control_key') ?? false;
   const needsBaseUrl = Boolean(spec?.needsBaseUrl);
+  const hasRegions = (spec?.regions?.length ?? 0) > 1;
+  // 供应商专属字段（排除已单独渲染的 base_url / region / control_key）
+  const extraFields = (spec?.extraFields ? Object.keys(spec.extraFields) : []).filter(
+    (f) => !['base_url', 'region', 'control_key'].includes(f)
+  );
   // 手动额度账号不查网络，没有任何 Key 需要填
   const showKeyField = !account.isManual && (spec ? spec.needs.length > 0 : true);
 
@@ -617,6 +653,12 @@ function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialo
     try {
       // 保留原有 extra 的其他字段，只覆盖本次可编辑项
       const extra: Record<string, unknown> = { ...(account.extra ?? {}) };
+      if (hasRegions) extra.region = region;
+      for (const [field, value] of Object.entries(extraValues)) {
+        const trimmed = value.trim();
+        if (trimmed) extra[field] = trimmed;
+        else delete extra[field];
+      }
       if (needsBaseUrl) {
         if (baseUrl.trim()) extra.base_url = baseUrl.trim();
         else delete extra.base_url;
@@ -625,6 +667,8 @@ function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialo
       const key = apiKey.trim();
       if (key) {
         if (needsControlKey) extra.control_key = key;
+        // 同步写 extra.api_key：查询实现读的是 `extra.api_key or api_key`，
+        // 只写 api_key 字段会出现「改了 Key 但查询仍用旧 Key」的问题。
         else extra.api_key = key;
       }
       if (controlKey.trim()) extra.control_key = controlKey.trim();
@@ -649,12 +693,15 @@ function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialo
     baseUrl,
     controlKey,
     enabled,
+    extraValues,
+    hasRegions,
     label,
     needsBaseUrl,
     needsControlKey,
     notes,
     onSaved,
     onClose,
+    region,
   ]);
 
   return (
@@ -708,6 +755,23 @@ function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialo
             </label>
           )}
 
+          {hasRegions && (
+            <label className="flex flex-col gap-1 text-xs text-ink-muted">
+              站点
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 text-sm text-ink"
+              >
+                {spec?.regions.map((r) => (
+                  <option key={r} value={r}>
+                    {r === 'cn' ? '国内站' : '国际站'}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           {needsBaseUrl && (
             <label className="flex flex-col gap-1 text-xs text-ink-muted">
               站点地址（base_url）
@@ -719,6 +783,20 @@ function EditAccountDialog({ account, spec, onClose, onSaved }: EditAccountDialo
               />
             </label>
           )}
+
+          {extraFields.map((field) => (
+            <label key={field} className="flex flex-col gap-1 text-xs text-ink-muted">
+              {spec?.extraFields[field] ?? field}
+              <input
+                value={extraValues[field] ?? ''}
+                onChange={(e) =>
+                  setExtraValues((prev) => ({ ...prev, [field]: e.target.value }))
+                }
+                placeholder="留空表示不修改"
+                className="rounded-lg border border-border bg-surface-1 px-2 py-1.5 font-mono text-sm text-ink"
+              />
+            </label>
+          ))}
 
           {needsControlKey && (
             <label className="flex flex-col gap-1 text-xs text-ink-muted">
@@ -923,12 +1001,19 @@ export default function SubscriptionQuotaTool() {
     try {
       const result = await quotaApi.importFromCcSwitch(false);
       if (!mountedRef.current) return;
-      if (result.imported === 0) {
+      // 默认不覆盖已有数据：已存在的供应商会被跳过，这里要把跳过数一并告诉用户，
+      // 否则「导入 0 个」看起来像失败，实际是刻意保护用户已有数据。
+      if (result.imported === 0 && result.skipped === 0) {
         setImportResult('cc-switch 里没有可导入的供应商凭据');
+      } else if (result.imported === 0) {
+        setImportResult(
+          `已存在的 ${result.skipped} 个供应商已跳过（不会覆盖你已有的 Key 与设置）`
+        );
       } else {
         const control = result.items.filter((i) => i.fromControlKey).map((i) => i.providerId);
         setImportResult(
           `已导入 ${result.imported} 个供应商（新建 ${result.created} / 更新 ${result.updated}）` +
+            (result.skipped > 0 ? `，已存在跳过 ${result.skipped} 个` : '') +
             (control.length > 0 ? `，其中控制面 Key：${control.join('、')}` : '')
         );
       }
@@ -974,6 +1059,7 @@ export default function SubscriptionQuotaTool() {
               onAdjust={
                 account?.isManual ? () => setAdjusting(account) : undefined
               }
+              onEdit={account ? () => setEditingAccount(account) : undefined}
             />
           );
         })}

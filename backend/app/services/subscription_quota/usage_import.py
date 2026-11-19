@@ -24,11 +24,19 @@ logger = logging.getLogger(__name__)
 
 
 def ccswitch_db_path() -> Path:
-    """cc-switch 数据库位置（可用 CCSWITCH_DB 覆盖）"""
+    """cc-switch 数据库位置（可用 CCSWITCH_DB 覆盖）。
+
+    必须基于 ``REAL_HOME``：``app.config.config`` 在非桌面模式会把 ``HOME``
+    覆盖成 ``backend/data/cache``，此时 ``Path.home()`` 返回缓存目录，会把
+    ``~/.cc-switch/cc-switch.db`` 解析到不存在的位置，页面便会误报
+    「未找到 cc-switch 数据库」。（见 CLAUDE.md「用户目录访问必须使用真实家目录」）
+    """
     override = os.environ.get("CCSWITCH_DB")
     if override:
         return Path(override)
-    return Path(os.environ.get("USERPROFILE") or Path.home()) / ".cc-switch" / "cc-switch.db"
+    from app.services.subscription_quota.credentials import real_home
+
+    return real_home() / ".cc-switch" / "cc-switch.db"
 
 
 @dataclass
