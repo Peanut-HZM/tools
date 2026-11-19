@@ -1,125 +1,54 @@
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { useK8sStore } from '../../../stores/k8sStore';
-import {
-  parseK8sWorkspaceSearch,
-  serializeK8sWorkspaceSearch,
-} from './k8sWorkspaceUrl';
 
 /**
- * 将可分享的 K8s 工作上下文映射到 URL，并在页面进入时恢复。
- * 仅保存非敏感的连接 ID、资源类型及命名空间；资源数据始终重新从 API 获取。
+ * K8s 工作上下文校验（恢复后确认仍有效）。
  *
- * 恢复策略：URL 中的筛选条件是用户上次真实使用过的状态，直接信任并应用，
- * 不经命名空间列表接口校验——校验会让瞬时恢复强依赖一个可失败的接口
- * （后端热重载 / K8s API 抖动即卡住或误报错误）。若某个命名空间确已不存在，
- * 资源查询自然返回空列表，用户调整筛选即可。
+ * ## 为什么不再使用 URL 参数
+ *
+ * 早期实现把 `cluster` / `resource` / `namespaces` 写进地址栏
+ * （`/workspace?cluster=xxx&resource=pods&namespaces=yyy`）。这带来两个问题：
+ *
+ * 1. **地址栏被工具内部参数污染**：用户的需求是地址栏只保留
+ *    `/workspace/<工具编码>`，工具内部的选择（集群、命名空间、资源类型）
+ *    不应出现在 URL 里。
+ * 2. **分享链接会带上易过期的上下文**：集群 ID、命名空间都属于易变状态，
+ *    贴给同事后大概率指向不存在的集群。
+ *
+ * 现在改为：
+ * - 工具内部上下文 → `k8sStore`（zustand persist，落在 localStorage），
+ *   刷新页面后自动恢复，**不进入地址栏**；
+ * - 地址栏 → 只由工作区页签路由 `/workspace/<工具编码>` 表达。
+ *
+ * ## 本 Hook 的职责
+ *
+ * persist 会在页面加载时自动恢复上次的集群 / 命名空间 / 资源类型，
+ * 但持久化的集群 ID 可能已被删除（连接在别处被移除）。因此这里用
+ * **已加载的连接列表**做一次校验：
+ * - 连接列表尚未加载完成 → 等待
+ * - 集群 ID 不存在 → 提示一次并清掉失效引用（不重复打扰）
+ * - 集群 ID 有效 → 无需干预
  */
 export function useK8sWorkspaceRoute(
   onInvalidContext: (message: string) => void,
   connectionsReady: boolean,
 ): boolean {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const currentSearch = searchParams.toString();
   const reportedInvalidCluster = useRef<string | null>(null);
-  const lastWrittenSearch = useRef<string | null>(null);
-  const [pendingSearch, setPendingSearch] = useState<string | null>(currentSearch);
-
-  const {
-    connections,
-    activeConnectionId,
-    selectedNamespaces,
-    resourceType,
-    setActiveConnection,
-    setSelectedNamespaces,
-    setResourceType,
-  } = useK8sStore();
+  const { connections, activeConnectionId, setActiveConnection } = useK8sStore();
 
   useEffect(() => {
-    // 仅浏览器历史/外部链接变更触发恢复；由本 Hook 回写的 URL 不应再次覆盖用户操作。
-    if (lastWrittenSearch.current === currentSearch) {
-      lastWrittenSearch.current = null;
-      return;
-    }
-    setPendingSearch(currentSearch);
-  }, [currentSearch]);
-
-  useEffect(() => {
-    if (pendingSearch === null) return;
-    const routeState = parseK8sWorkspaceSearch(pendingSearch);
-
-    if (!routeState.connectionId) {
-      if (resourceType !== routeState.resourceType) {
-        setResourceType(routeState.resourceType);
-        return;
-      }
-      setPendingSearch(null);
-      return;
-    }
-
     if (!connectionsReady) return;
-    if (!connections.some((connection) => connection.id === routeState.connectionId)) {
-      if (reportedInvalidCluster.current !== routeState.connectionId) {
-        reportedInvalidCluster.current = routeState.connectionId;
-        onInvalidContext('链接中的集群已不存在，已保留当前可用工作区。');
+    if (!activeConnectionId) return;
+
+    if (!connections.some((connection) => connection.id === activeConnectionId)) {
+      // 持久化的集群已不存在：提示一次（不重复打扰），并清掉失效的集群引用
+      if (reportedInvalidCluster.current !== activeConnectionId) {
+        reportedInvalidCluster.current = activeConnectionId;
+        onInvalidContext('上次使用的集群已不存在，已保留当前可用工作区。');
       }
-      setPendingSearch(null);
-      return;
+      setActiveConnection('');
     }
+  }, [activeConnectionId, connections, connectionsReady, onInvalidContext, setActiveConnection]);
 
-    if (activeConnectionId !== routeState.connectionId) {
-      setActiveConnection(routeState.connectionId);
-      return;
-    }
-
-    if (resourceType !== routeState.resourceType) {
-      setResourceType(routeState.resourceType);
-      return;
-    }
-
-    // 直接信任 URL 中的命名空间筛选（空数组明确代表"所有命名空间"，
-    // 必须覆盖切换集群后的默认 default），不做服务端校验。
-    const changed =
-      selectedNamespaces.length !== routeState.namespaces.length ||
-      selectedNamespaces.some((ns, i) => ns !== routeState.namespaces[i]);
-    if (changed) {
-      setSelectedNamespaces(routeState.namespaces);
-    }
-    setPendingSearch(null);
-  }, [
-    activeConnectionId,
-    connections,
-    connectionsReady,
-    onInvalidContext,
-    pendingSearch,
-    resourceType,
-    selectedNamespaces,
-    setActiveConnection,
-    setSelectedNamespaces,
-    setResourceType,
-  ]);
-
-  useEffect(() => {
-    if (pendingSearch !== null || !activeConnectionId) return;
-
-    const nextSearch = serializeK8sWorkspaceSearch({
-      connectionId: activeConnectionId,
-      resourceType,
-      namespaces: selectedNamespaces,
-    }, currentSearch);
-    const nextRawSearch = nextSearch.startsWith('?') ? nextSearch.slice(1) : nextSearch;
-    if (nextRawSearch !== currentSearch) {
-      lastWrittenSearch.current = nextRawSearch;
-      setSearchParams(nextRawSearch, { replace: true });
-    }
-  }, [
-    activeConnectionId,
-    currentSearch,
-    pendingSearch,
-    resourceType,
-    selectedNamespaces,
-    setSearchParams,
-  ]);
-
-  return pendingSearch === null;
+  return true;
 }

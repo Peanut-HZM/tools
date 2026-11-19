@@ -331,6 +331,11 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/workspace" element={<WorkspacePage />} />
+              {/* 工作区页签路由：/workspace/<工具编码>
+                  地址栏只表达「打开了哪个工具」，工具内部的请求参数
+                  （集群、命名空间、资源类型等）不进入 URL。
+                  刷新页面后由 workspaceStore + 工具自身 store 恢复上下文。 */}
+              <Route path="/workspace/:toolId" element={<WorkspacePage />} />
               <Route path="/account-settings" element={<AccountSettings />} />
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/courses" element={<CoursesPage />} />

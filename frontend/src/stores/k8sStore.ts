@@ -2,8 +2,14 @@
  * K8s 控制台工具 - Zustand 状态管理
  *
  * 管理连接列表、活跃连接、命名空间选择、资源类型等全局 UI 状态
+ *
+ * 持久化说明：活跃集群 / 命名空间筛选 / 资源类型属于**工具内部上下文**，
+ * 不应进入浏览器地址栏（地址栏只保留 /workspace/<工具编码>）。
+ * 这里用 zustand persist 落到 localStorage，刷新页面后仍能恢复上次所选
+ * 集群与筛选条件，同时保持 URL 干净。
  */
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { K8sConnection } from '../components/Tools/K8sTool/types';
 
 /** 支持的资源类型 */
@@ -82,7 +88,9 @@ interface K8sStore {
   closeRightDrawer: () => void;
 }
 
-export const useK8sStore = create<K8sStore>()((set) => ({
+export const useK8sStore = create<K8sStore>()(
+  persist(
+    (set) => ({
   // 初始状态
   connections: [],
   activeConnectionId: null,
@@ -208,4 +216,17 @@ export const useK8sStore = create<K8sStore>()((set) => ({
       rightDrawerOpen: false,
       rightDrawerResource: null,
     })),
-}));
+    }),
+    {
+      name: 'k8s-tool-context',
+      // 只持久化「工具内部上下文」：活跃集群 / 命名空间筛选 / 资源类型。
+      // 连接列表本身从 API 重新拉取（可能已变化），抽屉与标签页等瞬时 UI
+      // 状态不持久化（刷新后应回到干净视图）。
+      partialize: (state) => ({
+        activeConnectionId: state.activeConnectionId,
+        selectedNamespaces: state.selectedNamespaces,
+        resourceType: state.resourceType,
+      }),
+    },
+  ),
+);
