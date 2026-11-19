@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "dev-jwt-secret-change-me"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 10080  # 7 天
+
+    # 微信小程序登录（openid 换取；secret 为空时 /api/auth/wechat-login 返回明确未配置错误）
+    WX_APP_ID: str = "wxf7d4c07d66b6d237"
+    WX_APP_SECRET: str = ""
     DB_ENCRYPTION_KEY: str = "dev-db-encryption-change-me"
 
     # CORS

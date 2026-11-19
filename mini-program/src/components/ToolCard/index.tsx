@@ -22,7 +22,7 @@ export default function ToolCard({ tool, onClick }: ToolCardProps) {
   const iconName = resolveIconName(tool.icon)
 
   return (
-    <View className='tool-card glass-card' onClick={onClick}>
+    <View className='tool-card glass-card' data-tool-id={tool.id} onClick={onClick}>
       {tool.require_login && (
         <View className='tool-card-login-badge'>
           <Text className='tool-card-login-badge-text'>需登录</Text>

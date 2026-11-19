@@ -235,3 +235,23 @@ async def change_password(
         )
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
+
+@router.post("/wechat-login")
+async def wechat_login(payload: dict, request: Request):
+    """微信小程序一键登录：Taro.login() 的 code → openid 换 JWT。
+
+    未配置 WX_APP_ID/WX_APP_SECRET 时返回明确错误（AppSecret 需在
+    微信公众平台「开发管理→开发设置」获取后填入 backend/.env）。
+    """
+    code = (payload or {}).get("code", "")
+    if not code:
+        raise HTTPException(status_code=400, detail="缺少 code（请先调用 Taro.login()）")
+    ip_address = request.client.host if request.client else None
+    device_info = request.headers.get("user-agent", "")[:200]
+    try:
+        auth_service = get_auth_service()
+        return auth_service.wechat_login(code, ip_address=ip_address, device_info=device_info)
+    except ValueError as e:
+        detail = str(e)
+        status_code = 503 if "未配置" in detail else 401
+        raise HTTPException(status_code=status_code, detail=detail)

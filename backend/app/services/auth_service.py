@@ -8,8 +8,9 @@ import logging
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 
+import requests
 from jose import JWTError, jwt
 
 from app.models.auth_models import (
@@ -807,9 +808,110 @@ class AuthService:
         return str(Path(USERS_DATA_PATH) / user_id / "markdown-files")
 
 
+
+    # ------------------------------------------------------------------
+    # 微信小程序一键登录（2026-11-19，设计文档 docs/plans/2026-11-19-mini-program-agent-hub-design.md）
+    # ------------------------------------------------------------------
+
+    def ensure_wechat_columns(self) -> None:
+        """幂等迁移：users 表加 openid 列 + 唯一索引（仅 PG；失败 warning 不阻断启动）。"""
+        conn = get_pooled_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name='users' AND column_name='openid'")
+                if not cursor.fetchone():
+                    cursor.execute(
+                        "ALTER TABLE users ADD COLUMN openid VARCHAR(64)")
+                    logger.info("users 表已新增 openid 列")
+                cursor.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_openid ON users (openid)")
+                conn.commit()
+        except Exception as e:  # noqa: BLE001
+            conn.rollback()
+            logger.warning(f"users openid 列迁移失败（不阻断启动）: {e}")
+        finally:
+            release_db_connection(conn)
+
+    def _wechat_jscode2session(self, code: str) -> Dict[str, Any]:
+        """调微信 jscode2session 换 openid/session_key；未配置或失败抛 ValueError。"""
+        from app.config.config import settings as _settings
+
+        app_id = _settings.WX_APP_ID
+        app_secret = _settings.WX_APP_SECRET
+        if not app_id or not app_secret:
+            raise ValueError("微信登录未配置（请在 backend/.env 填写 WX_APP_ID 与 WX_APP_SECRET）")
+        resp = requests.get(
+            "https://api.weixin.qq.com/sns/jscode2session",
+            params={"appid": app_id, "secret": app_secret,
+                    "js_code": code, "grant_type": "authorization_code"},
+            timeout=10,
+        )
+        data = resp.json()
+        if data.get("errcode"):
+            raise ValueError(f"微信登录失败: errcode={data.get('errcode')} errmsg={data.get('errmsg')}")
+        openid = data.get("openid")
+        if not openid:
+            raise ValueError("微信登录失败: 响应中无 openid")
+        return {"openid": openid, "session_key": data.get("session_key")}
+
+    def wechat_login(self, code: str, ip_address: Optional[str] = None,
+                     device_info: Optional[str] = None) -> AuthResponse:
+        """微信一键登录：openid 查/建用户 → 签发 JWT。"""
+        session = self._wechat_jscode2session(str(code))
+        openid = session["openid"]
+
+        conn = get_pooled_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT user_id, username, email, role FROM users WHERE openid = %s",
+                    (openid,))
+                row = cursor.fetchone()
+                if row:
+                    user_id = row["user_id"]
+                    username = row["username"]
+                    email = row["email"] or ""
+                    role = row.get("role") or "user"
+                else:
+                    # 自动注册：username = wx_ + sha1(openid) 前 12 位（碰撞追加后缀至唯一）
+                    import hashlib as _hashlib
+                    digest = _hashlib.sha1(openid.encode("utf-8")).hexdigest()[:12]
+                    base_username = f"wx_{digest}"
+                    username = base_username
+                    suffix = 2
+                    while self._get_user_by_username(username):
+                        username = f"{base_username}-{suffix}"
+                        suffix += 1
+                    email = f"{digest}@wx.local"
+                    chars = string.ascii_letters + string.digits + "!@#$%^&*"
+                    random_password = "".join(random.choice(chars) for _ in range(16))
+                    user_id = str(uuid.uuid4())
+                    cursor.execute(
+                        "INSERT INTO users (user_id, username, email, password_hash, role, openid, created_at) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (user_id, username, email, self._hash_password(random_password),
+                         "user", openid, datetime.utcnow()))
+                    role = "user"
+                conn.commit()
+        except ValueError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            conn.rollback()
+            logger.error(f"微信登录异常: {e}")
+            raise ValueError("微信登录失败，请稍后重试")
+        finally:
+            release_db_connection(conn)
+
+        token = self._create_access_token(
+            {"sub": user_id, "username": username, "role": role})
+        self._create_user_directory(user_id)
+        return AuthResponse(user_id=user_id, username=username, email=email,
+                            role=role, token=token)
+
 # Singleton instance
 _auth_service: Optional[AuthService] = None
-
 
 def get_auth_service() -> AuthService:
     """Get the AuthService singleton instance"""
@@ -817,3 +919,4 @@ def get_auth_service() -> AuthService:
     if _auth_service is None:
         _auth_service = AuthService()
     return _auth_service
+

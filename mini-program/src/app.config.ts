@@ -45,6 +45,12 @@ export default {
       ],
     },
     {
+      root: 'package-agent',
+      pages: [
+        'pages/agent-hub/index',
+      ],
+    },
+    {
       root: 'package-life',
       pages: [
         'pages/food-picker/index',

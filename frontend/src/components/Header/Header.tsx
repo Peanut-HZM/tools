@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Boxes, Moon, Sun, Monitor, Search, Shield, Mail } from 'lucide-react';
+import { Boxes, Moon, Sun, Monitor, Search, Shield, Mail, Menu, X } from 'lucide-react';
 import SearchBar from './SearchBar';
 import LoginButton from './LoginButton';
 import { useI18n } from '../../i18n';
@@ -21,8 +21,15 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  // 移动端导航抽屉（窄屏汉堡菜单：导航项收纳，桌面端隐藏）
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   // 当前路由路径：用于导航链接激活判定
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    // 路由变化时自动收起移动端抽屉
+    setIsMobileNavOpen(false);
+  }, [pathname]);
 
   return (
     <>
@@ -124,8 +131,41 @@ export default function Header({ searchValue, onSearchChange, onSearch }: Header
             </Button>
             {/* 登录按钮 / 用户菜单（移动端保留头像入口） */}
             <LoginButton />
+            {/* 移动端汉堡菜单（窄屏导航入口） */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMobileNavOpen((v) => !v)}
+              aria-label={t.nav.home}
+              title="导航"
+            >
+              {isMobileNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </Button>
           </div>
         </div>
+        {/* 移动端导航抽屉（md 以下展开） */}
+        {isMobileNavOpen && (
+          <nav className="md:hidden border-t border-border bg-surface-1/95 backdrop-blur">
+            <div className="flex flex-col py-2">
+              {NAV_ROUTES.map((item) => {
+                const isActive = item.match(pathname);
+                const label = t.nav[item.key];
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`px-5 py-3 text-sm transition-colors ${
+                      isActive ? 'font-medium text-accent bg-accent/5' : 'text-ink-muted'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        )}
       </header>
 
       {/* 联系我们弹窗 */}

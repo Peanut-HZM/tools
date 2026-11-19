@@ -1,3 +1,4 @@
+import Taro from '@tarojs/taro';
 import { request } from './request';
 import type { AuthResponse, User } from '../types';
 
@@ -10,6 +11,16 @@ export const authApi = {
     return request('/auth/login', {
       method: 'POST',
       data: { username, password },
+      needAuth: false
+    });
+  },
+
+  /** 微信一键登录：Taro.login() code → 后端 openid 换 JWT */
+  wechatLogin: async (): Promise<AuthResponse> => {
+    const loginResult = await Taro.login();
+    return request('/auth/wechat-login', {
+      method: 'POST',
+      data: { code: loginResult.code },
       needAuth: false
     });
   },

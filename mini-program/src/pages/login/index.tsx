@@ -80,6 +80,57 @@ export default function Login() {
     }
   })
 
+  const saveAuthAndRedirect = (res: { token: string; user_id: string; username: string; email: string; role: string }, successMsg = '登录成功') => {
+    // 保存 token 和用户信息（后端返回字段：token, user_id, username, email, role）
+    Taro.setStorageSync('auth_token', res.token)
+    Taro.setStorageSync('user_info', JSON.stringify({
+      id: res.user_id,
+      username: res.username,
+      email: res.email,
+      role: res.role
+    }))
+    login(res.token, {
+      id: res.user_id,
+      username: res.username,
+      role: res.role
+    })
+
+    Taro.showToast({ title: successMsg, icon: 'success' })
+
+    setTimeout(() => {
+      if (redirect) {
+        // 如果是 TabBar 页面，用 switchTab
+        const tabBarPages = ['/pages/index/index', '/pages/cross-share/message/index', '/pages/cross-share/file/index', '/pages/profile/index']
+        if (tabBarPages.includes(redirect)) {
+          Taro.switchTab({ url: redirect })
+        } else {
+          Taro.redirectTo({ url: redirect })
+        }
+      } else {
+        // 没有 redirect 参数，尝试返回或跳转首页
+        const pages = Taro.getCurrentPages()
+        if (pages.length > 1) {
+          Taro.navigateBack()
+        } else {
+          Taro.switchTab({ url: '/pages/index/index' })
+        }
+      }
+    }, 1000)
+  }
+
+  /** 微信一键登录：Taro.login() code → 后端 /auth/wechat-login 换 JWT */
+  const handleWechatLogin = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await authApi.wechatLogin()
+      saveAuthAndRedirect(res)
+    } catch (e: any) {
+      setError(e?.message || '微信登录失败')
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!username.trim() || !password.trim()) {
       setError('请输入用户名和密码')
@@ -103,41 +154,7 @@ export default function Login() {
             email: email.trim() || undefined
           })
 
-      // 保存 token 和用户信息（后端返回字段：token, user_id, username, email, role）
-      Taro.setStorageSync('auth_token', res.token)
-      Taro.setStorageSync('user_info', JSON.stringify({
-        id: res.user_id,
-        username: res.username,
-        email: res.email,
-        role: res.role
-      }))
-      login(res.token, {
-        id: res.user_id,
-        username: res.username,
-        role: res.role
-      })
-
-      Taro.showToast({ title: isLogin ? '登录成功' : '注册成功', icon: 'success' })
-
-      setTimeout(() => {
-        if (redirect) {
-          // 如果是 TabBar 页面，用 switchTab
-          const tabBarPages = ['/pages/index/index', '/pages/cross-share/message/index', '/pages/cross-share/file/index', '/pages/profile/index']
-          if (tabBarPages.includes(redirect)) {
-            Taro.switchTab({ url: redirect })
-          } else {
-            Taro.redirectTo({ url: redirect })
-          }
-        } else {
-          // 没有 redirect 参数，尝试返回或跳转首页
-          const pages = Taro.getCurrentPages()
-          if (pages.length > 1) {
-            Taro.navigateBack()
-          } else {
-            Taro.switchTab({ url: '/pages/index/index' })
-          }
-        }
-      }, 1000)
+      saveAuthAndRedirect(res, isLogin ? '登录成功' : '注册成功')
     } catch (err: any) {
       const msg = err.message || err.data?.detail || (isLogin ? '登录失败' : '注册失败')
       setError(msg)
@@ -248,6 +265,23 @@ export default function Login() {
           >
             {loading ? (isLogin ? '登录中...' : '注册中...') : (isLogin ? '登 录' : '注 册')}
           </View>
+
+          {/* 微信一键登录（仅登录态显示；注册流程走表单） */}
+          {isLogin && (
+            <View className='wechat-login-block'>
+              <View className='divider'>
+                <View className='divider-line' />
+                <Text className='divider-text'>或</Text>
+                <View className='divider-line' />
+              </View>
+              <View
+                className={`wechat-btn ${loading ? 'wechat-btn--disabled' : ''}`}
+                onClick={loading ? undefined : handleWechatLogin}
+              >
+                <Text className='wechat-btn-text'>微信一键登录</Text>
+              </View>
+            </View>
+          )}
 
           {/* 切换链接 */}
           <View className='login-switch'>

@@ -7,6 +7,7 @@ import type { Tool, ToolCategory } from '../types';
 
 // 小程序端工具路径映射（根据后端返回的 id 映射到小程序页面）
 const TOOL_PATH_MAP: Record<string, string | null> = {
+  'agent-hub': '/package-agent/pages/agent-hub/index',
   'json-formatter': '/pages/json-formatter/index',
   'calendar': '/pages/calendar/index',
   'key-generator': '/pages/key-generator/index',

@@ -120,6 +120,12 @@ async def lifespan(app: FastAPI):
         # 曾导致 create_all 一直静默失败）——改用模块属性访问绕开局部绑定
         from app.models import base as _models_base
         Base.metadata.create_all(bind=_models_base.engine)
+        # 微信登录：users.openid 列幂等迁移（PG；失败 warning 不阻断）
+        try:
+            from app.services.auth_service import get_auth_service
+            get_auth_service().ensure_wechat_columns()
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"users openid 列迁移失败: {e}")
         logger.info("Token Usage 数据库表创建成功")
     except Exception as e:
         logger.warning(f"Token Usage 数据库表创建失败: {e}")
@@ -582,6 +588,11 @@ app.include_router(token_usage.router, prefix="/api")
 
 # Subscription Quota router（订阅套餐额度，只读本机 CLI 凭据）
 app.include_router(subscription_quota.router, prefix="/api")
+
+# Gateway router（本地网关：协议透传 / failover / 掩码 / 意图路由 / 预热 / 插件）
+from app.routes import gateway as gateway_router  # noqa: E402
+
+app.include_router(gateway_router.router, prefix="/api")
 
 # Resource Management router
 app.include_router(resource_management.router, prefix="/api")

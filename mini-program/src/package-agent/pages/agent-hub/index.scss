@@ -1,0 +1,228 @@
+/**
+ * Agent 订阅中心（移动端）— 玻璃卡质感由全局 .glass-card 提供，本地只保留布局。
+ */
+.agent-hub-page {
+  min-height: 100vh;
+  background: var(--bg-canvas);
+  padding: 20rpx 24rpx calc(40rpx + env(safe-area-inset-bottom));
+
+  .section-tabs {
+    display: flex;
+    gap: 12rpx;
+    margin-bottom: 20rpx;
+
+    .section-tab {
+      flex: 1;
+      text-align: center;
+      padding: 16rpx 0;
+      border-radius: 16rpx;
+      font-size: 26rpx;
+      background: var(--bg-surface-1);
+      border: 1rpx solid var(--glass-border);
+      color: var(--ink-secondary);
+
+      &.active {
+        background: rgba(139, 155, 255, 0.18);
+        border-color: rgba(139, 155, 255, 0.5);
+        color: var(--ink-primary);
+        font-weight: 600;
+      }
+    }
+  }
+
+  .section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20rpx;
+  }
+
+  .meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .meta-text {
+      font-size: 24rpx;
+      color: var(--ink-faint);
+    }
+  }
+
+  .glass-card {
+    padding: 24rpx;
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12rpx;
+
+      .card-title {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: var(--ink-primary);
+      }
+
+      .kind-badge {
+        font-size: 20rpx;
+        padding: 4rpx 14rpx;
+        border-radius: 999rpx;
+        background: rgba(139, 155, 255, 0.16);
+        color: #8B9BFF;
+      }
+
+      .badge-off {
+        background: rgba(248, 113, 113, 0.14);
+        color: #F87171;
+      }
+    }
+
+    .tier-block {
+      margin-top: 14rpx;
+
+      .tier-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8rpx;
+
+        .tier-name { font-size: 24rpx; color: var(--ink-secondary); }
+        .tier-value { font-size: 22rpx; color: var(--ink-faint); }
+      }
+
+      .bar-track {
+        height: 10rpx;
+        border-radius: 999rpx;
+        background: rgba(110, 122, 143, 0.2);
+        overflow: hidden;
+
+        .bar-fill {
+          height: 100%;
+          border-radius: 999rpx;
+
+          &.tone-ok { background: #34D399; }
+          &.tone-warn { background: #FBBF24; }
+          &.tone-danger { background: #F87171; }
+        }
+      }
+    }
+
+    .balance {
+      font-size: 28rpx;
+      font-weight: 600;
+      color: var(--ink-primary);
+
+      &.balance-zero { color: #F87171; }
+    }
+
+    .error-text {
+      font-size: 24rpx;
+      color: #F87171;
+    }
+
+    .muted, .small, .tiny {
+      color: var(--ink-faint);
+    }
+    .small { font-size: 24rpx; }
+    .tiny { font-size: 20rpx; }
+    .tiny.warn { color: #FBBF24; }
+
+    .card-actions {
+      display: flex;
+      gap: 12rpx;
+      margin-top: 16rpx;
+    }
+  }
+
+  .btn {
+    padding: 14rpx 20rpx;
+    border-radius: 14rpx;
+    font-size: 24rpx;
+    text-align: center;
+    background: var(--bg-surface-1);
+    border: 1rpx solid var(--glass-border);
+    color: var(--ink-secondary);
+
+    &.btn-primary {
+      background: rgba(139, 155, 255, 0.9);
+      color: #FFFFFF;
+      border-color: transparent;
+    }
+    &.btn-danger {
+      color: #F87171;
+      border-color: rgba(248, 113, 113, 0.4);
+    }
+    &.disabled { opacity: 0.5; }
+    &.add-btn { margin-bottom: 8rpx; }
+  }
+
+  .empty-card {
+    padding: 60rpx 30rpx;
+    text-align: center;
+    border: 1rpx dashed var(--glass-border);
+    border-radius: 20rpx;
+    font-size: 24rpx;
+    color: var(--ink-faint);
+  }
+
+  .hint-card {
+    padding: 20rpx;
+    border-radius: 16rpx;
+    background: var(--bg-surface-1);
+    font-size: 22rpx;
+    color: var(--ink-faint);
+  }
+
+  .agent-card, .provider-card {
+    .btn { margin-top: 12rpx; }
+  }
+
+  .layer-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+
+    .layer-card {
+      width: 600rpx;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: var(--bg-surface-1);
+      border-radius: 24rpx;
+      padding: 30rpx;
+
+      .layer-title {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: var(--ink-primary);
+        margin-bottom: 16rpx;
+        display: block;
+      }
+
+      .field-label {
+        display: block;
+        font-size: 24rpx;
+        color: var(--ink-secondary);
+        margin: 16rpx 0 8rpx;
+      }
+
+      .layer-input {
+        padding: 16rpx 20rpx;
+        border-radius: 14rpx;
+        background: var(--bg-canvas);
+        border: 1rpx solid var(--glass-border);
+        font-size: 26rpx;
+        color: var(--ink-primary);
+        min-height: 40rpx;
+      }
+
+      .layer-actions {
+        display: flex;
+        gap: 14rpx;
+        justify-content: flex-end;
+        margin-top: 24rpx;
+      }
+    }
+  }
+}
