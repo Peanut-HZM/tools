@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     DB_SQLALCHEMY_MAX_OVERFLOW: int = 10
     DB_SQLALCHEMY_POOL_TIMEOUT: int = 10   # 保持不变
     DB_HEALTH_CHECK: str = "true"  # 开启连接健康检查：取出连接时 SELECT 1 探活，失效则重取，避免池中失效连接导致间歇性 500（如 "server closed the connection unexpectedly"）
+    # 数据库 TCP 连接超时（秒）。psycopg2 默认无超时：远端不可达时会挂到
+    # OS 层 TCP 超时（可达数分钟），把请求线程全部占死并拖慢前端。
+    DB_CONNECT_TIMEOUT: int = 5
     # Security
     JWT_SECRET_KEY: str = "dev-jwt-secret-change-me"
     JWT_ALGORITHM: str = "HS256"

@@ -16,6 +16,10 @@ from app.config.config import settings
 
 DATABASE_URL = settings.DATABASE_URL
 
+#: 数据库 TCP 连接超时（秒）。psycopg2 默认无超时，远端不可达时会挂到
+#: OS 层 TCP 超时（可达数分钟），把请求线程占死。
+DB_CONNECT_TIMEOUT_SECONDS = max(1, int(getattr(settings, "DB_CONNECT_TIMEOUT", 5)))
+
 # 解析数据库URL
 def parse_database_url(url: str) -> dict:
     """解析数据库URL"""
@@ -72,7 +76,15 @@ def get_db_config() -> dict:
 
 
 def get_db_connection():
-    """获取数据库连接"""
+    """获取数据库连接（**物理新建**，不走连接池）。
+
+    注意：这是遗留路径，仅供初始化脚本等一次性场景使用。
+    业务请求请改用 ``get_pooled_db_connection()`` / ``get_raw_db_connection()``——
+    池化连接可复用长连接，避免「标签页长时间挂起后首次请求失败」。
+
+    ``connect_timeout`` 必设：psycopg2 默认无连接超时，远端不可达时会一直
+    挂到 OS 层 TCP 超时（可达数分钟），把请求线程全部占死。
+    """
     config = get_db_config()
     try:
         conn = psycopg2.connect(
@@ -81,7 +93,9 @@ def get_db_connection():
             database=config["database"],
             user=config["user"],
             password=config["password"],
-            cursor_factory=RealDictCursor
+            cursor_factory=RealDictCursor,
+            # 连接超时（秒）：远端不可达时快速失败，而不是挂死数分钟
+            connect_timeout=DB_CONNECT_TIMEOUT_SECONDS,
         )
         return conn
     except Exception as e:

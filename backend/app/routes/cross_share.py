@@ -129,11 +129,11 @@ async def get_devices(
     current_user: str = Depends(get_current_user_id),
 ):
     """获取设备列表"""
-    from app.config.database import get_db_connection
+    from app.config.database import get_pooled_db_connection, release_db_connection
 
     conn = None
     try:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT id, user_id, device_name, device_type, device_token,
@@ -165,8 +165,7 @@ async def get_devices(
                 "total": len(devices),
             }
     finally:
-        if conn:
-            conn.close()
+        release_db_connection(conn)
 
 
 @router.post("/devices")  # 移除 response_model，直接返回字典
@@ -176,7 +175,7 @@ async def register_device(
     current_user: str = Depends(get_current_user_id),
 ):
     """注册/更新设备"""
-    from app.config.database import get_db_connection
+    from app.config.database import get_pooled_db_connection, release_db_connection
     from datetime import datetime
 
     user_agent = request.headers.get("User-Agent")
@@ -184,7 +183,7 @@ async def register_device(
 
     conn = None
     try:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         with conn.cursor() as cur:
             # 检查是否已存在设备
             cur.execute("""
@@ -247,8 +246,7 @@ async def register_device(
                 "updated_at": str(row["updated_at"]) if row["updated_at"] else None,
             }
     finally:
-        if conn:
-            conn.close()
+        release_db_connection(conn)
 
 
 @router.put("/devices/{device_id}", response_model=DeviceResponse)
@@ -300,11 +298,11 @@ async def get_messages(
     current_user: str = Depends(get_current_user_id),
 ):
     """获取消息列表"""
-    from app.config.database import get_db_connection
+    from app.config.database import get_pooled_db_connection, release_db_connection
 
     conn = None
     try:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         with conn.cursor() as cur:
             if message_type:
                 sql = """
@@ -361,8 +359,7 @@ async def get_messages(
                 "has_more": total == limit,
             }
     finally:
-        if conn:
-            conn.close()
+        release_db_connection(conn)
 
 
 @router.post("/messages", response_model=MessageResponse)
@@ -483,11 +480,11 @@ async def get_storage_stats(
     current_user: str = Depends(get_current_user_id),
 ):
     """获取存储统计"""
-    from app.config.database import get_db_connection
+    from app.config.database import get_pooled_db_connection, release_db_connection
 
     conn = None
     try:
-        conn = get_db_connection()
+        conn = get_pooled_db_connection()
         with conn.cursor() as cur:
             # 总文件数和大小
             cur.execute("""
@@ -526,8 +523,7 @@ async def get_storage_stats(
                 "files_by_type": files_by_type,
             }
     finally:
-        if conn:
-            conn.close()
+        release_db_connection(conn)
 
 
 @router.get("/files/{file_id}", response_model=FileResponse)
