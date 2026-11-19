@@ -654,7 +654,7 @@ export default function MarkdownEditor() {
 
   return (
     <div 
-      className={`flex flex-col h-screen bg-canvas text-ink-muted overflow-hidden ${config.theme === 'light' ? 'light-mode' : ''} relative`}
+      className={`flex flex-col h-full min-h-0 bg-canvas text-ink-muted overflow-hidden ${config.theme === 'light' ? 'light-mode' : ''} relative`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

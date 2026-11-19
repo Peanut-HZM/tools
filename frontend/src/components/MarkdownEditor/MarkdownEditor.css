@@ -300,7 +300,7 @@ html[data-theme="light"] {
 .editor-area {
   flex: 1;
   overflow: hidden;
-  min-width: 200px;
+  min-width: 0;
   background: var(--bg-dark);
   display: flex;
   flex-direction: column;
@@ -643,4 +643,28 @@ html[data-theme="light"] {
 .light-mode .content-search-bar button:hover {
   background: #f1f5f9;
   color: #1e293b;
+}
+
+/* ========================================
+   NARROW SCREEN (手机 / 窄窗口)
+   侧栏与目录面板使用内联 style 固定像素宽度，编辑区原本还有
+   min-width:200px，三者相加在 390px 视口下超过视口宽度，
+   导致 main-content 横向溢出、编辑区被裁切。
+   窄屏下按视口比例收紧宽度，并隐藏仅鼠标可用的 resize 手柄。
+   ======================================== */
+@media (max-width: 768px) {
+  .sidebar {
+    /* !important：覆盖组件内联的 style width */
+    width: 40vw !important;
+    min-width: 120px;
+  }
+
+  .toc-sidebar {
+    width: 34vw !important;
+    min-width: 100px;
+  }
+
+  .resize-handle {
+    display: none;
+  }
 }
