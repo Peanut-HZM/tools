@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useMonitorStore } from '../../../stores/monitorStore';
+import { useAuth } from '../../../stores/authStore';
+import RequireAuthNotice from '../../Common/RequireAuthNotice';
 import * as monitorApi from '../../../api/monitorApi';
 import ServerList from './ServerList';
 import Overview from './Overview';
@@ -23,9 +25,12 @@ const TABS = [
 /** 系统监控主容器：六页签导航 + 服务器状态管理 */
 export default function SystemMonitor() {
   const { servers, setServers, activeTab, setActiveTab, selectedServerId, setSelectedServerId, unreadAlerts, setUnreadAlerts } = useMonitorStore();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // 加载服务器列表 + 告警未读数
   useEffect(() => {
+    // 未登录/登录过期：不轮询受保护接口，避免持续 401
+    if (!isAuthenticated) return;
     let cancelled = false;
     const load = async () => {
       try {
@@ -46,7 +51,20 @@ export default function SystemMonitor() {
       }).catch(() => {});
     }, 10000);
     return () => { cancelled = true; clearInterval(timer); };
-  }, [setServers, setSelectedServerId, setUnreadAlerts]);
+  }, [isAuthenticated, setServers, setSelectedServerId, setUnreadAlerts]);
+
+  // 认证校验中：先显示加载态，避免闪现登录提示
+  if (authLoading) {
+    return (
+      <div className="flex h-full min-h-[300px] items-center justify-center">
+        <div className="text-sm text-ink-muted">加载中...</div>
+      </div>
+    );
+  }
+  // 未登录：不发受保护请求，显示登录提示
+  if (!isAuthenticated) {
+    return <RequireAuthNotice />;
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">

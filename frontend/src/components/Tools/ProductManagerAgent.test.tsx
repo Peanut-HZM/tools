@@ -1,9 +1,10 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductManagerAgent from './ProductManagerAgent';
 import { conversationApi, type Conversation, type Message } from '../../services/conversationApi';
+import { useProductManagerStore } from '../../stores/productManagerStore';
 
 vi.mock('../../services/conversationApi', () => ({
   conversationApi: {
@@ -13,6 +14,11 @@ vi.mock('../../services/conversationApi', () => ({
     createConversation: vi.fn(),
     sendMessageStream: vi.fn(),
   },
+}));
+
+// ProductManagerAgent 在未登录时会渲染登录提示而不加载数据，测试以已登录身份运行
+vi.mock('../../stores/authStore', () => ({
+  useAuth: () => ({ isAuthenticated: true, isLoading: false, user: { user_id: 'u1' }, authVersion: 0 }),
 }));
 
 vi.mock('../../services/llmConfigApi', () => ({
@@ -83,9 +89,10 @@ function message(conversationId: string, content: string): Message {
 }
 
 function HistoryNavigation() {
-  const navigate = useNavigate();
+  // 新行为：工作区路由下会话 ID 存 store，地址栏不再带 pmConversation
+  const { setWorkspaceConversationId } = useProductManagerStore();
   return (
-    <button onClick={() => navigate('/workspace?pmConversation=conversation-b')}>
+    <button onClick={() => setWorkspaceConversationId('conversation-b')}>
       历史切换到会话 B
     </button>
   );
@@ -94,6 +101,8 @@ function HistoryNavigation() {
 describe('ProductManagerAgent 会话请求隔离', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // 工作区路由下的会话 ID 现在存在 store（不进入 URL）
+    useProductManagerStore.setState({ workspaceConversationId: 'conversation-a' });
   });
 
   afterEach(cleanup);
@@ -113,9 +122,10 @@ describe('ProductManagerAgent 会话请求隔离', () => {
     ));
 
     render(
-      <MemoryRouter initialEntries={['/workspace?pmConversation=conversation-a']}>
+      <MemoryRouter initialEntries={['/workspace/product-manager']}>
         <Routes>
           <Route path="/workspace" element={<ProductManagerAgent />} />
+          <Route path="/workspace/product-manager" element={<ProductManagerAgent />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -153,10 +163,11 @@ describe('ProductManagerAgent 会话请求隔离', () => {
     ));
 
     render(
-      <MemoryRouter initialEntries={['/workspace?pmConversation=conversation-a']}>
+      <MemoryRouter initialEntries={['/workspace/product-manager']}>
         <HistoryNavigation />
         <Routes>
           <Route path="/workspace" element={<ProductManagerAgent />} />
+          <Route path="/workspace/product-manager" element={<ProductManagerAgent />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -194,9 +205,10 @@ describe('ProductManagerAgent 会话请求隔离', () => {
       .mockResolvedValue([message('conversation-a', '恢复后的消息')]);
 
     render(
-      <MemoryRouter initialEntries={['/workspace?pmConversation=conversation-a']}>
+      <MemoryRouter initialEntries={['/workspace/product-manager']}>
         <Routes>
           <Route path="/workspace" element={<ProductManagerAgent />} />
+          <Route path="/workspace/product-manager" element={<ProductManagerAgent />} />
         </Routes>
       </MemoryRouter>,
     );

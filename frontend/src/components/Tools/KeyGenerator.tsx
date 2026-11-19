@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 import { Button } from "@/components/ui/Button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { useToast } from '../../hooks/useToast';
 
 interface Algorithm {
   name: string;
@@ -31,6 +32,7 @@ interface GeneratedKey {
 
 export default function KeyGenerator() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [algorithms, setAlgorithms] = useState<Record<string, Algorithm>>({});
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('rsa');
   const [selectedKeySize, setSelectedKeySize] = useState<number>(2048);
@@ -89,9 +91,10 @@ export default function KeyGenerator() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      alert(`✅ ${label} 已复制！`);
+      // 轻量 toast：不打断操作流（原先用 alert 弹窗需手动点确定，纯干扰）
+      addToast(`${label} 已复制`, 'success');
     }).catch(() => {
-      alert('❌ 复制失败');
+      addToast('复制失败', 'error');
     });
   };
 

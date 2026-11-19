@@ -14,6 +14,11 @@ vi.mock('../../../api/monitorApi', () => ({
   getMetrics: vi.fn().mockResolvedValue({ server_id: '', range: '', points: [] }),
 }));
 
+// SystemMonitor 未登录时会渲染登录提示而不加载数据，这里以已登录身份测试页面行为
+vi.mock('../../../stores/authStore', () => ({
+  useAuth: () => ({ isAuthenticated: true, user: { id: 'u1' }, authVersion: 0 }),
+}));
+
 afterEach(() => {
   cleanup();
 });

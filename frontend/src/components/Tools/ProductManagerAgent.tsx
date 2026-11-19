@@ -12,16 +12,21 @@ import PRDPreview from '../ProductManagerAgent/PRDPreview';
 import ExportDialog from '../ProductManagerAgent/ExportDialog';
 import { MemoryViewer } from '../Harness/MemoryViewer';
 import { SkillsViewer } from '../Harness/SkillsViewer';
+import { useProductManagerStore } from '../../stores/productManagerStore';
+import { useAuth } from '../../stores/authStore';
+import RequireAuthNotice from '../Common/RequireAuthNotice';
 import { TraceViewer } from '../Harness/TraceViewer';
 import { TimelinePanel } from '../Harness/TimeTravel/TimelinePanel';
 
 const ProductManagerAgent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { conversationId } = useParams<{ conversationId?: string }>();
-  const isWorkspaceRoute = location.pathname === '/workspace';
-  const workspaceConversationId = new URLSearchParams(location.search).get('pmConversation') || undefined;
-  const activeConversationId = isWorkspaceRoute ? workspaceConversationId : conversationId;
+  const isWorkspaceRoute = location.pathname.startsWith('/workspace');
+  // 工作区路由下的会话 ID 存在 store（不进入 URL），独立路由仍用 path 参数
+  const { workspaceConversationId, setWorkspaceConversationId } = useProductManagerStore();
+  const activeConversationId = isWorkspaceRoute ? (workspaceConversationId ?? undefined) : conversationId;
 
   // State
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -56,11 +61,14 @@ const ProductManagerAgent: React.FC = () => {
   };
 
   // Load initial data
+  // 未登录/登录过期不请求受保护接口（会话、Agent、LLM 配置都需鉴权），
+  // 避免 401 触发无意义的错误提示。
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadConversations();
     loadLLMConfigs();
     loadAgents();
-  }, []);
+  }, [isAuthenticated]);
 
   // Load conversation when ID changes
   useEffect(() => {
@@ -89,9 +97,8 @@ const ProductManagerAgent: React.FC = () => {
       navigate(`/tools/product-manager/${id}`);
       return;
     }
-    const params = new URLSearchParams(location.search);
-    params.set('pmConversation', id);
-    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    // 工作区路由：会话 ID 存 store，地址栏保持 /workspace/<工具编码> 干净
+    setWorkspaceConversationId(id);
   };
 
   const loadConversations = async () => {
@@ -278,6 +285,19 @@ const ProductManagerAgent: React.FC = () => {
     };
     return labels[type] || type;
   };
+
+  // 认证校验中 / 未登录：不渲染工具主体（它挂载后会立刻请求受保护接口），
+  // 避免登录过期后仍产生一堆 401 与通用错误提示
+  if (authLoading) {
+    return (
+      <div className="flex h-full min-h-[300px] items-center justify-center">
+        <div className="text-sm text-ink-muted">加载中...</div>
+      </div>
+    );
+  }
+  if (!isAuthenticated) {
+    return <RequireAuthNotice />;
+  }
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden">
