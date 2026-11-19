@@ -9,7 +9,16 @@ export default function Layout() {
   const { searchValue, debouncedValue, handleSearchChange, handleSearch } = useSearch();
   const navigate = useNavigate();
   const location = useLocation();
-  const isWorkspace = location.pathname === '/workspace';
+  // 工作区包含 /workspace 与 /workspace/<工具编码> 两种地址，
+  // 必须用前缀匹配，否则工作区内的工具页会退回普通页面分支：
+  // 渲染出 Header/Footer 且容器从 h-dvh 退化为 min-h-screen，
+  // 导致页面被撑开、内部固定底部的操作区（如消息发送按钮）被推到可视区之外。
+  // 工作区包含 /workspace 与 /workspace/<工具编码> 两种地址，
+  // 必须用前缀匹配，否则工作区内的工具页会退回普通页面分支：
+  // 渲染出 Header/Footer 且容器从 h-dvh 退化为 min-h-screen，
+  // 导致页面被撑开、内部固定底部的操作区（如消息发送按钮）被推到可视区之外。
+  const isWorkspace =
+    location.pathname === '/workspace' || location.pathname.startsWith('/workspace/');
   const isK8sWorkspace = location.pathname === '/tools/k8s-tool';
   // K8s 直接路由使用统一顶部导航，其余已具备独立沉浸式外壳的专业工具保持既有体验。
   const isImmersion =
