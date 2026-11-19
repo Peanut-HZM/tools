@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Plus, Terminal, Pencil, Trash2, HardDriveDownload, HardDriveUpload } from 'lucide-react';
 import { SSHConfig } from '../../../api/sshToolApi';
 import { useI18n, interpolate } from '../../../i18n';
@@ -6,6 +6,7 @@ import { useToast } from '../../../hooks/useToast';
 import StorageLocationBadge from '../../Common/StorageLocationBadge';
 import { migrateConfig } from '../../../api/storageApi';
 import type { StorageLocation } from '../../../types/storage';
+import { useConnectionListWidth } from '../../Common/useConnectionListWidth';
 
 interface Props {
   configs: SSHConfig[];
@@ -18,11 +19,22 @@ interface Props {
   onDelete: (id: string) => void;
   /** 迁移成功后刷新列表 */
   onMigrated?: () => void;
+  /** 上报「让名称完整显示所需的侧栏宽度」 */
+  onRequiredWidthChange?: (width: number) => void;
 }
 
-export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEdit, onDelete, onMigrated }) => {
+export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEdit, onDelete, onMigrated, onRequiredWidthChange }) => {
   const { t } = useI18n();
   const { addToast } = useToast();
+
+  // 侧栏宽度自适应：连接名称必须在同一行完整展示。
+  // 固定 256px 会把名称截断成 "logistics-fina..." 之类，用户无法分辨是哪个连接。
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const { registerName, requiredWidth } = useConnectionListWidth(listRef);
+
+  useEffect(() => {
+    onRequiredWidthChange?.(requiredWidth);
+  }, [requiredWidth, onRequiredWidthChange]);
 
   /** 存储位置迁移：本机 ↔ 服务器（迁移时后端会用目标端密钥重新加密凭据） */
   const handleMigrate = async (e: React.MouseEvent, config: SSHConfig) => {
@@ -49,8 +61,10 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
   return (
     // 桌面端高度由内容决定（md:h-auto），连接少时不再撑满整列留白；
     // 内容超出时列表区自身滚动（下方 flex-1 + overflow-y-auto）。
-    // 移动端:侧栏占满整行并限制高度(自身滚动),避免挤压右侧终端区;md 以上恢复固定 256px 侧栏
-    <div className="flex flex-col h-full bg-surface-1 border-b border-border md:h-auto md:max-h-[calc(100vh-140px)] md:border-b-0 md:border-r w-full md:w-64 max-h-[40vh] overflow-y-auto">
+    // 移动端:侧栏占满整行并限制高度(自身滚动),避免挤压右侧终端区;
+    // md 以上宽度由外层容器（SSHTool 的 --ssh-sidebar-width 变量）控制，
+    // 保证连接名称能在同一行完整显示。
+    <div className="flex flex-col h-full bg-surface-1 border-b border-border md:h-auto md:max-h-[calc(100vh-140px)] md:border-b-0 md:border-r w-full max-h-[40vh] overflow-y-auto">
       <div className="p-4 border-b border-border flex flex-col gap-2 bg-surface-1">
         <div className="flex justify-between items-center">
           <h2 className="font-semibold text-ink">{t.ssh.connections}</h2>
@@ -63,8 +77,8 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 md:min-h-0 md:max-h-[calc(100vh-160px)]">
-        {configs.map(config => (
+      <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-1 md:min-h-0 md:max-h-[calc(100vh-160px)]">
+        {configs.map((config, index) => (
           <div
             key={config.id}
             className="p-2 rounded cursor-pointer group flex justify-between items-center text-ink-muted hover:bg-surface-2 hover:text-ink"
@@ -73,7 +87,7 @@ export const ConnectionList: React.FC<Props> = ({ configs, onSelect, onAdd, onEd
             <div className="truncate flex-1">
               <div className="font-medium flex items-center min-w-0">
                 <Terminal className="w-3 h-3 mr-2 opacity-70 shrink-0" />
-                <span className="truncate min-w-0">{config.alias}</span>
+                <span ref={registerName(index)} className="truncate min-w-0">{config.alias}</span>
                 <span className="ml-1.5 flex-shrink-0">
                   <StorageLocationBadge
                     location={(config.storage_location ?? 'local') as StorageLocation}

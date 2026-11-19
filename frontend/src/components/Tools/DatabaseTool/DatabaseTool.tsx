@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { DatabaseToolProvider, useDatabaseTool } from '../../../contexts/DatabaseToolContext';
+import { useAuth } from '../../../stores/authStore';
+import RequireAuthNotice from '../../Common/RequireAuthNotice';
 import { Terminal, Table, X, Plus, Database } from 'lucide-react';
 import ConnectionList from './components/ConnectionList';
 import SQLExecutor from './SQLExecutor';
@@ -46,6 +48,8 @@ const DatabaseToolContent: React.FC = () => {
     { id: 'sql-console', type: 'sql', title: 'SQL Console' }
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('sql-console');
+  // 侧栏内容要求的最小宽度（连接名称完整显示所需），传给 ResizablePanel
+  const [requiredSidebarWidth, setRequiredSidebarWidth] = useState(0);
 
   const handleAddConfig = () => {
     setEditConfigId(null);
@@ -181,10 +185,11 @@ const DatabaseToolContent: React.FC = () => {
       <ResizablePanel
         defaultWidth={280}
         minWidth={200}
-        maxWidth={500}
+        maxWidth={560}
         storageKey="dbTool.leftPanelWidth"
         className="h-56 w-full max-w-full shrink-0 md:h-auto md:max-h-full md:w-auto"
         mobileFullWidth
+        requiredWidth={requiredSidebarWidth}
       >
         <ConnectionList
           onAddConfig={handleAddConfig}
@@ -195,6 +200,7 @@ const DatabaseToolContent: React.FC = () => {
           activeDatabaseName={activeDatabaseName}
           activeSchemaName={activeSchemaName}
           onConnectionSelect={handleConnectionSelect}
+          onRequiredWidthChange={setRequiredSidebarWidth}
         />
       </ResizablePanel>
       
@@ -291,6 +297,18 @@ const DatabaseToolContent: React.FC = () => {
 };
 
 const DatabaseTool: React.FC = () => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  // 未登录：不挂载 Provider（它会在挂载后立即请求受保护接口），显示登录提示
+  if (authLoading) {
+    return (
+      <div className="flex h-full min-h-[300px] items-center justify-center">
+        <div className="text-sm text-ink-muted">加载中...</div>
+      </div>
+    );
+  }
+  if (!isAuthenticated) {
+    return <RequireAuthNotice />;
+  }
   return (
     <DatabaseToolProvider>
       <DatabaseToolContent />

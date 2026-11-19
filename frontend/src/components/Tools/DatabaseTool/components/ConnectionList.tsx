@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { getStorageStatus, migrateConfig } from '../../../../api/storageApi';
 import type { StorageLocation } from '../../../../types/storage';
 import StorageLocationBadge from '../../../Common/StorageLocationBadge';
+import { useConnectionListWidth } from '../../../Common/useConnectionListWidth';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -32,14 +33,25 @@ interface ConnectionListProps {
   activeDatabaseName?: string;
   activeSchemaName?: string;
   onConnectionSelect?: (configId: string, databaseName?: string, schemaName?: string) => void;
+  /** 上报「让连接名称完整显示所需的侧栏宽度」 */
+  onRequiredWidthChange?: (width: number) => void;
 }
 
-const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConfig, onSelectTable, onOpenSqlConsole, activeConfigId, activeDatabaseName, activeSchemaName, onConnectionSelect }) => {
+const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConfig, onSelectTable, onOpenSqlConsole, activeConfigId, activeDatabaseName, activeSchemaName, onConnectionSelect, onRequiredWidthChange }) => {
   const { configs, currentConfig, selectConfigById, setCurrentDatabase, refreshConfigs, isLoading } = useDatabaseTool();
   const { isToolSidebarVisible, toggleToolSidebar } = useWorkspaceStore();
   const { t } = useI18n();
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
+
+  // 侧栏宽度自适应：连接名称必须在同一行完整展示。
+  // 固定 280px 会把名称截断成 "smar..." / "gld-j..." 之类，无法分辨是哪个连接。
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const { registerName, requiredWidth } = useConnectionListWidth(listRef);
+
+  useEffect(() => {
+    onRequiredWidthChange?.(requiredWidth);
+  }, [requiredWidth, onRequiredWidthChange]);
 
   // 右→左联动：活跃Tab连接变化时自动展开
   useEffect(() => {
@@ -203,7 +215,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 md:min-h-0 md:max-h-[calc(100vh-160px)]">
+      <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-1 md:min-h-0 md:max-h-[calc(100vh-160px)]">
         {/* Skeleton loading placeholder */}
         {isLoading && configs.length === 0 && (
           <div className="space-y-1">
@@ -217,7 +229,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
           </div>
         )}
 
-        {filteredConfigs.map(config => {
+        {filteredConfigs.map((config, configIndex) => {
           // 搜索仅在当前选中的连接内生效，不扩大到其他连接
           const configSelected = activeConfigId === config.id || currentConfig?.id === config.id;
           return (
@@ -242,6 +254,7 @@ const ConnectionList: React.FC<ConnectionListProps> = ({ onAddConfig, onEditConf
             activeSchemaName={activeSchemaName}
             serverAvailable={serverAvailable}
             onMigrate={handleMigrate}
+            nameRef={registerName(configIndex)}
           />
           );
         })}
@@ -308,10 +321,12 @@ interface ConnectionNodeProps {
   /** 远程服务器是否可用（决定迁移按钮展示） */
   serverAvailable: boolean;
   onMigrate: (configId: string, target: StorageLocation) => Promise<void>;
+  /** 名称元素 ref 回调：用于测量「名称完整显示所需的侧栏宽度」 */
+  nameRef?: (el: HTMLElement | null) => void;
 }
 
 const ConnectionNode: React.FC<ConnectionNodeProps> = ({
-  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences, activeDatabaseName, activeSchemaName, serverAvailable, onMigrate
+  config, isExpanded, onToggleExpand, isSelected, onSelect, onEdit, onSelectTable, onSelectDatabase, getEnvColor, onRefreshConfigs, onOpenSqlConsole, onOpenBackup, onOpenBackupHistory, searchTerm, displayPreferences, activeDatabaseName, activeSchemaName, serverAvailable, onMigrate, nameRef
 }) => {
   const { t } = useI18n();
   const [databases, setDatabases] = useState<string[]>([]);
@@ -633,7 +648,7 @@ const handleSelectAndExpand = async () => {
                 {/* min-w-0：flex 子元素默认 min-width:auto，不加则拒绝收缩，
                     徽章会把别名挤成只剩首字母 + 省略号。
                     单行展示：超宽时省略号截断（title 悬停看全名），拖宽侧栏可完整显示，禁止换行 */}
-                <span className="font-medium truncate text-sm min-w-0" title={config.alias}>{config.alias}</span>
+                 <span ref={nameRef} className="font-medium truncate text-sm min-w-0" title={config.alias}>{config.alias}</span>
                 {config.environment && (
                   <Badge variant={getEnvColor(config.environment)} className="text-[10px] px-1.5 py-0 shrink-0">
                     {config.environment}

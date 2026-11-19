@@ -17,6 +17,12 @@ interface ResizablePanelProps {
    * md 以上仍使用可拖拽的固定宽度；关闭时保持原有的固定宽度行为。
    */
   mobileFullWidth?: boolean;
+  /**
+   * 内容要求的最小宽度（px）。用于「名称必须在同一行完整展示」的场景：
+   * 实际生效宽度 = max(用户拖拽宽度, 内容要求宽度)，
+   * 用户拖得再窄也不会把内容截断，拖宽后又能看到更多内容。
+   */
+  requiredWidth?: number;
 }
 
 export default function ResizablePanel({
@@ -27,6 +33,7 @@ export default function ResizablePanel({
   storageKey,
   className = 'h-full',
   mobileFullWidth = false,
+  requiredWidth = 0,
 }: ResizablePanelProps) {
   const [width, setWidth] = useState(() => {
     if (storageKey) {
@@ -37,6 +44,9 @@ export default function ResizablePanel({
   });
 
   const isResizing = useRef(false);
+
+  // 实际生效宽度：用户拖拽宽度与内容要求宽度取大者
+  const effectiveWidth = Math.max(width, requiredWidth);
 
   const startResize = useCallback((e: React.MouseEvent) => {
     isResizing.current = true;
@@ -79,7 +89,7 @@ export default function ResizablePanel({
         max-w-full 保证面板宽度不会超出视口容器宽度
       */}
       <div
-        style={{ '--panel-width': `${width}px` } as React.CSSProperties}
+        style={{ '--panel-width': `${effectiveWidth}px` } as React.CSSProperties}
         className={`h-full min-w-0 max-w-full shrink-0 ${
           mobileFullWidth ? 'w-full md:w-[var(--panel-width)]' : 'w-[var(--panel-width)]'
         }`}

@@ -13,6 +13,9 @@ vi.mock('../../../api/sshToolApi', () => ({
   buildSSHWebSocketUrl: () => 'ws://example.com/ssh',
 }));
 vi.mock('../../../api/authApi', () => ({ getAuthToken: () => 'token' }));
+vi.mock('../../../stores/authStore', () => ({
+  useAuth: () => ({ isAuthenticated: true, user: null, authVersion: 0 }),
+}));
 vi.mock('../../../hooks/useToast', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
 vi.mock('../../../i18n', () => ({
   useI18n: () => ({
