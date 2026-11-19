@@ -284,3 +284,142 @@ async def test_magpie_status_reports_paths(import_env, magpie_dir):
     assert resp.status_code == 200
     assert resp.json()["providersPath"].endswith("providers.json")
     assert resp.json()["providersFileExists"] is False
+
+
+# ---------------------------------------------------------------- 订阅账号分支
+# 本机 magpie 目前没有 OAuth 订阅账号（各 agent 用的是 API-key provider），
+# `magpie accounts --json` 输出 []，所以这条分支只能靠单测覆盖。
+
+
+def test_load_accounts_parses_json(monkeypatch):
+    """accounts --json 的真实结构要能解析成 MagpieAccount"""
+    payload = json.dumps(
+        [
+            {
+                "agent": "claude",
+                "user": "me@example.com",
+                "plan": "Max",
+                "active": True,
+                "on": True,
+                "alias": "工作号",
+                "windows": [
+                    {"name": "5h", "used": 42.5, "remaining": 57.5, "resetsAt": "2026-11-20T05:00:00Z"},
+                    {"name": "weekly", "used": 10, "remaining": 90},
+                ],
+                "balance": "",
+                "readAt": "2026-11-20T00:00:00Z",
+            }
+        ],
+        ensure_ascii=False,
+    )
+
+    class FakeProc:
+        returncode = 0
+        stdout = payload
+        stderr = ""
+
+    monkeypatch.setattr(magpie_sync, "find_magpie_binary", lambda: "/fake/magpie")
+    monkeypatch.setattr(
+        magpie_sync.subprocess, "run", lambda *a, **kw: FakeProc()
+    )
+
+    accounts = magpie_sync.load_accounts()
+    assert len(accounts) == 1
+    acc = accounts[0]
+    assert acc.agent == "claude"
+    assert acc.user == "me@example.com"
+    assert acc.plan == "Max"
+    assert acc.active is True
+    assert acc.alias == "工作号"
+    assert len(acc.windows) == 2
+    assert acc.windows[0]["name"] == "5h"
+    assert acc.windows[0]["used"] == 42.5
+
+
+def test_load_accounts_ignores_nonzero_exit(monkeypatch):
+    class FakeProc:
+        returncode = 2
+        stdout = ""
+        stderr = "boom"
+
+    monkeypatch.setattr(magpie_sync, "find_magpie_binary", lambda: "/fake/magpie")
+    monkeypatch.setattr(magpie_sync.subprocess, "run", lambda *a, **kw: FakeProc())
+    assert magpie_sync.load_accounts() == []
+
+
+def test_load_accounts_ignores_broken_json(monkeypatch):
+    class FakeProc:
+        returncode = 0
+        stdout = "{not json"
+        stderr = ""
+
+    monkeypatch.setattr(magpie_sync, "find_magpie_binary", lambda: "/fake/magpie")
+    monkeypatch.setattr(magpie_sync.subprocess, "run", lambda *a, **kw: FakeProc())
+    assert magpie_sync.load_accounts() == []
+
+
+@pytest.mark.asyncio
+async def test_import_magpie_syncs_subscription_accounts(import_env, magpie_dir, monkeypatch):
+    """订阅账号分支：claude 账号建出来，label 带 alias+plan，窗口写进 extra"""
+    from app.services.subscription_quota.magpie_sync import MagpieAccount
+
+    monkeypatch.setattr(
+        magpie_sync,
+        "load_accounts",
+        lambda timeout=45: [
+            MagpieAccount(
+                agent="claude",
+                user="me@example.com",
+                plan="Max",
+                active=True,
+                alias="工作号",
+                windows=[{"name": "5h", "used": 42.5, "remaining": 57.5}],
+            )
+        ],
+    )
+    _write_providers(magpie_dir, [])
+
+    resp = client.post(
+        "/api/subscription-quota/import/magpie",
+        json={"include_accounts": True},
+        headers=AUTH,
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert data["created"] == 1
+
+    acc = next(a for a in import_env.values() if a.provider_id == "claude")
+    assert acc.label == "工作号 · Max"
+    assert acc.category == "official"
+    assert acc.extra["source"] == "magpie"
+    assert acc.extra["agent"] == "claude"
+    assert acc.extra["user"] == "me@example.com"
+    assert acc.extra["windows"][0]["name"] == "5h"
+    # 订阅账号靠本机登录，不该写入任何 API Key
+    assert not acc.api_key
+
+
+@pytest.mark.asyncio
+async def test_import_magpie_unsupported_account_agent_goes_to_skipped(
+    import_env, magpie_dir, monkeypatch
+):
+    """copilot 之类不是本工具支持的官方订阅 → 进 skippedItems，不静默丢"""
+    from app.services.subscription_quota.magpie_sync import MagpieAccount
+
+    monkeypatch.setattr(
+        magpie_sync,
+        "load_accounts",
+        lambda timeout=45: [MagpieAccount(agent="copilot", user="gh@example.com")],
+    )
+    _write_providers(magpie_dir, [])
+
+    resp = client.post(
+        "/api/subscription-quota/import/magpie",
+        json={"include_accounts": True},
+        headers=AUTH,
+    )
+    data = resp.json()
+    assert data["created"] == 0
+    assert len(data["skippedItems"]) == 1
+    assert data["skippedItems"][0]["source"] == "magpie-account"
+    assert "copilot" in data["skippedItems"][0]["reason"]
