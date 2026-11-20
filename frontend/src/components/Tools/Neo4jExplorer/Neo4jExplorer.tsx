@@ -1,6 +1,6 @@
 // Neo4j 图谱浏览器 —— 页面入口
 // 顶部连接选择器 + 管理连接抽屉 + Tab（概览 / 探索 / 查询）
-// 本任务实现概览 Tab，探索/查询为占位（Task 7/8 填充）
+// 概览（Task 6）/ 探索（Task 7）已实现，查询为占位（Task 8 填充）
 import React, { useEffect, useState } from 'react';
 import { Database, Settings, LayoutGrid, Compass, Terminal } from 'lucide-react';
 import {
@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
 import { ConnectionPanel } from './ConnectionPanel';
 import { SchemaOverview } from './SchemaOverview';
+import ExplorePanel from './ExplorePanel';
 
 type TabValue = 'overview' | 'explore' | 'query';
 
@@ -82,9 +83,11 @@ const Neo4jExplorer: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConnectionId]);
 
-  /** 点击 Label 卡片：切换到探索 Tab 并预选（Task 7 实现完整联动，这里先占位提示） */
-  const handleSelectLabel = (_label: string) => {
-    addToast('探索功能即将上线（Task 7）', 'info');
+  /** 点击 Label 卡片：切换到探索 Tab 并预选该 Label（探索面板读取预选列表自动勾选） */
+  const [preSelectedLabels, setPreSelectedLabels] = useState<string[]>([]);
+  const handleSelectLabel = (label: string) => {
+    setPreSelectedLabels((prev) => (prev.includes(label) ? prev : [...prev, label]));
+    setActiveTab('explore');
   };
 
   if (authLoading) {
@@ -161,12 +164,16 @@ const Neo4jExplorer: React.FC = () => {
               />
             </TabsContent>
 
-            {/* 探索 Tab：Task 7 实现 */}
-            <TabsContent value="explore" className="flex-1 overflow-hidden">
-              <div className="flex flex-col items-center justify-center h-full text-ink-faint">
-                <Compass className="w-16 h-16 mb-4 opacity-20" />
-                <p className="text-sm">图探索功能即将上线</p>
-              </div>
+            {/* 探索 Tab：Task 7 实现（采样画布 + 节点详情 + 搜索定位） */}
+            <TabsContent value="explore" className="flex-1 overflow-hidden mt-0">
+              <ExplorePanel
+                connectionId={activeConnection.id}
+                schema={schema}
+                preSelectedLabels={preSelectedLabels}
+                onConsumePreSelectedLabel={(label) =>
+                  setPreSelectedLabels((prev) => prev.filter((l) => l !== label))
+                }
+              />
             </TabsContent>
 
             {/* 查询 Tab：Task 8 实现 */}
