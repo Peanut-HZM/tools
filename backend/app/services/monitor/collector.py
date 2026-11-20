@@ -170,7 +170,12 @@ class MonitorCollector:
                 logger.error("告警评估失败: server=%s 错误=%s", server_id, str(e))
             return metrics
         except Exception as e:
-            logger.warning("服务器采集失败: id=%s name=%s 错误=%s", server_id, server.get("name"), str(e))
+            # 附带异常栈：只打 str(e) 无法定位是哪一行抛的（曾因此把
+            # 「旧 pyc 缓存」误判成连接池问题，排查绕了很久）。
+            logger.warning(
+                "服务器采集失败: id=%s name=%s 错误=%s",
+                server_id, server.get("name"), str(e), exc_info=True,
+            )
             try:
                 update_status(server_id, "offline", str(e)[:200], None)
             except Exception:

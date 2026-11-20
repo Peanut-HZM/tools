@@ -56,6 +56,12 @@ async def import_from_ssh(
     return MonitorServerService.import_from_ssh(user_id, request.ssh_config_id)
 
 
+@router.post("/servers/sync-ssh")
+async def sync_from_ssh(user_id: str = Depends(get_current_user_id)):
+    """把全部 SSH 工具配置同步为监控服务器（幂等，可反复调用）"""
+    return MonitorServerService.sync_from_ssh(user_id)
+
+
 @router.put("/servers/{server_id}", response_model=MonitorServerResponse)
 async def update_server(
     server_id: str,

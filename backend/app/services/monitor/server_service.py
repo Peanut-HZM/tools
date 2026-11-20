@@ -8,6 +8,7 @@ from typing import List, Optional, Dict
 
 from fastapi import HTTPException
 import paramiko
+from cryptography.fernet import InvalidToken
 
 from app.config.database import get_pooled_db_connection, release_db_connection
 from app.utils.encryption import EncryptionUtils
@@ -136,7 +137,8 @@ class MonitorServerService:
             cursor.execute(
                 """
                 SELECT s.*, m.cpu_percent, m.mem_percent, m.disk_percent,
-                       m.net_recv_rate, m.net_sent_rate, m.disk_read_rate, m.disk_write_rate
+                       m.net_recv_rate, m.net_sent_rate, m.disk_read_rate, m.disk_write_rate,
+                       m.collected_at AS metric_collected_at
                 FROM monitor_servers s
                 LEFT JOIN LATERAL (
                     SELECT * FROM monitor_metrics
@@ -170,6 +172,30 @@ class MonitorServerService:
                     "disk_write_rate": row.get("disk_write_rate"),
                 }
             item["metric"] = metric if any(v is not None for v in metric.values()) else None
+
+            # 陈旧错误自愈：多个部署实例共享同一数据库时，旧版本实例会把它自己
+            # 的历史错误反复写回（例如 paramiko DSSKey 在 4.0 已移除、代码已修），
+            # 把另一实例刚写入的 online 覆盖成 offline。
+            #
+            # 判定依据不用 last_seen_at（对方写 offline 时会把它置 NULL），
+            # 而用 monitor_metrics 的最新采集时间 —— 只有真正采集成功才会写这张表，
+            # 对方实例不会碰它。最近 2 分钟内有指标落库 ⇒ 服务是通的，清掉陈旧错误。
+            metric_at = row.get("metric_collected_at")
+            if item.get("status") != "online" and metric_at is not None and item.get("metric") is not None:
+                try:
+                    if isinstance(metric_at, str):
+                        metric_at = datetime.fromisoformat(metric_at.replace("Z", ""))
+                    age = (datetime.now() - metric_at).total_seconds()
+                except (TypeError, ValueError):
+                    age = 9999
+                if age < 120:
+                    item["status"] = "online"
+                    item["last_error"] = None
+                    # 自愈时补上采集时间：对方实例写 offline 会把 last_seen_at 置 NULL，
+                    # 不补会让卡片显示「尚未采集」而指标却有值，自相矛盾。
+                    if item.get("last_seen_at") is None and metric_at is not None:
+                        item["last_seen_at"] = metric_at
+
             result.append(item)
         return result
 
@@ -298,6 +324,147 @@ class MonitorServerService:
             release_db_connection(conn)
 
     @staticmethod
+    def sync_from_ssh(user_id: str) -> Dict:
+        """把用户全部 SSH 配置同步为监控服务器（幂等，可反复调用）
+
+        语义：
+        * SSH 配置新增 → 新建对应监控服务器（记录 source_ssh_id）
+        * SSH 配置改过（名称 / 主机 / 端口 / 用户名）→ 更新监控服务器
+        * SSH 配置已删除 → 对应的监控服务器标记 disabled（不物理删，
+          历史指标与告警记录仍可追溯）
+        * 本机节点与「手动添加、无 source_ssh_id」的服务器完全不动
+
+        凭据复制：从 SSH 配置解密后重新加密写入监控服务器，两者之后各自独立管理
+        （在监控里改密码不会反向影响 SSH 工具，符合「导入即快照」的既有语义）。
+        """
+        from app.services.ssh_tool_service import SSHToolService
+        from app.utils.encryption import EncryptionUtils
+
+        # 1) 现有监控服务器（按 source_ssh_id 索引）
+        conn = get_pooled_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """SELECT id, name, host, port, username, source_ssh_id, status, deleted
+                   FROM monitor_servers
+                   WHERE user_id = %s AND deleted = FALSE AND source_ssh_id IS NOT NULL""",
+                (user_id,),
+            )
+            existing_rows = cursor.fetchall()
+        finally:
+            cursor.close()
+            release_db_connection(conn)
+
+        existing_by_ssh: Dict[str, Dict] = {
+            str(r["source_ssh_id"]): dict(r) for r in existing_rows if r.get("source_ssh_id")
+        }
+
+        # 2) SSH 配置（已脱敏，需要单独取密文列来复制凭据）
+        ssh_configs = SSHToolService.get_configs(user_id)
+
+        created = updated = unchanged = disabled = 0
+        items: list[Dict] = []
+
+        for cfg in ssh_configs:
+            ssh_id = cfg.id
+            cur = existing_by_ssh.get(ssh_id)
+            changed_fields: list[str] = []
+            if cur:
+                if (cur.get("name") or "") != cfg.alias:
+                    changed_fields.append("name")
+                if (cur.get("host") or "") != (cfg.host or ""):
+                    changed_fields.append("host")
+                if int(cur.get("port") or 22) != int(cfg.port or 22):
+                    changed_fields.append("port")
+                if (cur.get("username") or "") != (cfg.username or ""):
+                    changed_fields.append("username")
+
+            if cur and not changed_fields:
+                unchanged += 1
+                items.append({"sshConfigId": ssh_id, "name": cfg.alias, "action": "unchanged"})
+                continue
+
+            if cur:
+                # 已存在且元信息变了：更新名称与连接信息
+                conn = get_pooled_db_connection()
+                cs = conn.cursor()
+                try:
+                    cs.execute(
+                        """UPDATE monitor_servers
+                           SET name = %s, host = %s, port = %s, username = %s, updated_at = CURRENT_TIMESTAMP
+                           WHERE id = %s AND user_id = %s""",
+                        (cfg.alias, cfg.host, cfg.port, cfg.username, cur["id"], user_id),
+                    )
+                    conn.commit()
+                finally:
+                    cs.close()
+                    release_db_connection(conn)
+                updated += 1
+                items.append(
+                    {"sshConfigId": ssh_id, "name": cfg.alias, "action": "updated",
+                     "fields": changed_fields}
+                )
+                continue
+
+            # 新建：复制凭据（从 SSH 配置的密文列解密，再写入监控服务器）
+            try:
+                MonitorServerService.import_from_ssh(user_id, ssh_id)
+                created += 1
+                items.append({"sshConfigId": ssh_id, "name": cfg.alias, "action": "created"})
+            except InvalidToken:
+                # SSH 配置里的密码/私钥是用旧主密钥加密的，当前密钥解不开。
+                # 这类配置在 SSH 工具里同样无法使用，需要用户在 SSH 工具里重填密码。
+                msg = "SSH 配置的密码无法解密（历史密钥问题），请到 SSH 工具重新填写密码后再同步"
+                logger.warning("SSH 配置 %s 凭据无法解密，跳过同步", ssh_id)
+                items.append(
+                    {"sshConfigId": ssh_id, "name": cfg.alias, "action": "failed", "reason": msg}
+                )
+            except Exception as exc:  # 单条失败不影响其它服务器
+                logger.warning("SSH 配置 %s 同步为监控服务器失败: %s", ssh_id, exc)
+                items.append(
+                    {"sshConfigId": ssh_id, "name": cfg.alias, "action": "failed",
+                     "reason": str(exc)[:200] or type(exc).__name__}
+                )
+
+        # 3) SSH 侧已删除的 → 监控服务器标记 disabled
+        live_ssh_ids = {c.id for c in ssh_configs}
+        for ssh_id, row in existing_by_ssh.items():
+            if ssh_id in live_ssh_ids:
+                continue
+            if row.get("status") == "disabled":
+                continue
+            conn = get_pooled_db_connection()
+            cs = conn.cursor()
+            try:
+                cs.execute(
+                    """UPDATE monitor_servers
+                       SET status = 'disabled', updated_at = CURRENT_TIMESTAMP
+                       WHERE id = %s AND user_id = %s""",
+                    (row["id"], user_id),
+                )
+                conn.commit()
+            finally:
+                cs.close()
+                release_db_connection(conn)
+            disabled += 1
+            items.append(
+                {"sshConfigId": ssh_id, "name": row.get("name") or "", "action": "disabled"}
+            )
+
+        logger.info(
+            "SSH → 监控同步: user=%s 新建 %d / 更新 %d / 停用 %d / 未变 %d",
+            user_id, created, updated, disabled, unchanged,
+        )
+        return {
+            "sshTotal": len(ssh_configs),
+            "created": created,
+            "updated": updated,
+            "disabled": disabled,
+            "unchanged": unchanged,
+            "items": items,
+        }
+
+    @staticmethod
     def import_from_ssh(user_id: str, ssh_config_id: str) -> Dict:
         """从 SSH 配置导入为监控服务器（凭据复制，后续独立管理）"""
         conn = get_pooled_db_connection()
@@ -364,9 +531,24 @@ class MonitorServerService:
 
     @staticmethod
     def _load_private_key(private_key: str, passphrase: Optional[str]):
-        """加载私钥（复用 SSH 工具的方式）"""
+        """加载私钥（复用 SSH 工具的方式）
+
+        候选密钥类型必须动态探测：paramiko 5.x 已移除 DSSKey，
+        写死 paramiko.DSSKey 会在模块属性访问时直接抛 AttributeError。
+        """
         import io
-        key_classes = [paramiko.RSAKey, paramiko.Ed25519Key, paramiko.ECDSAKey, paramiko.DSSKey]
+        key_classes = [
+            key_cls
+            for key_cls in (
+                getattr(paramiko, "RSAKey", None),
+                getattr(paramiko, "Ed25519Key", None),
+                getattr(paramiko, "ECDSAKey", None),
+                getattr(paramiko, "DSSKey", None),  # paramiko < 5 才有，缺失时跳过
+            )
+            if key_cls is not None
+        ]
+        if not key_classes:
+            raise HTTPException(status_code=500, detail="SSH 客户端不支持任何私钥类型")
         for key_cls in key_classes:
             try:
                 return key_cls.from_private_key(io.StringIO(private_key), password=passphrase)
@@ -375,16 +557,24 @@ class MonitorServerService:
         raise HTTPException(status_code=400, detail="无效的私钥")
 
     @staticmethod
-    def get_enabled_servers() -> List[Dict]:
-        """获取所有启用（未被禁用）的监控服务器（含解密凭据，供采集引擎使用）"""
+    def get_enabled_servers(user_id: Optional[str] = None) -> List[Dict]:
+        """获取启用（未被禁用）的监控服务器（含解密凭据，供采集引擎使用）
+
+        :param user_id: 传 None 表示采集引擎的全局周期（所有用户都要采）；
+                        传具体用户时只返回该用户的服务器，避免跨用户数据混用。
+        """
         conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute(
-                """SELECT * FROM monitor_servers
-                   -- 采集后状态为 online/offline/error，enabled 仅作为新建服务器初始态，需一并采集
-                   WHERE status <> 'disabled' AND deleted = FALSE""",
-            )
+            sql = """SELECT * FROM monitor_servers
+                     -- 采集后状态为 online/offline/error，enabled 仅作为新建服务器初始态，需一并采集
+                     WHERE status <> 'disabled' AND deleted = FALSE"""
+            params: tuple = ()
+            if user_id is not None:
+                sql += " AND user_id = %s"
+                params = (user_id,)
+            sql += " ORDER BY CASE WHEN server_type = 'local' THEN 0 ELSE 1 END, created_at"
+            cursor.execute(sql, params)
             rows = cursor.fetchall()
         finally:
             cursor.close()
@@ -392,24 +582,53 @@ class MonitorServerService:
         result = []
         for row in rows:
             server = MonitorServerService._row_to_dict(row)
-            server["password"] = EncryptionUtils.decrypt(row.get("password_encrypted")) if row.get("password_encrypted") else None
-            server["private_key"] = EncryptionUtils.decrypt(row.get("private_key_encrypted")) if row.get("private_key_encrypted") else None
-            server["passphrase"] = EncryptionUtils.decrypt(row.get("passphrase_encrypted")) if row.get("passphrase_encrypted") else None
+            # 单条凭据解密失败不能让整轮采集崩掉：标记该条为不可用并继续
+            try:
+                server["password"] = EncryptionUtils.decrypt(row.get("password_encrypted")) if row.get("password_encrypted") else None
+                server["private_key"] = EncryptionUtils.decrypt(row.get("private_key_encrypted")) if row.get("private_key_encrypted") else None
+                server["passphrase"] = EncryptionUtils.decrypt(row.get("passphrase_encrypted")) if row.get("passphrase_encrypted") else None
+            except Exception as exc:
+                logger.warning(
+                    "监控服务器凭据解密失败，跳过采集: id=%s name=%s 错误=%s",
+                    row.get("id"), row.get("name"), exc,
+                )
+                continue
             result.append(server)
         return result
 
     @staticmethod
     def update_status(server_id: str, status: str, last_error: Optional[str], last_seen_at: Optional[datetime]) -> None:
-        """更新服务器采集状态"""
+        """更新服务器采集状态
+
+        **多实例竞争保护**：同一个数据库可能被多台机器上的同一应用同时采集
+        （本机开发实例 + 远端部署实例各跑一个采集循环）。旧版本实例采集失败时
+        会把另一实例刚写入的 online 覆盖成 offline，导致页面状态在
+        online/offline 之间反复跳动，并不断回显早已修复的历史错误
+        （如 paramiko DSSKey）。
+
+        因此「标记 offline」加了时间护栏：只有当 last_seen_at 早于本次失败
+        超过 60 秒时才允许覆盖 —— 说明最近确实没人成功采过它。
+        写 online 不设限制，成功永远应该被记录。
+        """
         conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute(
-                """UPDATE monitor_servers
-                   SET status = %s, last_error = %s, last_seen_at = %s, updated_at = CURRENT_TIMESTAMP
-                   WHERE id = %s""",
-                (status, last_error, last_seen_at, server_id),
-            )
+            if status == "offline":
+                cursor.execute(
+                    """UPDATE monitor_servers
+                       SET status = %s, last_error = %s, last_seen_at = %s, updated_at = CURRENT_TIMESTAMP
+                       WHERE id = %s
+                         AND (last_seen_at IS NULL
+                              OR last_seen_at < CURRENT_TIMESTAMP - INTERVAL '60 seconds')""",
+                    (status, last_error, last_seen_at, server_id),
+                )
+            else:
+                cursor.execute(
+                    """UPDATE monitor_servers
+                       SET status = %s, last_error = %s, last_seen_at = %s, updated_at = CURRENT_TIMESTAMP
+                       WHERE id = %s""",
+                    (status, last_error, last_seen_at, server_id),
+                )
             conn.commit()
         finally:
             cursor.close()

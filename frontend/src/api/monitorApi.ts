@@ -12,6 +12,16 @@ export interface MonitorServerMetric {
   net_sent_rate: number | null;
   disk_read_rate: number | null;
   disk_write_rate: number | null;
+  /** 以下字段仅本机采集提供，SSH 远端可能缺失 */
+  cpu_per_core?: number[] | null;
+  load_avg?: number[] | null;
+  mem_total?: number | null;
+  mem_used?: number | null;
+  swap_percent?: number | null;
+  disk_total?: number | null;
+  disk_used?: number | null;
+  process_count?: number | null;
+  uptime_seconds?: number | null;
 }
 
 export interface MonitorServer {
@@ -48,11 +58,20 @@ export interface MetricPoint {
   cpu_per_core?: number[] | null;
   load_avg?: number[] | null;
   mem_percent?: number | null;
+  mem_total?: number | null;
+  mem_used?: number | null;
+  swap_percent?: number | null;
+  swap_total?: number | null;
+  swap_used?: number | null;
   disk_percent?: number | null;
+  disk_total?: number | null;
+  disk_used?: number | null;
   net_recv_rate?: number | null;
   net_sent_rate?: number | null;
   disk_read_rate?: number | null;
   disk_write_rate?: number | null;
+  process_count?: number | null;
+  uptime_seconds?: number | null;
 }
 
 export interface AlertRule {
@@ -122,6 +141,25 @@ function buildQuery<T extends object>(params: T): string {
 }
 
 export const getServers = () => request<MonitorServer[]>(`${MONITOR_API_URL}/servers`);
+
+/** 从 SSH 工具同步全部服务器（幂等） */
+export interface SshSyncItem {
+  sshConfigId: string;
+  name: string;
+  action: 'created' | 'updated' | 'unchanged' | 'disabled' | 'failed';
+  fields?: string[];
+  reason?: string;
+}
+export interface SshSyncResult {
+  sshTotal: number;
+  created: number;
+  updated: number;
+  disabled: number;
+  unchanged: number;
+  items: SshSyncItem[];
+}
+export const syncServersFromSsh = () =>
+  request<SshSyncResult>(`${MONITOR_API_URL}/servers/sync-ssh`, { method: 'POST' });
 export const createServer = (data: CreateMonitorServerRequest) =>
   request<MonitorServer>(`${MONITOR_API_URL}/servers`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
@@ -180,8 +218,42 @@ export interface MonitorProcess {
   project_type: string;
 }
 
+/** 按类型聚合（份额之和等于进程总量） */
+export interface ProcessTypeSummary {
+  type: string;
+  count: number;
+  cpu_percent: number;
+  memory_percent: number;
+  memory_rss: number;
+}
+
+/** 顶部总览：全量口径，不受分页影响 */
+export interface ProcessSummary {
+  process_count: number;
+  /** 各进程 CPU 之和（单核 100% 口径，多核可 >100） */
+  cpu_percent_total: number;
+  /** 换算成整机占用率（已除以逻辑核数） */
+  cpu_percent_of_machine: number;
+  memory_rss_total: number;
+  memory_percent_total: number;
+  thread_count_total: number;
+  logical_cpus: number;
+  top_cpu: { pid: number; name: string; cpu_percent: number; project_type: string }[];
+  top_memory: { pid: number; name: string; memory_rss: number; project_type: string }[];
+}
+
+export interface ProcessListResponse {
+  processes: MonitorProcess[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  type_summary?: ProcessTypeSummary[];
+  summary?: ProcessSummary;
+}
+
 export const getProcesses = (serverId: string, params: ProcessParams = {}) =>
-  request<{ processes: MonitorProcess[]; total: number; page: number; page_size: number; total_pages: number }>(
+  request<ProcessListResponse>(
     `${MONITOR_API_URL}/servers/${serverId}/processes${buildQuery(params)}`);
 export const killProcess = (serverId: string, pid: number) =>
   request<{ success: boolean; pid: number }>(

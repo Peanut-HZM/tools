@@ -187,11 +187,31 @@ def get_process_list(
     page: int = 1,
     page_size: int = 50,
 ) -> Dict:
-    """获取进程列表，支持排序、搜索、项目类型过滤、分页"""
+    """获取进程列表，支持排序、搜索、项目类型过滤、分页
+
+    注意 CPU 口径：
+    * ``proc.cpu_percent()`` 首次调用返回 0.0（psutil 需要两次采样算差值），
+      因此先给所有进程调用一次「预热」，sleep 后再取一次才是真实值。
+      不预热会得到全 0 或严重偏低的结果。
+    * 返回值保留 psutil 原始口径（单核 100% = 占满一个核心），
+      前端同时展示「占整机 %」时除以逻辑核数换算。
+    """
+    attrs = ["pid", "name", "username", "status", "create_time",
+             "cpu_percent", "memory_percent", "memory_info", "num_threads"]
+
+    # 预热：第一次取样只为建立基准，随后 sleep 一小段时间再取真实值
+    first_pass = []
+    for proc in psutil.process_iter(attrs):
+        try:
+            proc.cpu_percent(None)  # 建立基准，返回值丢弃
+            first_pass.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    if first_pass:
+        time.sleep(0.3)
 
     processes = []
-    for proc in psutil.process_iter(["pid", "name", "username", "status", "create_time",
-                                       "cpu_percent", "memory_percent", "memory_info", "num_threads"]):
+    for proc in first_pass:
         try:
             info = proc.info
             if info is None:
@@ -204,10 +224,12 @@ def get_process_list(
             if project_type and project_type != "all" and pt != project_type:
                 continue
 
-            # 搜索过滤
+            # 搜索过滤（支持进程名与命令行）
+            cmdline = _get_cmdline(proc)
             if search:
                 search_lower = search.lower()
-                if search_lower not in info.get("name", "").lower():
+                if (search_lower not in info.get("name", "").lower()
+                        and search_lower not in cmdline.lower()):
                     continue
 
             mem_info = info.get("memory_info")
@@ -216,32 +238,40 @@ def get_process_list(
                 "name": info.get("name", ""),
                 "username": info.get("username", ""),
                 "status": info.get("status", ""),
-                "cpu_percent": round(info.get("cpu_percent", 0) or 0, 1),
+                "cpu_percent": round(proc.cpu_percent(None) or 0, 1),
                 "memory_percent": round(info.get("memory_percent", 0) or 0, 1),
                 "memory_rss": mem_info.rss if mem_info else 0,
                 "memory_vms": mem_info.vms if mem_info else 0,
                 "num_threads": info.get("num_threads", 0),
                 "create_time": _format_process_time(info.get("create_time")),
-                "command_line": _get_cmdline(proc),
+                "command_line": cmdline,
                 "project_type": pt,
             })
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
 
+    # 汇总：全量数据（不受分页影响），供页面顶部总览使用
+    total_cpu = sum(p["cpu_percent"] for p in processes)
+    total_rss = sum(p["memory_rss"] for p in processes)
+    total_threads = sum(p["num_threads"] for p in processes)
+    logical_cpus = psutil.cpu_count() or 1
+
     # 聚合进程类型统计（基于全量数据，排序前）
     type_map: Dict[str, Dict] = {}
     for p in processes:
         pt = p["project_type"]
-        if pt == "Other":
-            continue
         if pt not in type_map:
-            type_map[pt] = {"count": 0, "cpu_percent": 0.0, "memory_percent": 0.0, "memory_rss": 0}
+            type_map[pt] = {
+                "count": 0, "cpu_percent": 0.0,
+                "memory_percent": 0.0, "memory_rss": 0,
+            }
         type_map[pt]["count"] += 1
         type_map[pt]["cpu_percent"] += p["cpu_percent"]
         type_map[pt]["memory_percent"] += p["memory_percent"]
         type_map[pt]["memory_rss"] += p["memory_rss"]
 
-    # 过滤：只返回 count > 1 或 cpu_percent > 0.1 的类型，按 CPU 降序
+    # 全部类型都返回（含 Other）：过滤掉会让「按类型汇总」与「总数」对不上，
+    # 用户看到的份额之和必须等于总量。按 CPU 降序便于定位消耗大户。
     type_summary = sorted(
         [
             {
@@ -252,11 +282,40 @@ def get_process_list(
                 "memory_rss": v["memory_rss"],
             }
             for t, v in type_map.items()
-            if v["count"] > 1 or v["cpu_percent"] > 0.1
+            if v["count"] > 0
         ],
         key=lambda x: x["cpu_percent"],
         reverse=True,
     )
+
+    # CPU 占用 TOP 5（全量，不受当前排序/分页影响）—— 顶部汇总要能一眼看出谁在吃 CPU
+    top_cpu = sorted(processes, key=lambda p: p["cpu_percent"], reverse=True)[:5]
+    top_memory = sorted(processes, key=lambda p: p["memory_rss"], reverse=True)[:5]
+
+    summary = {
+        "process_count": len(processes),
+        "cpu_percent_total": round(total_cpu, 1),
+        # 整机占用率：多核机器上单进程可 >100%，除以逻辑核数才是「整机百分比」
+        "cpu_percent_of_machine": round(total_cpu / logical_cpus, 1),
+        "memory_rss_total": total_rss,
+        "memory_percent_total": round(sum(p["memory_percent"] for p in processes), 1),
+        "thread_count_total": total_threads,
+        "logical_cpus": logical_cpus,
+        "top_cpu": [
+            {
+                "pid": p["pid"], "name": p["name"],
+                "cpu_percent": p["cpu_percent"], "project_type": p["project_type"],
+            }
+            for p in top_cpu
+        ],
+        "top_memory": [
+            {
+                "pid": p["pid"], "name": p["name"],
+                "memory_rss": p["memory_rss"], "project_type": p["project_type"],
+            }
+            for p in top_memory
+        ],
+    }
 
     # 排序
     reverse = sort_order == "desc"
@@ -275,6 +334,7 @@ def get_process_list(
         "page_size": page_size,
         "total_pages": total_pages,
         "type_summary": type_summary,
+        "summary": summary,
     }
 
 
@@ -420,8 +480,31 @@ def _detect_project_type(name: str, proc) -> str:
         return "Docker"
 
     # Go
-    if name_lower.endswith(".go") or name_lower.startswith("go"):
+    # 注意：不能用 startswith("go") —— "Google Chrome" / "Google Chrome Helper"
+    # 会全部被误判成 Go（曾导致进程列表里 Chrome 显示类型为 Go）。
+    # Go 编译产物没有固定进程名，只能靠命令行里出现 go 工具链特征来判断；
+    # 裸文件名匹配限定为 go / gofmt / go-build 这类明确的工具名。
+    if name_lower in ("go", "gofmt", "godoc", "dlv", "air"):
         return "Go"
+
+    # 前端/桌面应用：浏览器、Electron 系（放在 Go 之后，避免被 Go 规则吃掉）
+    if any(k in name_lower for k in ("chrome", "chromium", "safari", "firefox", "edge", "quark")):
+        return "Browser"
+    if any(k in name_lower for k in ("electron", "helper")):
+        return "Electron"
+
+    # macOS .app 包内的进程（主进程名往往就是应用名，如 "Open Design"、
+    # "Paseo"），靠命令行路径判断：Electron 应用会带 Electron Framework，
+    # 其余 .app 归为 Desktop。不判这段会导致同一应用的主进程落到 Other、
+    # 而它的 Helper 子进程却是 Electron，类型统计自相矛盾。
+    try:
+        cmdline_lower = " ".join(proc.cmdline()).lower()
+    except (psutil.AccessDenied, psutil.NoSuchProcess):
+        cmdline_lower = ""
+    if "electron framework" in cmdline_lower:
+        return "Electron"
+    if ".app/contents/macos/" in cmdline_lower:
+        return "Desktop"
 
     # Ruby
     if name_lower in ("ruby",):

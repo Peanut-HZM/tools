@@ -30,8 +30,23 @@ class SSHConnectionPool:
 
     @staticmethod
     def _load_private_key(private_key: str, passphrase: Optional[str]):
-        """加载私钥内容"""
-        key_classes = [paramiko.RSAKey, paramiko.Ed25519Key, paramiko.ECDSAKey, paramiko.DSSKey]
+        """加载私钥内容
+
+        候选类型动态探测：paramiko 5.x 移除了 DSSKey，
+        写死 paramiko.DSSKey 会直接抛 AttributeError。
+        """
+        key_classes = [
+            key_cls
+            for key_cls in (
+                getattr(paramiko, "RSAKey", None),
+                getattr(paramiko, "Ed25519Key", None),
+                getattr(paramiko, "ECDSAKey", None),
+                getattr(paramiko, "DSSKey", None),  # paramiko < 5 才有，缺失时跳过
+            )
+            if key_cls is not None
+        ]
+        if not key_classes:
+            raise SSHCommandError("SSH 客户端不支持任何私钥类型")
         for key_cls in key_classes:
             try:
                 return key_cls.from_private_key(io.StringIO(private_key), password=passphrase)

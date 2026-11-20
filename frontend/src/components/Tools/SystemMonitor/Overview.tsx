@@ -5,7 +5,7 @@ import type { MetricPoint } from '../../../api/monitorApi';
 import ServerSelector from './components/ServerSelector';
 import ResourceCards from './components/ResourceCards';
 import SystemInfoCards from './components/SystemInfoCards';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+
 
 /** 页签②总览：系统信息 + 资源卡片，5s 轮询 */
 export default function Overview() {
@@ -60,52 +60,90 @@ export default function Overview() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4">
+      {/* ---------- 页头：服务器选择 + 刷新节奏说明 ---------- */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <ServerSelector servers={servers} value={selectedServerId} onChange={setSelectedServerId} />
-        <div className="text-xs text-ink-faint">每 5 秒自动刷新 · 数据每 30 秒采集一次</div>
+        <div className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-success" />
+          每 5 秒刷新 · 后端每 30 秒采集
+        </div>
       </div>
-      {error && <div className="text-sm text-danger">{error}</div>}
+
+      {error && (
+        <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-accent-danger">
+          {error}
+        </div>
+      )}
+
       <SystemInfoCards info={info} server={server} />
       <ResourceCards metric={metric} />
-      {/* 分区表格 */}
-      <Card className="bg-canvas">
-        <CardHeader className="px-4 py-2.5 border-b border-border">
-          <CardTitle className="text-sm font-medium text-ink">磁盘分区</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-        {/* 窄屏下表格横向滚动，避免列被压成竖排 */}
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] text-xs">
-          <thead>
-            <tr className="text-ink-faint border-b border-border">
-              <th className="text-left px-4 py-2">设备</th>
-              <th className="text-left px-4 py-2">挂载点</th>
-              <th className="text-right px-4 py-2">总量</th>
-              <th className="text-right px-4 py-2">已用</th>
-              <th className="text-right px-4 py-2">使用率</th>
-            </tr>
-          </thead>
-          <tbody>
-            {partitions.map((p, i) => (
-              <tr key={i} className="border-b border-border/50 last:border-0">
-                <td className="px-4 py-2 text-ink-muted">{p.device}</td>
-                <td className="px-4 py-2 text-ink-muted">{p.mountpoint}</td>
-                <td className="px-4 py-2 text-right text-ink-muted">{fmtBytes(p.total)}</td>
-                <td className="px-4 py-2 text-right text-ink-muted">{fmtBytes(p.used)}</td>
-                <td className="px-4 py-2 text-right">
-                  <span className={p.percent > 90 ? 'text-danger' : 'text-ink-muted'}>{p.percent.toFixed(1)}%</span>
-                </td>
-              </tr>
-            ))}
-            {partitions.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-ink-faint">暂无分区数据</td></tr>
-            )}
-          </tbody>
-        </table>
+
+      {/* ---------- 磁盘分区 ---------- */}
+      <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
+        <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+          <h3 className="text-xs font-medium text-ink">磁盘分区</h3>
+          <span className="text-[11px] text-ink-faint">{partitions.length} 个挂载点</span>
         </div>
-        </CardContent>
-      </Card>
+        {/* 窄屏横向滚动，避免列被压成竖排 */}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-xs">
+            <thead>
+              <tr className="border-b border-border text-ink-faint">
+                <th className="px-4 py-2 text-left font-normal">设备</th>
+                <th className="px-4 py-2 text-left font-normal">挂载点</th>
+                <th className="px-4 py-2 text-right font-normal">总量</th>
+                <th className="px-4 py-2 text-right font-normal">已用</th>
+                <th className="px-4 py-2 text-right font-normal">使用率</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partitions.map((p, i) => {
+                const tone =
+                  p.percent >= 90
+                    ? 'text-accent-danger'
+                    : p.percent >= 75
+                      ? 'text-accent-warning'
+                      : 'text-ink-muted';
+                const bar =
+                  p.percent >= 90
+                    ? 'bg-accent-danger'
+                    : p.percent >= 75
+                      ? 'bg-accent-warning'
+                      : 'bg-accent-success';
+                return (
+                  <tr key={i} className="border-b border-border/60 last:border-0 hover:bg-surface-2/60">
+                    <td className="px-4 py-2 font-mono text-[11px] text-ink-muted">{p.device}</td>
+                    <td className="px-4 py-2 font-mono text-[11px] text-ink-muted">{p.mountpoint}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-ink-muted">{fmtBytes(p.total)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-ink-muted">{fmtBytes(p.used)}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="h-1 w-16 overflow-hidden rounded-full bg-surface-3">
+                          <div
+                            className={`h-full rounded-full ${bar}`}
+                            style={{ width: `${Math.max(0, Math.min(100, p.percent))}%` }}
+                          />
+                        </div>
+                        <span className={`w-11 text-right tabular-nums ${tone}`}>
+                          {p.percent.toFixed(1)}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {partitions.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-ink-faint">
+                    暂无分区数据
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
