@@ -383,3 +383,74 @@ def test_resolve_control_key_none_found(monkeypatch):
     key, source = opendesign_key.resolve_control_key(RUNTIME_KEY, None)
     assert key is None
     assert source == ""
+
+
+# ---------------------------------------------------------------- 智谱团队版
+# 回归：团队版必须带 ?type=2，否则接口按个人版解析，返回
+# 「当前用户不存在 coding plan」（即使账号确实有团队套餐）
+
+
+def test_zhipu_team_request_includes_type2_and_org_headers(monkeypatch):
+    """团队版请求必须带 ?type=2 + bigmodel-organization/project 头"""
+    import asyncio
+
+    from app.services.subscription_quota import providers_full
+    from app.services.subscription_quota.accounts import QuotaAccount
+
+    captured = {}
+
+    async def _fake_request_json(method, url, headers, *, json_body=None, params=None, timeout=None):
+        captured["url"] = url
+        captured["params"] = params
+        captured["headers"] = dict(headers)
+        return 200, {
+            "code": 200,
+            "success": True,
+            "data": {
+                "limits": [
+                    {"type": "CREDIT_LIMIT", "unit": 3, "percentage": 20, "nextResetTime": 1_800_000_000_000},
+                    {"type": "CREDIT_LIMIT", "unit": 6, "percentage": 40, "nextResetTime": 1_800_600_000_000},
+                ]
+            },
+        }, None
+
+    monkeypatch.setattr(providers_full, "_request_json", _fake_request_json)
+
+    account = QuotaAccount(
+        id="t",
+        user_id="t",
+        provider_id="zhipu_team",
+        label="team",
+        api_key="sk-team",
+        extra={
+            "api_key": "sk-team",
+            "organization_id": "org-aaa",
+            "project_id": "proj-bbb",
+        },
+        enabled=True,
+    )
+
+    quota = asyncio.run(providers_full.query_zhipu_team(account))
+
+    assert quota.success is True, quota.error
+    # 关键断言：type=2 是团队版标识，缺了会被当成个人版
+    assert captured["params"] == {"type": 2}
+    assert captured["headers"]["bigmodel-organization"] == "org-aaa"
+    assert captured["headers"]["bigmodel-project"] == "proj-bbb"
+    assert captured["url"] == "https://open.bigmodel.cn/api/monitor/usage/quota/limit"
+
+
+def test_zhipu_team_requires_org_and_project():
+    """缺组织 / 项目 ID 时直接报错，不发请求"""
+    import asyncio
+
+    from app.services.subscription_quota import providers_full
+    from app.services.subscription_quota.accounts import QuotaAccount
+
+    account = QuotaAccount(
+        id="t", user_id="t", provider_id="zhipu_team", label="team",
+        api_key="sk-team", extra={"api_key": "sk-team"}, enabled=True,
+    )
+    quota = asyncio.run(providers_full.query_zhipu_team(account))
+    assert quota.success is False
+    assert "组织 ID" in (quota.error or "")

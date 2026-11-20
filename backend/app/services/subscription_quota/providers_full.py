@@ -304,7 +304,15 @@ def parse_zhipu_tiers(data: dict) -> list[QuotaTier]:
 
 
 async def query_zhipu_team(account: QuotaAccount) -> SubscriptionQuota:
-    """智谱团队版：同一端点 + ``bigmodel-organization`` / ``bigmodel-project`` 头"""
+    """智谱团队版：同一端点 + ``?type=2`` + ``bigmodel-organization`` / ``bigmodel-project`` 头
+
+    与个人版的差异（对照 cc-switch 的 ``query_zhipu_team_at``）：
+    * 固定走国内站 open.bigmodel.cn（团队版仅存在于国内站）
+    * 同一 quota 路径必须带 **``?type=2``** —— 缺了它接口会按个人版解析，
+      返回「当前用户不存在 coding plan」（即使账号确实有团队套餐）
+    * 额外请求头 bigmodel-organization / bigmodel-project（三者缺一不可）
+    * 响应结构与个人版一致，复用 parse_zhipu_tiers
+    """
     org = str(account.extra.get("organization_id") or "").strip()
     project = str(account.extra.get("project_id") or "").strip()
     if not org or not project:
@@ -316,10 +324,15 @@ async def query_zhipu_team(account: QuotaAccount) -> SubscriptionQuota:
         "bigmodel-organization": org,
         "bigmodel-project": project,
         "Content-Type": "application/json",
+        "Accept-Language": "en-US,en",
         "User-Agent": USER_AGENT,
     }
     status, body, err = await _request_json(
-        "GET", "https://open.bigmodel.cn/api/monitor/usage/quota/limit", headers
+        "GET",
+        "https://open.bigmodel.cn/api/monitor/usage/quota/limit",
+        headers,
+        # type=2 是团队版标识，缺了会被当作个人版账号解析
+        params={"type": 2},
     )
     if status in (401, 403):
         return _auth_failure("zhipu_team", status)
