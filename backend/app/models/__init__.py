@@ -19,6 +19,13 @@ from app.models.search_models import *
 from app.models.stats_models import *
 from app.models.database_tool_models import *
 from app.models.redis_tool_models import *
+# Neo4j 图数据库工具模型：显式导入，避免 import * 带出 sqlalchemy 的 Column 等名字
+from app.models.neo4j_models import (
+    Neo4jConnection,
+    Neo4jConnectionCreate,
+    Neo4jConnectionUpdate,
+    Neo4jConnectionResponse,
+)  # noqa: F401
 from app.models.oss_models import *
 from app.models.ocr_models import *
 from app.models.asr_models import *
