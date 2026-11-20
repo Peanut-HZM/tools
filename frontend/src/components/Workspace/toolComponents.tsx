@@ -22,6 +22,7 @@ import ImageDownloader from '../Tools/ImageDownloader';
 import VideoDownloader from '../Tools/VideoDownloader';
 import ImageGenerationTool from '../Tools/ImageGeneration/ImageGenerationTool';
 import VideoGenerationTool from '../Tools/VideoGeneration/VideoGenerationTool';
+import Neo4jExplorer from '../Tools/Neo4jExplorer/Neo4jExplorer';
 
 /**
  * 工具 ID → 组件映射
@@ -58,4 +59,5 @@ export const toolComponentMap: Record<string, React.ComponentType> = {
   'video-downloader': VideoDownloader,
   'image-generation': ImageGenerationTool,
   'video-generation': VideoGenerationTool,
+  'neo4j-explorer': Neo4jExplorer,
 };

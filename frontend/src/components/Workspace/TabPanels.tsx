@@ -9,6 +9,7 @@ const EDGE_TO_EDGE_TOOLS = new Set([
   'database-tool',
   'ssh-tool',
   'redis-tool',
+  'neo4j-explorer',
   'markdown-editor',
   'token-usage',
   'http-api-client',

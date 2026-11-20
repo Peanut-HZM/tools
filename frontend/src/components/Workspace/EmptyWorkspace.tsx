@@ -15,6 +15,7 @@ const FEATURED_TOOL_IDS = [
   'ssh-tool',
   'database-tool',
   'redis-tool',
+  'neo4j-explorer',
   'markdown-editor',
   'json-formatter',
 ];

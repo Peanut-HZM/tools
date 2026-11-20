@@ -58,6 +58,7 @@ const OCRTool = lazy(() => import('./components/Tools/OCR/OCRTool'));
 const ASRTool = lazy(() => import('./components/Tools/ASR/ASRTool'));
 const DatabaseTool = lazy(() => import('./components/Tools/DatabaseTool/DatabaseTool'));
 const RedisTool = lazy(() => import('./components/Tools/RedisTool/RedisTool'));
+const Neo4jExplorer = lazy(() => import('./components/Tools/Neo4jExplorer/Neo4jExplorer'));
 const SSHTool = lazy(() => import('./components/Tools/SSHTool/SSHTool'));
 const ProductManagerAgent = lazy(() => import('./components/Tools/ProductManagerAgent'));
 const LearningSharePlatform = lazy(() => import('./components/Tools/LearningSharePlatform'));
@@ -359,6 +360,7 @@ function App() {
                     <Route path="asr" element={<ASRTool />} />
                     <Route path="database-tool" element={<DatabaseTool />} />
                     <Route path="redis-tool" element={<RedisTool />} />
+                    <Route path="neo4j-explorer" element={<Neo4jExplorer />} />
                     <Route path="ssh-tool" element={<SSHTool />} />
                     <Route path="product-manager" element={<ProductManagerAgent />} />
                     <Route path="product-manager/:conversationId" element={<ProductManagerAgent />} />
