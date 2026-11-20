@@ -649,104 +649,199 @@ def parse_command_code_quota(
     )
 
 
-async def query_opendesign(account: QuotaAccount) -> SubscriptionQuota:
-    """OpenDesign：workspaces/current 取 id → billing/snapshot 取窗口
+def _opendesign_api_base(raw: str) -> str:
+    """把任意 OpenDesign 地址推导成**控制面** origin
 
-    注意：账单接口只认 AMR **控制面 controlKey**；ZCode / 推理配置里存的是
-    运行时推理 Key（`sk-amr-ew__…`），一定被拒。所以这里对 401/404 都给出
-    「需要 controlKey」的明确指引，而不是含糊的接口错误。
+    对齐 cc-switch `opendesign_api_base()`：
+
+    * 推理地址 `amr-link.open-design.ai` → 控制面 `amr-api.open-design.ai`
+    * 已经是 `-api` → 原样保留
+    * 认不出（不是 open-design.ai 域名）→ 回落官方默认
+
+    账单接口在控制面 host 上；拿推理 host 去查只会得到 404。
     """
-    base = _base_url(account) or "https://amr-api.open-design.ai"
-    base = base.rstrip("/")
-    # 去掉推理地址里的 /v1 之类路径，只保留 origin
     from urllib.parse import urlparse
 
+    default = "https://amr-api.open-design.ai"
     try:
-        parsed = urlparse(base)
-        if parsed.scheme and parsed.netloc:
-            base = f"{parsed.scheme}://{parsed.netloc}"
+        parsed = urlparse((raw or "").strip())
     except ValueError:
-        pass
-    # 控制面 host 与推理 host 不同：只做一次明确的候选回退
-    candidates = [base]
-    if "amr-link." in base:
-        candidates.append(base.replace("amr-link.", "amr-api."))
-    elif "amr-api." in base:
-        candidates.append(base.replace("amr-api.", "amr-link."))
-    candidates = list(dict.fromkeys(candidates))
+        return default
 
-    headers = _bearer(account, "control_key")
-    headers["Content-Type"] = "application/json"
+    host = (parsed.hostname or "").lower()
+    if not host or not host.endswith("open-design.ai"):
+        return default
+    if "-api" in host:
+        api_host = host
+    elif "-link" in host:
+        api_host = host.replace("-link", "-api")
+    else:
+        # 裸域名 / 未知子域：官方控制面是 amr-api
+        api_host = "amr-api." + host if host != "open-design.ai" else "amr-api.open-design.ai"
 
-    last_status: Optional[int] = None
-    last_error: Optional[str] = None
+    scheme = parsed.scheme or "https"
+    return f"{scheme}://{api_host}"
 
-    for candidate in candidates:
-        status, current, err = await _request_json(
-            "GET", f"{candidate}/api/v1/workspaces/current", headers
-        )
-        last_status, last_error = status, err
-        if status in (401, 403):
+
+async def query_opendesign(account: QuotaAccount) -> SubscriptionQuota:
+    """OpenDesign（AMR 套餐，5 小时 + 7 天双窗口）
+
+    查询链路（与 cc-switch 一致）：
+
+    1. ``GET {api_base}/api/v1/workspaces/current`` 取 workspaceId
+    2. ``GET {api_base}/api/v1/workspaces/{id}/billing/snapshot`` 取
+       ``designPlanWindows``（额度字段是**字符串**形式的 credits）
+
+    ## 凭据
+
+    账单接口**只认 AMR 控制面 Key**（``vela_ctrl_…``）。而推理配置里存的是
+    运行时推理 Key（``sk-amr-ew__…``），拿它查账单必被拒。因此这里的取 Key
+    顺序是：
+
+    1. `extra.control_key` —— 用户显式填的控制面 Key
+    2. `api_key` —— 若本身已是控制面形态
+    3. 本机 cc-switch 库里的控制面 Key（只读发现，见 `opendesign_key`）
+
+    三者都不是控制面形态时，返回明确的「需要 controlKey」提示，
+    **不会**拿推理 Key 去撞接口。
+    """
+    from app.services.subscription_quota.opendesign_key import (
+        is_control_key,
+        looks_like_runtime_key,
+        resolve_control_key,
+    )
+
+    api_base = _opendesign_api_base(_base_url(account))
+
+    control_key, key_source = resolve_control_key(
+        str(account.extra.get("control_key") or ""),
+        account.api_key or "",
+    )
+    if not control_key:
+        # 说清楚「为什么不行」：区分「存的是推理 Key」和「根本没配」
+        stored = str(account.extra.get("control_key") or "") or (account.api_key or "")
+        if looks_like_runtime_key(stored):
             return SubscriptionQuota.failure(
                 "opendesign",
                 CredentialStatus.EXPIRED,
-                "OpenDesign 账单接口只认 AMR 控制面 controlKey"
-                "（推理运行时 Key `sk-amr-ew__…` 会被拒），"
-                "请到 OpenDesign 控制台复制 controlKey 后重新添加",
+                "当前存的是运行时推理 Key（sk-amr-ew__…），账单接口不接受；"
+                "请在 OpenDesign 控制台复制控制面 controlKey（vela_ctrl_…）后填入。",
             )
-        if status == 404 or err is not None:
-            continue
+        return SubscriptionQuota.failure(
+            "opendesign",
+            CredentialStatus.NOT_FOUND,
+            "缺少 AMR 控制面 controlKey（vela_ctrl_…）："
+            "可手动填写，或先在本机 cc-switch 里配好用量脚本后点「从 cc-switch 同步」。",
+        )
 
-        workspace_id = None
-        if isinstance(current, dict):
-            for key in ("workspaceId", "activeWorkspaceId"):
-                value = current.get(key)
-                if isinstance(value, str) and value.strip():
-                    workspace_id = value.strip()
-                    break
-        if not workspace_id:
-            workspace_id = str(account.extra.get("workspace_id") or "").strip() or None
-        if not workspace_id:
+    headers = {
+        "Authorization": f"Bearer {control_key}",
+        "Accept": "application/json",
+        "User-Agent": USER_AGENT,
+    }
+
+    status, current, err = await _request_json(
+        "GET", f"{api_base}/api/v1/workspaces/current", headers
+    )
+
+    if status in (401, 403):
+        # Cloudflare 1010 是 UA 被拦，不是 Key 无效 —— 必须区分开，
+        # 否则会误导用户去换一个其实没问题的 Key。
+        if err and "error-1010" in err or (err and "Access denied" in err):
             return _api_failure(
-                "opendesign", "拿不到 workspace id（可在配置里手动填写 workspace_id）"
-            )
-
-        status2, snapshot, err2 = await _request_json(
-            "GET", f"{candidate}/api/v1/workspaces/{workspace_id}/billing/snapshot", headers
-        )
-        if status2 in (401, 403):
-            return SubscriptionQuota.failure(
                 "opendesign",
-                CredentialStatus.EXPIRED,
-                "OpenDesign 账单接口只认 AMR 控制面 controlKey，请重新填 controlKey",
+                "请求被 OpenDesign 前置的 Cloudflare 拒绝（Error 1010，UA 拦截），"
+                "不是 Key 失效；请稍后重试或换网络环境。",
             )
-        if err2 is not None:
-            return _api_failure("opendesign", f"billing/snapshot 失败: {err2}")
-        if not isinstance(snapshot, dict):
-            return _api_failure("opendesign", "响应结构异常")
+        return SubscriptionQuota.failure(
+            "opendesign",
+            CredentialStatus.EXPIRED,
+            f"控制面拒绝了该 controlKey（HTTP {status}）；"
+            "请确认它是 OpenDesign 控制台的 controlKey（vela_ctrl_…）且未过期。",
+        )
+    if err is not None:
+        return _api_failure("opendesign", f"控制面不可达: {err}")
 
-        tiers = parse_opendesign_tiers(snapshot)
-        if not tiers:
-            return _api_failure("opendesign", "快照里没有 designPlanWindows 额度")
-        return SubscriptionQuota(
-            tool="opendesign",
-            credential_status=CredentialStatus.VALID,
-            success=True,
-            tiers=tiers,
-            queried_at=now_millis(),
+    workspace_id = None
+    if isinstance(current, dict):
+        for key in ("workspaceId", "activeWorkspaceId"):
+            value = current.get(key)
+            if isinstance(value, str) and value.strip():
+                workspace_id = value.strip()
+                break
+    if not workspace_id:
+        workspace_id = str(account.extra.get("workspace_id") or "").strip() or None
+    if not workspace_id:
+        return _api_failure(
+            "opendesign",
+            "控制面没有返回 workspaceId（可在账号配置里手动填写 workspace_id）",
         )
 
-    return _api_failure(
-        "opendesign",
-        f"控制面不可达（HTTP {last_status or 'n/a'}）：{last_error or '无响应'}；"
-        "请确认使用 AMR 控制面地址并填写 controlKey",
+    status2, snapshot, err2 = await _request_json(
+        "GET",
+        f"{api_base}/api/v1/workspaces/{workspace_id}/billing/snapshot",
+        headers,
+    )
+    if status2 in (401, 403):
+        return SubscriptionQuota.failure(
+            "opendesign",
+            CredentialStatus.EXPIRED,
+            f"计费快照接口拒绝该 controlKey（HTTP {status2}），请重新确认控制面 Key。",
+        )
+    if err2 is not None:
+        return _api_failure("opendesign", f"billing/snapshot 失败: {err2}")
+    if not isinstance(snapshot, dict):
+        return _api_failure("opendesign", "billing/snapshot 响应结构异常")
+
+    tiers = parse_opendesign_tiers(snapshot)
+    if not tiers:
+        return _api_failure(
+            "opendesign", "快照里没有可识别的 designPlanWindows 额度窗口"
+        )
+
+    logger.info(
+        "OpenDesign 额度查询成功: workspace=%s 窗口=%d key来源=%s",
+        workspace_id,
+        len(tiers),
+        key_source,
+    )
+    # plan.tier 是套餐代号（go / pro …），与其它供应商卡片上的套餐徽章一致
+    plan_name = None
+    plan = snapshot.get("plan")
+    if isinstance(plan, dict):
+        tier_name = plan.get("tier")
+        if isinstance(tier_name, str) and tier_name.strip():
+            plan_name = tier_name.strip()
+
+    return SubscriptionQuota(
+        tool="opendesign",
+        credential_status=CredentialStatus.VALID,
+        success=True,
+        tiers=tiers,
+        plan_name=plan_name,
+        queried_at=now_millis(),
     )
 
 
 def parse_opendesign_tiers(body: dict) -> list[QuotaTier]:
+    """解析 ``billing/snapshot`` 的 ``designPlanWindows``
+
+    实测响应（2026-11）::
+
+        {"kind": "5h", "windowStart": "...", "resetsAt": "...",
+         "remainingCredits": "48598", "limitCredits": "50000"}
+
+    要点：
+
+    * 额度字段是**字符串**形式的 credits，必须走 `_num` 转换
+    * `kind` 只有 `5h` / `7d` 两种是套餐窗口，其余忽略
+    * `limitCredits <= 0` 视为脏数据跳过（避免除零）
+    * `remainingCredits` 缺失时按 0 已用处理（不编造额度）
+    """
     windows = body.get("designPlanWindows")
     if not isinstance(windows, list):
         return []
+
     tiers: list[QuotaTier] = []
     for window in windows:
         if not isinstance(window, dict):
@@ -756,10 +851,10 @@ def parse_opendesign_tiers(body: dict) -> list[QuotaTier]:
         if not name:
             continue
         limit = _num(window.get("limitCredits"))
-        remaining = _num(window.get("remainingCredits"))
-        if limit is None or remaining is None or limit <= 0:
+        if limit is None or limit <= 0:
             continue
-        used = max(0.0, min(limit, limit - remaining))
+        remaining = _num(window.get("remainingCredits"))
+        used = 0.0 if remaining is None else max(0.0, min(limit, limit - remaining))
         tiers.append(
             QuotaTier(
                 name=name,

@@ -313,8 +313,22 @@ async def import_from_ccswitch(
     for pid, item in best.items():
         extra: dict = {"region": item["region"], "api_key": item["api_key"]}
         if pid == "opendesign":
-            extra["control_key"] = item["api_key"]
+            # 账单接口只认控制面 Key（vela_ctrl_…）。cc-switch 的
+            # load_candidates 已优先取 usage_script.apiKey（控制面），
+            # 但这里仍做一次形态校验：不是控制面形态就别写进 control_key，
+            # 免得把推理 Key 存成"看起来能用"的假凭据。
+            from app.services.subscription_quota.opendesign_key import (
+                is_control_key,
+                pick_control_key,
+            )
+
             extra["base_url"] = "https://amr-api.open-design.ai"
+            if is_control_key(item["api_key"]):
+                extra["control_key"] = item["api_key"]
+            else:
+                discovered = pick_control_key()
+                if discovered:
+                    extra["control_key"] = discovered
         elif item["base_url"]:
             extra["base_url"] = item["base_url"]
 
@@ -513,7 +527,21 @@ async def import_from_magpie(
         if prov.base_url:
             extra["base_url"] = prov.base_url
         if pid == "opendesign":
-            extra["control_key"] = prov.key
+            # magpie 的 providers.json 里存的是**推理 Key**（sk-amr-ew__…），
+            # 账单接口要的是控制面 Key（vela_ctrl_…）。两者不能混：
+            # 只有 magpie 那边确实是控制面 Key 时才写进 control_key，
+            # 否则去 cc-switch 库里找真正的控制面 Key（只读发现）。
+            from app.services.subscription_quota.opendesign_key import (
+                is_control_key,
+                pick_control_key,
+            )
+
+            if is_control_key(prov.key):
+                extra["control_key"] = prov.key
+            else:
+                discovered = pick_control_key()
+                if discovered:
+                    extra["control_key"] = discovered
 
         label = f"{prov.name}（magpie 同步）"
         existing = existing_by_provider.get(pid) or []
