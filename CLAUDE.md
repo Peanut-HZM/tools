@@ -1501,3 +1501,52 @@ The global `执行边界与停止规则` applies here. These project-specific co
 - ✅ 排查"cmd 窗口闪现"用**父进程归属取证**（CIM 轮询新 conhost/cmd 的 ParentProcessId）而非进程计数快照——瞬时 conhost 会让计数法误判（采样 job 自身也会污染计数）
 - ✅ macOS 桌面版：`.app` bundle 内只读，数据根必须落 `~/Library/Application Support/ToolBox`（`desktop_config.get_desktop_data_root` 已按平台分支）；PyInstaller 不支持交叉编译，mac 产物走 `.github/workflows/desktop-build.yml`（推送 `ToolBox-v*` tag 或手动触发）
 - ✅ 桌面应用必须做**单实例保护**（health 探针探测已有实例，二次启动弹窗退出）与**异常可见反馈**（静默退出会让用户以为"打不开"；`_alert` 用 MessageBoxW，仅打包态弹）
+
+---
+
+## 一次性诊断脚本具名取列规范（强制 — 2026-11-20 沉淀）
+
+**写一次性诊断/排查脚本查数据库时，禁止用位置下标（`row[2]`）取列，必须具名取列。**
+
+### 核心原则
+
+- ✅ `SELECT` 显式列名 + 具名访问：`mapping["api_key_hash"]` / `row.api_key_hash` / `row._mapping`（SQLAlchemy Row）
+- ✅ 确实要用下标时，`SELECT` 只选一列，或在脚本内注释显式声明列序与下标的对应关系
+- ✅ 断言"数据异常"前必须用**第二条独立的具名查询**交叉验证，禁止基于单个未复核的快查结论定性
+- ❌ 禁止 `SELECT a, b, c, d` 之后用 `r[3]` 取值——列序与下标错位**零报错**，直接产出错误结论
+- ❌ 禁止把诊断脚本的误报当作功能缺陷去"修复"（先修诊断脚本，再下结论）
+
+### 事故案例（2026-11-20，agent-subscription-sync 验收）
+
+两个快查脚本均因列位错位连续误报：
+
+- `SELECT label, provider_id, api_key_hash, extra_json` 却用 `r[3]` 当 hash 判空 → 误报"hash 100% 回填"（实际该下标是 extra_json）
+- 后续脚本又把 `r[3]`（extra_json）传给 `decrypt_api_key` 当密文比对 → 误报"hash 与自身 Key 不匹配的数据异常"
+
+两轮误报差点把**行为完全正确的功能**当缺陷处理；以具名取列重查后确认数据零异常（真实状态：4 行正确回填、1 行因供应商维度不同而正确地未命中）。
+
+### 违规后果
+
+列序错位静默产出错误结论 → 在错误前提下"修复"正常代码或数据 → 引入真缺陷，且排查成本翻倍。
+
+---
+
+## requirements.txt 依赖行禁止加引号（强制 — 2026-11-20 沉淀）
+
+**`backend/requirements.txt`（及一切 pip requirements 文件）的依赖行禁止用引号包裹。**
+
+### 核心原则
+
+- ✅ 正确写法：`tomlkit>=0.13.0`
+- ❌ 错误写法：`"tomlkit>=0.13.0"` —— 旧版 pip 会把引号当作依赖名的一部分，直接报 `Invalid requirement`
+- ✅ 新增/修改依赖后必须走一次**完整部署链路**（`deploy.py`）验证服务器可安装，不能只靠本地 pip 验证
+- ✅ 部署脚本报 `Invalid requirement` 时优先检查依赖行引号，再查版本号拼写
+
+### 事故案例（2026-11-20）
+
+`requirements.txt` 中 `"tomlkit>=0.13.0"`、`"ruamel.yaml>=0.18.0"` 带引号：本地新版 pip 容忍、日常开发一切正常；部署到服务器后旧版 pip 报 `Invalid requirement`，**部署中断在依赖安装步骤**（文件已解包、服务未重启的半更新状态）。问题随依赖引入即存在，但只在部署时暴露。
+
+### 违规后果
+
+本地完全无感，服务器部署直接失败；失败点位于部署流程中段，服务器处于半更新状态，需要二次部署恢复。
+
