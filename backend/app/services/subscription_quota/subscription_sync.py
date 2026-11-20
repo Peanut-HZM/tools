@@ -157,9 +157,12 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
             {"uid": user_id},
         ).fetchall()
 
-    # key_index: provider_id -> {hash: row_id}
+    # key_index: provider_id -> {hash: row_id}（规则 1 的供应商内判重）
+    # global_key_index: hash -> provider_id（同 Key 全局唯一入库：同一凭据不因
+    #   provider 归类差异（如救援通道的 custom 次优归类）被重复罗列）
     # hash_pending: row_id -> 需回填的 hash（存量行 api_key_hash 为空、经解密比对命中的）
     key_index: dict[str, dict[str, str]] = {}
+    global_key_index: dict[str, str] = {}
     label_index: dict[tuple[str, str], str] = {}
     hash_pending: dict[str, str] = {}
     for row in rows:
@@ -175,6 +178,7 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
                 stored_hash = ""  # 解不开的存量行不参与判重（无法比对即视为不存在）
         if stored_hash:
             key_index.setdefault(pid, {})[stored_hash] = row_id
+            global_key_index.setdefault(stored_hash, pid)
         # label 占位值用 "unknown" 哨兵而非空串：解不开 hash 的存量行同样占用 label，
         # 否则规则 2 的消歧判断会把已占用的 label 误判为空闲（假阴性）
         label_index[(pid, mapping["label"] or "")] = stored_hash or "unknown"
@@ -187,8 +191,11 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
         h = _hash_key(item.api_key)
         provider_name = _provider_display_name(item.provider_id, item.provider_name)
         existing_row_id = key_index.get(item.provider_id, {}).get(h)
+        # 同 Key 全局唯一：凭据已在该用户名下（任意供应商）→ 不重复入库，
+        # 明细注明既有归属（供应商内命中 = 规则 1；跨供应商命中 = 防重复罗列）
+        global_owner = global_key_index.get(h)
 
-        if existing_row_id:
+        if existing_row_id or global_owner:
             # 规则 1：同供应商同 Key → 不覆盖不更新，保留原本配置
             skipped += 1
             result_items.append(
@@ -200,10 +207,12 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
                     "maskedKey": _mask_key(item.api_key),
                     "action": "skip",
                     "sourceAgents": item.source_agents,
+                    # 既有归属供应商（跨供应商命中时与 providerId 不同，供前端/排查区分）
+                    "existingProviderId": global_owner or item.provider_id,
                 }
             )
             # 命中的存量行原本没有 hash（老数据）→ 顺手回填（仅 api_key_hash 一列；dry_run 不动库）
-            if not dry_run and existing_row_id in hash_pending and existing_row_id not in backfilled_ids:
+            if not dry_run and existing_row_id and existing_row_id in hash_pending and existing_row_id not in backfilled_ids:
                 backfilled_ids.add(existing_row_id)
             continue
 
@@ -273,6 +282,7 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
             )
         # 批内即时更新索引（设计 §5.3）：同批后续条目立刻可见，避免重名/重复
         key_index.setdefault(item.provider_id, {})[h] = new_id
+        global_key_index[h] = item.provider_id
         label_index[(item.provider_id, final_label)] = h
         created += 1
 

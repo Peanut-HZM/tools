@@ -313,6 +313,8 @@ export interface SyncItemDto {
   maskedKey: string;
   action: 'create' | 'skip';
   sourceAgents: string[];
+  /** skip 时该 Key 已入库的归属供应商（跨供应商命中时与 providerId 不同） */
+  existingProviderId?: string;
 }
 
 export interface SubscriptionSyncResponse {
@@ -322,26 +324,6 @@ export interface SubscriptionSyncResponse {
   skipped: number;
   backfilled: number;
   dryRun: boolean;
-}
-
-export interface CloudAccountDto {
-  id: string;
-  providerId: string;
-  label: string;
-  maskedKey: string | null;
-  category: string;
-  app: string;
-  baseUrl: string;
-  channel: string;
-  sourceAgents: string[];
-  enabled: boolean;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
-
-export interface CloudAccountsResponse {
-  accounts: CloudAccountDto[];
-  total: number;
 }
 
 /**
@@ -355,15 +337,6 @@ export async function syncLocalSubscriptions(dryRun = false): Promise<Subscripti
     body: JSON.stringify({ dry_run: dryRun }),
   });
   return parseJson<SubscriptionSyncResponse>(response);
-}
-
-/** 远程数据库中的订阅渠道列表（掩码展示） */
-export async function getCloudAccounts(): Promise<CloudAccountsResponse> {
-  const response = await authedFetch(`${BASE_URL}/subscriptions/cloud`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
-  return parseJson<CloudAccountsResponse>(response);
 }
 
 export interface MagpieSyncItemDto {

@@ -23,7 +23,9 @@
 
 ```
 [扫描器] 本机各 Agent 配置（REAL_HOME 展开）
-   ├── cc-switch 数据库（复用 scripts.import_ccswitch_providers.load_candidates）
+   ├── cc-switch 数据库（复用 scripts.import_ccswitch_providers.load_candidates + 救援通道：
+   │   被 load_candidates 名字匹配丢弃的真实订阅按 base_url host 后缀匹配捞回；
+   │   OAuth JWT / 本地网关回路(127.0.0.1) / 配置值伪装(maxTokensField 类) / 无 Key → 仅报告）
    ├── claude: ~/.claude/settings.json env.{ANTHROPIC_AUTH_TOKEN|ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL}
    ├── codex: ~/.codex/config.toml [model_providers.*] + auth.json OPENAI_API_KEY
    ├── opencode: ~/.local/share/opencode/auth.json + ~/.config/opencode/opencode.json providers
@@ -84,13 +86,16 @@ api_key_hash VARCHAR(64) NOT NULL DEFAULT ''   -- sha256 hex，同步去重索�
 ```
 existing = 远程库中该 user 的全部行
 key_index:  provider_id -> {hash}（hash 为空的存量行 → 解密明文后补算入索引）
+global_key_index: hash -> provider_id（同 Key 全局唯一：同一凭据不因 provider
+                 归类差异被重复罗列，2026-11-20 审计补强）
 label_index: (provider_id, label) -> key_hash   # 查询与更新共用同一份
 
 for item in 归一化后的扫描条目:          # 已批内去重
     h = sha256(item.api_key)
-    if h in key_index[item.provider_id]:
+    if h in key_index[item.provider_id] or h in global_key_index:
         action = skip                                  # 规则 1：任何字段不动
-        （若命中的存量行 hash 为空且非 dry_run → UPDATE 仅补 api_key_hash）
+        （命中本供应商存量行且其 hash 为空且非 dry_run → UPDATE 仅补 api_key_hash）
+        （跨供应商命中 → 明细返回 existingProviderId 注明既有归属）
     else:
         label = item.基础渠道名    # f"{provider显示名}-{渠道名}"；官方直连时渠道名="官方"
         if label_index[(provider, label)] 存在且其 key_hash != h:

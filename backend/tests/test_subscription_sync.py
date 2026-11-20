@@ -207,6 +207,27 @@ def test_rule2_batch_disambig_same_last4(sync_engine, monkeypatch):
     assert any(l.endswith("·abcd-2") for l in labels)
 
 
+def test_rule1_same_key_different_provider_not_duplicated(sync_engine, monkeypatch):
+    """同一把 Key 已在其他供应商名下（如救援通道的 custom 次优归类）→ 不重复罗列，
+    明细注明既有归属 provider"""
+    user = _zztest_user()
+    key = "sk-shared-across-providers-777"
+    monkeypatch.setattr(sync_mod, "scan_local_subscriptions", lambda: _report(_item("custom", key)))
+    first = sync_local_subscriptions(user)
+    assert first["created"] == 1
+
+    monkeypatch.setattr(
+        sync_mod,
+        "scan_local_subscriptions",
+        lambda: _report(_item("new-api", key, agent="cc-switch")),
+    )
+    second = sync_local_subscriptions(user)
+    assert second["created"] == 0
+    assert second["skipped"] == 1
+    assert second["items"][0]["existingProviderId"] == "custom"
+    assert len(_rows(sync_engine, user)) == 1  # 全局唯一，不重复入库
+
+
 # ---------------------------------------------------------------- 安全与 dry_run
 
 
@@ -233,6 +254,92 @@ def test_dry_run_writes_nothing(sync_engine, monkeypatch):
     assert result["dryRun"] is True
     assert result["created"] == 0 and result["backfilled"] == 0
     assert len(_rows(sync_engine, user)) == 0
+
+
+# ---------------------------------------------------------------- 官方域名后缀匹配（2026-11-20 审计修复）
+
+
+def test_official_host_suffix_matching():
+    """子域名后缀匹配：coding.dashscope.aliyuncs.com 必须命中 qwen（审计实锤的遗漏场景）"""
+    from app.services.subscription_quota.agent_subscription_scan import (
+        official_provider_of_host,
+    )
+
+    assert official_provider_of_host("coding.dashscope.aliyuncs.com") == "qwen"
+    assert official_provider_of_host("api.deepseek.com") == "deepseek"  # 精确匹配仍生效
+    assert official_provider_of_host("relay.example.com") is None
+
+
+def test_classify_channel_with_subdomain_official():
+    assert classify_channel("qwen", "https://coding.dashscope.aliyuncs.com/v1") == (
+        "官方",
+        "official",
+    )
+
+
+# ---------------------------------------------------------------- cc-switch 救援通道（2026-11-20 审计修复）
+
+
+def _make_ccswitch_db(path) -> None:
+    """构造覆盖救援场景的 cc-switch 数据库（qwen 救援 / 本地网关 / OAuth JWT / 无 Key）"""
+    import sqlite3
+
+    conn = sqlite3.connect(path)
+    conn.execute(
+        "CREATE TABLE providers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, "
+        "app_type TEXT, settings_config TEXT, meta TEXT, sort_index INTEGER DEFAULT 0)"
+    )
+    rows = [
+        # 名字不匹配已知 provider + coding 子域 → 救援通道按 host 后缀识别为 qwen
+        ("qwen3.6-plus", "openclaw",
+         {"apiKey": "sk-qwen-rescue-000123", "baseUrl": "https://coding.dashscope.aliyuncs.com/v1"}),
+        # 本地网关回路（127.0.0.1）→ 不入库
+        ("default", "gemini",
+         {"env": {"GEMINI_API_KEY": "sk-localgw-aaaaaaaaaaaa00"}, "baseUrl": "http://127.0.0.1:8045"}),
+        # OAuth JWT（eyJ 开头）→ 不入库
+        ("OpenAI Official", "codex",
+         {"auth": {"OPENAI_API_KEY": "eyJhbGciOiJIUzI1NiJ9." + "x" * 600}}),
+        # 配置字段值伪装（compat.maxTokensField 含 token 被误抓）→ 不入库
+        ("PeanutTokenPlan", "pi",
+         {"compat": {"maxTokensField": "max_completion_tokens"},
+          "baseUrl": "https://tokenproxy.example.com/v1"}),
+        # 无 Key → 不入库
+        ("Kimi K2.5", "openclaw", {"baseUrl": "https://api.moonshot.cn/v1"}),
+    ]
+    for name, app, cfg in rows:
+        conn.execute(
+            "INSERT INTO providers (name, app_type, settings_config, meta) VALUES (?,?,?,?)",
+            (name, app, json.dumps(cfg), "{}"),
+        )
+    conn.commit()
+    conn.close()
+
+
+def test_scan_cc_switch_rescue_pass(tmp_path, monkeypatch):
+    """救援通道：被 load_candidates 名字匹配丢弃的真实订阅（qwen）必须被 host 后缀匹配捞回；
+    本地网关 / OAuth JWT / 配置值伪装 / 无 Key 四类正确不入库（reportOnly）"""
+    from app.services.subscription_quota import usage_import
+    from app.services.subscription_quota.agent_subscription_scan import _scan_cc_switch
+
+    db_file = tmp_path / "cc-switch.db"
+    _make_ccswitch_db(db_file)
+    monkeypatch.setattr(usage_import, "ccswitch_db_path", lambda: db_file)
+
+    items = []
+    result = _scan_cc_switch(items)
+
+    assert result.error is None
+    assert result.discovered == 1
+    assert result.report_only == 4
+    rescued = items[0]
+    assert rescued.provider_id == "qwen"
+    assert rescued.channel == "官方"  # coding.dashscope 子域 → 官方渠道
+    assert rescued.api_key == "sk-qwen-rescue-000123"
+    assert rescued.source_agents == ["cc-switch"]
+    # 不入库的 Key/伪 Key 绝不能出现在条目里
+    joined = " ".join(i.api_key for i in items)
+    assert "sk-localgw" not in joined and "eyJhbGciOiJIUzI1NiJ9" not in joined
+    assert "max_completion_tokens" not in joined
 
 
 # ---------------------------------------------------------------- 扫描器解析（tmp_path 伪造，不读真实凭据）

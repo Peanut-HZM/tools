@@ -7,8 +7,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import * as quotaApi from '../../../api/subscriptionQuotaApi';
 import type {
-  CloudAccountDto,
-  ProviderAggregateDto,
   ProviderSpecDto,
   QuotaAccountDto,
   QuotaResultDto,
@@ -861,7 +859,6 @@ export default function SubscriptionQuotaTool() {
   const [providers, setProviders] = useState<ProviderSpecDto[]>([]);
   const [accounts, setAccounts] = useState<QuotaAccountDto[]>([]);
   const [results, setResults] = useState<QuotaResultDto[]>([]);
-  const [aggregates, setAggregates] = useState<ProviderAggregateDto[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusDto[]>([]);
   const [queriedAt, setQueriedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -873,7 +870,6 @@ export default function SubscriptionQuotaTool() {
   const [adjusting, setAdjusting] = useState<QuotaAccountDto | null>(null);
   const [editingAccount, setEditingAccount] = useState<QuotaAccountDto | null>(null);
   const [cloudSyncing, setCloudSyncing] = useState(false);
-  const [cloudAccounts, setCloudAccounts] = useState<CloudAccountDto[] | null>(null);
   const mountedRef = useRef(true);
 
   const now = useNow(results.length > 0 || Boolean(queriedAt));
@@ -897,7 +893,6 @@ export default function SubscriptionQuotaTool() {
       const quotaData = await quotaApi.queryQuotas({ forceRefresh });
       if (!mountedRef.current) return;
       setResults([...quotaData.accounts, ...quotaData.subscriptions]);
-      setAggregates(quotaData.aggregates ?? []);
       setQueriedAt(quotaData.queriedAt);
     } catch (err) {
       if (!mountedRef.current) return;
@@ -1004,20 +999,6 @@ export default function SubscriptionQuotaTool() {
     }
   }, [loadAll]);
 
-  const loadCloudAccounts = useCallback(async () => {
-    try {
-      const data = await quotaApi.getCloudAccounts();
-      if (mountedRef.current) setCloudAccounts(data.accounts);
-    } catch {
-      // 云端渠道列表加载失败不打断页面主流程；未同步过时接口返回空列表
-      if (mountedRef.current) setCloudAccounts([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadCloudAccounts();
-  }, [loadCloudAccounts]);
-
   const handleCloudSync = useCallback(async () => {
     setCloudSyncing(true);
     setError(null);
@@ -1041,7 +1022,6 @@ export default function SubscriptionQuotaTool() {
             (createdLabels.length > 0 ? `：${createdLabels.join('、')}` : '')
         );
       }
-      await loadCloudAccounts();
     } catch (err) {
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : '同步本机订阅到云端失败');
@@ -1049,7 +1029,7 @@ export default function SubscriptionQuotaTool() {
     } finally {
       if (mountedRef.current) setCloudSyncing(false);
     }
-  }, [loadCloudAccounts]);
+  }, []);
 
   const handleMagpieImport = useCallback(async () => {
     setImporting(true);
@@ -1090,7 +1070,6 @@ export default function SubscriptionQuotaTool() {
     accounts.length > 0 ||
     subscriptionStatus.some((s) => s.hasCredential) ||
     results.some((r) => r.isLocal);
-  const failoverGroups = aggregates.filter((a) => a.isFailoverReady);
 
   const manualAccount = useMemo(() => {
     if (!adjusting) return null;
@@ -1255,73 +1234,6 @@ export default function SubscriptionQuotaTool() {
             <p className="text-xs text-ink-faint">
               共 {results.length} 项，成功 {successCount} 项 · 更新于 {relativeTime(queriedAt, now)}
             </p>
-          )}
-
-          {/* ---------- 云端订阅渠道（远程数据库，agent-subscription-sync） ---------- */}
-          {cloudAccounts && cloudAccounts.length > 0 && (
-            <div className="rounded-lg border border-border bg-surface-1 px-3 py-2">
-              <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-                <Server className="h-3.5 w-3.5" aria-hidden />
-                云端订阅渠道（{cloudAccounts.length} 条 · 已保存到远程数据库，重复同步自动去重）
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-left text-xs">
-                  <thead>
-                    <tr className="text-ink-faint">
-                      <th className="py-1 pr-3 font-medium">渠道命名</th>
-                      <th className="py-1 pr-3 font-medium">供应商</th>
-                      <th className="py-1 pr-3 font-medium">渠道商</th>
-                      <th className="py-1 pr-3 font-medium">Key</th>
-                      <th className="py-1 pr-3 font-medium">来源 Agent</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cloudAccounts.map((acc) => (
-                      <tr key={acc.id} className="border-t border-border/60 align-top">
-                        <td className="py-1.5 pr-3 font-medium text-ink">{acc.label || '—'}</td>
-                        <td className="py-1.5 pr-3 text-ink-muted">{acc.providerId}</td>
-                        <td className="py-1.5 pr-3 text-ink-muted">
-                          {acc.channel || acc.baseUrl || '官方'}
-                        </td>
-                        <td className="py-1.5 pr-3 font-mono text-[11px] text-ink-faint">
-                          {acc.maskedKey ?? '—'}
-                        </td>
-                        <td className="py-1.5 pr-3 text-ink-muted">
-                          {(acc.sourceAgents?.length ? acc.sourceAgents : [acc.app])
-                            .filter(Boolean)
-                            .join('、') || '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {failoverGroups.length > 0 && (
-            <div className="rounded-lg border border-border bg-surface-1 px-3 py-2">
-              <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-                <Settings2 className="h-3.5 w-3.5" aria-hidden />
-                多账号可切换（同供应商配了多个账号，额度用完自动换下一个）
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {failoverGroups.map((group) => (
-                  <span
-                    key={group.providerId}
-                    className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink"
-                    title={`该供应商 ${group.accounts} 个账号，${group.available} 个可用`}
-                  >
-                    {group.label}
-                    <span className="ml-1 text-ink-faint">
-                      {group.available}/{group.accounts} 可用
-                      {group.tightestRemaining !== null &&
-                        ` · 最紧 ${group.tightestRemaining.toFixed(0)}%`}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            </div>
           )}
 
           {/* 套餐额度：概览首屏置顶（用户明确要求） */}

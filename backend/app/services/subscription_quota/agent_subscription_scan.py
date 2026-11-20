@@ -102,20 +102,53 @@ def host_of(url: str) -> str:
 
 
 def official_provider_of_host(host: str) -> Optional[str]:
-    """host 命中官方域名清单时返回对应 provider_id。"""
-    return _HOST_TO_PROVIDER.get((host or "").lower())
+    """host 命中官方域名清单时返回对应 provider_id（支持子域名后缀匹配）。
+
+    例如清单条目 ``dashscope.aliyuncs.com`` 需能命中 ``coding.dashscope.aliyuncs.com``
+    （阿里云百炼的 coding 子域），精确匹配会漏掉这类子域名（2026-11-20 审计实锤）。
+    """
+    h = (host or "").lower().strip(".")
+    if not h:
+        return None
+    if h in _HOST_TO_PROVIDER:
+        return _HOST_TO_PROVIDER[h]
+    for entry, pid in _HOST_TO_PROVIDER.items():
+        if h.endswith("." + entry):
+            return pid
+    return None
 
 
 def classify_channel(provider_id: str, base_url: str) -> tuple[str, str]:
     """返回 (渠道名, category)。
 
-    官方直连（无 base_url 或 host 命中该供应商官方域名）→ ("官方", "official")；
+    官方直连（无 base_url 或 host 命中该供应商官方域名，含子域名）→ ("官方", "official")；
     其余 → (host, "third_party")。
     """
     host = host_of(base_url)
-    if not host or host in OFFICIAL_HOSTS.get(provider_id, ()):
+    if not host or official_provider_of_host(host) == provider_id:
         return "官方", "official"
     return host, "third_party"
+
+
+def is_local_gateway_url(base_url: str) -> bool:
+    """是否指向本地网关回路（127.0.0.1 / localhost / [::1]）——不是外部订阅渠道。"""
+    host = host_of(base_url)
+    return host in ("127.0.0.1", "localhost", "::1", "0.0.0.0")
+
+
+def looks_like_oauth_token(value: str) -> bool:
+    """OAuth JWT 等登录态令牌（eyJ 开头或超长）——会自动轮换，按设计不入库。"""
+    return value.startswith("eyJ") or len(value) > 500
+
+
+def looks_like_config_identifier(value: str) -> bool:
+    """是否为配置字段值被误判成 Key（如 pi 配置的 ``compat.maxTokensField``）。
+
+    事故样本（2026-11-20）：``_pick_key`` 按字段名含 ``token`` 误抓了
+    ``max_completion_tokens`` 这类 snake_case 配置标识符（字段名含 token ≠ 值是凭据）。
+    真实 API Key 几乎必含大写/数字/符号；纯小写字母+下划线且无数字的串按配置值拒收。
+    """
+    return bool(value) and value == value.lower() and value.replace("_", "").isalpha()
 
 
 # ---------------------------------------------------------------- 路径解析（真实家目录）
@@ -129,17 +162,37 @@ def _home_path(*parts: str) -> Path:
 
 
 def _scan_cc_switch(items: list[ScannedSubscription]) -> AgentScanResult:
-    """cc-switch 数据库：多供应商/多渠道/多 Key 的权威来源（元数据最完整）。"""
+    """cc-switch 数据库：多供应商/多渠道/多 Key 的权威来源（元数据最完整）。
+
+    两段式：
+    1. 复用 ``load_candidates``（成熟解析：控制面 Key 优先、usage_script 归类）
+    2. **救援通道**：对被 load_candidates 丢弃的条目（其 ``_match_provider``
+       按名字+URL 匹配，覆盖面有限——2026-11-20 审计发现 qwen3.6-plus 被漏），
+       用 Key + base_url host 后缀匹配重新识别：
+       - 无 Key / OAuth JWT（eyJ 开头或超长）→ 不入库（reportOnly）
+       - base_url 指向本地网关（127.0.0.1 等）→ 不入库（reportOnly）
+       - host 命中官方域名清单（含子域）→ 对应 provider 入库
+       - 其余 → provider_id=custom、显示名取 host 入库
+    """
     result = AgentScanResult(agent="cc-switch")
     try:
         from app.services.subscription_quota.usage_import import ccswitch_db_path
-        from scripts.import_ccswitch_providers import load_candidates
+        from scripts.import_ccswitch_providers import (
+            _collect_secrets,
+            _collect_urls,
+            _match_provider,
+            _pick_key,
+            load_candidates,
+        )
 
         db_path = ccswitch_db_path()
         if not db_path.exists():
             result.report_only = 1  # 未安装 cc-switch，属正常状态而非错误
             return result
-        for cand in load_candidates(db_path):
+
+        before = len(items)
+        candidates = load_candidates(db_path)
+        for cand in candidates:
             key = (cand.get("api_key") or "").strip()
             if not key:
                 continue
@@ -156,7 +209,62 @@ def _scan_cc_switch(items: list[ScannedSubscription]) -> AgentScanResult:
                     source_agents=["cc-switch"],
                 )
             )
-        result.discovered = len(items)
+        matched_names = {(c.get("source_name") or "") for c in candidates}
+
+        # ---- 救援通道：只处理 load_candidates 丢弃的条目 ----
+        import json as _json
+        import sqlite3
+
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        try:
+            raw_rows = conn.execute(
+                "SELECT name, app_type, settings_config FROM providers"
+            ).fetchall()
+        finally:
+            conn.close()
+        for row in raw_rows:
+            name = row["name"] or ""
+            if name in matched_names:
+                continue
+            try:
+                cfg = _json.loads(row["settings_config"] or "{}")
+            except (ValueError, TypeError):
+                cfg = {}
+            secrets = _collect_secrets(cfg)
+            key = _pick_key(secrets)
+            if not isinstance(key, str) or not key.strip():
+                result.report_only += 1  # 无真实凭据（OAuth 登录态 / 空配置）
+                continue
+            key = key.strip()
+            if looks_like_oauth_token(key):
+                result.report_only += 1  # OAuth JWT 会自动轮换，按设计不入库
+                continue
+            if looks_like_config_identifier(key):
+                result.report_only += 1  # 配置字段值被误判成 Key（如 maxTokensField），不入库
+                continue
+            urls = [u for u in _collect_urls(cfg) if isinstance(u, str)]
+            base_url = urls[0] if urls else ""
+            if is_local_gateway_url(base_url):
+                result.report_only += 1  # 本地网关回路（127.0.0.1），非外部订阅渠道
+                continue
+            provider_id = _match_provider(name, " ".join(urls))
+            if not provider_id:
+                provider_id = official_provider_of_host(host_of(base_url)) or "custom"
+            provider_name = name if provider_id != "custom" else (host_of(base_url) or name)
+            channel, _category = classify_channel(provider_id, base_url)
+            items.append(
+                ScannedSubscription(
+                    provider_id=provider_id,
+                    provider_name=provider_name or provider_id,
+                    channel=channel,
+                    base_url=base_url,
+                    api_key=key,
+                    source_agents=["cc-switch"],
+                )
+            )
+            logger.info("cc-switch 救援通道识别条目: name=%s provider=%s", name, provider_id)
+        result.discovered = len(items) - before
     except Exception as exc:  # 单源失败隔离：不影响其他来源
         logger.warning("扫描 cc-switch 失败: %s", exc)
         result.error = f"扫描失败: {exc}"
