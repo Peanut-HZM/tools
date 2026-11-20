@@ -315,7 +315,13 @@ npm run test
 - ❌ **绝对禁止**在有内置浏览器时启动外部浏览器（Chrome / Edge 等）或第三方浏览器工具代替验收
 - ✅ 仅当本工具确实没有内置浏览器时，才允许回退其他方案，并在验收报告中说明原因
 - ❌ 用外部浏览器代替内置浏览器得出的验收结论无效，必须改用内置浏览器重新验收后才算交付
-- 详细规则见 [CLAUDE.md](./CLAUDE.md) 的「浏览器验收强制使用本工具内置浏览器」章节。
+- 详细规则见 [CLAUDE.md](./CLAUDE.md) 的「浏览器验收强制使用本工具内置浏览器」章节。
+
+### 3.1 内置浏览器的判定顺序（含 Paseo 宿主）
+
+- 判定顺序：**Paseo 宿主内** → Paseo `browser_*`；非 Paseo 宿主且 CLI 自带浏览器（Claude Code / Codex / Kimi / MiniMax / OpenCode / ZCode）→ 自带；无内置 → Playwright/agent-browser；都不行 → 系统浏览器并报告
+- 不支持 Paseo 工具注入的 Muse / Antigravity 按"无内置浏览器"处理
+- 本项目验收入口：`http://localhost:8080`（以项目 CLAUDE.md / 启动脚本为准，禁止手搓 dev server 或猜端口）
 
 **END**
 
