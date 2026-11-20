@@ -190,18 +190,26 @@ export const searchNodes = (id: string, q: string, limit: number = 20) => {
   );
 };
 
-/** 执行只读 Cypher 查询（Task 8） */
+/** 执行只读 Cypher 查询（Task 8）
+ * 行内 Node/Relationship/Path 值为 §6.5 序列化结构（含 __type/elementId），
+ * graph.nodes/relationships 同样为序列化原始值（非统一 GraphData），由 ResultView 负责映射去重。
+ */
+export interface Neo4jQueryResult {
+  columns: string[];
+  rows: Array<Record<string, unknown>>;
+  graph: {
+    nodes: Array<Record<string, unknown>>;
+    relationships: Array<Record<string, unknown>>;
+  };
+  truncated: boolean;
+  elapsedMs: number;
+}
+
 export const runQuery = (
   id: string,
   body: { cypher: string; limit?: number; timeoutMs?: number },
 ) => {
-  return request<{
-    columns: string[];
-    rows: unknown[][];
-    graph: GraphData;
-    truncated: boolean;
-    elapsedMs: number;
-  }>(`${BASE}/connections/${id}/query`, {
+  return request<Neo4jQueryResult>(`${BASE}/connections/${id}/query`, {
     method: 'POST',
     body: JSON.stringify(body),
   });

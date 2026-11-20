@@ -1,6 +1,6 @@
 // Neo4j 图谱浏览器 —— 页面入口
 // 顶部连接选择器 + 管理连接抽屉 + Tab（概览 / 探索 / 查询）
-// 概览（Task 6）/ 探索（Task 7）已实现，查询为占位（Task 8 填充）
+// 概览（Task 6）/ 探索（Task 7）/ 查询（Task 8）已实现
 import React, { useEffect, useState } from 'react';
 import { Database, Settings, LayoutGrid, Compass, Terminal } from 'lucide-react';
 import {
@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { ConnectionPanel } from './ConnectionPanel';
 import { SchemaOverview } from './SchemaOverview';
 import ExplorePanel from './ExplorePanel';
+import CypherEditor from './CypherEditor';
 
 type TabValue = 'overview' | 'explore' | 'query';
 
@@ -176,12 +177,9 @@ const Neo4jExplorer: React.FC = () => {
               />
             </TabsContent>
 
-            {/* 查询 Tab：Task 8 实现 */}
-            <TabsContent value="query" className="flex-1 overflow-hidden">
-              <div className="flex flex-col items-center justify-center h-full text-ink-faint">
-                <Terminal className="w-16 h-16 mb-4 opacity-20" />
-                <p className="text-sm">Cypher 查询工作台即将上线</p>
-              </div>
+            {/* 查询 Tab：Task 8 实现（Cypher 只读查询工作台） */}
+            <TabsContent value="query" className="flex-1 overflow-hidden mt-0">
+              <CypherEditor connectionId={activeConnection.id} />
             </TabsContent>
           </Tabs>
         ) : (
