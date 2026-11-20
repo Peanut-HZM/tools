@@ -53,9 +53,11 @@ export interface AgentHubPreset {
   app: string;
   category: string;
   needs_api_key: boolean;
+  credential_source?: string;
   usage_api_key_hint?: string;
   notes?: string;
   base_url?: string;
+  website_url?: string;
 }
 
 export interface AgentHubAgent {

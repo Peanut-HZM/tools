@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Taro from '@tarojs/taro';
-import { View, Text, ScrollView, Picker, Input } from '@tarojs/components';
+import { View, Text, Picker, Input } from '@tarojs/components';
 import {
   agentHubApi,
   AgentHubSubscription,
@@ -73,21 +73,30 @@ export default function AgentHubPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editingSub, setEditingSub] = useState<AgentHubSubscription | null>(null);
-  const [addingProvider, setAddingProvider] = useState(false);
 
   const loadAll = useCallback(async () => {
-    try {
-      const [s, p, pr, a] = await Promise.all([
-        agentHubApi.listSubscriptions(),
-        agentHubApi.listProviders(),
-        agentHubApi.listPresets(),
-        agentHubApi.listAgents(),
+    // 20s 硬超时兜底：防单个接口挂起拖垮整页 loading（request 自身 15s 超时之外的双保险）
+    const withTimeout = <T,>(p: Promise<T>, label: string): Promise<T> =>
+      Promise.race([
+        p,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`${label} 超时`)), 20000)),
       ]);
+    try {
+      console.log('[AgentHub] loadAll start');
+      const [s, p, pr, a] = await Promise.all([
+        withTimeout(agentHubApi.listSubscriptions(), 'listSubscriptions'),
+        withTimeout(agentHubApi.listProviders(), 'listProviders'),
+        withTimeout(agentHubApi.listPresets(), 'listPresets'),
+        withTimeout(agentHubApi.listAgents(), 'listAgents'),
+      ]);
+      console.log('[AgentHub] loadAll done');
       setSubs(s.subscriptions);
       setProviders(p.providers);
       setPresets(pr.presets);
       setAgents(a.agents);
     } catch (e) {
+      console.error('[AgentHub] loadAll failed:', e);
       Taro.showToast({ title: formatApiError(e), icon: 'none' });
     } finally {
       setLoading(false);
@@ -166,7 +175,7 @@ export default function AgentHubPage() {
                 }} />
             ))
           )}
-          <AddSubscriptionInline presets={presets} providers={providers}
+          <AddSubscriptionInline presets={presets}
             onCreated={(created) => { setSubs((prev) => [created, ...prev]); }} />
         </View>
       )}
@@ -244,11 +253,6 @@ export default function AgentHubPage() {
             setEditingSub(null);
             if (updated.kind === 'manual') refreshOne(updated);
           }} />
-      )}
-      {addingProvider && (
-        <AddProviderLayer presets={presets}
-          onClose={() => setAddingProvider(false)}
-          onSaved={(p) => { setProviders((prev) => [p, ...prev]); setAddingProvider(false); }} />
       )}
     </View>
   );
@@ -456,23 +460,8 @@ function AddProviderInline({ presets, onCreated }: {
   );
 }
 
-function AddProviderLayer({ presets, onClose, onSaved }: {
-  presets: AgentHubPreset[]; onClose: () => void;
-  onSaved: (p: AgentHubProvider) => void;
-}) {
-  return (
-    <View className='layer-mask' onClick={onClose}>
-      <View className='layer-card' onClick={(e) => e.stopPropagation()}>
-        <Text className='layer-title'>添加供应商（见「供应商」分区）</Text>
-        <View className='layer-actions'><View className='btn' onClick={onClose}><Text>知道了</Text></View></View>
-      </View>
-    </View>
-  );
-}
-
-function AddSubscriptionInline({ presets, providers, onCreated }: {
+function AddSubscriptionInline({ presets, onCreated }: {
   presets: AgentHubPreset[];
-  providers: AgentHubProvider[];
   onCreated: (s: AgentHubSubscription) => void;
 }) {
   const [open, setOpen] = useState(false);
