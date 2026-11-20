@@ -16,6 +16,10 @@ from app.models.auth_models import *
 from app.models.file_models import *
 from app.models.config_models import *
 from app.models.search_models import *
+# tool_models 的 SearchResponse 必须在 search_models 之后声明：
+# 两者同名（工具搜索 tools/count vs 文件搜索 results/total），app.models 对外应导出工具版，
+# 否则 /api/tools/search 会按文件搜索结构校验而 500
+from app.models.tool_models import SearchResponse  # noqa: F811
 from app.models.stats_models import *
 from app.models.database_tool_models import *
 from app.models.redis_tool_models import *

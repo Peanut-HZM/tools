@@ -260,6 +260,18 @@ TOOLS_DATA = [
         sort_order=1,
         require_login=True,  # 读写本机 agent 配置/订阅数据需要账号
     ),
+    Tool(
+        id="neo4j-explorer",
+        icon="fa-project-diagram",
+        iconColor="bg-emerald-600",
+        title="Neo4j 图谱浏览器",
+        description="连接 Neo4j 图数据库，浏览节点与关系、探索图谱结构、执行 Cypher 查询并可视化结果",
+        rating=5.0,
+        usageCount="New",
+        category="开发工具",
+        sort_order=2,
+        require_login=True,  # 连接凭据与查询结果属于用户私有数据
+    ),
 ]
 
 

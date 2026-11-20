@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Query, HTTPException
 from typing import List, Optional
-from app.models import ToolsResponse, SearchResponse, CategoryResponse, Category, CategoryCreateRequest
+from app.models import ToolsResponse, CategoryResponse, Category, CategoryCreateRequest
+# SearchResponse 在 app.models 下与 search_models 的同名模型冲突，
+# 这里显式从 tool_models 导入，确保工具搜索用 tools/count 结构
+from app.models.tool_models import SearchResponse
 from app.services.tools_service import tools_service, _tools_cache
 from app.services.system_monitor_service import get_system_info, get_resource_usage, get_process_list, kill_process
 
