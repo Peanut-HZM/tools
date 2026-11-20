@@ -97,6 +97,9 @@ kubernetes_asyncio>=29.0.0
 # MCP (Model Context Protocol)
 mcp>=1.0.0
 
+# Neo4j 浏览器工具（Task 2 连通性测试，Task 5 统一校准版本）
+neo4j>=5.0
+
 # OpenTelemetry (OTel export, lazy-loaded)
 opentelemetry-api>=1.44.0
 opentelemetry-sdk>=1.44.0

@@ -31,6 +31,7 @@ from app.routes import (
     k8s_tool,
     key_generator,
     markdown_editor,
+    neo4j_tool,
     ocr_routes,
     oss,
     redis_tool,
@@ -558,6 +559,9 @@ app.include_router(database_tool.router, prefix="/api")
 
 # Redis Tool router
 app.include_router(redis_tool.router, prefix="/api")
+
+# Neo4j Tool router（连接 CRUD + 连通性测试）
+app.include_router(neo4j_tool.router, prefix="/api")
 
 # SSH Tool router
 app.include_router(ssh_tool.router, prefix="/api")
