@@ -295,6 +295,77 @@ export async function importFromCcSwitch(dryRun = false): Promise<ImportResponse
   return parseJson<ImportResponse>(response);
 }
 
+// ---------------------------------------------------------------- 本机订阅同步远程库（agent-subscription-sync）
+
+export interface SyncAgentResultDto {
+  agent: string;
+  discovered: number;
+  report_only: number;
+  error?: string | null;
+}
+
+export interface SyncItemDto {
+  providerId: string;
+  providerName: string;
+  channel: string;
+  /** 新建渠道的最终命名；skip 时为 null */
+  label: string | null;
+  maskedKey: string;
+  action: 'create' | 'skip';
+  sourceAgents: string[];
+}
+
+export interface SubscriptionSyncResponse {
+  agents: SyncAgentResultDto[];
+  items: SyncItemDto[];
+  created: number;
+  skipped: number;
+  backfilled: number;
+  dryRun: boolean;
+}
+
+export interface CloudAccountDto {
+  id: string;
+  providerId: string;
+  label: string;
+  maskedKey: string | null;
+  category: string;
+  app: string;
+  baseUrl: string;
+  channel: string;
+  sourceAgents: string[];
+  enabled: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface CloudAccountsResponse {
+  accounts: CloudAccountDto[];
+  total: number;
+}
+
+/**
+ * 扫描本机全部 Agent 的订阅配置并同步到远程数据库。
+ * 去重规则：同供应商+同 Key 跳过；同供应商+同渠道+不同 Key 新增渠道行（命名区分）。
+ */
+export async function syncLocalSubscriptions(dryRun = false): Promise<SubscriptionSyncResponse> {
+  const response = await authedFetch(`${BASE_URL}/subscriptions/sync`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ dry_run: dryRun }),
+  });
+  return parseJson<SubscriptionSyncResponse>(response);
+}
+
+/** 远程数据库中的订阅渠道列表（掩码展示） */
+export async function getCloudAccounts(): Promise<CloudAccountsResponse> {
+  const response = await authedFetch(`${BASE_URL}/subscriptions/cloud`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return parseJson<CloudAccountsResponse>(response);
+}
+
 export interface MagpieSyncItemDto {
   source: string;
   providerId: string;

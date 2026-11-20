@@ -110,6 +110,9 @@ _EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("window_reset_at", "VARCHAR(40) NOT NULL DEFAULT ''"),
     # keep-last-good：最近一次成功查询结果（失败时前端显示上次数据）
     ("last_good_json", "TEXT NOT NULL DEFAULT ''"),
+    # 明文 API Key 的 SHA-256（hex）：订阅同步的幂等去重键（agent-subscription-sync）
+    # 存量行为空串；同步命中明文相同的存量行时会顺手回填（仅此一列，不动其他字段）
+    ("api_key_hash", "VARCHAR(64) NOT NULL DEFAULT ''"),
 )
 
 _INDEX_SQL = (

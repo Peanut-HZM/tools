@@ -109,5 +109,6 @@ opentelemetry-proto>=1.44.0
 opentelemetry-semantic-conventions>=0.65b0
 
 # Agent Hub（cc-switch + magpie 整合）保格式 TOML/YAML 编辑
-"tomlkit>=0.13.0"
-"ruamel.yaml>=0.18.0"
+# 注意：不能加引号——服务器旧版 pip 会把引号当作依赖名的一部分报 Invalid requirement
+tomlkit>=0.13.0
+ruamel.yaml>=0.18.0

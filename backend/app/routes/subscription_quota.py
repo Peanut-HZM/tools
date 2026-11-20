@@ -1050,3 +1050,38 @@ async def query_quotas_endpoint(
         "queriedAt": int(time.time() * 1000),
         "configured": configured,
     }
+
+
+# ---------------------------------------------------------------- 本机订阅同步远程库（agent-subscription-sync）
+
+
+class SubscriptionSyncRequest(BaseModel):
+    """同步本机各 Agent 的订阅服务商信息到远程主库"""
+
+    dry_run: bool = Field(default=False, description="只预览不写库")
+
+
+@router.post("/subscriptions/sync")
+def sync_local_subscriptions_endpoint(
+    req: Optional[SubscriptionSyncRequest] = None,
+    authorization: Optional[str] = Header(None),
+):
+    """扫描本机全部 Agent 的订阅配置，按去重规则写入远程主库。
+
+    规则 1：同供应商 + 同 API Key → 跳过（不覆盖不更新，保留原配置）
+    规则 2：同供应商 + 同渠道商 + 不同 Key → 新增渠道行，命名以「·Key后4位」消歧
+    响应绝不包含明文 API Key（只返回掩码）。
+    """
+    user_id = _require_user(authorization)
+    from app.services.subscription_quota.subscription_sync import sync_local_subscriptions
+
+    return sync_local_subscriptions(user_id, dry_run=bool(req.dry_run if req else False))
+
+
+@router.get("/subscriptions/cloud")
+def list_cloud_subscriptions(authorization: Optional[str] = Header(None)):
+    """远程主库中的订阅渠道列表（掩码展示，无明文 Key）"""
+    user_id = _require_user(authorization)
+    from app.services.subscription_quota.subscription_sync import list_cloud_accounts
+
+    return list_cloud_accounts(user_id)

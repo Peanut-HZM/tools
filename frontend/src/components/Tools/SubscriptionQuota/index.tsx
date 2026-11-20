@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle, ArrowRightLeft, CheckCircle2, Clock, Download, Gauge, LayoutDashboard,
+  AlertCircle, ArrowRightLeft, CheckCircle2, Clock, CloudUpload, Download, Gauge, LayoutDashboard,
   Package, Pencil, Plus, RefreshCw, Server, Settings2, Trash2, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import * as quotaApi from '../../../api/subscriptionQuotaApi';
 import type {
+  CloudAccountDto,
   ProviderAggregateDto,
   ProviderSpecDto,
   QuotaAccountDto,
   QuotaResultDto,
   QuotaTierDto,
   SubscriptionStatusDto,
+  SubscriptionSyncResponse,
 } from '../../../api/subscriptionQuotaApi';
 import {
   countdownStr, credentialStatusText, formatAmount, isBalanceTier, kindLabel,
@@ -870,6 +872,8 @@ export default function SubscriptionQuotaTool() {
   const [importResult, setImportResult] = useState<string | null>(null);
   const [adjusting, setAdjusting] = useState<QuotaAccountDto | null>(null);
   const [editingAccount, setEditingAccount] = useState<QuotaAccountDto | null>(null);
+  const [cloudSyncing, setCloudSyncing] = useState(false);
+  const [cloudAccounts, setCloudAccounts] = useState<CloudAccountDto[] | null>(null);
   const mountedRef = useRef(true);
 
   const now = useNow(results.length > 0 || Boolean(queriedAt));
@@ -999,6 +1003,53 @@ export default function SubscriptionQuotaTool() {
       if (mountedRef.current) setImporting(false);
     }
   }, [loadAll]);
+
+  const loadCloudAccounts = useCallback(async () => {
+    try {
+      const data = await quotaApi.getCloudAccounts();
+      if (mountedRef.current) setCloudAccounts(data.accounts);
+    } catch {
+      // 云端渠道列表加载失败不打断页面主流程；未同步过时接口返回空列表
+      if (mountedRef.current) setCloudAccounts([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadCloudAccounts();
+  }, [loadCloudAccounts]);
+
+  const handleCloudSync = useCallback(async () => {
+    setCloudSyncing(true);
+    setError(null);
+    setImportResult(null);
+    try {
+      const result: SubscriptionSyncResponse = await quotaApi.syncLocalSubscriptions(false);
+      if (!mountedRef.current) return;
+      const createdLabels = result.items
+        .filter((i) => i.action === 'create' && i.label)
+        .map((i) => `${i.providerName}·${i.label}`);
+      if (result.created === 0 && result.skipped === 0) {
+        setImportResult('本机没有发现可同步的 Agent 订阅配置（API Key 型）');
+      } else if (result.created === 0) {
+        setImportResult(
+          `云端已有这 ${result.skipped} 条订阅（同供应商同 Key 不重复保存，原配置保持不变）`
+        );
+      } else {
+        setImportResult(
+          `已同步 ${result.created} 条订阅到云端数据库` +
+            (result.skipped > 0 ? `，已存在跳过 ${result.skipped} 条` : '') +
+            (createdLabels.length > 0 ? `：${createdLabels.join('、')}` : '')
+        );
+      }
+      await loadCloudAccounts();
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : '同步本机订阅到云端失败');
+      }
+    } finally {
+      if (mountedRef.current) setCloudSyncing(false);
+    }
+  }, [loadCloudAccounts]);
 
   const handleMagpieImport = useCallback(async () => {
     setImporting(true);
@@ -1174,6 +1225,22 @@ export default function SubscriptionQuotaTool() {
               </button>
               <button
                 type="button"
+                onClick={() => void handleCloudSync()}
+                disabled={cloudSyncing}
+                title="扫描本机全部 Agent（cc-switch/Claude/Codex/OpenCode/ZCode 等）的订阅服务商配置，去重后保存到远程数据库"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
+              >
+                <CloudUpload
+                  className={`h-4 w-4 ${cloudSyncing ? 'animate-pulse' : ''}`}
+                  aria-hidden
+                />
+                <span className="hidden sm:inline">
+                  {cloudSyncing ? '同步中…' : '同步本机订阅到云端'}
+                </span>
+                <span className="sm:hidden">{cloudSyncing ? '同步中…' : '同步云端'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => void loadAll(true)}
                 disabled={refreshing || loading}
                 className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50 sm:flex-none"
@@ -1188,6 +1255,48 @@ export default function SubscriptionQuotaTool() {
             <p className="text-xs text-ink-faint">
               共 {results.length} 项，成功 {successCount} 项 · 更新于 {relativeTime(queriedAt, now)}
             </p>
+          )}
+
+          {/* ---------- 云端订阅渠道（远程数据库，agent-subscription-sync） ---------- */}
+          {cloudAccounts && cloudAccounts.length > 0 && (
+            <div className="rounded-lg border border-border bg-surface-1 px-3 py-2">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+                <Server className="h-3.5 w-3.5" aria-hidden />
+                云端订阅渠道（{cloudAccounts.length} 条 · 已保存到远程数据库，重复同步自动去重）
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-left text-xs">
+                  <thead>
+                    <tr className="text-ink-faint">
+                      <th className="py-1 pr-3 font-medium">渠道命名</th>
+                      <th className="py-1 pr-3 font-medium">供应商</th>
+                      <th className="py-1 pr-3 font-medium">渠道商</th>
+                      <th className="py-1 pr-3 font-medium">Key</th>
+                      <th className="py-1 pr-3 font-medium">来源 Agent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cloudAccounts.map((acc) => (
+                      <tr key={acc.id} className="border-t border-border/60 align-top">
+                        <td className="py-1.5 pr-3 font-medium text-ink">{acc.label || '—'}</td>
+                        <td className="py-1.5 pr-3 text-ink-muted">{acc.providerId}</td>
+                        <td className="py-1.5 pr-3 text-ink-muted">
+                          {acc.channel || acc.baseUrl || '官方'}
+                        </td>
+                        <td className="py-1.5 pr-3 font-mono text-[11px] text-ink-faint">
+                          {acc.maskedKey ?? '—'}
+                        </td>
+                        <td className="py-1.5 pr-3 text-ink-muted">
+                          {(acc.sourceAgents?.length ? acc.sourceAgents : [acc.app])
+                            .filter(Boolean)
+                            .join('、') || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
 
           {failoverGroups.length > 0 && (
