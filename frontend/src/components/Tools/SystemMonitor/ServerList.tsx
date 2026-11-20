@@ -52,6 +52,8 @@ export default function ServerList() {
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
+  /** SSH 同步失败明细（凭据无法解密等），用于给用户可操作指引 */
+  const [syncFailed, setSyncFailed] = useState<{ name: string; reason: string }[]>([]);
 
   const refresh = useCallback(async () => {
     try {
@@ -68,6 +70,12 @@ export default function ServerList() {
     try {
       const res = await monitorApi.syncServersFromSsh();
       const changed = res.created + res.updated + res.disabled;
+      // 失败明细单独展示，避免用户只看到「4/7」不知道剩下 3 条为什么没进来
+      setSyncFailed(
+        (res.items ?? [])
+          .filter((i) => i.action === 'failed')
+          .map((i) => ({ name: i.name, reason: i.reason ?? '未知原因' })),
+      );
       if (changed > 0) {
         setSyncMsg(
           `已同步 SSH 配置：新增 ${res.created} / 更新 ${res.updated} / 停用 ${res.disabled}`,
@@ -202,6 +210,24 @@ export default function ServerList() {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* SSH 同步失败明细：给出可操作指引，而不是让用户对着「4/7」猜原因 */}
+      {syncFailed.length > 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-accent-warning">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <div className="min-w-0">
+            <div className="font-medium">
+              {syncFailed.length} 条 SSH 配置无法同步（密码用旧密钥加密，当前解不开）
+            </div>
+            <div className="mt-1 text-[11px] opacity-90">
+              {syncFailed.map((f) => f.name).join('、')}
+            </div>
+            <div className="mt-1 text-[11px] opacity-80">
+              这些配置在 SSH 工具里同样连不上。请到「SSH 管理」重新填写密码并保存，回到本页点「同步 SSH 配置」即可自动接入。
+            </div>
+          </div>
         </div>
       )}
 
