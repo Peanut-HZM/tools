@@ -45,6 +45,11 @@ def _make_probe_account(candidate: dict) -> QuotaAccount:
         extra["region"] = candidate["region"]
     if candidate.get("base_url"):
         extra["base_url"] = candidate["base_url"]
+    # 团队版必须带组织 / 项目 ID，否则查询接口无法定位团队套餐
+    if candidate.get("organization_id"):
+        extra["organization_id"] = candidate["organization_id"]
+    if candidate.get("project_id"):
+        extra["project_id"] = candidate["project_id"]
     # 查询实现优先读 extra["api_key"]，这里统一塞进去，保证与真实账号行为一致
     extra["api_key"] = candidate.get("api_key") or ""
 
@@ -89,8 +94,43 @@ async def probe_candidate(candidate: dict) -> tuple[bool, str]:
     return False, f"不可用（{status_value}）{(': ' + str(reason)) if reason else ''}"
 
 
+async def pick_working_candidates(candidates: list[dict]) -> list[dict]:
+    """从同一供应商的多个候选中挑出**实际可用**的那些。
+
+    与 ``pick_working_candidate`` 的区别：后者只返回一条（适用于「同一账号
+    有多份配置，随便挑一份能用即可」），本函数返回**全部**可用候选，
+    适用于「同一供应商下配了多个不同账号（各自的 Key 不同），每个都要导入」。
+
+    调用方应先用 Key 去重（``load_candidates`` 已做），这里按 Key 再兜一层，
+    避免同一份凭据被重复返回。
+    """
+    if not candidates:
+        return []
+
+    results = await asyncio.gather(*(probe_candidate(c) for c in candidates))
+
+    usable: list[dict] = []
+    seen_keys: set[str] = set()
+    for candidate, (ok, reason) in zip(candidates, results):
+        logger.info(
+            "cc-switch 候选探测: %s / %s(%s) -> %s",
+            candidate.get("provider_id"),
+            candidate.get("source_name"),
+            candidate.get("source_app"),
+            "可用" if ok else reason,
+        )
+        if not ok:
+            continue
+        key = str(candidate.get("api_key") or "")
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        usable.append(candidate)
+    return usable
+
+
 async def pick_working_candidate(candidates: list[dict]) -> Optional[dict]:
-    """从同一供应商的多个候选中挑出**实际可用**的那条。
+    """从同一供应商的多个候选中挑出**实际可用**的那一条（单账号场景）。
 
     策略：
     1. 并发探测全部候选

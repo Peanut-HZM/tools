@@ -431,14 +431,26 @@ def fake_ccswitch(monkeypatch):
 
     # 探测会真实联网查额度 —— 测试里必须打桩，否则依赖外网且结果不稳定。
     # 默认「全部可用」，各用例可按需覆盖成不可用。
+    # 注意：导入流程用的是 pick_working_candidates（返回多个账号），
+    # 单账号场景才用 pick_working_candidate，两个都要打桩。
     from app.services.subscription_quota import credential_probe
 
-    async def _pick_all_working(candidates):
+    async def _pick_all_working_multi(candidates):
+        seen: set[str] = set()
+        out = []
         for candidate in candidates:
-            if candidate.get("from_control_key"):
-                return candidate
-        return candidates[0] if candidates else None
+            key = str(candidate.get("api_key") or "")
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(candidate)
+        return out
 
+    async def _pick_all_working(candidates):
+        result = await _pick_all_working_multi(candidates)
+        return result[0] if result else None
+
+    monkeypatch.setattr(credential_probe, "pick_working_candidates", _pick_all_working_multi)
     monkeypatch.setattr(credential_probe, "pick_working_candidate", _pick_all_working)
     return route_module
 
@@ -447,14 +459,17 @@ AUTH = {"Authorization": "Bearer zztest"}
 
 
 def test_ccswitch_import_does_not_overwrite_existing(fake_user, memory_store, fake_ccswitch):
-    """核心回归：已存在的账号不能被 cc-switch 导入覆盖
+    """核心回归：同一个账号不能被 cc-switch 导入覆盖
 
     真实缺陷：导入逻辑对同 provider 的账号无条件 update，
     把用户在页面里改过的 Key / 显示名 / 手工额度全部冲掉。
+
+    去重口径是 (provider_id, api_key)：同一个 Key 视为同一账号 → 跳过；
+    同 provider 的**不同** Key 是另一个账号 → 允许新建（多账号场景）。
     """
-    # 用户已有 zhipu 账号，且手工改过 label 与额度
+    # 用户已有 zhipu 账号（Key 与 cc-switch 里的那条相同），手工改过 label 与额度
     accounts_mod.create_account(
-        fake_user, "zhipu", label="我自己改的名字", api_key="sk-user-manual-key-9999"
+        fake_user, "zhipu", label="我自己改的名字", api_key="sk-ccswitch-zhipu-key-0001"
     )
     existing = accounts_mod.list_accounts(fake_user)[0]
     accounts_mod.update_account(
@@ -465,7 +480,7 @@ def test_ccswitch_import_does_not_overwrite_existing(fake_user, memory_store, fa
     assert resp.status_code == 200
     body = resp.json()
 
-    # zhipu 应被跳过；newprov 应被新建
+    # 同 Key 的 zhipu 应被跳过；newprov 应被新建
     assert body["skipped"] == 1
     assert body["created"] == 1
     assert body["updated"] == 0
@@ -474,7 +489,7 @@ def test_ccswitch_import_does_not_overwrite_existing(fake_user, memory_store, fa
     zhipu = after["zhipu"]
     # 关键断言：用户数据一个都不能变
     assert zhipu.label == "我自己改的名字"
-    assert zhipu.api_key == "sk-user-manual-key-9999"
+    assert zhipu.api_key == "sk-ccswitch-zhipu-key-0001"
     assert zhipu.manual_total == 500.0
     assert zhipu.manual_used == 123.0
     assert zhipu.notes == "手工备注"
@@ -482,12 +497,81 @@ def test_ccswitch_import_does_not_overwrite_existing(fake_user, memory_store, fa
     assert "newprov" in after
 
 
+def test_ccswitch_import_keeps_multiple_accounts_of_same_provider(
+    fake_user, memory_store, fake_ccswitch, monkeypatch
+):
+    """回归：同供应商的多个账号必须都导入，不能只留一个
+
+    真实缺陷：导入按 provider_id 归组并只取一个候选，
+    智谱的三个订阅（团队 HZM / 团队 LYD / 个人 Peanut）只剩一个。
+    """
+    from app.services.subscription_quota import credential_probe
+
+    # 让 cc-switch 里同一个 provider 出现两个不同 Key 的账号
+    route_module = fake_ccswitch
+    import sys as _sys
+
+    fake_module = _sys.modules["scripts.import_ccswitch_providers"]
+
+    def _load_candidates(_db):
+        return [
+            {
+                "provider_id": "zhipu_team",
+                "source_app": "claude",
+                "source_name": "Zhipu GLM Team HZM",
+                "api_key": "sk-team-hzm-0001",
+                "region": "cn",
+                "base_url": "",
+                "from_control_key": False,
+                "organization_id": "org-aaa",
+                "project_id": "proj-aaa",
+            },
+            {
+                "provider_id": "zhipu_team",
+                "source_app": "claude",
+                "source_name": "Zhipu GLM Team LYD",
+                "api_key": "sk-team-lyd-0002",
+                "region": "cn",
+                "base_url": "",
+                "from_control_key": False,
+                "organization_id": "org-aaa",
+                "project_id": "proj-aaa",
+            },
+        ]
+
+    fake_module.load_candidates = _load_candidates
+
+    async def _all(candidates):
+        return list(candidates)
+
+    monkeypatch.setattr(credential_probe, "pick_working_candidates", _all)
+
+    resp = client.post("/api/subscription-quota/import/cc-switch", json={}, headers=AUTH)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["created"] == 2, "同供应商的两个不同 Key 必须都建号"
+    assert body["skipped"] == 0
+
+    labels = sorted(a.label for a in accounts_mod.list_accounts(fake_user))
+    assert any("HZM" in x for x in labels)
+    assert any("LYD" in x for x in labels)
+
+    # 团队组织的 org/proj 必须落库，否则团队版额度查不出来
+    for account in accounts_mod.list_accounts(fake_user):
+        assert account.extra.get("organization_id") == "org-aaa"
+        assert account.extra.get("project_id") == "proj-aaa"
+
+
 def test_ccswitch_import_overwrite_flag_only_touches_credentials(
     fake_user, memory_store, fake_ccswitch
 ):
-    """显式 overwrite 时只更新凭据，用户手工维护的字段仍保留"""
+    """显式 overwrite 时只更新凭据，用户手工维护的字段仍保留
+
+    去重口径是 (provider_id, api_key)，所以要覆盖同一个账号，
+    本地账号的 Key 必须与 cc-switch 里那条一致。
+    """
     accounts_mod.create_account(
-        fake_user, "zhipu", label="我改的名字", api_key="sk-old-key-0000"
+        fake_user, "zhipu", label="我改的名字", api_key="sk-ccswitch-zhipu-key-0001"
     )
     existing = accounts_mod.list_accounts(fake_user)[0]
     accounts_mod.update_account(
@@ -539,7 +623,11 @@ def test_ccswitch_import_probes_and_skips_unusable_keys(
         # 模拟：该供应商的所有候选 Key 都失效（例如 cc-switch 里只剩过期 Key）
         return None
 
+    async def _none_works_multi(candidates):
+        return []
+
     monkeypatch.setattr(credential_probe, "pick_working_candidate", _none_works)
+    monkeypatch.setattr(credential_probe, "pick_working_candidates", _none_works_multi)
 
     resp = client.post("/api/subscription-quota/import/cc-switch", json={}, headers=AUTH)
     assert resp.status_code == 200
@@ -560,7 +648,11 @@ def test_ccswitch_import_reports_probe_skipped_reason(
     async def _none_works(candidates):
         return None
 
+    async def _none_works_multi(candidates):
+        return []
+
     monkeypatch.setattr(credential_probe, "pick_working_candidate", _none_works)
+    monkeypatch.setattr(credential_probe, "pick_working_candidates", _none_works_multi)
 
     resp = client.post("/api/subscription-quota/import/cc-switch", json={}, headers=AUTH)
     assert resp.status_code == 200

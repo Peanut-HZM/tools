@@ -280,13 +280,15 @@ async def import_from_ccswitch(
     for item in candidates:
         grouped.setdefault(item["provider_id"], []).append(item)
 
-    from app.services.subscription_quota.credential_probe import pick_working_candidate
+    from app.services.subscription_quota.credential_probe import pick_working_candidates
 
-    picked: dict[str, dict] = {}
+    picked: list[dict] = []
     probe_skipped: list[dict] = []
     for pid, group in grouped.items():
-        working = await pick_working_candidate(group)
-        if working is None:
+        # 同一 provider 可能有多个**不同账号**（如智谱团队版 HZM / LYD），
+        # 每个账号是一份独立订阅，都要导入，不能只留一个。
+        working = await pick_working_candidates(group)
+        if not working:
             probe_skipped.append(
                 {
                     "providerId": pid,
@@ -294,24 +296,28 @@ async def import_from_ccswitch(
                 }
             )
             continue
-        picked[pid] = working
+        picked.extend(working)
 
     if not picked and not probe_skipped:
         return {"imported": 0, "items": [], "message": "cc-switch 里没有可导入的供应商凭据"}
 
-    best = picked
-
-    # 按 provider_id 归组：同一 provider 可能有多个账号（多账号 failover），
-    # 只要该 provider 下已有账号就视为「已配置」，不再新建、也不再改。
-    existing_by_provider: dict[str, list] = {}
+    # 按 (provider_id, api_key) 索引已有账号 —— 同一 provider 可有多账号，
+    # 用 Key 判重才能区分「同一个账号重复导入」与「同供应商的另一个账号」。
+    existing_by_key: dict[tuple[str, str], list] = {}
     for account in list_accounts(user_id):
-        existing_by_provider.setdefault(account.provider_id, []).append(account)
+        existing_by_key.setdefault((account.provider_id, account.api_key or ""), []).append(account)
 
     items: list[dict] = []
     created = updated = skipped = 0
 
-    for pid, item in best.items():
+    for item in picked:
+        pid = item["provider_id"]
         extra: dict = {"region": item["region"], "api_key": item["api_key"]}
+        # 团队版额度查询必须带组织 / 项目 ID，否则接口无法定位团队套餐
+        if item.get("organization_id"):
+            extra["organization_id"] = item["organization_id"]
+        if item.get("project_id"):
+            extra["project_id"] = item["project_id"]
         if pid == "opendesign":
             # 账单接口只认控制面 Key（vela_ctrl_…）。cc-switch 的
             # load_candidates 已优先取 usage_script.apiKey（控制面），
@@ -333,7 +339,9 @@ async def import_from_ccswitch(
             extra["base_url"] = item["base_url"]
 
         label = f"{item['source_name']}（cc-switch 导入）"
-        existing = existing_by_provider.get(pid) or []
+        # 用 Key 判重：同 provider 的同一个 Key = 同一账号（跳过）；
+        # 不同 Key = 该供应商的另一个账号（新建）。
+        existing = existing_by_key.get((pid, item["api_key"])) or []
 
         # 决定本条的动作。默认「已存在就跳过」，绝不覆盖用户数据。
         if existing and not req.overwrite:

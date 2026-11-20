@@ -175,6 +175,20 @@ def load_candidates(db_path: Path) -> list[dict]:
         control_key = usage_script.get("apiKey") if isinstance(usage_script.get("apiKey"), str) else None
         control_key = control_key.strip() if control_key else None
 
+        # cc-switch 的 usage_script 明确标注了「这条属于哪个订阅类型」。
+        # 智谱的个人版与团队版是**两个不同的 provider**（zhipu / zhipu_team），
+        # 只看名字 + URL 会把它们全归成 zhipu，导致多账号被合并成一个。
+        plan_provider = usage_script.get("codingPlanProvider")
+        if isinstance(plan_provider, str) and plan_provider.strip():
+            candidate_id = plan_provider.strip()
+            # meta 里的值必须是我们认识的 provider，否则仍按名字匹配兜底
+            if _is_known_provider(candidate_id):
+                provider_id = candidate_id
+
+        # 团队版必须带组织 / 项目 ID，否则查询接口无法定位团队套餐
+        org_id = usage_script.get("teamOrganizationId")
+        project_id = usage_script.get("teamProjectId")
+
         api_key = control_key or inference_key
         if not api_key:
             continue
@@ -189,9 +203,31 @@ def load_candidates(db_path: Path) -> list[dict]:
                 "inference_key": inference_key,
                 "base_url": urls[0] if urls else None,
                 "region": _region_of(" ".join(urls)),
+                "organization_id": org_id.strip() if isinstance(org_id, str) and org_id.strip() else None,
+                "project_id": project_id.strip() if isinstance(project_id, str) and project_id.strip() else None,
             }
         )
-    return candidates
+
+    # 同一账号常在多个 app_type 下各配一份（如 claude + claude-desktop），
+    # 它们是**同一个订阅**（同一个 Key），按 api_key 去重，避免重复导入同一份额度。
+    # 去重时优先保留带团队 org/proj 的那条（额度查询需要它）。
+    deduped: dict[str, dict] = {}
+    for candidate in candidates:
+        key = candidate["api_key"]
+        existing = deduped.get(key)
+        if existing is None:
+            deduped[key] = candidate
+            continue
+        if candidate.get("organization_id") and not existing.get("organization_id"):
+            deduped[key] = candidate
+    return list(deduped.values())
+
+
+def _is_known_provider(provider_id: str) -> bool:
+    """cc-switch meta 里的 codingPlanProvider 是否是我们认识的 provider"""
+    from app.services.subscription_quota.registry import get_spec
+
+    return get_spec(provider_id) is not None
 
 
 def _default_db_path() -> str:
