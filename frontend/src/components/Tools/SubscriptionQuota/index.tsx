@@ -28,11 +28,10 @@ const TONE_STYLES = {
   danger: { text: 'text-accent-danger', bar: 'bg-accent-danger' },
 } as const;
 
-type TabKey = 'overview' | 'quota' | 'providers' | 'agents' | 'gateway';
+type TabKey = 'overview' | 'providers' | 'agents' | 'gateway';
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'overview', label: '概览', icon: LayoutDashboard },
-  { key: 'quota', label: '套餐额度', icon: Gauge },
   { key: 'providers', label: '供应商', icon: Package },
   { key: 'agents', label: 'Agent 切换', icon: ArrowRightLeft },
   { key: 'gateway', label: '本地网关', icon: Server },
@@ -1075,38 +1074,46 @@ export default function SubscriptionQuotaTool() {
     );
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4">
-      {/* Tab 导航：移动端横向可滚动 */}
-      <div className="-mx-3 flex gap-1 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              aria-current={active ? 'page' : undefined}
-              className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                active
-                  ? 'bg-accent text-white'
-                  : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          );
-        })}
+    // 外层固定一屏高度、不滚动：Tab 导航必须始终可见。
+    // 之前把 overflow-y-auto 放在这个外层容器上，滚动时整页（含 Tab 栏）一起滚出视口，
+    // 且因容器自身高度随内容增长、页面滚动条又属于外层工作区，用户再也滚不回来。
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Tab 导航：常驻顶部，不随内容滚动 */}
+      <div className="shrink-0 border-b border-border bg-canvas px-3 pt-3 pb-2 sm:px-4 sm:pt-4">
+        {/* 移动端横向可滚动 */}
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                aria-current={active ? 'page' : undefined}
+                className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                  active
+                    ? 'bg-accent text-white'
+                    : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-accent-danger">
-          {error}
-        </div>
-      )}
+      {/* 内容区：独立滚动，Tab 栏不受影响 */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4">
+        {error && (
+          <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-accent-danger">
+            {error}
+          </div>
+        )}
 
-      {importResult && (
+        {importResult && (
         <div className="flex items-start justify-between gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-accent-success">
           <span className="min-w-0 break-words">{importResult}</span>
           <button
@@ -1249,39 +1256,6 @@ export default function SubscriptionQuotaTool() {
         </>
       )}
 
-      {/* ---------- Tab: 套餐额度 ---------- */}
-      {activeTab === 'quota' && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-base font-semibold text-ink">套餐额度</h2>
-              <p className="mt-0.5 text-xs text-ink-muted">
-                {queriedAt
-                  ? `共 ${results.length} 项，成功 ${successCount} 项 · ${relativeTime(queriedAt, now)}`
-                  : '添加供应商并填入 API Key 即可查询'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void loadAll(true)}
-              disabled={refreshing || loading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-sm text-ink hover:bg-surface-2 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden />
-              {refreshing ? '刷新中…' : '全部刷新'}
-            </button>
-          </div>
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-ink-muted">
-              <RefreshCw className="mr-2 h-5 w-5 animate-spin" aria-hidden />
-              正在加载…
-            </div>
-          ) : (
-            renderQuotaGrid()
-          )}
-        </>
-      )}
-
       {/* ---------- Tab: 供应商 ---------- */}
       {activeTab === 'providers' && (
         <div className="flex flex-col gap-3">
@@ -1404,7 +1378,9 @@ export default function SubscriptionQuotaTool() {
 
       {/* ---------- Tab: 本地网关 ---------- */}
       {activeTab === 'gateway' && <GatewayPanel />}
+      </div>
 
+      {/* 弹窗放在滚动容器之外，避免受内容滚动影响 */}
       {showAdd && (
         <AddAccountDialog
           providers={providers}
