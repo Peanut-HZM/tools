@@ -26,6 +26,7 @@ from app.models.neo4j_models import (
 )
 from app.services.neo4j import crypto as neo4j_crypto
 from app.services.neo4j import driver_manager as neo4j_driver_manager
+from app.services.neo4j import executor as neo4j_executor
 from app.services.neo4j import query_builder as neo4j_query_builder
 from app.services.neo4j import schema_service as neo4j_schema_service
 
@@ -510,3 +511,68 @@ async def nodes_search(
             conn.id, safe_uri, type(exc).__name__,
         )
         raise HTTPException(status_code=502, detail="Neo4j 搜索失败")
+
+
+# ---------------------------------------------------------------------------
+# Cypher 只读查询（查询工作台）
+# ---------------------------------------------------------------------------
+class CypherQueryRequest(BaseModel):
+    """Cypher 只读查询请求体。"""
+    cypher: str = Field(min_length=1)
+    limit: int = Field(default=500, ge=1, le=5000)
+    timeoutMs: int = Field(default=30000, ge=1000, le=120000)
+
+
+def _map_query_error(exc: Exception) -> HTTPException:
+    """查询异常 → HTTP 错误映射（设计文档 §8 错误表）。
+
+    - ReadonlyViolation → 400（只读提示文案即异常消息本身）；
+    - Neo4j 语法错误 → 400 透 Neo4j 描述；
+    - 超时 → 408；
+    - 其余连接/执行错误 → 502。
+    """
+    # 延迟导入：neo4j 异常类型仅在真实驱动时报出
+    try:
+        from neo4j.exceptions import CypherSyntaxError, Neo4jError
+    except Exception:  # noqa: BLE001 - 驱动不可用时无法分类，走兜底
+        CypherSyntaxError = Neo4jError = ()  # type: ignore
+
+    if isinstance(exc, neo4j_executor.ReadonlyViolation):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, CypherSyntaxError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, Neo4jError) and "syntax" in type(exc).__name__.lower():
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+        return HTTPException(status_code=408, detail="查询超时，请缩小范围或加 LIMIT")
+    return HTTPException(status_code=502, detail=f"Neo4j 查询失败：{type(exc).__name__}")
+
+
+@router.post("/connections/{conn_id}/query")
+async def run_cypher_query(
+    conn_id: str,
+    req: CypherQueryRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """执行只读 Cypher，返回 {"columns","rows","graph","truncated","elapsedMs"}。"""
+    conn = get_owned_connection(db, user_id, conn_id)
+    driver = await _get_graph_driver(conn)
+
+    try:
+        return await neo4j_executor.run_query(
+            driver=driver,
+            database=conn.database,
+            cypher=req.cypher,
+            limit=req.limit,
+            timeout_ms=req.timeoutMs,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - 统一映射为友好中文
+        safe_uri = conn.uri.split("@")[-1]
+        logger.warning(
+            "Neo4j 查询失败: id=%s uri=%s err=%s",
+            conn.id, safe_uri, type(exc).__name__,
+        )
+        raise _map_query_error(exc)
