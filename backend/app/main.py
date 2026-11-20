@@ -351,6 +351,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"数据库连接资源释放失败: {e}")
 
+    # 关闭全部缓存的 Neo4j AsyncDriver（Task 3 图数据接口）
+    try:
+        from app.services.neo4j.driver_manager import driver_manager as neo4j_driver_manager
+
+        await neo4j_driver_manager.close_all()
+        logger.info("Neo4j driver 已全部关闭")
+    except Exception as e:
+        logger.warning(f"Neo4j driver 关闭失败: {e}")
+
 
 async def _run_memory_backfill(db):
     """后台回填任务包装：运行回填并最终关闭 Session"""
