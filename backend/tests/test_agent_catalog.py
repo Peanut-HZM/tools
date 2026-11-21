@@ -14,6 +14,7 @@ import uuid
 
 import pytest
 
+from app.services.agent_hub import agent_writers
 from app.services.subscription_quota import agent_catalog, agent_state
 from app.services.subscription_quota.accounts import QuotaAccount
 
@@ -24,9 +25,17 @@ def _zztest_user() -> str:
 
 @pytest.fixture
 def fake_home(tmp_path, monkeypatch):
-    """把 REAL_HOME 指到临时目录（catalog 与 state 两处都要打补丁）"""
+    """把 REAL_HOME 指到临时目录（catalog 与 state 两处都要打补丁）
+
+    同时清掉 CLAUDE_CONFIG_DIR / CODEX_HOME：真实机器上它们指向别的盘，
+    不清会让「检测/读取」绕过临时目录，测试互相污染。
+    """
     monkeypatch.setattr(agent_catalog, "real_home", lambda: tmp_path)
     monkeypatch.setattr(agent_state, "real_home", lambda: tmp_path)
+    # 路径助手在 agent_writers 里调用 real_home()，必须一起打补丁
+    monkeypatch.setattr(agent_writers, "real_home", lambda: tmp_path)
+    monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
+    monkeypatch.delenv("CODEX_HOME", raising=False)
     return tmp_path
 
 
@@ -64,6 +73,26 @@ def test_detect_accepts_directory_paths(fake_home):
     (fake_home / ".pi").mkdir()
     installed = {spec.id for spec in agent_catalog.installed_agents()}
     assert "pi" in installed
+
+
+def test_env_override_paths_are_honored(fake_home, monkeypatch):
+    """CLAUDE_CONFIG_DIR / CODEX_HOME 必须生效（否则写错位置 = 假切换）"""
+    alt_claude = fake_home / "alt-claude"
+    alt_codex = fake_home / "alt-codex"
+    _write(alt_claude / "settings.json", "{}")
+    _write(alt_codex / "config.toml", "")
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(alt_claude))
+    monkeypatch.setenv("CODEX_HOME", str(alt_codex))
+
+    specs = {spec.id: spec for spec in agent_catalog.agent_specs()}
+    assert str(alt_claude / "settings.json") in specs["claude"].detect
+    assert str(alt_codex / "config.toml") in specs["codex"].detect
+
+    installed = {spec.id for spec in agent_catalog.installed_agents()}
+    assert {"claude", "codex"} <= installed
+
+    current = agent_state.read_agent_current("claude")
+    assert current.error == ""  # 读到的是 CLAUDE_CONFIG_DIR 里的文件，而不是 ~/.claude
 
 
 # ---------------------------------------------------------------- 真实状态读回

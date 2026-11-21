@@ -25,6 +25,9 @@ def temp_home(tmp_path, monkeypatch):
     monkeypatch.setattr(agent_writers, "real_home", lambda: tmp_path)
     monkeypatch.setattr(agent_state, "real_home", lambda: tmp_path)
     monkeypatch.setattr(agent_switch, "real_home", lambda: tmp_path)
+    # 配置目录可能被环境变量覆盖（CLAUDE_CONFIG_DIR / CODEX_HOME），测试里必须清空
+    monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
+    monkeypatch.delenv("CODEX_HOME", raising=False)
     # 备份目录也从数据目录挪到临时目录，避免污染仓库
     monkeypatch.setattr(agent_writers, "_backup_dir", lambda: tmp_path / "_backups")
     return tmp_path

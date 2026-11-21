@@ -16,7 +16,11 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.services.agent_hub.agent_writers import real_home
+from app.services.agent_hub.agent_writers import (
+    claude_settings_path,
+    codex_home_dir,
+    real_home,
+)
 from app.services.subscription_quota.url_norm import normalize_base_url
 
 try:  # 与写入器共用同一套解析库（缺库时降级为空结果，不阻断页面）
@@ -94,9 +98,9 @@ def read_agent_current(agent: str) -> AgentCurrent:
     current = AgentCurrent(agent=agent)
     try:
         if agent == "claude":
-            path = home / ".claude" / "settings.json"
+            path = claude_settings_path()
             if not path.exists():
-                current.error = "未找到 ~/.claude/settings.json"
+                current.error = f"未找到 {path}"
                 return current
             data = _read_json(path)
             env = data.get("env") if isinstance(data.get("env"), dict) else {}
@@ -120,10 +124,11 @@ def read_agent_current(agent: str) -> AgentCurrent:
             current.source_files = [str(path)]
 
         elif agent == "codex":
-            toml_path = home / ".codex" / "config.toml"
-            auth_path = home / ".codex" / "auth.json"
+            codex_dir = codex_home_dir()
+            toml_path = codex_dir / "config.toml"
+            auth_path = codex_dir / "auth.json"
             if not toml_path.exists():
-                current.error = "未找到 ~/.codex/config.toml"
+                current.error = f"未找到 {toml_path}"
                 return current
             doc = _read_toml(toml_path)
             provider_id = str(doc.get("model_provider") or "")

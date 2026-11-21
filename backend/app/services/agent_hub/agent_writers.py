@@ -60,6 +60,25 @@ def real_home() -> Path:
     return Path(REAL_HOME)
 
 
+def claude_config_dir() -> Path:
+    """Claude Code 配置目录：遵循 ``CLAUDE_CONFIG_DIR``（否则 ~/.claude）
+
+    很多用户（含本机）把配置放在别的盘，写死 ~/.claude 会变成「假切换」。
+    """
+    raw = (os.environ.get("CLAUDE_CONFIG_DIR") or "").strip()
+    return Path(raw) if raw else real_home() / ".claude"
+
+
+def claude_settings_path() -> Path:
+    return claude_config_dir() / "settings.json"
+
+
+def codex_home_dir() -> Path:
+    """Codex 配置目录：遵循 ``CODEX_HOME``（否则 ~/.codex）"""
+    raw = (os.environ.get("CODEX_HOME") or "").strip()
+    return Path(raw) if raw else real_home() / ".codex"
+
+
 def _backup_dir() -> Path:
     """备份根目录：backend/data/agent_hub/backups/（数据目录，不入库）。"""
     base = Path(__file__).resolve().parents[3] / "data" / "agent_hub" / "backups"
@@ -67,15 +86,23 @@ def _backup_dir() -> Path:
     return base
 
 
-def _first_write_backup(agent: str, rel_path: str, content: bytes) -> Optional[str]:
-    """首写备份：同 agent+文件只备份一次（保留最初原始状态）。"""
+def _first_write_backup(
+    agent: str, rel_path: str, content: bytes, source_path: Optional[Path] = None
+) -> Optional[str]:
+    """首写备份：同 agent+文件只备份一次（保留最初原始状态）。
+
+    ``source_path`` 记录原始绝对路径（配置可能在 CLAUDE_CONFIG_DIR / CODEX_HOME 等
+    非默认位置），恢复时优先按它写回；未提供时退回按 ``rel_path`` 拼 REAL_HOME（旧行为）。
+    """
     backup_root = _backup_dir() / agent
     backup_root.mkdir(parents=True, exist_ok=True)
-    safe_name = rel_path.replace("/", "__").replace("\\", "__")
+    safe_name = rel_path.replace("/", "__").replace("\\", "__").replace(":", "_")
     target = backup_root / safe_name
     if target.exists():
         return None
     target.write_bytes(content)
+    if source_path is not None:
+        target.with_name(target.name + ".src").write_text(str(source_path), encoding="utf-8")
     return str(target)
 
 
@@ -99,12 +126,18 @@ def restore_agent_backups(agent: str) -> List[str]:
         return restored
     home = real_home()
     for backup_file in backup_root.iterdir():
-        rel_path = backup_file.name.replace("__", "/")
-        target = home / rel_path
+        if backup_file.name.endswith(".src"):
+            continue
+        src_file = backup_file.with_name(backup_file.name + ".src")
+        if src_file.exists():
+            target = Path(src_file.read_text(encoding="utf-8").strip())
+        else:
+            rel_path = backup_file.name.replace("__", "/")
+            target = home / rel_path
         if not target.parent.exists():
             continue
         shutil.copy2(backup_file, target)
-        restored.append(rel_path)
+        restored.append(str(target))
     return restored
 
 
@@ -189,11 +222,11 @@ def _patch_env_lines(text: str, updates: Dict[str, str]) -> str:
 # ---------------------------------------------------------------------------
 
 def _write_claude(target: WriteTarget) -> List[str]:
-    path = real_home() / ".claude" / "settings.json"
+    path = claude_settings_path()
     if not path.exists():
         raise AgentWriterError(f"未找到 {path}，请先安装/初始化 Claude Code")
     original = path.read_bytes()
-    _first_write_backup("claude", ".claude/settings.json", original)
+    _first_write_backup("claude", str(path), original, source_path=path)
     data = _load_json(path)
     env = data.setdefault("env", {})
     if target.base_url:
@@ -206,12 +239,13 @@ def _write_claude(target: WriteTarget) -> List[str]:
 
 def _write_codex(target: WriteTarget) -> List[str]:
     home = real_home()
+    codex_dir = codex_home_dir()
     written: List[str] = []
-    toml_path = home / ".codex" / "config.toml"
+    toml_path = codex_dir / "config.toml"
     if not toml_path.exists():
         raise AgentWriterError(f"未找到 {toml_path}，请先安装/初始化 Codex CLI")
     original = toml_path.read_bytes()
-    _first_write_backup("codex", ".codex/config.toml", original)
+    _first_write_backup("codex", "config.toml", original, source_path=toml_path)
     doc = _load_toml(toml_path)
     doc["model_provider"] = "custom"
     if target.model:
@@ -231,10 +265,10 @@ def _write_codex(target: WriteTarget) -> List[str]:
 
     # auth.json：第三方 key 写 OPENAI_API_KEY（官方 OAuth 场景 cc-switch 会暂存，v1 仅在
     # 用户显式切换到第三方时写入，并已有首写备份可恢复官方登录态）
-    auth_path = home / ".codex" / "auth.json"
+    auth_path = codex_dir / "auth.json"
     auth_data: Dict[str, Any] = {}
     if auth_path.exists():
-        _first_write_backup("codex", ".codex/auth.json", auth_path.read_bytes())
+        _first_write_backup("codex", "auth.json", auth_path.read_bytes(), source_path=auth_path)
         try:
             auth_data = _load_json(auth_path)
         except ValueError:
@@ -249,7 +283,7 @@ def _write_gemini(target: WriteTarget) -> List[str]:
     home = real_home()
     env_path = home / ".gemini" / ".env"
     if env_path.exists():
-        _first_write_backup("gemini", ".gemini/.env", env_path.read_bytes())
+        _first_write_backup("gemini", ".gemini/.env", env_path.read_bytes(), source_path=env_path)
         text = env_path.read_text(encoding="utf-8")
     else:
         text = ""
@@ -269,7 +303,7 @@ def _write_kimi(target: WriteTarget) -> List[str]:
     if not path.exists():
         raise AgentWriterError(f"未找到 {path}，请先安装/初始化 Kimi Code")
     original = path.read_bytes()
-    _first_write_backup("kimi", ".kimi-code/config.toml", original)
+    _first_write_backup("kimi", ".kimi-code/config.toml", original, source_path=path)
     doc = _load_toml(path)
     providers = doc.get("providers") or {}
     if not providers:
@@ -305,7 +339,7 @@ def _write_opencode(target: WriteTarget, provider_kind: str = "") -> List[str]:
     if not path.exists():
         raise AgentWriterError(f"未找到 {path}，请先安装/初始化 OpenCode")
     original = path.read_bytes()
-    _first_write_backup("opencode", ".config/opencode/opencode.json", original)
+    _first_write_backup("opencode", ".config/opencode/opencode.json", original, source_path=path)
     data = _load_json(path)
     providers = data.setdefault("provider", {})
     provider_id = "agent-hub"
@@ -337,7 +371,7 @@ def _write_minimax(target: WriteTarget) -> List[str]:
     if not path.exists():
         raise AgentWriterError(f"未找到 {path}，请先安装/初始化 MiniMax Code")
     original = path.read_bytes()
-    _first_write_backup("minimax", ".minimax/config.yaml", original)
+    _first_write_backup("minimax", ".minimax/config.yaml", original, source_path=path)
     yaml_rt = YAML()
     yaml_rt.preserve_quotes = True
     data = yaml_rt.load(path.read_text(encoding="utf-8"))
