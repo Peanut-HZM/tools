@@ -69,7 +69,7 @@ def _rows(engine, user_id: str):
     with engine.connect() as conn:
         return conn.execute(
             text(
-                "SELECT id, provider_id, label, api_key_hash, category, app, extra_json "
+                "SELECT id, provider_id, label, api_key_hash, category, app, extra_json, is_channel "
                 "FROM subscription_quota_accounts WHERE user_id = :uid ORDER BY sort_order"
             ),
             {"uid": user_id},
@@ -186,6 +186,36 @@ def test_rule2_same_channel_different_keys_new_channel_rows(sync_engine, monkeyp
     assert len(set(labels)) == 2  # 命名互不相同
     assert labels[0].endswith("-官方")
     assert labels[1] == f"{labels[0]}·wxyz"  # 渠道命名以 Key 后 4 位区分
+    # 同步写入的行必须是渠道行（is_channel=TRUE），不参与卡片展示
+    assert all(r.is_channel for r in rows)
+
+
+# ---------------------------------------------------------------- 账号/渠道行分离
+
+
+def test_list_accounts_excludes_channel_rows(tmp_path, monkeypatch):
+    """卡片数据源只含账号行：list_accounts 默认排除 is_channel 行，include_channels 可见全部"""
+    from sqlalchemy import create_engine as _ce
+
+    import app.services.subscription_quota.accounts as accounts_mod
+
+    engine = _ce(f"sqlite:///{tmp_path / 'acct_test.db'}")
+    monkeypatch.setenv("QUOTA_STORAGE", "local")
+    monkeypatch.setattr(accounts_mod, "_get_engine", lambda: engine)
+    monkeypatch.setattr(accounts_mod, "_schema_ready_by_location", set())
+
+    user = _zztest_user()
+    accounts_mod.create_account(user, "kimi", label="账号行", api_key="sk-acct-0001")
+    accounts_mod.create_account(
+        user, "kimi", label="渠道行", api_key="sk-chan-0001", is_channel=True
+    )
+
+    visible = accounts_mod.list_accounts(user)
+    assert len(visible) == 1
+    assert visible[0].label == "账号行"
+    assert visible[0].is_channel is False
+    # include_channels=True 返回全部（云渠道列表场景）
+    assert len(accounts_mod.list_accounts(user, include_channels=True)) == 2
 
 
 def test_rule2_batch_disambig_same_last4(sync_engine, monkeypatch):

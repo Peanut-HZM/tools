@@ -262,9 +262,9 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
                 text(
                     f"INSERT INTO {TABLE_NAME} "
                     "(id, user_id, provider_id, label, api_key_enc, extra_json, enabled, "
-                    " sort_order, created_at, updated_at, category, app, api_key_hash) "
+                    " sort_order, created_at, updated_at, category, app, api_key_hash, is_channel) "
                     "VALUES (:id, :uid, :pid, :label, :key, :extra, TRUE, :order, :now, :now, "
-                    " :category, :app, :hash)"
+                    " :category, :app, :hash, TRUE)"
                 ),
                 {
                     "id": new_id,

@@ -171,28 +171,28 @@ def test_ccswitch_db_path_env_override_wins(monkeypatch, tmp_path):
 # ---------------------------------------------------------------- 存储位置（本机 / 远程）
 
 
-def test_storage_defaults_to_local(monkeypatch):
-    """默认必须存本机：订阅额度数据是每台设备各不相同的本机状态"""
+def test_storage_defaults_to_server(monkeypatch):
+    """默认必须存远程主库：订阅账号多端一致（2026-11-21 用户要求远程为中心）"""
     monkeypatch.delenv("QUOTA_STORAGE", raising=False)
     assert usage_import is not None  # 保持 import 使用痕迹
-    from app.services.subscription_quota import accounts
-
-    assert accounts._storage_location() == "local"
-    assert accounts._use_local() is True
-
-
-def test_storage_can_be_switched_to_server(monkeypatch):
-    """显式 QUOTA_STORAGE=server 时走远程主库（多端共享场景）"""
-    monkeypatch.setenv("QUOTA_STORAGE", "server")
     from app.services.subscription_quota import accounts
 
     assert accounts._storage_location() == "server"
     assert accounts._use_local() is False
 
 
+def test_storage_can_be_switched_to_local(monkeypatch):
+    """显式 QUOTA_STORAGE=local 时切回本机 SQLite（单机隔离场景）"""
+    monkeypatch.setenv("QUOTA_STORAGE", "local")
+    from app.services.subscription_quota import accounts
+
+    assert accounts._storage_location() == "local"
+    assert accounts._use_local() is True
+
+
 def test_local_storage_engine_is_local_sqlite(monkeypatch, tmp_path):
     """本地模式的 engine 必须指向 ~/.toolbox/toolbox.db，绝不能是远程主库"""
-    monkeypatch.delenv("QUOTA_STORAGE", raising=False)
+    monkeypatch.setenv("QUOTA_STORAGE", "local")
     from app.services.subscription_quota import accounts
 
     engine = accounts._get_engine()
@@ -203,7 +203,7 @@ def test_local_storage_engine_is_local_sqlite(monkeypatch, tmp_path):
 
 def test_local_storage_encrypts_with_local_key(monkeypatch):
     """本地模式的密文必须用本机文件密钥（不能依赖远程主库的主密钥）"""
-    monkeypatch.delenv("QUOTA_STORAGE", raising=False)
+    monkeypatch.setenv("QUOTA_STORAGE", "local")
     from app.services.subscription_quota import accounts
     from app.storage.crypto import LocalEncryption
 

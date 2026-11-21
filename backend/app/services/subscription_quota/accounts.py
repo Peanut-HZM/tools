@@ -4,13 +4,17 @@
 * 所有读取接口只返回掩码，明文仅在服务端内存中短暂存在
 * 表自动创建（与项目既有服务一致：首次访问时 CREATE TABLE IF NOT EXISTS）
 
-## 存储位置：默认本机，不外泄到远程库
+## 存储位置：默认远程主库，多端一致（2026-11-21 起）
 
-订阅额度数据（供应商、API Key、切换指针）是**每台设备各不相同**的本机状态：
-同一账号在办公机和家里电脑登录的 CLI、配置的供应商、看到的余额都不一样。
-因此默认存本机 SQLite（``~/.toolbox/toolbox.db``），与 k8s/ssh/redis/db 配置
-的「本机 / 服务器」双层模型保持一致；也可用 ``QUOTA_STORAGE=server`` 切回
-远程主库（多端共享场景）。
+订阅账号默认存远程主库（``app.models.base.engine``）：多台设备看到同一份
+订阅卡片，不再依赖每台机器各自导入过什么（用户明确要求「全部同步到远程
+数据库并从远程库读取」）。可用 ``QUOTA_STORAGE=local`` 显式切回本机 SQLite
+（``~/.toolbox/toolbox.db``，单机隔离场景）。
+
+行分两类（``is_channel`` 列）：
+* 账号行（``is_channel=FALSE``）：卡片/额度查询/账号管理的来源
+* 渠道行（``is_channel=TRUE``）：agent-subscription-sync 同步入库的渠道记录，
+  仅作数据留存（云列表 API 可查），不参与卡片展示
 """
 
 from __future__ import annotations
@@ -33,21 +37,22 @@ logger = logging.getLogger(__name__)
 
 TABLE_NAME = "subscription_quota_accounts"
 
-#: 存储位置开关：local（默认，本机 SQLite）| server（远程主库）
+#: 存储位置开关：server（默认，远程主库）| local（本机 SQLite）
 STORAGE_ENV = "QUOTA_STORAGE"
 
 
 def _storage_location() -> str:
     """当前订阅额度数据的存储位置。
 
-    默认 ``local``：这类数据是「本机状态」，不同设备的供应商/凭据/余额都不同，
-    存到远程库会互相覆盖。显式设 ``QUOTA_STORAGE=server`` 才走远程主库。
+    默认 ``server``（2026-11-21 起按用户要求改为**远程为中心**）：订阅账号在
+    远程主库多端一致——任何设备启动项目看到的卡片相同，不再依赖每台机器
+    各自导入过什么。显式设 ``QUOTA_STORAGE=local`` 可切回本机模式（单机隔离）。
     """
-    return (os.environ.get(STORAGE_ENV) or "local").strip().lower()
+    return (os.environ.get(STORAGE_ENV) or "server").strip().lower()
 
 
 def _use_local() -> bool:
-    return _storage_location() != "server"
+    return _storage_location() == "local"
 
 
 def _get_engine():
@@ -113,6 +118,9 @@ _EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     # 明文 API Key 的 SHA-256（hex）：订阅同步的幂等去重键（agent-subscription-sync）
     # 存量行为空串；同步命中明文相同的存量行时会顺手回填（仅此一列，不动其他字段）
     ("api_key_hash", "VARCHAR(64) NOT NULL DEFAULT ''"),
+    # 行类型：FALSE=账号行（卡片/额度查询来源）| TRUE=同步渠道行（仅数据留存）
+    # 2026-11-21 远程为中心改造引入：同步入库的渠道记录不再混入卡片展示
+    ("is_channel", "BOOLEAN NOT NULL DEFAULT FALSE"),
 )
 
 _INDEX_SQL = (
@@ -187,6 +195,8 @@ class QuotaAccount:
     window_type: str = "none"
     window_reset_at: str = ""
     last_good: dict[str, Any] = field(default_factory=dict)
+    # 同步渠道行为 True（不参与卡片展示）；账号行（用户导入/手工添加）为 False
+    is_channel: bool = False
 
     @property
     def is_manual(self) -> bool:
@@ -274,10 +284,17 @@ def _row_to_account(row) -> QuotaAccount:
         window_type=mapping.get("window_type") or "none",
         window_reset_at=mapping.get("window_reset_at") or "",
         last_good=last_good if isinstance(last_good, dict) else {},
+        is_channel=bool(mapping.get("is_channel")),
     )
 
 
-def list_accounts(user_id: str, *, only_enabled: bool = False) -> list[QuotaAccount]:
+def list_accounts(
+    user_id: str, *, only_enabled: bool = False, include_channels: bool = False
+) -> list[QuotaAccount]:
+    """列出账号行（默认排除同步渠道行——渠道记录不参与卡片/额度查询展示）。
+
+    ``include_channels=True`` 时返回全部行（云渠道列表等场景）。
+    """
     ensure_schema()
     sql = f"SELECT * FROM {TABLE_NAME} WHERE user_id = :uid"
     if only_enabled:
@@ -285,7 +302,10 @@ def list_accounts(user_id: str, *, only_enabled: bool = False) -> list[QuotaAcco
     sql += " ORDER BY sort_order ASC, created_at ASC"
     with _get_engine().connect() as conn:
         rows = conn.execute(text(sql), {"uid": user_id}).fetchall()
-    return [_row_to_account(row) for row in rows]
+    accounts = [_row_to_account(row) for row in rows]
+    if not include_channels:
+        accounts = [a for a in accounts if not a.is_channel]
+    return accounts
 
 
 def get_account(user_id: str, account_id: str) -> Optional[QuotaAccount]:
@@ -314,6 +334,7 @@ def create_account(
     quota_unit: str = "credits",
     window_type: str = "none",
     window_reset_at: str = "",
+    is_channel: bool = False,
 ) -> QuotaAccount:
     ensure_schema()
     account_id = str(uuid.uuid4())
@@ -327,9 +348,9 @@ def create_account(
             text(
                 f"INSERT INTO {TABLE_NAME} "
                 "(id, user_id, provider_id, label, api_key_enc, extra_json, enabled, sort_order, created_at, updated_at, "
-                " category, app, notes, website_url, manual_total, manual_used, quota_unit, window_type, window_reset_at) "
+                " category, app, notes, website_url, manual_total, manual_used, quota_unit, window_type, window_reset_at, is_channel) "
                 "VALUES (:id, :uid, :pid, :label, :key, :extra, TRUE, :order, :now, :now, "
-                " :category, :app, :notes, :website, :mtotal, :mused, :unit, :wtype, :wreset)"
+                " :category, :app, :notes, :website, :mtotal, :mused, :unit, :wtype, :wreset, :channel)"
             ),
             {
                 "id": account_id,
@@ -349,6 +370,7 @@ def create_account(
                 "unit": quota_unit or "credits",
                 "wtype": window_type or "none",
                 "wreset": window_reset_at or "",
+                "channel": bool(is_channel),
             },
         )
     logger.info("新增订阅额度账号: user=%s provider=%s id=%s", user_id, provider_id, account_id)
