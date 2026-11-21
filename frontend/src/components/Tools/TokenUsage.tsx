@@ -94,6 +94,7 @@ export default function TokenUsage() {
   const [selectedDevice, setSelectedDevice] = useState('');
   const [selectedTool, setSelectedTool] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const [selectedChannel, setSelectedChannel] = useState('');
   const [sortBy, setSortBy] = useState<TokenUsageSortBy>('created_at');
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [currentPage, setCurrentPage] = useState(1);
@@ -161,6 +162,7 @@ export default function TokenUsage() {
   const debouncedDevice = useDebouncedValue(selectedDevice, 300);
   const debouncedTool = useDebouncedValue(selectedTool, 300);
   const debouncedModel = useDebouncedValue(selectedModel, 300);
+  const debouncedChannel = useDebouncedValue(selectedChannel, 300);
 
   const summary = useTokenUsageSummary({
     type: reportType,
@@ -170,6 +172,7 @@ export default function TokenUsage() {
     device_id: debouncedDevice || undefined,
     tool_id: debouncedTool || undefined,
     model: debouncedModel || undefined,
+    channel: debouncedChannel || undefined,
   }, isAuthenticated);
 
   const details = useTokenUsageDetails({
@@ -180,6 +183,7 @@ export default function TokenUsage() {
     device_id: debouncedDevice || undefined,
     tool_id: debouncedTool || undefined,
     model: debouncedModel || undefined,
+    channel: debouncedChannel || undefined,
     sort_by: debouncedSortBy,
     sort_order: 'desc',
     limit: PAGE_SIZE,
@@ -255,6 +259,31 @@ export default function TokenUsage() {
     });
     return [...unique.values()];
   }, [summary.data.dimension_summaries.models, summary.data.filter_options.models, selectedTool]);
+
+  const channelNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    summary.data.filter_options.channels.forEach(channel => map.set(channel.channel, channel.channel_name));
+    summary.data.dimension_summaries.channels.forEach(channel => {
+      if (channel.channel) map.set(channel.channel, channel.label);
+      map.set(channel.key, channel.label);
+    });
+    return map;
+  }, [summary.data.dimension_summaries.channels, summary.data.filter_options.channels]);
+
+  const channelOptions = useMemo(() => {
+    if (summary.data.filter_options.channels.length) {
+      return summary.data.filter_options.channels.map(channel => ({
+        value: channel.channel,
+        label: channel.channel_name,
+        count: channel.records_count,
+      }));
+    }
+    return summary.data.dimension_summaries.channels.map(channel => ({
+      value: channel.channel || channel.key,
+      label: channel.label,
+      count: channel.records_count,
+    }));
+  }, [summary.data.dimension_summaries.channels, summary.data.filter_options.channels]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -360,6 +389,11 @@ export default function TokenUsage() {
     return modelNameMap.get(value) || value;
   }, [modelNameMap]);
 
+  const getChannelLabel = useCallback((value?: string | null) => {
+    if (!value) return '-';
+    return channelNameMap.get(value) || value;
+  }, [channelNameMap]);
+
   const formatModelsUsed = useCallback((models: string[]) => {
     if (!models.length) return '-';
     return models.map(model => getModelLabel(model)).join(', ');
@@ -394,7 +428,9 @@ export default function TokenUsage() {
             ? getToolLabel(item.group_key)
             : groupBy === 'model'
               ? getModelLabel(item.group_key)
-              : item.group_key
+              : groupBy === 'channel'
+                ? getChannelLabel(item.group_key)
+                : item.group_key
         : '未识别';
       dates.add(item.date);
       grouped[key] = grouped[key] || {};
@@ -408,7 +444,7 @@ export default function TokenUsage() {
       });
       return row;
     });
-  }, [deviceNameMap, getModelLabel, getToolLabel, groupBy, details.data.items]);
+  }, [deviceNameMap, getChannelLabel, getModelLabel, getToolLabel, groupBy, details.data.items]);
 
   const totalPages = Math.max(1, Math.ceil(details.data.total / PAGE_SIZE));
   const paginatedItems = details.data.items;
@@ -423,6 +459,9 @@ export default function TokenUsage() {
     if (groupBy === 'model' && item.group_key) {
       return getModelLabel(item.group_key);
     }
+    if (groupBy === 'channel' && item.group_key) {
+      return getChannelLabel(item.group_key);
+    }
     return item.group_key || '-';
   };
 
@@ -433,12 +472,13 @@ export default function TokenUsage() {
 
   const exportCSV = () => {
     if (!details.data.items.length) return;
-    const headers = ['日期', '分组', '设备', '工具', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '更新时间'];
+    const headers = ['日期', '分组', '设备', '工具', '渠道', '模型', '输入 Token', '输出 Token', '缓存创建', '缓存读取', '总 Token', '更新时间'];
     const rows = details.data.items.map(item => [
       item.date,
       getGroupLabel(item),
       item.device_name || (item.device_id ? deviceNameMap.get(item.device_id) || '-' : '-'),
       getRowToolLabel(item),
+      item.channel_name || getChannelLabel(item.channel) || '-',
       formatModelsUsed(item.models_used),
       item.input_tokens,
       item.output_tokens,
@@ -486,6 +526,15 @@ export default function TokenUsage() {
     [summary.data.dimension_summaries.models]
   );
 
+  const channelPieSlices: PieSlice[] = useMemo(
+    () => summary.data.dimension_summaries.channels.map(c => ({
+      key: c.channel || c.key,
+      label: c.label,
+      tokens: c.total_tokens,
+    })),
+    [summary.data.dimension_summaries.channels]
+  );
+
   const totalDeviceTokens = useMemo(
     () => devicePieSlices.reduce((s, x) => s + x.tokens, 0),
     [devicePieSlices]
@@ -498,6 +547,10 @@ export default function TokenUsage() {
     () => modelPieSlices.reduce((s, x) => s + x.tokens, 0),
     [modelPieSlices]
   );
+  const totalChannelTokens = useMemo(
+    () => channelPieSlices.reduce((s, x) => s + x.tokens, 0),
+    [channelPieSlices]
+  );
 
   const chartTitle = groupBy === 'none'
     ? 'Token 消耗趋势'
@@ -505,7 +558,9 @@ export default function TokenUsage() {
       ? '设备消耗对比'
       : groupBy === 'tool'
         ? '工具消耗对比'
-        : '模型消耗分析';
+        : groupBy === 'channel'
+          ? '渠道消耗对比'
+          : '模型消耗分析';
 
   // 未登录：不发请求，显示登录提示（登录成功后 authVersion 变化自动重载）
   if (!isAuthenticated) {
@@ -580,7 +635,7 @@ export default function TokenUsage() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 rounded-md border border-border bg-canvas p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="mb-5 grid gap-3 rounded-md border border-border bg-canvas p-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <label className="space-y-1">
           <span className="text-xs text-ink-muted">工具</span>
           <Select
@@ -611,6 +666,21 @@ export default function TokenUsage() {
             <SelectContent>
               <SelectItem value="">全部模型</SelectItem>
               {modelOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+
+        <label className="space-y-1">
+          <span className="text-xs text-ink-muted">渠道</span>
+          <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="全部渠道" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">全部渠道</SelectItem>
+              {channelOptions.map(option => (
                 <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
               ))}
             </SelectContent>
@@ -691,6 +761,7 @@ export default function TokenUsage() {
               <SelectItem value="device">按设备对比</SelectItem>
               <SelectItem value="tool">按工具对比</SelectItem>
               <SelectItem value="model">按模型分析</SelectItem>
+              <SelectItem value="channel">按渠道对比</SelectItem>
             </SelectContent>
           </Select>
         </label>
@@ -787,7 +858,7 @@ export default function TokenUsage() {
         ))}
       </Card>
 
-      <div className="mb-5 grid gap-3 xl:grid-cols-3 lg:grid-cols-2 grid-cols-1">
+      <div className="mb-5 grid gap-3 xl:grid-cols-4 lg:grid-cols-2 grid-cols-1">
         <DimensionPieCard
           title="设备"
           data={devicePieSlices}
@@ -811,6 +882,13 @@ export default function TokenUsage() {
           totalTokens={totalModelTokens}
           selectedKey={selectedModel}
           onSelect={id => setSelectedModel(id)}
+        />
+        <DimensionPieCard
+          title="渠道"
+          data={channelPieSlices}
+          totalTokens={totalChannelTokens}
+          selectedKey={selectedChannel}
+          onSelect={id => setSelectedChannel(id)}
         />
       </div>
 
@@ -869,13 +947,14 @@ export default function TokenUsage() {
           <span className="text-xs text-ink-muted">共 {details.data.total} 条</span>
         </div>
         <div className="overflow-auto">
-          <table className="w-full min-w-[1040px] text-sm">
+          <table className="w-full min-w-[1160px] text-sm">
             <thead className="bg-canvas text-xs text-ink-muted">
               <tr>
                 <th className="px-4 py-3 text-left">日期</th>
                 {groupBy !== 'none' && <th className="px-4 py-3 text-left">分组</th>}
                 <th className="px-4 py-3 text-left">设备</th>
                 <th className="px-4 py-3 text-left">工具</th>
+                <th className="px-4 py-3 text-left">渠道</th>
                 <th className="px-4 py-3 text-right">输入</th>
                 <th className="px-4 py-3 text-right">输出</th>
                 <th className="px-4 py-3 text-right">缓存创建</th>
@@ -888,7 +967,7 @@ export default function TokenUsage() {
             <tbody>
               {!paginatedItems.length && !details.loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-ink-faint" colSpan={groupBy === 'none' ? 10 : 11}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
+                  <td className="px-4 py-8 text-center text-ink-faint" colSpan={groupBy === 'none' ? 11 : 12}>暂无数据。可以点击"刷新"采集当前用户和设备的数据。</td>
                 </tr>
               ) : paginatedItems.map((item, index) => (
                 <tr key={`${item.date}-${item.group_key || 'all'}-${index}`} className="border-t border-border hover:bg-surface-1/60">
@@ -899,6 +978,9 @@ export default function TokenUsage() {
                   </td>
                   <td className="max-w-[160px] truncate px-4 py-3 text-ink-muted" title={getRowToolLabel(item)}>
                     {getRowToolLabel(item)}
+                  </td>
+                  <td className="max-w-[180px] truncate px-4 py-3 text-ink-muted" title={item.channel || '-'}>
+                    {item.channel_name || getChannelLabel(item.channel)}
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.input_tokens)}</td>
                   <td className="px-4 py-3 text-right font-mono text-ink-muted">{formatToken(item.output_tokens)}</td>

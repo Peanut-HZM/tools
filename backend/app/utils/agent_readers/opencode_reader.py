@@ -835,6 +835,7 @@ def read_opencode_records(since_date: date, until_date: date) -> AgentReadResult
                 {
                     "record_date": record_day,
                     "model": usage.model,
+                    "channel": usage.provider,
                     "input_tokens": usage.input_tokens,
                     "output_tokens": usage.output_tokens,
                     "cache_creation_tokens": usage.cache_creation_tokens,

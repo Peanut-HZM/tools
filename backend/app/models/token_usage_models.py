@@ -26,6 +26,7 @@ class TokenUsageRecord(Base):
     record_date = Column(Date, nullable=False, index=True)
     source = Column(String(32), nullable=False)  # 'claude' | 'opencode'
     source_raw = Column(String(128), nullable=True)
+    channel = Column(String(64), nullable=True, index=True)
     tool_id = Column(String(64), nullable=True, index=True)
     tool_name = Column(String(128), nullable=True)
     model = Column(String(128), nullable=False)
@@ -41,7 +42,9 @@ class TokenUsageRecord(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
-        UniqueConstraint("user_id", "device_id", "record_date", "source", "model"),
+        UniqueConstraint(
+            "user_id", "device_id", "record_date", "source", "channel", "model"
+        ),
         Index("idx_token_usage_query", "user_id", "record_date", "source", "device_id"),
         Index(
             "idx_token_usage_dimensions",
@@ -51,6 +54,7 @@ class TokenUsageRecord(Base):
             "device_id",
             "model",
         ),
+        Index("idx_token_usage_channel", "user_id", "record_date", "channel"),
     )
 
 

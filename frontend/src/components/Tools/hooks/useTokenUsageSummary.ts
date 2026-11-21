@@ -16,9 +16,9 @@ const EMPTY: TokenUsageSummaryResponse = {
     days_count: 0,
     avg_daily_cost: 0,
   },
-  dimension_summaries: { devices: [], tools: [], models: [] },
+  dimension_summaries: { devices: [], tools: [], models: [], channels: [] },
   model_summary: [],
-  filter_options: { tools: [], devices: [], models: [] },
+  filter_options: { tools: [], devices: [], models: [], channels: [] },
   sync_meta: {
     cache_ttl_seconds: 0,
     is_stale: false,
@@ -87,6 +87,7 @@ export function useTokenUsageSummary(
       params.device_id,
       params.tool_id,
       params.model,
+      params.channel,
     ]
   );
 

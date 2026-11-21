@@ -176,6 +176,7 @@ def _row_to_usage(row: dict) -> Optional[dict]:
         "record_date": datetime.fromtimestamp(ts.timestamp()).date(),
         "model": model,
         "provider": provider,
+        "channel": provider,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "cache_creation_tokens": cache_creation,

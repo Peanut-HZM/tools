@@ -379,9 +379,9 @@ def read_openclaw_records(since_date: date, until_date: date) -> AgentReadResult
                         "cache_read_tokens": cache_read,
                         "extra_total_tokens": extra_total_tokens,
                         "total_cost": cost_value,
-                        # 供应商对齐 ccusage 的 data.version；base.aggregate_records
-                        # 只读取上面的 token 字段，provider 不进入 DB 记录
+                        # 供应商信息进入记录（用于渠道维度统计）
                         "provider": provider or "",
+                        "channel": provider or "",
                     }
                 )
 

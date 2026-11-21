@@ -56,6 +56,7 @@ export function useTokenUsageDetails(
     params.device_id,
     params.tool_id,
     params.model,
+    params.channel,
     params.sort_by,
     params.sort_order,
     params.limit,

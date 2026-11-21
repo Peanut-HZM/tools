@@ -259,11 +259,13 @@ def _build_query_cache_key(
     sort_by: str = "date",
     sort_order: str = "desc",
     query_type: str = "summary",
+    channel: str = "",
 ) -> str:
     """构建用户维度的查询缓存 Key
 
     Args:
         query_type: 缓存类型，"summary" 或 "details"，用于区分概览和明细的缓存
+        channel: 调用渠道筛选（空字符串表示全部渠道）
     """
     parts = [
         "token_usage:query",
@@ -276,6 +278,7 @@ def _build_query_cache_key(
         device_id or "",
         tool_id or "all-tools",
         model or "all-models",
+        channel or "all-channels",
         sort_by or "date",
         sort_order or "desc",
     ]
@@ -294,6 +297,7 @@ def get_query_cached_data(
     sort_by: str = "date",
     sort_order: str = "desc",
     query_type: str = "summary",
+    channel: str = "",
 ) -> Optional[dict]:
     """从 Redis 获取用户维度的查询缓存"""
     client = get_redis_client()
@@ -302,7 +306,8 @@ def get_query_cached_data(
 
     key = _build_query_cache_key(
         source, report_type, days, group_by, user_id, device_id,
-        tool_id, model, sort_by, sort_order, query_type=query_type
+        tool_id, model, sort_by, sort_order, query_type=query_type,
+        channel=channel,
     )
     try:
         data = client.get(key)
@@ -328,6 +333,7 @@ def get_query_cached_payload(
     sort_by: str = "date",
     sort_order: str = "desc",
     query_type: str = "summary",
+    channel: str = "",
 ) -> Optional[dict]:
     """读取查询缓存，同时返回 Redis 剩余 TTL。"""
     client = get_redis_client()
@@ -336,7 +342,8 @@ def get_query_cached_payload(
 
     key = _build_query_cache_key(
         source, report_type, days, group_by, user_id, device_id,
-        tool_id, model, sort_by, sort_order, query_type=query_type
+        tool_id, model, sort_by, sort_order, query_type=query_type,
+        channel=channel,
     )
     try:
         data = client.get(key)
@@ -366,6 +373,7 @@ def set_query_cached_data(
     sort_order: str = "desc",
     data: dict = None,
     query_type: str = "summary",
+    channel: str = "",
 ) -> bool:
     """将用户维度的查询数据写入 Redis 缓存，附带写入时间戳"""
     client = get_redis_client()
@@ -374,7 +382,8 @@ def set_query_cached_data(
 
     key = _build_query_cache_key(
         source, report_type, days, group_by, user_id, device_id,
-        tool_id, model, sort_by, sort_order, query_type=query_type
+        tool_id, model, sort_by, sort_order, query_type=query_type,
+        channel=channel,
     )
     try:
         payload = dict(data or {})
@@ -479,6 +488,7 @@ def warm_query_cache(user_id: str) -> bool:
             device_id=None,
             tool_id=None,
             model=None,
+            channel=None,
             sort_by="date",
             sort_order="desc",
         )
@@ -497,6 +507,7 @@ def warm_query_cache(user_id: str) -> bool:
             device_id="",
             tool_id="",
             model="",
+            channel="",
             sort_by="date",
             sort_order="desc",
             data=payload,

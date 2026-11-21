@@ -12,6 +12,7 @@ from app.models.token_usage_models import (
     DeviceIdAlias,
 )
 from app.utils.device_id import get_device_id, get_device_display_name, get_device_fingerprint
+from app.utils.token_usage_channels import normalize_channel, reset_channel_cache
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +226,9 @@ def sync_token_usage(
     # 没有原生读取器的来源必须显式暴露，不能静默丢数据
     _log_uncovered_sources(result)
 
+    # 每轮同步重新解析本机当前配置渠道，避免使用上一轮缓存
+    reset_channel_cache()
+
     native_records: list[dict] = []
     try:
         native_result = _fetch_native_records(since_date, until_date)
@@ -370,7 +374,22 @@ def _upsert_records(
 ) -> int:
     """批量 INSERT 或 UPDATE，返回实际写入的记录数"""
     count = 0
+
+    # 历史兼容：改造前写入的行没有 channel（NULL）。本轮同步覆盖到的
+    # (device, source, date) 先清掉这些 legacy 行，再用带渠道的新行覆盖，
+    # 避免同一模型在「未知渠道」和真实渠道下各存一行造成总量翻倍。
+    record_dates = sorted({rec["record_date"] for rec in records if rec.get("record_date")})
+    if record_dates:
+        db.query(TokenUsageRecord).filter(
+            TokenUsageRecord.user_id == user_id,
+            TokenUsageRecord.device_id == device_id,
+            TokenUsageRecord.source == source,
+            TokenUsageRecord.record_date.in_(record_dates),
+            TokenUsageRecord.channel.is_(None),
+        ).delete(synchronize_session=False)
+
     for rec in records:
+        channel = normalize_channel(rec.get("channel"), source)
         dimension_fields = _build_dimension_fields(
             source=source,
             device_name=device_name,
@@ -381,6 +400,7 @@ def _upsert_records(
             device_id=device_id,
             record_date=rec["record_date"],
             source=source,
+            channel=channel,
             model=rec["model"],
         ).first()
 
@@ -391,6 +411,7 @@ def _upsert_records(
                 record_date=rec["record_date"],
                 source=source,
                 source_raw=dimension_fields["source_raw"],
+                channel=channel,
                 tool_id=dimension_fields["tool_id"],
                 tool_name=dimension_fields["tool_name"],
                 model=rec["model"],
@@ -419,6 +440,7 @@ def _upsert_records(
                 existing.total_tokens != rec["total_tokens"] or
                 float(existing.total_cost or 0) != rec["total_cost"] or
                 existing.source_raw != dimension_fields["source_raw"] or
+                existing.channel != channel or
                 existing.tool_id != dimension_fields["tool_id"] or
                 existing.tool_name != dimension_fields["tool_name"] or
                 existing.device_name != dimension_fields["device_name"] or
@@ -432,6 +454,7 @@ def _upsert_records(
                 existing.total_tokens = rec["total_tokens"]
                 existing.total_cost = rec["total_cost"]
                 existing.source_raw = dimension_fields["source_raw"]
+                existing.channel = channel
                 existing.tool_id = dimension_fields["tool_id"]
                 existing.tool_name = dimension_fields["tool_name"]
                 existing.device_name = dimension_fields["device_name"]

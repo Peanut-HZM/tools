@@ -43,6 +43,7 @@ from app.utils.agent_readers.base import (
     lenient_u64,
     real_home,
 )
+from app.utils.token_usage_channels import split_model_provider_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +172,11 @@ def read_kimi_records(since_date: date, until_date: date) -> AgentReadResult:
                 if not model:
                     model = _DEFAULT_MODEL
 
+                # Kimi 的模型名可能带 ``provider/model`` 前缀（如
+                # ``peanut/claude-opus-5.0``）。前缀即调用渠道，模型名归一为
+                # 去掉前缀后的真实模型。
+                channel, model = split_model_provider_prefix(model, SOURCE)
+
                 record_day = epoch_ms_to_local_date(timestamp_ms)
                 if not (since_str <= record_day <= until_str):
                     continue
@@ -185,6 +191,7 @@ def read_kimi_records(since_date: date, until_date: date) -> AgentReadResult:
                     session_id,
                     message_id or "",
                     timestamp_ms,
+                    channel,
                     model,
                     input_tokens,
                     output_tokens,
@@ -199,6 +206,7 @@ def read_kimi_records(since_date: date, until_date: date) -> AgentReadResult:
                     {
                         "record_date": record_day,
                         "model": model,
+                        "channel": channel,
                         "input_tokens": input_tokens,
                         "output_tokens": output_tokens,
                         "cache_creation_tokens": cache_creation,

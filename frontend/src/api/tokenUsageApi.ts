@@ -19,7 +19,7 @@ export type TokenUsageSource =
   | 'minimax'
   | 'all';
 export type TokenUsageReportType = 'daily' | 'weekly' | 'monthly';
-export type TokenUsageGroupBy = 'none' | 'device' | 'tool' | 'model';
+export type TokenUsageGroupBy = 'none' | 'device' | 'tool' | 'model' | 'channel';
 export type TokenUsageSortBy = 'date' | 'total_tokens' | 'total_cost' | 'input_tokens' | 'output_tokens' | 'cache_tokens' | 'created_at';
 export type TokenUsageSortOrder = 'asc' | 'desc';
 
@@ -55,6 +55,8 @@ export interface ModelSummaryItem {
   source: string;
   model: string;
   display_model: string;
+  channel?: string | null;
+  channel_name?: string | null;
   input_tokens: number;
   output_tokens: number;
   cache_creation_tokens: number;
@@ -105,13 +107,15 @@ export interface FingerprintMatch {
 }
 
 export interface DimensionSummaryItem {
-  dimension: 'device' | 'tool' | 'model';
+  dimension: 'device' | 'tool' | 'model' | 'channel';
   key: string;
   label: string;
   device_id?: string | null;
   tool_id?: string | null;
   source?: string | null;
   model?: string | null;
+  channel?: string | null;
+  channel_name?: string | null;
   input_tokens: number;
   output_tokens: number;
   cache_creation_tokens: number;
@@ -128,6 +132,7 @@ export interface DimensionSummaries {
   devices: DimensionSummaryItem[];
   tools: DimensionSummaryItem[];
   models: DimensionSummaryItem[];
+  channels: DimensionSummaryItem[];
 }
 
 export interface ToolFilterOption {
@@ -150,10 +155,17 @@ export interface ModelFilterOption {
   records_count: number;
 }
 
+export interface ChannelFilterOption {
+  channel: string;
+  channel_name: string;
+  records_count: number;
+}
+
 export interface FilterOptions {
   tools: ToolFilterOption[];
   devices: DeviceFilterOption[];
   models: ModelFilterOption[];
+  channels: ChannelFilterOption[];
 }
 
 export interface DbQueryParams {
@@ -164,6 +176,7 @@ export interface DbQueryParams {
   device_id?: string;
   tool_id?: string;
   model?: string;
+  channel?: string;
   sort_by?: TokenUsageSortBy;
   sort_order?: TokenUsageSortOrder;
 }
@@ -171,6 +184,8 @@ export interface DbQueryParams {
 export interface DbUsageItem extends UsageItem {
   group_key?: string;
   tool_id?: string;
+  channel?: string;
+  channel_name?: string;
   device_id?: string;
   device_name?: string;
   created_at?: string;
@@ -240,6 +255,7 @@ export interface TokenUsageDetailsParams {
   device_id?: string;
   tool_id?: string;
   model?: string;
+  channel?: string;
   sort_by?: TokenUsageSortBy;
   sort_order?: TokenUsageSortOrder;
   limit?: number;
@@ -286,6 +302,7 @@ export async function getTokenUsageSummary(params: DbQueryParams): Promise<Token
   if (params.device_id) search.set('device_id', params.device_id);
   if (params.tool_id) search.set('tool_id', params.tool_id);
   if (params.model) search.set('model', params.model);
+  if (params.channel) search.set('channel', params.channel);
 
   const response = await authedFetch(`${BASE_URL}/summary?${search.toString()}`, {
     headers: getAuthHeaders(),
@@ -311,6 +328,7 @@ export async function getTokenUsageDetails(params: TokenUsageDetailsParams): Pro
       device_id: params.device_id,
       tool_id: params.tool_id,
       model: params.model,
+      channel: params.channel,
       sort_by: params.sort_by || 'date',
       sort_order: params.sort_order || 'desc',
       limit: params.limit ?? 50,
@@ -338,6 +356,7 @@ export async function getDbTokenUsage(params: DbQueryParams): Promise<DbUsageRes
       device_id: params.device_id,
       tool_id: params.tool_id,
       model: params.model,
+      channel: params.channel,
       sort_by: params.sort_by || 'date',
       sort_order: params.sort_order || 'desc',
     }),

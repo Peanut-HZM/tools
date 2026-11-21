@@ -261,6 +261,12 @@ def fetch_zcode_records(
         cur.execute("PRAGMA table_info(model_usage)")
         columns = {row["name"] for row in cur.fetchall()}
         has_status = "status" in columns
+        has_provider = "provider_id" in columns
+        provider_expr = (
+            "COALESCE(NULLIF(TRIM(provider_id), ''), 'unknown')"
+            if has_provider
+            else "'unknown'"
+        )
 
         # 按 (日期, 模型) 聚合 model_usage 中已完成状态的记录
         #
@@ -282,6 +288,7 @@ def fetch_zcode_records(
                 SELECT
                     started_at,
                     COALESCE(NULLIF(TRIM(model_id), ''), 'unknown') AS model_id,
+                    {provider_expr} AS provider_id,
                     MAX(COALESCE(input_tokens, 0), 0) AS ci,
                     MAX(COALESCE(output_tokens, 0), 0) AS co,
                     MAX(COALESCE(cache_creation_input_tokens, 0), 0) AS ccr,
@@ -297,6 +304,7 @@ def fetch_zcode_records(
                 SELECT
                     started_at,
                     model_id,
+                    provider_id,
                     ci,
                     co,
                     ct,
@@ -308,6 +316,7 @@ def fetch_zcode_records(
                 SELECT
                     DATE(started_at / 1000, 'unixepoch', 'localtime') AS record_date,
                     model_id,
+                    provider_id,
                     ci - cr_b - cc_b AS in_b,
                     co,
                     cc_b,
@@ -318,6 +327,7 @@ def fetch_zcode_records(
             SELECT
                 record_date,
                 model_id,
+                provider_id,
                 SUM(in_b) AS input_tokens,
                 SUM(CASE WHEN missing > 0 AND co = 0 THEN missing ELSE co END) AS output_tokens,
                 SUM(cc_b) AS cache_creation_tokens,
@@ -327,7 +337,7 @@ def fetch_zcode_records(
                 ) AS total_tokens,
                 COUNT(*) AS request_count
             FROM split
-            GROUP BY record_date, model_id
+            GROUP BY record_date, provider_id, model_id
             ORDER BY record_date DESC, total_tokens DESC
         """, (since_ms, until_ms))
 
@@ -341,6 +351,7 @@ def fetch_zcode_records(
                 continue
 
             model = row["model_id"] or "unknown"
+            channel = row["provider_id"] or "unknown"
             input_tokens = int(row["input_tokens"] or 0)
             output_tokens = int(row["output_tokens"] or 0)
             cache_creation = int(row["cache_creation_tokens"] or 0)
@@ -358,6 +369,7 @@ def fetch_zcode_records(
                 "tool_name": "ZCode",
                 "model": model,
                 "model_display_name": model,
+                "channel": channel,
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
                 "cache_creation_tokens": cache_creation,

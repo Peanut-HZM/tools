@@ -41,6 +41,7 @@ from app.services.token_usage_background_sync import register_pending_sync_user
 from app.services.token_usage_scheduler import get_sync_lock
 from app.routes.auth import get_current_user_id
 from app.utils.device_id import get_device_id
+from app.utils.token_usage_channels import channel_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -528,13 +529,14 @@ def get_user_devices(
 class DbQueryRequest(BaseModel):
     type: str = Field(default="daily", description="daily | weekly | monthly")
     days: int = Field(default=30, ge=1, le=365, description="最近 N 天")
-    group_by: str = Field(default="none", description="none | device | tool | model")
+    group_by: str = Field(default="none", description="none | device | tool | model | channel")
     source: str = Field(default="all", description="claude | opencode | all")
     device_id: Optional[str] = Field(
         default=None, description="筛选特定设备，不传则查全部"
     )
     tool_id: Optional[str] = Field(default=None, description="tool id")
     model: Optional[str] = Field(default=None, description="model")
+    channel: Optional[str] = Field(default=None, description="调用渠道 id")
     sort_by: str = Field(default="date", description="date | total_tokens | total_cost")
     sort_order: str = Field(default="desc", description="asc | desc")
 
@@ -551,8 +553,10 @@ class DbUsageItem(BaseModel):
     models_used: list[str] = Field(default_factory=list)
     model_breakdowns: list[dict] = Field(default_factory=list)
     tool_id: Optional[str] = Field(default=None, description="工具ID")
+    channel: Optional[str] = Field(default=None, description="调用渠道原始 id")
+    channel_name: Optional[str] = Field(default=None, description="调用渠道展示名")
     group_key: Optional[str] = Field(
-        default=None, description="分组维度 key（device_id/tool_id/model）"
+        default=None, description="分组维度 key（device_id/tool_id/model/channel）"
     )
     device_id: Optional[str] = Field(default=None, description="设备ID")
     device_name: Optional[str] = Field(default=None, description="设备显示名称")
@@ -574,6 +578,8 @@ class ModelSummaryItem(BaseModel):
     source: str
     model: str
     display_model: str
+    channel: Optional[str] = None
+    channel_name: Optional[str] = None
     input_tokens: int
     output_tokens: int
     cache_creation_tokens: int
@@ -590,6 +596,8 @@ class DimensionSummaryItem(BaseModel):
     tool_id: Optional[str] = None
     source: Optional[str] = None
     model: Optional[str] = None
+    channel: Optional[str] = None
+    channel_name: Optional[str] = None
     input_tokens: int
     output_tokens: int
     cache_creation_tokens: int
@@ -606,6 +614,7 @@ class DimensionSummaries(BaseModel):
     devices: list[DimensionSummaryItem] = Field(default_factory=list)
     tools: list[DimensionSummaryItem] = Field(default_factory=list)
     models: list[DimensionSummaryItem] = Field(default_factory=list)
+    channels: list[DimensionSummaryItem] = Field(default_factory=list)
 
 
 class ToolFilterOption(BaseModel):
@@ -628,10 +637,17 @@ class ModelFilterOption(BaseModel):
     records_count: int
 
 
+class ChannelFilterOption(BaseModel):
+    channel: str
+    channel_name: str
+    records_count: int
+
+
 class FilterOptions(BaseModel):
     tools: list[ToolFilterOption] = Field(default_factory=list)
     devices: list[DeviceFilterOption] = Field(default_factory=list)
     models: list[ModelFilterOption] = Field(default_factory=list)
+    channels: list[ChannelFilterOption] = Field(default_factory=list)
 
 
 class SyncMeta(BaseModel):
@@ -677,10 +693,11 @@ class SummaryRequest(BaseModel):
     type: str = Field(default="daily", description="daily | weekly | monthly")
     days: Optional[int] = Field(default=30, description="查询天数")
     start_date: Optional[date] = Field(default=None, description="开始日期")
-    group_by: str = Field(default="none", description="none | device | tool | model")
+    group_by: str = Field(default="none", description="none | device | tool | model | channel")
     device_id: Optional[str] = None
     tool_id: Optional[str] = None
     model: Optional[str] = None
+    channel: Optional[str] = None
     sort_by: str = Field(default="date")
     sort_order: str = Field(default="desc")
 
@@ -714,10 +731,11 @@ class DetailsRequest(BaseModel):
     source: str = Field(default="all", description="claude | opencode | all")
     type: str = Field(default="daily", description="daily | weekly | monthly")
     days: int = Field(default=30, ge=1, le=365)
-    group_by: str = Field(default="none", description="none | device | tool | model")
+    group_by: str = Field(default="none", description="none | device | tool | model | channel")
     device_id: Optional[str] = None
     tool_id: Optional[str] = None
     model: Optional[str] = None
+    channel: Optional[str] = None
     sort_by: str = Field(default="date")
     sort_order: str = Field(default="desc")
     limit: int = Field(default=50, ge=1, le=200)
@@ -846,6 +864,7 @@ def _build_summary_payload(
             TokenUsageRecord.source,
             TokenUsageRecord.tool_id,
             TokenUsageRecord.device_id,
+            TokenUsageRecord.channel,
             TokenUsageRecord.model,
             TokenUsageRecord.input_tokens,
             TokenUsageRecord.output_tokens,
@@ -885,6 +904,7 @@ def get_token_usage_summary(
     device_id: Optional[str] = None,
     tool_id: Optional[str] = None,
     model: Optional[str] = None,
+    channel: Optional[str] = None,
     authorization: Optional[str] = Header(None),
 ):
     if not authorization:
@@ -906,6 +926,7 @@ def get_token_usage_summary(
         device_id=device_id or "",
         tool_id=tool_id or "",
         model=model or "",
+        channel=channel or "",
         sort_by="date",
         sort_order="desc",
     )
@@ -927,6 +948,7 @@ def get_token_usage_summary(
             device_id=device_id,
             tool_id=tool_id,
             model=model,
+            channel=channel,
             sort_by="date",
             sort_order="desc",
         )
@@ -960,6 +982,7 @@ def get_token_usage_summary(
             device_id=device_id or "",
             tool_id=tool_id or "",
             model=model or "",
+            channel=channel or "",
             sort_by="date",
             sort_order="desc",
             data=payload,
@@ -1027,7 +1050,7 @@ def get_token_usage_details(
     from app.services.token_usage_cache import get_query_cached_payload, set_query_cached_data
     
     cache_payload = None
-    if req.offset == 0 and not req.device_id and not req.tool_id and not req.model:
+    if req.offset == 0 and not req.device_id and not req.tool_id and not req.model and not req.channel:
         cache_payload = get_query_cached_payload(
             source=req.source or "all",
             report_type=req.type or "daily",
@@ -1037,6 +1060,7 @@ def get_token_usage_details(
             device_id="",
             tool_id="",
             model="",
+            channel="",
             sort_by=req.sort_by or "date",
             sort_order=req.sort_order or "desc",
             query_type="details",
@@ -1074,6 +1098,7 @@ def get_token_usage_details(
             device_id=req.device_id,
             tool_id=req.tool_id,
             model=req.model,
+            channel=req.channel,
             sort_by=req.sort_by,
             sort_order=req.sort_order,
         )
@@ -1157,6 +1182,8 @@ def get_token_usage_details(
                 group_key = r.tool_id
             elif req.group_by == "model":
                 group_key = r.model
+            elif req.group_by == "channel":
+                group_key = r.channel
 
             items.append(
                 DbUsageItem(
@@ -1170,6 +1197,8 @@ def get_token_usage_details(
                     models_used=[r.model] if r.model else [],
                     model_breakdowns=[],
                     tool_id=r.tool_id,
+                    channel=r.channel,
+                    channel_name=channel_display_name(r.channel),
                     group_key=group_key,
                     device_id=r.device_id,
                     device_name=device_name_map.get(r.device_id, r.device_id),
@@ -1192,7 +1221,7 @@ def get_token_usage_details(
         )
         
         # 写入缓存（仅第一页且无筛选时）
-        if req.offset == 0 and not req.device_id and not req.tool_id and not req.model:
+        if req.offset == 0 and not req.device_id and not req.tool_id and not req.model and not req.channel:
             try:
                 payload_dict = {
                     "items": [item.model_dump() for item in items],
@@ -1207,6 +1236,7 @@ def get_token_usage_details(
                     device_id="",
                     tool_id="",
                     model="",
+                    channel="",
                     sort_by=req.sort_by or "date",
                     sort_order=req.sort_order or "desc",
                     data=payload_dict,
@@ -1747,6 +1777,7 @@ def _normalize_record_dimensions(row, device_names: dict[str, str]) -> dict:
     model_display_name = getattr(
         row, "model_display_name", None
     ) or _display_model_name(model, tool_name)
+    channel = getattr(row, "channel", None)
     return {
         "source": getattr(row, "source", None) or "unknown",
         "tool_id": tool_id,
@@ -1755,6 +1786,8 @@ def _normalize_record_dimensions(row, device_names: dict[str, str]) -> dict:
         "device_name": device_name,
         "model": model,
         "model_display_name": model_display_name,
+        "channel": channel,
+        "channel_name": channel_display_name(channel),
     }
 
 
@@ -1826,6 +1859,10 @@ def _build_dimension_summary(
                 "tool_id": getattr(row, "tool_id", None),
                 "source": getattr(row, "source", None),
                 "model": getattr(row, "model", None),
+                "channel": getattr(row, "channel", None),
+                "channel_name": channel_display_name(
+                    getattr(row, "channel", None)
+                ),
                 "input_tokens": int(getattr(row, "input_tokens", 0) or 0),
                 "output_tokens": int(getattr(row, "output_tokens", 0) or 0),
                 "cache_creation_tokens": int(
@@ -1911,6 +1948,7 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
     device_buckets: dict[str, dict] = {}
     tool_buckets: dict[str, dict] = {}
     model_buckets: dict[str, dict] = {}
+    channel_buckets: dict[str, dict] = {}
 
     for row in records:
         dims = _normalize_record_dimensions(row, device_names)
@@ -2001,6 +2039,40 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
             },
         )
 
+        # 渠道维度：按渠道原始 id 分组，展示名统一由注册表计算
+        channel_key = dims["channel"] or "unknown"
+        channel_bucket = channel_buckets.setdefault(
+            channel_key,
+            {
+                "dimension": "channel",
+                "key": channel_key,
+                "label": dims["channel_name"],
+                "device_id": None,
+                "tool_id": None,
+                "source": None,
+                "model": None,
+                "channel": channel_key,
+                "channel_name": dims["channel_name"],
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cache_creation_tokens": 0,
+                "cache_read_tokens": 0,
+                "total_tokens": 0,
+                "total_cost": 0,
+                "records_count": 0,
+                "last_used_at": None,
+            },
+        )
+        _rollup_dimension(
+            channel_bucket,
+            row,
+            {
+                "label": dims["channel_name"],
+                "channel": channel_key,
+                "channel_name": dims["channel_name"],
+            },
+        )
+
     total_tokens = sum(bucket["total_tokens"] for bucket in device_buckets.values())
     total_cost = sum(bucket["total_cost"] for bucket in device_buckets.values())
 
@@ -2020,6 +2092,12 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
         "models": _build_dimension_summary(
             [_bucket_to_row(bucket) for bucket in model_buckets.values()],
             "model",
+            total_tokens,
+            total_cost,
+        ),
+        "channels": _build_dimension_summary(
+            [_bucket_to_row(bucket) for bucket in channel_buckets.values()],
+            "channel",
             total_tokens,
             total_cost,
         ),
@@ -2054,6 +2132,14 @@ def _build_dimension_data(records, device_names: dict[str, str]) -> tuple[dict, 
             }
             for item in dimension_rows["models"]
         ],
+        "channels": [
+            {
+                "channel": item["channel"] or item["key"],
+                "channel_name": item["label"],
+                "records_count": item["records_count"],
+            }
+            for item in dimension_rows["channels"]
+        ],
     }
     return dimension_rows, filter_options
 
@@ -2080,6 +2166,8 @@ def build_chart_series(
                 )["tool_id"]
             elif group_by == "model":
                 key = getattr(row, "model", None) or "unknown"
+            elif group_by == "channel":
+                key = getattr(row, "channel", None) or "unknown"
             else:
                 key = "_total"
             key_totals[key] = key_totals.get(key, 0.0) + float(
@@ -2107,6 +2195,8 @@ def build_chart_series(
             )["tool_id"]
         elif group_by == "model":
             gk = getattr(row, "model", None) or "unknown"
+        elif group_by == "channel":
+            gk = getattr(row, "channel", None) or "unknown"
         else:
             gk = None
 
@@ -2298,6 +2388,50 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
         if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
             b["last_used_at"] = row.last_used_at
 
+    # --- 渠道维度：按 channel 分组（NULL 归为 unknown） ---
+    channel_rows = (
+        db.query(
+            TokenUsageRecord.channel.label("channel"),
+            func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
+            func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
+            func.sum(TokenUsageRecord.cache_creation_tokens).label("cache_creation_tokens"),
+            func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
+            func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
+            func.sum(TokenUsageRecord.total_cost).label("total_cost"),
+            func.count(TokenUsageRecord.id).label("records_count"),
+            func.max(TokenUsageRecord.updated_at).label("last_used_at"),
+        )
+        .filter(*filters)
+        .group_by(TokenUsageRecord.channel)
+        .all()
+    )
+
+    channel_buckets: dict[str, dict] = {}
+    for row in channel_rows:
+        ck = row.channel or "unknown"
+        display = channel_display_name(row.channel)
+        b = channel_buckets.setdefault(
+            ck,
+            {
+                "dimension": "channel", "key": ck, "label": display,
+                "device_id": None, "tool_id": None, "source": None, "model": None,
+                "channel": ck, "channel_name": display,
+                "input_tokens": 0, "output_tokens": 0,
+                "cache_creation_tokens": 0, "cache_read_tokens": 0,
+                "total_tokens": 0, "total_cost": 0.0,
+                "records_count": 0, "last_used_at": None,
+            },
+        )
+        b["input_tokens"] += _row_safe_int(row.input_tokens)
+        b["output_tokens"] += _row_safe_int(row.output_tokens)
+        b["cache_creation_tokens"] += _row_safe_int(row.cache_creation_tokens)
+        b["cache_read_tokens"] += _row_safe_int(row.cache_read_tokens)
+        b["total_tokens"] += _row_safe_int(row.total_tokens)
+        b["total_cost"] += _row_safe_float(row.total_cost)
+        b["records_count"] += _row_safe_int(row.records_count)
+        if row.last_used_at and (b["last_used_at"] is None or row.last_used_at > b["last_used_at"]):
+            b["last_used_at"] = row.last_used_at
+
     # --- 汇总百分比 & 排序 ---
     total_tokens = sum(b["total_tokens"] for b in device_buckets.values())
     total_cost = sum(b["total_cost"] for b in device_buckets.values())
@@ -2311,6 +2445,9 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
         ),
         "models": _build_dimension_summary(
             [_bucket_to_row(b) for b in model_buckets.values()], "model", total_tokens, total_cost,
+        ),
+        "channels": _build_dimension_summary(
+            [_bucket_to_row(b) for b in channel_buckets.values()], "channel", total_tokens, total_cost,
         ),
     }
     for values in dimension_rows.values():
@@ -2329,6 +2466,10 @@ def _query_dimension_data(db, user_id: str, req, since_date: datetime, alias_map
         "models": [
             {"tool_id": item["tool_id"] or "", "source": item["source"] or "", "model": item["model"] or "", "model_display_name": item["label"], "records_count": item["records_count"]}
             for item in dimension_rows["models"]
+        ],
+        "channels": [
+            {"channel": item["channel"] or item["key"], "channel_name": item["label"], "records_count": item["records_count"]}
+            for item in dimension_rows["channels"]
         ],
     }
     return dimension_rows, filter_options
@@ -2417,17 +2558,20 @@ def _build_sync_meta_from_values(
 
 
 def _rows_to_model_summary(rows) -> list[dict]:
-    """将按 source/model 聚合的行转换为前端模型汇总。"""
+    """将按 source/channel/model 聚合的行转换为前端模型汇总。"""
     result = []
     for row in rows:
         source = row.source or "unknown"
         model = row.model or "unknown"
         tool_name = _map_source_to_tool(source)["tool_name"]
+        channel = getattr(row, "channel", None)
         result.append(
             {
                 "source": source,
                 "model": model,
                 "display_model": _display_model_name(model, tool_name),
+                "channel": channel,
+                "channel_name": channel_display_name(channel),
                 "input_tokens": _row_safe_int(row.input_tokens),
                 "output_tokens": _row_safe_int(row.output_tokens),
                 "cache_creation_tokens": _row_safe_int(row.cache_creation_tokens),
@@ -2491,6 +2635,8 @@ def _build_record_filters(
         filters.append(or_(*fallback_filters))
     if getattr(req, "model", None):
         filters.append(TokenUsageRecord.model == req.model)
+    if getattr(req, "channel", None):
+        filters.append(TokenUsageRecord.channel == req.channel)
     return filters
 
 
@@ -2583,6 +2729,28 @@ def _query_item_model_map(db, user_id: str, req, since_date: datetime) -> dict[t
                 model_map[(date_key, dims["tool_id"])].add(row.model)
         return {key: sorted(values) for key, values in model_map.items()}
 
+    if req.group_by == "channel":
+        rows = (
+            db.query(
+                TokenUsageRecord.record_date.label("date"),
+                TokenUsageRecord.channel.label("group_key"),
+                TokenUsageRecord.model.label("model"),
+            )
+            .filter(*filters)
+            .group_by(
+                TokenUsageRecord.record_date,
+                TokenUsageRecord.channel,
+                TokenUsageRecord.model,
+            )
+            .all()
+        )
+        channel_model_map: dict[tuple, set[str]] = defaultdict(set)
+        for row in rows:
+            date_key = row.date.isoformat() if isinstance(row.date, date) else str(row.date)
+            if row.model:
+                channel_model_map[(date_key, row.group_key or "unknown")].add(row.model)
+        return {key: sorted(values) for key, values in channel_model_map.items()}
+
     rows = (
         db.query(
             TokenUsageRecord.record_date.label("date"),
@@ -2668,12 +2836,13 @@ def _get_sync_meta(db, user_id: str, req, cached_payload: Optional[dict]) -> dic
 
 
 def _execute_model_summary_query(db, user_id: str, req, since_date: datetime, alias_map: Optional[dict[str, str]] = None):
-    """按 source/model 聚合模型统计，避免前端从日期行猜测。"""
+    """按 source/channel/model 聚合模型统计，避免前端从日期行猜测。"""
     filters = _build_record_filters(user_id, req, since_date, alias_map, db=db)
 
     return (
         db.query(
             TokenUsageRecord.source.label("source"),
+            TokenUsageRecord.channel.label("channel"),
             TokenUsageRecord.model.label("model"),
             func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
             func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
@@ -2687,6 +2856,7 @@ def _execute_model_summary_query(db, user_id: str, req, since_date: datetime, al
         .filter(*filters)
         .group_by(
             TokenUsageRecord.source,
+            TokenUsageRecord.channel,
             TokenUsageRecord.model,
         )
         .all()
@@ -2995,8 +3165,27 @@ def _execute_db_query(
             .order_by(TokenUsageRecord.record_date)
             .all()
         )
+    elif req.group_by == "channel":
+        # 按渠道分组
+        results = (
+            db.query(
+                TokenUsageRecord.record_date.label("date"),
+                TokenUsageRecord.channel.label("group_key"),
+                func.sum(TokenUsageRecord.input_tokens).label("input_tokens"),
+                func.sum(TokenUsageRecord.output_tokens).label("output_tokens"),
+                func.sum(TokenUsageRecord.cache_creation_tokens).label(
+                    "cache_creation_tokens"
+                ),
+                func.sum(TokenUsageRecord.cache_read_tokens).label("cache_read_tokens"),
+                func.sum(_TOTAL_TOKENS_EXPR).label("total_tokens"),
+                func.sum(TokenUsageRecord.total_cost).label("total_cost"),
+            )
+            .filter(*base_filter)
+            .group_by(TokenUsageRecord.record_date, TokenUsageRecord.channel)
+            .order_by(TokenUsageRecord.record_date)
+            .all()
+        )
     else:
-        # 不分组，按日期聚合
         results = (
             db.query(
                 TokenUsageRecord.record_date.label("date"),
@@ -3027,8 +3216,11 @@ def _execute_db_query(
             total_tokens=_row_safe_int(row.total_tokens),
             total_cost=_row_safe_float(row.total_cost),
         )
-        if req.group_by in ("device", "tool", "model"):
+        if req.group_by in ("device", "tool", "model", "channel"):
             item.group_key = row.group_key
+        if req.group_by == "channel":
+            item.channel = row.group_key
+            item.channel_name = channel_display_name(row.group_key)
         items.append(item)
 
     return _sort_usage_items(items, req.sort_by, req.sort_order)

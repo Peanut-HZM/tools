@@ -486,11 +486,15 @@ def make_record(
     total_tokens: int,
     total_cost: float = 0.0,
     source_raw: str = "",
+    channel: str = "",
 ) -> dict:
     """构造一条归一化记录，字段与 ``token_usage_records`` 表结构对齐。
 
     ``record_date`` 允许传入 ``date`` 或 ``YYYY-MM-DD`` 字符串，统一归一化为
     ``date``，避免下游出现两种类型。
+
+    ``channel`` 为调用渠道原始 id；为空时由 ``aggregate_records`` 按 source
+    的默认/配置渠道补齐。
     """
     if isinstance(record_date, str):
         record_date = date.fromisoformat(record_date)
@@ -498,6 +502,7 @@ def make_record(
         "record_date": record_date,
         "source": source,
         "source_raw": source_raw or source,
+        "channel": channel,
         "model": model,
         "model_display_name": model,
         "input_tokens": input_tokens,
@@ -514,29 +519,53 @@ def aggregate_records(
     source: str,
     source_raw: str = "",
 ) -> list[dict]:
-    """把逐条用量行按 (日期, 模型) 聚合为最终记录。
+    """把逐条用量行按 (日期, 渠道, 模型) 聚合为最终记录。
 
     这是各读取器共用的收尾步骤，保证：
-    - 同一 (record_date, model) 只产生一条记录（与 DB 唯一键一致）
+    - 同一 (record_date, channel, model) 只产生一条记录（与 DB 唯一键一致）
     - total 口径统一为四项之和 + extra
+    - 行上不带 channel 时，按该 source 的默认/本机配置渠道补齐
+      （见 ``token_usage_channels.resolve_config_channel``）
     """
-    buckets: dict[tuple[str, str], list[int]] = {}
-    models: dict[tuple[str, str], str] = {}
-    costs: dict[tuple[str, str], float] = {}
+    from app.utils.token_usage_channels import (
+        normalize_channel,
+        resolve_config_channel,
+    )
+
+    buckets: dict[tuple[str, str, str], list[int]] = {}
+    costs: dict[tuple[str, str, str], float] = {}
+    fallback_channel: Optional[str] = None
 
     for row in rows:
-        key = (row["record_date"], row["model"])
+        raw_channel = row.get("channel")
+        if raw_channel:
+            channel = normalize_channel(raw_channel, source)
+        else:
+            # 没有逐条渠道：整批统一按本机当前配置解析一次
+            if fallback_channel is None:
+                fallback_channel = normalize_channel(
+                    resolve_config_channel(source), source
+                )
+            channel = fallback_channel
+        key = (row["record_date"], channel, row["model"])
         bucket = buckets.setdefault(key, [0, 0, 0, 0, 0])
         bucket[0] += row.get("input_tokens", 0)
         bucket[1] += row.get("output_tokens", 0)
         bucket[2] += row.get("cache_creation_tokens", 0)
         bucket[3] += row.get("cache_read_tokens", 0)
         bucket[4] += row.get("extra_total_tokens", 0)
-        models[key] = row["model"]
         costs[key] = costs.get(key, 0.0) + float(row.get("total_cost", 0.0) or 0.0)
 
     records: list[dict] = []
-    for (record_date, model), (inp, out, cc, cr, extra) in buckets.items():
+    for (record_date, channel, model), (inp, out, cc, cr, extra) in buckets.items():
+        cost_key = (record_date, channel, model)
+        if not channel or channel == "unknown":
+            if fallback_channel is None:
+                fallback_channel = normalize_channel(
+                    resolve_config_channel(source), source
+                )
+            channel = fallback_channel
+
         records.append(
             make_record(
                 record_date=record_date,
@@ -547,9 +576,10 @@ def aggregate_records(
                 cache_creation_tokens=cc,
                 cache_read_tokens=cr,
                 total_tokens=total_usage_tokens(inp, out, cc, cr) + extra,
-                total_cost=round(costs.get((record_date, model), 0.0), 6),
+                total_cost=round(costs.get(cost_key, 0.0), 6),
                 source_raw=source_raw or source,
+                channel=channel,
             )
         )
-    records.sort(key=lambda r: (r["record_date"], r["model"]))
+    records.sort(key=lambda r: (r["record_date"], r["channel"], r["model"]))
     return records

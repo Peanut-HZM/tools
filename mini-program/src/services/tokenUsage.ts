@@ -66,6 +66,8 @@ export interface DetailItem {
   device_id?: string | null;
   device_name?: string | null;
   tool_id?: string | null;
+  channel?: string | null;
+  channel_name?: string | null;
   created_at?: string | null;
 }
 
@@ -92,11 +94,13 @@ export const tokenUsageApi = {
     type?: 'daily' | 'weekly' | 'monthly';
     days?: number;
     device_id?: string;
+    channel?: string;
   } = {}): Promise<SummaryResponse> => {
     const qs = new URLSearchParams();
     qs.append('type', params.type || 'daily');
     qs.append('days', String(params.days || 30));
     if (params.device_id) qs.append('device_id', params.device_id);
+    if (params.channel) qs.append('channel', params.channel);
     return request(`/token-usage/summary?${qs.toString()}`, { needAuth: true });
   },
 

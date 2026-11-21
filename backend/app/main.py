@@ -121,6 +121,14 @@ async def lifespan(app: FastAPI):
         # 曾导致 create_all 一直静默失败）——改用模块属性访问绕开局部绑定
         from app.models import base as _models_base
         Base.metadata.create_all(bind=_models_base.engine)
+        # Token Usage：调用渠道列 + 唯一约束幂等迁移（PG 已存在的表需要显式补列）
+        try:
+            from app.services.token_usage_schema import (
+                ensure_token_usage_channel_schema,
+            )
+            ensure_token_usage_channel_schema(_models_base.engine)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Token Usage 渠道表结构迁移失败: {e}")
         # 微信登录：users.openid 列幂等迁移（PG；失败 warning 不阻断）
         try:
             from app.services.auth_service import get_auth_service
