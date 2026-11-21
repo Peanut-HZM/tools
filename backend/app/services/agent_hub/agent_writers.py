@@ -42,9 +42,9 @@ class WriteTarget:
     model: str = ""    # 可选：模型名（空则不改模型字段）
 
 
-SUPPORTED_AGENTS = ["claude", "codex", "gemini", "kimi", "opencode", "minimax", "pi", "hermes"]
+SUPPORTED_AGENTS = ["claude", "codex", "gemini", "kimi", "opencode", "minimax", "pi", "hermes", "grokbuild", "qwen", "crush"]
 
-# agent -> 需要备份/写入的文件（相对 REAL_HOME；claude/codex 走环境变量感知的实际路径）
+#: agent -> 需要备份/写入的文件（相对 REAL_HOME；claude/codex 走环境变量感知的实际路径）
 AGENT_FILES: Dict[str, List[str]] = {
     "claude": [".claude/settings.json"],
     "codex": [".codex/config.toml", ".codex/auth.json"],
@@ -56,6 +56,12 @@ AGENT_FILES: Dict[str, List[str]] = {
     "pi": [".pi/agent/models.json", ".pi/agent/settings.json"],
     # Hermes：单文件 YAML（cc-switch hermes_config.rs 的同一位置）
     "hermes": [".hermes/config.yaml"],
+    # Grok Build：~/.grok/config.toml 的 [model."<id>"] 表（magpie grok.go）
+    "grokbuild": [".grok/config.toml"],
+    # Qwen Code：~/.qwen/settings.json 的 modelProviders.openai（magpie qwen.go）
+    "qwen": [".qwen/settings.json"],
+    # Crush：~/.crush/crush.json 的 providers.* + models.large/small.provider
+    "crush": [".crush/crush.json"],
 }
 
 
@@ -212,6 +218,18 @@ def _floor_preview(agent: str, target: WriteTarget) -> Dict[str, Any]:
     if agent == "hermes":
         return {"config.yaml:providers.agent-hub.base_url": target.base_url,
                 "config.yaml:providers.agent-hub.api_key": "***"}
+    if agent == "grokbuild":
+        return {"config.toml:[model.agent-hub].base_url": target.base_url,
+                "config.toml:[model.agent-hub].api_key": "***",
+                "config.toml:models.default": "agent-hub"}
+    if agent == "qwen":
+        return {"settings.json:modelProviders.openai[].baseUrl": target.base_url,
+                "settings.json:modelProviders.openai[].apiKey": "***",
+                "settings.json:security.auth.selectedType": "openai"}
+    if agent == "crush":
+        return {"crush.json:providers.agent-hub.base_url": target.base_url,
+                "crush.json:providers.agent-hub.api_key": "***",
+                "crush.json:models.large.provider": "agent-hub"}
     return {}
 
 
@@ -543,6 +561,135 @@ def _write_pi_selection(settings_path: Path, provider_id: str, model: str) -> No
     _atomic_write(settings_path, _dump_json(settings))
 
 
+def qwen_settings_path() -> Path:
+    """Qwen Code 配置：遵循 ``QWEN_HOME``（否则 ~/.qwen/settings.json）"""
+    raw = (os.environ.get("QWEN_HOME") or "").strip()
+    base = Path(raw) if raw else real_home() / ".qwen"
+    return base / "settings.json"
+
+
+def _write_grokbuild(target: WriteTarget) -> List[str]:
+    """Grok Build：``.grok/config.toml`` 的 ``[model."<id>"]`` 表 + ``models.default``
+
+    结构依据 magpie ``internal/agent/grok.go``：每个供应商是一张 ``model.<id>`` 表，
+    字段 ``base_url`` / ``api_key``，当前选中项写在 ``models.default``。
+    """
+    path = real_home() / ".grok" / "config.toml"
+    if not path.exists():
+        raise AgentWriterError(f"未找到 {path}，请先安装/初始化 Grok Build")
+    original = path.read_bytes()
+    _first_write_backup("grokbuild", ".grok/config.toml", original, source_path=path)
+    doc = _load_toml(path)
+    provider_id = "agent-hub"
+    tables = doc.get("model")
+    if tables is None or not hasattr(tables, "append"):
+        from tomlkit.items import Table
+        tables = tomlkit.table()
+        doc["model"] = tables
+    node = tables.get(provider_id)
+    if node is None or not hasattr(node, "append"):
+        from tomlkit.items import Table
+        node = tomlkit.table()
+        tables[provider_id] = node
+    node["base_url"] = target.base_url
+    node["api_key"] = target.api_key
+    if target.model:
+        node["model"] = target.model
+        node["name"] = target.name
+    models = doc.get("models")
+    if models is None or not hasattr(models, "append"):
+        from tomlkit.items import Table
+        models = tomlkit.table()
+        doc["models"] = models
+    models["default"] = provider_id
+    _atomic_write(path, tomlkit.dumps(doc))
+    return [str(path)]
+
+
+def _write_qwen(target: WriteTarget) -> List[str]:
+    """Qwen Code：``.qwen/settings.json`` 的 ``modelProviders.openai`` 数组
+
+    结构依据 magpie ``internal/agent/qwen.go``：自定义供应商追加在
+    ``modelProviders.openai``（成员字段 ``baseUrl`` / ``apiKey`` / ``models``），
+    并把 ``security.auth.selectedType`` 设为 ``openai`` 以避免 /auth 登录提示。
+    """
+    path = qwen_settings_path()
+    if not path.exists():
+        raise AgentWriterError(f"未找到 {path}，请先安装/初始化 Qwen Code")
+    original = path.read_bytes()
+    _first_write_backup("qwen", str(path), original, source_path=path)
+    try:
+        data = json.loads(original.decode("utf-8"))
+    except ValueError as exc:
+        raise AgentWriterError(f"解析 {path} 失败: {exc}") from exc
+    model_providers = data.setdefault("modelProviders", {})
+    entries = model_providers.get("openai")
+    if not isinstance(entries, list):
+        entries = []
+    provider_id = "agent-hub"
+    entry: Dict[str, Any] = {
+        "name": provider_id,
+        "baseUrl": target.base_url,
+        "apiKey": target.api_key,
+    }
+    if target.model:
+        entry["models"] = [{"id": target.model, "name": target.model}]
+    replaced = False
+    for index, existing in enumerate(entries):
+        if isinstance(existing, dict) and existing.get("name") == provider_id:
+            entries[index] = entry
+            replaced = True
+            break
+    if not replaced:
+        entries.append(entry)
+    model_providers["openai"] = entries
+    security = data.setdefault("security", {})
+    auth = security.setdefault("auth", {})
+    auth["selectedType"] = "openai"
+    _atomic_write(path, _dump_json(data))
+    return [str(path)]
+
+
+def _write_crush(target: WriteTarget) -> List[str]:
+    """Crush：``.crush/crush.json`` 的 ``providers.<id>`` + ``models.large/small.provider``
+
+    结构依据 magpie ``internal/agent/agents.go``：
+    provider 节点 ``{type, name, base_url, api_key, models}``，
+    选中项写在 ``models.large.provider`` / ``models.small.provider``。
+    """
+    path = real_home() / ".crush" / "crush.json"
+    if not path.exists():
+        raise AgentWriterError(f"未找到 {path}，请先安装/初始化 Crush")
+    original = path.read_bytes()
+    _first_write_backup("crush", ".crush/crush.json", original, source_path=path)
+    try:
+        data = json.loads(original.decode("utf-8"))
+    except ValueError as exc:
+        raise AgentWriterError(f"解析 {path} 失败: {exc}") from exc
+    provider_id = "agent-hub"
+    providers = data.setdefault("providers", {})
+    node: Dict[str, Any] = {
+        "type": "openai",
+        "name": target.name,
+        "base_url": target.base_url,
+        "api_key": target.api_key,
+    }
+    if target.model:
+        node["models"] = [{"id": target.model, "name": target.model}]
+    providers[provider_id] = node
+    models = data.setdefault("models", {})
+    for slot in ("large", "small"):
+        current = models.get(slot)
+        if not isinstance(current, dict):
+            current = {}
+        current["provider"] = provider_id
+        if target.model:
+            current["model"] = target.model
+        models[slot] = current
+    _atomic_write(path, _dump_json(data))
+    return [str(path)]
+
+
 def apply_provider_to_agent(agent: str, target: WriteTarget,
                             provider_kind: str = "") -> Dict[str, Any]:
     """统一入口：切换前备份 → 只写 floor 字段 → 原子写。返回写入文件清单。"""
@@ -557,6 +704,9 @@ def apply_provider_to_agent(agent: str, target: WriteTarget,
         "minimax": _write_minimax,
         "pi": lambda t: _write_pi(t, provider_kind),
         "hermes": _write_hermes,
+        "grokbuild": _write_grokbuild,
+        "qwen": _write_qwen,
+        "crush": _write_crush,
     }
     written = handlers[agent](target)
     logger.info("Agent Hub 切换完成: agent=%s 写入=%s", agent, written)

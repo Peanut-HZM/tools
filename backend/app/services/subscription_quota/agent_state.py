@@ -254,6 +254,66 @@ def read_agent_current(agent: str) -> AgentCurrent:
                     current.model = str((models[0] or {}).get("id") or "")
             current.source_files = [str(path)]
 
+        elif agent == "grokbuild":
+            path = home / ".grok" / "config.toml"
+            if not path.exists():
+                current.error = "未找到 ~/.grok/config.toml"
+                return current
+            doc = _read_toml(path)
+            models = doc.get("models") or {}
+            provider_id = str(models.get("default") or "") if hasattr(models, "get") else ""
+            tables = doc.get("model") or {}
+            node = tables.get(provider_id) if provider_id and hasattr(tables, "get") else None
+            if not node and hasattr(tables, "values"):
+                node = next(iter(tables.values()), None)
+            if node is not None and hasattr(node, "get"):
+                current.base_url = str(node.get("base_url") or "")
+                current.api_key = str(node.get("api_key") or "")
+                current.model = str(node.get("model") or "")
+            current.source_files = [str(path)]
+
+        elif agent == "qwen":
+            from app.services.agent_hub.agent_writers import qwen_settings_path
+
+            path = qwen_settings_path()
+            if not path.exists():
+                current.error = "未找到 Qwen Code settings.json"
+                return current
+            data = _read_json(path)
+            entries = (data.get("modelProviders") or {}).get("openai")
+            entry = None
+            if isinstance(entries, list):
+                entry = next(
+                    (e for e in entries if isinstance(e, dict) and e.get("name") == "agent-hub"),
+                    entries[0] if entries else None,
+                )
+            if isinstance(entry, dict):
+                current.base_url = str(entry.get("baseUrl") or "")
+                current.api_key = str(entry.get("apiKey") or "")
+                models = entry.get("models")
+                if isinstance(models, list) and models:
+                    current.model = str((models[0] or {}).get("id") or "")
+            current.source_files = [str(path)]
+
+        elif agent == "crush":
+            path = home / ".crush" / "crush.json"
+            if not path.exists():
+                current.error = "未找到 ~/.crush/crush.json"
+                return current
+            data = _read_json(path)
+            providers = data.get("providers") if isinstance(data.get("providers"), dict) else {}
+            models = data.get("models") if isinstance(data.get("models"), dict) else {}
+            large = models.get("large") if isinstance(models.get("large"), dict) else {}
+            provider_id = str(large.get("provider") or "")
+            node = providers.get(provider_id) if provider_id else None
+            if not isinstance(node, dict) and providers:
+                node = providers.get(next(iter(providers.keys())))
+            if isinstance(node, dict):
+                current.base_url = str(node.get("base_url") or "")
+                current.api_key = str(node.get("api_key") or "")
+            current.model = str(large.get("model") or "")
+            current.source_files = [str(path)]
+
         elif agent == "kiro":
             kiro_dir = home / ".kiro"
             current.source_files = [str(kiro_dir)] if kiro_dir.exists() else []

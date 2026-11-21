@@ -221,3 +221,78 @@ def test_hermes_switch_writes_provider(temp_home):
     current = agent_state.read_agent_current("hermes")
     assert current.base_url == "https://relay.example.com/v1"
     assert current.api_key == "sk-hermes"
+
+
+# ---------------------------------------------------------------- Grok Build / Qwen / Crush
+
+
+def test_grokbuild_switch_writes_model_table_and_default(temp_home):
+    cfg = temp_home / ".grok" / "config.toml"
+    cfg.parent.mkdir(parents=True)
+    cfg.write_text('[cli]\ninstaller = "x"\n', encoding="utf-8")
+
+    account = _account("https://relay.example.com/v1", "sk-grok")
+    result = agent_switch.apply_switch_verified(
+        "grokbuild",
+        name="Relay",
+        base_url=account.base_url,
+        api_key=account.api_key,
+        model="grok-4.3",
+        account=account,
+    )
+
+    assert result["verified"] is True
+    text = cfg.read_text(encoding="utf-8")
+    assert 'base_url = "https://relay.example.com/v1"' in text
+    assert 'api_key = "sk-grok"' in text
+    # 选中项生效的关键
+    assert 'default = "agent-hub"' in text
+    assert "[cli]" in text  # 其余段保留
+
+
+def test_qwen_switch_writes_model_providers(temp_home):
+    settings = temp_home / ".qwen" / "settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text(json.dumps({"modelProviders": {"openai": []}}), encoding="utf-8")
+
+    account = _account("https://relay.example.com/v1", "sk-qwen")
+    result = agent_switch.apply_switch_verified(
+        "qwen",
+        name="Relay",
+        base_url=account.base_url,
+        api_key=account.api_key,
+        model="qwen3-max",
+        account=account,
+    )
+
+    assert result["verified"] is True
+    data = json.loads(settings.read_text(encoding="utf-8"))
+    entry = data["modelProviders"]["openai"][0]
+    assert entry["baseUrl"] == "https://relay.example.com/v1"
+    assert entry["apiKey"] == "sk-qwen"
+    # 跳过 /auth 提示的关键
+    assert data["security"]["auth"]["selectedType"] == "openai"
+
+
+def test_crush_switch_writes_provider_and_model_slots(temp_home):
+    cfg = temp_home / ".crush" / "crush.json"
+    cfg.parent.mkdir(parents=True)
+    cfg.write_text(json.dumps({"providers": {}}), encoding="utf-8")
+
+    account = _account("https://relay.example.com/v1", "sk-crush")
+    result = agent_switch.apply_switch_verified(
+        "crush",
+        name="Relay",
+        base_url=account.base_url,
+        api_key=account.api_key,
+        model="kimi-k3",
+        account=account,
+    )
+
+    assert result["verified"] is True
+    data = json.loads(cfg.read_text(encoding="utf-8"))
+    node = data["providers"]["agent-hub"]
+    assert node["base_url"] == "https://relay.example.com/v1"
+    assert node["api_key"] == "sk-crush"
+    assert data["models"]["large"]["provider"] == "agent-hub"
+    assert data["models"]["small"]["provider"] == "agent-hub"
