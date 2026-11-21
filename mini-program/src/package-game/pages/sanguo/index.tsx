@@ -23,6 +23,7 @@ export default function SanguoLobby() {
     setBusy(true)
     try {
       const { room_id } = await sanguoApi.createRoom()
+      if (!room_id) throw new Error('创建失败：服务端未返回房间号')
       Taro.navigateTo({ url: `/package-game/pages/sanguo/room/index?room_id=${room_id}` })
     } catch (e: any) {
       Taro.showToast({ title: e?.message || '创建失败', icon: 'none' })

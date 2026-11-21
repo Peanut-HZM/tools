@@ -50,7 +50,21 @@ export default function WerewolfRoom() {
   const [selected, setSelected] = useState<number | null>(null)
   const [input, setInput] = useState('')
   const [now, setNow] = useState(Math.floor(Date.now() / 1000))
+  const [timedOut, setTimedOut] = useState(false)
   const toastShownRef = useRef('')
+
+  // 8 秒内没拿到房间快照 → 判定为连接失败，给「重试 / 返回」入口，
+  // 不再无限转圈（真机上 WS 建连失败时页面就是死在这里）。
+  useEffect(() => {
+    if (view) { setTimedOut(false); return }
+    const timer = setTimeout(() => setTimedOut(true), 8000)
+    return () => clearTimeout(timer)
+  }, [view, roomId])
+
+  const retryConnect = () => {
+    setTimedOut(false)
+    if (roomId) connect(roomId)
+  }
 
   useDidShow(() => {
     if (roomId) connect(roomId)
@@ -111,7 +125,19 @@ export default function WerewolfRoom() {
   }, [canAct, hasTargetAction, canList, you, snap, mySeat])
 
   if (!view) {
-    return <View className='wr wr--loading'><Text>连接房间中...</Text></View>
+    return (
+      <View className='wr wr--loading'>
+        <Text>{timedOut ? '连接失败或超时' : '连接房间中...'}</Text>
+        {timedOut && (
+          <View className='wr-loading-actions'>
+            <View className='btn-primary wr-loading-btn' onClick={retryConnect}>重试</View>
+            <View className='wr-loading-btn wr-loading-btn--ghost' onClick={() => Taro.navigateBack()}>
+              返回大厅
+            </View>
+          </View>
+        )}
+      </View>
+    )
   }
 
   const isWaiting = view.status === 'WAITING'

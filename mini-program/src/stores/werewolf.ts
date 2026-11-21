@@ -71,9 +71,12 @@ export const useWerewolfStore = create<WerewolfStore>((set, get) => {
     lastError: null,
     connecting: false,
     connect: async (roomId) => {
-      set({ connecting: true })
+      set({ connecting: true, lastError: null })
       try {
         await werewolfWs.connect(roomId, { onMessage: handleMessage })
+      } catch (e: any) {
+        // 连接失败必须落到 lastError（否则房间页会永远停在「连接房间中…」）
+        set({ lastError: e?.message || '连接房间失败，请重试' })
       } finally {
         set({ connecting: false })
       }

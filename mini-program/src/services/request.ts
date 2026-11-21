@@ -55,9 +55,10 @@ export async function request<T = any>(
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
     data?: any;
     needAuth?: boolean;
+    timeout?: number;
   } = {}
 ): Promise<T> {
-  const { method = 'GET', data, needAuth = true } = options;
+  const { method = 'GET', data, needAuth = true, timeout = 15000 } = options;
 
   const headers = needAuth ? getHeaders() : { 'Content-Type': 'application/json' };
 
@@ -67,12 +68,24 @@ export async function request<T = any>(
       method,
       data,
       header: headers,
-      timeout: 15000
+      timeout
     });
 
     if (res.statusCode === 401) {
       handleAuthExpired()
       throw new Error('认证已过期，请重新登录')
+    }
+
+    // 关键：非 2xx 必须抛错。
+    // 之前只处理 401，500 会被当作成功返回（res.data = {detail: ...}），
+    // 调用方拿到 undefined 的 room_id 照样跳页面 → 房间页永远「连接房间中…」。
+    if (res.statusCode >= 400) {
+      const body: any = res.data
+      const detail = body && (body.detail || body.message)
+      const message = typeof detail === 'string' && detail
+        ? detail
+        : `请求失败（HTTP ${res.statusCode}）`
+      throw new Error(message)
     }
 
     return res.data as T;

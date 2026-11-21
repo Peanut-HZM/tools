@@ -50,6 +50,7 @@ export default function WerewolfLobby() {
         payload.board_id = boardId
       }
       const { room_id } = await gameApi.createRoom(payload)
+      if (!room_id) throw new Error('创建失败：服务端未返回房间号')
       Taro.navigateTo({ url: `/package-game/pages/werewolf/room/index?room_id=${room_id}` })
     } catch (e: any) {
       Taro.showToast({ title: e?.message || '创建失败', icon: 'none' })

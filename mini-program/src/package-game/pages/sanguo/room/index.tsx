@@ -30,7 +30,15 @@ export default function SanguoRoom() {
   const [selectedCard, setSelectedCard] = useState<number | null>(null)
   const [selectedTarget, setSelectedTarget] = useState<number | null>(null)
   const [now, setNow] = useState(Math.floor(Date.now() / 1000))
+  const [timedOut, setTimedOut] = useState(false)
   const toastRef = useRef('')
+
+  // 8 秒内没拿到房间快照 → 判定连接失败，给「重试 / 返回」入口（避免无限转圈）
+  useEffect(() => {
+    if (view) { setTimedOut(false); return }
+    const timer = setTimeout(() => setTimedOut(true), 8000)
+    return () => clearTimeout(timer)
+  }, [view, roomId])
 
   useDidShow(() => {
     if (roomId) connect(roomId)
@@ -63,7 +71,19 @@ export default function SanguoRoom() {
   const mySeat = you?.seat
 
   if (!view) {
-    return <View className='sg sg--loading'><Text>连接房间中...</Text></View>
+    return (
+      <View className='sg sg--loading'>
+        <Text>{timedOut ? '连接失败或超时' : '连接房间中...'}</Text>
+        {timedOut && (
+          <View className='sg-loading-actions'>
+            <View className='btn-primary sg-loading-btn' onClick={() => { setTimedOut(false); if (roomId) connect(roomId) }}>重试</View>
+            <View className='sg-loading-btn sg-loading-btn--ghost' onClick={() => Taro.navigateBack()}>
+              返回大厅
+            </View>
+          </View>
+        )}
+      </View>
+    )
   }
 
   const isWaiting = view.status === 'WAITING'

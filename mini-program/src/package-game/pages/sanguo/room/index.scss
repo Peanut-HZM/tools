@@ -296,3 +296,32 @@
     text-decoration: underline;
   }
 }
+
+/* ===== 加载/失败态（2026-11）：不再无限转圈，失败可重试 ===== */
+.sg--loading {
+  flex-direction: column;
+  gap: 24rpx;
+  padding: 0 64rpx;
+  box-sizing: border-box;
+  height: 70vh;
+}
+.sg-loading-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  width: 100%;
+}
+.sg-loading-btn {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+
+  &--ghost {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+}

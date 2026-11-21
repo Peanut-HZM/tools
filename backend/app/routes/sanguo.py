@@ -127,7 +127,7 @@ async def get_heroes(user_id: str = Depends(get_current_user_id)):
 
 @router.post("/rooms")
 async def create_room(user_id: str = Depends(get_current_user_id)):
-    room = manager.create_room(int(user_id), _nickname_of(user_id), list(HEROES.values()))
+    room = manager.create_room(user_id, _nickname_of(user_id), list(HEROES.values()))
     room.on_broadcast = _make_broadcast(room)
     room.on_send = _make_sender(room)
     room.on_finished = _make_finished(room)
@@ -138,7 +138,7 @@ async def create_room(user_id: str = Depends(get_current_user_id)):
 async def join_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.add_member(int(user_id), _nickname_of(user_id))
+        room.add_member(user_id, _nickname_of(user_id))
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return {"ok": True}
@@ -147,7 +147,7 @@ async def join_room(room_id: str, user_id: str = Depends(get_current_user_id)):
 @router.post("/rooms/{room_id}/leave")
 async def leave_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
-    room.remove_member(int(user_id))
+    room.remove_member(user_id)
     if not room.members:
         manager.remove(room.room_id)
     return {"ok": True}
@@ -157,7 +157,7 @@ async def leave_room(room_id: str, user_id: str = Depends(get_current_user_id)):
 async def kick_room(room_id: str, body: dict, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.kick(int(body.get("user_id")), int(user_id))
+        room.kick(str(body.get("user_id")), user_id)
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     return {"ok": True}
@@ -167,7 +167,7 @@ async def kick_room(room_id: str, body: dict, user_id: str = Depends(get_current
 async def start_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.start(int(user_id), now=time.time())
+        room.start(user_id, now=time.time())
     except ValueError as e:
         msg = str(e)
         raise HTTPException(status_code=400 if ("至少" in msg or "人数" in msg or "满" in msg) else 403,
@@ -180,7 +180,7 @@ async def start_room(room_id: str, user_id: str = Depends(get_current_user_id)):
 async def replay_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.reset_for_replay(int(user_id), now=time.time())
+        room.reset_for_replay(user_id, now=time.time())
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     await _pump(room)
@@ -190,7 +190,7 @@ async def replay_room(room_id: str, user_id: str = Depends(get_current_user_id))
 @router.post("/rooms/{room_id}/dismiss")
 async def dismiss_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
-    if int(user_id) != room.host_id:
+    if user_id != room.host_id:
         raise HTTPException(status_code=403, detail="只有房主可以解散房间")
     manager.remove(room.room_id)
     room.on_broadcast({"type": "room_closed", "reason": "房主解散了房间"})
@@ -200,9 +200,9 @@ async def dismiss_room(room_id: str, user_id: str = Depends(get_current_user_id)
 @router.get("/rooms/{room_id}")
 async def room_snapshot(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
-    if int(user_id) not in room.members:
+    if user_id not in room.members:
         raise HTTPException(status_code=403, detail="你不是该房间成员")
-    return room.full_view(int(user_id))
+    return room.full_view(user_id)
 
 
 @router.get("/records")
@@ -238,7 +238,7 @@ async def sanguo_room_ws(websocket) -> None:
     from urllib.parse import parse_qs
     token = parse_qs(scope.get("query_string", b"").decode()).get("token", [""])[0]
     try:
-        user_id = int(_verify_ws_token(token))
+        user_id = _verify_ws_token(token)
     except HTTPException:
         await websocket.close(code=4401)
         return

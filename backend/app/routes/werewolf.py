@@ -121,7 +121,7 @@ async def create_room(payload: CreateRoomRequest,
     board = _resolve_board(payload)
     settings = _build_settings(payload.speech_seconds, payload.witch_self_rescue,
                                payload.witch_guard_conflict, payload.night_seconds)
-    room = manager.create_room(int(user_id), _nickname_of(user_id), board, settings)
+    room = manager.create_room(user_id, _nickname_of(user_id), board, settings)
     room.on_broadcast = _make_broadcast(room)
     room.on_send = _make_sender(room)
     room.on_finished = _make_finished(room)
@@ -190,7 +190,7 @@ def _dispatch(room: GameRoom, uid: int, payload: dict) -> None:
 async def join_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.add_member(int(user_id), _nickname_of(user_id))
+        room.add_member(user_id, _nickname_of(user_id))
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return {"ok": True}
@@ -199,7 +199,7 @@ async def join_room(room_id: str, user_id: str = Depends(get_current_user_id)):
 @router.post("/rooms/{room_id}/leave")
 async def leave_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
-    room.remove_member(int(user_id))
+    room.remove_member(user_id)
     await _maybe_close_room(room)
     return {"ok": True}
 
@@ -209,7 +209,7 @@ async def kick_room(room_id: str, payload: KickRequest,
                     user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.kick(int(payload.user_id), int(user_id))
+        room.kick(str(payload.user_id), user_id)
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     return {"ok": True}
@@ -240,7 +240,7 @@ async def update_config(room_id: str, payload: UpdateConfigRequest,
                               else room.settings.witch_guard_conflict),
     )
     try:
-        room.update_config(board, settings, int(user_id))
+        room.update_config(board, settings, user_id)
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     return {"ok": True}
@@ -250,7 +250,7 @@ async def update_config(room_id: str, payload: UpdateConfigRequest,
 async def start_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.start(int(user_id), now=time.time())
+        room.start(user_id, now=time.time())
     except ValueError as e:
         msg = str(e)
         raise HTTPException(status_code=400 if ("至少" in msg or "人数" in msg) else 403,
@@ -263,7 +263,7 @@ async def start_room(room_id: str, user_id: str = Depends(get_current_user_id)):
 async def replay_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
     try:
-        room.reset_for_replay(int(user_id), now=time.time())
+        room.reset_for_replay(user_id, now=time.time())
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     await _pump(room)
@@ -273,7 +273,7 @@ async def replay_room(room_id: str, user_id: str = Depends(get_current_user_id))
 @router.post("/rooms/{room_id}/dismiss")
 async def dismiss_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
-    if int(user_id) != room.host_id:
+    if user_id != room.host_id:
         raise HTTPException(status_code=403, detail="只有房主可以解散房间")
     manager.remove(room.room_id)
     room.on_broadcast({"type": "room_closed", "reason": "房主解散了房间"})
@@ -283,9 +283,9 @@ async def dismiss_room(room_id: str, user_id: str = Depends(get_current_user_id)
 @router.get("/rooms/{room_id}")
 async def room_snapshot(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = _get_room_or_404(room_id)
-    if int(user_id) not in room.members:
+    if user_id not in room.members:
         raise HTTPException(status_code=403, detail="你不是该房间成员")
-    return room.full_view(int(user_id))
+    return room.full_view(user_id)
 
 
 # ---------- 对局记录查询（回放） ----------
@@ -321,7 +321,7 @@ async def room_ws(websocket: WebSocket) -> None:
     from urllib.parse import parse_qs
     token = parse_qs(scope.get("query_string", b"").decode()).get("token", [""])[0]
     try:
-        user_id = int(_verify_ws_token(token))
+        user_id = _verify_ws_token(token)
     except HTTPException:
         await websocket.close(code=4401)
         return

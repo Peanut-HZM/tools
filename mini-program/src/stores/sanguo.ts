@@ -50,9 +50,11 @@ export const useSanguoStore = create<SanguoStore>((set, get) => {
     lastError: null,
     connecting: false,
     connect: async (roomId) => {
-      set({ connecting: true })
+      set({ connecting: true, lastError: null })
       try {
         await sanguoWs.connect(roomId, { onMessage: handleMessage })
+      } catch (e: any) {
+        set({ lastError: e?.message || '连接房间失败，请重试' })
       } finally {
         set({ connecting: false })
       }

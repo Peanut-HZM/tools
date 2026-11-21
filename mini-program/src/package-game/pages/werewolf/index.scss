@@ -143,3 +143,84 @@
   align-items: center;
   justify-content: center;
 }
+
+/* ===== 移动端视觉优化（2026-11）：板子选择改为 2 列网格 + 统一主按钮 ===== */
+.werewolf-lobby {
+  padding: 24rpx;
+}
+
+.lobby-card {
+  padding: 28rpx;
+  border-radius: 24rpx;
+}
+
+.lobby-boards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.board-chip {
+  width: 100%;
+  min-width: 0;
+  min-height: 132rpx;
+  padding: 20rpx 18rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6rpx;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 18rpx;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &__name {
+    font-size: 28rpx;
+    line-height: 1.3;
+  }
+  &__roles {
+    font-size: 20rpx;
+    line-height: 1.45;
+    word-break: break-all;
+  }
+  &--active {
+    border-color: var(--accent-primary);
+    background: rgba(34, 197, 94, 0.12);
+
+    .board-chip__name { color: var(--accent-primary); }
+  }
+}
+
+.config-row {
+  padding: 26rpx 4rpx;
+}
+
+/* 主按钮：满宽 88rpx、文字居中、品牌薄荷绿（与首页/我的一致） */
+.lobby-btn {
+  margin-top: 24rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  background-image: none;
+  background-color: var(--accent-primary);
+  color: #07130c;
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.28);
+
+  &--pressed {
+    background-color: var(--accent-hover);
+  }
+}
+
+.lobby-join__btn {
+  height: 88rpx;
+  padding: 0 36rpx;
+  border-radius: 18rpx;
+  font-size: 28rpx;
+  background-image: none;
+  background-color: var(--bg-surface-3);
+  color: var(--ink-default);
+}
