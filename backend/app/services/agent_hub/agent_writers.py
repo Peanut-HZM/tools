@@ -276,14 +276,19 @@ def _write_kimi(target: WriteTarget) -> List[str]:
         raise AgentWriterError("kimi config.toml 中未找到 providers 段")
     # floor：更新第一个 provider 块的 api_key/base_url（保留其余字段与 oauth）
     updated = False
+    first_key = ""
     for _key, block in providers.items():
         if hasattr(block, "append") or isinstance(block, dict):
             block["api_key"] = target.api_key
             block["base_url"] = target.base_url
+            first_key = str(_key)
             updated = True
             break
     if not updated:
         raise AgentWriterError("kimi providers 段结构不符合预期")
+    # 指定了模型就同时选中它（kimi 的模型键形如 "<provider>/<model>"）
+    if target.model:
+        doc["model"] = target.model if "/" in target.model else f"{first_key}/{target.model}"
     _atomic_write(path, tomlkit.dumps(doc))
     return [str(path)]
 
@@ -314,6 +319,13 @@ def _write_opencode(target: WriteTarget, provider_kind: str = "") -> List[str]:
     if target.base_url:
         options["baseURL"] = target.base_url
     options["apiKey"] = target.api_key
+    # 只写 provider 段不选模型 = 切换不生效（OpenCode 仍用旧 model）。
+    # 因此这里必须把顶层 model 指向本 provider，否则按「假切换」拒绝执行。
+    if not target.model:
+        raise AgentWriterError(
+            "OpenCode 切换必须同时指定模型名（会写成 model=<provider>/<model>），否则不会真正生效"
+        )
+    data["model"] = f"{provider_id}/{target.model}"
     _atomic_write(path, _dump_json(data))
     return [str(path)]
 
@@ -337,6 +349,14 @@ def _write_minimax(target: WriteTarget) -> List[str]:
     if target.base_url:
         options["baseURL"] = target.base_url
     options["apiKey"] = target.api_key
+    # 同 OpenCode：不设置默认模型 = 不生效
+    if not target.model:
+        raise AgentWriterError(
+            "MiniMax Code 切换必须同时指定模型名（会写成 model=<provider>/<model>），否则不会真正生效"
+        )
+    if "options" not in providers[first_key]:
+        providers[first_key]["options"] = options
+    data["model"] = f"{first_key}/{target.model}"
     import io
     buf = io.StringIO()
     yaml_rt.dump(data, buf)

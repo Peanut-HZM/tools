@@ -131,13 +131,40 @@ export interface LocalCredentialNoteDto {
   message: string;
 }
 
+export interface AgentCurrentDto {
+  agent: string;
+  baseUrl: string;
+  hasKey: boolean;
+  model: string;
+  sourceFiles: string[];
+  error: string;
+}
+
 export interface AgentSwitchStatusDto {
   agent: string;
+  name: string;
+  /** cli | desktop */
+  kind: string;
+  writable: boolean;
+  readonlyReason: string;
+  hint: string;
   files: { path: string; exists: boolean }[];
-  configured: boolean;
-  currentProviderId: string;
-  currentProviderName: string;
-  switchedAt: string;
+  /** 真实当前配置（解析配置文件得到，不是我们的切换记录） */
+  current: AgentCurrentDto;
+  /** 真实配置命中的订阅账号（同 base_url + 同 Key） */
+  currentAccount: { accountId: string; providerId: string; label: string } | null;
+  lastSwitch: { providerId: string; switchedAt: string };
+}
+
+/** 未安装的 agent（只出现在「添加 Agent」弹窗里） */
+export interface AgentCatalogItemDto {
+  agent: string;
+  name: string;
+  kind: string;
+  writable: boolean;
+  readonlyReason: string;
+  hint: string;
+  files: string[];
 }
 
 export interface SwitchPreviewDto {
@@ -417,8 +444,11 @@ export async function adjustQuota(
   return parseJson(response);
 }
 
-/** 本机各 agent 的配置状态（只读） */
-export async function listAgents(): Promise<{ agents: AgentSwitchStatusDto[]; supported: string[] }> {
+/** 本机各 agent 的配置状态（已安装的 + 未安装可选目录） */
+export async function listAgents(): Promise<{
+  agents: AgentSwitchStatusDto[];
+  available: AgentCatalogItemDto[];
+}> {
   const response = await authedFetch(`${BASE_URL}/agents`, {
     method: 'GET',
     headers: getAuthHeaders(),
@@ -445,7 +475,16 @@ export async function switchAgent(
   agent: string,
   accountId: string,
   model = ''
-): Promise<{ ok: boolean; agent: string; providerName: string; written: string[] }> {
+): Promise<{
+  ok: boolean;
+  agent: string;
+  providerName: string;
+  written: string[];
+  /** 回读校验：文件写了但没真正生效时为 false（前端必须显示失败） */
+  verified: boolean;
+  current?: AgentCurrentDto;
+  matchedAccountId?: string | null;
+}> {
   const params = new URLSearchParams({ account_id: accountId });
   const response = await authedFetch(`${BASE_URL}/agents/${agent}/switch?${params.toString()}`, {
     method: 'POST',

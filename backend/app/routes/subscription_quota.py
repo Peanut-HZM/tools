@@ -712,24 +712,28 @@ class SwitchPreviewRequest(BaseModel):
 
 @router.get("/agents")
 def list_agents(authorization: Optional[str] = Header(None)):
-    """检测本机各 agent 配置是否存在（只读，不写任何文件）"""
+    """已安装的 agent（含真实当前配置）+ 未安装的可选目录（只读，不写任何文件）"""
     user_id = _require_user(authorization)
-    from app.services.subscription_quota.agent_switch import WRITER_AGENTS, list_agent_status
+    from app.services.subscription_quota.agent_switch import list_installed_status
 
-    accounts = {a.id: a for a in list_accounts(user_id)}
+    accounts = list_accounts(user_id)
+    installed, available = list_installed_status(accounts)
+
+    # 历史切换记录只作为补充（真实状态以配置文件解析为准）
     switches = _load_switches(user_id)
+    for item in installed:
+        switch = switches.get(item["agent"]) or {}
+        item["lastSwitch"] = {
+            "providerId": switch.get("provider_id", ""),
+            "switchedAt": switch.get("switched_at", ""),
+        }
 
-    agents = []
-    for status in list_agent_status():
-        data = status.to_dict()
-        switch = switches.get(status.agent) or {}
-        provider = accounts.get(switch.get("provider_id", ""))
-        data["currentProviderId"] = switch.get("provider_id", "")
-        data["currentProviderName"] = provider.label if provider else ""
-        data["switchedAt"] = switch.get("switched_at", "")
-        agents.append(data)
-
-    return {"agents": agents, "supported": list(WRITER_AGENTS)}
+    return {
+        "agents": installed,
+        "available": available,
+        # 兼容旧调用方（agentHubApi.ts）：可写入切换的 agent id 列表
+        "supported": [item["agent"] for item in installed if item.get("writable")],
+    }
 
 
 @router.get("/agents/{agent}/config-preview")
@@ -741,7 +745,16 @@ def preview_agent_switch(
 ):
     """预览切换会写哪些字段（dry-run，不落盘）"""
     user_id = _require_user(authorization)
+    from app.services.subscription_quota.agent_catalog import get_agent_spec
     from app.services.subscription_quota.agent_switch import AgentWriterError, preview_switch
+
+    agent_spec = get_agent_spec(agent)
+    if agent_spec is None or not agent_spec.writable:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{agent_spec.name if agent_spec else agent} 不支持自动切换"
+            + (f"：{agent_spec.readonly_reason}" if agent_spec else ""),
+        )
 
     account = get_account(user_id, account_id)
     if account is None:
@@ -768,9 +781,26 @@ def switch_agent(
     req: SwitchPreviewRequest = SwitchPreviewRequest(),
     authorization: Optional[str] = Header(None),
 ):
-    """把该账号写入本机 CLI 配置（带首写备份，可一键恢复）"""
+    """把该账号写入本机 CLI 配置（带首写备份）+ 立即回读校验
+
+``verified=false`` 表示文件写了但**没有真正生效**（例如 agent 版本改了字段），
+此时前端必须显示失败原因，不允许显示「切换成功」。
+"""
     user_id = _require_user(authorization)
-    from app.services.subscription_quota.agent_switch import AgentWriterError, apply_switch
+    from app.services.subscription_quota.agent_switch import (
+        AgentWriterError,
+        apply_switch_verified,
+    )
+    from app.services.subscription_quota.agent_catalog import get_agent_spec
+
+    agent_spec = get_agent_spec(agent)
+    if agent_spec is None:
+        raise HTTPException(status_code=400, detail=f"未支持的 agent: {agent}")
+    if not agent_spec.writable:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{agent_spec.name} 暂不支持自动切换：{agent_spec.readonly_reason}",
+        )
 
     account = get_account(user_id, account_id)
     if account is None:
@@ -778,22 +808,38 @@ def switch_agent(
 
     spec = get_spec(account.provider_id)
     name = account.label or (spec.name if spec else account.provider_id)
-    base_url = str(account.extra.get("base_url") or "")
+    base_url = str(account.base_url or account.extra.get("base_url") or "")
     try:
-        result = apply_switch(
+        result = apply_switch_verified(
             agent,
             name=name,
             base_url=base_url,
             api_key=account.api_key or "",
             model=req.model,
             kind=spec.kind if spec else None,
+            account=account,
         )
     except AgentWriterError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
     _save_switch(user_id, agent, account.id)
-    logger.info("用户 %s 把 %s 切换到 %s（写入 %s 个文件）", user_id, agent, name, len(result.get("written") or []))
-    return {"ok": True, "agent": agent, "providerName": name, "written": result.get("written") or []}
+    logger.info(
+        "用户 %s 把 %s 切换到 %s（写入 %s 个文件，verified=%s）",
+        user_id,
+        agent,
+        name,
+        len(result.get("written") or []),
+        result.get("verified"),
+    )
+    return {
+        "ok": True,
+        "agent": agent,
+        "providerName": name,
+        "written": result.get("written") or [],
+        "verified": bool(result.get("verified")),
+        "current": result.get("current") or {},
+        "matchedAccountId": result.get("matchedAccountId"),
+    }
 
 
 @router.post("/agents/{agent}/restore")

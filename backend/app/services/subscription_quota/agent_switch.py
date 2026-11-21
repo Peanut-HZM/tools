@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -30,6 +31,14 @@ from app.services.agent_hub.agent_writers import (
     real_home,
     restore_agent_backups,
 )
+from app.services.subscription_quota.agent_catalog import (
+    AgentSpec,
+    _path_exists,
+    available_agents,
+    get_agent_spec,
+    installed_agents,
+)
+from app.services.subscription_quota.agent_state import match_account, read_agent_current
 
 logger = logging.getLogger(__name__)
 
@@ -123,3 +132,56 @@ def restore(agent: str) -> list[str]:
 
 def agent_files(agent: str) -> list[str]:
     return list(AGENT_FILES.get(agent, []))
+
+
+def list_installed_status(accounts) -> tuple[list[dict], list[dict]]:
+    """返回 (已安装 agent 状态, 未安装可选 agent 目录)
+
+    * 已安装：附带**真实**当前配置（解析配置文件）与命中的账号
+    * 未安装：只给目录信息，供「添加 Agent」弹窗选择
+    """
+    installed: list[dict] = []
+    for spec in installed_agents():
+        data = spec.to_public_dict()
+        current = read_agent_current(spec.id)
+        matched = match_account(current, accounts)
+        data["current"] = current.to_public_dict()
+        data["currentAccount"] = matched
+        # 展示用：直接用检测路径（Desktop / Pi / Kiro 没有 AGENT_FILES 条目）
+        data["files"] = [
+            {"path": path if os.path.isabs(path) else str(real_home() / path), "exists": _path_exists(path)}
+            for path in spec.detect
+        ]
+        installed.append(data)
+
+    available = [spec.to_public_dict() for spec in available_agents()]
+    return installed, available
+
+
+def verify_switch(agent: str, account) -> dict:
+    """切换后校验：重新解析配置文件，确认真的指向该账号"""
+    current = read_agent_current(agent)
+    matched = match_account(current, [account] if account else [])
+    return {
+        "verified": bool(matched),
+        "current": current.to_public_dict(),
+        "matchedAccountId": matched.get("accountId") if matched else None,
+    }
+
+
+def apply_switch_verified(
+    agent: str,
+    *,
+    name: str,
+    base_url: str,
+    api_key: str,
+    model: str = "",
+    kind: Optional[str] = None,
+    account=None,
+) -> dict:
+    """执行切换 + 立即回读校验（验证失败如实返回 verified=False，不谎报成功）"""
+    result = apply_switch(
+        agent, name=name, base_url=base_url, api_key=api_key, model=model, kind=kind
+    )
+    result.update(verify_switch(agent, account))
+    return result

@@ -1105,6 +1105,17 @@ export default function SubscriptionQuotaTool() {
       </div>
     );
 
+  // 供应商页：只展示「已配置且可用」的账号（有 Key 或手动额度，且未停用）；
+  // 停用/未配置的收进可折叠区，避免与「可用供应商」混在一起
+  const usableProviderAccounts = useMemo(
+    () => accounts.filter((a) => a.enabled && (a.hasKey || a.isManual)),
+    [accounts]
+  );
+  const inactiveProviderAccounts = useMemo(
+    () => accounts.filter((a) => !(a.enabled && (a.hasKey || a.isManual))),
+    [accounts]
+  );
+
   return (
     // 外层固定一屏高度、不滚动：Tab 导航必须始终可见。
     // 之前把 overflow-y-auto 放在这个外层容器上，滚动时整页（含 Tab 栏）一起滚出视口，
@@ -1286,7 +1297,8 @@ export default function SubscriptionQuotaTool() {
             <div>
               <h2 className="text-base font-semibold text-ink">供应商</h2>
               <p className="mt-0.5 text-xs text-ink-muted">
-                共 {providers.length} 家可选，已配置 {accounts.length} 个账号
+                共 {providers.length} 家可选，可用 {usableProviderAccounts.length} 个账号
+                {inactiveProviderAccounts.length > 0 && `（另有 ${inactiveProviderAccounts.length} 个已停用/待完善）`}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1323,9 +1335,13 @@ export default function SubscriptionQuotaTool() {
             <p className="rounded-lg border border-dashed border-border py-12 text-center text-sm text-ink-muted">
               还没有供应商账号。点「添加」选择预设后粘贴 API Key 即可。
             </p>
+          ) : usableProviderAccounts.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border py-12 text-center text-sm text-ink-muted">
+              当前没有可用供应商（已配置的都停用了）。点「添加」新增，或在下方展开停用列表重新启用。
+            </p>
           ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {accounts.map((account) => {
+              {usableProviderAccounts.map((account) => {
                 const spec = providers.find((p) => p.id === account.providerId);
                 return (
                   <div
@@ -1392,6 +1408,45 @@ export default function SubscriptionQuotaTool() {
                 );
               })}
             </div>
+          )}
+
+          {inactiveProviderAccounts.length > 0 && (
+            <details className="rounded-lg border border-border">
+              <summary className="cursor-pointer px-3 py-2 text-xs text-ink-muted">
+                已停用 / 待完善（{inactiveProviderAccounts.length}）
+              </summary>
+              <ul className="flex flex-col gap-1 px-3 pb-3">
+                {inactiveProviderAccounts.map((account) => (
+                  <li key={account.id} className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="min-w-0 flex-1 truncate text-ink">{account.label}</span>
+                    <span className="text-ink-faint">{account.providerId}</span>
+                    {!account.hasKey && <Badge variant="outline">缺 Key</Badge>}
+                    {!account.enabled && <Badge variant="outline">已停用</Badge>}
+                    <button
+                      type="button"
+                      onClick={() => void handleToggleEnabled(account)}
+                      className="rounded-md px-2 py-1 text-ink-muted hover:bg-surface-2 hover:text-ink"
+                    >
+                      {account.enabled ? '停用' : '启用'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingAccount(account)}
+                      className="rounded-md px-2 py-1 text-ink-muted hover:bg-surface-2 hover:text-ink"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleRemove(account.id)}
+                      className="rounded-md px-2 py-1 text-ink-muted hover:bg-danger/10 hover:text-accent-danger"
+                    >
+                      删除
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </div>
       )}
