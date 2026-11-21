@@ -97,7 +97,9 @@ async def _pump(room: GameRoom) -> None:
             save_game_record(room.build_record_summary())
         except Exception:
             logger.exception("[werewolf] 落库失败 room=%s", room.room_id)
-        await room.on_broadcast({
+        # on_broadcast 是同步回调（Callable[[dict], None]），不能 await，
+        # 否则这里抛 TypeError → game_over 永不推送、WS 直接断开
+        room.on_broadcast({
             "type": "game_over",
             "winner": room.engine.winner(),
             "reveal": room.engine.reveal(),
@@ -139,7 +141,7 @@ def _make_finished(room: GameRoom):
                 save_game_record(room.build_record_summary())
             except Exception:
                 logger.exception("[werewolf] 落库失败 room=%s", room.room_id)
-            await room.on_broadcast({
+            room.on_broadcast({
                 "type": "game_over",
                 "winner": room.engine.winner(),
                 "reveal": room.engine.reveal(),

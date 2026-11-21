@@ -89,7 +89,8 @@ def _make_finished(room: SanguoRoom):
                 save_game_record(room.build_record_summary())
             except Exception:
                 logger.exception("[sanguo] 落库失败 room=%s", room.room_id)
-            await room.on_broadcast({
+            # on_broadcast 为同步回调，不能 await（否则 TypeError → game_over 推送丢失）
+        room.on_broadcast({
                 "type": "game_over",
                 "winner": room.engine.winner(),
             })
@@ -228,7 +229,8 @@ async def _pump(room: SanguoRoom) -> None:
             save_game_record(room.build_record_summary())
         except Exception:
             logger.exception("[sanguo] 落库失败 room=%s", room.room_id)
-        await room.on_broadcast({"type": "game_over", "winner": room.engine.winner()})
+        # on_broadcast 为同步回调，不能 await（否则 TypeError → game_over 推送丢失）
+        room.on_broadcast({"type": "game_over", "winner": room.engine.winner()})
 
 
 # ---------- WebSocket（直接挂载，绕过 _IncludedRouter 对 WS 的分发缺陷） ----------
