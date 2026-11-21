@@ -158,20 +158,42 @@ class SanguoRoom:
         if self.engine is None or self.engine.finished():
             raise EngineError("NOT_PLAYING", "当前没有进行中的对局")
         msg_type = data.get("type")
+
+        def to_uids(values) -> list:
+            """客户端目标用「座号」，引擎按 uid 解析；这里统一翻译。
+
+            修复：之前直接把座号当 uid 传给引擎，UUID 用户一出杀/决斗/拆/顺
+            就会报 NOT_IN_GAME（表现为只能靠 AOE 推进、永远打不完）。
+            """
+            if not values:
+                return []
+            out = []
+            for value in values:
+                try:
+                    seat = int(value)
+                except (TypeError, ValueError):
+                    out.append(value)  # 已经是 uid（UUID 字符串）→ 原样透传
+                    continue
+                if 1 <= seat <= len(self.engine.players):
+                    out.append(self.engine.player_by_seat(seat).uid)
+                else:
+                    out.append(value)
+            return out
+
         if msg_type == "act":
             self.engine.play_card(user_id, data.get("card_ids") or [],
-                                  data.get("targets"), data.get("as_name"))
+                                  to_uids(data.get("targets")), data.get("as_name"))
         elif msg_type == "respond":
             self.engine.respond(user_id, data.get("card_ids") or [])
         elif msg_type == "skill":
             skill = data.get("skill")
             if skill == "rende":
-                self.engine.rende(user_id, int(data["target"]), data.get("card_ids") or [])
+                self.engine.rende(user_id, to_uids([data["target"]])[0], data.get("card_ids") or [])
             elif skill == "qingnang":
-                self.engine.qingnang(user_id, int(data["card_id"]), int(data["target"]))
+                self.engine.qingnang(user_id, int(data["card_id"]), to_uids([data["target"]])[0])
             elif skill == "lijian":
                 self.engine.lijian(user_id, int(data["card_id"]),
-                                   int(data["male_a"]), int(data["male_b"]))
+                                   to_uids([data["male_a"]])[0], to_uids([data["male_b"]])[0])
             else:
                 raise EngineError("UNKNOWN_SKILL", f"未知技能: {skill}")
         elif msg_type == "next_phase":
@@ -189,10 +211,12 @@ class SanguoRoom:
             for uid, m in self.members.items():
                 if m.disconnected_at is not None \
                         and now - m.disconnected_at > DISCONNECT_GRACE_SECONDS:
-                    uid_int = uid
-                    if uid_int in self.engine._by_uid:
-                        pl = self.engine._by_uid[uid_int]
-                        pl.escaped = True
+                    # 修复：此前引用不存在的 engine._by_uid，掉线托管时抛
+                    # AttributeError，导致整桌 tick 停摆（对局再也推进不了）
+                    for pl in self.engine.players:
+                        if pl.uid == uid:
+                            pl.escaped = True
+                            break
             self.engine.tick(now)
             self._pump()
         if self.engine and self.engine.finished() and self.status == "PLAYING":
