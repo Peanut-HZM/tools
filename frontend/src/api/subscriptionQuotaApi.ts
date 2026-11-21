@@ -67,6 +67,8 @@ export interface QuotaAccountDto {
   windowResetAt: string;
   isManual: boolean;
   lastGood: Record<string, unknown> | null;
+  /** 订阅调用地址（bridge 去重与展示用；官方直连为空） */
+  baseUrl?: string;
 }
 
 export interface QuotaResultDto {
@@ -494,4 +496,67 @@ export async function queryQuotas(options?: {
     }),
   });
   return parseJson<QueryResponse>(response);
+}
+
+// ---------------------------------------------------------------- 同步到本机（agent-subscription-bridge）
+
+export type LinkTargetDto = 'ccswitch' | 'magpie';
+
+export interface ExportLinkItemDto {
+  accountId: string;
+  providerId: string;
+  label: string;
+  maskedKey: string | null;
+  target: LinkTargetDto;
+  /** 生成失败时为 null，原因见 warnings */
+  url: string | null;
+  app: string;
+  warnings: string[];
+}
+
+export interface ExportLinksResponse {
+  target: LinkTargetDto;
+  items: ExportLinkItemDto[];
+  count: number;
+}
+
+/** 生成推送到本机应用的深链（响应含明文 Key，服务端已置 no-store） */
+export async function getExportLinks(
+  target: LinkTargetDto,
+  accountIds?: string[]
+): Promise<ExportLinksResponse> {
+  const params = new URLSearchParams({ target });
+  if (accountIds && accountIds.length > 0) params.set('ids', accountIds.join(','));
+  const response = await authedFetch(`${BASE_URL}/export/links?${params.toString()}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return parseJson<ExportLinksResponse>(response);
+}
+
+export interface DuplicateItemDto {
+  id: string;
+  label: string;
+  providerId: string;
+  baseUrl: string;
+}
+
+export interface DuplicateGroupDto {
+  baseUrlNorm: string;
+  apiKeyHash: string;
+  count: number;
+  items: DuplicateItemDto[];
+}
+
+/** 按 (base_url, Key) 列出现存重复分组（只读） */
+export async function getDuplicates(): Promise<{
+  count: number;
+  groups: DuplicateGroupDto[];
+  mode: string;
+}> {
+  const response = await authedFetch(`${BASE_URL}/subscriptions/duplicates`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  return parseJson(response);
 }

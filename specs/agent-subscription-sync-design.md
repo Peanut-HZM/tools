@@ -1,6 +1,11 @@
 # 设计：本机 Agent 订阅信息同步到远程数据库（agent-subscription-sync）
 
 > 2026-11-20 | 状态：已审查通过（spec-review-loop 4 轮，台账见 docs/reviews/2026-11-20-agent-subscription-sync-review.md）
+>
+> ⚠️ **去重规则已被取代**：本文 §1 的规则 1 / 规则 2 与「同 Key 全局唯一」自 2026-11-21 起由
+> [`specs/agent-subscription-bridge-design.md`](./agent-subscription-bridge-design.md) §5 取代
+> （新规则：按 `(base_url_norm, sha256(api_key))` 判定，provider 不参与唯一性）。
+> 本文其余部分（扫描器、来源优先级、任务与实现背景）仍然有效。
 
 ## 1. 需求
 

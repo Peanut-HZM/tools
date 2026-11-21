@@ -21,6 +21,7 @@ import {
 } from './quotaRules';
 import { GatewayPanel } from './GatewayPanel';
 import { AgentSwitchPanel } from './AgentSwitchPanel';
+import { LocalSyncPanel } from './LocalSyncPanel';
 
 const TONE_STYLES = {
   normal: { text: 'text-accent-success', bar: 'bg-accent-success' },
@@ -28,13 +29,14 @@ const TONE_STYLES = {
   danger: { text: 'text-accent-danger', bar: 'bg-accent-danger' },
 } as const;
 
-type TabKey = 'overview' | 'providers' | 'agents' | 'gateway';
+type TabKey = 'overview' | 'providers' | 'agents' | 'gateway' | 'local';
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'overview', label: '概览', icon: LayoutDashboard },
   { key: 'providers', label: '供应商', icon: Package },
   { key: 'agents', label: 'Agent 切换', icon: ArrowRightLeft },
   { key: 'gateway', label: '本地网关', icon: Server },
+  { key: 'local', label: '同步到本机', icon: Download },
 ];
 
 /** 每 30 秒刷新一次倒计时与相对时间 */
@@ -1396,6 +1398,9 @@ export default function SubscriptionQuotaTool() {
 
       {/* ---------- Tab: Agent 切换 ---------- */}
       {activeTab === 'agents' && <AgentSwitchPanel accounts={accounts} />}
+        {activeTab === 'local' && (
+          <LocalSyncPanel accounts={accounts} onRefresh={() => loadAll(true)} />
+        )}
 
       {/* ---------- Tab: 本地网关 ---------- */}
       {activeTab === 'gateway' && <GatewayPanel />}

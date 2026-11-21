@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 from dataclasses import asdict
@@ -23,13 +22,23 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.services.subscription_quota.accounts import (
     _CREATE_SQL,
     _EXTRA_COLUMNS,
     _INDEX_SQL,
     _sqlite_columns,
+    ensure_dedupe_index,
 )
+from app.services.subscription_quota.dedupe import (
+    ExistingIndex,
+    dedupe_mode,
+    find_duplicate_groups,
+    mask_key,
+    sha256_hex,
+)
+from app.services.subscription_quota.url_norm import normalize_base_url
 from app.services.subscription_quota.agent_subscription_scan import (
     ScanReport,
     ScannedSubscription,
@@ -75,17 +84,10 @@ def _ensure_schema() -> None:
                     text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
                 )
     _schema_ready = True
-
-
-def _hash_key(plain: str) -> str:
-    return hashlib.sha256(plain.encode("utf-8")).hexdigest()
-
-
-def _mask_key(plain: str) -> str:
-    """掩码格式与 QuotaAccount.masked_key 一致（前 4 + * + 后 4；≤8 位全掩码）。"""
-    if len(plain) <= 8:
-        return "*" * len(plain)
-    return f"{plain[:4]}{'*' * 8}{plain[-4:]}"
+    # 建去重唯一索引（有冲突/失败则降级为无索引运行，绝不阻断服务）
+    report = ensure_dedupe_index(target)
+    if report.get("conflicts"):
+        logger.warning("去重索引未创建：存在 %d 组重复订阅，见 /subscriptions/duplicates", len(report["conflicts"]))
 
 
 def _provider_display_name(provider_id: str, fallback: str) -> str:
@@ -101,16 +103,16 @@ def _provider_display_name(provider_id: str, fallback: str) -> str:
     return fallback or provider_id
 
 
-def _base_label(provider_name: str, channel: str) -> str:
-    return f"{provider_name}-{channel}"
-
-
 # ---------------------------------------------------------------- 归一化与批内去重（设计 §5.1）
+
+#: 兼容既有测试/外部引用；实现已迁移到 ``dedupe.sha256_hex``
+_hash_key = sha256_hex
 
 
 def _normalize(report: ScanReport) -> list[ScannedSubscription]:
-    """空 Key 剔除 → provider 归一化 → 批内按 (provider_id, key hash) 去重合并来源。"""
-    merged: dict[tuple[str, str], ScannedSubscription] = {}
+    """空 Key 剔除 → provider 归一化 → 批内按统一去重键（URL+Key）去重合并来源。"""
+    merged: dict[tuple, ScannedSubscription] = {}
+    mode = dedupe_mode()
     for item in report.items:
         key = (item.api_key or "").strip()
         if not key:
@@ -120,7 +122,10 @@ def _normalize(report: ScanReport) -> list[ScannedSubscription]:
             # 未识别供应商：显示名取 base_url host（如 api.example.com），仍可入库
             item.provider_name = host_of(item.base_url) or item.provider_name or "custom"
 
-        dedup_key = (item.provider_id, _hash_key(key))
+        if mode == "legacy":
+            dedup_key: tuple = ("legacy", item.provider_id, sha256_hex(key))
+        else:
+            dedup_key = ("url_key", normalize_base_url(item.base_url), sha256_hex(key))
         if dedup_key not in merged:
             merged[dedup_key] = item
             continue
@@ -140,106 +145,100 @@ def _normalize(report: ScanReport) -> list[ScannedSubscription]:
 
 
 def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str, Any]:
-    """扫描本机 → 归一化 → 按规则 1/2 写远程主库。返回安全统计（无明文 Key）。"""
-    from app.core.security import decrypt_api_key, encrypt_api_key
+    """扫描本机 → 归一化 → 按统一去重规则（URL+Key）写远程主库。
 
+    返回安全统计（无明文 Key）。设计见
+    ``specs/agent-subscription-bridge-design.md`` §5。
+    """
     report = scan_local_subscriptions()
     items = _normalize(report)
+    result = ingest_items(user_id, items, dry_run=dry_run)
+    result["agents"] = [asdict(a) for a in report.agents]
+    return result
+
+
+def ingest_items(
+    user_id: str, items: list[ScannedSubscription], *, dry_run: bool = False
+) -> dict[str, Any]:
+    """把一批订阅条目写入远程主库（扫描同步与客户端上传共用同一条路径）。
+
+    ``items`` 来自 :func:`_normalize`（本机扫描）或 ``/subscriptions/push-items``
+    （客户端上传）。判重、label 消歧、hash 回填全部由 :mod:`dedupe` 完成。
+    """
+    from app.core.security import decrypt_api_key, encrypt_api_key
 
     _ensure_schema()
     engine = _server_engine()
     with engine.connect() as conn:
         rows = conn.execute(
             text(
-                f"SELECT id, provider_id, api_key_enc, api_key_hash, label "
+                f"SELECT id, provider_id, base_url, base_url_norm, api_key_enc, api_key_hash, label "
                 f"FROM {TABLE_NAME} WHERE user_id = :uid"
             ),
             {"uid": user_id},
         ).fetchall()
 
-    # key_index: provider_id -> {hash: row_id}（规则 1 的供应商内判重）
-    # global_key_index: hash -> provider_id（同 Key 全局唯一入库：同一凭据不因
-    #   provider 归类差异（如救援通道的 custom 次优归类）被重复罗列）
-    # hash_pending: row_id -> 需回填的 hash（存量行 api_key_hash 为空、经解密比对命中的）
-    key_index: dict[str, dict[str, str]] = {}
-    global_key_index: dict[str, str] = {}
-    label_index: dict[tuple[str, str], str] = {}
-    hash_pending: dict[str, str] = {}
-    for row in rows:
-        mapping = row._mapping if hasattr(row, "_mapping") else row
-        pid = mapping["provider_id"]
-        row_id = mapping["id"]
-        stored_hash = mapping["api_key_hash"] or ""
-        if not stored_hash and mapping["api_key_enc"]:
-            try:
-                stored_hash = _hash_key(decrypt_api_key(mapping["api_key_enc"]))
-                hash_pending[row_id] = stored_hash  # 记录：该行命中时可回填
-            except Exception:
-                stored_hash = ""  # 解不开的存量行不参与判重（无法比对即视为不存在）
-        if stored_hash:
-            key_index.setdefault(pid, {})[stored_hash] = row_id
-            global_key_index.setdefault(stored_hash, pid)
-        # label 占位值用 "unknown" 哨兵而非空串：解不开 hash 的存量行同样占用 label，
-        # 否则规则 2 的消歧判断会把已占用的 label 误判为空闲（假阴性）
-        label_index[(pid, mapping["label"] or "")] = stored_hash or "unknown"
+    # 判重索引统一由 dedupe.ExistingIndex 构建（url_key / legacy 由开关决定）
+    index = ExistingIndex.from_rows(rows, decrypt_fn=decrypt_api_key)
 
     result_items: list[dict[str, Any]] = []
     created = skipped = backfilled = 0
     backfilled_ids: set[str] = set()
 
     for item in items:
-        h = _hash_key(item.api_key)
         provider_name = _provider_display_name(item.provider_id, item.provider_name)
-        existing_row_id = key_index.get(item.provider_id, {}).get(h)
-        # 同 Key 全局唯一：凭据已在该用户名下（任意供应商）→ 不重复入库，
-        # 明细注明既有归属（供应商内命中 = 规则 1；跨供应商命中 = 防重复罗列）
-        global_owner = global_key_index.get(h)
+        decision = index.decide(
+            provider_id=item.provider_id,
+            provider_name=provider_name,
+            channel=item.channel,
+            base_url=item.base_url,
+            api_key=item.api_key,
+        )
 
-        if existing_row_id or global_owner:
-            # 规则 1：同供应商同 Key → 不覆盖不更新，保留原本配置
+        if decision.action == "skip":
             skipped += 1
+            existing_row_id = index.key_index.get(decision.key)
             result_items.append(
                 {
                     "providerId": item.provider_id,
                     "providerName": provider_name,
                     "channel": item.channel,
                     "label": None,
-                    "maskedKey": _mask_key(item.api_key),
+                    "maskedKey": mask_key(item.api_key),
                     "action": "skip",
                     "sourceAgents": item.source_agents,
-                    # 既有归属供应商（跨供应商命中时与 providerId 不同，供前端/排查区分）
-                    "existingProviderId": global_owner or item.provider_id,
+                    "reason": decision.reason,
+                    # 既有归属供应商（跨供应商命中时与 providerId 不同）
+                    "existingProviderId": index.row_provider.get(existing_row_id or "")
+                    or index.global_index.get(decision.key[2])
+                    or item.provider_id,
                 }
             )
             # 命中的存量行原本没有 hash（老数据）→ 顺手回填（仅 api_key_hash 一列；dry_run 不动库）
-            if not dry_run and existing_row_id and existing_row_id in hash_pending and existing_row_id not in backfilled_ids:
+            if (
+                not dry_run
+                and existing_row_id
+                and existing_row_id in index.hash_pending
+                and existing_row_id not in backfilled_ids
+            ):
                 backfilled_ids.add(existing_row_id)
             continue
 
-        # 规则 2：同 (provider, 渠道) 不同 Key → 新增渠道行，label 消歧保证命名不同
-        label = _base_label(provider_name, item.channel)
-        if label_index.get((item.provider_id, label)):
-            label = f"{label}·{item.api_key[-4:]}"
-            suffix = 2
-            base = label
-            while label_index.get((item.provider_id, label)):
-                label = f"{base}-{suffix}"
-                suffix += 1
-        action, final_label = "create", label
-
-        result_items.append(
-            {
-                "providerId": item.provider_id,
-                "providerName": provider_name,
-                "channel": item.channel,
-                "label": final_label,
-                "maskedKey": _mask_key(item.api_key),
-                "action": action,
-                "sourceAgents": item.source_agents,
-            }
-        )
+        final_label = decision.label or provider_name
 
         if dry_run:
+            result_items.append(
+                {
+                    "providerId": item.provider_id,
+                    "providerName": provider_name,
+                    "channel": item.channel,
+                    "label": final_label,
+                    "maskedKey": mask_key(item.api_key),
+                    "action": "create",
+                    "sourceAgents": item.source_agents,
+                    "reason": None,
+                }
+            )
             continue
 
         extra = {
@@ -250,40 +249,78 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
         }
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         new_id = _new_uuid()
-        with engine.begin() as conn:
-            next_order = conn.execute(
-                text(
-                    f"SELECT COALESCE(MAX(sort_order), -1) + 1 AS n "
-                    f"FROM {TABLE_NAME} WHERE user_id = :uid"
-                ),
-                {"uid": user_id},
-            ).scalar()
-            conn.execute(
-                text(
-                    f"INSERT INTO {TABLE_NAME} "
-                    "(id, user_id, provider_id, label, api_key_enc, extra_json, enabled, "
-                    " sort_order, created_at, updated_at, category, app, api_key_hash, is_channel) "
-                    "VALUES (:id, :uid, :pid, :label, :key, :extra, TRUE, :order, :now, :now, "
-                    " :category, :app, :hash, TRUE)"
-                ),
+        try:
+            with engine.begin() as conn:
+                next_order = conn.execute(
+                    text(
+                        f"SELECT COALESCE(MAX(sort_order), -1) + 1 AS n "
+                        f"FROM {TABLE_NAME} WHERE user_id = :uid"
+                    ),
+                    {"uid": user_id},
+                ).scalar()
+                conn.execute(
+                    text(
+                        f"INSERT INTO {TABLE_NAME} "
+                        "(id, user_id, provider_id, label, api_key_enc, extra_json, enabled, "
+                        " sort_order, created_at, updated_at, category, app, api_key_hash, is_channel, "
+                        " base_url, base_url_norm) "
+                        "VALUES (:id, :uid, :pid, :label, :key, :extra, TRUE, :order, :now, :now, "
+                        " :category, :app, :hash, TRUE, :base_url, :base_url_norm)"
+                    ),
+                    {
+                        "id": new_id,
+                        "uid": user_id,
+                        "pid": item.provider_id,
+                        "label": final_label,
+                        "key": encrypt_api_key(item.api_key),
+                        "extra": json.dumps(extra, ensure_ascii=False),
+                        "order": int(next_order or 0),
+                        "now": now,
+                        "category": classify_channel(item.provider_id, item.base_url)[1],
+                        "app": item.source_agents[0] if item.source_agents else "",
+                        "hash": sha256_hex(item.api_key),
+                        "base_url": (item.base_url or "").strip(),
+                        "base_url_norm": decision.key[1],
+                    },
+                )
+        except IntegrityError:
+            # 并发写同一 (url,key)：唯一索引兜底 → 按 skip 处理，绝不 500（设计 §5）
+            skipped += 1
+            result_items.append(
                 {
-                    "id": new_id,
-                    "uid": user_id,
-                    "pid": item.provider_id,
-                    "label": final_label,
-                    "key": encrypt_api_key(item.api_key),
-                    "extra": json.dumps(extra, ensure_ascii=False),
-                    "order": int(next_order or 0),
-                    "now": now,
-                    "category": classify_channel(item.provider_id, item.base_url)[1],
-                    "app": item.source_agents[0] if item.source_agents else "",
-                    "hash": h,
-                },
+                    "providerId": item.provider_id,
+                    "providerName": provider_name,
+                    "channel": item.channel,
+                    "label": None,
+                    "maskedKey": mask_key(item.api_key),
+                    "action": "skip",
+                    "sourceAgents": item.source_agents,
+                    "reason": "duplicate",
+                    "existingProviderId": item.provider_id,
+                }
             )
-        # 批内即时更新索引（设计 §5.3）：同批后续条目立刻可见，避免重名/重复
-        key_index.setdefault(item.provider_id, {})[h] = new_id
-        global_key_index[h] = item.provider_id
-        label_index[(item.provider_id, final_label)] = h
+            continue
+
+        result_items.append(
+            {
+                "providerId": item.provider_id,
+                "providerName": provider_name,
+                "channel": item.channel,
+                "label": final_label,
+                "maskedKey": mask_key(item.api_key),
+                "action": "create",
+                "sourceAgents": item.source_agents,
+                "reason": None,
+            }
+        )
+        # 批内即时更新索引：同批后续条目立刻可见，避免重名/重复
+        index.register(
+            provider_id=item.provider_id,
+            key=decision.key,
+            row_id=new_id,
+            label=final_label,
+            api_key=item.api_key,
+        )
         created += 1
 
     # 回填存量行 hash（仅 api_key_hash 一列，WHERE 兜底幂等）
@@ -295,12 +332,12 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
                         f"UPDATE {TABLE_NAME} SET api_key_hash = :hash "
                         f"WHERE user_id = :uid AND id = :aid AND api_key_hash = ''"
                     ),
-                    {"hash": hash_pending[row_id], "uid": user_id, "aid": row_id},
+                    {"hash": index.hash_pending[row_id], "uid": user_id, "aid": row_id},
                 )
             backfilled += 1
 
     logger.info(
-        "用户 %s 同步本机订阅到远程库：扫描 %d 条，新建 %d，跳过 %d（规则1），回填 hash %d%s",
+        "用户 %s 写入订阅条目：待处理 %d 条，新建 %d，跳过 %d（同 URL+Key），回填 hash %d%s",
         user_id,
         len(items),
         created,
@@ -310,13 +347,31 @@ def sync_local_subscriptions(user_id: str, *, dry_run: bool = False) -> dict[str
     )
 
     return {
-        "agents": [asdict(a) for a in report.agents],
         "items": result_items,
         "created": 0 if dry_run else created,
         "skipped": skipped,
         "backfilled": 0 if dry_run else backfilled,
         "dryRun": dry_run,
     }
+
+
+def list_duplicates(user_id: str) -> dict[str, Any]:
+    """按统一去重键列出重复订阅分组（只读，不删除任何数据）
+
+    设计 §5：存量重复不自动处理，由用户在 UI 单条/批量确认。
+    """
+    _ensure_schema()
+    engine = _server_engine()
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                f"SELECT id, user_id, provider_id, label, base_url, base_url_norm, "
+                f"api_key_hash FROM {TABLE_NAME} WHERE user_id = :uid"
+            ),
+            {"uid": user_id},
+        ).fetchall()
+    groups = find_duplicate_groups(rows)
+    return {"count": len(groups), "groups": groups, "mode": dedupe_mode()}
 
 
 def _new_uuid() -> str:
@@ -350,7 +405,7 @@ def list_cloud_accounts(user_id: str) -> dict[str, Any]:
             from app.core.security import decrypt_api_key
 
             try:
-                masked = _mask_key(decrypt_api_key(mapping["api_key_enc"]))
+                masked = mask_key(decrypt_api_key(mapping["api_key_enc"]))
             except Exception:
                 masked = "***"
         created = mapping.get("created_at")

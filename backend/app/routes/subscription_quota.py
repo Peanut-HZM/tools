@@ -6,11 +6,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import time
 from typing import List, Optional
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from app.routes.auth import get_current_user_id
@@ -191,9 +192,24 @@ def _save_switch(user_id: str, agent: str, provider_id: str) -> None:
         )
 
 
-def _require_user(authorization: Optional[str]) -> str:
+def _require_user(authorization: Optional[str], *, scope: Optional[str] = None) -> str:
+    """JWT 或设备 Token（``pat_`` 前缀 + 作用域）鉴权
+
+    * JWT：沿用原有行为（账号全权限）
+    * 设备 Token：必须存在且未过期/未撤销；``scope`` 非空时还要求包含该作用域
+    """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")
+    token = authorization[7:] if authorization.startswith("Bearer ") else authorization
+    if token.startswith("pat_"):
+        from app.services.user_token_service import UserTokenService
+
+        detail = UserTokenService.validate_token_detail(token)
+        if not detail:
+            raise HTTPException(status_code=401, detail="设备 Token 无效、已过期或已撤销")
+        if scope and scope not in detail["scopes"]:
+            raise HTTPException(status_code=403, detail=f"设备 Token 缺少作用域 {scope}")
+        return detail["userId"]
     try:
         return get_current_user_id(authorization=authorization)
     except HTTPException:
@@ -1085,3 +1101,212 @@ def list_cloud_subscriptions(authorization: Optional[str] = Header(None)):
     from app.services.subscription_quota.subscription_sync import list_cloud_accounts
 
     return list_cloud_accounts(user_id)
+
+
+# ---------------------------------------------------------------- 本机 ↔ 云端（bridge）
+
+
+class PushItemRequest(BaseModel):
+    """一条客户端上传的订阅条目（snake_case：与 addAccount 一致）"""
+
+    provider_id: str = Field(..., description="供应商 id")
+    provider_name: str = Field(default="", description="供应商显示名")
+    base_url: str = Field(default="", description="订阅调用地址")
+    region: str = Field(default="", description="cn / intl")
+    channel: str = Field(default="", description="渠道商（base_url host）")
+    api_key: str = Field(..., description="API Key（服务端加密入库）")
+    source_agents: List[str] = Field(default_factory=list, description="来源（cc-switch / magpie …）")
+
+
+class PushItemsRequest(BaseModel):
+    """批量上传（单次上限 500）"""
+
+    dry_run: bool = Field(default=False, description="只预览不写库")
+    items: List[PushItemRequest] = Field(default_factory=list)
+
+
+#: 导出接口限速：每用户每小时次数（进程内计数即可，单实例部署）
+_EXPORT_RATE_LIMIT = 60
+_export_calls: dict[str, list[float]] = {}
+
+
+def _check_export_rate(user_id: str) -> None:
+    now = time.time()
+    window_start = now - 3600
+    calls = [stamp for stamp in _export_calls.get(user_id, []) if stamp >= window_start]
+    if len(calls) >= _EXPORT_RATE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"导出过于频繁（上限 {_EXPORT_RATE_LIMIT} 次/小时）",
+        )
+    calls.append(now)
+    _export_calls[user_id] = calls
+
+
+@router.get("/export/links")
+def export_links(
+    response: Response,
+    target: str = "ccswitch",
+    ids: Optional[str] = None,
+    authorization: Optional[str] = Header(None),
+):
+    """生成推送到本机应用的深链（响应含明文 Key：禁止缓存、禁止记日志）
+
+    * ``target``：``ccswitch`` / ``magpie``
+    * ``ids``：逗号分隔的账号 id；空 = 全部账号行（不含同步渠道行）
+    * 需要设备 Token 作用域 ``subscription:export``（JWT 亦可）
+    """
+    from app.services.subscription_quota.audit import record as audit_record
+    from app.services.subscription_quota.link_builder import (
+        build_ccswitch_link,
+        build_magpie_link,
+    )
+
+    if target not in ("ccswitch", "magpie"):
+        raise HTTPException(status_code=400, detail="target 只能是 ccswitch 或 magpie")
+
+    user_id = _require_user(authorization, scope="subscription:export")
+    _check_export_rate(user_id)
+
+    # 响应体含明文 Key：禁止任何中间层缓存
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+
+    wanted = {item.strip() for item in (ids or "").split(",") if item.strip()}
+    accounts = list_accounts(user_id)
+    if wanted:
+        accounts = [a for a in accounts if a.id in wanted]
+    if len(accounts) > 200:
+        raise HTTPException(
+            status_code=400, detail="单次最多导出 200 条，请分批（或使用本地桥全量同步）"
+        )
+
+    items = []
+    for account in accounts:
+        if target == "ccswitch":
+            result = build_ccswitch_link(
+                provider_id=account.provider_id,
+                label=account.label,
+                base_url=account.base_url,
+                api_key=account.api_key or "",
+                extra=account.extra,
+            )
+        else:
+            result = build_magpie_link(
+                provider_id=account.provider_id,
+                label=account.label,
+                base_url=account.base_url,
+                api_key=account.api_key or "",
+                extra=account.extra,
+            )
+        items.append(
+            {
+                "accountId": account.id,
+                "providerId": account.provider_id,
+                "label": account.label,
+                "maskedKey": account.masked_key(),
+                **result.to_public_dict(),
+            }
+        )
+        if result.url:
+            audit_record(
+                user_id=user_id,
+                account_id=account.id,
+                target=target,
+                action="export_link",
+                masked_key=account.masked_key(),
+                url_hash=hashlib.sha256(result.url.encode("utf-8")).hexdigest(),
+            )
+
+    return {"target": target, "items": items, "count": len(items)}
+
+
+@router.get("/export/accounts")
+def export_accounts(
+    response: Response,
+    authorization: Optional[str] = Header(None),
+):
+    """导出账号明文条目（本地桥 push 用；含 Key，禁止缓存、禁止记日志）
+
+    与 ``/export/links`` 的区别：这里返回结构化字段而非深链，供桥脚本自己决定
+    写 Magpie（CLI/admin API）还是 CC Switch（深链）。
+    需要设备 Token 作用域 ``subscription:export``。
+    """
+    from app.services.subscription_quota.audit import record as audit_record
+
+    user_id = _require_user(authorization, scope="subscription:export")
+    _check_export_rate(user_id)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+
+    accounts = list_accounts(user_id)
+    items = []
+    for account in accounts:
+        if not account.api_key:
+            continue
+        items.append(
+            {
+                "accountId": account.id,
+                "providerId": account.provider_id,
+                "label": account.label,
+                "baseUrl": account.base_url,
+                "region": str((account.extra or {}).get("region") or ""),
+                "channel": str((account.extra or {}).get("channel") or ""),
+                "maskedKey": account.masked_key(),
+                "apiKey": account.api_key,
+            }
+        )
+        audit_record(
+            user_id=user_id,
+            account_id=account.id,
+            target="bridge",
+            action="export_account",
+            masked_key=account.masked_key(),
+            url_hash=hashlib.sha256((account.base_url or "").encode("utf-8")).hexdigest(),
+        )
+    return {"items": items, "count": len(items)}
+
+
+@router.post("/subscriptions/push-items")
+def push_subscription_items(
+    req: PushItemsRequest,
+    authorization: Optional[str] = Header(None),
+):
+    """客户端上传订阅条目（本地桥 pull 用），走与扫描同步相同的去重器"""
+    from app.services.subscription_quota.agent_subscription_scan import (
+        ScannedSubscription,
+        classify_channel,
+        host_of,
+    )
+    from app.services.subscription_quota.subscription_sync import ingest_items
+
+    user_id = _require_user(authorization, scope="subscription:read")
+
+    if len(req.items) > 500:
+        raise HTTPException(status_code=400, detail="单次最多 500 条，请分批上传")
+
+    scanned: list[ScannedSubscription] = []
+    for item in req.items:
+        channel = item.channel or classify_channel(item.provider_id, item.base_url)[0]
+        scanned.append(
+            ScannedSubscription(
+                provider_id=item.provider_id,
+                provider_name=item.provider_name or item.provider_id,
+                channel=channel or host_of(item.base_url) or "官方",
+                base_url=(item.base_url or "").strip(),
+                api_key=item.api_key,
+                region=item.region or "",
+                source_agents=item.source_agents or ["bridge"],
+            )
+        )
+
+    return ingest_items(user_id, scanned, dry_run=req.dry_run)
+
+
+@router.get("/subscriptions/duplicates")
+def list_subscription_duplicates(authorization: Optional[str] = Header(None)):
+    """按 (base_url, Key) 列出现存重复分组（只读，不删除）"""
+    from app.services.subscription_quota.subscription_sync import list_duplicates
+
+    user_id = _require_user(authorization)
+    return list_duplicates(user_id)

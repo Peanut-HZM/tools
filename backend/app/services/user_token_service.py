@@ -77,13 +77,21 @@ class UserTokenService:
 
     @staticmethod
     def generate_token(user_id: str, name: str,
-                       expires_days: Optional[int] = None) -> Tuple[UserTokenCreatedResponse, str]:
-        """生成 Token；明文仅在返回值中出现一次"""
+                       expires_days: Optional[int] = None,
+                       scopes: str = "k8s:read") -> Tuple[UserTokenCreatedResponse, str]:
+        """生成 Token；明文仅在返回值中出现一次
+
+        ``scopes`` 为逗号分隔的作用域串（如 ``subscription:read,subscription:export``），
+        历史默认 ``k8s:read`` 保持不变。
+        """
         UserTokenService._ensure_table()
         plain = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_RANDOM_BYTES)
         token_id = uuid.uuid4().hex
         now = datetime.now()
         expires_at = now + timedelta(days=expires_days) if expires_days else None
+        resolved_scopes = ",".join(
+            s.strip() for s in (scopes or "").split(",") if s.strip()
+        ) or "k8s:read"
         conn = get_pooled_db_connection()
         cursor = conn.cursor()
         try:
@@ -95,7 +103,7 @@ class UserTokenService:
                 RETURNING created_at
                 """,
                 (token_id, user_id, name, UserTokenService._hash_token(plain),
-                 plain[:12], "k8s:read", now, expires_at),
+                 plain[:12], resolved_scopes, now, expires_at),
             )
             row = cursor.fetchone()
             conn.commit()
@@ -105,17 +113,28 @@ class UserTokenService:
         finally:
             cursor.close()
             release_db_connection(conn)
-        logger.info("用户 %s 创建了 API Token %s（前缀 %s）", user_id, token_id, plain[:12])
+        logger.info("用户 %s 创建了 API Token %s（前缀 %s，scope=%s）",
+                    user_id, token_id, plain[:12], resolved_scopes)
         resp = UserTokenCreatedResponse(
             id=token_id, name=name, token_prefix=plain[:12],
             created_at=row["created_at"], last_used_at=None,
             expires_at=expires_at, revoked=False, token=plain,
+            scopes=resolved_scopes.split(","),
         )
         return resp, plain
 
     @staticmethod
     def validate_token(plain: str) -> Optional[str]:
         """校验 token：有效返回 user_id；不存在/过期/已撤销/格式错误返回 None"""
+        detail = UserTokenService.validate_token_detail(plain)
+        return detail["userId"] if detail else None
+
+    @staticmethod
+    def validate_token_detail(plain: str) -> Optional[dict]:
+        """校验 token 并返回 ``{"userId": str, "scopes": list[str]}``（无效返回 None）
+
+        设备 Token（订阅导出/上传）用这个方法判断作用域；``validate_token`` 保持旧语义。
+        """
         if not plain or not plain.startswith(TOKEN_PREFIX):
             return None
         UserTokenService._ensure_table()
@@ -124,7 +143,7 @@ class UserTokenService:
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "SELECT user_id, expires_at, revoked_at FROM user_api_tokens "
+                "SELECT user_id, scopes, expires_at, revoked_at FROM user_api_tokens "
                 "WHERE token_hash = %s",
                 (token_hash,),
             )
@@ -140,7 +159,8 @@ class UserTokenService:
                 (datetime.now(), token_hash),
             )
             conn.commit()
-            return row["user_id"]
+            scopes = [s.strip() for s in (row["scopes"] or "").split(",") if s.strip()]
+            return {"userId": row["user_id"], "scopes": scopes}
         finally:
             cursor.close()
             release_db_connection(conn)
@@ -154,7 +174,7 @@ class UserTokenService:
         try:
             cursor.execute(
                 """
-                SELECT id, name, token_prefix, created_at, last_used_at,
+                SELECT id, name, token_prefix, scopes, created_at, last_used_at,
                        expires_at, revoked_at IS NOT NULL AS revoked
                 FROM user_api_tokens WHERE user_id = %s ORDER BY created_at DESC
                 """,
@@ -164,7 +184,12 @@ class UserTokenService:
         finally:
             cursor.close()
             release_db_connection(conn)
-        return [UserTokenResponse(**r) for r in rows]
+        result: List[UserTokenResponse] = []
+        for r in rows:
+            data = dict(r)
+            data["scopes"] = [s.strip() for s in (data.get("scopes") or "").split(",") if s.strip()]
+            result.append(UserTokenResponse(**data))
+        return result
 
     @staticmethod
     def revoke_token(user_id: str, token_id: str) -> bool:

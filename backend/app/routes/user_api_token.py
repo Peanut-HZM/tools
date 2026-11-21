@@ -28,7 +28,8 @@ async def create_token(
 ):
     """创建 API Token（明文仅此一次返回）"""
     resp, _plain = UserTokenService.generate_token(
-        user_id, request.name, request.expires_days
+        user_id, request.name, request.expires_days,
+        scopes=",".join(request.scopes or []) or "k8s:read",
     )
     return resp
 

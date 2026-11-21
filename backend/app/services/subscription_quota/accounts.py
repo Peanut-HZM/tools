@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import uuid
@@ -30,6 +31,7 @@ from typing import Any, Optional
 from sqlalchemy import text
 
 from app.models.base import engine
+from app.services.subscription_quota.url_norm import normalize_base_url
 from app.storage.crypto import LocalEncryption
 from app.storage.local_db import get_local_engine, init_local_tables
 
@@ -85,6 +87,13 @@ def _decrypt_key(cipher: str) -> str:
 
     return decrypt_api_key(cipher)
 
+
+def hash_api_key(plain: str | None) -> str:
+    """明文 Key 的 SHA-256（hex）；去重键的一半（设计 §5）"""
+    if not plain:
+        return ""
+    return hashlib.sha256(plain.encode("utf-8")).hexdigest()
+
 _CREATE_SQL = f"""
 CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
     id            VARCHAR(36) PRIMARY KEY,
@@ -121,6 +130,10 @@ _EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     # 行类型：FALSE=账号行（卡片/额度查询来源）| TRUE=同步渠道行（仅数据留存）
     # 2026-11-21 远程为中心改造引入：同步入库的渠道记录不再混入卡片展示
     ("is_channel", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    # 订阅调用地址（展示用原始值）与归一化值（去重键用）
+    # 设计：specs/agent-subscription-bridge-design.md §4.1；归一实现见 url_norm.py
+    ("base_url", "TEXT NOT NULL DEFAULT ''"),
+    ("base_url_norm", "TEXT NOT NULL DEFAULT ''"),
 )
 
 _INDEX_SQL = (
@@ -128,6 +141,62 @@ _INDEX_SQL = (
 )
 
 _schema_ready_by_location: set[str] = set()
+
+#: 去重唯一索引名（设计 §4.2）
+DEDUPE_INDEX_NAME = "uq_sq_accounts_url_key"
+
+
+def ensure_dedupe_index(target_engine=None) -> dict:
+    """建 (user_id, base_url_norm, api_key_hash) 唯一索引（含冲突检测与失败降级）
+
+    设计依据：``specs/agent-subscription-bridge-design.md`` §4.2
+
+    * 先查冲突分组（同一去重键出现 ≥2 行）：有冲突 → **不建索引**，返回冲突明细
+    * 建索引自身失败（权限/方言差异）→ 记 WARN 并降级为无索引
+    * 任何情况都不抛异常、不阻断服务启动（去重仍由应用层 ``dedupe`` 保证）
+    """
+    eng = target_engine if target_engine is not None else _get_engine()
+    report: dict[str, Any] = {"created": False, "conflicts": [], "error": None}
+    try:
+        with eng.begin() as conn:
+            rows = conn.execute(
+                text(
+                    f"SELECT user_id, base_url_norm, api_key_hash, COUNT(*) AS dup_count "
+                    f"FROM {TABLE_NAME} "
+                    f"WHERE api_key_hash <> '' "
+                    f"GROUP BY user_id, base_url_norm, api_key_hash "
+                    f"HAVING COUNT(*) > 1"
+                )
+            ).fetchall()
+            for row in rows:
+                mapping = row._mapping if hasattr(row, "_mapping") else row
+                report["conflicts"].append(
+                    {
+                        "userId": mapping["user_id"],
+                        "baseUrlNorm": mapping["base_url_norm"],
+                        "apiKeyHash": mapping["api_key_hash"],
+                        "count": int(mapping["dup_count"]),
+                    }
+                )
+            if report["conflicts"]:
+                logger.warning(
+                    "检测到 %d 组重复订阅（同一 base_url+Key），跳过建去重索引: %s",
+                    len(report["conflicts"]),
+                    TABLE_NAME,
+                )
+                return report
+            conn.execute(
+                text(
+                    f"CREATE UNIQUE INDEX IF NOT EXISTS {DEDUPE_INDEX_NAME} "
+                    f"ON {TABLE_NAME} (user_id, base_url_norm, api_key_hash) "
+                    f"WHERE api_key_hash <> ''"
+                )
+            )
+        report["created"] = True
+    except Exception as exc:  # 降级：不因索引问题阻断启动
+        logger.warning("建去重索引 %s 失败，降级为无索引运行: %s", DEDUPE_INDEX_NAME, exc)
+        report["error"] = str(exc)
+    return report
 
 
 def _sqlite_columns(conn) -> set[str]:
@@ -197,6 +266,9 @@ class QuotaAccount:
     last_good: dict[str, Any] = field(default_factory=dict)
     # 同步渠道行为 True（不参与卡片展示）；账号行（用户导入/手工添加）为 False
     is_channel: bool = False
+    #: 订阅调用地址（原始值 / 归一化值），去重键用 base_url_norm + api_key_hash
+    base_url: str = ""
+    base_url_norm: str = ""
 
     @property
     def is_manual(self) -> bool:
@@ -240,6 +312,8 @@ class QuotaAccount:
             "windowResetAt": self.window_reset_at,
             "isManual": self.is_manual,
             "lastGood": self.last_good or None,
+            # 订阅调用地址（去重与推送用；不含任何凭据）
+            "baseUrl": self.base_url,
         }
 
 
@@ -285,6 +359,8 @@ def _row_to_account(row) -> QuotaAccount:
         window_reset_at=mapping.get("window_reset_at") or "",
         last_good=last_good if isinstance(last_good, dict) else {},
         is_channel=bool(mapping.get("is_channel")),
+        base_url=(mapping.get("base_url") or ""),
+        base_url_norm=(mapping.get("base_url_norm") or ""),
     )
 
 
@@ -335,10 +411,12 @@ def create_account(
     window_type: str = "none",
     window_reset_at: str = "",
     is_channel: bool = False,
+    base_url: str = "",
 ) -> QuotaAccount:
     ensure_schema()
     account_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).replace(tzinfo=None)
+    resolved_base_url = (base_url or "").strip()
     with _get_engine().begin() as conn:
         next_order = conn.execute(
             text(f"SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM {TABLE_NAME} WHERE user_id = :uid"),
@@ -348,9 +426,11 @@ def create_account(
             text(
                 f"INSERT INTO {TABLE_NAME} "
                 "(id, user_id, provider_id, label, api_key_enc, extra_json, enabled, sort_order, created_at, updated_at, "
-                " category, app, notes, website_url, manual_total, manual_used, quota_unit, window_type, window_reset_at, is_channel) "
+                " category, app, notes, website_url, manual_total, manual_used, quota_unit, window_type, window_reset_at, is_channel, "
+                " base_url, base_url_norm, api_key_hash) "
                 "VALUES (:id, :uid, :pid, :label, :key, :extra, TRUE, :order, :now, :now, "
-                " :category, :app, :notes, :website, :mtotal, :mused, :unit, :wtype, :wreset, :channel)"
+                " :category, :app, :notes, :website, :mtotal, :mused, :unit, :wtype, :wreset, :channel, "
+                " :base_url, :base_url_norm, :key_hash)"
             ),
             {
                 "id": account_id,
@@ -371,6 +451,9 @@ def create_account(
                 "wtype": window_type or "none",
                 "wreset": window_reset_at or "",
                 "channel": bool(is_channel),
+                "base_url": resolved_base_url,
+                "base_url_norm": normalize_base_url(resolved_base_url),
+                "key_hash": hash_api_key(api_key),
             },
         )
     logger.info("新增订阅额度账号: user=%s provider=%s id=%s", user_id, provider_id, account_id)
@@ -398,6 +481,7 @@ def update_account(
     window_type: Optional[str] = None,
     window_reset_at: Optional[str] = None,
     last_good: Optional[dict] = None,
+    base_url: Optional[str] = None,
 ) -> Optional[QuotaAccount]:
     ensure_schema()
     sets: list[str] = []
@@ -409,6 +493,9 @@ def update_account(
     if api_key is not None:
         sets.append("api_key_enc = :key")
         params["key"] = _encrypt_key(api_key) if api_key else None
+        # Key 变更必须同步刷新判重哈希，否则去重会按旧 Key 判定
+        sets.append("api_key_hash = :key_hash")
+        params["key_hash"] = hash_api_key(api_key)
     if extra is not None:
         sets.append("extra_json = :extra")
         params["extra"] = json.dumps(extra, ensure_ascii=False)
@@ -445,6 +532,11 @@ def update_account(
     if last_good is not None:
         sets.append("last_good_json = :lastgood")
         params["lastgood"] = json.dumps(last_good, ensure_ascii=False)
+    if base_url is not None:
+        sets.append("base_url = :base_url")
+        sets.append("base_url_norm = :base_url_norm")
+        params["base_url"] = (base_url or "").strip()
+        params["base_url_norm"] = normalize_base_url(base_url)
 
     if not sets:
         return get_account(user_id, account_id)

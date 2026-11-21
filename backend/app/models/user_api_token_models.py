@@ -4,7 +4,7 @@
 其余任何响应/日志不得包含明文或哈希。
 """
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,10 @@ class CreateUserTokenRequest(BaseModel):
     """创建 API Token 请求"""
     name: str = Field(..., min_length=1, max_length=100, description="令牌名称，如 claude-code-local")
     expires_days: Optional[int] = Field(None, ge=1, le=3650, description="有效天数（空=永不过期）")
+    scopes: Optional[List[str]] = Field(
+        None,
+        description="作用域，如 ['subscription:read','subscription:export']；空=默认 k8s:read",
+    )
 
 
 class UserTokenResponse(BaseModel):
@@ -20,6 +24,7 @@ class UserTokenResponse(BaseModel):
     id: str
     name: str
     token_prefix: str
+    scopes: List[str] = Field(default_factory=list, description="作用域列表")
     created_at: datetime
     last_used_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None

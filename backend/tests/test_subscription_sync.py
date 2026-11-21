@@ -97,14 +97,32 @@ def test_classify_channel_third_party():
 # ---------------------------------------------------------------- 归一化与批内去重（§5.1）
 
 
-def test_normalize_dedup_same_key_multi_source():
-    """同 provider 同 Key 多来源 → 只保留一条，来源合并，cc-switch 元数据优先"""
+def test_normalize_same_key_different_url_are_two_subscriptions():
+    """新规则（设计 §5）：同 Key 但调用地址不同 = 两条独立订阅，不合并"""
     a = _item("anthropic", "sk-ant-shared-key-0001", agent="claude", base_url="https://relay.example.com")
     b = _item("anthropic", "sk-ant-shared-key-0001", agent="cc-switch", channel="官方")
+    merged = _normalize(_report(b, a))
+    assert len(merged) == 2
+    assert {m.base_url for m in merged} == {"https://relay.example.com", ""}
+
+
+def test_normalize_dedup_same_key_same_url_multi_source():
+    """同 URL + 同 Key 多来源 → 只保留一条，来源合并，cc-switch 元数据优先"""
+    a = _item(
+        "anthropic",
+        "sk-ant-shared-key-0002",
+        agent="claude",
+        base_url="https://relay.example.com/v1/",
+    )
+    b = _item(
+        "anthropic",
+        "sk-ant-shared-key-0002",
+        agent="cc-switch",
+        base_url="https://relay.example.com/v1",
+    )
     merged = _normalize(_report(b, a))  # claude 先扫到，cc-switch 后到
     assert len(merged) == 1
     assert merged[0].source_agents == ["cc-switch", "claude"]
-    assert merged[0].channel == "官方"  # cc-switch 优先级更高，元数据胜出
 
 
 def test_normalize_drops_empty_key_and_names_custom_provider():
