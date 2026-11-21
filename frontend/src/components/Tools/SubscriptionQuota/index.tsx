@@ -914,6 +914,30 @@ export default function SubscriptionQuotaTool() {
     };
   }, [loadAll]);
 
+  // 概览页数据每分钟自动刷新一次（静默：不切 loading、不重置滚动/筛选，失败保留原数据）
+  const autoRefreshRef = useRef(false);
+  const silentRefresh = useCallback(async () => {
+    if (autoRefreshRef.current) return; // 上一轮未结束不叠加
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    autoRefreshRef.current = true;
+    try {
+      const data = await quotaApi.queryQuotas({ forceRefresh: false });
+      if (!mountedRef.current) return;
+      setResults([...data.accounts, ...data.subscriptions]);
+      setQueriedAt(data.queriedAt);
+    } catch {
+      // 自动刷新失败：保留现有数据，不弹 toast（避免每分钟骚扰）
+    } finally {
+      autoRefreshRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'overview') return;
+    const timer = setInterval(() => { void silentRefresh(); }, 60_000);
+    return () => clearInterval(timer);
+  }, [activeTab, silentRefresh]);
+
   const handleRefreshOne = useCallback(async (quota: QuotaResultDto) => {
     if (!quota.accountId) {
       void loadAll(true);
