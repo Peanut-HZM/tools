@@ -42,9 +42,9 @@ class WriteTarget:
     model: str = ""    # 可选：模型名（空则不改模型字段）
 
 
-SUPPORTED_AGENTS = ["claude", "codex", "gemini", "kimi", "opencode", "minimax"]
+SUPPORTED_AGENTS = ["claude", "codex", "gemini", "kimi", "opencode", "minimax", "pi", "hermes"]
 
-# agent -> 需要备份/写入的文件（相对 REAL_HOME）
+# agent -> 需要备份/写入的文件（相对 REAL_HOME；claude/codex 走环境变量感知的实际路径）
 AGENT_FILES: Dict[str, List[str]] = {
     "claude": [".claude/settings.json"],
     "codex": [".codex/config.toml", ".codex/auth.json"],
@@ -52,6 +52,10 @@ AGENT_FILES: Dict[str, List[str]] = {
     "kimi": [".kimi-code/config.toml"],
     "opencode": [".config/opencode/opencode.json"],
     "minimax": [".minimax/config.yaml"],
+    # Pi：供应商在 agent/models.json，默认选中项在 agent/settings.json
+    "pi": [".pi/agent/models.json", ".pi/agent/settings.json"],
+    # Hermes：单文件 YAML（cc-switch hermes_config.rs 的同一位置）
+    "hermes": [".hermes/config.yaml"],
 }
 
 
@@ -77,6 +81,29 @@ def codex_home_dir() -> Path:
     """Codex 配置目录：遵循 ``CODEX_HOME``（否则 ~/.codex）"""
     raw = (os.environ.get("CODEX_HOME") or "").strip()
     return Path(raw) if raw else real_home() / ".codex"
+
+
+def _is_under(path: Path, parent: Path) -> bool:
+    """path 是否位于 parent 之下（用于只在环境变量指向真实家目录时才采信它）"""
+    try:
+        path.resolve().relative_to(parent.resolve())
+        return True
+    except Exception:
+        return False
+
+
+def hermes_config_path() -> Path:
+    """Hermes 配置：优先 ~/.hermes/config.yaml，其次 %LOCALAPPDATA%/hermes/config.yaml"""
+    home = real_home()
+    primary = home / ".hermes" / "config.yaml"
+    if primary.exists():
+        return primary
+    local = os.environ.get("LOCALAPPDATA") or ""
+    if local and _is_under(Path(local), home):
+        candidate = Path(local) / "hermes" / "config.yaml"
+        if candidate.exists():
+            return candidate
+    return primary
 
 
 def _backup_dir() -> Path:
@@ -177,6 +204,14 @@ def _floor_preview(agent: str, target: WriteTarget) -> Dict[str, Any]:
     if agent == "minimax":
         return {"provider.<id>.options.baseURL": target.base_url,
                 "provider.<id>.options.apiKey": "***"}
+    if agent == "pi":
+        return {"models.json:providers.agent-hub.baseUrl": target.base_url,
+                "models.json:providers.agent-hub.apiKey": "***",
+                "settings.json:defaultProvider": "agent-hub",
+                "settings.json:defaultModel": target.model or "(必填)"}
+    if agent == "hermes":
+        return {"config.yaml:providers.agent-hub.base_url": target.base_url,
+                "config.yaml:providers.agent-hub.api_key": "***"}
     return {}
 
 
@@ -398,6 +433,116 @@ def _write_minimax(target: WriteTarget) -> List[str]:
     return [str(path)]
 
 
+def _write_hermes(target: WriteTarget) -> List[str]:
+    """Hermes：~/.hermes/config.yaml 的 providers.<id>（字段名与 cc-switch 一致）"""
+    if YAML is None:
+        raise AgentWriterError("缺少 ruamel.yaml 依赖（requirements.txt 已声明），请先安装")
+    path = hermes_config_path()
+    if not path.exists():
+        raise AgentWriterError(f"未找到 Hermes 配置（{path}），请先初始化 Hermes")
+    original = path.read_bytes()
+    _first_write_backup("hermes", str(path), original, source_path=path)
+    yaml_rt = YAML()
+    yaml_rt.preserve_quotes = True
+    data = yaml_rt.load(path.read_text(encoding="utf-8")) or {}
+    providers = data.setdefault("providers", {})
+    provider_id = "agent-hub"
+    node = providers.get(provider_id) or {}
+    node["name"] = target.name
+    if target.base_url:
+        node["base_url"] = target.base_url
+    node["api_key"] = target.api_key
+    if target.model:
+        node["models"] = [{"id": target.model}]
+    providers[provider_id] = node
+    import io
+
+    buf = io.StringIO()
+    yaml_rt.dump(data, buf)
+    _atomic_write(path, buf.getvalue())
+    return [str(path)]
+
+
+#: Pi 的 api 取值：openai-completions / anthropic-messages 都受支持，按 provider kind 粗分
+_PI_API_BY_KIND = {
+    "window": "anthropic-messages",
+    "balance": "openai-completions",
+}
+
+
+def _write_pi(target: WriteTarget, provider_kind: str = "") -> List[str]:
+    """Pi：写 ~/.pi/agent/models.json 的 providers.<id>，并在 settings.json 选中
+
+    结构依据本机真实文件（providers.<id> = {name, api, apiKey, baseUrl, models[]}，
+    settings.json = {defaultProvider, defaultModel}）。
+    Pi 必须有模型才会被选中，因此未给模型时拒绝执行（避免假切换）。
+    """
+    if not target.model:
+        raise AgentWriterError("Pi 切换必须同时指定模型名（settings.json 的 defaultModel），否则不会生效")
+
+    home = real_home()
+    models_path = home / ".pi" / "agent" / "models.json"
+    settings_path = home / ".pi" / "agent" / "settings.json"
+    if not models_path.exists():
+        raise AgentWriterError(f"未找到 {models_path}，请先安装/初始化 Pi")
+
+    written: List[str] = []
+    provider_id = "agent-hub"
+
+    models_raw = models_path.read_bytes()
+    _first_write_backup("pi", ".pi/agent/models.json", models_raw, source_path=models_path)
+    try:
+        data = json.loads(models_raw.decode("utf-8"))
+    except ValueError as exc:
+        raise AgentWriterError(f"解析 {models_path} 失败: {exc}") from exc
+    providers = data.setdefault("providers", {})
+    node = providers.get(provider_id) or {}
+    node["name"] = target.name
+    node["api"] = _PI_API_BY_KIND.get(provider_kind, "openai-completions")
+    node["apiKey"] = target.api_key
+    if target.base_url:
+        node["baseUrl"] = target.base_url
+    models = node.get("models")
+    if not isinstance(models, list):
+        models = []
+    if not any(isinstance(m, dict) and m.get("id") == target.model for m in models):
+        models.append(
+            {
+                "id": target.model,
+                "name": target.model,
+                "reasoning": False,
+                "input": ["text"],
+                "cost": {},
+                "contextWindow": 200000,
+                "maxTokens": 8192,
+            }
+        )
+    node["models"] = models
+    providers[provider_id] = node
+    _atomic_write(models_path, _dump_json(data))
+    written.append(str(models_path))
+
+    _write_pi_selection(settings_path, provider_id, target.model)
+    written.append(str(settings_path))
+    return written
+
+
+def _write_pi_selection(settings_path: Path, provider_id: str, model: str) -> None:
+    """把 Pi 的默认供应商/模型指到刚写入的那一项（这才是「切换生效」）"""
+    if settings_path.exists():
+        raw = settings_path.read_bytes()
+        _first_write_backup("pi", ".pi/agent/settings.json", raw, source_path=settings_path)
+        try:
+            settings = json.loads(raw.decode("utf-8"))
+        except ValueError:
+            settings = {}
+    else:
+        settings = {}
+    settings["defaultProvider"] = provider_id
+    settings["defaultModel"] = model
+    _atomic_write(settings_path, _dump_json(settings))
+
+
 def apply_provider_to_agent(agent: str, target: WriteTarget,
                             provider_kind: str = "") -> Dict[str, Any]:
     """统一入口：切换前备份 → 只写 floor 字段 → 原子写。返回写入文件清单。"""
@@ -410,6 +555,8 @@ def apply_provider_to_agent(agent: str, target: WriteTarget,
         "kimi": _write_kimi,
         "opencode": lambda t: _write_opencode(t, provider_kind),
         "minimax": _write_minimax,
+        "pi": lambda t: _write_pi(t, provider_kind),
+        "hermes": _write_hermes,
     }
     written = handlers[agent](target)
     logger.info("Agent Hub 切换完成: agent=%s 写入=%s", agent, written)

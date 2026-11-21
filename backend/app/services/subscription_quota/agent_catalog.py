@@ -19,8 +19,10 @@ from typing import Optional
 
 from app.services.agent_hub.agent_writers import (
     AGENT_FILES,
+    _is_under,
     claude_settings_path,
     codex_home_dir,
+    hermes_config_path,
     real_home,
 )
 
@@ -80,14 +82,6 @@ def claude_desktop_config_paths() -> tuple["Path", ...]:
         else:
             candidates.append(home / default_rel)
     return tuple(candidates)
-
-
-def _is_under(path: "Path", parent: "Path") -> bool:
-    try:
-        path.resolve().relative_to(parent.resolve())
-        return True
-    except Exception:
-        return False
 
 
 def claude_desktop_config_path() -> "Path":
@@ -177,9 +171,7 @@ def agent_specs() -> tuple[AgentSpec, ...]:
             name="Pi",
             kind="cli",
             detect=(_home(".pi/agent/settings.json"), _home(".pi")),
-            writable=False,
-            readonly_reason="Pi 的供应商在 ~/.pi/agent/models.json（大结构、magpie 会重写），自动改写风险高；本次仅检测",
-            hint="检测到 .pi 即视为已安装",
+            hint="写入 ~/.pi/agent/models.json 的 providers 段，并在 settings.json 选中该供应商与模型",
         ),
         AgentSpec(
             id="grokbuild",
@@ -221,10 +213,8 @@ def agent_specs() -> tuple[AgentSpec, ...]:
             id="hermes",
             name="Hermes Agent",
             kind="cli",
-            detect=(_home("AppData/Local/hermes/config.yaml"), _home(".hermes")),
-            writable=False,
-            readonly_reason="Hermes 配置结构未实现写入器；本次仅检测",
-            hint="对齐 cc-switch 的 hermes 应用",
+            detect=(str(hermes_config_path()),),
+            hint="写入 Hermes config.yaml 的 providers 段（与 cc-switch 的 hermes 实现一致）",
         ),
         AgentSpec(
             id="copilot",

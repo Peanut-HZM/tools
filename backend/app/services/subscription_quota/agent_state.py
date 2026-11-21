@@ -19,6 +19,7 @@ from typing import Optional
 from app.services.agent_hub.agent_writers import (
     claude_settings_path,
     codex_home_dir,
+    hermes_config_path,
     real_home,
 )
 from app.services.subscription_quota.url_norm import normalize_base_url
@@ -210,9 +211,48 @@ def read_agent_current(agent: str) -> AgentCurrent:
             current.source_files = [str(path)]
 
         elif agent == "pi":
-            pi_dir = home / ".pi"
-            current.source_files = [str(pi_dir)] if pi_dir.exists() else []
-            current.error = "Pi 配置为 JSONC，仅供检测"
+            pi_dir = home / ".pi" / "agent"
+            models_path = pi_dir / "models.json"
+            settings_path = pi_dir / "settings.json"
+            current.source_files = [str(p) for p in (models_path, settings_path) if p.exists()]
+            if not models_path.exists():
+                current.error = "未找到 ~/.pi/agent/models.json"
+                return current
+            data = _read_json(models_path)
+            settings = {}
+            if settings_path.exists():
+                try:
+                    settings = _read_json(settings_path)
+                except ValueError:
+                    settings = {}
+            provider_id = str(settings.get("defaultProvider") or "")
+            current.model = str(settings.get("defaultModel") or "")
+            providers = data.get("providers") if isinstance(data.get("providers"), dict) else {}
+            node = providers.get(provider_id) if provider_id else None
+            if not isinstance(node, dict) and providers:
+                node = providers.get(next(iter(providers.keys())))
+            if isinstance(node, dict):
+                current.base_url = str(node.get("baseUrl") or node.get("base_url") or "")
+                current.api_key = str(node.get("apiKey") or node.get("api_key") or "")
+
+        elif agent == "hermes":
+            path = hermes_config_path()
+            if not path.exists() or YAML is None:
+                current.error = "未找到 Hermes config.yaml（或缺 ruamel.yaml）"
+                return current
+            yaml_rt = YAML()
+            data = yaml_rt.load(path.read_text(encoding="utf-8")) or {}
+            providers = data.get("providers") if isinstance(data.get("providers"), dict) else {}
+            node = providers.get("agent-hub")
+            if not isinstance(node, dict) and providers:
+                node = providers.get(next(iter(providers.keys())))
+            if isinstance(node, dict):
+                current.base_url = str(node.get("base_url") or node.get("baseUrl") or "")
+                current.api_key = str(node.get("api_key") or node.get("apiKey") or "")
+                models = node.get("models")
+                if isinstance(models, list) and models:
+                    current.model = str((models[0] or {}).get("id") or "")
+            current.source_files = [str(path)]
 
         elif agent == "kiro":
             kiro_dir = home / ".kiro"

@@ -155,3 +155,69 @@ def test_restore_brings_original_back(temp_home):
     restored = agent_switch.restore("claude")
     assert restored
     assert json.loads(settings.read_text(encoding="utf-8")) == original
+
+
+# ---------------------------------------------------------------- Pi / Hermes（本轮新增）
+
+
+def test_pi_switch_writes_provider_and_selection(temp_home):
+    models_path = temp_home / ".pi" / "agent" / "models.json"
+    models_path.parent.mkdir(parents=True)
+    models_path.write_text(json.dumps({"providers": {}}), encoding="utf-8")
+    settings_path = temp_home / ".pi" / "agent" / "settings.json"
+    settings_path.write_text(json.dumps({"defaultProvider": "magpie", "defaultModel": "k3"}), encoding="utf-8")
+
+    account = _account("https://api.kimi.com/coding/v1", "sk-pi")
+    result = agent_switch.apply_switch_verified(
+        "pi",
+        name="Kimi Code",
+        base_url=account.base_url,
+        api_key=account.api_key,
+        model="kimi-for-coding",
+        kind="window",
+        account=account,
+    )
+
+    assert result["verified"] is True
+    models = json.loads(models_path.read_text(encoding="utf-8"))
+    node = models["providers"]["agent-hub"]
+    assert node["apiKey"] == "sk-pi"
+    assert node["baseUrl"] == "https://api.kimi.com/coding/v1"
+    assert any(m["id"] == "kimi-for-coding" for m in node["models"])
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    # 真正生效的关键：settings 指向新 provider/模型
+    assert settings["defaultProvider"] == "agent-hub"
+    assert settings["defaultModel"] == "kimi-for-coding"
+
+
+def test_pi_without_model_is_rejected(temp_home):
+    models_path = temp_home / ".pi" / "agent" / "models.json"
+    models_path.parent.mkdir(parents=True)
+    models_path.write_text(json.dumps({"providers": {}}), encoding="utf-8")
+
+    with pytest.raises(agent_writers.AgentWriterError) as exc:
+        agent_switch.apply_switch(
+            "pi", name="X", base_url="https://a.example.com", api_key="sk-x", model=""
+        )
+    assert "模型" in str(exc.value)
+
+
+def test_hermes_switch_writes_provider(temp_home):
+    hermes_dir = temp_home / ".hermes"
+    hermes_dir.mkdir(parents=True)
+    (hermes_dir / "config.yaml").write_text("providers: {}\n", encoding="utf-8")
+
+    account = _account("https://relay.example.com/v1", "sk-hermes")
+    result = agent_switch.apply_switch_verified(
+        "hermes",
+        name="Relay",
+        base_url=account.base_url,
+        api_key=account.api_key,
+        model="some-model",
+        account=account,
+    )
+
+    assert result["verified"] is True
+    current = agent_state.read_agent_current("hermes")
+    assert current.base_url == "https://relay.example.com/v1"
+    assert current.api_key == "sk-hermes"
