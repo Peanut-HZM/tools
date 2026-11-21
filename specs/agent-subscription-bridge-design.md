@@ -1,7 +1,7 @@
 # 设计：订阅中心 ↔ 本机 CC Switch / Magpie 双向同步（agent-subscription-bridge）
 
 > 2026-11-21 | 状态：已审查通过（spec-review-loop 8 轮 + 实施期 4 项回写，台账见 docs/reviews/2026-11-21-agent-subscription-bridge-review.md）> 
-> 实施进度：T1–T6 已完成（后端模型/去重/深链/导出接口/本地桥/前端面板），T7 浏览器验收进行中
+> 实施进度：T1–T7 已完成（后端模型/去重/深链/导出接口/本地桥/前端面板/浏览器验收 + 生产部署）
 > 关联：`specs/agent-subscription-sync-design.md`（本机 → 云端单向）、`docs/design/agent-subscription-merge.md`（订阅中心合并）
 > 源码依据：`D:\GitHubProjects\cc-switch` @ 902a02da（v4.0.36）、`D:\GitHubProjects\magpie` @ 4716a77ff
 
