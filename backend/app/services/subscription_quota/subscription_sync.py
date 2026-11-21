@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -28,6 +29,7 @@ from app.services.subscription_quota.accounts import (
     _CREATE_SQL,
     _EXTRA_COLUMNS,
     _INDEX_SQL,
+    _acquire_pg_advisory_lock,
     _sqlite_columns,
     ensure_dedupe_index,
 )
@@ -64,26 +66,37 @@ def _server_engine():
     return engine
 
 
+_schema_ddl_lock = threading.Lock()
+
+
 def _ensure_schema() -> None:
-    """在远程主库幂等建表/补列（DDL 复用 accounts，防两处漂移）。"""
+    """在远程主库幂等建表/补列（DDL 复用 accounts，防两处漂移）。
+
+    并发防护同 accounts.ensure_schema：进程内锁 + PG 咨询锁——
+    多台机器的后端共用同一远程 PG 时串行化 DDL，避免 AccessExclusiveLock 死锁。
+    """
     global _schema_ready
     if _schema_ready:
         return
-    target = _server_engine()
-    with target.begin() as conn:
-        conn.execute(text(_CREATE_SQL))
-        conn.execute(text(_INDEX_SQL))
-        if target.dialect.name == "sqlite":
-            existing = _sqlite_columns(conn)
-            for column, ddl in _EXTRA_COLUMNS:
-                if column not in existing:
-                    conn.execute(text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN {column} {ddl}"))
-        else:
-            for column, ddl in _EXTRA_COLUMNS:
-                conn.execute(
-                    text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
-                )
-    _schema_ready = True
+    with _schema_ddl_lock:
+        if _schema_ready:  # 双重检查：等锁期间可能已完成
+            return
+        target = _server_engine()
+        with target.begin() as conn:
+            _acquire_pg_advisory_lock(conn)
+            conn.execute(text(_CREATE_SQL))
+            conn.execute(text(_INDEX_SQL))
+            if target.dialect.name == "sqlite":
+                existing = _sqlite_columns(conn)
+                for column, ddl in _EXTRA_COLUMNS:
+                    if column not in existing:
+                        conn.execute(text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN {column} {ddl}"))
+            else:
+                for column, ddl in _EXTRA_COLUMNS:
+                    conn.execute(
+                        text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
+                    )
+        _schema_ready = True
     # 建去重唯一索引（有冲突/失败则降级为无索引运行，绝不阻断服务）
     report = ensure_dedupe_index(target)
     if report.get("conflicts"):

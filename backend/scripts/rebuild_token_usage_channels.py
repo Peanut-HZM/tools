@@ -17,7 +17,7 @@ import argparse
 import logging
 import sys
 
-from app.services.token_usage_channels import reset_channel_cache
+from app.utils.token_usage_channels import reset_channel_cache
 from app.services.token_usage_sync_service import sync_token_usage
 
 

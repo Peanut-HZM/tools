@@ -23,6 +23,7 @@ import json
 import hashlib
 import logging
 import os
+import threading
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -185,6 +186,8 @@ def ensure_dedupe_index(target_engine=None) -> dict:
                     TABLE_NAME,
                 )
                 return report
+            # 与 ensure_schema 共用同一咨询锁键：跨实例串行化本表所有 DDL
+            _acquire_pg_advisory_lock(conn)
             conn.execute(
                 text(
                     f"CREATE UNIQUE INDEX IF NOT EXISTS {DEDUPE_INDEX_NAME} "
@@ -205,32 +208,59 @@ def _sqlite_columns(conn) -> set[str]:
     return {row[1] for row in rows}
 
 
+#: 进程内串行化建表 DDL（多线程启动时避免同一进程并发执行）
+_schema_ddl_lock = threading.Lock()
+
+#: 跨实例 PG 咨询锁键（多台机器的后端共用同一远程 PG 时，串行化 ALTER TABLE，
+#: 避免 AccessExclusiveLock 互相等待导致 DeadlockDetected——2026-11-21 实锤）
+_PG_DDL_ADVISORY_KEY = 0x53514C41  # "SQAc" 常量（subscription quota accounts）
+
+
+def _acquire_pg_advisory_lock(conn) -> None:
+    """PG 方言下取事务级咨询锁；非 PG 方言无操作。"""
+    if conn.dialect.name == "postgresql":
+        conn.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": _PG_DDL_ADVISORY_KEY})
+
+
 def ensure_schema() -> None:
-    """幂等建表 + 幂等补列（按存储位置分别只做一次）。"""
+    """幂等建表 + 幂等补列（按存储位置分别只做一次）。
+
+    并发防护（2026-11-21）：本地与服务器两台机器的后端共用同一远程 PG，
+    启动期 lifespan / 后台同步 / ASGI 请求可能**并发**对本表执行 DDL，
+    PG 的 ALTER TABLE 需要 AccessExclusiveLock，两个会话交叉加锁会互相
+    死锁（DeadlockDetected 实锤）。此处做两层防护：
+    1. 进程内 threading.Lock 串行化；
+    2. PG 事务级咨询锁（pg_advisory_xact_lock）跨实例串行化——
+       后到的事务会**排队等待**而不是死锁。
+    """
     location = _storage_location()
     if location in _schema_ready_by_location:
         return
-    try:
-        target = _get_engine()
-        with target.begin() as conn:
-            conn.execute(text(_CREATE_SQL))
-            conn.execute(text(_INDEX_SQL))
-            if _use_local():
-                # SQLite 不支持 ADD COLUMN IF NOT EXISTS，先查已有列再补
-                existing = _sqlite_columns(conn)
-                for column, ddl in _EXTRA_COLUMNS:
-                    if column not in existing:
-                        conn.execute(text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN {column} {ddl}"))
-            else:
-                # 合并 agent-hub 后新增的列：ADD COLUMN IF NOT EXISTS 幂等
-                for column, ddl in _EXTRA_COLUMNS:
-                    conn.execute(
-                        text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
-                    )
-        _schema_ready_by_location.add(location)
-    except Exception as exc:  # 建表失败不静默：让调用方看到真实错误
-        logger.error("创建 %s 表失败（storage=%s）: %s", TABLE_NAME, location, exc, exc_info=True)
-        raise
+    with _schema_ddl_lock:
+        if location in _schema_ready_by_location:  # 双重检查：等锁期间可能已完成
+            return
+        try:
+            target = _get_engine()
+            with target.begin() as conn:
+                _acquire_pg_advisory_lock(conn)
+                conn.execute(text(_CREATE_SQL))
+                conn.execute(text(_INDEX_SQL))
+                if _use_local():
+                    # SQLite 不支持 ADD COLUMN IF NOT EXISTS，先查已有列再补
+                    existing = _sqlite_columns(conn)
+                    for column, ddl in _EXTRA_COLUMNS:
+                        if column not in existing:
+                            conn.execute(text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN {column} {ddl}"))
+                else:
+                    # 合并 agent-hub 后新增的列：ADD COLUMN IF NOT EXISTS 幂等
+                    for column, ddl in _EXTRA_COLUMNS:
+                        conn.execute(
+                            text(f"ALTER TABLE {TABLE_NAME} ADD COLUMN IF NOT EXISTS {column} {ddl}")
+                        )
+            _schema_ready_by_location.add(location)
+        except Exception as exc:  # 建表失败不静默：让调用方看到真实错误
+            logger.error("创建 %s 表失败（storage=%s）: %s", TABLE_NAME, location, exc, exc_info=True)
+            raise
 
 
 @dataclass
