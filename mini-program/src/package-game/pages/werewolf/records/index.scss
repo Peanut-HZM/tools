@@ -110,7 +110,7 @@
 
     text { font-size: 28rpx; font-weight: 600; color: var(--text-primary); }
   }
-  &__tl { max-height: 60vh; }
+  &__tl { height: 60vh; }  /* scroll-view 需要确定高度（max-height 无效） */
   &__back {
     margin-top: 20rpx;
     text-align: center;

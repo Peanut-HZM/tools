@@ -695,6 +695,7 @@ app.include_router(http_client.router, prefix="/api")
 # WebSocket 游戏路由
 from app.routes import werewolf as werewolf_router
 from app.routes import sanguo as sanguo_router
+app.include_router(werewolf_router.router, prefix="/api")
 app.include_router(sanguo_router.router)
 # WS 路由直接挂载：经 include_router 注册的 websocket 路由在本 Starlette 版本
 # 的 _IncludedRouter 分发下会被 1008 拒绝，故用纯 Starlette 路由挂载

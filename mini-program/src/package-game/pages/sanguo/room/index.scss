@@ -3,7 +3,11 @@
 
 .sg {
   padding: 24rpx;
-  padding-bottom: 200rpx;
+  /* fixed 操作栏 + iPhone 安全区 */
+  padding-bottom: calc(280rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: hidden;
 
   &--loading {
     display: flex;
@@ -55,6 +59,8 @@
 .sg-players {
   margin-bottom: 16rpx;
   white-space: nowrap;
+  /* 横向 scroll-view 必须有确定高度，否则塌陷/手势失效 */
+  height: 200rpx;
 
   &__row {
     display: inline-flex;
@@ -87,6 +93,8 @@
 .sg-hand {
   margin-bottom: 12rpx;
   white-space: nowrap;
+  /* 手牌横向滑动区需要确定高度 */
+  height: 206rpx;
 
   &__row { display: inline-flex; gap: 14rpx; padding: 4rpx; }
 }
@@ -135,28 +143,39 @@
   position: fixed;
   left: 24rpx;
   right: 24rpx;
-  bottom: 40rpx;
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
   background: rgba(20, 25, 50, 0.95);
   border-radius: 20rpx;
-  padding: 24rpx;
+  padding: 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* 窄屏换行：提示独占一行，按钮均分，避免挤压/裁切 */
+  flex-wrap: wrap;
+  gap: 12rpx;
+  box-sizing: border-box;
   z-index: 20;
 
   &__tip {
     color: var(--text-primary);
     font-size: 24rpx;
-    flex: 1;
-    margin-right: 12rpx;
+    flex: 1 1 100%;
+    min-width: 0;
+    word-break: break-all;
   }
   &__btns {
     display: flex;
     gap: 14rpx;
     align-items: center;
+    flex: 1 1 100%;
   }
   &__btn {
-    padding: 14rpx 32rpx;
+    flex: 1;
+    min-height: 88rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24rpx;
     border-radius: 14rpx;
   }
 }
@@ -168,7 +187,8 @@
   border-radius: 14rpx;
 }
 .sg-log {
-  max-height: 240rpx;
+  /* scroll-view 需要确定高度 */
+  height: 240rpx;
 
   .sg-log__item {
     display: block;
@@ -232,7 +252,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 120rpx;
+  padding-top: 80rpx;
+  /* 多人局结算比屏幕高：允许滚动，保证底部按钮可点 */
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 
   &__winner {
     font-size: 48rpx;

@@ -3,6 +3,9 @@
 
 .werewolf-lobby {
   padding: 32rpx;
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: hidden;
 }
 .lobby-card {
   padding: 32rpx;
@@ -27,6 +30,8 @@
   border-radius: 16rpx;
   padding: 16rpx 20rpx;
   min-width: 200rpx;
+  /* 触控目标 ≥ 88rpx（约 44px） */
+  min-height: 88rpx;
   box-sizing: border-box;
 
   &--active {
@@ -77,8 +82,8 @@
     gap: 24rpx;
   }
   &__btn {
-    width: 56rpx;
-    height: 56rpx;
+    width: 72rpx;
+    height: 72rpx;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.08);
     display: flex;
@@ -118,9 +123,11 @@
 .lobby-join {
   display: flex;
   gap: 16rpx;
+  align-items: stretch;
 }
 .lobby-join__input {
   flex: 1;
+  min-width: 0;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 16rpx;
   padding: 20rpx 24rpx;
@@ -129,7 +136,9 @@
   letter-spacing: 8rpx;
 }
 .lobby-join__btn {
-  padding: 0 48rpx;
+  flex-shrink: 0;
+  min-height: 88rpx;
+  padding: 0 40rpx;
   display: flex;
   align-items: center;
   justify-content: center;

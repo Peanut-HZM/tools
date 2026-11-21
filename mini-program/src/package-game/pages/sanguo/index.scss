@@ -72,9 +72,11 @@
 .lobby-join {
   display: flex;
   gap: 16rpx;
+  align-items: stretch;
 
   &__input {
     flex: 1;
+    min-width: 0;
     background: rgba(255, 255, 255, 0.06);
     border-radius: 16rpx;
     padding: 20rpx 24rpx;
@@ -83,7 +85,9 @@
     letter-spacing: 8rpx;
   }
   &__btn {
-    padding: 0 48rpx;
+    flex-shrink: 0;
+    min-height: 88rpx;
+    padding: 0 40rpx;
     display: flex;
     align-items: center;
     justify-content: center;

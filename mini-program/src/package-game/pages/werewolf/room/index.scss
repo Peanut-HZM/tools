@@ -3,7 +3,11 @@
 
 .wr {
   padding: 24rpx;
-  padding-bottom: 240rpx;
+  /* 底部操作栏是 fixed，内容必须预留足够空间（含 iPhone 安全区），否则按钮/文字被遮挡 */
+  padding-bottom: calc(300rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: hidden;
 
   &--loading {
     display: flex;
@@ -103,25 +107,39 @@
   position: fixed;
   left: 24rpx;
   right: 24rpx;
-  bottom: 40rpx;
+  /* 抬到 iPhone 安全区之上 */
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
   background: rgba(20, 25, 50, 0.95);
   border-radius: 20rpx;
-  padding: 24rpx;
+  padding: 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* 窄屏时自动换行，避免提示文字与按钮互相挤压/被裁切 */
+  flex-wrap: wrap;
+  gap: 12rpx;
+  box-sizing: border-box;
   z-index: 20;
 
   &__tip {
     color: var(--text-primary);
     font-size: 26rpx;
+    flex: 1 1 100%;
+    min-width: 0;
+    word-break: break-all;
   }
   &__btns {
     display: flex;
     gap: 16rpx;
+    flex: 1 1 100%;
   }
   &__btn {
-    padding: 16rpx 44rpx;
+    flex: 1;
+    min-height: 88rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24rpx;
     border-radius: 16rpx;
 
     &--ghost {
@@ -135,33 +153,43 @@
   position: fixed;
   left: 24rpx;
   right: 24rpx;
-  bottom: 40rpx;
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
   background: rgba(20, 25, 50, 0.95);
   border-radius: 20rpx;
-  padding: 20rpx;
+  padding: 16rpx;
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  box-sizing: border-box;
   z-index: 20;
 
   &__input {
-    flex: 1;
+    flex: 1 1 60%;
+    min-width: 0;
     background: rgba(255, 255, 255, 0.07);
     border-radius: 12rpx;
     padding: 16rpx 20rpx;
     color: var(--text-primary);
   }
   &__send {
-    padding: 16rpx 32rpx;
+    flex: 0 0 auto;
+    min-height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 32rpx;
     border-radius: 12rpx;
   }
   &__skip {
     color: var(--text-secondary);
     font-size: 24rpx;
+    padding: 8rpx 4rpx;
   }
 }
 .wr-speeches {
-  max-height: 320rpx;
+  /* scroll-view 必须有确定高度（max-height 不算），否则高度塌陷/滚不动 */
+  height: 320rpx;
   margin-bottom: 16rpx;
 
   .wr-speech-item {
@@ -182,7 +210,8 @@
   }
 }
 .wr-log {
-  max-height: 260rpx;
+  /* scroll-view 需要确定高度 */
+  height: 260rpx;
 
   .wr-log__item {
     display: block;
@@ -202,7 +231,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 120rpx;
+  padding-top: 80rpx;
+  /* 结算页可能比屏幕高（12 人局）：必须可滚动，否则底部按钮点不到 */
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 
   &__winner {
     font-size: 48rpx;
